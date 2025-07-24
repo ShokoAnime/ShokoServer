@@ -351,14 +351,14 @@ public partial class ConfigurationService : IConfigurationService
 
     #region Custom Actions
 
-    public ConfigurationActionResult PerformAction(ConfigurationInfo info, IConfiguration configuration, string path, string action, IShokoUser? user = null)
+    public ConfigurationActionResult PerformAction(ConfigurationInfo info, IConfiguration configuration, string path, string action, IShokoUser? user = null, Uri? uri = null)
     {
         try
         {
             return (ConfigurationActionResult)typeof(ConfigurationService)
                 .GetMethod(nameof(PerformActionInternal), BindingFlags.NonPublic | BindingFlags.Static)!
                 .MakeGenericMethod(configuration.GetType())
-                .Invoke(this, [info, configuration, path, action, user])!;
+                .Invoke(this, [info, configuration, path, action, user, uri])!;
         }
         catch (TargetInvocationException ex)
         {
@@ -368,8 +368,8 @@ public partial class ConfigurationService : IConfigurationService
         }
     }
 
-    public ConfigurationActionResult PerformAction<TConfig>(TConfig configuration, string path, string action, IShokoUser? user = null) where TConfig : class, IConfiguration, new()
-        => PerformActionInternal(GetConfigurationInfo<TConfig>(), configuration, path, action, user);
+    public ConfigurationActionResult PerformAction<TConfig>(TConfig configuration, string path, string action, IShokoUser? user = null, Uri? uri = null) where TConfig : class, IConfiguration, new()
+        => PerformActionInternal(GetConfigurationInfo<TConfig>(), configuration, path, action, user, uri);
 
     [GeneratedRegex(@"(?<!\\)\.")]
     private static partial Regex SplitPathToPartsRegex();
@@ -380,7 +380,7 @@ public partial class ConfigurationService : IConfigurationService
     [GeneratedRegex(@"(?<=\w|\]|^)\[", RegexOptions.Compiled | RegexOptions.ECMAScript)]
     private static partial Regex IndexNotationFixRegex();
 
-    private static ConfigurationActionResult PerformActionInternal<TConfig>(ConfigurationInfo info, TConfig configuration, string path, string action, IShokoUser? user) where TConfig : class, IConfiguration, new()
+    private static ConfigurationActionResult PerformActionInternal<TConfig>(ConfigurationInfo info, TConfig configuration, string path, string action, IShokoUser? user, Uri? uri) where TConfig : class, IConfiguration, new()
     {
         var schema = info.Schema;
         var type = info.ContextualType;
@@ -443,7 +443,7 @@ public partial class ConfigurationService : IConfigurationService
             throw new InvalidConfigurationActionException($"Invalid action \"{action}\" for path \"{path}\"", nameof(action));
 
         if (info.Definition is IConfigurationDefinitionWithCustomActions<TConfig> provider)
-            return provider.PerformAction(configuration, path, action, type, user);
+            return provider.PerformAction(configuration, path, action, type, user, uri);
         return new("Configuration does not support custom actions!", DisplayColorTheme.Warning) { RefreshConfiguration = false };
     }
 

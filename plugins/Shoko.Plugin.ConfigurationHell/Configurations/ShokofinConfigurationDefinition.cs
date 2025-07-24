@@ -91,7 +91,7 @@ public class ShokofinConfigurationDefinition
     }
 
     /// <inheritdoc />
-    public ConfigurationActionResult PerformAction(ShokofinConfiguration config, string path, string action, ContextualType type, IShokoUser? user = null)
+    public ConfigurationActionResult PerformAction(ShokofinConfiguration config, string path, string action, ContextualType type, IShokoUser? user = null, Uri? uri = null)
         => (path, action) switch
         {
             ("Connection", "Connect") => ConnectToShoko(config),

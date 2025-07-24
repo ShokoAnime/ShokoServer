@@ -83,6 +83,9 @@ public class ConfigurationProvider<TConfig> : IDisposable where TConfig : class,
     /// <param name="user">
     ///   The user performing the action, if applicable.
     /// </param>
+    /// <param name="uri">
+    ///   The base URI used to access the server by the user, if applicable.
+    /// </param>
     /// <exception cref="InvalidConfigurationActionException">
     ///   Thrown when an action is invalid. Be it because the action does not
     ///   exist or because the path for where to look for the action is invalid.
@@ -90,8 +93,8 @@ public class ConfigurationProvider<TConfig> : IDisposable where TConfig : class,
     /// <returns>
     ///   The result of the action.
     /// </returns>
-    public ConfigurationActionResult PerformAction(string path, string action, IShokoUser? user = null)
-        => _service.PerformAction(Load(), path, action, user);
+    public ConfigurationActionResult PerformAction(string path, string action, IShokoUser? user = null, Uri? uri = null)
+        => _service.PerformAction(Load(), path, action, user, uri);
 
     /// <summary>
     ///   Perform an action on the configuration on a configuration instance.
@@ -108,6 +111,9 @@ public class ConfigurationProvider<TConfig> : IDisposable where TConfig : class,
     /// <param name="user">
     ///   The user performing the action, if applicable.
     /// </param>
+    /// <param name="uri">
+    ///   The base URI used to access the server by the user, if applicable.
+    /// </param>
     /// <exception cref="InvalidConfigurationActionException">
     ///   Thrown when an action is invalid. Be it because the action does not
     ///   exist or because the path for where to look for the action is invalid.
@@ -115,8 +121,8 @@ public class ConfigurationProvider<TConfig> : IDisposable where TConfig : class,
     /// <returns>
     ///   The result of the action.
     /// </returns>
-    public ConfigurationActionResult PerformAction(TConfig config, string path, string action, IShokoUser? user = null)
-        => _service.PerformAction(config, path, action, user);
+    public ConfigurationActionResult PerformAction(TConfig config, string path, string action, IShokoUser? user = null, Uri? uri = null)
+        => _service.PerformAction(config, path, action, user, uri);
 
     /// <summary>
     /// Creates a new configuration instance.

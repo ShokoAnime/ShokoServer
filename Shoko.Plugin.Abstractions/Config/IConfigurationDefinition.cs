@@ -86,18 +86,20 @@ public interface IConfigurationDefinitionWithCustomValidation<TConfig> : IConfig
 /// your configuration, be it at the base or at a sub-class level for any custom
 /// actions to be available in the UI.
 /// </summary>
+/// <typeparam name="TConfig">The type of the configuration.</typeparam>
 public interface IConfigurationDefinitionWithCustomActions<TConfig> : IConfigurationDefinition where TConfig : class, IConfiguration, new()
 {
     /// <summary>
     /// Perform a custom action on the configuration.
     /// </summary>
-    /// <param name="config">The configuration.</param>
+    /// <param name="configuration">The configuration instance.</param>
     /// <param name="path">The path to the configuration.</param>
     /// <param name="action">The action to perform.</param>
     /// <param name="type">The contextual type of the class or sub-class.</param>
-    /// <param name="user">The user performing the action, if any.</param>
+    /// <param name="user">The user performing the action, if applicable.</param>
+    /// <param name="uri">The base URI used to access the server by the user, if applicable.</param>
     /// <returns>The result of the action.</returns>
-    ConfigurationActionResult PerformAction(TConfig config, string path, string action, ContextualType type, IShokoUser? user = null);
+    ConfigurationActionResult PerformAction(TConfig configuration, string path, string action, ContextualType type, IShokoUser? user, Uri? uri);
 }
 
 /// <summary>

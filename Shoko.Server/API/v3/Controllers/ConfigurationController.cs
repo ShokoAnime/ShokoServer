@@ -212,8 +212,15 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
             if (!string.IsNullOrEmpty(data) && configurationService.Validate(configInfo, data) is { Count: > 0 } errors)
                 return ValidationProblem(errors);
 
+            var uri = new UriBuilder(
+                Request.Scheme,
+                Request.Host.Host,
+                Request.Host.Port ?? (Request.Scheme == "https" ? 443 : 80),
+                Request.PathBase,
+                null
+            );
             var config = string.IsNullOrEmpty(data) ? configurationService.Load(configInfo) : configurationService.Deserialize(configInfo, data);
-            var result = configurationService.PerformAction(configInfo, config, path, action, User);
+            var result = configurationService.PerformAction(configInfo, config, path, action, User, uri.Uri);
             return Ok(new ConfigurationActionResult(result));
         }
         catch (ConfigurationValidationException ex)

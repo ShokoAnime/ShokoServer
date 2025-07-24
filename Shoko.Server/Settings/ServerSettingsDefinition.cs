@@ -118,7 +118,7 @@ public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWit
         return JsonConvert.SerializeObject(result, serializerSettings);
     }
 
-    public ConfigurationActionResult PerformAction(ServerSettings config, string path, string action, ContextualType type, IShokoUser? user = null)
+    public ConfigurationActionResult PerformAction(ServerSettings config, string path, string action, ContextualType type, IShokoUser? user, Uri? uri)
     {
         return (path, action) switch
         {
