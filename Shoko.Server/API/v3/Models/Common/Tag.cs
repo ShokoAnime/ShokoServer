@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Models.Server;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
 
 #nullable enable

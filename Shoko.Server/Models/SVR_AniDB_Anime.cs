@@ -7,6 +7,7 @@ using Shoko.Models.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Anidb;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Models.AniDB;
@@ -22,7 +23,7 @@ using AbstractEpisodeType = Shoko.Plugin.Abstractions.DataModels.EpisodeType;
 #nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_AniDB_Anime : AniDB_Anime, ISeries
+public class SVR_AniDB_Anime : AniDB_Anime, ISeries, IAnidbAnime
 {
     #region Properties & Methods
 
@@ -455,21 +456,24 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
 
     IImageMetadata? ISeries.DefaultPoster => this.GetImageMetadata();
 
-    IReadOnlyList<IRelatedMetadata<ISeries>> ISeries.RelatedSeries =>
-        RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID).OfType<IRelatedMetadata<ISeries>>()
-            .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(AnimeID).OfType<IRelatedMetadata<ISeries>>().Select(a => a.Reversed))
+    IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> ISeries.RelatedSeries =>
+        RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID).OfType<IRelatedMetadata<ISeries, ISeries>>()
+            .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(AnimeID).OfType<IRelatedMetadata<ISeries, ISeries>>().Select(a => a.Reversed))
             .Distinct()
             .OrderBy(a => a.BaseID)
             .ThenBy(a => a.RelatedID)
             .ThenBy(a => a.RelationType)
             .ToList();
 
-    IReadOnlyList<IRelatedMetadata<IMovie>> ISeries.RelatedMovies => [];
+    IReadOnlyList<IRelatedMetadata<ISeries, IMovie>> ISeries.RelatedMovies => [];
 
     IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID);
 
-    IReadOnlyList<IEpisode> ISeries.Episodes => AniDBEpisodes;
+    IReadOnlyList<IEpisode> ISeries.Episodes => AniDBEpisodes
+        .OrderBy(a => a.EpisodeTypeEnum)
+        .ThenBy(a => a.EpisodeNumber)
+        .ToList();
 
     IReadOnlyList<IVideo> ISeries.Videos =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID)
@@ -494,6 +498,27 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
             };
         }
     }
+
+    #endregion
+
+    #region IAnidbAnime Implementation
+
+    IReadOnlyList<int> IAnidbAnime.MalIDs => MalCrossReferences
+        .Select(xref => xref.MALID)
+        .Distinct()
+        .Where(x => x >= 0)
+        .ToList();
+
+    IReadOnlyList<IAnidbTagForAnime> IAnidbAnime.Tags => AnimeTags
+        .Select(xref => (xref, tag: xref.Tag!))
+        .Where(tuple => tuple.tag is not null)
+        .Select(tuple => new AniDB_Anime_Tag_Abstract(tuple.tag, tuple.xref))
+        .ToList();
+
+    IReadOnlyList<IAnidbEpisode> IAnidbAnime.Episodes => AniDBEpisodes
+        .OrderBy(a => a.EpisodeTypeEnum)
+        .ThenBy(a => a.EpisodeNumber)
+        .ToList();
 
     #endregion
 }

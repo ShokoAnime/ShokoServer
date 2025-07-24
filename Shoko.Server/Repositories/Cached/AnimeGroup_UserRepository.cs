@@ -16,7 +16,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, i
 
     private PocoIndex<int, AnimeGroup_User, int>? _userIDs;
 
-    private PocoIndex<int, AnimeGroup_User, int, int>? _userGroupIDs;
+    private PocoIndex<int, AnimeGroup_User, (int, int)>? _userGroupIDs;
 
     private readonly Dictionary<int, ChangeTracker<int>> _changes = [];
 
@@ -36,7 +36,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, i
     {
         _groupIDs = Cache.CreateIndex(a => a.AnimeGroupID);
         _userIDs = Cache.CreateIndex(a => a.JMMUserID);
-        _userGroupIDs = Cache.CreateIndex(a => a.JMMUserID, a => a.AnimeGroupID);
+        _userGroupIDs = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeGroupID));
 
         foreach (var n in Cache.Values.Select(a => a.JMMUserID).Distinct())
         {
@@ -153,7 +153,7 @@ public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, i
     }
 
     public AnimeGroup_User? GetByUserAndGroupID(int userID, int groupID)
-        => ReadLock(() => _userGroupIDs!.GetOne(userID, groupID));
+        => ReadLock(() => _userGroupIDs!.GetOne((userID, groupID)));
 
     public List<AnimeGroup_User> GetByUserID(int userID)
         => ReadLock(() => _userIDs!.GetMultiple(userID));

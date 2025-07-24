@@ -58,6 +58,8 @@ public partial class WebUIUpdateService
         ServerRepoName = Environment.GetEnvironmentVariable("SHOKO_SERVER_REPO") is { } serverRepoName && CompiledRepoNameRegex().IsMatch(serverRepoName)
             ? serverRepoName
             : "ShokoAnime/ShokoServer";
+        if (Environment.GetEnvironmentVariable("GITHUB_TOKEN") is { Length: > 0 } githubToken)
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {githubToken}");
     }
 
     /// <summary>
@@ -432,7 +434,7 @@ public partial class WebUIUpdateService
     public static WebUIVersionInfo? LoadIncludedWebUIVersionInfo(IApplicationPaths? applicationPaths = null)
     {
         applicationPaths ??= ApplicationPaths.Instance;
-        var webUIFileInfo = new FileInfo(Path.Join(applicationPaths.ExecutableDirectoryPath, "webui/version.json"));
+        var webUIFileInfo = new FileInfo(Path.Join(applicationPaths.ApplicationPath, "webui/version.json"));
         if (webUIFileInfo.Exists)
             return JsonConvert.DeserializeObject<WebUIVersionInfo>(File.ReadAllText(webUIFileInfo.FullName));
         return null;

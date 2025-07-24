@@ -14,6 +14,10 @@ public class ResponseGetFile
     /// AniDB Release Group ID, if available
     public int? GroupID { get; set; }
 
+    public string GroupName { get; set; }
+
+    public string GroupShortName { get; set; }
+
     // AniDB Episode IDs for episodes that this file may link to. The eid is listed here as 100%
     public List<EpisodeXRef> EpisodeIDs { get; set; }
 
@@ -52,8 +56,7 @@ public class ResponseGetFile
     // Filename as reported in AVDump
     public string Filename { get; set; }
 
-    // MyList Info, if applicable
-    public MyListInfo MyList { get; set; }
+    public DateOnly? ReleasedAt { get; set; }
 
     public class EpisodeXRef
     {
@@ -62,25 +65,5 @@ public class ResponseGetFile
 
         // Percentage of the Episode it represents. May not be exact, and has no info of where in the episode it lies
         public byte Percentage { get; set; }
-    }
-
-    public class MyListInfo
-    {
-        // things here aren't nullable because this whole model will be null in that case.
-        // Generic File info is not applicable in this context, as GetFile won't match in those cases
-        // AniDB MyListID for the current user, if applicable
-        public int MyListID { get; set; }
-
-        // Location of the file as marked in MyList
-        public MyList_State State { get; set; }
-
-        // state of the file as marked in MyList. This is stuff like corrupted, etc
-        public MyList_FileState FileState { get; set; }
-
-        // View Count
-        public int ViewCount { get; set; }
-
-        // Latest View Date
-        public DateTime? ViewDate { get; set; }
     }
 }

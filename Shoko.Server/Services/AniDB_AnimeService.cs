@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories.Cached;
@@ -15,17 +16,15 @@ public class AniDB_AnimeService
 {
     private readonly AniDB_Anime_TitleRepository _titles;
     private readonly AniDB_TagRepository _aniDBTags;
-    private readonly CrossRef_Languages_AniDB_FileRepository _languages;
-    private readonly CrossRef_Subtitles_AniDB_FileRepository _subtitles;
+    private readonly StoredReleaseInfoRepository _storedReleaseInfo;
     private readonly VideoLocalRepository _videoLocals;
     private readonly AniDB_CharacterRepository _characters;
 
-    public AniDB_AnimeService(AniDB_Anime_TitleRepository titles, AniDB_TagRepository aniDBTags, CrossRef_Languages_AniDB_FileRepository languages, CrossRef_Subtitles_AniDB_FileRepository subtitles, VideoLocalRepository videoLocals, AniDB_CharacterRepository characters)
+    public AniDB_AnimeService(AniDB_Anime_TitleRepository titles, AniDB_TagRepository aniDBTags, StoredReleaseInfoRepository storedReleaseInfo, VideoLocalRepository videoLocals, AniDB_CharacterRepository characters)
     {
         _titles = titles;
         _aniDBTags = aniDBTags;
-        _languages = languages;
-        _subtitles = subtitles;
+        _storedReleaseInfo = storedReleaseInfo;
         _videoLocals = videoLocals;
         _characters = characters;
     }
@@ -89,15 +88,22 @@ public class AniDB_AnimeService
 
         cl.UserVote = anime.UserVote;
 
-        cl.Stat_AudioLanguages = _languages.GetLanguagesForAnime(anime.AnimeID);
-        cl.Stat_SubtitleLanguages = _subtitles.GetLanguagesForAnime(anime.AnimeID);
+        cl.Stat_AudioLanguages = _storedReleaseInfo.GetByAnidbAnimeID(anime.AnimeID)
+            .SelectMany(a => a.AudioLanguages?.Select(b => b.GetString()) ?? [])
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+        cl.Stat_SubtitleLanguages = _storedReleaseInfo.GetByAnidbAnimeID(anime.AnimeID)
+            .SelectMany(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? [])
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         cl.Stat_AllVideoQuality =
-            new HashSet<string>(_videoLocals.GetByAniDBAnimeID(anime.AnimeID).Select(a => a.AniDBFile?.File_Source).Where(a => a != null),
+            new HashSet<string>(_videoLocals.GetByAniDBAnimeID(anime.AnimeID).Select(a => a.ReleaseInfo?.LegacySource).WhereNotDefault(),
                 StringComparer.InvariantCultureIgnoreCase);
         cl.Stat_AllVideoQuality_Episodes = new HashSet<string>(
-            _videoLocals.GetByAniDBAnimeID(anime.AnimeID).Select(a => a.AniDBFile)
-                .Where(a => a != null && a.Episodes.Any(b => b.AnimeID == anime.AnimeID && b.EpisodeType == (int)EpisodeType.Episode))
-                .Select(a => a.File_Source).Where(a => a != null).GroupBy(b => b).ToDictionary(b => b.Key, b => b.Count())
+            _videoLocals.GetByAniDBAnimeID(anime.AnimeID).Select(a => (a, a.EpisodeCrossReferences, a.ReleaseInfo))
+                .Where(a => a.ReleaseInfo is { } && a.EpisodeCrossReferences.Select(b => b.AniDBEpisode).WhereNotNull().Any(b => b.AnimeID == anime.AnimeID && b.EpisodeType == (int)EpisodeType.Episode))
+                .Select(a => a.ReleaseInfo!.LegacySource)
+                .WhereNotDefault()
+                .GroupBy(b => b)
+                .Select(a => KeyValuePair.Create(a.Key, a.Count()))
                 .Where(a => a.Value >= anime.EpisodeCountNormal).Select(a => a.Key), StringComparer.InvariantCultureIgnoreCase);
 
         return cl;

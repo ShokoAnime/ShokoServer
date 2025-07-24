@@ -13,7 +13,7 @@ public class FileEventSignalRModel
         RelativePath = eventArgs.RelativePath;
         FileID = eventArgs.File.VideoID;
         FileLocationID = eventArgs.File.ID;
-        ImportFolderID = eventArgs.ImportFolder.ID;
+        ManagedFolderID = eventArgs.ManagedFolder.ID;
         var xrefs = eventArgs.Video.CrossReferences;
         var episodeDict = eventArgs.Episodes
             .WhereNotNull()
@@ -46,12 +46,12 @@ public class FileEventSignalRModel
     public int FileLocationID { get; }
 
     /// <summary>
-    /// The ID of the import folder the event was detected in.
+    /// The ID of the managed folder the event was detected in.
     /// </summary>
-    public int ImportFolderID { get; }
+    public int ManagedFolderID { get; }
 
     /// <summary>
-    /// The relative path of the file from the import folder base location.
+    /// The relative path of the file from the managed folder base location.
     /// </summary>
     public string RelativePath { get; }
 

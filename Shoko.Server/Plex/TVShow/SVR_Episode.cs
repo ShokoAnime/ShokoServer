@@ -36,7 +36,7 @@ internal class SVR_Episode : Episode
 
             var file = RepoFactory.VideoLocalPlace
                 .GetAll()
-                .FirstOrDefault(location => location.FullServerPath?.EndsWith(filenameWithParent, StringComparison.OrdinalIgnoreCase) ?? false);
+                .FirstOrDefault(location => location.Path?.EndsWith(filenameWithParent, StringComparison.OrdinalIgnoreCase) ?? false);
 
             return file is null ? null : RepoFactory.AnimeEpisode.GetByHash(file.VideoLocal?.Hash).FirstOrDefault();
 
