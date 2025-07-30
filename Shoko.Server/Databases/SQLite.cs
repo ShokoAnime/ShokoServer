@@ -862,8 +862,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(134, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new(135, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
         new(135, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
-        new(136, 01, "DROP TABLE IF EXISTS Tmdb_Show_Network;"),
-        new(136, 02, "CREATE TABLE Tmdb_Show_Network ( TMDB_Show_NetworkID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbShowID INTEGER NOT NULL, TmdbNetworkID INTEGER NOT NULL, Ordering INTEGER NOT NULL );"),
+        new(136, 01, "ALTER TABLE Tmdb_Show_Network RENAME TO TMDB_Show_Network;"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
