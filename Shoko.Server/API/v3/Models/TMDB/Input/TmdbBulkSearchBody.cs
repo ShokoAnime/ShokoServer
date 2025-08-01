@@ -17,6 +17,6 @@ public class TmdbBulkSearchBody
     /// will take care of the de-duplication before fetching it remotely from
     /// TMDB.
     /// </remarks>
-    [Required, MinLength(1), MaxLength(25)]
+    [Required]
     public List<int> IDs { get; set; } = [];
 }
