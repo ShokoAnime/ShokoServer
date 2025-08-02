@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 146;
+    public override int RequiredVersion { get; } = 147;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -898,6 +898,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(146, 01, DropDefaultOnTMDBShowMovieKeywords),
         new DatabaseCommand(146, 02, "ALTER TABLE TMDB_Show ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
         new DatabaseCommand(146, 03, "ALTER TABLE TMDB_Movie ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
+        new DatabaseCommand(147, 01, "EXEC sp_rename 'Tmdb_Show_Network', 'TMDB_Show_Network';"),
     };
 
     private static void AlterImdbMovieIDType()
