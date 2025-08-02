@@ -721,10 +721,10 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     [GeneratedRegex(@"\[(?<anidb>anidb(?:[\- \.]?id)?)[\-= ](?:(?<=\k<anidb>[\-= ]|,)\s*(?<animeId>\d+)\s*(?=\]|,),?)+\]|\((?<anidb>anidb(?:[\- \.]?id)?)[\-= ](?:(?<=\k<anidb>[\-= ]|,)\s*(?<animeId>\d+)\s*(?=\)|,),?)+\)|\{(?<anidb>anidb(?:[\- \.]?id)?)[\-= ](?:(?<=\k<anidb>[\-= ]|,)\s*(?<animeId>\d+)\s*(?=\}|,),?)+\}", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex StrictFolderNameCheckRegex();
 
-    [GeneratedRegex(@"\[(?<anidb>anidb(?:[\- \.]?id)?)[\-= ](?:(?<=\k<anidb>[\-= ]|,)\s*(?<episodeRange>(?:\d+[=\- \.])?\d+(?:'\d+(?:\-\d+)?)?)\s*(?=\]|,),?)+\]|\((?<anidb>anidb(?:[\- \.]?id)?)[\-= ](?:(?<=\k<anidb>[\-= ]|,)\s*(?<episodeRange>(?:\d+[=\- \.])?\d+(?:'\d+(?:\-\d+)?)?)\s*(?=\)|,),?)+\)|\{(?<anidb>anidb(?:[\- \.]?id)?)[\-= ](?:(?<=\k<anidb>[\-= ]|,)\s*(?<episodeRange>(?:\d+[=\- \.])?\d+(?:'\d+(?:\-\d+)?)?)\s*(?=\}|,),?)+\}", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(@"\[\s*(?<anidb>anidb(?:[\- \.]?\s*ids?)?)[\-= ](?:(?<=\k<anidb>[\-= ]|,)\s*(?<episodeRange>(?:a?\d+(?:[=\- \.]|(?=e)))?e?\d+(?:['@]\d+(?:\-\d+)?%?)?)\s*(?=\]|,),?)+\]|\(\s*(?<anidb>anidb(?:[\- \.]?\s*ids?)?)[\-= ](?:(?<=\k<anidb>[\-= ]|,)\s*(?<episodeRange>(?:a?\d+(?:[=\- \.]|(?=e)))?e?\d+(?:['@]\d+(?:\-\d+)?%?)?)\s*(?=\)|,),?)+\)|\{\s*(?<anidb>anidb(?:[\- \.]?\s*ids?)?)[\-= ](?:(?<=\k<anidb>[\-= ]|,)\s*(?<episodeRange>(?:a?\d+(?:[=\- \.]|(?=e)))?e?\d+(?:['@]\d+(?:\-\d+)?%?)?)\s*(?=\}|,),?)+\}", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex StrictFilenameCheckRegex();
 
-    [GeneratedRegex(@"(?<=^|,)\s*(?:(?<animeId>\d+)[=\- \.])?(?<episodeId>\d+)(?:'(?<percentRangeStartOrWholeRange>\d+)(?:\-(?<percentRangeEnd>\d+))?)?\s*(?=$|,),?", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+    [GeneratedRegex(@"(?<=^|,)\s*(?:a?(?<animeId>\d+)(?:[=\- \.]|(?=e)))?e?(?<episodeId>\d+)(?:['@](?<percentRangeStartOrWholeRange>\d+)(?:\-(?<percentRangeEnd>\d+))?%?)?\s*(?=$|,),?", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex SegmentRegex();
 
     /// <summary>
