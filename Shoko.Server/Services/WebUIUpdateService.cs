@@ -111,6 +111,11 @@ public partial class WebUIUpdateService
         DownloadAndInstallUpdate(url, version);
     }
 
+    public void ReactToManualUpdate()
+    {
+        Task.Run(() => UpdateInstalled?.Invoke(this, EventArgs.Empty));
+    }
+
     /// <summary>
     /// Download and install update.
     /// </summary>
