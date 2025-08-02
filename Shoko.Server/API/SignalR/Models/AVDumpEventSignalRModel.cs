@@ -50,7 +50,7 @@ public class AVDumpEventSignalRModel
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public DateTime? EndedAt { get; set; }
 
-    public AVDumpEventSignalRModel(AVDumpEventArgs eventArgs)
+    public AVDumpEventSignalRModel(AvdumpEventArgs eventArgs)
     {
         SessionID = eventArgs.SessionID;
         VideoIDs = eventArgs.VideoIDs;

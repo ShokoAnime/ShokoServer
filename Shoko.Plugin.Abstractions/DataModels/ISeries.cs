@@ -53,12 +53,12 @@ public interface ISeries : IWithTitles, IWithDescriptions, IWithImages, IWithCas
     /// <summary>
     /// Related series.
     /// </summary>
-    IReadOnlyList<IRelatedMetadata<ISeries>> RelatedSeries { get; }
+    IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> RelatedSeries { get; }
 
     /// <summary>
     /// Related movies.
     /// </summary>
-    IReadOnlyList<IRelatedMetadata<IMovie>> RelatedMovies { get; }
+    IReadOnlyList<IRelatedMetadata<ISeries, IMovie>> RelatedMovies { get; }
 
     /// <summary>
     /// All cross-references linked to the series.

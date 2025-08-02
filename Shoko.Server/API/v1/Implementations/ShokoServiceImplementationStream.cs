@@ -14,7 +14,6 @@ using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
-using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Mime = MimeMapping.MimeUtility;
 
@@ -208,7 +207,7 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
     private class InfoResult
     {
         public FileInfo File { get; set; }
-        public SVR_VideoLocal VideoLocal { get; set; }
+        public VideoLocal VideoLocal { get; set; }
         public SVR_JMMUser User { get; set; }
         public HttpStatusCode Status { get; set; }
         public string StatusDescription { get; set; }
@@ -227,7 +226,7 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
         }
 
         r.VideoLocal = loc;
-        r.File = loc.FirstResolvedPlace?.GetFile();
+        r.File = loc.FirstResolvedPlace?.FileInfo;
         return FinishResolve(r, userId, autoWatch);
     }
 

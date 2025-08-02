@@ -10,7 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Server.Databases;
-using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
@@ -59,17 +58,17 @@ public class ShokoServer
         var culture = CultureInfo.GetCultureInfo(settingsProvider.GetSettings().Culture);
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
-        ShokoEventHandler.Instance.Shutdown += OnShutDown;
+        ShokoEventHandler.Instance.Shutdown += OnShutdown;
     }
 
-    private void OnShutDown(object sender, CancelEventArgs e)
+    private void OnShutdown(object sender, EventArgs e)
     {
         ShutDown();
     }
 
     ~ShokoServer()
     {
-        ShokoEventHandler.Instance.Shutdown -= OnShutDown;
+        ShokoEventHandler.Instance.Shutdown -= OnShutdown;
     }
 
     public bool StartUpServer()
@@ -84,8 +83,6 @@ public class ShokoServer
 
         //HibernatingRhinos.Profiler.Appender.NHibernate.NHibernateProfiler.Initialize();
         //CommandHelper.LoadCommands(Utils.ServiceContainer);
-
-        Loader.InitPlugins(Utils.ServiceContainer);
 
         _settingsProvider.DebugSettingsToLog();
 
@@ -159,11 +156,7 @@ public class ShokoServer
         if (e.Result is not bool setupComplete) return;
         if (setupComplete) return;
 
-        var settings = _settingsProvider.GetSettings();
         ServerState.Instance.ServerOnline = false;
-        if (!string.IsNullOrEmpty(settings.Database.Type)) return;
-
-        settings.Database.Type = Constants.DatabaseType.Sqlite;
     }
 
     private void WorkerSetupDB_ReportProgress()
@@ -172,8 +165,11 @@ public class ShokoServer
         ServerState.Instance.ServerStartingStatus = "Complete!";
         ServerState.Instance.ServerOnline = true;
         var settings = _settingsProvider.GetSettings();
-        settings.FirstRun = false;
-        _settingsProvider.SaveSettings();
+        if (settings.FirstRun)
+        {
+            settings.FirstRun = false;
+            _settingsProvider.SaveSettings(settings);
+        }
 
         DBSetupCompleted?.Invoke(this, EventArgs.Empty);
         ShokoEventHandler.Instance.OnStarted();
@@ -210,11 +206,6 @@ public class ShokoServer
             if (!InitDB(out var errorMessage))
             {
                 ServerState.Instance.DatabaseAvailable = false;
-
-                if (string.IsNullOrEmpty(settings.Database.Type))
-                {
-                    ServerState.Instance.ServerStartingStatus = "Please select and configure your database.";
-                }
 
                 e.Result = false;
                 ServerState.Instance.StartupFailed = true;

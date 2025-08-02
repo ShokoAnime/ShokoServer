@@ -1,10 +1,13 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
@@ -19,6 +22,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -35,6 +39,8 @@ public class ActionController : BaseController
     private readonly TmdbMetadataService _tmdbMetadataService;
     private readonly TmdbLinkingService _tmdbLinkingService;
     private readonly TmdbImageService _tmdbImageService;
+    private readonly IVideoService _videoService;
+    private readonly IVideoReleaseService _videoReleaseService;
     private readonly ISchedulerFactory _schedulerFactory;
 
     public ActionController(
@@ -44,6 +50,8 @@ public class ActionController : BaseController
         TmdbLinkingService tmdbLinkingService,
         TmdbImageService tmdbImageService,
         ISchedulerFactory schedulerFactory,
+        IVideoService videoService,
+        IVideoReleaseService videoReleaseService,
         ISettingsProvider settingsProvider,
         ActionService actionService,
         AnimeGroupCreator groupCreator,
@@ -55,6 +63,8 @@ public class ActionController : BaseController
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbImageService = tmdbImageService;
+        _videoService = videoService;
+        _videoReleaseService = videoReleaseService;
         _schedulerFactory = schedulerFactory;
         _actionService = actionService;
         _groupCreator = groupCreator;
@@ -76,13 +86,13 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Queues a task to import only new files found in the import folder
+    /// Queues a task to import only new files found in the managed folders
     /// </summary>
     /// <returns></returns>
     [HttpGet("ImportNewFiles")]
     public async Task<ActionResult> ImportNewFiles()
     {
-        await _actionService.RunImport_DetectFiles(onlyNewFiles: true);
+        await _videoService.ScheduleScanForManagedFolders(onlyNewFiles: true);
         return Ok();
     }
 
@@ -123,7 +133,7 @@ public class ActionController : BaseController
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<SyncTraktCollectionJob>(c => c.ForceRefresh = true);
+        await scheduler.StartJob<SyncTraktCollectionJob>(c => c.ForceRefresh = true, prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }
@@ -275,6 +285,48 @@ public class ActionController : BaseController
     }
 
     /// <summary>
+    /// Clears the current release for all known videos.
+    /// </summary>
+    /// <param name="removeFromMylist">
+    ///   Set to <c>false</c> to not remove the release from the user's MyList.
+    /// </param>
+    /// <param name="providerNames">
+    ///   The names of the providers to clear. If null, all providers will be cleared.
+    /// </param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("PurgeAllUsedReleases")]
+    public ActionResult PurgeAllUsedReleases(
+        [FromQuery] bool removeFromMylist = true,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<string>? providerNames = null
+    )
+    {
+        Task.Run(() => _videoReleaseService.PurgeUsedReleases(providerNames, removeFromMylist));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Purges all unused releases not linked to any videos from the database.
+    /// </summary>
+    /// <param name="removeFromMylist">
+    ///   Set to <c>false</c> to not remove the release from the user's MyList.
+    /// </param>
+    /// <param name="providerNames">
+    ///   The names of the providers to clear. If null, all providers will be cleared.
+    /// </param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("PurgeAllUnusedReleases")]
+    public ActionResult PurgeAllUnusedReleases(
+        [FromQuery] bool removeFromMylist = true,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<string>? providerNames = null
+    )
+    {
+        Task.Run(() => _videoReleaseService.PurgeUnusedReleases(providerNames, removeFromMylist));
+        return Ok();
+    }
+
+    /// <summary>
     /// Update all Trakt info. Right now, that's not much.
     /// </summary>
     /// <returns></returns>
@@ -300,7 +352,7 @@ public class ActionController : BaseController
     public async Task<ActionResult> ValidateAllImages()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<ValidateAllImagesJob>();
+        await scheduler.StartJob<ValidateAllImagesJob>(prioritize: true);
         return Ok();
     }
 
@@ -337,9 +389,9 @@ public class ActionController : BaseController
 
         var mismatchedFiles = RepoFactory.VideoLocal.GetAll()
             .Where(file => !file.IsEmpty() && file.MediaInfo != null)
-            .Select(file => (Video: file, AniDB: file.AniDBFile))
-            .Where(tuple => tuple.AniDB is { IsDeprecated: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
-            .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.FullServerPath, tuple.Video))
+            .Select(file => (Video: file, AniDB: file.ReleaseInfo))
+            .Where(tuple => tuple.AniDB is { ProviderName: "AniDB", IsCorrupted: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
+            .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.Path, tuple.Video))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
             .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);
         var scheduler = await _schedulerFactory.GetScheduler();
@@ -434,17 +486,15 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Update AniDB Files with missing file info, including with missing release
-    /// groups and/or with out-of-date internal data versions.
+    /// Update AniDB Releases with missing group info, including with missing release
+    /// groups.
     /// </summary>
-    /// <param name="missingInfo">Update files with missing release group info</param>
-    /// <param name="outOfDate">Update files with and out-of-date internal version.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("UpdateMissingAniDBFileInfo")]
-    public async Task<ActionResult> UpdateMissingAniDBFileInfo([FromQuery] bool missingInfo = true, [FromQuery] bool outOfDate = false)
+    public async Task<ActionResult> UpdateMissingAniDBFileInfo()
     {
-        await _actionService.UpdateAniDBFileData(missingInfo, outOfDate, false);
+        await _actionService.UpdateAnidbReleaseInfo();
         return Ok();
     }
 
