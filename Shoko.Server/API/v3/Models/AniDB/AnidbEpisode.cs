@@ -21,6 +21,11 @@ public class AnidbEpisode
     public int ID { get; set; }
 
     /// <summary>
+    /// AniDB Anime ID
+    /// </summary>
+    public int AnimeID { get; set; }
+
+    /// <summary>
     /// Episode Type
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
@@ -67,6 +72,7 @@ public class AnidbEpisode
         var mainTitle = ep.PreferredTitle;
         var titles = ep.GetTitles();
         ID = ep.EpisodeID;
+        AnimeID = ep.AnimeID;
         Type = ep.AbstractEpisodeType.ToV3Dto();
         EpisodeNumber = ep.EpisodeNumber;
         AirDate = ep.GetAirDateAsDate()?.ToDateOnly();
