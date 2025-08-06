@@ -335,7 +335,7 @@ public partial class TmdbSearchService
         var series = anime as ISeries;
         var adjustedMainTitle = mainTitle.Title;
         var currentDate = airDate.Value;
-        IReadOnlyList<IRelatedMetadata<ISeries>> currentRelations = anime.RelatedAnime;
+        IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> currentRelations = anime.RelatedAnime;
         while (currentRelations.Count > 0)
         {
             foreach (var prequelRelation in currentRelations.Where(relation => relation.RelationType == RelationType.Prequel))

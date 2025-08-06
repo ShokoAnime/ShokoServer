@@ -12,16 +12,17 @@ using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.Release;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -33,13 +34,15 @@ public class AnimeCreator
     private readonly ILogger<AnimeCreator> _logger;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IVideoReleaseService _videoReleaseService;
     private readonly ConcurrentDictionary<int, object> _updatingIDs = [];
 
-    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings, ISchedulerFactory schedulerFactory)
+    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings, ISchedulerFactory schedulerFactory, IVideoReleaseService videoReleaseService)
     {
         _logger = logger;
         _settingsProvider = settings;
         _schedulerFactory = schedulerFactory;
+        _videoReleaseService = videoReleaseService;
     }
 
 
@@ -506,9 +509,9 @@ public class AnimeCreator
         var shokoEpisodesToRemove = new List<SVR_AnimeEpisode>();
         var shokoEpisodesToSave = new List<SVR_AnimeEpisode>();
         var shokoSeriesDict = new Dictionary<int, SVR_AnimeSeries>();
-        var anidbFilesToRemove = new List<SVR_AniDB_File>();
-        var xrefsToRemove = new List<SVR_CrossRef_File_Episode>();
-        var videosToRefetch = new List<SVR_VideoLocal>();
+        var storedReleasesToRemove = new List<StoredReleaseInfo>();
+        var xrefsToRemove = new List<CrossRef_File_Episode>();
+        var videosToRefetch = new List<VideoLocal>();
         var tmdbXRefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
         if (correctSeries != null)
             shokoSeriesDict.Add(correctSeries.AnimeSeriesID, correctSeries);
@@ -543,15 +546,11 @@ public class AnimeCreator
                 .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
                 .Where(video => video != null)
                 .ToList();
-            var anidbFiles = xrefs
-                .Where(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                .Select(xref => RepoFactory.AniDB_File.GetByEd2kAndFileSize(xref.Hash, xref.FileSize))
-                .Where(anidbFile => anidbFile != null)
-                .ToList();
+            var storedReleases = RepoFactory.StoredReleaseInfo.GetByAnidbEpisodeID(episode.EpisodeID);
             var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
-            anidbFilesToRemove.AddRange(anidbFiles);
+            storedReleasesToRemove.AddRange(storedReleases);
             tmdbXRefsToRemove.AddRange(tmdbXRefs);
         }
         shokoSeriesDict.Clear();
@@ -567,21 +566,17 @@ public class AnimeCreator
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID);
             var videos = xrefs
                 .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
-                .Where(video => video != null)
+                .WhereNotNull()
                 .ToList();
-            var anidbFiles = xrefs
-                .Where(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                .Select(xref => RepoFactory.AniDB_File.GetByEd2kAndFileSize(xref.Hash, xref.FileSize))
-                .Where(anidbFile => anidbFile != null)
-                .ToList();
+            var databaseReleases = RepoFactory.StoredReleaseInfo.GetByAnidbEpisodeID(episode.EpisodeID);
             var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
-            anidbFilesToRemove.AddRange(anidbFiles);
+            storedReleasesToRemove.AddRange(databaseReleases);
             tmdbXRefsToRemove.AddRange(tmdbXRefs);
         }
 
-        RepoFactory.AniDB_File.Delete(anidbFilesToRemove);
+        RepoFactory.StoredReleaseInfo.Delete(storedReleasesToRemove.DistinctBy(a => a.StoredReleaseInfoID).ToList());
         RepoFactory.AniDB_Episode.Save(epsToSave);
         RepoFactory.AniDB_Episode.Delete(epsToRemove);
         RepoFactory.AniDB_Episode_Title.Save(titlesToSave);
@@ -594,15 +589,12 @@ public class AnimeCreator
         // Schedule a refetch of any video files affected by the removal of the
         // episodes. They were likely moved to another episode entry so let's
         // try and fetch that.
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var video in videosToRefetch)
         {
-            await scheduler.StartJobNow<ProcessFileJob>(c =>
-            {
-                c.VideoLocalID = video.VideoLocalID;
-                c.SkipMyList = true;
-                c.ForceAniDB = true;
-            });
+            // If auto-match is not available then clear the release so the video is
+            // not referencing no longer existing episodes.
+            await _videoReleaseService.ClearReleaseForVideo(video);
+            await _videoReleaseService.ScheduleFindReleaseForVideo(video, prioritize: true);
         }
 
         var episodeCount = episodeCountSpecial + episodeCountNormal;
@@ -799,8 +791,8 @@ public class AnimeCreator
     {
         if (chars == null) return;
 
-        var charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
-        var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
+        var charBasePath = ImageUtils.BaseAniDBCharacterImagesPath + Path.DirectorySeparatorChar;
+        var creatorBasePath = ImageUtils.BaseAniDBCreatorImagesPath + Path.DirectorySeparatorChar;
         var settings = _settingsProvider.GetSettings();
 
         var existingCreators = new Dictionary<int, AniDB_Creator>();
@@ -1079,7 +1071,7 @@ public class AnimeCreator
         if (staffList == null) return;
 
         var settings = _settingsProvider.GetSettings();
-        var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
+        var creatorBasePath = ImageUtils.BaseAniDBCreatorImagesPath + Path.DirectorySeparatorChar;
 
         var existingCreators = new Dictionary<int, AniDB_Creator>();
         var existingXrefs = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID)

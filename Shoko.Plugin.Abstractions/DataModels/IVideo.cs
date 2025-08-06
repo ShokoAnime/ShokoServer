@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.Hashing;
+using Shoko.Plugin.Abstractions.Release;
 
 namespace Shoko.Plugin.Abstractions.DataModels;
 
@@ -16,24 +18,32 @@ public interface IVideo : IMetadata<int>
     string? EarliestKnownName { get; }
 
     /// <summary>
+    /// The ED2K hash for the file.
+    /// </summary>
+    string ED2K { get; }
+
+    /// <summary>
     /// The file size, in bytes.
     /// </summary>
     long Size { get; }
 
     /// <summary>
-    /// All video locations for the file.
+    /// All video files for the video.
     /// </summary>
-    IReadOnlyList<IVideoFile> Locations { get; }
+    IReadOnlyList<IVideoFile> Files { get; }
 
     /// <summary>
-    /// The AniDB File Info. This will be null for manual links, which can reliably be used to tell if it was manually linked.
+    /// The current release information for the video, if the video has an
+    /// existing release associated with it. All recognized videos have a
+    /// release associated with them.
     /// </summary>
-    IAniDBFile? AniDB { get; }
+    IReleaseInfo? ReleaseInfo { get; }
 
     /// <summary>
-    /// The Relevant Hashes for a file. CRC should be the only thing used here, but clever uses of the API could use the others.
+    /// All stored hashes for the video, including the ED2K which is mandatory
+    /// and has a dedicated field/member above.
     /// </summary>
-    IHashes Hashes { get; }
+    IReadOnlyList<IHashDigest> Hashes { get; }
 
     /// <summary>
     /// The MediaInfo data for the file. This can be null, but it shouldn't be.

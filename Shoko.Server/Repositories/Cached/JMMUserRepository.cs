@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Shoko.Plugin.Abstractions.Events;
 using Shoko.Server.Databases;
 using Shoko.Server.Models;
 
@@ -9,8 +11,26 @@ namespace Shoko.Server.Repositories.Cached;
 
 public class JMMUserRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<SVR_JMMUser, int>(databaseFactory)
 {
+    public event EventHandler<UserChangedEventArgs>? UserAdded;
+
+    public event EventHandler<UserChangedEventArgs>? UserUpdated;
+
+    public event EventHandler<UserChangedEventArgs>? UserRemoved;
+
     protected override int SelectKey(SVR_JMMUser entity)
         => entity.JMMUserID;
+
+    public override void Save(SVR_JMMUser user)
+    {
+        var isNew = user.JMMUserID <= 0;
+
+        base.Save(user);
+
+        if (isNew)
+            Task.Run(() => UserAdded?.Invoke(null, new() { User = user }));
+        else
+            Task.Run(() => UserUpdated?.Invoke(null, new() { User = user }));
+    }
 
     public SVR_JMMUser? GetByUsername(string? username)
         => !string.IsNullOrWhiteSpace(username)
@@ -53,5 +73,12 @@ public class JMMUserRepository(DatabaseFactory databaseFactory) : BaseCachedRepo
 
         Delete(user);
         return true;
+    }
+
+    public override void Delete(SVR_JMMUser user)
+    {
+        base.Delete(user);
+
+        Task.Run(() => UserRemoved?.Invoke(null, new() { User = user }));
     }
 }
