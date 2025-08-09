@@ -27,7 +27,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 135;
+    public override int RequiredVersion => 136;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -862,6 +862,8 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(134, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new(135, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
         new(135, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
+        new(136, 01, "ALTER TABLE Tmdb_Show_Network RENAME TO Tmdb_Show_Network_old;"),
+        new(136, 02, "ALTER TABLE Tmdb_Show_Network_old RENAME TO TMDB_Show_Network;"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
