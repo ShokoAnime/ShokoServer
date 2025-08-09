@@ -2785,7 +2785,7 @@ public partial class TmdbController : BaseController
 
     private const string MovieCrossReferenceWithIdHeader = "AnidbAnimeId,AnidbEpisodeId,TmdbMovieId,IsAutomatic";
 
-    private const string EpisodeCrossReferenceWithIdHeader = "AnidbAnimeId,AnidbEpisodeType,AnidbEpisodeId,TmdbShowId,TmdbEpisodeId,Rating";
+    private const string EpisodeCrossReferenceWithIdHeader = "AnidbAnimeId,AnidbEpisodeId,TmdbShowId,TmdbEpisodeId,Rating";
 
     private string MapAnimeType(AbstractAnimeType? type) =>
         type switch
