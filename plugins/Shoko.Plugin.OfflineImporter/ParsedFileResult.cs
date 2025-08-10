@@ -312,12 +312,28 @@ public record ParsedFileResult
                 // A hack.
                 if (showName.StartsWith("hack//"))
                     showName = $".{showName}";
+
+                // Attempt to convert from PascalCase to Title Case if cannot find a space in the show name.
+                if (showName.Length > 0 && !showName.Contains(' '))
+                {
+                    while (_pascalCaseRegex.Match(showName) is { Success: true } pascalMatch)
+                    {
+                        showName = showName[..pascalMatch.Index] + " " + showName[pascalMatch.Index] + showName[(pascalMatch.Index + pascalMatch.Length)..];
+                    }
+                }
             }
 
+            // Parse season number from the end of the show name if found.
             var matchResult = showName.Match(@" S(\d+)$");
             if (matchResult.Success)
             {
-                showName = showName[..^matchResult.Length];
+                showName = showName[..^matchResult.Length].TrimEnd();
+                modifiedDetails.SeasonNumber = int.Parse(matchResult.Groups[1].Value);
+            }
+            matchResult = showName.Match(@"Season ?(\d+)$");
+            if (matchResult.Success)
+            {
+                showName = showName[..^matchResult.Length].TrimEnd();
                 modifiedDetails.SeasonNumber = int.Parse(matchResult.Groups[1].Value);
             }
 
@@ -336,11 +352,6 @@ public record ParsedFileResult
                 showName = $"{showName[..^5]} (TV)";
             else if (showName.EndsWith(" TV"))
                 showName = $"{showName[..^3]} (TV)";
-
-            // Append the 'season' number to the show name to help with the search if a
-            // year was not found.
-            if (modifiedDetails.SeasonNumber is > 1 && !string.IsNullOrEmpty(episode) && string.IsNullOrEmpty(year))
-                showName += $" S{modifiedDetails.SeasonNumber}";
 
             modifiedDetails.SeriesName = showName;
         }
@@ -676,7 +687,7 @@ public record ParsedFileResult
     );
 
     private static readonly Regex _miscRegex = new(
-        @"(?:(?<source>(?:U?HD[ _-]?|SD[ _-]?)?TV(?!-cm)|(?:U?HD[ _-]?)?(?:BD|Blue?-?Ray)(?! (?:menu|notice))|(?:H[KD] ?)?DVD|VHS|S?VCD|Web(?:-?DL)?|www|(?:\b|(?<=_))LD(?:\b|(?=_))|LaserDisc|camera|camcorder)s?(?:[ _-]?rip)?|(?<lang>(?:\b|(?<=_))lng(?:\b|(?=_))|(?:\b|(?<=_))jpn?(?:\b|(?=_))|jap(?:anese)?|(?:\b|(?<=_))gb(?:\b|(?=_))|eng(?:lish)?|(?:\b|(?<=_))en(?:\b|(?=_))|(?:\b|(?<=_))es\b|(?:\b|(?<=_))cn(?:\b|(?=_))|chinese|spa(?:nish)?|(?:\b|(?<=_))de(?:\b|(?=_))|ger(?:man)?)|(?<codec>(?:xvid|divx|prores|vvc|hevc|avc|mpeg[\.-]?[1-4]|vc1|av1|flv|[hx]\.?26[1-6]|aac|e?ac-?3|flac|dca|ogg|opus|wmav2|wmapro|adpcm_ms|pcm|mp[23]|vp[69]f?)(?:[ \._-]?[1-9]\.[0-9](?:\.[0-9])?|-(?:8|10)bits?)?)|(?:multi(?:(?:ple)? )?)?sub(?:s|titled?)?|dub(?:bed)?|rip|(un)?cen(ored)?|(?<resolution>[48]k|\d{3,5}[pi]|\d{3,5}[x×]\d{3,5})|multi(?:[-_ ]?(?:pack|audio))?|remux|truehd|hi10[pi]?|(?:\b|(?<=_))proper(?:\b|(?=_))|dolby (?:atmos|vision)?|\bdovi\b|dts|vostfr|vorbis|crf\d+|at-x|dual[-_ ]?audio|[24579]ch|(?:8|10)-?bits?|[0-9a-f]{8})",
+        @"(?:(?<source>(?:U?HD[ _-]?|SD[ _-]?)?TV(?!-cm)|(?:U?HD[ _-]?)?(?:BD|Blue?-?Ray)(?! (?:menu|notice))|(?:H[KD] ?)?DVD|VHS|S?VCD|Web(?:-?DL)?|www|(?:\b|(?<=_))LD(?:\b|(?=_))|LaserDisc|camera|camcorder)s?(?:[ _-]?rip)?|(?<lang>(?:\b|(?<=_))lng(?:\b|(?=_))|(?:\b|(?<=_))jpn?(?:\b|(?=_))|jap(?:anese)?|(?:\b|(?<=_))gb(?:\b|(?=_))|eng(?:lish)?|(?:\b|(?<=_))en(?:\b|(?=_))|(?:\b|(?<=_))es\b|(?:\b|(?<=_))cn(?:\b|(?=_))|chinese|spa(?:nish)?|ita(?:lian)?|(?:\b|(?<=_))de(?:\b|(?=_))|ger(?:man)?)|(?<codec>(?:xvid|divx|prores|vvc|hevc|avc|mpeg[\.-]?[1-4]|vc1|av1|flv|[hx]\.?26[1-6]|aac|e?ac-?3|flac|dca|ogg|opus|wmav2|wmapro|adpcm_ms|pcm|mp[23]|vp[69]f?)(?:[ \._-]?[1-9]\.[0-9](?:\.[0-9])?|-(?:8|10)bits?)?)|(?:multi(?:(?:ple)? )?)?sub(?!a)(?:s|titled?)?|dub(?:bed)?|raw|rip|(un)?cen(ored)?|(?<resolution>[48]k|\d{3,5}[pi]|\d{3,5}[x×]\d{3,5})|multi(?:[-_ ]?(?:pack|audio))?|remux|truehd|hi10[pi]?|(?:\b|(?<=_))proper(?:\b|(?=_))|dolby (?:atmos|vision)?|\bdovi\b|dts|vostfr|vorbis|crf\d+|at-x|dual[-_ ]?audio|[24579]ch|(?:8|10)-?bits?|[0-9a-f]{8})",
         RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
     );
 
@@ -698,6 +709,11 @@ public record ParsedFileResult
     private static readonly Regex _censoredRegex = new(
         @"\b((?<isDe>de|un)?cen(?:sored)?)\b",
         RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
+    );
+
+    private static readonly Regex _pascalCaseRegex = new(
+        @"(?<=[a-z])(?<value>[A-Z])(?=[a-z]+)",
+        RegexOptions.ECMAScript | RegexOptions.Compiled
     );
 
     /// <summary>
