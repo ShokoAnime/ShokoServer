@@ -27,6 +27,13 @@ public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedMetadata<I
                 : RType.Other
         };
 
+    public SVR_AniDB_Anime_Relation Reversed => new()
+    {
+        AnimeID = RelatedAnimeID,
+        RelatedAnimeID = AnimeID,
+        RelationType = ((IRelatedMetadata)this).RelationType.Reverse().ToString(),
+    };
+
     public bool Equals(IRelatedMetadata? other)
     {
         if (other is null)
@@ -107,12 +114,7 @@ public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedMetadata<I
         RelationType = ((IRelatedMetadata)this).RelationType.Reverse().ToString(),
     };
 
-    IRelatedMetadata IRelatedMetadata.Reversed => new SVR_AniDB_Anime_Relation
-    {
-        AnimeID = RelatedAnimeID,
-        RelatedAnimeID = AnimeID,
-        RelationType = ((IRelatedMetadata)this).RelationType.Reverse().ToString(),
-    };
+    IRelatedMetadata IRelatedMetadata.Reversed => Reversed;
 
     #endregion
 }
