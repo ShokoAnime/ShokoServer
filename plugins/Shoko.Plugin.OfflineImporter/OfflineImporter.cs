@@ -58,6 +58,8 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     /// <inheritdoc/>
     public string Name => "Offline Importer";
 
+    private const string FilePrefix = "file://";
+
     private const string IdPrefix = "offline://";
 
     /// <inheritdoc/>
@@ -117,9 +119,6 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     public async Task<ReleaseInfo?> GetReleaseInfoForVideo(ReleaseInfoRequest request, CancellationToken cancellationToken)
     {
         var (video, isAutomatic) = request;
-        var folderRegex = StrictFolderNameCheckRegex();
-        var filenameRegex = StrictFilenameCheckRegex();
-        var config = _configurationProvider.Load();
         _logger.LogDebug("Getting release info for {Video}", video.ID);
         foreach (var location in video.Files)
         {
@@ -130,40 +129,15 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
                 continue;
             }
 
-            if (!config.SkipAvailabilityCheck && !location.IsAvailable)
+            if (!_configurationProvider.Load().SkipAvailabilityCheck && !location.IsAvailable)
             {
                 _logger.LogDebug("Location is not available: {Path} (ManagedFolder={ManagedFolderID})", location.RelativePath, location.ManagedFolderID);
                 continue;
             }
 
-            var animeId = (int?)null;
-            var releaseInfo = (ReleaseInfo?)null;
-            var parts = location.RelativePath[1..].Split('/');
-            var (folderName, fileName) = parts.Length > 1 ? (parts[^2], parts[^1]) : (null, parts[0]);
-            var filenameMatch = filenameRegex.Match(fileName);
-            var folderNameMatch = string.IsNullOrEmpty(folderName) ? null : folderRegex.Match(folderName);
-            var match = config.Mode is not Configuration.MatchMode.StrictAndFast
-                ? ParsedFileResult.Match(filePath, _rules)
-                : ParsedFileResult.Empty;
-            if (filenameMatch.Groups["animeId"].Success)
-                animeId = int.Parse(filenameMatch.Groups["animeId"].Value.Trim());
-            else if (folderNameMatch is { Success: true })
-                animeId = int.Parse(folderNameMatch.Groups["animeId"].Value.Trim());
-            if (filenameMatch.Groups["episodeRange"].Success)
-                releaseInfo = (await GetReleaseInfoById(IdPrefix + filenameMatch.Groups["episodeRange"].Value, cancellationToken))!;
-            else if (config.Mode is Configuration.MatchMode.Lax && match is { Success: true })
-                releaseInfo = await GetReleaseInfoByFileName(match, animeId, cancellationToken);
-            if (releaseInfo is not { CrossReferences.Count: > 0 })
+            var releaseInfo = await GetReleaseInfoByFilePath(filePath, location.RelativePath, cancellationToken).ConfigureAwait(false);
+            if (releaseInfo is null)
                 continue;
-
-            if (releaseInfo.CrossReferences.Any(xref => xref.AnidbAnimeID is null or <= 0) && animeId is > 0 && _anidbService.SearchByID(animeId.Value) is not null)
-            {
-                foreach (var xref in releaseInfo.CrossReferences)
-                {
-                    if (xref.AnidbAnimeID is null or <= 0)
-                        xref.AnidbAnimeID = animeId;
-                }
-            }
 
             releaseInfo.FileSize = video.Size;
             releaseInfo.Hashes = video.Hashes
@@ -178,35 +152,70 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
                 releaseInfo.IsChaptered = mediaInfo.Chapters.Count > 0;
             }
 
-            if (match is { Success: true })
-            {
-                var group = (ReleaseGroup?)null;
-                if (!string.IsNullOrEmpty(match.ReleaseGroup))
-                {
-                    if (_configurationProvider.Load().MapAsAnidbGroupIfPossible)
-                        group = OfflineReleaseGroupSearch.LookupByName(match.ReleaseGroup, _applicationPaths);
-                    group ??= new() { ID = match.ReleaseGroup, Name = match.ReleaseGroup, ShortName = match.ReleaseGroup, Source = "Offline" };
-                }
-
-                releaseInfo.Group = group;
-                if (match.Source is not null)
-                    releaseInfo.Source = match.Source.Value;
-                releaseInfo.OriginalFilename = Path.GetFileName(match.FilePath);
-                releaseInfo.Version = match.Version ?? 1;
-                releaseInfo.Metadata = JsonConvert.SerializeObject(match, new JsonSerializerSettings() { Converters = [new StringEnumConverter()] });
-                releaseInfo.IsCreditless = match.Creditless;
-                releaseInfo.IsCensored = match.Censored;
-                // Assume the creation date has been properly set in the file-system.
-                releaseInfo.ReleasedAt ??= DateOnly.FromDateTime(File.GetCreationTimeUtc(match.FilePath));
-            }
-
             return releaseInfo;
         }
 
         return null;
     }
 
-    private async Task<ReleaseInfo?> GetReleaseInfoByFileName(ParsedFileResult match, int? animeId, CancellationToken cancellationToken)
+    private async Task<ReleaseInfo?> GetReleaseInfoByFilePath(string filePath, string relativePath, CancellationToken cancellationToken)
+    {
+        var config = _configurationProvider.Load();
+        var animeId = (int?)null;
+        var releaseInfo = (ReleaseInfo?)null;
+        var parts = relativePath[1..].Split('/');
+        var (folderName, fileName) = parts.Length > 1 ? (parts[^2], parts[^1]) : (null, parts[0]);
+        var filenameMatch = StrictFilenameCheckRegex().Match(fileName);
+        var folderNameMatch = string.IsNullOrEmpty(folderName) ? null : StrictFolderNameCheckRegex().Match(folderName);
+        var match = config.Mode is not Configuration.MatchMode.StrictAndFast
+            ? ParsedFileResult.Match(filePath, _rules)
+            : ParsedFileResult.Empty;
+        if (filenameMatch.Groups["animeId"].Success)
+            animeId = int.Parse(filenameMatch.Groups["animeId"].Value.Trim());
+        else if (folderNameMatch is { Success: true })
+            animeId = int.Parse(folderNameMatch.Groups["animeId"].Value.Trim());
+        if (filenameMatch.Groups["episodeRange"].Success)
+            releaseInfo = (await GetReleaseInfoById(IdPrefix + filenameMatch.Groups["episodeRange"].Value, cancellationToken))!;
+        else if (config.Mode is Configuration.MatchMode.Lax && match is { Success: true })
+            releaseInfo = await GetReleaseInfoForMatch(match, animeId, cancellationToken);
+        if (releaseInfo is not { CrossReferences.Count: > 0 })
+            return null;
+
+        if (releaseInfo.CrossReferences.Any(xref => xref.AnidbAnimeID is null or <= 0) && animeId is > 0 && _anidbService.SearchByID(animeId.Value) is not null)
+        {
+            foreach (var xref in releaseInfo.CrossReferences)
+            {
+                if (xref.AnidbAnimeID is null or <= 0)
+                    xref.AnidbAnimeID = animeId;
+            }
+        }
+
+        if (match is { Success: true })
+        {
+            var group = (ReleaseGroup?)null;
+            if (!string.IsNullOrEmpty(match.ReleaseGroup))
+            {
+                if (config.MapAsAnidbGroupIfPossible)
+                    group = OfflineReleaseGroupSearch.LookupByName(match.ReleaseGroup, _applicationPaths);
+                group ??= new() { ID = match.ReleaseGroup, Name = match.ReleaseGroup, ShortName = match.ReleaseGroup, Source = "Offline" };
+            }
+
+            releaseInfo.Group = group;
+            if (match.Source is not null)
+                releaseInfo.Source = match.Source.Value;
+            releaseInfo.OriginalFilename = Path.GetFileName(match.FilePath);
+            releaseInfo.Version = match.Version ?? 1;
+            releaseInfo.Metadata = JsonConvert.SerializeObject(match, new JsonSerializerSettings() { Converters = [new StringEnumConverter()] });
+            releaseInfo.IsCreditless = match.Creditless;
+            releaseInfo.IsCensored = match.Censored;
+            // Assume the creation date has been properly set in the file-system.
+            releaseInfo.ReleasedAt ??= DateOnly.FromDateTime(File.GetCreationTimeUtc(match.FilePath));
+        }
+
+        return releaseInfo;
+    }
+
+    private async Task<ReleaseInfo?> GetReleaseInfoForMatch(ParsedFileResult match, int? animeId, CancellationToken cancellationToken)
     {
         ReleaseInfo? releaseInfo;
         if (animeId is > 0)
@@ -623,6 +632,17 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)
     {
+        if (releaseId.StartsWith(FilePrefix))
+        {
+            var filePath = releaseId[FilePrefix.Length..];
+            var relativePath = Path.GetFileName(filePath);
+            var folderName = "/" + Path.GetDirectoryName(filePath);
+            if (folderName is { Length: > 0 })
+                relativePath = "/" + folderName + relativePath;
+            _logger.LogDebug("Getting release info for {FilePath} (RelativePath={RelativePath})", filePath, relativePath);
+            return GetReleaseInfoByFilePath(filePath, relativePath, cancellationToken);
+        }
+
         if (!releaseId.StartsWith(IdPrefix))
         {
             _logger.LogWarning("Invalid release id: {ReleaseId}", releaseId);
