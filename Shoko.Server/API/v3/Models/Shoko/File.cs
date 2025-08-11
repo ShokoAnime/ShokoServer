@@ -43,6 +43,11 @@ public partial class File
     public bool IsVariation { get; set; }
 
     /// <summary>
+    /// If this file is marked as ignored.
+    /// </summary>
+    public bool IsIgnored { get; set; }
+
+    /// <summary>
     /// The calculated hashes of the file
     /// </summary>
     /// <returns></returns>
@@ -132,6 +137,7 @@ public partial class File
         ID = file.VideoLocalID;
         Size = file.FileSize;
         IsVariation = file.IsVariation;
+        IsIgnored = file.IsIgnored;
         Hashes = new() { ED2K = file.Hash, MD5 = file.MD5, CRC32 = file.CRC32, SHA1 = file.SHA1 };
         Resolution = mediaInfo?.VideoStream?.Resolution;
         Locations = file.Places.Select(location => new Location(location, includeAbsolutePaths)).ToList();
