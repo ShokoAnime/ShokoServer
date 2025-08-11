@@ -540,8 +540,10 @@ public static class ModelHelper
                 if (!include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !include.Contains(FileNonDefaultIncludeType.ImportLimbo) && xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null)) return false;
                 if (include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !(xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null))) return false;
 
-                if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0) return false;
-                if (include_only.Contains(FileIncludeOnlyType.ManualLinks) && xrefs.Count == 0) return false;
+                if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 &&
+                    xrefs.All(xref => xref.IsManuallyLinked)) return false;
+                if (include_only.Contains(FileIncludeOnlyType.ManualLinks) &&
+                    (xrefs.Count == 0 || xrefs.All(xref => !xref.IsManuallyLinked))) return false;
 
                 if (exclude.Contains(FileExcludeTypes.Watched) && userRecord?.WatchedDate != null) return false;
                 if (include_only.Contains(FileIncludeOnlyType.Watched) && userRecord?.WatchedDate == null) return false;

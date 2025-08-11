@@ -53,6 +53,8 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
     public StoredReleaseInfo? ReleaseInfo => RepoFactory.StoredReleaseInfo.GetByEd2kAndFileSize(Hash, FileSize);
 
+    public bool IsManuallyLinked => ReleaseInfo is { } releaseInfo && releaseInfo is not { GroupSource: "AniDB", GroupID.Length: > 0 };
+
     private (int? LastKnownPercentage, (int Start, int End) Range) _percentageRangeCalculated = (null, (0, 0));
 
     public (int Start, int End) PercentageRange
