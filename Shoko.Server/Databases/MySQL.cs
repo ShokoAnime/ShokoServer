@@ -1554,7 +1554,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
 
         var conn = (MySqlConnection)connection;
         var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
-        mySQL.Execute(conn, $"ALTER DATABASE {settings.Database.Schema} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+        mySQL.Execute(conn, $"ALTER DATABASE `{settings.Database.Schema}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
         return new Tuple<bool, string>(true, null);
     }
 }
