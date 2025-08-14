@@ -127,6 +127,11 @@ public interface IFilterable
     int UserVerifiedTmdbEpisodeLinks { get; }
 
     /// <summary>
+    /// Number of missing TMDB episode links.
+    /// </summary>
+    int MissingTmdbEpisodeLinks { get; }
+
+    /// <summary>
     /// Has at least one Trakt Link
     /// </summary>
     bool HasTraktLink { get; }

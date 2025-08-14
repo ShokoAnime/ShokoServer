@@ -101,6 +101,13 @@ public static class FilterExtensions
             UserVerifiedTmdbEpisodeLinksDelegate = () =>
                 series.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified) +
                 series.TmdbMovieCrossReferences.Count(xref => xref.Source is CrossRefSource.User),
+            MissingTmdbEpisodeLinksDelegate = () =>
+            {
+                var allTmdbLinkedEpisodes = series.TmdbEpisodeCrossReferences.Select(a => a.AnidbEpisodeID)
+                    .Concat(series.TmdbMovieCrossReferences.Select(a => a.AnidbEpisodeID))
+                    .ToHashSet();
+                return series.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
+            },
             HasTraktLinkDelegate = () =>
                 series.TraktShowCrossReferences.Count is > 0,
             HasTraktAutoLinkingDisabledDelegate = () =>
@@ -287,6 +294,13 @@ public static class FilterExtensions
                     a.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified) +
                     a.TmdbMovieCrossReferences.Count(xref => xref.Source is CrossRefSource.User)
                 ),
+            MissingTmdbEpisodeLinksDelegate = () => series.Aggregate(0, (acc, ser) =>
+            {
+                var allTmdbLinkedEpisodes = ser.TmdbEpisodeCrossReferences.Select(a => a.AnidbEpisodeID)
+                    .Concat(ser.TmdbMovieCrossReferences.Select(a => a.AnidbEpisodeID))
+                    .ToHashSet();
+                return acc + ser.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
+            }),
             HasTraktLinkDelegate = () =>
                 series.Any(a => a.TraktShowCrossReferences.Count is > 0),
             HasTraktAutoLinkingDisabledDelegate = () =>
