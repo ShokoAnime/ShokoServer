@@ -8,7 +8,8 @@ using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using AnimeType = Shoko.Models.Enums.AnimeType;
+
+using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 #nullable enable
@@ -124,7 +125,7 @@ public static class FilterExtensions
                 decimal.Round(Convert.ToDecimal(series.AniDB_Anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
             AnimeTypesDelegate = () =>
                 series.AniDB_Anime is { } anime
-                    ? new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { ((AnimeType)anime.AnimeType).ToString() }
+                    ? new HashSet<AnimeType> { anime.AbstractAnimeType }
                     : [],
             VideoSourcesDelegate = () =>
                 series.VideoLocals.Select(a => a.AniDBFile).WhereNotNull().Select(a => a.File_Source).ToHashSet(),
@@ -307,7 +308,7 @@ public static class FilterExtensions
             AverageAniDBRatingDelegate = () =>
                 anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Average(),
             AnimeTypesDelegate = () =>
-                new HashSet<string>(anime.Select(a => ((AnimeType)a.AnimeType).ToString()), StringComparer.InvariantCultureIgnoreCase),
+                new HashSet<AnimeType>(anime.Select(a => a.AbstractAnimeType)),
             VideoSourcesDelegate = () =>
                 series.SelectMany(a => a.VideoLocals).Select(a => a.AniDBFile).WhereNotNull().Select(a => a.File_Source).ToHashSet(),
             SharedVideoSourcesDelegate = () =>

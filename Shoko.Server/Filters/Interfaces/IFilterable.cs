@@ -4,6 +4,8 @@ using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Server;
 
+using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
+
 namespace Shoko.Server.Filters.Interfaces;
 
 public interface IFilterable
@@ -197,7 +199,7 @@ public interface IFilterable
     /// <summary>
     /// The anime types (movie, series, ova, etc)
     /// </summary>
-    IReadOnlySet<string> AnimeTypes { get; }
+    IReadOnlySet<AnimeType> AnimeTypes { get; }
 
     /// <summary>
     /// Audio Languages
