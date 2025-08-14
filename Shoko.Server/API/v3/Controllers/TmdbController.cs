@@ -3028,10 +3028,6 @@ public partial class TmdbController : BaseController
         if (file is null || file.Length == 0)
             ModelState.AddModelError("Body", "Body cannot be empty.");
 
-        var allowedTypes = new HashSet<string>() { "text/plain", "text/csv" };
-        if (file is not null && !allowedTypes.Contains(file.ContentType))
-            ModelState.AddModelError("Body", "Invalid content-type for endpoint.");
-
         if (file is not null && file.Name != "file")
             ModelState.AddModelError("Body", "Invalid field name for import file");
 
