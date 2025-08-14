@@ -711,7 +711,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            if (crossRefType != (int)CrossRefType.MovieDB)
+            if (crossRefType != 1 /* CrossRefType.MovieDB */)
                 return null;
             var (xref, _) = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(animeID);
             return xref?.ToClient();
@@ -728,11 +728,9 @@ public partial class ShokoServiceImplementation : IShokoServer
     {
         try
         {
-            var xrefType = (CrossRefType)crossRefType;
-
-            switch (xrefType)
+            switch (crossRefType)
             {
-                case CrossRefType.MovieDB:
+                case 1 /* CrossRefType.MovieDB */:
                     var episodeId = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(animeID, EpisodeType.Episode, 1).FirstOrDefault()?.EpisodeID;
                     if (!episodeId.HasValue || episodeId <= 0)
                         return $"Could not find first episode for AniDB Anime {animeID} to link to for TMDB Movie {id}";
@@ -762,10 +760,9 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return "Could not find Anime!";
             }
 
-            var xrefType = (CrossRefType)crossRefType;
-            switch (xrefType)
+            switch (crossRefType)
             {
-                case CrossRefType.MovieDB:
+                case 1 /* CrossRefType.MovieDB */:
                     _tmdbLinkingService.RemoveAllMovieLinksForAnime(animeID).ConfigureAwait(false).GetAwaiter().GetResult();
                     break;
             }
