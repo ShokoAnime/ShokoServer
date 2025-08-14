@@ -2,7 +2,7 @@ using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
-public class UserVerifiedTmdbEpisodeLinkSelector : FilterExpression<double>
+public class UserVerifiedTmdbEpisodeLinksSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
@@ -11,10 +11,10 @@ public class UserVerifiedTmdbEpisodeLinkSelector : FilterExpression<double>
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.AutomaticTmdbEpisodeLinks;
+        return filterable.UserVerifiedTmdbEpisodeLinks;
     }
 
-    protected bool Equals(UserVerifiedTmdbEpisodeLinkSelector other)
+    protected bool Equals(UserVerifiedTmdbEpisodeLinksSelector other)
     {
         return base.Equals(other);
     }
@@ -36,7 +36,7 @@ public class UserVerifiedTmdbEpisodeLinkSelector : FilterExpression<double>
             return false;
         }
 
-        return Equals((UserVerifiedTmdbEpisodeLinkSelector)obj);
+        return Equals((UserVerifiedTmdbEpisodeLinksSelector)obj);
     }
 
     public override int GetHashCode()
@@ -44,12 +44,12 @@ public class UserVerifiedTmdbEpisodeLinkSelector : FilterExpression<double>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(UserVerifiedTmdbEpisodeLinkSelector left, UserVerifiedTmdbEpisodeLinkSelector right)
+    public static bool operator ==(UserVerifiedTmdbEpisodeLinksSelector left, UserVerifiedTmdbEpisodeLinksSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(UserVerifiedTmdbEpisodeLinkSelector left, UserVerifiedTmdbEpisodeLinkSelector right)
+    public static bool operator !=(UserVerifiedTmdbEpisodeLinksSelector left, UserVerifiedTmdbEpisodeLinksSelector right)
     {
         return !Equals(left, right);
     }
