@@ -112,4 +112,26 @@ public class TmdbExportBody
             return false;
         return true;
     }
+
+    /// <summary>
+    /// Determines whether the show filter is enabled.
+    /// </summary>
+    [JsonIgnore]
+    public bool ShowFilterEnabled => AnidbAnimeID is not null || TmdbShowID is not null;
+
+    /// <summary>
+    /// Determines whether the given show cross-reference should be included in the export.
+    /// </summary>
+    /// <param name="xref">The show cross-reference to check.</param>
+    /// <returns><c>true</c> if the cross-reference should be included, <c>false</c> otherwise.</returns>
+    public bool ShouldKeep(CrossRef_AniDB_TMDB_Show xref)
+    {
+        if (!ShowFilterEnabled)
+            return true;
+        if (AnidbAnimeID is not null && AnidbAnimeID != xref.AnidbAnimeID)
+            return false;
+        if (TmdbShowID is not null && TmdbShowID != xref.TmdbShowID)
+            return false;
+        return true;
+    }
 }

@@ -19,18 +19,18 @@ public class CrossRef_AniDB_TMDB_Show
 
     public int TmdbShowID { get; set; }
 
-    public CrossRefSource Source { get; set; }
+    public MatchRating MatchRating { get; set; }
 
     #endregion
     #region Constructors
 
     public CrossRef_AniDB_TMDB_Show() { }
 
-    public CrossRef_AniDB_TMDB_Show(int anidbAnimeId, int tmdbShowId, CrossRefSource source = CrossRefSource.User)
+    public CrossRef_AniDB_TMDB_Show(int anidbAnimeId, int tmdbShowId, MatchRating matchRating = MatchRating.UserVerified)
     {
         AnidbAnimeID = anidbAnimeId;
         TmdbShowID = tmdbShowId;
-        Source = source;
+        MatchRating = matchRating;
     }
 
     #endregion

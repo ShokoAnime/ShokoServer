@@ -97,10 +97,10 @@ public static class FilterExtensions
                 series.IsTMDBAutoMatchingDisabled,
             AutomaticTmdbEpisodeLinksDelegate = () =>
                 series.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified) +
-                series.TmdbMovieCrossReferences.Count(xref => xref.Source is not CrossRefSource.User),
+                series.TmdbMovieCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified),
             UserVerifiedTmdbEpisodeLinksDelegate = () =>
                 series.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified) +
-                series.TmdbMovieCrossReferences.Count(xref => xref.Source is CrossRefSource.User),
+                series.TmdbMovieCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified),
             MissingTmdbEpisodeLinksDelegate = () =>
             {
                 var allTmdbLinkedEpisodes = series.TmdbEpisodeCrossReferences.Select(a => a.AnidbEpisodeID)
@@ -287,12 +287,12 @@ public static class FilterExtensions
             AutomaticTmdbEpisodeLinksDelegate = () =>
                 series.Sum(a =>
                     a.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified) +
-                    a.TmdbMovieCrossReferences.Count(xref => xref.Source is not CrossRefSource.User)
+                    a.TmdbMovieCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified)
                 ),
             UserVerifiedTmdbEpisodeLinksDelegate = () =>
                 series.Sum(a =>
                     a.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified) +
-                    a.TmdbMovieCrossReferences.Count(xref => xref.Source is CrossRefSource.User)
+                    a.TmdbMovieCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified)
                 ),
             MissingTmdbEpisodeLinksDelegate = () => series.Aggregate(0, (acc, ser) =>
             {

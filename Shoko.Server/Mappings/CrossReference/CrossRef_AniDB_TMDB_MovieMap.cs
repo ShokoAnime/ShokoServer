@@ -16,6 +16,6 @@ public class CrossRef_AniDB_TMDB_MovieMap : ClassMap<CrossRef_AniDB_TMDB_Movie>
         Map(x => x.AnidbAnimeID).Not.Nullable();
         Map(x => x.AnidbEpisodeID).Not.Nullable();
         Map(x => x.TmdbMovieID).Not.Nullable();
-        Map(x => x.Source).CustomType<CrossRefSource>().Not.Nullable();
+        Map(x => x.MatchRating).CustomType<MatchRating>().Not.Nullable();
     }
 }

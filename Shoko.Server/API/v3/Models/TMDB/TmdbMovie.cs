@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
-
-using CrossRefSource = Shoko.Models.Enums.CrossRefSource;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
@@ -363,7 +362,10 @@ public class TmdbMovie
             AnidbAnimeID = xref.AnidbAnimeID;
             AnidbEpisodeID = xref.AnidbEpisodeID;
             TmdbMovieID = xref.TmdbMovieID;
-            Rating = xref.Source is CrossRefSource.User ? "User" : "Automatic";
+            Rating = "None";
+            // NOTE: Internal easter-eggs stays internally.
+            if (xref.MatchRating != MatchRating.SarahJessicaParker)
+                Rating = xref.MatchRating.ToString();
         }
     }
 

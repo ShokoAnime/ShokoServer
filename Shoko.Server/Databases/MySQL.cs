@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 155;
+    public override int RequiredVersion { get; } = 156;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -946,6 +946,12 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(154, 01, "ALTER TABLE `TMDB_Show` MODIFY COLUMN `Keywords` LONGTEXT NULL;"),
         new(154, 02, "ALTER TABLE `TMDB_Movie` MODIFY COLUMN `Keywords` LONGTEXT NULL;"),
         new(155, 01, "RENAME TABLE `Tmdb_Show_Network` TO `TMDB_Show_Network`;"),
+        new(156, 01, "ALTER TABLE `CrossRef_AniDB_TMDB_Movie` ADD COLUMN `MatchRating` INT NOT NULL DEFAULT 1;"),
+        new(156, 02, "UPDATE `CrossRef_AniDB_TMDB_Movie` SET `MatchRating` = 5 WHERE `Source` = 0;"),
+        new(156, 03, "ALTER TABLE `CrossRef_AniDB_TMDB_Movie` DROP COLUMN `Source`;"),
+        new(156, 04, "ALTER TABLE `CrossRef_AniDB_TMDB_Show` ADD COLUMN `MatchRating` INT NOT NULL DEFAULT 1;"),
+        new(156, 05, "UPDATE `CrossRef_AniDB_TMDB_Show` SET `MatchRating` = 5 WHERE `Source` = 0;"),
+        new(156, 06, "ALTER TABLE `CrossRef_AniDB_TMDB_Show` DROP COLUMN `Source`;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
