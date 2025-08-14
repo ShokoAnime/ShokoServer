@@ -5,13 +5,15 @@ using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Server;
 
+using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
+
 namespace Shoko.Server.Filters;
 
 public class Filterable : IFilterable
 {
     private readonly Lazy<DateTime> _addedDate;
     private readonly Lazy<DateTime?> _airDate;
-    private readonly Lazy<IReadOnlySet<string>> _animeTypes;
+    private readonly Lazy<IReadOnlySet<AnimeType>> _animeTypes;
     private readonly Lazy<IReadOnlySet<string>> _audioLanguages;
     private readonly Lazy<decimal> _averageAniDBRating;
     private readonly Lazy<IReadOnlySet<string>> _customTagIDs;
@@ -22,6 +24,7 @@ public class Filterable : IFilterable
     private readonly Lazy<bool> _hasTmdbLink;
     private readonly Lazy<int> _automaticTmdbEpisodeLinks;
     private readonly Lazy<int> _userVerifiedTmdbEpisodeLinks;
+    private readonly Lazy<int> _missingTmdbEpisodeLinks;
     private readonly Lazy<bool> _hasTraktLink;
     private readonly Lazy<decimal> _highestAniDBRating;
     private readonly Lazy<bool> _isFinished;
@@ -249,6 +252,13 @@ public class Filterable : IFilterable
         init => _userVerifiedTmdbEpisodeLinks = new Lazy<int>(value);
     }
 
+    public int MissingTmdbEpisodeLinks => _missingTmdbEpisodeLinks.Value;
+
+    public required Func<int> MissingTmdbEpisodeLinksDelegate
+    {
+        init => _missingTmdbEpisodeLinks = new Lazy<int>(value);
+    }
+
     public bool HasTraktLink => _hasTraktLink.Value;
 
     public required Func<bool> HasTraktLinkDelegate
@@ -347,11 +357,11 @@ public class Filterable : IFilterable
         init => _sharedVideoSources = new Lazy<IReadOnlySet<string>>(value);
     }
 
-    public IReadOnlySet<string> AnimeTypes => _animeTypes.Value;
+    public IReadOnlySet<AnimeType> AnimeTypes => _animeTypes.Value;
 
-    public required Func<IReadOnlySet<string>> AnimeTypesDelegate
+    public required Func<IReadOnlySet<AnimeType>> AnimeTypesDelegate
     {
-        init => _animeTypes = new Lazy<IReadOnlySet<string>>(value);
+        init => _animeTypes = new Lazy<IReadOnlySet<AnimeType>>(value);
     }
 
     public IReadOnlySet<string> AudioLanguages => _audioLanguages.Value;

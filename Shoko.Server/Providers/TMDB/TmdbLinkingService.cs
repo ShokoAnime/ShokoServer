@@ -163,7 +163,7 @@ public class TmdbLinkingService
 
     #region Movie Links
 
-    public async Task AddMovieLinkForEpisode(int anidbEpisodeId, int tmdbMovieId, bool additiveLink = false, bool isAutomatic = false)
+    public async Task AddMovieLinkForEpisode(int anidbEpisodeId, int tmdbMovieId, bool additiveLink = false, MatchRating matchRating = MatchRating.UserVerified)
     {
         // Remove all existing links.
         if (!additiveLink)
@@ -180,7 +180,7 @@ public class TmdbLinkingService
         _logger.LogInformation("Adding TMDB Movie Link: AniDB episode (EpisodeID={EpisodeID},AnimeID={AnimeID}) → TMDB movie (MovieID={TmdbID})", anidbEpisodeId, episode.AnimeID, tmdbMovieId);
         var xref = _xrefAnidbTmdbMovies.GetByAnidbEpisodeAndTmdbMovieIDs(anidbEpisodeId, tmdbMovieId) ?? new(anidbEpisodeId, episode.AnimeID, tmdbMovieId);
         xref.AnidbAnimeID = episode.AnimeID;
-        xref.Source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
+        xref.MatchRating = matchRating;
         _xrefAnidbTmdbMovies.Save(xref);
     }
 
@@ -265,7 +265,7 @@ public class TmdbLinkingService
 
     #region Show Links
 
-    public async Task AddShowLink(int anidbAnimeId, int tmdbShowId, bool additiveLink = true, bool isAutomatic = false)
+    public async Task AddShowLink(int anidbAnimeId, int tmdbShowId, bool additiveLink = true, MatchRating matchRating = MatchRating.UserVerified)
     {
         // Remove all existing links.
         if (!additiveLink)
@@ -275,7 +275,7 @@ public class TmdbLinkingService
         _logger.LogInformation("Adding TMDB show link: AniDB (AnimeID={AnidbID}) → TMDB Show (ID={TmdbID})", anidbAnimeId, tmdbShowId);
         var xref = _xrefAnidbTmdbShows.GetByAnidbAnimeAndTmdbShowIDs(anidbAnimeId, tmdbShowId) ??
             new(anidbAnimeId, tmdbShowId);
-        xref.Source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
+        xref.MatchRating = matchRating;
         _xrefAnidbTmdbShows.Save(xref);
         await Task.Run(() => MatchAnidbToTmdbEpisodes(anidbAnimeId, tmdbShowId, null, true, true));
     }

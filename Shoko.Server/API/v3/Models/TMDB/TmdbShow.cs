@@ -399,7 +399,10 @@ public class TmdbShow
         {
             AnidbAnimeID = xref.AnidbAnimeID;
             TmdbShowID = xref.TmdbShowID;
-            Rating = xref.Source is CrossRefSource.User ? "User" : "Automatic";
+            Rating = "None";
+            // NOTE: Internal easter-eggs stays internally.
+            if (xref.MatchRating != MatchRating.SarahJessicaParker)
+                Rating = xref.MatchRating.ToString();
         }
     }
 

@@ -175,7 +175,7 @@ public static class ModelClients
         {
             CrossRef_AniDB_OtherID = xref.CrossRef_AniDB_TMDB_MovieID,
             AnimeID = xref.AnidbAnimeID,
-            CrossRefType = 1 /* TMDB */,
+            CrossRefType = 1 /* CrossRefType.MovieDB */,
             CrossRefID = xref.TmdbMovieID.ToString(),
             CrossRefSource = (int)CrossRefSource.User,
         };

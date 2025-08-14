@@ -2,19 +2,19 @@ using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
-public class AutomaticTmdbEpisodeLinksSelector : FilterExpression<double>
+public class UserVerifiedTmdbEpisodeLinksSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This returns the number of automatic TMDB episode links for a series";
+    public override string HelpDescription => "This returns the number of user verified TMDB episode links for a series";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.AutomaticTmdbEpisodeLinks;
+        return filterable.UserVerifiedTmdbEpisodeLinks;
     }
 
-    protected bool Equals(AutomaticTmdbEpisodeLinksSelector other)
+    protected bool Equals(UserVerifiedTmdbEpisodeLinksSelector other)
     {
         return base.Equals(other);
     }
@@ -36,7 +36,7 @@ public class AutomaticTmdbEpisodeLinksSelector : FilterExpression<double>
             return false;
         }
 
-        return Equals((AutomaticTmdbEpisodeLinksSelector)obj);
+        return Equals((UserVerifiedTmdbEpisodeLinksSelector)obj);
     }
 
     public override int GetHashCode()
@@ -44,12 +44,12 @@ public class AutomaticTmdbEpisodeLinksSelector : FilterExpression<double>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(AutomaticTmdbEpisodeLinksSelector left, AutomaticTmdbEpisodeLinksSelector right)
+    public static bool operator ==(UserVerifiedTmdbEpisodeLinksSelector left, UserVerifiedTmdbEpisodeLinksSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(AutomaticTmdbEpisodeLinksSelector left, AutomaticTmdbEpisodeLinksSelector right)
+    public static bool operator !=(UserVerifiedTmdbEpisodeLinksSelector left, UserVerifiedTmdbEpisodeLinksSelector right)
     {
         return !Equals(left, right);
     }

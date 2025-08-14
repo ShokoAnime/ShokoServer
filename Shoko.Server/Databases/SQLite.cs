@@ -27,7 +27,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 136;
+    public override int RequiredVersion => 138;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -867,12 +867,20 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(134, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new(135, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
         new(135, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
-        new(136, 01, "CREATE TABLE StoredReleaseInfo (StoredReleaseInfoID INTEGER PRIMARY KEY AUTOINCREMENT, ED2K TEXT NOT NULL, FileSize INTEGER NOT NULL, ID TEXT, ProviderName TEXT NOT NULL, ReleaseURI TEXT, Version INTEGER NOT NULL, ProvidedFileSize INTEGER, Comment TEXT, OriginalFilename TEXT, IsCensored INTEGER, IsChaptered INTEGER, IsCreditless INTEGER, IsCorrupted INTEGER NOT NULL, Source INTEGER NOT NULL, GroupID TEXT, GroupSource TEXT, GroupName TEXT, GroupShortName TEXT, Hashes TEXT NULL, AudioLanguages TEXT, SubtitleLanguages TEXT, CrossReferences TEXT NOT NULL, Metadata TEXT NULL, ReleasedAt DATE, LastUpdatedAt DATETIME NOT NULL, CreatedAt DATETIME NOT NULL);"),
-        new(136, 02, "CREATE TABLE StoredReleaseInfo_MatchAttempt (StoredReleaseInfo_MatchAttemptID INTEGER PRIMARY KEY AUTOINCREMENT, AttemptProviderNames TEXT NOT NULL, ProviderName TEXT, ProviderID TEXT, ED2K TEXT NOT NULL, FileSize INTEGER NOT NULL, AttemptStartedAt DATETIME NOT NULL, AttemptEndedAt DATETIME NOT NULL);"),
-        new(136, 03, "CREATE TABLE VideoLocal_HashDigest (VideoLocal_HashDigestID INTEGER PRIMARY KEY AUTOINCREMENT, VideoLocalID INTEGER NOT NULL, Type TEXT NOT NULL, Value TEXT NOT NULL, Metadata TEXT);"),
-        new(136, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
-        new(136, 05, "ALTER TABLE ImportFolder DROP COLUMN ImportFolderType;"),
-        new(136, 06, "ALTER TABLE VideoLocal_Place DROP COLUMN ImportFolderType;"),
+        new(136, 01, "ALTER TABLE Tmdb_Show_Network RENAME TO Tmdb_Show_Network_old;"),
+        new(136, 02, "ALTER TABLE Tmdb_Show_Network_old RENAME TO TMDB_Show_Network;"),
+        new(137, 01, "ALTER TABLE CrossRef_AniDB_TMDB_Movie ADD COLUMN MatchRating INTEGER NOT NULL DEFAULT 1;"),
+        new(137, 02, "UPDATE CrossRef_AniDB_TMDB_Movie SET MatchRating = 5 WHERE Source = 0;"),
+        new(137, 03, "ALTER TABLE CrossRef_AniDB_TMDB_Movie DROP COLUMN Source;"),
+        new(137, 04, "ALTER TABLE CrossRef_AniDB_TMDB_Show ADD COLUMN MatchRating INTEGER NOT NULL DEFAULT 1;"),
+        new(137, 05, "UPDATE CrossRef_AniDB_TMDB_Show SET MatchRating = 5 WHERE Source = 0;"),
+        new(137, 06, "ALTER TABLE CrossRef_AniDB_TMDB_Show DROP COLUMN Source;"),
+        new(138, 01, "CREATE TABLE StoredReleaseInfo (StoredReleaseInfoID INTEGER PRIMARY KEY AUTOINCREMENT, ED2K TEXT NOT NULL, FileSize INTEGER NOT NULL, ID TEXT, ProviderName TEXT NOT NULL, ReleaseURI TEXT, Version INTEGER NOT NULL, ProvidedFileSize INTEGER, Comment TEXT, OriginalFilename TEXT, IsCensored INTEGER, IsChaptered INTEGER, IsCreditless INTEGER, IsCorrupted INTEGER NOT NULL, Source INTEGER NOT NULL, GroupID TEXT, GroupSource TEXT, GroupName TEXT, GroupShortName TEXT, Hashes TEXT NULL, AudioLanguages TEXT, SubtitleLanguages TEXT, CrossReferences TEXT NOT NULL, Metadata TEXT NULL, ReleasedAt DATE, LastUpdatedAt DATETIME NOT NULL, CreatedAt DATETIME NOT NULL);"),
+        new(138, 02, "CREATE TABLE StoredReleaseInfo_MatchAttempt (StoredReleaseInfo_MatchAttemptID INTEGER PRIMARY KEY AUTOINCREMENT, AttemptProviderNames TEXT NOT NULL, ProviderName TEXT, ProviderID TEXT, ED2K TEXT NOT NULL, FileSize INTEGER NOT NULL, AttemptStartedAt DATETIME NOT NULL, AttemptEndedAt DATETIME NOT NULL);"),
+        new(138, 03, "CREATE TABLE VideoLocal_HashDigest (VideoLocal_HashDigestID INTEGER PRIMARY KEY AUTOINCREMENT, VideoLocalID INTEGER NOT NULL, Type TEXT NOT NULL, Value TEXT NOT NULL, Metadata TEXT);"),
+        new(138, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
+        new(138, 05, "ALTER TABLE ImportFolder DROP COLUMN ImportFolderType;"),
+        new(138, 06, "ALTER TABLE VideoLocal_Place DROP COLUMN ImportFolderType;"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

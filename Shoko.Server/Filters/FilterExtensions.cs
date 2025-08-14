@@ -10,7 +10,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
-using AnimeType = Shoko.Models.Enums.AnimeType;
+using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 #nullable enable
@@ -98,10 +98,17 @@ public static class FilterExtensions
                 series.IsTMDBAutoMatchingDisabled,
             AutomaticTmdbEpisodeLinksDelegate = () =>
                 series.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified) +
-                series.TmdbMovieCrossReferences.Count(xref => xref.Source is not CrossRefSource.User),
+                series.TmdbMovieCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified),
             UserVerifiedTmdbEpisodeLinksDelegate = () =>
                 series.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified) +
-                series.TmdbMovieCrossReferences.Count(xref => xref.Source is CrossRefSource.User),
+                series.TmdbMovieCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified),
+            MissingTmdbEpisodeLinksDelegate = () =>
+            {
+                var allTmdbLinkedEpisodes = series.TmdbEpisodeCrossReferences.Select(a => a.AnidbEpisodeID)
+                    .Concat(series.TmdbMovieCrossReferences.Select(a => a.AnidbEpisodeID))
+                    .ToHashSet();
+                return series.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
+            },
             HasTraktLinkDelegate = () =>
                 series.TraktShowCrossReferences.Count is > 0,
             HasTraktAutoLinkingDisabledDelegate = () =>
@@ -126,7 +133,7 @@ public static class FilterExtensions
                 decimal.Round(Convert.ToDecimal(series.AniDB_Anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
             AnimeTypesDelegate = () =>
                 series.AniDB_Anime is { } anime
-                    ? new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { ((AnimeType)anime.AnimeType).ToString() }
+                    ? new HashSet<AnimeType> { anime.AbstractAnimeType }
                     : [],
             VideoSourcesDelegate = () =>
                 series.VideoLocals.Select(a => a.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet(),
@@ -281,13 +288,20 @@ public static class FilterExtensions
             AutomaticTmdbEpisodeLinksDelegate = () =>
                 series.Sum(a =>
                     a.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified) +
-                    a.TmdbMovieCrossReferences.Count(xref => xref.Source is not CrossRefSource.User)
+                    a.TmdbMovieCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified)
                 ),
             UserVerifiedTmdbEpisodeLinksDelegate = () =>
                 series.Sum(a =>
                     a.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified) +
-                    a.TmdbMovieCrossReferences.Count(xref => xref.Source is CrossRefSource.User)
+                    a.TmdbMovieCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified)
                 ),
+            MissingTmdbEpisodeLinksDelegate = () => series.Aggregate(0, (acc, ser) =>
+            {
+                var allTmdbLinkedEpisodes = ser.TmdbEpisodeCrossReferences.Select(a => a.AnidbEpisodeID)
+                    .Concat(ser.TmdbMovieCrossReferences.Select(a => a.AnidbEpisodeID))
+                    .ToHashSet();
+                return acc + ser.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
+            }),
             HasTraktLinkDelegate = () =>
                 series.Any(a => a.TraktShowCrossReferences.Count is > 0),
             HasTraktAutoLinkingDisabledDelegate = () =>
@@ -309,7 +323,7 @@ public static class FilterExtensions
             AverageAniDBRatingDelegate = () =>
                 anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Average(),
             AnimeTypesDelegate = () =>
-                new HashSet<string>(anime.Select(a => ((AnimeType)a.AnimeType).ToString()), StringComparer.InvariantCultureIgnoreCase),
+                new HashSet<AnimeType>(anime.Select(a => a.AbstractAnimeType)),
             VideoSourcesDelegate = () =>
                 series.SelectMany(a => a.VideoLocals).Select(a => a.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet(),
             SharedVideoSourcesDelegate = () =>

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Filters.Interfaces;
 
@@ -13,22 +14,22 @@ public class HasAnimeTypeExpression : FilterExpression<bool>, IWithStringParamet
     public HasAnimeTypeExpression() { }
 
     public string Parameter { get; set; }
+
+    public AnimeType AnimeType => Enum.TryParse<AnimeType>(Parameter, true, out var animeType) ? animeType : AnimeType.Unknown;
+
     public override bool TimeDependent => false;
+
     public override bool UserDependent => false;
+
     public override string HelpDescription => "This condition passes if any of the anime are of the specified type";
-    public override string[] HelpPossibleParameters => new[]
-    {
-        AnimeType.TVSeries.ToString(),
-        AnimeType.Movie.ToString(),
-        AnimeType.OVA.ToString(),
-        AnimeType.Web.ToString(),
-        AnimeType.TVSpecial.ToString(),
-        AnimeType.Other.ToString(),
-    };
+
+    private static string[] HelpParameters => Enum.GetValues<AnimeType>().Select(x => x.ToString()).ToArray();
+
+    public override string[] HelpPossibleParameters => HelpParameters;
 
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.AnimeTypes.Contains(Parameter);
+        return filterable.AnimeTypes.Contains(AnimeType);
     }
 
     protected bool Equals(HasAnimeTypeExpression other)

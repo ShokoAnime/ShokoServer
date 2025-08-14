@@ -10,6 +10,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
+using Shoko.Server.Filters.Info;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
@@ -132,6 +133,12 @@ public class DashboardController : BaseController
 
     private static bool MissingTMDBLink(SVR_AnimeSeries ser)
     {
+        if (MissingTmdbLinkExpression.AnimeTypes.Contains(ser.AniDB_Anime?.AbstractAnimeType ?? AnimeType.Unknown))
+            return false;
+
+        if (ser.IsTMDBAutoMatchingDisabled)
+            return false;
+
         var tmdbMovieLinkMissing = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(ser.AniDB_ID).Count == 0;
         var tmdbShowLinkMissing = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(ser.AniDB_ID).Count == 0;
         return tmdbMovieLinkMissing && tmdbShowLinkMissing;

@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 155;
+    public override int RequiredVersion { get; } = 157;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -945,12 +945,19 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(153, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
         new(154, 01, "ALTER TABLE `TMDB_Show` MODIFY COLUMN `Keywords` LONGTEXT NULL;"),
         new(154, 02, "ALTER TABLE `TMDB_Movie` MODIFY COLUMN `Keywords` LONGTEXT NULL;"),
-        new(155, 01, "CREATE TABLE `StoredReleaseInfo` (`StoredReleaseInfoID` INT NOT NULL AUTO_INCREMENT, `ED2K` VARCHAR(40) NOT NULL, `FileSize` BIGINT NOT NULL, `ID` VARCHAR(128), `ProviderName` VARCHAR(128) NOT NULL, `ReleaseURI` VARCHAR(1024), `Version` INT NOT NULL, `ProvidedFileSize` BIGINT, `Comment` VARCHAR(1024), `OriginalFilename` VARCHAR(1024), `IsCensored` INT, `IsChaptered` INT, `IsCreditless` INT, `IsCorrupted` INT NOT NULL, `Source` INT NOT NULL, `GroupID` VARCHAR(128), `GroupSource` VARCHAR(128), `GroupName` VARCHAR(128), `GroupShortName` VARCHAR(128), `Hashes` TEXT NULL, `AudioLanguages` VARCHAR(128), `SubtitleLanguages` VARCHAR(128), `CrossReferences` VARCHAR(10240) NOT NULL, `Metadata` TEXT NULL, `ReleasedAt` DATE, `LastUpdatedAt` DATETIME NOT NULL, `CreatedAt` DATETIME NOT NULL, PRIMARY KEY (`StoredReleaseInfoID`));"),
-        new(155, 02, "CREATE TABLE `StoredReleaseInfo_MatchAttempt` (`StoredReleaseInfo_MatchAttemptID` INT NOT NULL AUTO_INCREMENT, `AttemptProviderNames` VARCHAR(1024) NOT NULL, `ProviderName` VARCHAR(128), `ProviderID` VARCHAR(40), `ED2K` VARCHAR(40) NOT NULL, `FileSize` BIGINT NOT NULL, `AttemptStartedAt` DATETIME NOT NULL, `AttemptEndedAt` DATETIME NOT NULL, PRIMARY KEY (`StoredReleaseInfo_MatchAttemptID`));"),
-        new(155, 03, "CREATE TABLE `VideoLocal_HashDigest` (`VideoLocal_HashDigestID` INT NOT NULL AUTO_INCREMENT, `VideoLocalID` INT NOT NULL, `Type` VARCHAR(32) NOT NULL, `Value` VARCHAR(10240) NOT NULL, `Metadata` TEXT, PRIMARY KEY (`VideoLocal_HashDigestID`));"),
-        new(155, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
-        new(155, 05, "ALTER TABLE `ImportFolder` DROP COLUMN `ImportFolderType`;"),
-        new(155, 06, "ALTER TABLE `VideoLocal_Place` DROP COLUMN `ImportFolderType`;"),
+        new(155, 01, "RENAME TABLE `Tmdb_Show_Network` TO `TMDB_Show_Network`;"),
+        new(156, 01, "ALTER TABLE `CrossRef_AniDB_TMDB_Movie` ADD COLUMN `MatchRating` INT NOT NULL DEFAULT 1;"),
+        new(156, 02, "UPDATE `CrossRef_AniDB_TMDB_Movie` SET `MatchRating` = 5 WHERE `Source` = 0;"),
+        new(156, 03, "ALTER TABLE `CrossRef_AniDB_TMDB_Movie` DROP COLUMN `Source`;"),
+        new(156, 04, "ALTER TABLE `CrossRef_AniDB_TMDB_Show` ADD COLUMN `MatchRating` INT NOT NULL DEFAULT 1;"),
+        new(156, 05, "UPDATE `CrossRef_AniDB_TMDB_Show` SET `MatchRating` = 5 WHERE `Source` = 0;"),
+        new(156, 06, "ALTER TABLE `CrossRef_AniDB_TMDB_Show` DROP COLUMN `Source`;"),
+        new(157, 01, "CREATE TABLE `StoredReleaseInfo` (`StoredReleaseInfoID` INT NOT NULL AUTO_INCREMENT, `ED2K` VARCHAR(40) NOT NULL, `FileSize` BIGINT NOT NULL, `ID` VARCHAR(128), `ProviderName` VARCHAR(128) NOT NULL, `ReleaseURI` VARCHAR(1024), `Version` INT NOT NULL, `ProvidedFileSize` BIGINT, `Comment` VARCHAR(1024), `OriginalFilename` VARCHAR(1024), `IsCensored` INT, `IsChaptered` INT, `IsCreditless` INT, `IsCorrupted` INT NOT NULL, `Source` INT NOT NULL, `GroupID` VARCHAR(128), `GroupSource` VARCHAR(128), `GroupName` VARCHAR(128), `GroupShortName` VARCHAR(128), `Hashes` TEXT NULL, `AudioLanguages` VARCHAR(128), `SubtitleLanguages` VARCHAR(128), `CrossReferences` VARCHAR(10240) NOT NULL, `Metadata` TEXT NULL, `ReleasedAt` DATE, `LastUpdatedAt` DATETIME NOT NULL, `CreatedAt` DATETIME NOT NULL, PRIMARY KEY (`StoredReleaseInfoID`));"),
+        new(157, 02, "CREATE TABLE `StoredReleaseInfo_MatchAttempt` (`StoredReleaseInfo_MatchAttemptID` INT NOT NULL AUTO_INCREMENT, `AttemptProviderNames` VARCHAR(1024) NOT NULL, `ProviderName` VARCHAR(128), `ProviderID` VARCHAR(40), `ED2K` VARCHAR(40) NOT NULL, `FileSize` BIGINT NOT NULL, `AttemptStartedAt` DATETIME NOT NULL, `AttemptEndedAt` DATETIME NOT NULL, PRIMARY KEY (`StoredReleaseInfo_MatchAttemptID`));"),
+        new(157, 03, "CREATE TABLE `VideoLocal_HashDigest` (`VideoLocal_HashDigestID` INT NOT NULL AUTO_INCREMENT, `VideoLocalID` INT NOT NULL, `Type` VARCHAR(32) NOT NULL, `Value` VARCHAR(10240) NOT NULL, `Metadata` TEXT, PRIMARY KEY (`VideoLocal_HashDigestID`));"),
+        new(157, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
+        new(157, 05, "ALTER TABLE `ImportFolder` DROP COLUMN `ImportFolderType`;"),
+        new(157, 06, "ALTER TABLE `VideoLocal_Place` DROP COLUMN `ImportFolderType`;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
@@ -1559,7 +1566,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
 
         var conn = (MySqlConnection)connection;
         var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
-        mySQL.Execute(conn, $"ALTER DATABASE {settings.Database.Schema} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+        mySQL.Execute(conn, $"ALTER DATABASE `{settings.Database.Schema}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
         return new Tuple<bool, string>(true, null);
     }
 }

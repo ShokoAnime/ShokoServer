@@ -2,19 +2,19 @@ using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
-public class UserVerifiedTmdbEpisodeLinkSelector : FilterExpression<double>
+public class MissingTmdbEpisodeLinksSelector : FilterExpression<double>
 {
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
-    public override string HelpDescription => "This returns the number of user verified TMDB episode links for a series";
+    public override string HelpDescription => "This returns the number of missing TMDB episode links for a series";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
     public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
-        return filterable.AutomaticTmdbEpisodeLinks;
+        return filterable.MissingEpisodes;
     }
 
-    protected bool Equals(UserVerifiedTmdbEpisodeLinkSelector other)
+    protected bool Equals(MissingTmdbEpisodeLinksSelector other)
     {
         return base.Equals(other);
     }
@@ -36,7 +36,7 @@ public class UserVerifiedTmdbEpisodeLinkSelector : FilterExpression<double>
             return false;
         }
 
-        return Equals((UserVerifiedTmdbEpisodeLinkSelector)obj);
+        return Equals((MissingTmdbEpisodeLinksSelector)obj);
     }
 
     public override int GetHashCode()
@@ -44,12 +44,12 @@ public class UserVerifiedTmdbEpisodeLinkSelector : FilterExpression<double>
         return GetType().FullName!.GetHashCode();
     }
 
-    public static bool operator ==(UserVerifiedTmdbEpisodeLinkSelector left, UserVerifiedTmdbEpisodeLinkSelector right)
+    public static bool operator ==(MissingTmdbEpisodeLinksSelector left, MissingTmdbEpisodeLinksSelector right)
     {
         return Equals(left, right);
     }
 
-    public static bool operator !=(UserVerifiedTmdbEpisodeLinkSelector left, UserVerifiedTmdbEpisodeLinkSelector right)
+    public static bool operator !=(MissingTmdbEpisodeLinksSelector left, MissingTmdbEpisodeLinksSelector right)
     {
         return !Equals(left, right);
     }

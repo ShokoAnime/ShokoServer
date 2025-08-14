@@ -2783,9 +2783,11 @@ public partial class TmdbController : BaseController
         Show = 2,
     }
 
-    private const string MovieCrossReferenceWithIdHeader = "AnidbAnimeId,AnidbEpisodeId,TmdbMovieId,IsAutomatic";
+    private const string MovieCrossReferenceWithIdHeader = "AnidbAnimeId,AnidbEpisodeId,TmdbMovieId,Rating";
 
-    private const string EpisodeCrossReferenceWithIdHeader = "AnidbAnimeId,AnidbEpisodeType,AnidbEpisodeId,TmdbShowId,TmdbEpisodeId,Rating";
+    private const string ShowCrossReferenceWithIdHeader = "AnidbAnimeId,TmdbShowId,Rating";
+
+    private const string EpisodeCrossReferenceWithIdHeader = "AnidbAnimeId,AnidbEpisodeId,TmdbShowId,TmdbEpisodeId,Rating";
 
     private string MapAnimeType(AbstractAnimeType? type) =>
         type switch
@@ -2820,7 +2822,7 @@ public partial class TmdbController : BaseController
                     if (body.Automatic != IncludeOnlyFilter.True)
                     {
                         var includeAutomatic = body.Automatic == IncludeOnlyFilter.Only;
-                        var isAutomatic = xref.Source == CrossRefSource.Automatic;
+                        var isAutomatic = xref.MatchRating is not MatchRating.UserVerified;
                         if (isAutomatic != includeAutomatic)
                             return false;
                     }
@@ -2831,7 +2833,9 @@ public partial class TmdbController : BaseController
                 .ThenBy(xref => xref.TmdbMovieID)
                 .SelectMany(xref =>
                 {
-                    var entry = $"{xref.AnidbAnimeID},{xref.AnidbEpisodeID},{xref.TmdbMovieID},{xref.Source == CrossRefSource.Automatic}";
+                    // NOTE: Internal easter eggs should stay internally.
+                    var rating = xref.MatchRating is MatchRating.SarahJessicaParker ? "None" : xref.MatchRating.ToString();
+                    var entry = $"{xref.AnidbAnimeID},{xref.AnidbEpisodeID},{xref.TmdbMovieID},{rating}";
                     if (!body.IncludeComments)
                         return new string[1] { entry };
 
@@ -2878,7 +2882,7 @@ public partial class TmdbController : BaseController
 
         if (sections.HasFlag(CrossReferenceExportType.Show))
         {
-            var crossReferences = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAll()
+            var showCrossReferences = RepoFactory.CrossRef_AniDB_TMDB_Show.GetAll()
                 .Where(xref =>
                 {
                     if (body.Automatic != IncludeOnlyFilter.True)
@@ -2891,7 +2895,46 @@ public partial class TmdbController : BaseController
                     if (body.WithEpisodes != IncludeOnlyFilter.True)
                     {
                         var includeWithEpisode = body.WithEpisodes == IncludeOnlyFilter.Only;
-                        var hasEpisode = xref.TmdbEpisodeID != 0;
+                        var hasEpisode = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetOnlyByAnidbAnimeAndTmdbShowIDs(xref.AnidbAnimeID, xref.TmdbShowID).Any(xref => xref.TmdbEpisodeID is > 0);
+                        if (hasEpisode != includeWithEpisode)
+                            return false;
+                    }
+                    return body.ShouldKeep(xref);
+                })
+                .SelectMany(xref =>
+                {
+                    // NOTE: Internal easter eggs should stay internally.
+                    var rating = xref.MatchRating is MatchRating.SarahJessicaParker ? "None" : xref.MatchRating.ToString();
+                    var entry = $"{xref.AnidbAnimeID},{xref.TmdbShowID},{rating}";
+                    if (!body.IncludeComments)
+                        return new string[1] { entry };
+
+                    var anidbAnime = xref.AnidbAnime;
+                    var anidbAnimeTitle = anidbAnime?.MainTitle ?? "<missing title>";
+                    var tmdbShow = xref.TmdbShow;
+                    var tmdbShowTitle = tmdbShow?.EnglishTitle ?? "<missing title>";
+                    return
+                    [
+                        "",
+                        $"# AniDB: {MapAnimeType(anidbAnime?.AbstractAnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID})",
+                        entry,
+                    ];
+                })
+                .ToList();
+            var episodeCrossReferences = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAll()
+                .Where(xref =>
+                {
+                    if (body.Automatic != IncludeOnlyFilter.True)
+                    {
+                        var includeAutomatic = body.Automatic == IncludeOnlyFilter.Only;
+                        var isAutomatic = xref.MatchRating != MatchRating.UserVerified;
+                        if (isAutomatic != includeAutomatic)
+                            return false;
+                    }
+                    if (body.WithEpisodes != IncludeOnlyFilter.True)
+                    {
+                        var includeWithEpisode = body.WithEpisodes == IncludeOnlyFilter.Only;
+                        var hasEpisode = xref.TmdbEpisodeID is > 0;
                         if (hasEpisode != includeWithEpisode)
                             return false;
                     }
@@ -2930,16 +2973,28 @@ public partial class TmdbController : BaseController
                     ];
                 })
                 .ToList();
-            if (crossReferences.Count > 0)
+            if (showCrossReferences.Count > 0)
+            {
+                if (body.IncludeComments)
+                    stringBuilder.AppendLine("#".PadRight(ShowCrossReferenceWithIdHeader.Length, '-'))
+                        .AppendLine("# AniDB/TMDB Show Cross-References");
+                stringBuilder.AppendLine(ShowCrossReferenceWithIdHeader);
+                if (body.IncludeComments)
+                    stringBuilder.AppendLine("#".PadRight(ShowCrossReferenceWithIdHeader.Length, '-'))
+                        .AppendLine();
+                foreach (var line in showCrossReferences)
+                    stringBuilder.AppendLine(line);
+            }
+            if (episodeCrossReferences.Count > 0)
             {
                 if (body.IncludeComments)
                     stringBuilder.AppendLine("#".PadRight(EpisodeCrossReferenceWithIdHeader.Length, '-'))
-                        .AppendLine("# AniDB/TMDB Show/Episode Cross-References");
+                        .AppendLine("# AniDB/TMDB Episode Cross-References");
                 stringBuilder.AppendLine(EpisodeCrossReferenceWithIdHeader);
                 if (body.IncludeComments)
                     stringBuilder.AppendLine("#".PadRight(EpisodeCrossReferenceWithIdHeader.Length, '-'))
                         .AppendLine();
-                foreach (var line in crossReferences)
+                foreach (var line in episodeCrossReferences)
                     stringBuilder.AppendLine(line);
             }
         }
@@ -2973,10 +3028,6 @@ public partial class TmdbController : BaseController
         if (file is null || file.Length == 0)
             ModelState.AddModelError("Body", "Body cannot be empty.");
 
-        var allowedTypes = new HashSet<string>() { "text/plain", "text/csv" };
-        if (file is not null && !allowedTypes.Contains(file.ContentType))
-            ModelState.AddModelError("Body", "Invalid content-type for endpoint.");
-
         if (file is not null && file.Name != "file")
             ModelState.AddModelError("Body", "Invalid field name for import file");
 
@@ -2988,7 +3039,8 @@ public partial class TmdbController : BaseController
         string? line;
         var lineNumber = 0;
         var currentHeader = "";
-        var movieIdXrefs = new List<(int anidbAnime, int anidbEpisode, int tmdbMovie, bool isAutomatic)>();
+        var movieIdXrefs = new List<(int anidbAnime, int anidbEpisode, int tmdbMovie, MatchRating rating)>();
+        var showIdXrefs = new List<(int anidbAnime, int tmdbShow, MatchRating rating)>();
         var episodeIdXrefs = new List<(int anidbAnime, int anidbEpisode, int tmdbShow, int tmdbEpisode, MatchRating rating)>();
         while ((line = stream.ReadLine()) is not null)
         {
@@ -2999,40 +3051,65 @@ public partial class TmdbController : BaseController
             switch (line)
             {
                 case MovieCrossReferenceWithIdHeader:
+                case ShowCrossReferenceWithIdHeader:
                 case EpisodeCrossReferenceWithIdHeader:
                     currentHeader = line;
                     continue;
             }
 
-            if (string.IsNullOrEmpty(currentHeader) && ModelState.IsValid)
+            if (string.IsNullOrEmpty(currentHeader))
             {
                 ModelState.AddModelError("Body", "Invalid or missing CSV header for import file.");
-                continue;
+                break;
             }
 
             switch (currentHeader)
             {
                 default:
                 case "":
-                    ModelState.AddModelError("Body", $"Unable to parse cross-reference at line {lineNumber}.");
+                    ModelState.AddModelError("Body", $"Unable to parse unknown cross-reference at line {lineNumber}.");
                     break;
 
                 case MovieCrossReferenceWithIdHeader:
                 {
-                    var (animeId, episodeId, movieId, automatic) = line.Split(",");
+                    var (animeId, episodeId, movieId, rating) = line.Split(",");
                     if (
                         !int.TryParse(animeId, out var anidbAnimeId) || anidbAnimeId <= 0 ||
                         !int.TryParse(episodeId, out var anidbEpisodeId) || anidbEpisodeId <= 0 ||
                         !int.TryParse(movieId, out var tmdbMovieId) || tmdbMovieId <= 0 ||
-                        !bool.TryParse(automatic, out var isAutomatic)
+                        // NOTE: Internal easter eggs should stay internally.
+                        !(
+                            (Enum.TryParse<MatchRating>(rating, true, out var matchRating) && matchRating != MatchRating.SarahJessicaParker) ||
+                            (string.Equals(rating, "None", StringComparison.InvariantCultureIgnoreCase) && (matchRating = MatchRating.SarahJessicaParker) == matchRating)
+                        )
                     )
                     {
-                        ModelState.AddModelError("Body", $"Unable to parse cross-reference at line {lineNumber}.");
+                        ModelState.AddModelError("Body", $"Unable to parse movie cross-reference at line {lineNumber}.");
                         continue;
                     }
 
-                    movieIdXrefs.Add((anidbAnimeId, anidbEpisodeId, tmdbMovieId, isAutomatic));
+                    movieIdXrefs.Add((anidbAnimeId, anidbEpisodeId, tmdbMovieId, matchRating));
 
+                    break;
+                }
+                case ShowCrossReferenceWithIdHeader:
+                {
+                    var (anime, show, rating) = line.Split(",");
+                    if (
+                        !int.TryParse(anime, out var anidbAnimeId) || anidbAnimeId <= 0 ||
+                        !int.TryParse(show, out var tmdbShowId) || tmdbShowId < 0 ||
+                        // NOTE: Internal easter eggs should stay internally.
+                        !(
+                            (Enum.TryParse<MatchRating>(rating, true, out var matchRating) && matchRating != MatchRating.SarahJessicaParker) ||
+                            (string.Equals(rating, "None", StringComparison.InvariantCultureIgnoreCase) && (matchRating = MatchRating.SarahJessicaParker) == matchRating)
+                        )
+                    )
+                    {
+                        ModelState.AddModelError("Body", $"Unable to parse show cross-reference at line {lineNumber}.");
+                        continue;
+                    }
+
+                    showIdXrefs.Add((anidbAnimeId, tmdbShowId, matchRating));
                     break;
                 }
                 case EpisodeCrossReferenceWithIdHeader:
@@ -3050,7 +3127,7 @@ public partial class TmdbController : BaseController
                         )
                     )
                     {
-                        ModelState.AddModelError("Body", $"Unable to parse cross-reference at line {lineNumber}.");
+                        ModelState.AddModelError("Body", $"Unable to parse episode cross-reference at line {lineNumber}.");
                         continue;
                     }
 
@@ -3063,7 +3140,7 @@ public partial class TmdbController : BaseController
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        if (movieIdXrefs.Count == 0 && episodeIdXrefs.Count == 0)
+        if (movieIdXrefs.Count == 0 && showIdXrefs.Count == 0 && episodeIdXrefs.Count == 0)
             ModelState.AddModelError("Body", "File contained no lines to import.");
 
         var moviesToPull = new HashSet<int>();
@@ -3074,12 +3151,11 @@ public partial class TmdbController : BaseController
         var movieXrefsToPotentiallyRemove = new List<CrossRef_AniDB_TMDB_Movie>();
         var movieXrefsToKeep = new List<CrossRef_AniDB_TMDB_Movie>();
         var movieXrefsToSave = new List<CrossRef_AniDB_TMDB_Movie>();
-        foreach (var (animeId, episodeId, movieId, isAutomatic) in movieIdXrefs)
+        foreach (var (animeId, episodeId, movieId, matchRating) in movieIdXrefs)
         {
             var id = $"{animeId}:{episodeId}";
             var updated = false;
             var isNew = false;
-            var source = isAutomatic ? CrossRefSource.Automatic : CrossRefSource.User;
             CrossRef_AniDB_TMDB_Movie? xref = null;
             if (existingMovieXrefs.TryGetValue(id, out var xrefDict))
             {
@@ -3098,13 +3174,13 @@ public partial class TmdbController : BaseController
                     AnidbAnimeID = animeId,
                     AnidbEpisodeID = episodeId,
                     TmdbMovieID = movieId,
-                    Source = source,
+                    MatchRating = matchRating,
                 };
             }
 
-            if (!isNew && xref.Source is not CrossRefSource.User && source is CrossRefSource.User)
+            if (!isNew && xref.MatchRating is not MatchRating.UserVerified && xref.MatchRating != matchRating)
             {
-                xref.Source = source;
+                xref.MatchRating = matchRating;
                 updated = true;
             }
 
@@ -3138,6 +3214,12 @@ public partial class TmdbController : BaseController
         var episodeXrefsToSave = new List<CrossRef_AniDB_TMDB_Episode>();
         var episodeXrefsToPotentiallyRemove = new List<CrossRef_AniDB_TMDB_Episode>();
         var showXrefsToSave = new Dictionary<string, CrossRef_AniDB_TMDB_Show>();
+        foreach (var (animeId, showId, matchRating) in showIdXrefs)
+        {
+            var id = $"{animeId}:{showId}";
+            if (!existingShowXrefs.Contains(id))
+                showXrefsToSave.TryAdd(id, new(animeId, showId, MatchRating.UserVerified));
+        }
         foreach (var (animeId, anidbEpisodeId, showId, tmdbEpisodeId, matchRating) in episodeIdXrefs)
         {
             var anidbId = $"{animeId}:{anidbEpisodeId}";
@@ -3175,7 +3257,7 @@ public partial class TmdbController : BaseController
                 updated = true;
             }
 
-            if (xref.MatchRating != matchRating)
+            if (!isNew && xref.MatchRating is not MatchRating.UserVerified && xref.MatchRating != matchRating)
             {
                 xref.MatchRating = matchRating;
                 updated = true;
@@ -3187,7 +3269,7 @@ public partial class TmdbController : BaseController
                 episodeXrefsToKeep.Add(xref);
 
             if (!existingShowXrefs.Contains($"{animeId}:{showId}"))
-                showXrefsToSave.TryAdd($"{animeId}:{showId}", new(animeId, showId, CrossRefSource.User));
+                showXrefsToSave.TryAdd($"{animeId}:{showId}", new(animeId, showId, MatchRating.UserVerified));
 
             if (!addMissingShows)
                 continue;
