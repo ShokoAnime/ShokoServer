@@ -899,10 +899,10 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(146, 02, "ALTER TABLE TMDB_Show ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
         new DatabaseCommand(146, 03, "ALTER TABLE TMDB_Movie ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
         new DatabaseCommand(147, 01, "EXEC sp_rename 'Tmdb_Show_Network', 'TMDB_Show_Network';"),
-        new DatabaseCommand(148, 01, "ALTER TABLE CrossRef_AniDB_TMDB_Movie ADD COLUMN MatchRating INT NOT NULL DEFAULT 1;"),
+        new DatabaseCommand(148, 01, "ALTER TABLE CrossRef_AniDB_TMDB_Movie ADD MatchRating int NOT NULL DEFAULT 1;"),
         new DatabaseCommand(148, 02, "UPDATE CrossRef_AniDB_TMDB_Movie SET MatchRating = 5 WHERE Source = 0;"),
         new DatabaseCommand(148, 03, "ALTER TABLE CrossRef_AniDB_TMDB_Movie DROP COLUMN Source;"),
-        new DatabaseCommand(148, 04, "ALTER TABLE CrossRef_AniDB_TMDB_Show ADD COLUMN MatchRating INT NOT NULL DEFAULT 1;"),
+        new DatabaseCommand(148, 04, "ALTER TABLE CrossRef_AniDB_TMDB_Show ADD MatchRating int NOT NULL DEFAULT 1;"),
         new DatabaseCommand(148, 05, "UPDATE CrossRef_AniDB_TMDB_Show SET MatchRating = 5 WHERE Source = 0;"),
         new DatabaseCommand(148, 06, "ALTER TABLE CrossRef_AniDB_TMDB_Show DROP COLUMN Source;"),
     };
