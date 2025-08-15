@@ -2781,6 +2781,7 @@ public partial class TmdbController : BaseController
         None = 0,
         Movie = 1,
         Show = 2,
+        Episode = 4,
     }
 
     private const string MovieCrossReferenceWithIdHeader = "AnidbAnimeId,AnidbEpisodeId,TmdbMovieId,Rating";
@@ -2816,7 +2817,7 @@ public partial class TmdbController : BaseController
         var stringBuilder = new StringBuilder();
         if (sections.HasFlag(CrossReferenceExportType.Movie))
         {
-            var crossReferences = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetAll()
+            var movieCrossReferences = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetAll()
                 .Where(xref =>
                 {
                     if (body.Automatic != IncludeOnlyFilter.True)
@@ -2861,7 +2862,7 @@ public partial class TmdbController : BaseController
                     ];
                 })
                 .ToList();
-            if (crossReferences.Count > 0)
+            if (movieCrossReferences.Count > 0)
             {
                 if (body.IncludeComments)
                     stringBuilder.AppendLine("#".PadRight(MovieCrossReferenceWithIdHeader.Length, '-'))
@@ -2870,12 +2871,12 @@ public partial class TmdbController : BaseController
                 if (body.IncludeComments)
                     stringBuilder.AppendLine("#".PadRight(MovieCrossReferenceWithIdHeader.Length, '-'))
                         .AppendLine();
-                foreach (var line in crossReferences)
+                foreach (var line in movieCrossReferences)
                     stringBuilder.AppendLine(line);
             }
         }
 
-        if (body.IncludeComments && sections.HasFlag(CrossReferenceExportType.Movie) && sections.HasFlag(CrossReferenceExportType.Show))
+        if (body.IncludeComments && sections.HasFlag(CrossReferenceExportType.Movie) && (sections.HasFlag(CrossReferenceExportType.Show) || sections.HasFlag(CrossReferenceExportType.Episode)))
             stringBuilder
                 .AppendLine()
                 .AppendLine();
@@ -2921,6 +2922,27 @@ public partial class TmdbController : BaseController
                     ];
                 })
                 .ToList();
+            if (showCrossReferences.Count > 0)
+            {
+                if (body.IncludeComments)
+                    stringBuilder.AppendLine("#".PadRight(ShowCrossReferenceWithIdHeader.Length, '-'))
+                        .AppendLine("# AniDB/TMDB Show Cross-References");
+                stringBuilder.AppendLine(ShowCrossReferenceWithIdHeader);
+                if (body.IncludeComments)
+                    stringBuilder.AppendLine("#".PadRight(ShowCrossReferenceWithIdHeader.Length, '-'))
+                        .AppendLine();
+                foreach (var line in showCrossReferences)
+                    stringBuilder.AppendLine(line);
+            }
+        }
+
+        if (body.IncludeComments && sections.HasFlag(CrossReferenceExportType.Episode) && sections.HasFlag(CrossReferenceExportType.Show))
+            stringBuilder
+                .AppendLine()
+                .AppendLine();
+
+        if (sections.HasFlag(CrossReferenceExportType.Show))
+        {
             var episodeCrossReferences = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAll()
                 .Where(xref =>
                 {
@@ -2973,18 +2995,6 @@ public partial class TmdbController : BaseController
                     ];
                 })
                 .ToList();
-            if (showCrossReferences.Count > 0)
-            {
-                if (body.IncludeComments)
-                    stringBuilder.AppendLine("#".PadRight(ShowCrossReferenceWithIdHeader.Length, '-'))
-                        .AppendLine("# AniDB/TMDB Show Cross-References");
-                stringBuilder.AppendLine(ShowCrossReferenceWithIdHeader);
-                if (body.IncludeComments)
-                    stringBuilder.AppendLine("#".PadRight(ShowCrossReferenceWithIdHeader.Length, '-'))
-                        .AppendLine();
-                foreach (var line in showCrossReferences)
-                    stringBuilder.AppendLine(line);
-            }
             if (episodeCrossReferences.Count > 0)
             {
                 if (body.IncludeComments)
