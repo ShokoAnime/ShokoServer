@@ -2941,7 +2941,7 @@ public partial class TmdbController : BaseController
                 .AppendLine()
                 .AppendLine();
 
-        if (sections.HasFlag(CrossReferenceExportType.Show))
+        if (sections.HasFlag(CrossReferenceExportType.Episode))
         {
             var episodeCrossReferences = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAll()
                 .Where(xref =>
