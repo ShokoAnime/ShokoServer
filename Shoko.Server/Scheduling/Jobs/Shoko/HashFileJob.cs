@@ -312,7 +312,7 @@ public class HashFileJob : BaseJob
         if (needMD5) tp.Add("MD5");
         if (needCRC32) tp.Add("CRC32");
 
-        _logger.LogTrace("Calculating missing {Filename} hashes for: {Types}", FilePath, string.Join(",", tp));
+        _logger.LogTrace("Calculating missing {Types} hashes for: {Filename}", string.Join(",", tp), FilePath);
         var hashes = Hasher.CalculateHashes(
             FilePath.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar),
             ShokoServer.OnHashProgress,
