@@ -8,6 +8,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public static class Dashboard
@@ -138,8 +139,8 @@ public static class Dashboard
     /// </summary>
     public class Episode
     {
-        public Episode(SVR_AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null,
-            VideoLocal file = null, VideoLocal_User userRecord = null)
+        public Episode(SVR_AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries? series = null,
+            VideoLocal? file = null, VideoLocal_User? userRecord = null)
         {
             IDs = new EpisodeDetailsIDs()
             {
@@ -160,6 +161,7 @@ public static class Dashboard
             Watched = userRecord?.WatchedDate?.ToUniversalTime();
             SeriesTitle = series?.PreferredTitle ?? anime.PreferredTitle;
             SeriesPoster = new Image(anime.PreferredOrDefaultPoster);
+            Thumbnail = episode.PreferredOrDefaultThumbnail is { } image ? new Image(image) : null;
         }
 
         /// <summary>
@@ -214,6 +216,11 @@ public static class Dashboard
         /// Series poster.
         /// </summary>
         public Image SeriesPoster { get; set; }
+
+        /// <summary>
+        /// Episode thumbnail.
+        /// </summary>
+        public Image? Thumbnail { get; set; }
     }
 
     /// <summary>
