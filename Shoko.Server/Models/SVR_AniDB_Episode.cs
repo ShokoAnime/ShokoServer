@@ -68,6 +68,20 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
 
     #region Images
 
+    public IImageMetadata? PreferredOrDefaultThumbnail
+    {
+        get
+        {
+            if (TmdbEpisodeCrossReferences is { Count: > 0 } tmdbEpisodeCrossReferences)
+                return GetPreferredImageForType(ImageEntityType.Thumbnail) ?? tmdbEpisodeCrossReferences[0].TmdbEpisode?.DefaultThumbnail;
+
+            if (TmdbMovieCrossReferences is { Count: > 0 } tmdbMovieCrossReferences)
+                return GetPreferredImageForType(ImageEntityType.Backdrop) ?? tmdbMovieCrossReferences[0].TmdbMovie?.DefaultBackdrop;
+
+            return null;
+        }
+    }
+
     public IImageMetadata? GetPreferredImageForType(ImageEntityType entityType)
         => RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(EpisodeID, entityType)?.GetImageMetadata();
 
