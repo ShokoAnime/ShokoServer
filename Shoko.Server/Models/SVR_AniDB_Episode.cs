@@ -73,10 +73,10 @@ public class SVR_AniDB_Episode : AniDB_Episode, IEpisode
         get
         {
             if (TmdbEpisodeCrossReferences is { Count: > 0 } tmdbEpisodeCrossReferences)
-                return GetPreferredImageForType(ImageEntityType.Thumbnail) ?? tmdbEpisodeCrossReferences[0].TmdbEpisode?.DefaultThumbnail;
+                return GetPreferredImageForType(ImageEntityType.Thumbnail) ?? tmdbEpisodeCrossReferences[0].TmdbEpisode?.GetImages(ImageEntityType.Thumbnail).FirstOrDefault();
 
             if (TmdbMovieCrossReferences is { Count: > 0 } tmdbMovieCrossReferences)
-                return GetPreferredImageForType(ImageEntityType.Backdrop) ?? tmdbMovieCrossReferences[0].TmdbMovie?.DefaultBackdrop;
+                return GetPreferredImageForType(ImageEntityType.Backdrop) ?? tmdbMovieCrossReferences[0].TmdbMovie?.GetImages(ImageEntityType.Backdrop).FirstOrDefault();
 
             return null;
         }
