@@ -2802,7 +2802,7 @@ public class SeriesController : BaseController
     /// <param name="limit">number of return items</param>
     /// <returns>List<see cref="Series.SearchResult"/></returns>
     [HttpGet("Search")]
-    public ActionResult<IEnumerable<Series.SearchResult>> SearchQuery([FromQuery] string query, [FromQuery] bool fuzzy = true,
+    public ActionResult<IEnumerable<Series.SearchResult>> SearchQuery([FromQuery] string query = "", [FromQuery] bool fuzzy = true,
         [FromQuery, Range(0, 1000)] int limit = 50)
         => SearchInternal(query, fuzzy, limit);
 
@@ -2843,7 +2843,7 @@ public class SeriesController : BaseController
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [HttpGet("AniDB/Search")]
-    public ActionResult<ListResult<AnidbAnime>> AnidbSearchQuery([FromQuery] string query,
+    public ActionResult<ListResult<AnidbAnime>> AnidbSearchQuery([FromQuery] string query = "",
         [FromQuery] bool fuzzy = true, [FromQuery] bool? local = null,
         [FromQuery] bool includeTitles = true, [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
