@@ -237,10 +237,15 @@ public class AbstractVideoService : IVideoService
             return;
         }
 
+        var settings = _settingsProvider.GetSettings();
         var videoIsKnown = !string.IsNullOrEmpty(video.Hash) && video.FileSize > 0;
         var hasXrefs = videoIsKnown && video.EpisodeCrossReferences is { Count: > 0 };
         var shouldSave = videoIsKnown && locationAvailable && videoLocation.ID is 0;
         var shouldHash = !videoIsKnown || (video.Hashes is { } hashes && (hashes.Count == 0 || _videoHashingService.AllEnabledHashTypes.Any(a => !hashes.Any(b => b.Type == a))));
+        var shouldRelocate = hasXrefs && !shouldHash && locationAvailable && settings.Plugins.Renamer.RelocateOnImport && (
+            managedFolder.DropFolderType.HasFlag(DropFolderType.Source) ||
+            (managedFolder.DropFolderType.HasFlag(DropFolderType.Destination) && settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport)
+        );
         if (locationAvailable)
         {
             if (videoLocation.ID is 0)
@@ -284,6 +289,13 @@ public class AbstractVideoService : IVideoService
                 _logger.LogWarning(ex, "{Message}", ex.Message);
             }
             return;
+        }
+
+        if (shouldRelocate)
+        {
+            _logger.LogTrace("Scheduling video relocation for: {Path}", absolutePath);
+            var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+            await scheduler.StartJob<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (managedFolder.ID, relativePath));
         }
 
         if (hasXrefs)
@@ -611,6 +623,7 @@ public class AbstractVideoService : IVideoService
             async index =>
             {
                 var fileName = files[index];
+                var relativePath = Utils.CleanPath(fileName[(folder.Path.Length + 1)..], cleanStart: true);
                 if (++filesFound % 100 == 0 || filesFound == 1 || filesFound == total)
                     _logger.LogTrace("Processing File {Count}/{Total} in folder {FolderName} --- {Name}", filesFound, total, folder.Name, fileName);
 
@@ -619,7 +632,7 @@ public class AbstractVideoService : IVideoService
 
                 videosFound++;
 
-                await NotifyVideoFileChangeDetected(fileName, updateMylist: !skipMylist);
+                await NotifyVideoFileChangeDetected(folder, relativePath, updateMylist: !skipMylist);
             },
             new ExecutionDataflowBlockOptions
             {
