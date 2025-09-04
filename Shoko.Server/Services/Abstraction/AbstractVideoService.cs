@@ -623,7 +623,7 @@ public class AbstractVideoService : IVideoService
             async index =>
             {
                 var fileName = files[index];
-                var relativePath = Utils.CleanPath(fileName[(folder.Path.Length + 1)..], cleanStart: true);
+                var relativePath = Utils.CleanPath(fileName[folder.Path.Length..], cleanStart: true);
                 if (++filesFound % 100 == 0 || filesFound == 1 || filesFound == total)
                     _logger.LogTrace("Processing File {Count}/{Total} in folder {FolderName} --- {Name}", filesFound, total, folder.Name, fileName);
 
