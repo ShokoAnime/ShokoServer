@@ -518,10 +518,6 @@ public class VideoHashingService(
             }
         }
 
-        // Add the process file job if we're not forcefully re-hashing the file.
-        if (!skipFindRelease && (useExistingHashes || video.ReleaseInfo is null))
-            await videoReleaseService.ScheduleFindReleaseForVideo(video, force: !useExistingHashes, addToMylist: !skipMylist).ConfigureAwait(false);
-
         try
         {
             FileHashed?.Invoke(null, new(videoLocation.RelativePath, folder, videoLocation, video)
@@ -536,6 +532,22 @@ public class VideoHashingService(
         {
             logger.LogError(ex, "Error occurred in 'FileHashed' event");
         }
+
+        var settings = settingsProvider.GetSettings();
+        var shouldRelocate = !isNewVideo && video.ReleaseInfo is not null && !useExistingHashes && settings.Plugins.Renamer.RelocateOnImport && (
+            folder.DropFolderType.HasFlag(DropFolderType.Source) ||
+            (folder.DropFolderType.HasFlag(DropFolderType.Destination) && settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport)
+        );
+        if (shouldRelocate)
+        {
+            logger.LogTrace("Scheduling video relocation for: {Path}", originalPath);
+            var scheduler = await schedulerFactory.GetScheduler(cancellationToken).ConfigureAwait(false);
+            await scheduler.StartJob<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (folder.ID, videoLocation.RelativePath));
+        }
+
+        // Add the process file job if we're not forcefully re-hashing the file.
+        if (!skipFindRelease && (useExistingHashes || video.ReleaseInfo is null))
+            await videoReleaseService.ScheduleFindReleaseForVideo(video, force: !useExistingHashes, addToMylist: !skipMylist).ConfigureAwait(false);
 
         return new()
         {
