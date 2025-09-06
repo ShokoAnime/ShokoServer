@@ -35,6 +35,8 @@ public class AbstractUserDataService(
 {
     public event EventHandler<VideoUserDataSavedEventArgs>? VideoUserDataSaved;
 
+    public event EventHandler<SeriesVotedEventArgs>? SeriesVoted;
+
     #region Video User Data
 
     public IVideoUserData? GetVideoUserData(int userID, int videoID)
@@ -287,6 +289,18 @@ public class AbstractUserDataService(
 
         userData.LastUpdated = lastUpdated;
         userDataRepository.Save(userData);
+    }
+
+    #endregion
+
+    #region Series User Data
+
+    public void OnSeriesVoted(IShokoSeries series, ISeries anime, decimal voteValue, VoteType voteType, IShokoUser user)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+        ArgumentNullException.ThrowIfNull(anime);
+        ArgumentNullException.ThrowIfNull(user);
+        SeriesVoted?.Invoke(this, new(series, anime, voteValue, voteType, user));
     }
 
     #endregion

@@ -2445,6 +2445,8 @@ public class SeriesController : BaseController
             _ => series.AniDB_Anime?.GetFinishedAiring() ?? false ? AniDBVoteType.Anime : AniDBVoteType.AnimeTemp,
         };
         await _seriesService.AddSeriesVote(series, voteType, vote.GetRating());
+        var pluginVoteType = voteType == AniDBVoteType.Anime ? VoteType.Permanent : VoteType.Temporary;
+        _userDataService.OnSeriesVoted(series, series.AniDB_Anime, vote.GetRating(), pluginVoteType, User);
 
         return NoContent();
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
@@ -38,6 +39,8 @@ public class ShokoEventHandler : IShokoEventHandler
     public event EventHandler<EpisodeInfoUpdatedEventArgs>? EpisodeUpdated;
 
     public event EventHandler<MovieInfoUpdatedEventArgs>? MovieUpdated;
+
+    public event EventHandler<SeriesVotedEventArgs>? SeriesVoted;
 
     public event EventHandler<SettingsSavedEventArgs>? SettingsSaved;
 
@@ -269,6 +272,15 @@ public class ShokoEventHandler : IShokoEventHandler
     {
         ArgumentNullException.ThrowIfNull(movie, nameof(movie));
         MovieUpdated?.Invoke(null, new(movie, reason));
+    }
+
+    public void OnSeriesVoted(SVR_AnimeSeries series, SVR_AniDB_Anime anime, decimal voteValue, AniDBVoteType voteType, SVR_JMMUser user)
+    {
+        ArgumentNullException.ThrowIfNull(series, nameof(series));
+        ArgumentNullException.ThrowIfNull(anime, nameof(anime));
+        ArgumentNullException.ThrowIfNull(user, nameof(user));
+        var voteTypeString = voteType == AniDBVoteType.Anime ? "Permanent" : "Temporary";
+        SeriesVoted?.Invoke(null, new(series, anime, voteValue, voteTypeString, user));
     }
 
     public void OnSettingsSaved()
