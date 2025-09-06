@@ -2445,6 +2445,7 @@ public class SeriesController : BaseController
             _ => series.AniDB_Anime?.GetFinishedAiring() ?? false ? AniDBVoteType.Anime : AniDBVoteType.AnimeTemp,
         };
         await _seriesService.AddSeriesVote(series, voteType, vote.GetRating());
+        ShokoEventHandler.Instance.OnSeriesVoted(series, series.AniDB_Anime, vote.GetRating(), voteType, User);
 
         return NoContent();
     }
