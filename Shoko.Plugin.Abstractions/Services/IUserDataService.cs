@@ -72,6 +72,25 @@ public interface IUserDataService
 
     #endregion
 
+    #region Series User Data
+
+    /// <summary>
+    /// Dispatched when a user submits a rating/vote for a series.
+    /// </summary>
+    event EventHandler<SeriesVotedEventArgs> SeriesVoted;
+
+    /// <summary>
+    /// Triggers the SeriesVoted event.
+    /// </summary>
+    /// <param name="series">The series being voted on.</param>
+    /// <param name="anime">The AniDB anime information.</param>
+    /// <param name="voteValue">The vote value.</param>
+    /// <param name="voteType">The type of vote.</param>
+    /// <param name="user">The user who voted.</param>
+    void OnSeriesVoted(IShokoSeries series, ISeries anime, decimal voteValue, VoteType voteType, IShokoUser user);
+
+    #endregion
+
     #region Episode User Data
 
     /// <summary>

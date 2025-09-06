@@ -69,6 +69,11 @@ public interface IShokoEventHandler
     event EventHandler<MovieInfoUpdatedEventArgs> MovieUpdated;
 
     /// <summary>
+    /// Fired when a user submits a rating/vote for a series.
+    /// </summary>
+    event EventHandler<SeriesVotedEventArgs> SeriesVoted;
+
+    /// <summary>
     /// Fired when the core settings has been saved.
     /// </summary>
     event EventHandler<SettingsSavedEventArgs> SettingsSaved;
