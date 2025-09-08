@@ -318,6 +318,9 @@ public class AbstractUserDataService(
         if (series is not SVR_AnimeSeries svrSeries)
             throw new ArgumentException("Series must be a SVR_AnimeSeries", nameof(series));
 
+        if (svrSeries.AniDB_Anime is not { } anidbAnime)
+            throw new ArgumentException("AniDB anime is not available for the series! Aborting!");
+
         var anidbVoteType = voteType == VoteType.Permanent ? AniDBVoteType.Anime : AniDBVoteType.AnimeTemp;
 
         // Save or update the vote
@@ -330,8 +333,7 @@ public class AbstractUserDataService(
         RepoFactory.AniDB_Vote.Save(dbVote);
 
         // Trigger the event
-        if (svrSeries.AniDB_Anime != null)
-            OnSeriesVoted(series, svrSeries.AniDB_Anime, voteValue, voteType, user);
+        OnSeriesVoted(series, anidbAnime, voteValue, voteType, user);
 
         // Schedule the AniDB vote job
         var scheduler = await schedulerFactory.GetScheduler();
