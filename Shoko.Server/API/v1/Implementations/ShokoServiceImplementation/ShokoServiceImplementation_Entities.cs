@@ -1531,6 +1531,19 @@ public partial class ShokoServiceImplementation : IShokoServer
                 c.VoteValue = Convert.ToDouble(voteValue);
             }
         ).GetAwaiter().GetResult();
+
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+        if (series?.AniDB_Anime != null)
+        {
+            var pluginVoteType = (AniDBVoteType)voteType == AniDBVoteType.Anime
+                ? VoteType.Permanent
+                : VoteType.Temporary;
+
+            if (_userDataService is AbstractUserDataService abstractService)
+            {
+                abstractService.OnSeriesVoted(series, series.AniDB_Anime, voteValue, pluginVoteType);
+            }
+        }
     }
 
     [HttpDelete("AniDB/Vote/{animeID}")]
@@ -1566,6 +1579,19 @@ public partial class ShokoServiceImplementation : IShokoServer
         ).GetAwaiter().GetResult();
 
         RepoFactory.AniDB_Vote.Delete(thisVote.AniDB_VoteID);
+
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+        if (series?.AniDB_Anime != null)
+        {
+            var pluginVoteType = (AniDBVoteType)thisVote.VoteType == AniDBVoteType.Anime
+                ? VoteType.Permanent
+                : VoteType.Temporary;
+
+            if (_userDataService is AbstractUserDataService abstractService)
+            {
+                abstractService.OnSeriesVoted(series, series.AniDB_Anime, 0, pluginVoteType);
+            }
+        }
     }
 
     /// <summary>
