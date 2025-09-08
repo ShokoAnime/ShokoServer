@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
@@ -271,7 +270,6 @@ public class ShokoEventHandler : IShokoEventHandler
         ArgumentNullException.ThrowIfNull(movie, nameof(movie));
         MovieUpdated?.Invoke(null, new(movie, reason));
     }
-
 
     public void OnSettingsSaved()
     {
