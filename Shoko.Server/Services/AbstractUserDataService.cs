@@ -298,7 +298,7 @@ public class AbstractUserDataService(
 
     #region Series User Data
 
-    internal void OnSeriesVoted(IShokoSeries series, ISeries anime, decimal voteValue, VoteType voteType, IShokoUser? user = null)
+    internal void OnSeriesVoted(IShokoSeries series, ISeries anime, decimal voteValue, VoteType voteType, IShokoUser user)
     {
         try
         {
