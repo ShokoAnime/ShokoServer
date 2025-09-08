@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
@@ -11,6 +13,7 @@ using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -295,12 +298,45 @@ public class AbstractUserDataService(
 
     #region Series User Data
 
-    public void OnSeriesVoted(IShokoSeries series, ISeries anime, decimal voteValue, VoteType voteType, IShokoUser user)
+    private void OnSeriesVoted(IShokoSeries series, ISeries anime, decimal voteValue, VoteType voteType, IShokoUser user)
     {
         ArgumentNullException.ThrowIfNull(series);
         ArgumentNullException.ThrowIfNull(anime);
         ArgumentNullException.ThrowIfNull(user);
         SeriesVoted?.Invoke(this, new(series, anime, voteValue, voteType, user));
+    }
+
+    public async Task VoteOnSeries(IShokoSeries series, decimal voteValue, VoteType voteType, IShokoUser user)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+        ArgumentNullException.ThrowIfNull(user);
+
+        if (series is not SVR_AnimeSeries svrSeries)
+            throw new ArgumentException("Series must be a SVR_AnimeSeries", nameof(series));
+
+        var anidbVoteType = voteType == VoteType.Permanent ? AniDBVoteType.Anime : AniDBVoteType.AnimeTemp;
+
+        // Save or update the vote
+        var dbVote = (RepoFactory.AniDB_Vote.GetByEntityAndType(svrSeries.AniDB_ID, AniDBVoteType.AnimeTemp) ??
+                     RepoFactory.AniDB_Vote.GetByEntityAndType(svrSeries.AniDB_ID, AniDBVoteType.Anime)) ??
+                     new AniDB_Vote { EntityID = svrSeries.AniDB_ID };
+        dbVote.VoteValue = voteValue < 0 ? -1 : (int)Math.Floor(voteValue * 100);
+        dbVote.VoteType = (int)anidbVoteType;
+
+        RepoFactory.AniDB_Vote.Save(dbVote);
+
+        // Trigger the event
+        if (svrSeries.AniDB_Anime != null)
+            OnSeriesVoted(series, svrSeries.AniDB_Anime, voteValue, voteType, user);
+
+        // Schedule the AniDB vote job
+        var scheduler = await schedulerFactory.GetScheduler();
+        await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
+        {
+            c.AnimeID = svrSeries.AniDB_ID;
+            c.VoteType = anidbVoteType;
+            c.VoteValue = Convert.ToDouble(voteValue);
+        });
     }
 
     #endregion
