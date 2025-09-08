@@ -2438,15 +2438,13 @@ public class SeriesController : BaseController
         if (vote.Value > vote.MaxValue)
             return ValidationProblem($"Value must be less than or equal to the set max value ({vote.MaxValue}).", nameof(vote.Value));
 
-        var voteType = (vote.Type?.ToLowerInvariant() ?? "") switch
+        var pluginVoteType = (vote.Type?.ToLowerInvariant() ?? "") switch
         {
-            "temporary" => AniDBVoteType.AnimeTemp,
-            "permanent" => AniDBVoteType.Anime,
-            _ => series.AniDB_Anime?.GetFinishedAiring() ?? false ? AniDBVoteType.Anime : AniDBVoteType.AnimeTemp,
+            "temporary" => VoteType.Temporary,
+            "permanent" => VoteType.Permanent,
+            _ => series.AniDB_Anime?.GetFinishedAiring() ?? false ? VoteType.Permanent : VoteType.Temporary,
         };
-        await _seriesService.AddSeriesVote(series, voteType, vote.GetRating());
-        var pluginVoteType = voteType == AniDBVoteType.Anime ? VoteType.Permanent : VoteType.Temporary;
-        _userDataService.OnSeriesVoted(series, series.AniDB_Anime, vote.GetRating(), pluginVoteType, User);
+        await _userDataService.VoteOnSeries(series, vote.GetRating(), pluginVoteType, User);
 
         return NoContent();
     }

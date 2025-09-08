@@ -12,6 +12,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
@@ -38,7 +39,6 @@ public class AnimeSeriesService
     private readonly AnimeGroupService _groupService;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly JobFactory _jobFactory;
-
     public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, JobFactory jobFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers)
     {
         _logger = logger;
@@ -48,26 +48,6 @@ public class AnimeSeriesService
         _animeService = animeService;
         _groupService = groupService;
         _vlUsers = vlUsers;
-    }
-
-    public async Task AddSeriesVote(SVR_AnimeSeries series, AniDBVoteType voteType, decimal vote)
-    {
-        var dbVote = (RepoFactory.AniDB_Vote.GetByEntityAndType(series.AniDB_ID, AniDBVoteType.AnimeTemp) ??
-                     RepoFactory.AniDB_Vote.GetByEntityAndType(series.AniDB_ID, AniDBVoteType.Anime)) ??
-                     new AniDB_Vote { EntityID = series.AniDB_ID };
-        dbVote.VoteValue = vote < 0 ? -1 : (int)Math.Floor(vote * 100);
-        dbVote.VoteType = (int)voteType;
-
-        RepoFactory.AniDB_Vote.Save(dbVote);
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
-            {
-                c.AnimeID = series.AniDB_ID;
-                c.VoteType = voteType;
-                c.VoteValue = Convert.ToDouble(vote);
-            }
-        );
     }
 
     public async Task<bool> QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,

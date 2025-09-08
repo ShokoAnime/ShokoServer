@@ -80,14 +80,14 @@ public interface IUserDataService
     event EventHandler<SeriesVotedEventArgs> SeriesVoted;
 
     /// <summary>
-    /// Triggers the SeriesVoted event.
+    /// Votes on a series.
     /// </summary>
-    /// <param name="series">The series being voted on.</param>
-    /// <param name="anime">The AniDB anime information.</param>
+    /// <param name="series">The series to vote on.</param>
     /// <param name="voteValue">The vote value.</param>
-    /// <param name="voteType">The type of vote.</param>
-    /// <param name="user">The user who voted.</param>
-    void OnSeriesVoted(IShokoSeries series, ISeries anime, decimal voteValue, VoteType voteType, IShokoUser user);
+    /// <param name="voteType">The type of vote (Permanent/Temporary).</param>
+    /// <param name="user">The user voting.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task VoteOnSeries(IShokoSeries series, decimal voteValue, VoteType voteType, IShokoUser user);
 
     #endregion
 
