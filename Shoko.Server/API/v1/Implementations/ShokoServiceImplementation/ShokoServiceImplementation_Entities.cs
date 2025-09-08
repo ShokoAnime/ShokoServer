@@ -1541,7 +1541,8 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             if (_userDataService is AbstractUserDataService abstractService)
             {
-                abstractService.OnSeriesVoted(series, series.AniDB_Anime, voteValue, pluginVoteType);
+                var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => u.IsAdmin == 1);
+                abstractService.OnSeriesVoted(series, series.AniDB_Anime, voteValue, pluginVoteType, user);
             }
         }
     }
@@ -1589,7 +1590,8 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             if (_userDataService is AbstractUserDataService abstractService)
             {
-                abstractService.OnSeriesVoted(series, series.AniDB_Anime, 0, pluginVoteType);
+                var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => u.IsAdmin == 1);
+                abstractService.OnSeriesVoted(series, series.AniDB_Anime, 0, pluginVoteType, user);
             }
         }
     }
