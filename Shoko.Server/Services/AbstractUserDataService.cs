@@ -300,10 +300,14 @@ public class AbstractUserDataService(
 
     private void OnSeriesVoted(IShokoSeries series, ISeries anime, decimal voteValue, VoteType voteType, IShokoUser user)
     {
-        ArgumentNullException.ThrowIfNull(series);
-        ArgumentNullException.ThrowIfNull(anime);
-        ArgumentNullException.ThrowIfNull(user);
-        SeriesVoted?.Invoke(this, new(series, anime, voteValue, voteType, user));
+        try
+        {
+            SeriesVoted?.Invoke(this, new(series, anime, voteValue, voteType, user));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error occurred while handling series vote event");
+        }
     }
 
     public async Task VoteOnSeries(IShokoSeries series, decimal voteValue, VoteType voteType, IShokoUser user)
