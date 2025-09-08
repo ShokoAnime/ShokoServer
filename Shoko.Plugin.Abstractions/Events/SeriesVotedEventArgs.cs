@@ -31,14 +31,14 @@ public class SeriesVotedEventArgs : EventArgs
     public VoteType VoteType { get; }
 
     /// <summary>
-    /// The user who submitted the vote.
+    /// The user who submitted the vote (null if from v1).
     /// </summary>
-    public IShokoUser User { get; }
+    public IShokoUser? User { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SeriesVotedEventArgs"/> class.
     /// </summary>
-    public SeriesVotedEventArgs(IShokoSeries series, ISeries anidbAnime, decimal voteValue, VoteType voteType, IShokoUser user)
+    public SeriesVotedEventArgs(IShokoSeries series, ISeries anidbAnime, decimal voteValue, VoteType voteType, IShokoUser? user)
     {
         Series = series;
         AnidbAnime = anidbAnime;
