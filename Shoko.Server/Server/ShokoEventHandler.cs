@@ -40,8 +40,6 @@ public class ShokoEventHandler : IShokoEventHandler
 
     public event EventHandler<MovieInfoUpdatedEventArgs>? MovieUpdated;
 
-    public event EventHandler<SeriesVotedEventArgs>? SeriesVoted;
-
     public event EventHandler<SettingsSavedEventArgs>? SettingsSaved;
 
     public event EventHandler<AVDumpEventArgs>? AVDumpEvent;
@@ -274,14 +272,6 @@ public class ShokoEventHandler : IShokoEventHandler
         MovieUpdated?.Invoke(null, new(movie, reason));
     }
 
-    public void OnSeriesVoted(SVR_AnimeSeries series, SVR_AniDB_Anime anime, decimal voteValue, AniDBVoteType voteType, SVR_JMMUser user)
-    {
-        ArgumentNullException.ThrowIfNull(series, nameof(series));
-        ArgumentNullException.ThrowIfNull(anime, nameof(anime));
-        ArgumentNullException.ThrowIfNull(user, nameof(user));
-        var voteTypeString = voteType == AniDBVoteType.Anime ? "Permanent" : "Temporary";
-        SeriesVoted?.Invoke(null, new(series, anime, voteValue, voteTypeString, user));
-    }
 
     public void OnSettingsSaved()
     {
