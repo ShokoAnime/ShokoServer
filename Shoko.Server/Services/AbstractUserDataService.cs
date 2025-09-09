@@ -262,8 +262,8 @@ public class AbstractUserDataService(
 
         var anidbVoteType = voteType == VoteType.Permanent ? AniDBVoteType.Anime : AniDBVoteType.AnimeTemp;
 
-        // Handle deletion case (voteValue < 0)
-        if (voteValue < 0)
+        // Handle deletion case
+        if (voteValue == -1)
         {
             var existingVote = RepoFactory.AniDB_Vote.GetByEntityAndType(svrSeries.AniDB_ID, AniDBVoteType.AnimeTemp) ??
                               RepoFactory.AniDB_Vote.GetByEntityAndType(svrSeries.AniDB_ID, AniDBVoteType.Anime);
