@@ -85,9 +85,9 @@ public interface IUserDataService
     /// <param name="series">The series to vote on.</param>
     /// <param name="voteValue">The vote value.</param>
     /// <param name="voteType">The type of vote (Permanent/Temporary).</param>
-    /// <param name="user">The user voting.</param>
+    /// <param name="user">The user voting. If null, uses the first admin user.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    Task VoteOnSeries(IShokoSeries series, decimal voteValue, VoteType voteType, IShokoUser user);
+    Task VoteOnSeries(IShokoSeries series, decimal voteValue, VoteType voteType, IShokoUser? user = null);
 
     #endregion
 
