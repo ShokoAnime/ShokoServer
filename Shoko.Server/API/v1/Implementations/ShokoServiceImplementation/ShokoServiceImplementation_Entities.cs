@@ -1525,7 +1525,7 @@ public partial class ShokoServiceImplementation : IShokoServer
         // Determine vote type from existing vote (default to Temporary if no existing vote)
         var existingVote = RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.AnimeTemp) ??
                           RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.Anime);
-        
+
         var pluginVoteType = existingVote != null && (AniDBVoteType)existingVote.VoteType == AniDBVoteType.Anime
             ? VoteType.Permanent
             : VoteType.Temporary;
