@@ -249,7 +249,7 @@ public class AbstractUserDataService(
         if (user == null)
             user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => u.IsAdmin == 1);
 
-        ArgumentNullException.ThrowIfNull(user, "No user provided and no admin user found");
+        ArgumentNullException.ThrowIfNull(user);
 
         if (series is not SVR_AnimeSeries svrSeries)
             throw new ArgumentException("Series must be a SVR_AnimeSeries", nameof(series));
