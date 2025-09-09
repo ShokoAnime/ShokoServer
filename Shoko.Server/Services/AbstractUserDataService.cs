@@ -245,10 +245,10 @@ public class AbstractUserDataService(
     public async Task VoteOnSeries(IShokoSeries series, decimal voteValue, VoteType voteType, IShokoUser? user = null)
     {
         ArgumentNullException.ThrowIfNull(series);
-        
+
         if (user == null)
             user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => u.IsAdmin == 1);
-        
+
         ArgumentNullException.ThrowIfNull(user, "No user provided and no admin user found");
 
         if (series is not SVR_AnimeSeries svrSeries)
@@ -267,7 +267,7 @@ public class AbstractUserDataService(
         {
             var existingVote = RepoFactory.AniDB_Vote.GetByEntityAndType(svrSeries.AniDB_ID, AniDBVoteType.AnimeTemp) ??
                               RepoFactory.AniDB_Vote.GetByEntityAndType(svrSeries.AniDB_ID, AniDBVoteType.Anime);
-            
+
             if (existingVote != null)
             {
                 // Schedule the delete job
@@ -281,11 +281,11 @@ public class AbstractUserDataService(
 
                 // Delete from database
                 RepoFactory.AniDB_Vote.Delete(existingVote.AniDB_VoteID);
-                
+
                 // Trigger event with 0 value for deletion
                 OnSeriesVoted(series, anidbAnime, 0, voteType, user);
             }
-            
+
             // If no existing vote, do nothing
             return;
         }
@@ -315,18 +315,6 @@ public class AbstractUserDataService(
     #endregion
 
     #region Internals
-
-    internal void OnSeriesVoted(IShokoSeries series, ISeries anime, decimal voteValue, VoteType voteType, IShokoUser user)
-    {
-        try
-        {
-            SeriesVoted?.Invoke(this, new(series, anime, voteValue, voteType, user));
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error occurred while handling series vote event");
-        }
-    }
 
     private void SaveWatchedStatus(IShokoEpisode ep, int userID, bool watched, DateTime? watchedDate)
     {
@@ -378,6 +366,18 @@ public class AbstractUserDataService(
 
         userData.LastUpdated = lastUpdated;
         userDataRepository.Save(userData);
+    }
+
+    private void OnSeriesVoted(IShokoSeries series, ISeries anime, decimal voteValue, VoteType voteType, IShokoUser user)
+    {
+        try
+        {
+            SeriesVoted?.Invoke(this, new(series, anime, voteValue, voteType, user));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error occurred while handling series vote event");
+        }
     }
 
     #endregion
