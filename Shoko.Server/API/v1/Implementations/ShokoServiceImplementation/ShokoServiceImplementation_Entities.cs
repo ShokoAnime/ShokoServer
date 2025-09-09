@@ -1496,104 +1496,42 @@ public partial class ShokoServiceImplementation : IShokoServer
     /// <param name="voteValue">Must be 1 or 2 (Anime or Anime Temp(</param>
     /// <param name="voteType"></param>
     [HttpPost("AniDB/Vote/{animeID}/{voteType}")]
-    public void VoteAnime(int animeID, [FromForm] decimal voteValue, int voteType)
+    public async void VoteAnime(int animeID, [FromForm] decimal voteValue, int voteType)
     {
         _logger.LogInformation("Voting for anime: {AnimeID} - Value: {VoteValue}", animeID, voteValue);
 
-        // lets save to the database and assume it will work
-        var thisVote =
-            (RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.AnimeTemp) ??
-             RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.Anime)) ?? new AniDB_Vote { EntityID = animeID };
+        // Determine vote type
+        var pluginVoteType = (AniDBVoteType)voteType == AniDBVoteType.Anime
+            ? VoteType.Permanent
+            : VoteType.Temporary;
 
-        thisVote.VoteType = voteType;
-
-        int iVoteValue;
-        if (voteValue > 0)
-        {
-            iVoteValue = (int)(voteValue * 100);
-        }
-        else
-        {
-            iVoteValue = (int)voteValue;
-        }
-
-        _logger.LogInformation("Voting for anime Formatted: {AnimeID} - Value: {VoteValue}", animeID, iVoteValue);
-
-        thisVote.VoteValue = iVoteValue;
-        RepoFactory.AniDB_Vote.Save(thisVote);
-
-        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJobNow<VoteAniDBAnimeJob>(
-            c =>
-            {
-                c.AnimeID = animeID;
-                c.VoteType = (AniDBVoteType)voteType;
-                c.VoteValue = Convert.ToDouble(voteValue);
-            }
-        ).GetAwaiter().GetResult();
-
+        // Get series and ensure it exists
         var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-        if (series?.AniDB_Anime != null)
-        {
-            var pluginVoteType = (AniDBVoteType)voteType == AniDBVoteType.Anime
-                ? VoteType.Permanent
-                : VoteType.Temporary;
+        if (series?.AniDB_Anime == null)
+            throw new ArgumentException($"Series with AniDB ID {animeID} not found or has no AniDB anime data");
 
-            if (_userDataService is AbstractUserDataService abstractService)
-            {
-                var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => u.IsAdmin == 1);
-                abstractService.OnSeriesVoted(series, series.AniDB_Anime, voteValue, pluginVoteType, user);
-            }
-        }
+        // Forward to user data service abstraction
+        await _userDataService.VoteOnSeries(series, voteValue, pluginVoteType);
     }
 
     [HttpDelete("AniDB/Vote/{animeID}")]
-    public void VoteAnimeRevoke(int animeID)
+    public async void VoteAnimeRevoke(int animeID)
     {
-        // lets save to the database and assume it will work
-
-        var dbVotes = RepoFactory.AniDB_Vote.GetByEntity(animeID);
-        AniDB_Vote thisVote = null;
-        foreach (var dbVote in dbVotes)
-        {
-            // we can only have anime permanent or anime temp but not both
-            if (dbVote.VoteType == (int)AniDBVoteType.Anime ||
-                dbVote.VoteType == (int)AniDBVoteType.AnimeTemp)
-            {
-                thisVote = dbVote;
-            }
-        }
-
-        if (thisVote is null)
-        {
-            return;
-        }
-
-        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJobNow<VoteAniDBAnimeJob>(
-            c =>
-            {
-                c.AnimeID = animeID;
-                c.VoteType = (AniDBVoteType)thisVote.VoteType;
-                c.VoteValue = -1;
-            }
-        ).GetAwaiter().GetResult();
-
-        RepoFactory.AniDB_Vote.Delete(thisVote.AniDB_VoteID);
-
+        // Get series and ensure it exists
         var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-        if (series?.AniDB_Anime != null)
-        {
-            var pluginVoteType = (AniDBVoteType)thisVote.VoteType == AniDBVoteType.Anime
-                ? VoteType.Permanent
-                : VoteType.Temporary;
+        if (series?.AniDB_Anime == null)
+            return; // No series found, nothing to revoke
 
-            if (_userDataService is AbstractUserDataService abstractService)
-            {
-                var user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => u.IsAdmin == 1);
-                abstractService.OnSeriesVoted(series, series.AniDB_Anime, 0, pluginVoteType, user);
-            }
-        }
+        // Determine vote type from existing vote (default to Temporary if no existing vote)
+        var existingVote = RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.AnimeTemp) ??
+                          RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.Anime);
+        
+        var pluginVoteType = existingVote != null && (AniDBVoteType)existingVote.VoteType == AniDBVoteType.Anime
+            ? VoteType.Permanent
+            : VoteType.Temporary;
+
+        // Forward to user data service abstraction with -1 to trigger deletion
+        await _userDataService.VoteOnSeries(series, -1, pluginVoteType);
     }
 
     /// <summary>
