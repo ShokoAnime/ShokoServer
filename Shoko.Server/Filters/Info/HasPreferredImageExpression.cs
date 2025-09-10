@@ -28,7 +28,7 @@ public class HasPreferredImageExpression : FilterExpression<bool>, IWithStringPa
         get => Parameter.ToString();
         set
         {
-            if (Enum.TryParse<ImageEntityType>(value, out var imageEntityType))
+            if (!Enum.TryParse<ImageEntityType>(value, true, out var imageEntityType))
                 imageEntityType = ImageEntityType.None;
             Parameter = imageEntityType;
         }

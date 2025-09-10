@@ -396,15 +396,11 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
     }
 
     public HashSet<ImageEntityType> GetPreferredImageTypes()
-    {
-        return RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(AniDB_ID)
+        => RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(AniDB_ID)
+            .Select(preferredImage => preferredImage?.GetImageMetadata())
             .WhereNotNull()
-            .Select(preferredImage => preferredImage.GetImageMetadata())
-            .WhereNotNull()
-            .DistinctBy(image => image.ImageType)
             .Select(image => image.ImageType)
             .ToHashSet();
-    }
 
     public IImageMetadata? GetPreferredImageForType(ImageEntityType entityType)
         => RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AniDB_ID, entityType)?.GetImageMetadata();
