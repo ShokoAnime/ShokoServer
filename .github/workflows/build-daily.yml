@@ -430,12 +430,18 @@ jobs:
           name: Shoko.TrayService_Standalone_win-x64
           path: ShokoServer
 
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.FILES_SSH_KEY }}
+          name: files_id_rsa
+          known_hosts: ${{ secrets.FILES_KNOWN_HOSTS }}
+
       - name: Upload daily archive to site
         shell: pwsh
         env:
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          SSH_USERNAME: ${{ secrets.FILES_USERNAME }}
+          SSH_SERVER: ${{ secrets.FILES_SERVER }}
         run : Compress-Archive .\\ShokoServer .\\ShokoServer.zip && .\\.github\\workflows\\UploadArchive.ps1
 
   discord-notify:
