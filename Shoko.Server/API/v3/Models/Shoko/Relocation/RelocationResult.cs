@@ -31,13 +31,13 @@ public class RelocationResult
     public string? ConfigName { get; set; } = null;
 
     /// <summary>
-    /// The new id of the <see cref="ImportFolder"/> where the file now
+    /// The new id of the <see cref="ManagedFolder"/> where the file now
     /// resides, if the relocation was successful. Remember to check
     /// <see cref="IsSuccess"/> to see the status of the relocation.
     /// </summary>
     /// 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public int? ImportFolderID { get; set; } = null;
+    public int? ManagedFolderID { get; set; } = null;
 
     /// <summary>
     /// Indicates whether the file was relocated successfully.
@@ -67,7 +67,7 @@ public class RelocationResult
     public string? ErrorMessage { get; set; } = null;
 
     /// <summary>
-    /// The new relative path from the <see cref="ImportFolder"/>'s path
+    /// The new relative path from the <see cref="ManagedFolder"/>'s path
     /// on the server, if relocation was successful. Remember to check
     /// <see cref="IsSuccess"/> to see the status of the relocation.
     /// </summary>

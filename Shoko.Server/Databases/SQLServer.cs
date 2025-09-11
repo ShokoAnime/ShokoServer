@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 148;
+    public override int RequiredVersion { get; } = 149;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -451,7 +451,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(34, 1, "ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL"),
         new DatabaseCommand(35, 1, DatabaseFixes.PopulateTagWeight),
         new DatabaseCommand(36, 1, "ALTER TABLE Trakt_Episode ADD TraktID int NULL"),
-        new DatabaseCommand(37, 1, DatabaseFixes.FixHashes),
+        new DatabaseCommand(37, 1, DatabaseFixes.NoOperation),
         new DatabaseCommand(38, 1, "DROP TABLE LogMessage"),
         new DatabaseCommand(39, 1, "ALTER TABLE AnimeSeries ADD DefaultFolder nvarchar(max) NULL"),
         new DatabaseCommand(40, 1, "ALTER TABLE JMMUser ADD PlexUsers nvarchar(max) NULL"),
@@ -665,7 +665,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(102, 1, "UPDATE v SET DateTimeImported = DateTimeCreated FROM VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash;"),
         new DatabaseCommand(103, 1, "CREATE TABLE AniDB_FileUpdate ( AniDB_FileUpdateID INT IDENTITY(1,1) NOT NULL, FileSize BIGINT NOT NULL, Hash nvarchar(150) NOT NULL, HasResponse BIT NOT NULL, UpdatedAt datetime NOT NULL )"),
         new DatabaseCommand(103, 2, "CREATE INDEX IX_AniDB_FileUpdate ON AniDB_FileUpdate(FileSize, Hash)"),
-        new DatabaseCommand(103, 3, DatabaseFixes.MigrateAniDB_FileUpdates),
+        new DatabaseCommand(103, 3, DatabaseFixes.NoOperation),
         new DatabaseCommand(104, 1, "ALTER TABLE AniDB_Anime DROP COLUMN DisableExternalLinksFlag;"),
         new DatabaseCommand(104, 2, "ALTER TABLE AnimeSeries ADD DisableAutoMatchFlags integer NOT NULL DEFAULT 0;"),
         new DatabaseCommand(104, 3, "ALTER TABLE AniDB_Anime ADD VNDBID int, BangumiID int, LianID int, FunimationID nvarchar(max), HiDiveID nvarchar(max)"),
@@ -895,7 +895,6 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(144, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new DatabaseCommand(145, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
         new DatabaseCommand(145, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
-        new DatabaseCommand(146, 01, DropDefaultOnTMDBShowMovieKeywords),
         new DatabaseCommand(146, 02, "ALTER TABLE TMDB_Show ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
         new DatabaseCommand(146, 03, "ALTER TABLE TMDB_Movie ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
         new DatabaseCommand(147, 01, "EXEC sp_rename 'Tmdb_Show_Network', 'TMDB_Show_Network';"),
@@ -905,6 +904,13 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(148, 04, "ALTER TABLE CrossRef_AniDB_TMDB_Show ADD MatchRating int NOT NULL DEFAULT 1;"),
         new DatabaseCommand(148, 05, "UPDATE CrossRef_AniDB_TMDB_Show SET MatchRating = 5 WHERE Source = 0;"),
         new DatabaseCommand(148, 06, "ALTER TABLE CrossRef_AniDB_TMDB_Show DROP COLUMN Source;"),
+        new DatabaseCommand(149, 01, "CREATE TABLE StoredReleaseInfo (StoredReleaseInfoID INT IDENTITY(1,1), ED2K NVARCHAR(40) NOT NULL, FileSize BIGINT NOT NULL, ID NVARCHAR(128), ProviderName NVARCHAR(128) NOT NULL, ReleaseURI NVARCHAR(1024), Version INT NOT NULL, ProvidedFileSize BIGINT, Comment NVARCHAR(1024), OriginalFilename NVARCHAR(1024), IsCensored INT, IsChaptered INT, IsCreditless INT, IsCorrupted INT NOT NULL, Source INT NOT NULL, GroupID NVARCHAR(128), GroupSource NVARCHAR(128), GroupName NVARCHAR(128), GroupShortName NVARCHAR(128), Hashes TEXT NULL, AudioLanguages NVARCHAR(128), SubtitleLanguages NVARCHAR(128), CrossReferences NVARCHAR(10240) NOT NULL, Metadata TEXT NULL, ReleasedAt DATE, LastUpdatedAt DATETIME2 NOT NULL, CreatedAt DATETIME2 NOT NULL);"),
+        new DatabaseCommand(149, 02, "CREATE TABLE StoredReleaseInfo_MatchAttempt (StoredReleaseInfo_MatchAttemptID INT IDENTITY(1,1), AttemptProviderNames NVARCHAR(1024) NOT NULL, ProviderName NVARCHAR(128), ProviderID NVARCHAR(40), ED2K NVARCHAR(40) NOT NULL, FileSize BIGINT NOT NULL, AttemptStartedAt DATETIME2 NOT NULL, AttemptEndedAt DATETIME2 NOT NULL);"),
+        new DatabaseCommand(149, 03, "CREATE TABLE VideoLocal_HashDigest (VideoLocal_HashDigestID INT IDENTITY(1,1), VideoLocalID INT NOT NULL, Type NVARCHAR(32) NOT NULL, Value NVARCHAR(10240) NOT NULL, Metadata TEXT);"),
+        new DatabaseCommand(149, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
+        new DatabaseCommand(149, 05, "ALTER TABLE ImportFolder DROP COLUMN ImportFolderType;"),
+        new DatabaseCommand(149, 06, "ALTER TABLE VideoLocal_Place DROP COLUMN ImportFolderType;"),
+        new DatabaseCommand(149, 01, DropDefaultOnTMDBShowMovieKeywords),
     };
 
     private static void AlterImdbMovieIDType()

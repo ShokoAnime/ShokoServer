@@ -424,6 +424,20 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
         return NoContent();
     }
 
+    /// <summary>
+    /// Let the server know that a manual update of the web UI has been
+    /// performed by the user to trigger the post-update event.
+    /// </summary>
+    /// <returns></returns>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpPost("Update/ReportManualUpdate")]
+    public ActionResult UpdateWebUIManualRefresh()
+    {
+        updateService.ReactToManualUpdate();
+        return NoContent();
+    }
+
     /// <inheritdoc cref="UpdateWebUI"/>
     [DatabaseBlockedExempt]
     [InitFriendly]

@@ -3,7 +3,7 @@ using System;
 namespace Shoko.Plugin.Abstractions.DataModels;
 
 /// <summary>
-/// How an <see cref="IImportFolder"/> is used in the rename/move system.
+/// How an <see cref="IManagedFolder"/> is used in the rename/move system.
 /// </summary>
 [Flags]
 public enum DropFolderType
