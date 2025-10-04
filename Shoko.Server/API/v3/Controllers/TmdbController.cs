@@ -1347,7 +1347,7 @@ public partial class TmdbController : BaseController
     )
     {
         var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
-        if (show is not null && _tmdbMetadataService.WaitForShowUpdate(showID))
+        if (show is not null && _tmdbMetadataService.WaitForShowUpdate(show.Id))
             show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
         if (show is null)
             return NotFound(ShowNotFound);
@@ -1361,7 +1361,7 @@ public partial class TmdbController : BaseController
     )
     {
         var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
-        if (show is not null && _tmdbMetadataService.WaitForShowUpdate(showID))
+        if (show is not null && _tmdbMetadataService.WaitForShowUpdate(show.Id))
             show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
         if (show is null)
             return NotFound(ShowNotFound);
@@ -2264,6 +2264,8 @@ public partial class TmdbController : BaseController
 
         var seasonId = int.Parse(seasonID);
         var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
+        if (season is not null && _tmdbMetadataService.WaitForShowUpdate(season.TmdbShowID))
+            season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
@@ -2303,6 +2305,8 @@ public partial class TmdbController : BaseController
         if (seasonID.Length == SeasonIdHexLength)
         {
             var altOrderSeason = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(seasonID);
+            if (altOrderSeason is not null && _tmdbMetadataService.WaitForShowUpdate(altOrderSeason.TmdbShowID))
+                altOrderSeason = RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
@@ -2319,6 +2323,8 @@ public partial class TmdbController : BaseController
 
         var seasonId = int.Parse(seasonID);
         var season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
+        if (season is not null && _tmdbMetadataService.WaitForShowUpdate(season.TmdbShowID))
+            season = RepoFactory.TMDB_Season.GetByTmdbSeasonID(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
@@ -2355,6 +2361,9 @@ public partial class TmdbController : BaseController
             {
                 var show = group.First().TmdbShow
                     ?? throw new Exception(ShowNotFoundByEpisodeID);
+                if (_tmdbMetadataService.WaitForShowUpdate(show.Id))
+                    show = RepoFactory.TMDB_Show.GetByTmdbShowID(show.Id)
+                        ?? throw new Exception(ShowNotFoundByEpisodeID);
 
                 return group.Select(episode =>
                 {
@@ -2375,6 +2384,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2413,6 +2424,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2427,6 +2440,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2441,6 +2456,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2487,6 +2504,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2500,6 +2519,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2514,6 +2535,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2528,6 +2551,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2542,6 +2567,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2581,6 +2608,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2621,6 +2650,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2667,6 +2698,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2684,6 +2717,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2703,6 +2738,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2721,6 +2758,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2757,6 +2796,8 @@ public partial class TmdbController : BaseController
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
+        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
