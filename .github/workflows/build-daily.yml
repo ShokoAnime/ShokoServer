@@ -237,7 +237,7 @@ jobs:
           path: Shoko.Server/bin/Release${{ matrix.build_dir }}/publish/
 
   tray-service-installer:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     needs:
       - current_info
