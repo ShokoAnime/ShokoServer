@@ -1347,7 +1347,7 @@ public partial class TmdbController : BaseController
     )
     {
         var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
-        if (show is not null && _tmdbMetadataService.WaitForShowUpdate(showID))
+        if (show is not null && _tmdbMetadataService.WaitForShowUpdate(show.Id))
             show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
         if (show is null)
             return NotFound(ShowNotFound);
@@ -1361,7 +1361,7 @@ public partial class TmdbController : BaseController
     )
     {
         var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
-        if (show is not null && _tmdbMetadataService.WaitForShowUpdate(showID))
+        if (show is not null && _tmdbMetadataService.WaitForShowUpdate(show.Id))
             show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
         if (show is null)
             return NotFound(ShowNotFound);
