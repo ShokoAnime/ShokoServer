@@ -109,11 +109,6 @@ public class TMDB_Image : Image_Base, IImageMetadata
 
     #region Methods
 
-    /// <summary>
-    /// The language/country code which indicates the language/country of the
-    /// image is not specified.
-    /// </summary>
-    private const string NotSpecified = "xx";
 
     public bool Populate(ImageData data)
     {
@@ -128,7 +123,7 @@ public class TMDB_Image : Image_Base, IImageMetadata
             Height = data.Height;
             updated = true;
         }
-        var languageCode = string.IsNullOrEmpty(data.Iso_639_1) || string.Equals(data.Iso_639_1, NotSpecified, StringComparison.InvariantCultureIgnoreCase) ? null : data.Iso_639_1;
+        var languageCode = data.GetLanguageCode();
         if (LanguageCode != languageCode)
         {
             LanguageCode = languageCode;
@@ -165,4 +160,21 @@ public class TMDB_Image : Image_Base, IImageMetadata
             };
 
     #endregion
+}
+
+internal static class TmdbLibObjectExtensions
+{
+    /// <summary>
+    /// The language/country code which indicates the language/country of the
+    /// image is not specified.
+    /// </summary>
+    internal const string NotSpecifiedLanguage = "xx";
+
+    /// <summary>
+    /// Get the language code to use for the image, or null if not specified.
+    /// </summary>
+    /// <param name="image">The image to get the language code for.</param>
+    /// <returns>The language code, or null if not specified.</returns>
+    internal static string? GetLanguageCode(this ImageData image)
+        => string.IsNullOrEmpty(image.Iso_639_1) || string.Equals(image.Iso_639_1, NotSpecifiedLanguage, StringComparison.InvariantCultureIgnoreCase) ? null : image.Iso_639_1;
 }

@@ -102,7 +102,7 @@ public class TmdbImageService
         var validImages = images.Select(a => a.FilePath).Where(a => !string.IsNullOrEmpty(a)).ToHashSet();
         var visitedImages = new HashSet<string>();
         var orderedImages = images
-            .Select((image, index) => (Image: image, Language: (image.Iso_639_1 ?? string.Empty).GetTitleLanguage(), Index: index))
+            .Select((image, index) => (Image: image, Language: (image.GetLanguageCode() ?? string.Empty).GetTitleLanguage(), Index: index))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Image.FilePath) && (languages.Count == 0 || languages.Contains(tuple.Language)))
             .OrderBy(tuple => languages.IndexOf(tuple.Language))
             .ThenBy(tuple => tuple.Index)
