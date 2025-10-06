@@ -109,6 +109,12 @@ public class TMDB_Image : Image_Base, IImageMetadata
 
     #region Methods
 
+    /// <summary>
+    /// The language/country code which indicates the language/country of the
+    /// image is not specified.
+    /// </summary>
+    private const string NotSpecified = "xx";
+
     public bool Populate(ImageData data)
     {
         var updated = false;
@@ -122,7 +128,7 @@ public class TMDB_Image : Image_Base, IImageMetadata
             Height = data.Height;
             updated = true;
         }
-        var languageCode = string.IsNullOrEmpty(data.Iso_639_1) ? null : data.Iso_639_1;
+        var languageCode = string.IsNullOrEmpty(data.Iso_639_1) || string.Equals(data.Iso_639_1, NotSpecified, StringComparison.InvariantCultureIgnoreCase) ? null : data.Iso_639_1;
         if (LanguageCode != languageCode)
         {
             LanguageCode = languageCode;
