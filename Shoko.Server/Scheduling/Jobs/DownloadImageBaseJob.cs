@@ -5,7 +5,10 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
+using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Server.Models.TMDB;
+using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Utilities;
 
@@ -61,10 +64,12 @@ public abstract class DownloadImageBaseJob : BaseJob, IImageDownloadJob
             if (result && (ForceDownload || !previouslyDownloaded))
             {
                 _logger.LogInformation("Image downloaded for {Parent}: {FilePath} from {DownloadUrl}", ParentName, image.LocalPath, image.RemoteURL);
+                EmitEventForRelatedEntities(image, !previouslyDownloaded ? UpdateReason.ImageAdded : UpdateReason.ImageUpdated);
             }
             else if (result)
             {
                 _logger.LogDebug("Image already in cache for {Parent}: {FilePath} from {DownloadUrl}", ParentName, image.LocalPath, image.RemoteURL);
+                EmitEventForRelatedEntities(image, UpdateReason.ImageUpdated);
             }
             else
             {
@@ -86,6 +91,52 @@ public abstract class DownloadImageBaseJob : BaseJob, IImageDownloadJob
                     _logger.LogWarning("Error processing {Job} for {Parent}: {Url} - {Message}", GetType().Name, ParentName, image.RemoteURL, e.Message);
                     break;
             }
+        }
+    }
+
+    private void EmitEventForRelatedEntities(IImageMetadata image, UpdateReason reason)
+    {
+        switch ((Source, ImageType))
+        {
+            case (DataSourceEnum.AniDB, ImageEntityType.Poster) when RepoFactory.AniDB_Anime.GetByAnimeID(ImageID) is { } anime:
+                ShokoEventHandler.Instance.OnSeriesUpdated(anime, reason);
+                break;
+
+            case (DataSourceEnum.TMDB, _) when image is TMDB_Image tmdbImage:
+                var linkedEntities = RepoFactory.TMDB_Image_Entity.GetByRemoteFileName(tmdbImage.RemoteFileName);
+                foreach (var linkedEntity in linkedEntities)
+                {
+                    switch (linkedEntity.GetTmdbEntity())
+                    {
+                        case TMDB_Movie movie:
+                            ShokoEventHandler.Instance.OnMovieUpdated(movie, reason);
+                            break;
+
+                        case TMDB_Show show:
+                            ShokoEventHandler.Instance.OnSeriesUpdated(show, reason);
+                            break;
+
+                        case TMDB_Season season:
+                        {
+                            if (season.TmdbShow is not { } tmdbShow)
+                                continue;
+
+                            // Until we have proper season entities in the abstraction, just emit it for the series/show.
+                            ShokoEventHandler.Instance.OnSeriesUpdated(tmdbShow, reason);
+                            break;
+                        }
+
+                        case TMDB_Episode episode:
+                        {
+                            if (episode.TmdbShow is not { } tmdbShow)
+                                continue;
+
+                            ShokoEventHandler.Instance.OnEpisodeUpdated(tmdbShow, episode, reason);
+                            break;
+                        }
+                    }
+                }
+                break;
         }
     }
 

@@ -210,10 +210,41 @@ public class TmdbImageService
     {
         if (foreignType.HasValue && foreignId.HasValue)
         {
-            var entity = _tmdbImageEntities.GetByForeignID(foreignId.Value, foreignType.Value)
+            var entities = _tmdbImageEntities.GetByForeignID(foreignId.Value, foreignType.Value)
                 .Where(x => !imageType.HasValue || x.ImageType == imageType.Value)
                 .ToList();
-            _tmdbImageEntities.Delete(entity);
+            foreach (var linkedEntity in entities)
+            {
+                switch (linkedEntity.GetTmdbEntity())
+                {
+                    case TMDB_Movie movie:
+                        ShokoEventHandler.Instance.OnMovieUpdated(movie, UpdateReason.ImageRemoved);
+                        break;
+
+                    case TMDB_Show show:
+                        ShokoEventHandler.Instance.OnSeriesUpdated(show, UpdateReason.ImageRemoved);
+                        break;
+
+                    case TMDB_Season season:
+                    {
+                        if (season.TmdbShow is not { } tmdbShow)
+                            continue;
+
+                        // Until we have proper season entities in the abstraction, just emit it for the series/show.
+                        ShokoEventHandler.Instance.OnSeriesUpdated(tmdbShow, UpdateReason.ImageRemoved);
+                        break;
+                    }
+
+                    case TMDB_Episode episode:
+                    {
+                        if (episode.TmdbShow is not { } tmdbShow)
+                            continue;
+                        ShokoEventHandler.Instance.OnEpisodeUpdated(tmdbShow, episode, UpdateReason.ImageRemoved);
+                        break;
+                    }
+                }
+            }
+            _tmdbImageEntities.Delete(entities);
         }
 
         // Only delete the image metadata and/or file if all references were removed.

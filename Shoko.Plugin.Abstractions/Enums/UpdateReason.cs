@@ -25,4 +25,19 @@ public enum UpdateReason
     /// The metadata was removed.
     /// </summary>
     Removed = 4,
+
+    /// <summary>
+    /// An image was downloaded for the first time.
+    /// </summary>
+    ImageAdded = 8,
+
+    /// <summary>
+    /// An image was downloaded after it has already been downloaded.
+    /// </summary>
+    ImageUpdated = 16,
+
+    /// <summary>
+    /// An image was removed.
+    /// </summary>
+    ImageRemoved = 32,
 }
