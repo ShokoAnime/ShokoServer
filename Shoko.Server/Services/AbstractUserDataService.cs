@@ -257,7 +257,7 @@ public class AbstractUserDataService(
         if (svrSeries.AniDB_Anime is not { } anidbAnime)
             throw new ArgumentException("AniDB anime is not available for the series! Aborting!");
 
-        if (voteValue < -1 || voteValue > 10)
+        if (voteValue != -1 && (voteValue < 0 || voteValue > 10))
             throw new ArgumentOutOfRangeException(nameof(voteValue), "Vote value must be between -1 and 10");
 
         var anidbVoteType = voteType == VoteType.Permanent ? AniDBVoteType.Anime : AniDBVoteType.AnimeTemp;
