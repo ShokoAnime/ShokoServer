@@ -91,22 +91,22 @@ public class ShokofinConfigurationDefinition
     }
 
     /// <inheritdoc />
-    public ConfigurationActionResult PerformAction(ShokofinConfiguration config, string path, string action, ContextualType type, IShokoUser? user = null, Uri? uri = null)
-        => (path, action) switch
+    public ConfigurationActionResult PerformAction(ConfigurationActionContext<ShokofinConfiguration> context)
+        => context switch
         {
-            ("Connection", "Connect") => ConnectToShoko(config),
-            ("Connection", "Disconnect") => DisconnectFromShoko(),
-            ("SignalR.Connection", "Connect") => ConnectToSignalR(),
-            ("SignalR.Connection", "Disconnect") => DisconnectFromSignalR(),
-            (_, "Save") => SaveConfig(config),
-            _ => path.StartsWith("Users[") && path.EndsWith(']') && int.TryParse(path[6..^1], out var index)
-                ? action switch
+            { Path: "Connection", Action: "Connect" } => ConnectToShoko(context.Configuration),
+            { Path: "Connection", Action: "Disconnect" } => DisconnectFromShoko(),
+            { Path: "SignalR.Connection", Action: "Connect" } => ConnectToSignalR(),
+            { Path: "SignalR.Connection", Action: "Disconnect" } => DisconnectFromSignalR(),
+            { Action: "Save" } => SaveConfig(context.Configuration),
+            _ => context.Path.StartsWith("Users[") && context.Path.EndsWith(']') && int.TryParse(context.Path[6..^1], out var index)
+                ? context switch
                 {
-                    "Link" => LinkUser(config, index),
-                    "Reset Link" => UnlinkUser(config, index),
-                    _ => throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path)),
+                    { Action: "Link" } => LinkUser(context.Configuration, index),
+                    { Action: "Reset Link" } => UnlinkUser(context.Configuration, index),
+                    _ => throw new InvalidConfigurationActionException($"Invalid path \"{context.Path}\"", nameof(context)),
                 }
-                : throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path)),
+                : throw new InvalidConfigurationActionException($"Invalid path \"{context.Path}\"", nameof(context)),
         };
 
     // Fake connect

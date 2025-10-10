@@ -443,7 +443,15 @@ public partial class ConfigurationService : IConfigurationService
             throw new InvalidConfigurationActionException($"Invalid action \"{action}\" for path \"{path}\"", nameof(action));
 
         if (info.Definition is IConfigurationDefinitionWithCustomActions<TConfig> provider)
-            return provider.PerformAction(configuration, path, action, type, user, uri);
+            return provider.PerformAction(new()
+            {
+                Configuration = configuration,
+                Path = path,
+                Action = action,
+                Type = type,
+                User = user,
+                Uri = uri,
+            });
         return new("Configuration does not support custom actions!", DisplayColorTheme.Warning) { RefreshConfiguration = false };
     }
 

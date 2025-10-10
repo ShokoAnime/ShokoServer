@@ -92,14 +92,9 @@ public interface IConfigurationDefinitionWithCustomActions<TConfig> : IConfigura
     /// <summary>
     /// Perform a custom action on the configuration.
     /// </summary>
-    /// <param name="configuration">The configuration instance.</param>
-    /// <param name="path">The path to the configuration.</param>
-    /// <param name="action">The action to perform.</param>
-    /// <param name="type">The contextual type of the class or sub-class.</param>
-    /// <param name="user">The user performing the action, if applicable.</param>
-    /// <param name="uri">The base URI used to access the server by the user, if applicable.</param>
+    /// <param name="context">The context for the action.</param>
     /// <returns>The result of the action.</returns>
-    ConfigurationActionResult PerformAction(TConfig configuration, string path, string action, ContextualType type, IShokoUser? user, Uri? uri);
+    ConfigurationActionResult PerformAction(ConfigurationActionContext<TConfig> context);
 }
 
 /// <summary>

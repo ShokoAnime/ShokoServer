@@ -118,14 +118,12 @@ public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWit
         return JsonConvert.SerializeObject(result, serializerSettings);
     }
 
-    public ConfigurationActionResult PerformAction(ServerSettings config, string path, string action, ContextualType type, IShokoUser? user, Uri? uri)
-    {
-        return (path, action) switch
+    public ConfigurationActionResult PerformAction(ConfigurationActionContext<ServerSettings> context)
+        => (context.Path, context.Action) switch
         {
-            ("AniDb", "Test") => TestAnidbLogin(config),
-            _ => throw new InvalidConfigurationActionException($"Invalid path \"{path}\"", nameof(path)),
+            ("AniDb", "Test") => TestAnidbLogin(context.Configuration),
+            _ => throw new InvalidConfigurationActionException($"Invalid path \"{context.Path}\"", nameof(context)),
         };
-    }
 
     private ConfigurationActionResult TestAnidbLogin(ServerSettings config)
     {
