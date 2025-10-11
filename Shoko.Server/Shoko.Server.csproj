@@ -69,6 +69,7 @@
     <PackageReference Include="F23.StringSimilarity" Version="6.0.0" />
     <PackageReference Include="FluentNHibernate" Version="3.3.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
+    <PackageReference Include="JsonDiffPatch.Net" Version="2.5.0" />
     <PackageReference Include="Libuv" Version="1.10.0" />
     <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="13.6.0" />
     <PackageReference Include="MessagePack" Version="2.5.187" />

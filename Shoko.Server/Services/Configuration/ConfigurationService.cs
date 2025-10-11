@@ -349,16 +349,16 @@ public partial class ConfigurationService : IConfigurationService
 
     #endregion
 
-    #region Custom Actions
+    #region Actions
 
-    public ConfigurationActionResult PerformAction(ConfigurationInfo info, IConfiguration configuration, string path, string action, IShokoUser? user = null, Uri? uri = null)
+    public ConfigurationActionResult PerformCustomAction(ConfigurationInfo info, IConfiguration configuration, string path, string actionName, IShokoUser? user = null, Uri? uri = null)
     {
         try
         {
             return (ConfigurationActionResult)typeof(ConfigurationService)
-                .GetMethod(nameof(PerformActionInternal), BindingFlags.NonPublic | BindingFlags.Static)!
+                .GetMethod(nameof(PerformCustomActionInternal), BindingFlags.NonPublic | BindingFlags.Static)!
                 .MakeGenericMethod(configuration.GetType())
-                .Invoke(this, [info, configuration, path, action, user, uri])!;
+                .Invoke(this, [info, this, configuration, path, actionName, user, uri])!;
         }
         catch (TargetInvocationException ex)
         {
@@ -368,8 +368,97 @@ public partial class ConfigurationService : IConfigurationService
         }
     }
 
-    public ConfigurationActionResult PerformAction<TConfig>(TConfig configuration, string path, string action, IShokoUser? user = null, Uri? uri = null) where TConfig : class, IConfiguration, new()
-        => PerformActionInternal(GetConfigurationInfo<TConfig>(), configuration, path, action, user, uri);
+    public ConfigurationActionResult PerformCustomAction<TConfig>(TConfig configuration, string path, string actionName, IShokoUser? user = null, Uri? uri = null) where TConfig : class, IConfiguration, new()
+        => PerformCustomActionInternal(GetConfigurationInfo<TConfig>(), this, configuration, path, actionName, user, uri);
+
+    private static ConfigurationActionResult PerformCustomActionInternal<TConfig>(ConfigurationInfo info, IConfigurationService service, TConfig configuration, string path, string actionName, IShokoUser? user, Uri? uri) where TConfig : class, IConfiguration, new()
+    {
+        var type = GetContextualTypeForConfigurationInfo(info, path);
+        var attributes = type.GetAttributes<CustomActionAttribute>(false).ToList();
+        if (attributes.Count == 0)
+            throw new InvalidConfigurationActionException($"No actions attribute found for path \"{path}\"", nameof(path));
+        if (!attributes.Any(x => x.Name == actionName))
+            throw new InvalidConfigurationActionException($"Invalid action \"{actionName}\" for path \"{path}\"", nameof(actionName));
+
+        if (info.Definition is IConfigurationDefinitionWithCustomActions<TConfig> provider)
+            return provider.PerformAction(new()
+            {
+                Configuration = configuration,
+                Service = service,
+                Path = path,
+                ActionName = actionName,
+                Type = type,
+                User = user,
+                Uri = uri,
+            });
+        return new("Configuration does not support custom actions!", DisplayColorTheme.Warning);
+    }
+
+    public ConfigurationActionResult PerformReactiveAction(ConfigurationInfo info, IConfiguration configuration, string path, ConfigurationActionType actionType, IShokoUser? user = null, Uri? uri = null)
+    {
+        try
+        {
+            return (ConfigurationActionResult)typeof(ConfigurationService)
+                .GetMethod(nameof(PerformReactiveActionInternal), BindingFlags.NonPublic | BindingFlags.Static)!
+                .MakeGenericMethod(configuration.GetType())
+                .Invoke(this, [info, this, configuration, path, actionType, user, uri])!;
+        }
+        catch (TargetInvocationException ex)
+        {
+            if (ex.InnerException is null)
+                throw;
+            throw ex.InnerException;
+        }
+    }
+
+    public ConfigurationActionResult PerformReactiveAction<TConfig>(TConfig configuration, string path, ConfigurationActionType actionType, IShokoUser? user = null, Uri? uri = null) where TConfig : class, IConfiguration, new()
+        => PerformReactiveActionInternal(GetConfigurationInfo<TConfig>(), this, configuration, path, actionType, user, uri);
+
+    private static ConfigurationActionResult PerformReactiveActionInternal<TConfig>(ConfigurationInfo info, IConfigurationService service, TConfig configuration, string path, ConfigurationActionType actionType, IShokoUser? user, Uri? uri) where TConfig : class, IConfiguration, new()
+    {
+        if (actionType is ConfigurationActionType.Custom)
+            return new("Custom actions not supported for reactive actions!", DisplayColorTheme.Warning);
+
+        var type = GetContextualTypeForConfigurationInfo(info, path);
+        if (info.Definition is IConfigurationDefinitionWithReactiveActions<TConfig> provider)
+            return actionType switch
+            {
+                ConfigurationActionType.Changed => provider.OnConfigurationChanged(new()
+                {
+                    Configuration = configuration,
+                    Service = service,
+                    Path = path,
+                    Type = type,
+                    User = user,
+                    ActionType = ConfigurationActionType.Changed,
+                    Uri = uri,
+                }),
+                ConfigurationActionType.Saved => provider.OnConfigurationSaved(new()
+                {
+                    Configuration = configuration,
+                    Service = service,
+                    Path = path,
+                    Type = type,
+                    User = user,
+                    ActionType = ConfigurationActionType.Saved,
+                    Uri = uri,
+                }),
+                ConfigurationActionType.Loaded => provider.OnConfigurationLoaded(new()
+                {
+                    Configuration = configuration,
+                    Service = service,
+                    Path = path,
+                    Type = type,
+                    User = user,
+                    ActionType = ConfigurationActionType.Loaded,
+                    Uri = uri,
+                }),
+                _ => new("Custom actions not supported for reactive actions!", DisplayColorTheme.Warning),
+            };
+        return new("Configuration does not support change reports!", DisplayColorTheme.Warning);
+    }
+
+    #region Actions | Internals
 
     [GeneratedRegex(@"(?<!\\)\.")]
     private static partial Regex SplitPathToPartsRegex();
@@ -380,7 +469,7 @@ public partial class ConfigurationService : IConfigurationService
     [GeneratedRegex(@"(?<=\w|\]|^)\[", RegexOptions.Compiled | RegexOptions.ECMAScript)]
     private static partial Regex IndexNotationFixRegex();
 
-    private static ConfigurationActionResult PerformActionInternal<TConfig>(ConfigurationInfo info, TConfig configuration, string path, string action, IShokoUser? user, Uri? uri) where TConfig : class, IConfiguration, new()
+    private static ContextualType GetContextualTypeForConfigurationInfo(ConfigurationInfo info, string path)
     {
         var schema = info.Schema;
         var type = info.ContextualType;
@@ -436,24 +525,10 @@ public partial class ConfigurationService : IConfigurationService
             }
         }
 
-        var attributes = type.GetAttributes<CustomActionAttribute>(false).ToList();
-        if (attributes.Count == 0)
-            throw new InvalidConfigurationActionException($"No actions attribute found for path \"{path}\"", nameof(path));
-        if (!attributes.Any(x => x.Name == action))
-            throw new InvalidConfigurationActionException($"Invalid action \"{action}\" for path \"{path}\"", nameof(action));
-
-        if (info.Definition is IConfigurationDefinitionWithCustomActions<TConfig> provider)
-            return provider.PerformAction(new()
-            {
-                Configuration = configuration,
-                Path = path,
-                Action = action,
-                Type = type,
-                User = user,
-                Uri = uri,
-            });
-        return new("Configuration does not support custom actions!", DisplayColorTheme.Warning) { RefreshConfiguration = false };
+        return type;
     }
+
+    #endregion
 
     #endregion
 

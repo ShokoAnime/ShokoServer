@@ -8,30 +8,49 @@ namespace Shoko.Plugin.Abstractions.Config;
 /// </summary>
 public class ConfigurationActionResult
 {
+    private bool _showSaveMessage = false;
+
     /// <summary>
     /// Indicates that the default save message should be shown to the user.
     /// </summary>
-    public bool ShowDefaultSaveMessage { get; init; } = false;
+    /// <remarks>
+    /// If <see cref="Configuration"/> is set to a non-null value then this
+    /// value will always be <c>false</c>.
+    /// </remarks>
+    public bool ShowSaveMessage
+    {
+        get => Configuration is null && _showSaveMessage;
+        init => _showSaveMessage = value;
+    }
 
-    private bool? _refreshConfiguration;
+    private bool _refreshConfiguration = false;
 
     /// <summary>
-    /// Indicates that the configuration should be refreshed. Defaults to
-    /// <c>true</c> if there is no redirect, otherwise defaults to <c>false</c>.
+    /// Indicates that the configuration should be refreshed by the client
+    /// because we've modified it.
     /// </summary>
-    public bool RefreshConfiguration
+    /// <remarks>
+    /// If <see cref="Configuration"/> is set to a non-null value then this
+    /// value will always be <c>false</c>.
+    /// </remarks>
+    public bool Refresh
     {
-        get => _refreshConfiguration ??= Redirect is null;
+        get => Configuration is null && _refreshConfiguration;
         init => _refreshConfiguration = value;
     }
 
     /// <summary>
-    /// Any additional messages to show to the user.
+    /// A new or modified configuration to replace the live configuration with, without saving it first.
+    /// </summary>
+    public IConfiguration? Configuration { get; init; }
+
+    /// <summary>
+    /// Messages to show to the user after the action has been performed.
     /// </summary>
     public IReadOnlyList<ConfigurationActionResultMessage> Messages { get; init; } = [];
 
     /// <summary>
-    /// The redirect to perform as part of the result of the action.
+    /// The redirect to perform after the action has been performed.
     /// </summary>
     public ConfigurationActionRedirect? Redirect { get; init; }
 
@@ -39,12 +58,6 @@ public class ConfigurationActionResult
     /// Initializes a new instance of the <see cref="ConfigurationActionResult"/> class.
     /// </summary>
     public ConfigurationActionResult() { }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ConfigurationActionResult"/> class.
-    /// </summary>
-    /// <param name="showDefaultSaveMessage">if set to <c>true</c> [show default save message].</param>
-    public ConfigurationActionResult(bool showDefaultSaveMessage) => ShowDefaultSaveMessage = showDefaultSaveMessage;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConfigurationActionResult"/> class.

@@ -72,13 +72,14 @@ public class ConfigurationProvider<TConfig> : IDisposable where TConfig : class,
         => _service.Validate(config);
 
     /// <summary>
-    ///   Perform an action on the configuration on the saved configuration.
+    ///   Perform a custom action on the saved configuration.
     /// </summary>
     /// <param name="path">
-    ///   The path to the configuration.
+    ///   The path leading to the value related to the action being performed to
+    ///   the configuration.
     /// </param>
-    /// <param name="action">
-    ///   The action to perform.
+    /// <param name="actionName">
+    ///   The name of the custom action to perform.
     /// </param>
     /// <param name="user">
     ///   The user performing the action, if applicable.
@@ -93,20 +94,21 @@ public class ConfigurationProvider<TConfig> : IDisposable where TConfig : class,
     /// <returns>
     ///   The result of the action.
     /// </returns>
-    public ConfigurationActionResult PerformAction(string path, string action, IShokoUser? user = null, Uri? uri = null)
-        => _service.PerformAction(Load(), path, action, user, uri);
+    public ConfigurationActionResult PerformCustomAction(string path, string actionName, IShokoUser? user = null, Uri? uri = null)
+        => _service.PerformCustomAction(Load(), path, actionName, user, uri);
 
     /// <summary>
-    ///   Perform an action on the configuration on a configuration instance.
+    ///   Perform a custom action on the provided configuration instance.
     /// </summary>
     /// <param name="config">
     ///   The configuration instance to perform the action on.
     /// </param>
     /// <param name="path">
-    ///   The path to the configuration.
+    ///   The path leading to the value related to the action being performed to
+    ///   the configuration.
     /// </param>
-    /// <param name="action">
-    ///   The action to perform.
+    /// <param name="actionName">
+    ///   The name of the custom action to perform.
     /// </param>
     /// <param name="user">
     ///   The user performing the action, if applicable.
@@ -121,8 +123,55 @@ public class ConfigurationProvider<TConfig> : IDisposable where TConfig : class,
     /// <returns>
     ///   The result of the action.
     /// </returns>
-    public ConfigurationActionResult PerformAction(TConfig config, string path, string action, IShokoUser? user = null, Uri? uri = null)
-        => _service.PerformAction(config, path, action, user, uri);
+    public ConfigurationActionResult PerformCustomAction(TConfig config, string path, string actionName, IShokoUser? user = null, Uri? uri = null)
+        => _service.PerformCustomAction(config, path, actionName, user, uri);
+
+    /// <summary>
+    ///   Perform a reactive action on the saved configuration.
+    /// </summary>
+    /// <param name="path">
+    ///   The path leading to the value related to the action being performed to
+    ///   the configuration.
+    /// </param>
+    /// <param name="actionType">
+    ///   The reaction action type to perform.
+    /// </param>
+    /// <param name="user">
+    ///   The user performing the action, if applicable.
+    /// </param>
+    /// <param name="uri">
+    ///   The base URI used to access the server by the user, if applicable.
+    /// </param>
+    /// <returns>
+    ///   The result of the action.
+    /// </returns>
+    public ConfigurationActionResult PerformReactiveAction(string path, ConfigurationActionType actionType, IShokoUser? user = null, Uri? uri = null)
+        => _service.PerformReactiveAction(Load(), path, actionType, user, uri);
+
+    /// <summary>
+    ///   Perform a reactive action on the provided configuration instance.
+    /// </summary>
+    /// <param name="config">
+    ///   The configuration instance to perform the action on.
+    /// </param>
+    /// <param name="path">
+    ///   The path leading to the value related to the action being performed to
+    ///   the configuration.
+    /// </param>
+    /// <param name="actionType">
+    ///   The reaction action type to perform.
+    /// </param>
+    /// <param name="user">
+    ///   The user performing the action, if applicable.
+    /// </param>
+    /// <param name="uri">
+    ///   The base URI used to access the server by the user, if applicable.
+    /// </param>
+    /// <returns>
+    ///   The result of the action.
+    /// </returns>
+    public ConfigurationActionResult PerformReactiveAction(TConfig config, string path, ConfigurationActionType actionType, IShokoUser? user = null, Uri? uri = null)
+        => _service.PerformReactiveAction(config, path, actionType, user, uri);
 
     /// <summary>
     /// Creates a new configuration instance.

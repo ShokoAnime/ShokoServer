@@ -16,7 +16,11 @@ namespace Shoko.Plugin.ConfigurationHell.Configurations;
 /// Definition for the Shokofin configuration.
 /// </summary>
 public class ShokofinConfigurationDefinition
-    : IConfigurationDefinitionWithCustomValidation<ShokofinConfiguration>, IConfigurationDefinitionWithCustomActions<ShokofinConfiguration>, IConfigurationDefinitionWithNewFactory<ShokofinConfiguration>, IDisposable
+    : IConfigurationDefinitionWithCustomValidation<ShokofinConfiguration>
+    , IConfigurationDefinitionWithCustomActions<ShokofinConfiguration>
+    , IConfigurationDefinitionWithReactiveActions<ShokofinConfiguration>
+    , IConfigurationDefinitionWithNewFactory<ShokofinConfiguration>
+    , IDisposable
 {
     private readonly IUserService _userService;
 
@@ -94,20 +98,34 @@ public class ShokofinConfigurationDefinition
     public ConfigurationActionResult PerformAction(ConfigurationActionContext<ShokofinConfiguration> context)
         => context switch
         {
-            { Path: "Connection", Action: "Connect" } => ConnectToShoko(context.Configuration),
-            { Path: "Connection", Action: "Disconnect" } => DisconnectFromShoko(),
-            { Path: "SignalR.Connection", Action: "Connect" } => ConnectToSignalR(),
-            { Path: "SignalR.Connection", Action: "Disconnect" } => DisconnectFromSignalR(),
-            { Action: "Save" } => SaveConfig(context.Configuration),
+            { Path: "Connection", ActionName: "Connect" } => ConnectToShoko(context.Configuration),
+            { Path: "Connection", ActionName: "Disconnect" } => DisconnectFromShoko(),
+            { Path: "SignalR.Connection", ActionName: "Connect" } => ConnectToSignalR(),
+            { Path: "SignalR.Connection", ActionName: "Disconnect" } => DisconnectFromSignalR(),
+            { ActionName: "Save" } => SaveConfig(context.Configuration),
             _ => context.Path.StartsWith("Users[") && context.Path.EndsWith(']') && int.TryParse(context.Path[6..^1], out var index)
                 ? context switch
                 {
-                    { Action: "Link" } => LinkUser(context.Configuration, index),
-                    { Action: "Reset Link" } => UnlinkUser(context.Configuration, index),
+                    { ActionName: "Link" } => LinkUser(context.Configuration, index),
+                    { ActionName: "Reset Link" } => UnlinkUser(context.Configuration, index),
                     _ => throw new InvalidConfigurationActionException($"Invalid path \"{context.Path}\"", nameof(context)),
                 }
                 : throw new InvalidConfigurationActionException($"Invalid path \"{context.Path}\"", nameof(context)),
         };
+
+    /// <inheritdoc />
+    public ConfigurationActionResult OnConfigurationChanged(ConfigurationActionContext<ShokofinConfiguration> context)
+        => context switch
+        {
+            { Path: "Connection.Host" } => EditHosts(context.Configuration),
+            _ => new() { Refresh = false },
+        };
+
+    private ConfigurationActionResult EditHosts(ShokofinConfiguration config)
+    {
+        config.Connection.PublicHost = config.Connection.Host;
+        return new() { Configuration = config };
+    }
 
     // Fake connect
     private ConfigurationActionResult ConnectToShoko(ShokofinConfiguration config)
@@ -123,6 +141,7 @@ public class ShokofinConfigurationDefinition
             throw new ConfigurationValidationException("validate", _configurationProvider.ConfigurationInfo, validationErrors);
 
         var loaded = _configurationProvider.Load();
+        loaded.Connection.PublicHost = config.Connection.PublicHost;
         loaded.Connection.ApiKey = "fake";
         loaded.Connection.Password = null;
         loaded.Connection.ServerVersion = typeof(ConfigurationActionResult).Assembly.GetName().Version ?? new Version(0, 0);
@@ -131,8 +150,8 @@ public class ShokofinConfigurationDefinition
             loaded.SignalR.Connection.Enabled = true;
             loaded.SignalR.Connection.Status = "Enabled, Connected";
         }
-        _configurationProvider.Save(config);
-        return new("Connected to Shoko.");
+        _configurationProvider.Save(loaded);
+        return new("Connected to Shoko.") { Refresh = true };
     }
 
     // Fake disconnect
@@ -145,7 +164,7 @@ public class ShokofinConfigurationDefinition
         loaded.SignalR.Connection.Enabled = false;
         loaded.SignalR.Connection.Status = "Disabled";
         _configurationProvider.Save(loaded);
-        return new("Disconnected from Shoko.");
+        return new("Disconnected from Shoko.") { Refresh = true };
     }
 
     private ConfigurationActionResult ConnectToSignalR()
@@ -154,7 +173,7 @@ public class ShokofinConfigurationDefinition
         loaded.SignalR.Connection.Enabled = true;
         loaded.SignalR.Connection.Status = "Enabled, Connected";
         _configurationProvider.Save(loaded);
-        return new("Connected to SignalR.");
+        return new("Connected to SignalR.") { Refresh = true };
     }
 
     private ConfigurationActionResult DisconnectFromSignalR()
@@ -163,7 +182,7 @@ public class ShokofinConfigurationDefinition
         loaded.SignalR.Connection.Enabled = false;
         loaded.SignalR.Connection.Status = "Disabled";
         _configurationProvider.Save(loaded);
-        return new("Disconnected from SignalR.");
+        return new("Disconnected from SignalR.") { Refresh = true };
     }
 
     private ConfigurationActionResult LinkUser(ShokofinConfiguration config, int index)
@@ -181,7 +200,7 @@ public class ShokofinConfigurationDefinition
         user.Token = "fake";
         user.Password = null;
         _configurationProvider.Save(loaded);
-        return new("Linked user.", DisplayColorTheme.Important);
+        return new("Linked user.", DisplayColorTheme.Important) { Refresh = true };
     }
 
     private ConfigurationActionResult UnlinkUser(ShokofinConfiguration config, int index)
@@ -190,13 +209,13 @@ public class ShokofinConfigurationDefinition
         var user = loaded.Users[index] = config.Users[index];
         user.Token = null;
         _configurationProvider.Save(loaded);
-        return new("Unlinked user.", DisplayColorTheme.Important);
+        return new("Unlinked user.", DisplayColorTheme.Important) { Refresh = true };
     }
 
     // Real save.
     private ConfigurationActionResult SaveConfig(ShokofinConfiguration config)
     {
         _configurationProvider.Save(config);
-        return new(true);
+        return new() { ShowSaveMessage = true, Refresh = true };
     }
 }

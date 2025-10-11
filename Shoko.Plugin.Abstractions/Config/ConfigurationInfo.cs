@@ -70,6 +70,13 @@ public class ConfigurationInfo(IConfigurationService configurationService)
     /// </summary>
     public bool HasCustomActions => _hasCustomActions ??= Definition?.GetType().IsAssignableTo(typeof(IConfigurationDefinitionWithCustomActions<>).MakeGenericType(Type)) ?? false;
 
+    private bool? _hasReactiveActions = null;
+
+    /// <summary>
+    /// Whether or not the configuration has reactive actions.
+    /// </summary>
+    public bool HasReactiveActions => _hasReactiveActions ??= Definition?.GetType().IsAssignableTo(typeof(IConfigurationDefinitionWithReactiveActions<>).MakeGenericType(Type)) ?? false;
+
     /// <summary>
     /// A set of paths for properties that need a restart to take effect.
     /// </summary>

@@ -119,7 +119,7 @@ public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWit
     }
 
     public ConfigurationActionResult PerformAction(ConfigurationActionContext<ServerSettings> context)
-        => (context.Path, context.Action) switch
+        => (context.Path, context.ActionName) switch
         {
             ("AniDb", "Test") => TestAnidbLogin(context.Configuration),
             _ => throw new InvalidConfigurationActionException($"Invalid path \"{context.Path}\"", nameof(context)),
@@ -139,14 +139,14 @@ public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWit
             if (!_udpHandler.TestLogin(config.AniDb.Username, config.AniDb.Password))
             {
                 _logger.LogInformation("Failed AniDB Login and Connection");
-                return new("Unable to log in with the provided credentials.", DisplayColorTheme.Warning) { RefreshConfiguration = false };
+                return new("Unable to log in with the provided credentials.", DisplayColorTheme.Warning);
             }
-            return new("AniDB Login Successful!", DisplayColorTheme.Important) { RefreshConfiguration = false };
+            return new("AniDB Login Successful!", DisplayColorTheme.Important);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "AniDB Login Failed!");
-            return new("AniDB Login Failed!", DisplayColorTheme.Danger) { RefreshConfiguration = false };
+            return new("AniDB Login Failed!", DisplayColorTheme.Danger);
         }
     }
 

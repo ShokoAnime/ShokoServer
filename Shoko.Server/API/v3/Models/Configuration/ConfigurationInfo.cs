@@ -55,6 +55,11 @@ public class ConfigurationInfo(AbstractConfigurationInfo info)
     public bool HasCustomActions { get; init; } = info.HasCustomActions;
 
     /// <summary>
+    /// Whether or not the configuration has reactive actions.
+    /// </summary>
+    public bool HasReactiveActions { get; init; } = info.HasReactiveActions;
+
+    /// <summary>
     /// Information about the plugin that the configuration belongs to.
     /// </summary>
     public PluginInfo Plugin { get; init; } = new(info.PluginInfo);

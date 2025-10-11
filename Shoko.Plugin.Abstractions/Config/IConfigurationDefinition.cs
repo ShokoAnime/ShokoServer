@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Namotion.Reflection;
 using Shoko.Plugin.Abstractions.Config.Attributes;
-using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.Services;
 
 namespace Shoko.Plugin.Abstractions.Config;
 
@@ -95,6 +94,52 @@ public interface IConfigurationDefinitionWithCustomActions<TConfig> : IConfigura
     /// <param name="context">The context for the action.</param>
     /// <returns>The result of the action.</returns>
     ConfigurationActionResult PerformAction(ConfigurationActionContext<TConfig> context);
+}
+
+/// <summary>
+/// Interface for allowing plugins to react to changes in their configuration as
+/// they are being edited in the UI.
+/// </summary>
+/// <typeparam name="TConfig">The type of the configuration.</typeparam>
+public interface IConfigurationDefinitionWithReactiveActions<TConfig> : IConfigurationDefinition where TConfig : class, IConfiguration, new()
+{
+    /// <summary>
+    /// Called when a value in the configuration has been loaded into the UI.
+    /// </summary>
+    /// <param name="context">The context for the action.</param>
+    /// <returns>The result of the action.</returns>
+    ConfigurationActionResult OnConfigurationLoaded(ConfigurationActionContext<TConfig> context)
+        => new();
+
+    /// <summary>
+    /// Called when a value in the configuration is about to be saved. The
+    /// configuration has not been validated yet, and may contain invalid
+    /// values.
+    /// <br />
+    /// Calling <see cref="IConfigurationService.Save{TConfig}(TConfig)"/> on
+    /// the service exposed on the context object will validate and save the
+    /// configuration.
+    /// </summary>
+    /// <remarks>
+    /// Responsible for saving the configuration. Only override if you know
+    /// what you're doing.
+    /// </remarks>
+    /// <param name="context">The context for the action.</param>
+    /// <returns>The result of the action.</returns>
+    ConfigurationActionResult OnConfigurationSaved(ConfigurationActionContext<TConfig> context)
+        => new() { ShowSaveMessage = context.Service.Save(context.Configuration), Refresh = true };
+
+    /// <summary>
+    /// Called when a value in the configuration has changed. The configuration
+    /// has not been validated yet, and may contain invalid values.
+    /// <br />
+    /// If validation is required for your use case(s), use the service exposed
+    /// on the context object to validate the configuration before use.
+    /// </summary>
+    /// <param name="context">The context for the action.</param>
+    /// <returns>The result of the action.</returns>
+    ConfigurationActionResult OnConfigurationChanged(ConfigurationActionContext<TConfig> context)
+        => new();
 }
 
 /// <summary>

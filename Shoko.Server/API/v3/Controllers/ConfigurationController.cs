@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using JsonDiffPatchDotNet;
+using JsonDiffPatchDotNet.Formatters.JsonPatch;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +16,8 @@ using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.Settings;
+using Operation = Microsoft.AspNetCore.JsonPatch.Operations.Operation;
+using ConfigurationActionType = Shoko.Plugin.Abstractions.Config.ConfigurationActionType;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
@@ -195,21 +199,31 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// </summary>
     /// <param name="id">Configuration id</param>
     /// <param name="body">Optional. Configuration data to perform the action on.</param>
-    /// <param name="action">Action to perform</param>
+    /// <param name="actionName">Action to perform</param>
+    /// <param name="actionType">Action type</param>
     /// <param name="path">Path to the configuration</param>
     /// <returns></returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [HttpPost("{id:guid}/PerformAction")]
-    public ActionResult<ConfigurationActionResult> PerformActionOnConfiguration(Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body, [Required, FromQuery] string action, [Required, FromQuery] string path)
+    public ActionResult<ConfigurationActionResult> PerformActionOnConfiguration(
+        Guid id,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body,
+        [FromQuery] string path = "",
+        [FromQuery] string actionName = "",
+        [FromQuery] ConfigurationActionType actionType = ConfigurationActionType.Custom
+    )
     {
+        if (actionType is ConfigurationActionType.Custom && string.IsNullOrEmpty(actionName))
+            return ValidationProblem("Missing 'actionName' parameter for custom action!", "actionName");
+
         if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
             return NotFound($"Configuration '{id}' not found!");
 
         try
         {
             var data = body?.ToString(Newtonsoft.Json.Formatting.None, [new StringEnumConverter()]);
-            if (!string.IsNullOrEmpty(data) && configurationService.Validate(configInfo, data) is { Count: > 0 } errors)
+            if (!string.IsNullOrEmpty(data) && actionType is not ConfigurationActionType.Changed and not ConfigurationActionType.Saved && configurationService.Validate(configInfo, data) is { Count: > 0 } errors)
                 return ValidationProblem(errors);
 
             var uri = new UriBuilder(
@@ -219,9 +233,18 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
                 Request.PathBase,
                 null
             );
-            var config = string.IsNullOrEmpty(data) ? configurationService.Load(configInfo) : configurationService.Deserialize(configInfo, data);
-            var result = configurationService.PerformAction(configInfo, config, path, action, User, uri.Uri);
-            return Ok(new ConfigurationActionResult(result));
+            data ??= configurationService.Serialize(configurationService.Load(configInfo));
+            var config = configurationService.Deserialize(configInfo, data);
+            var result = actionType is ConfigurationActionType.Custom
+                ? configurationService.PerformCustomAction(configInfo, config, path, actionName, User, uri.Uri)
+                : configurationService.PerformReactiveAction(configInfo, config, path, actionType, User, uri.Uri);
+            if (result.Configuration is not null)
+            {
+                var diff = new JsonDiffPatch(new() { TextDiff = TextDiffMode.Simple, DiffArrayOptions = new() { DetectMove = true, IncludeValueOnMove = true } }).Diff(data, configurationService.Serialize(result.Configuration)) ?? "{}";
+                var operations = new JsonDeltaFormatter().Format(JToken.Parse(diff)).Select(op => new Operation(op.Op, op.Path, op.From, op.Value)).ToList();
+                return Ok(new ConfigurationActionResult(result, operations));
+            }
+            return Ok(new ConfigurationActionResult(result, null));
         }
         catch (ConfigurationValidationException ex)
         {

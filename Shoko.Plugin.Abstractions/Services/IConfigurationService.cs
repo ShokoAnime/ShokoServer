@@ -155,16 +155,17 @@ public interface IConfigurationService
     ///   specified <see cref="ConfigurationInfo" />'s action handler.
     /// </summary>
     /// <param name="info">
-    ///   The <see cref="ConfigurationInfo" />.
+    ///   The <see cref="ConfigurationInfo" /> to load the action handler for.
     /// </param>
     /// <param name="configuration">
-    ///   The configuration.
+    ///   The configuration instance to perform the action on.
     /// </param>
     /// <param name="path">
-    ///   The path to the configuration.
+    ///   The path leading to the value related to the action being performed to
+    ///   the configuration.
     /// </param>
-    /// <param name="action">
-    ///   The action to perform.
+    /// <param name="actionName">
+    ///   The name of the custom action to perform.
     /// </param>
     /// <param name="user">
     ///   The user performing the action, if applicable.
@@ -179,7 +180,7 @@ public interface IConfigurationService
     /// <returns>
     ///   The result of the action.
     /// </returns>
-    ConfigurationActionResult PerformAction(ConfigurationInfo info, IConfiguration configuration, string path, string action, IShokoUser? user = null, Uri? uri = null);
+    ConfigurationActionResult PerformCustomAction(ConfigurationInfo info, IConfiguration configuration, string path, string actionName, IShokoUser? user = null, Uri? uri = null);
 
     /// <summary>
     ///   Perform a custom action on the configuration.
@@ -188,13 +189,14 @@ public interface IConfigurationService
     ///   The type of the configuration.
     /// </typeparam>
     /// <param name="configuration">
-    ///   The configuration instance.
+    ///   The configuration instance to perform the action on.
     /// </param>
     /// <param name="path">
-    ///   The path to the configuration.
+    ///   The path leading to the value related to the action being performed to
+    ///   the configuration.
     /// </param>
-    /// <param name="action">
-    ///   The action to perform.
+    /// <param name="actionName">
+    ///   The name of the custom action to perform.
     /// </param>
     /// <param name="user">
     ///   The user performing the action, if applicable.
@@ -203,12 +205,74 @@ public interface IConfigurationService
     ///   The base URI used to access the server by the user, if applicable.
     /// </param>
     /// <exception cref="InvalidConfigurationActionException">
-    /// Thrown when an action is invalid. Be it because the action does not exist or because the path for where to look for the action is invalid.
+    /// Thrown when an action is invalid. Be it because the action does not
+    /// exist or because the path for where to look for the action is invalid.
     /// </exception>
     /// <returns>
     ///   The result of the action.
     /// </returns>
-    ConfigurationActionResult PerformAction<TConfig>(TConfig configuration, string path, string action, IShokoUser? user = null, Uri? uri = null) where TConfig : class, IConfiguration, new();
+    ConfigurationActionResult PerformCustomAction<TConfig>(TConfig configuration, string path, string actionName, IShokoUser? user = null, Uri? uri = null) where TConfig : class, IConfiguration, new();
+
+    /// <summary>
+    ///   Report that a value has changed in the configuration instance for
+    ///   the specified <see cref="ConfigurationInfo" />'s changed handler.
+    /// </summary>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" /> to load the action handler for.
+    /// </param>
+    /// <param name="configuration">
+    ///   The configuration instance to perform the action on.
+    /// </param>
+    /// <param name="path">
+    ///   The path leading to the value related to the action being performed to
+    ///   the configuration.
+    /// </param>
+    /// <param name="actionType">
+    ///   The reaction action type to perform.
+    /// </param>
+    /// <param name="user">
+    ///   The user performing the action, if applicable.
+    /// </param>
+    /// <param name="uri">
+    ///   The base URI used to access the server by the user, if applicable.
+    /// </param>
+    /// <exception cref="InvalidConfigurationActionException">
+    /// Thrown when the specified path is invalid.
+    /// </exception>
+    /// <returns>
+    ///   The result of the action.
+    /// </returns>
+    ConfigurationActionResult PerformReactiveAction(ConfigurationInfo info, IConfiguration configuration, string path, ConfigurationActionType actionType, IShokoUser? user = null, Uri? uri = null);
+
+    /// <summary>
+    ///   Report that a value has changed in the configuration.
+    /// </summary>
+    /// <typeparam name="TConfig">
+    ///   The type of the configuration.
+    /// </typeparam>
+    /// <param name="configuration">
+    ///   The configuration instance to perform the action on.
+    /// </param>
+    /// <param name="path">
+    ///   The path leading to the value related to the action being performed to
+    ///   the configuration.
+    /// </param>
+    /// <param name="actionType">
+    ///   The reaction action type to perform.
+    /// </param>
+    /// <param name="user">
+    ///   The user performing the action, if applicable.
+    /// </param>
+    /// <param name="uri">
+    ///   The base URI used to access the server by the user, if applicable.
+    /// </param>
+    /// <exception cref="InvalidConfigurationActionException">
+    /// Thrown when the specified path is invalid.
+    /// </exception>
+    /// <returns>
+    ///   The result of the action.
+    /// </returns>
+    ConfigurationActionResult PerformReactiveAction<TConfig>(TConfig configuration, string path, ConfigurationActionType actionType, IShokoUser? user = null, Uri? uri = null) where TConfig : class, IConfiguration, new();
 
     /// <summary>
     ///   Creates a new configuration instance for the specified
