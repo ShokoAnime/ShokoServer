@@ -1,5 +1,6 @@
 using System;
 using Namotion.Reflection;
+using NJsonSchema;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Services;
 
@@ -15,6 +16,11 @@ public class ConfigurationActionContext<TConfig> where TConfig : class, IConfigu
     /// The configuration instance.
     /// </summary>
     public required TConfig Configuration { get; init; }
+
+    /// <summary>
+    /// The configuration info for the configuration.
+    /// </summary>
+    public required ConfigurationInfo Info { get; init; }
 
     /// <summary>
     /// The configuration service.
@@ -41,7 +47,12 @@ public class ConfigurationActionContext<TConfig> where TConfig : class, IConfigu
     public ConfigurationActionType ActionType { get; init; } = ConfigurationActionType.Custom;
 
     /// <summary>
-    /// The contextual type of the class or sub-class.
+    /// The JSON schema for the value at the <see cref="Path"/>.
+    /// </summary>
+    public required JsonSchema Schema { get; init; }
+
+    /// <summary>
+    /// The contextual type for the value at the <see cref="Path"/>.
     /// </summary>
     public required ContextualType Type { get; init; }
 

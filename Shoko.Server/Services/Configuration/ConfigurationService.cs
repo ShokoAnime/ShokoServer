@@ -373,7 +373,7 @@ public partial class ConfigurationService : IConfigurationService
 
     private static ConfigurationActionResult PerformCustomActionInternal<TConfig>(ConfigurationInfo info, IConfigurationService service, TConfig configuration, string path, string actionName, IShokoUser? user, Uri? uri) where TConfig : class, IConfiguration, new()
     {
-        var type = GetContextualTypeForConfigurationInfo(info, path);
+        var (type, schema) = GetContextualTypeForConfigurationInfo(info, path);
         var attributes = type.GetAttributes<CustomActionAttribute>(false).ToList();
         if (attributes.Count == 0)
             throw new InvalidConfigurationActionException($"No actions attribute found for path \"{path}\"", nameof(path));
@@ -384,9 +384,11 @@ public partial class ConfigurationService : IConfigurationService
             return provider.PerformAction(new()
             {
                 Configuration = configuration,
+                Info = info,
                 Service = service,
                 Path = path,
                 ActionName = actionName,
+                Schema = schema,
                 Type = type,
                 User = user,
                 Uri = uri,
@@ -419,15 +421,17 @@ public partial class ConfigurationService : IConfigurationService
         if (actionType is ConfigurationActionType.Custom)
             return new("Custom actions not supported for reactive actions!", DisplayColorTheme.Warning);
 
-        var type = GetContextualTypeForConfigurationInfo(info, path);
+        var (type, schema) = GetContextualTypeForConfigurationInfo(info, path);
         if (info.Definition is IConfigurationDefinitionWithReactiveActions<TConfig> provider)
             return actionType switch
             {
                 ConfigurationActionType.Changed => provider.OnConfigurationChanged(new()
                 {
                     Configuration = configuration,
+                    Info = info,
                     Service = service,
                     Path = path,
+                    Schema = schema,
                     Type = type,
                     User = user,
                     ActionType = ConfigurationActionType.Changed,
@@ -436,8 +440,10 @@ public partial class ConfigurationService : IConfigurationService
                 ConfigurationActionType.Saved => provider.OnConfigurationSaved(new()
                 {
                     Configuration = configuration,
+                    Info = info,
                     Service = service,
                     Path = path,
+                    Schema = schema,
                     Type = type,
                     User = user,
                     ActionType = ConfigurationActionType.Saved,
@@ -446,8 +452,10 @@ public partial class ConfigurationService : IConfigurationService
                 ConfigurationActionType.Loaded => provider.OnConfigurationLoaded(new()
                 {
                     Configuration = configuration,
+                    Info = info,
                     Service = service,
                     Path = path,
+                    Schema = schema,
                     Type = type,
                     User = user,
                     ActionType = ConfigurationActionType.Loaded,
@@ -469,7 +477,7 @@ public partial class ConfigurationService : IConfigurationService
     [GeneratedRegex(@"(?<=\w|\]|^)\[", RegexOptions.Compiled | RegexOptions.ECMAScript)]
     private static partial Regex IndexNotationFixRegex();
 
-    private static ContextualType GetContextualTypeForConfigurationInfo(ConfigurationInfo info, string path)
+    private static (ContextualType, JsonSchema) GetContextualTypeForConfigurationInfo(ConfigurationInfo info, string path)
     {
         var schema = info.Schema;
         var type = info.ContextualType;
@@ -525,7 +533,7 @@ public partial class ConfigurationService : IConfigurationService
             }
         }
 
-        return type;
+        return (type, schema);
     }
 
     #endregion
