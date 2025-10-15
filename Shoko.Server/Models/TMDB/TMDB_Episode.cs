@@ -78,7 +78,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode
 
     /// <summary>
     /// Indicates that the episode should be hidden from view unless explicitly
-    /// requested, and should now be used internally at all.
+    /// requested, and should not be used internally at all.
     /// </summary>
     public bool IsHidden { get; set; }
 
