@@ -1219,68 +1219,42 @@ public partial class ShokoServiceImplementation : IShokoServer
     /// <param name="voteValue">Must be 1 or 2 (Anime or Anime Temp(</param>
     /// <param name="voteType"></param>
     [HttpPost("AniDB/Vote/{animeID}/{voteType}")]
-    public void VoteAnime(int animeID, [FromForm] decimal voteValue, int voteType)
+    public async void VoteAnime(int animeID, [FromForm] decimal voteValue, int voteType)
     {
         _logger.LogInformation("Voting for anime: {AnimeID} - Value: {VoteValue}", animeID, voteValue);
 
-        // lets save to the database and assume it will work
-        var thisVote =
-            (RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.AnimeTemp) ??
-             RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.Anime)) ?? new AniDB_Vote { EntityID = animeID };
+        // Determine vote type
+        var pluginVoteType = (AniDBVoteType)voteType == AniDBVoteType.Anime
+            ? VoteType.Permanent
+            : VoteType.Temporary;
 
-        thisVote.VoteType = voteType;
+        // Get series and ensure it exists
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+        if (series?.AniDB_Anime == null)
+            throw new ArgumentException($"Series with AniDB ID {animeID} not found or has no AniDB anime data");
 
-        int iVoteValue;
-        if (voteValue > 0)
-        {
-            iVoteValue = (int)(voteValue * 100);
-        }
-        else
-        {
-            iVoteValue = (int)voteValue;
-        }
-
-        _logger.LogInformation("Voting for anime Formatted: {AnimeID} - Value: {VoteValue}", animeID, iVoteValue);
-
-        thisVote.VoteValue = iVoteValue;
-        RepoFactory.AniDB_Vote.Save(thisVote);
-
-        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJob<VoteAniDBAnimeJob>(
-            c => (c.AnimeID, c.VoteType, c.VoteValue) = (animeID, (AniDBVoteType)voteType, Convert.ToDouble(voteValue)),
-            prioritize: true
-        ).GetAwaiter().GetResult();
+        // Forward to user data service abstraction
+        await _userDataService.VoteOnSeries(series, voteValue, pluginVoteType);
     }
 
     [HttpDelete("AniDB/Vote/{animeID}")]
-    public void VoteAnimeRevoke(int animeID)
+    public async void VoteAnimeRevoke(int animeID)
     {
-        // lets save to the database and assume it will work
+        // Get series and ensure it exists
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+        if (series?.AniDB_Anime == null)
+            return; // No series found, nothing to revoke
 
-        var dbVotes = RepoFactory.AniDB_Vote.GetByEntity(animeID);
-        AniDB_Vote thisVote = null;
-        foreach (var dbVote in dbVotes)
-        {
-            // we can only have anime permanent or anime temp but not both
-            if (dbVote.VoteType == (int)AniDBVoteType.Anime ||
-                dbVote.VoteType == (int)AniDBVoteType.AnimeTemp)
-            {
-                thisVote = dbVote;
-            }
-        }
+        // Determine vote type from existing vote (default to Temporary if no existing vote)
+        var existingVote = RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.AnimeTemp) ??
+                          RepoFactory.AniDB_Vote.GetByEntityAndType(animeID, AniDBVoteType.Anime);
 
-        if (thisVote is null)
-        {
-            return;
-        }
+        var pluginVoteType = existingVote != null && (AniDBVoteType)existingVote.VoteType == AniDBVoteType.Anime
+            ? VoteType.Permanent
+            : VoteType.Temporary;
 
-        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJob<VoteAniDBAnimeJob>(
-            c => (c.AnimeID, c.VoteType, c.VoteValue) = (animeID, (AniDBVoteType)thisVote.VoteType, -1),
-            prioritize: true
-        ).GetAwaiter().GetResult();
-
-        RepoFactory.AniDB_Vote.Delete(thisVote.AniDB_VoteID);
+        // Forward to user data service abstraction with -1 to trigger deletion
+        await _userDataService.VoteOnSeries(series, -1, pluginVoteType);
     }
 
     /// <summary>

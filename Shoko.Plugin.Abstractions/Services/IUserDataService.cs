@@ -83,6 +83,25 @@ public interface IUserDataService
 
     #endregion
 
+    #region Series User Data
+
+    /// <summary>
+    /// Dispatched when a user submits a rating/vote for a series.
+    /// </summary>
+    event EventHandler<SeriesVotedEventArgs> SeriesVoted;
+
+    /// <summary>
+    /// Votes on a series.
+    /// </summary>
+    /// <param name="series">The series to vote on.</param>
+    /// <param name="voteValue">The vote value.</param>
+    /// <param name="voteType">The type of vote (Permanent/Temporary).</param>
+    /// <param name="user">The user voting. If null, uses the first admin user.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task VoteOnSeries(IShokoSeries series, decimal voteValue, VoteType voteType, IShokoUser? user = null);
+
+    #endregion
+
     #region Episode User Data
 
     /// <summary>

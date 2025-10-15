@@ -4,13 +4,17 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Models.Enums;
+using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Anidb;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -34,6 +38,8 @@ public class UserDataService(
 ) : IUserDataService
 {
     public event EventHandler<VideoUserDataSavedEventArgs>? VideoUserDataSaved;
+
+    public event EventHandler<SeriesVotedEventArgs>? SeriesVoted;
 
     #region Video User Data
 
@@ -245,6 +251,80 @@ public class UserDataService(
 
     #endregion
 
+    #region Series User Data
+
+    public async Task VoteOnSeries(IShokoSeries series, decimal voteValue, VoteType voteType, IShokoUser? user = null)
+    {
+        ArgumentNullException.ThrowIfNull(series);
+
+        if (user == null)
+            user = RepoFactory.JMMUser.GetAll().FirstOrDefault(u => u.IsAdmin == 1);
+
+        ArgumentNullException.ThrowIfNull(user);
+
+        if (series is not SVR_AnimeSeries svrSeries)
+            throw new ArgumentException("Series must be a SVR_AnimeSeries", nameof(series));
+
+        if (svrSeries.AniDB_Anime is not { } anidbAnime)
+            throw new ArgumentException("AniDB anime is not available for the series! Aborting!");
+
+        if (voteValue != -1 && (voteValue < 0 || voteValue > 10))
+            throw new ArgumentOutOfRangeException(nameof(voteValue), "Vote value must be between -1 and 10");
+
+        var anidbVoteType = voteType == VoteType.Permanent ? AniDBVoteType.Anime : AniDBVoteType.AnimeTemp;
+
+        // Handle deletion case
+        if (voteValue == -1)
+        {
+            var existingVote = RepoFactory.AniDB_Vote.GetByEntityAndType(svrSeries.AniDB_ID, AniDBVoteType.AnimeTemp) ??
+                              RepoFactory.AniDB_Vote.GetByEntityAndType(svrSeries.AniDB_ID, AniDBVoteType.Anime);
+
+            if (existingVote != null)
+            {
+                // Schedule the delete job
+                var deleteScheduler = await schedulerFactory.GetScheduler();
+                await deleteScheduler.StartJob<VoteAniDBAnimeJob>(c =>
+                {
+                    c.AnimeID = svrSeries.AniDB_ID;
+                    c.VoteType = (AniDBVoteType)existingVote.VoteType;
+                    c.VoteValue = -1;
+                });
+
+                // Delete from database
+                RepoFactory.AniDB_Vote.Delete(existingVote.AniDB_VoteID);
+
+                // Trigger event with 0 value for deletion
+                OnSeriesVoted(series, anidbAnime, 0, voteType, user);
+            }
+
+            // If no existing vote, do nothing
+            return;
+        }
+
+        // Save or update the vote
+        var dbVote = (RepoFactory.AniDB_Vote.GetByEntityAndType(svrSeries.AniDB_ID, AniDBVoteType.AnimeTemp) ??
+                     RepoFactory.AniDB_Vote.GetByEntityAndType(svrSeries.AniDB_ID, AniDBVoteType.Anime)) ??
+                     new AniDB_Vote { EntityID = svrSeries.AniDB_ID };
+        dbVote.VoteValue = (int)Math.Floor(voteValue * 100);
+        dbVote.VoteType = (int)anidbVoteType;
+
+        RepoFactory.AniDB_Vote.Save(dbVote);
+
+        // Trigger the event
+        OnSeriesVoted(series, anidbAnime, voteValue, voteType, user);
+
+        // Schedule the AniDB vote job
+        var scheduler = await schedulerFactory.GetScheduler();
+        await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
+        {
+            c.AnimeID = svrSeries.AniDB_ID;
+            c.VoteType = anidbVoteType;
+            c.VoteValue = Convert.ToDouble(voteValue);
+        });
+    }
+
+    #endregion
+
     #region Internals
 
     private void SaveWatchedStatus(IShokoEpisode ep, int userID, bool watched, DateTime? watchedDate)
@@ -297,6 +377,18 @@ public class UserDataService(
 
         userData.LastUpdated = lastUpdated;
         userDataRepository.Save(userData);
+    }
+
+    private void OnSeriesVoted(IShokoSeries series, IAnidbAnime anime, decimal voteValue, VoteType voteType, IShokoUser user)
+    {
+        try
+        {
+            SeriesVoted?.Invoke(this, new(series, anime, voteValue, voteType, user));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error occurred while handling series vote event");
+        }
     }
 
     #endregion

@@ -52,26 +52,6 @@ public class AnimeSeriesService
         _videoReleaseService = videoReleaseService;
     }
 
-    public async Task AddSeriesVote(SVR_AnimeSeries series, AniDBVoteType voteType, decimal vote)
-    {
-        var dbVote = (RepoFactory.AniDB_Vote.GetByEntityAndType(series.AniDB_ID, AniDBVoteType.AnimeTemp) ??
-                     RepoFactory.AniDB_Vote.GetByEntityAndType(series.AniDB_ID, AniDBVoteType.Anime)) ??
-                     new AniDB_Vote { EntityID = series.AniDB_ID };
-        dbVote.VoteValue = vote < 0 ? -1 : (int)Math.Floor(vote * 100);
-        dbVote.VoteType = (int)voteType;
-
-        RepoFactory.AniDB_Vote.Save(dbVote);
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
-            {
-                c.AnimeID = series.AniDB_ID;
-                c.VoteType = voteType;
-                c.VoteValue = Convert.ToDouble(vote);
-            }
-        );
-    }
-
     public async Task<bool> QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
         bool cacheOnly = false, bool skipTmdbUpdate = false)
     {
