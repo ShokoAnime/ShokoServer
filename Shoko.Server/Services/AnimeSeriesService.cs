@@ -432,44 +432,50 @@ public class AnimeSeriesService
                 ep =>
                 {
                     VideoLocal_User vlUser = null;
+                    DateTime? lastUpdated = null;
                     if (vlUsers.Contains((ep.AniDB_EpisodeID, juser.JMMUserID)))
                     {
                         vlUser = vlUsers[(ep.AniDB_EpisodeID, juser.JMMUserID)]
+                            .OrderByDescending(a => a.WatchedDate.HasValue)
+                            .ThenByDescending(a => a.LastUpdated)
+                            .FirstOrDefault();
+                        lastUpdated = vlUsers[(ep.AniDB_EpisodeID, juser.JMMUserID)]
                             .OrderByDescending(a => a.LastUpdated)
-                            .FirstOrDefault(a => a.WatchedDate != null);
+                            .FirstOrDefault()?.LastUpdated;
                     }
-
-                    var lastUpdated = vlUser?.LastUpdated;
 
                     SVR_AnimeEpisode_User epUser = null;
                     if (epUsers.Contains((ep.AniDB_EpisodeID, juser.JMMUserID)))
                     {
                         epUser = epUsers[(ep.AniDB_EpisodeID, juser.JMMUserID)]
-                            .FirstOrDefault(a => a.WatchedDate != null);
-                    }
-
-                    if (vlUser?.WatchedDate == null && epUser?.WatchedDate == null)
-                    {
-                        if (ep.IsHidden)
-                            Interlocked.Increment(ref hiddenUnwatchedCount);
-                        else
-                            Interlocked.Increment(ref unwatchedCount);
-                        return;
+                            .FirstOrDefault();
                     }
 
                     lock (lck)
                     {
+                        if (lastUpdated.HasValue)
+                        {
+                            if (lastEpisodeUpdate == null || lastUpdated.Value > lastEpisodeUpdate.Value)
+                            {
+                                lastEpisodeUpdate = lastUpdated;
+                            }
+                        }
+
+                        if (vlUser?.WatchedDate == null && epUser?.WatchedDate == null)
+                        {
+                            if (ep.IsHidden)
+                                Interlocked.Increment(ref hiddenUnwatchedCount);
+                            else
+                                Interlocked.Increment(ref unwatchedCount);
+                            return;
+                        }
+
                         if (vlUser != null)
                         {
                             if (watchedDate == null || (vlUser.WatchedDate != null &&
                                                         vlUser.WatchedDate.Value > watchedDate.Value))
                             {
                                 watchedDate = vlUser.WatchedDate;
-                            }
-
-                            if (lastEpisodeUpdate == null || lastUpdated.Value > lastEpisodeUpdate.Value)
-                            {
-                                lastEpisodeUpdate = lastUpdated;
                             }
                         }
 

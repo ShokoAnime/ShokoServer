@@ -793,11 +793,12 @@ public class FileController : BaseController
         if (episode == null)
             return ValidationProblem($"Could not get Episode with ID: {episodeID}", nameof(episodeID));
 
-        var playbackPositionTicks = resumePosition ?? 0;
-        if (playbackPositionTicks >= file.Duration)
+        var playbackPositionTicks = TimeSpan.FromTicks(resumePosition ?? 0);
+        var totalDurationTicks = file.DurationTimeSpan;
+        if (playbackPositionTicks >= totalDurationTicks)
         {
             watched = true;
-            playbackPositionTicks = 0;
+            playbackPositionTicks = TimeSpan.Zero;
         }
 
         switch (eventName)
@@ -806,15 +807,15 @@ public class FileController : BaseController
             case "play":
             // The playback was resumed after a pause.
             case "resume":
-                ScrobbleToTrakt(file, episode, playbackPositionTicks, ScrobblePlayingStatus.Start);
+                ScrobbleToTrakt(episode, (float)(playbackPositionTicks / totalDurationTicks), ScrobblePlayingStatus.Start);
                 break;
             // The playback was paused.
             case "pause":
-                ScrobbleToTrakt(file, episode, playbackPositionTicks, ScrobblePlayingStatus.Pause);
+                ScrobbleToTrakt(episode, (float)(playbackPositionTicks / totalDurationTicks), ScrobblePlayingStatus.Pause);
                 break;
             // The playback was ended.
             case "stop":
-                ScrobbleToTrakt(file, episode, playbackPositionTicks, ScrobblePlayingStatus.Stop);
+                ScrobbleToTrakt(episode, (float)(playbackPositionTicks / totalDurationTicks), ScrobblePlayingStatus.Stop);
                 break;
             // The playback is still active, but the playback position changed.
             case "scrobble":
@@ -839,7 +840,7 @@ public class FileController : BaseController
         await _userDataService.SaveVideoUserData(User, file, new()
         {
             ResumePosition = resumePosition.HasValue
-                ? TimeSpan.FromTicks(playbackPositionTicks)
+                ? playbackPositionTicks
                 : (watched.HasValue ? TimeSpan.Zero : null),
             LastPlayedAt = watched.HasValue
                 ? (watched.Value ? now : null)
@@ -851,12 +852,11 @@ public class FileController : BaseController
     }
 
     [NonAction]
-    private void ScrobbleToTrakt(VideoLocal file, SVR_AnimeEpisode episode, long position, ScrobblePlayingStatus status)
+    private void ScrobbleToTrakt(SVR_AnimeEpisode episode, float percentage, ScrobblePlayingStatus status)
     {
         if (User.IsTraktUser == 0)
             return;
 
-        var percentage = 100 * ((float)position / file.Duration);
         var scrobbleType = episode.AnimeSeries?.AniDB_Anime?.AnimeType == (int)AnimeType.Movie
             ? ScrobblePlayingType.movie
             : ScrobblePlayingType.episode;
