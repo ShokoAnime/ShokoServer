@@ -2541,6 +2541,7 @@ public class SeriesController : BaseController
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPut("{seriesID}/Images/{imageType}")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
@@ -2564,15 +2565,19 @@ public class SeriesController : BaseController
         if (!image.IsEnabled)
             return ValidationProblem(InvalidImageIsDisabled);
 
-        // Create or update the entry.
+        // Create or update the entry if something changed.
         var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(series.AniDB_ID, imageEntityType) ??
             new() { AnidbAnimeID = series.AniDB_ID, ImageType = imageEntityType };
-        defaultImage.ImageID = body.ID;
-        defaultImage.ImageSource = dataSource;
+        if (defaultImage.ImageID == body.ID && defaultImage.ImageSource == dataSource)
+            return new Image(body.ID, imageEntityType, dataSource, true);
+
+        var isNew = defaultImage.AniDB_Anime_PreferredImageID is 0;
         RepoFactory.AniDB_Anime_PreferredImage.Save(defaultImage);
 
         // Update the contract data (used by Shoko Desktop).
         RepoFactory.AnimeSeries.Save(series, false);
+
+        ShokoEventHandler.Instance.OnSeriesUpdated(series, isNew ? UpdateReason.ImageAdded : UpdateReason.ImageUpdated);
 
         return new Image(body.ID, imageEntityType, dataSource, true);
     }
@@ -2583,6 +2588,7 @@ public class SeriesController : BaseController
     /// <param name="seriesID"></param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpDelete("{seriesID}/Images/{imageType}")]
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute] Image.ImageType imageType)
     {
@@ -2601,13 +2607,15 @@ public class SeriesController : BaseController
         var imageEntityType = imageType.ToServer();
         var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(series.AniDB_ID, imageEntityType);
         if (defaultImage == null)
-            return ValidationProblem("No default banner.");
+            return ValidationProblem("No default image for the selected type.");
 
         // Delete the entry.
         RepoFactory.AniDB_Anime_PreferredImage.Delete(defaultImage);
 
         // Update the contract data (used by Shoko Desktop).
         RepoFactory.AnimeSeries.Save(series, false);
+
+        ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.ImageRemoved);
 
         // Don't return any content.
         return NoContent();
