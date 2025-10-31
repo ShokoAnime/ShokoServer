@@ -60,13 +60,11 @@ public class ConnectivityService : IConnectivityService
         try
         {
             var localNetwork = GetLANConnectivity();
-            if (localNetwork != NetworkAvailability.LocalOnly)
-            {
+            if (localNetwork is NetworkAvailability.NoInterfaces)
                 return NetworkAvailability = localNetwork;
-            }
 
             var wideNetwork = await GetWANConnectivity();
-            return NetworkAvailability = wideNetwork;
+            return NetworkAvailability = wideNetwork ?? localNetwork;
         }
         catch (Exception ex)
         {
@@ -80,7 +78,7 @@ public class ConnectivityService : IConnectivityService
         _logger.LogInformation("Checking LAN Connectivity…");
         // Get all active network interfaces
         var networkInterfaces = NetworkInterface.GetAllNetworkInterfaces()
-            .Where(n => n.OperationalStatus == OperationalStatus.Up)
+            .Where(n => n is { OperationalStatus: OperationalStatus.Up, NetworkInterfaceType: not NetworkInterfaceType.Loopback })
             .ToList();
 
         if (!networkInterfaces.Any())
@@ -103,7 +101,7 @@ public class ConnectivityService : IConnectivityService
         return NetworkAvailability.NoGateways;
     }
 
-    private async Task<NetworkAvailability> GetWANConnectivity()
+    private async Task<NetworkAvailability?> GetWANConnectivity()
     {
         var currentlyDisabledMonitors = _settingsProvider.GetSettings().Connectivity.DisabledMonitorServices
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
@@ -127,6 +125,6 @@ public class ConnectivityService : IConnectivityService
             monitors.Count);
 
         // We managed to connect to WAN, either partially or fully.
-        return connectedCount > 0 ? connectedCount == monitors.Count ? NetworkAvailability.Internet : NetworkAvailability.PartialInternet : NetworkAvailability.LocalOnly;
+        return connectedCount > 0 ? connectedCount == monitors.Count ? NetworkAvailability.Internet : NetworkAvailability.PartialInternet : null;
     }
 }
