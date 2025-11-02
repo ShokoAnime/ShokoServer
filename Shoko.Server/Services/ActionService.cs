@@ -27,7 +27,6 @@ using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using Shoko.Server.Tasks;
 using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server.Services;
@@ -42,8 +41,7 @@ public class ActionService(
     AnimeSeriesService _seriesService,
     TraktTVHelper _traktHelper,
     DatabaseFactory _databaseFactory,
-    HttpXmlUtils _xmlUtils,
-    JobFactory _jobFactory
+    HttpXmlUtils _xmlUtils
 )
 {
     public async Task RunImport_IntegrityCheck()
