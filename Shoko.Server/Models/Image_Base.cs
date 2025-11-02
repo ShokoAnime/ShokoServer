@@ -278,8 +278,8 @@ public class Image_Base : IImageMetadata
                 return;
             }
 
-            _width = info.Width;
-            _height = info.Height;
+            _width = (int)info.Width;
+            _height = (int)info.Height;
         }
         catch
         {

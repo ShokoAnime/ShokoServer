@@ -158,7 +158,7 @@ public class Image : BaseController
         var image = new MagickImage(imageStream);
         float originalWidth = image.Width;
         float originalHeight = image.Height;
-        int newWidth, newHeight;
+        uint newWidth, newHeight;
 
         var calculatedWidth = originalWidth;
         var calculatedHeight = originalHeight;
@@ -176,8 +176,8 @@ public class Image : BaseController
             }
         } while (calculatedHeight > originalHeight + 0.5F);
 
-        newWidth = (int)Math.Round(calculatedWidth);
-        newHeight = (int)Math.Round(calculatedHeight);
+        newWidth = (uint)Math.Round(calculatedWidth);
+        newHeight = (uint)Math.Round(calculatedHeight);
         image.Resize(new MagickGeometry(newWidth, newHeight));
 
         var outStream = new MemoryStream();
