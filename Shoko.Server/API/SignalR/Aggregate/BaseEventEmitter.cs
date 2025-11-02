@@ -6,11 +6,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 
+#nullable enable
 namespace Shoko.Server.API.SignalR.Aggregate;
 
 public abstract class BaseEventEmitter : IEventEmitter
 {
-    private string _group;
+    private string? _group;
 
     private readonly ConcurrentDictionary<string, IShokoUser> _connectionDict = [];
 
@@ -18,17 +19,20 @@ public abstract class BaseEventEmitter : IEventEmitter
 
     protected readonly IHubContext<Hub> Hub;
 
-    public virtual string Group => _group ??= GetType().FullName?.Split('.').LastOrDefault()?.Replace("EventEmitter", "")?.Replace("Emitter", "").ToLower() ?? "misc";
+    public virtual string Group => _group ??= GetType().FullName?.Split('.').LastOrDefault()?.Replace("EventEmitter", "")?.Replace("Emitter", "").ToLower() ??
+        throw new InvalidOperationException("Unable to parse group name from type!");
 
     protected BaseEventEmitter(IHubContext<Hub> hub)
     {
         Hub = hub;
     }
 
-    public async Task ConnectAsync(string connectionId, IShokoUser user, DateTime? lastConnectedAt = null)
+    public bool IsListening(string connectionId) => _connectionDict.ContainsKey(connectionId);
+
+    public async Task<bool> ConnectAsync(string connectionId, IShokoUser user, DateTime? lastConnectedAt = null)
     {
         if (!_connectionDict.TryAdd(connectionId, user))
-            return;
+            return false;
 
         lock (_userToConnectionDict)
         {
@@ -38,17 +42,17 @@ public abstract class BaseEventEmitter : IEventEmitter
 
         await Hub.Groups.AddToGroupAsync(connectionId, Group);
 
-        var messages = GetInitialMessagesForUser(connectionId, user, lastConnectedAt);
-        if (messages.Length == 0)
-            messages = GetInitialMessages();
+        var messages = GetInitialMessagesForUser(connectionId, user, lastConnectedAt) ?? GetInitialMessages();
         if (messages.Length > 0)
             await Hub.Clients.Client(connectionId).SendCoreAsync(GetName("connected"), messages);
+
+        return true;
     }
 
-    public async Task DisconnectAsync(string connectionId)
+    public async Task<bool> DisconnectAsync(string connectionId)
     {
         if (!_connectionDict.TryRemove(connectionId, out var user))
-            return;
+            return false;
 
         lock (_userToConnectionDict)
         {
@@ -61,6 +65,8 @@ public abstract class BaseEventEmitter : IEventEmitter
         }
 
         await Hub.Groups.RemoveFromGroupAsync(connectionId, Group);
+
+        return true;
     }
 
     public async Task SendAsync(string subject, params object[] args)
@@ -83,9 +89,9 @@ public abstract class BaseEventEmitter : IEventEmitter
         return [];
     }
 
-    protected virtual object[] GetInitialMessagesForUser(string connectionId, IShokoUser user, DateTime? lastConnectedAt = null)
+    protected virtual object[]? GetInitialMessagesForUser(string connectionId, IShokoUser user, DateTime? lastConnectedAt = null)
     {
-        return [];
+        return null;
     }
 
     protected virtual string GetName(string message)
