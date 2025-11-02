@@ -2927,6 +2927,9 @@ public partial class TmdbController : BaseController
             var showCrossReferences = RepoFactory.CrossRef_AniDB_TMDB_Show.GetAll()
                 .Where(xref =>
                 {
+                    if (xref.TmdbShowID is 0)
+                        return false;
+
                     if (body.Automatic != IncludeOnlyFilter.True)
                     {
                         var includeAutomatic = body.Automatic == IncludeOnlyFilter.Only;
@@ -3250,13 +3253,9 @@ public partial class TmdbController : BaseController
         }
 
         var showsToPull = new HashSet<int>();
-        var existingShowXrefsDict = RepoFactory.CrossRef_AniDB_TMDB_Show.GetAll()
-            .GroupBy(xref => xref.AnidbAnimeID)
-            .ToDictionary(groupBy => groupBy.Key, groupBy => groupBy.ToDictionary(xref => xref.TmdbShowID));
-        var existingShowXrefs = existingShowXrefsDict.Values
-            .SelectMany(xrefDict => xrefDict.Values)
-            .Select(xref => $"{xref.AnidbAnimeID}:{xref.TmdbShowID}")
-            .ToHashSet();
+        var existingShowXrefs = RepoFactory.CrossRef_AniDB_TMDB_Show.GetAll()
+            .DistinctBy(xref => $"{xref.AnidbAnimeID}:{xref.TmdbShowID}")
+            .ToDictionary(xref => $"{xref.AnidbAnimeID}:{xref.TmdbShowID}");
         var existingEpisodeXrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAll()
             .GroupBy(xref => $"{xref.AnidbAnimeID}:{xref.AnidbEpisodeID}")
             .ToDictionary(groupBy => groupBy.Key, groupBy => groupBy.ToDictionary(xref => $"{xref.TmdbShowID}:{xref.TmdbEpisodeID}"));
@@ -3267,9 +3266,20 @@ public partial class TmdbController : BaseController
         var showXrefsToSave = new Dictionary<string, CrossRef_AniDB_TMDB_Show>();
         foreach (var (animeId, showId, matchRating) in showIdXrefs)
         {
+            if (showId <= 0)
+                continue;
+
             var id = $"{animeId}:{showId}";
-            if (!existingShowXrefs.Contains(id))
-                showXrefsToSave.TryAdd(id, new(animeId, showId, MatchRating.UserVerified));
+            if (!existingShowXrefs.TryGetValue(id, out var xref))
+                showXrefsToSave.TryAdd(id, existingShowXrefs[id] = xref = new(animeId, showId, MatchRating.UserVerified));
+
+            if (!addMissingShows)
+                continue;
+
+            var seriesExists = xref.AnimeSeries is not null;
+            var tmdbSeriesExists = xref.TmdbShow is not null;
+            if (seriesExists && !tmdbSeriesExists)
+                showsToPull.Add(xref.TmdbShowID);
         }
         foreach (var (animeId, anidbEpisodeId, showId, tmdbEpisodeId, matchRating) in episodeIdXrefs)
         {
@@ -3308,6 +3318,12 @@ public partial class TmdbController : BaseController
                 updated = true;
             }
 
+            if (xref.TmdbShowID != showId)
+            {
+                xref.TmdbShowID = showId;
+                updated = true;
+            }
+
             if (!isNew && xref.MatchRating is not MatchRating.UserVerified && xref.MatchRating != matchRating)
             {
                 xref.MatchRating = matchRating;
@@ -3319,8 +3335,13 @@ public partial class TmdbController : BaseController
             else if (!isNew)
                 episodeXrefsToKeep.Add(xref);
 
-            if (!existingShowXrefs.Contains($"{animeId}:{showId}"))
-                showXrefsToSave.TryAdd($"{animeId}:{showId}", new(animeId, showId, MatchRating.UserVerified));
+
+            if (xref.TmdbShowID is 0)
+                continue;
+
+            var showKey = $"{animeId}:{showId}";
+            if (showId > 0 && !existingShowXrefs.ContainsKey(showKey))
+                showXrefsToSave.TryAdd(showKey, existingShowXrefs[showKey] = new(animeId, showId, MatchRating.UserVerified));
 
             if (!addMissingShows)
                 continue;
