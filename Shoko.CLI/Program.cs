@@ -18,7 +18,7 @@ namespace Shoko.CLI;
 public static class Program
 {
     private static ILogger _logger = null!;
-    public static async Task Main()
+    public static async Task<int> Main()
     {
         try
         {
@@ -42,10 +42,12 @@ public static class Program
             startup.AboutToStart += (_, args) => AddEventHandlers(args.ServiceProvider);
             await startup.Start();
             await startup.WaitForShutdown();
+            return 0;
         }
         catch (Exception e)
         {
             _logger.LogCritical(e, "The server failed to start");
+            return -1;
         }
     }
 
