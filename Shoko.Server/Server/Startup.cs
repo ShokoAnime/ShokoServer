@@ -83,7 +83,7 @@ public class Startup
             services.AddScoped<AnimeGroupCreator>();
 
             services.AddRepositories();
-            services.AddSentry();
+            services.AddSentryConfig();
             services.AddQuartz();
 
             services.AddAniDB();
