@@ -26,6 +26,6 @@ public class UserDataEventEmitter : BaseEventEmitter, IDisposable
 
     private async void OnVideoUserDataSaved(object? sender, VideoUserDataSavedEventArgs e)
     {
-        await SendAsync("saved", new VideoUserDataSavedSignalRModel(e));
+        await SendAsync("video.saved", new VideoUserDataSavedSignalRModel(e));
     }
 }
