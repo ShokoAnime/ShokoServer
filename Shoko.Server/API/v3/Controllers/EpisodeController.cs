@@ -788,6 +788,7 @@ public class EpisodeController : BaseController
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPut("{episodeID}/Images/{imageType}")]
     public ActionResult<Image> SetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
@@ -799,11 +800,11 @@ public class EpisodeController : BaseController
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
-        var anime = episode.AnimeSeries?.AniDB_Anime;
-        if (anime is null)
+        var series = episode.AnimeSeries;
+        if (series is null)
             return InternalError(EpisodeNoSeriesForEpisodeID);
 
-        if (!User.AllowedAnime(anime))
+        if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
         // Check if the id is valid for the given type and source.
@@ -815,12 +816,18 @@ public class EpisodeController : BaseController
         if (!image.IsEnabled)
             return ValidationProblem(InvalidImageIsDisabled);
 
-        // Create or update the entry.
+        // Create or update the entry if something changed.
         var defaultImage = RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(episode.AniDB_EpisodeID, imageEntityType) ??
-            new(anime.AnimeID, episode.AniDB_EpisodeID, imageEntityType);
+            new(series.AniDB_ID, episode.AniDB_EpisodeID, imageEntityType);
         defaultImage.ImageID = body.ID;
         defaultImage.ImageSource = dataSource;
+        if (defaultImage.ImageID == body.ID && defaultImage.ImageSource == dataSource)
+            return new Image(body.ID, imageEntityType, dataSource, true);
+
+        var isNew = defaultImage.AniDB_Episode_PreferredImageID == 0;
         RepoFactory.AniDB_Episode_PreferredImage.Save(defaultImage);
+
+        ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, isNew ? UpdateReason.ImageAdded : UpdateReason.ImageUpdated);
 
         return new Image(body.ID, imageEntityType, dataSource, true);
     }
@@ -831,6 +838,7 @@ public class EpisodeController : BaseController
     /// <param name="episodeID">Episode ID</param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpDelete("{episodeID}/Images/{imageType}")]
     public ActionResult DeleteEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] Image.ImageType imageType)
     {
@@ -852,10 +860,12 @@ public class EpisodeController : BaseController
         var imageEntityType = imageType.ToServer();
         var defaultImage = RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(episode.AniDB_EpisodeID, imageEntityType);
         if (defaultImage == null)
-            return ValidationProblem("No default banner.");
+            return ValidationProblem("No default image for the selected type.");
 
         // Delete the entry.
         RepoFactory.AniDB_Episode_PreferredImage.Delete(defaultImage);
+
+        ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.ImageRemoved);
 
         // Don't return any content.
         return NoContent();

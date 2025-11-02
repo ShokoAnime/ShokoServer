@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Reflection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using NHibernate.Exceptions;
 using Quartz;
@@ -22,6 +23,19 @@ namespace Shoko.Server.Services.ErrorHandling;
 
 public static class SentryInit
 {
+    public static IServiceCollection AddSentryConfig(this IServiceCollection services)
+    {
+        var settings = Utils.SettingsProvider.GetSettings();
+
+        // Only try to set up Sentry if the user DID NOT OPT __OUT__.
+        if (settings.SentryOptOut || !Constants.SentryDsn.StartsWith("https://"))
+            return services;
+
+        services.AddSentry();
+
+        return services;
+    }
+
     public static IWebHostBuilder UseSentryConfig(this IWebHostBuilder webHost)
     {
         var settings = Utils.SettingsProvider.GetSettings();

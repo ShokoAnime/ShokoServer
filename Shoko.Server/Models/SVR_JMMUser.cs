@@ -71,8 +71,8 @@ public class SVR_JMMUser : JMMUser, IIdentity, IShokoUser
             AvatarImageBlob = byteArray;
             AvatarImageMetadata = new UserImageMetadata()
             {
-                Height = image.Height,
-                Width = image.Width,
+                Height = (int)image.Height,
+                Width = (int)image.Width,
                 ContentType = contentType,
             };
         }
