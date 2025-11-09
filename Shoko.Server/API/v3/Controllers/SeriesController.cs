@@ -2571,6 +2571,8 @@ public class SeriesController : BaseController
         if (defaultImage.ImageID == body.ID && defaultImage.ImageSource == dataSource)
             return new Image(body.ID, imageEntityType, dataSource, true);
 
+        defaultImage.ImageID = body.ID;
+        defaultImage.ImageSource = dataSource;
         var isNew = defaultImage.AniDB_Anime_PreferredImageID is 0;
         RepoFactory.AniDB_Anime_PreferredImage.Save(defaultImage);
 

@@ -814,11 +814,11 @@ public class EpisodeController : BaseController
         // Create or update the entry if something changed.
         var defaultImage = RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(episode.AniDB_EpisodeID, imageEntityType) ??
             new(series.AniDB_ID, episode.AniDB_EpisodeID, imageEntityType);
-        defaultImage.ImageID = body.ID;
-        defaultImage.ImageSource = dataSource;
         if (defaultImage.ImageID == body.ID && defaultImage.ImageSource == dataSource)
             return new Image(body.ID, imageEntityType, dataSource, true);
 
+        defaultImage.ImageID = body.ID;
+        defaultImage.ImageSource = dataSource;
         var isNew = defaultImage.AniDB_Episode_PreferredImageID == 0;
         RepoFactory.AniDB_Episode_PreferredImage.Save(defaultImage);
 
