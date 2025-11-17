@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Config.Exceptions;
@@ -184,7 +186,7 @@ public class RelocationPipeInfo(IRelocationService relocationService, IConfigura
             throw new ConfigurationValidationException("save", providerInfo.ConfigurationInfo, validationErrors);
 
         var configurationBytes = Encoding.UTF8.GetBytes(_configurationService.Serialize(configuration));
-        if (Configuration is null || !configurationBytes.SequenceEqual(Configuration))
+        if (Configuration is null || !((IEnumerable<byte>)configurationBytes).SequenceEqual(Configuration))
         {
             Configuration = configurationBytes;
             _relocationService.UpdatePipe(this);
