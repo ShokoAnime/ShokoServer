@@ -32,7 +32,6 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 using AbstractAnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
-using CrossRefSource = Shoko.Models.Enums.CrossRefSource;
 using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using InternalEpisodeType = Shoko.Models.Enums.EpisodeType;
