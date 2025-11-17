@@ -49,6 +49,13 @@ public class ConfigurationInfo(IConfigurationService configurationService)
     /// </summary>
     public bool IsHidden => _isHidden ??= Type.IsAssignableTo(typeof(IHiddenConfiguration));
 
+    private bool? _isBase = null;
+
+    /// <summary>
+    /// Wether or not the configuration is a base configuration.
+    /// </summary>
+    public bool IsBase => _isBase ??= Type.IsAssignableTo(typeof(IBaseConfiguration));
+
     private bool? _hasCustomNewFactory = null;
 
     /// <summary>

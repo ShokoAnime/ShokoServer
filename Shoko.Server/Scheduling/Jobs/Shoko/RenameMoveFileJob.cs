@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
-using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS8618
@@ -17,7 +17,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [JobKeyGroup(JobKeyGroup.Import)]
 public class RenameMoveFileJob : BaseJob
 {
-    private readonly VideoLocal_PlaceService _vlPlaceService;
+    private readonly IRelocationService _relocationService;
 
     private VideoLocal? _vlocal;
     private string? _fileName;
@@ -66,15 +66,15 @@ public class RenameMoveFileJob : BaseJob
                 continue;
             }
 
-            var result = await _vlPlaceService.AutoRelocateFile(location);
+            var result = await _relocationService.AutoRelocateFile(location);
             if (!result.Success)
-                _logger.LogTrace(result.Exception, "Unable to move/rename file; {ErrorMessage} (Video={VideoID},Location={LocationID})", result.ErrorMessage, _vlocal.VideoLocalID, location.ID);
+                _logger.LogTrace(result.Error.Exception, "Unable to move/rename file; {ErrorMessage} (Video={VideoID},Location={LocationID})", result.Error.Message, _vlocal.VideoLocalID, location.ID);
         }
     }
 
-    public RenameMoveFileJob(VideoLocal_PlaceService vlPlaceService)
+    public RenameMoveFileJob(IRelocationService relocationService)
     {
-        _vlPlaceService = vlPlaceService;
+        _relocationService = relocationService;
     }
 
     protected RenameMoveFileJob() { }

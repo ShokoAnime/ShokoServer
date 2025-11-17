@@ -6,15 +6,17 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using MessagePack;
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NHibernate;
+using NHibernate.Exceptions;
 using NLog;
 using Quartz;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Extensions;
@@ -631,27 +633,25 @@ public class DatabaseFixes
 
     public static void CreateDefaultRenamerConfig()
     {
-        var existingRenamer = RepoFactory.RenamerConfig.GetByName("Default");
+        var existingRenamer = RepoFactory.StoredRelocationPipe.GetByName("Default");
         if (existingRenamer != null)
             return;
-
-        var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
-        renamerService.RenamersByKey.TryGetValue("WebAOM", out var renamer);
-
-        if (renamer == null)
-            return;
-
-        var defaultSettings = renamer.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
-            ?.GetProperties(BindingFlags.Public | BindingFlags.Instance).FirstOrDefault(a => a.Name == "DefaultSettings")?.GetMethod?.Invoke(renamer, null);
-
-        var config = new RenamerConfig
+        var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
+        var relocationService = Utils.ServiceContainer.GetRequiredService<IRelocationService>();
+        var provider = relocationService.GetProviderInfo<WebAOMRenamer>();
+        var configuration = provider.ConfigurationInfo is null ? null : Encoding.UTF8.GetBytes(
+            configurationService.Serialize(
+                configurationService.New(provider.ConfigurationInfo)
+            )
+        );
+        var pipe = new StoredRelocationPipe()
         {
             Name = "Default",
-            Type = typeof(WebAOMRenamer),
-            Settings = defaultSettings,
+            Configuration = configuration,
+            ProviderID = provider.ID,
         };
 
-        RepoFactory.RenamerConfig.Save(config);
+        RepoFactory.StoredRelocationPipe.Save(pipe);
     }
 
     public static void CleanupAfterRemovingTvDB()
@@ -1245,6 +1245,208 @@ public class DatabaseFixes
         session.CreateSQLQuery("ALTER TABLE VideoLocal DROP COLUMN CRC32;").ExecuteUpdate();
     }
 
+    public static Tuple<bool, string> MigrateRenamers(object connection)
+    {
+        var factory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+        var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
+        var renamerService = Utils.ServiceContainer.GetRequiredService<IRelocationService>();
+        var settingsProvider = Utils.SettingsProvider;
+
+        var sessionFactory = factory.CreateSessionFactory();
+        using var session = sessionFactory.OpenSession();
+        using var transaction = session.BeginTransaction();
+        try
+        {
+            const string SelectCommand1 = "SELECT ScriptName, RenamerType, IsEnabledOnImport, Script FROM RenameScript;";
+            const string SelectCommand2 = "SELECT Name, Type, Settings FROM RenamerInstance;";
+            const string InsertCommand = "INSERT INTO StoredRelocationPipe (ProviderID, Name, Configuration) VALUES (:ProviderID, :Name, :Configuration);";
+            const string DropCommand = "DROP TABLE IF EXISTS RenameScript; DROP TABLE IF EXISTS RenamerInstance;";
+            string defaultName = null;
+            var rawPipes = new List<(StoredRelocationPipe Pipe, bool IsDefault)>();
+            var settings = settingsProvider.GetSettings();
+            var webAomRenamer = renamerService.GetProviderInfo<WebAOMRenamer>();
+            var renamersByKey = renamerService.GetAvailableProviders()
+                .Where(a => a.Provider.GetType().FullName is { Length: > 0 })
+                .ToDictionary(a => a.Provider.GetType().FullName);
+            try
+            {
+                var rawRenamerScripts = session.CreateSQLQuery(SelectCommand1)
+                    .AddScalar("ScriptName", NHibernateUtil.String)
+                    .AddScalar("RenamerType", NHibernateUtil.String)
+                    .AddScalar("IsEnabledOnImport", NHibernateUtil.Int32)
+                    .AddScalar("Script", NHibernateUtil.String)
+                    .List<object[]>();
+                foreach (var fields in rawRenamerScripts)
+                {
+                    if (fields.Length is not 4)
+                    {
+                        _logger.Warn("A RenameScript could not be converted to StoredRelocationPipe, but there wasn't enough data to log");
+                        continue;
+                    }
+
+                    var renamerScript = new DBF_RenamerScript
+                    {
+                        ScriptName = (string)fields[0],
+                        RenamerType = (string)fields[1],
+                        IsEnabledOnImport = (int)fields[2] == 1,
+                        Script = (string)fields[3],
+                    };
+                    if (renamerScript.ScriptName is "AAA_WORKINGFILE_TEMP_AAA")
+                        continue;
+
+                    try
+                    {
+                        byte[] configuration = null;
+                        var providerInfo = renamerScript.RenamerType.Equals("Legacy")
+                            ? webAomRenamer
+                            : renamersByKey.ContainsKey(renamerScript.RenamerType)
+                                ? renamersByKey[renamerScript.RenamerType]
+                                : null;
+                        if (providerInfo is null)
+                        {
+                            if (renamerScript.RenamerType == "GroupAwareRenamer")
+                            {
+                                configuration = webAomRenamer.ConfigurationInfo is null ? null : Encoding.UTF8.GetBytes(
+                                    configurationService.Serialize(
+                                        new WebAOMSettings
+                                        {
+                                            Script = renamerScript.Script,
+                                            GroupAwareSorting = true
+                                        }
+                                    )
+                                );
+                                rawPipes.Add((new() { Name = renamerScript.ScriptName, ProviderID = providerInfo.ID, Configuration = configuration }, IsDefault: renamerScript.IsEnabledOnImport));
+                                continue;
+                            }
+
+                            _logger.Warn("A RenameScript could not be converted to StoredRelocationPipe. Renamer name: " + renamerScript.ScriptName + " Renamer type: " + renamerScript.RenamerType + Environment.NewLine + "Script: " + renamerScript.Script);
+
+                            continue;
+                        }
+
+                        if (providerInfo.ConfigurationInfo is not null)
+                        {
+                            var config = configurationService.New(providerInfo.ConfigurationInfo);
+                            // Migrate the script if we find a 'Script' property.
+                            providerInfo.ConfigurationInfo.Type.GetProperties(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(b => b.Name == "Script")
+                                ?.SetValue(config, renamerScript.Script);
+                            configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(config));
+                        }
+
+                        rawPipes.Add((new() { Name = renamerScript.ScriptName, ProviderID = providerInfo.ID, Configuration = configuration }, IsDefault: renamerScript.IsEnabledOnImport));
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn(ex, "A RenameScript could not be converted to StoredRelocationPipe. Renamer name: " + renamerScript.ScriptName + " Renamer type: " + renamerScript.RenamerType + Environment.NewLine + "Script: " + renamerScript.Script);
+                        continue;
+                    }
+                }
+            }
+            catch (GenericADOException) { }
+            try
+            {
+                var defaultRenamerConfigName = settings.Plugins.Renamer.DefaultRenamer;
+                var rawRenamerConfigs = session.CreateSQLQuery(SelectCommand2)
+                        .AddScalar("Name", NHibernateUtil.String)
+                        .AddScalar("Type", NHibernateUtil.String)
+                        .AddScalar("Settings", NHibernateUtil.BinaryBlob)
+                        .List<object[]>();
+                foreach (var fields in rawRenamerConfigs)
+                {
+                    if (fields.Length is not 3)
+                    {
+                        _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPipe, but there wasn't enough data to log");
+                        continue;
+                    }
+                    var renamerConfig = new DBF_RenamerConfig
+                    {
+                        Name = (string)fields[0] ?? "_",
+                        Type = (string)fields[1],
+                        Settings = (byte[])fields[2],
+                    };
+                    try
+                    {
+                        byte[] configuration = null;
+                        var providerInfo = renamersByKey.ContainsKey(renamerConfig.Type)
+                            ? renamersByKey[renamerConfig.Type]
+                            : null;
+                        if (providerInfo is null)
+                        {
+                            _logger.Warn("A RenamerConfig could not be converted to StoredRelocationPipe. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type);
+                            continue;
+                        }
+
+                        if (providerInfo.ConfigurationInfo is not null)
+                        {
+                            var config = MessagePackSerializer.Typeless.Deserialize(renamerConfig.Settings);
+                            if (config.GetType() != providerInfo.ConfigurationInfo.Type)
+                            {
+                                _logger.Warn("A RenamerConfig could not be converted to StoredRelocationPipe. Mismatched config type. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type);
+                                continue;
+                            }
+                            configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(config as IConfiguration));
+                        }
+
+                        rawPipes.Add((new() { Name = renamerConfig.Name, ProviderID = providerInfo.ID, Configuration = configuration }, renamerConfig.Name == defaultRenamerConfigName));
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Warn(ex, "A RenamerConfig could not be converted to StoredRelocationPipe. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type);
+
+                        continue;
+                    }
+                }
+            }
+            catch (GenericADOException) { }
+            if (rawPipes.Count == 0)
+            {
+                defaultName = "Default";
+                rawPipes.Add((new() { Name = "Default", ProviderID = webAomRenamer.ID, Configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(configurationService.New<WebAOMSettings>())) }, true));
+            }
+            var pipes = new List<StoredRelocationPipe>();
+            foreach (var pipeGroup in rawPipes.GroupBy(t => t.Pipe.Name.Trim()))
+            {
+                var index = 0;
+                foreach (var (pipe, isDefault) in pipeGroup)
+                {
+                    if (index > 0)
+                        pipe.Name += index is 1 ? " (copy)" : $" (copy #{index})";
+                    if (isDefault)
+                        defaultName = pipe.Name;
+                    index++;
+                    pipes.Add(pipe);
+                }
+            }
+            if (string.IsNullOrEmpty(defaultName))
+                defaultName = pipes[0].Name;
+
+            foreach (var renamer in pipes)
+            {
+                var command = session.CreateSQLQuery(InsertCommand);
+                command.SetParameter("ProviderID", renamer.ProviderID);
+                command.SetParameter("Name", renamer.Name);
+                command.SetParameter("Configuration", renamer.Configuration);
+                command.ExecuteUpdate();
+            }
+
+            session.CreateSQLQuery(DropCommand).ExecuteUpdate();
+            transaction.Commit();
+
+            if (settings.Plugins.Renamer.DefaultRenamer != defaultName)
+            {
+                settings.Plugins.Renamer.DefaultRenamer = defaultName;
+                settingsProvider.SaveSettings(settings);
+            }
+        }
+        catch (Exception e)
+        {
+            transaction.Rollback();
+            return new Tuple<bool, string>(false, e.ToString());
+        }
+
+        return new Tuple<bool, string>(true, null);
+    }
+
     public class DBF_VideoLocal
     {
         public int VideoLocalID { get; set; }
@@ -1289,5 +1491,21 @@ public class DatabaseFixes
         public long FileSize { get; set; }
         public bool HasResponse { get; set; }
         public DateTime UpdatedAt { get; set; }
+    }
+
+    private class DBF_RenamerConfig
+    {
+        public int ID { get; set; }
+        public string Name { get; set; }
+        public string Type { get; set; }
+        public byte[] Settings { get; set; }
+    }
+
+    private class DBF_RenamerScript
+    {
+        public string ScriptName { get; set; }
+        public string RenamerType { get; set; }
+        public bool IsEnabledOnImport { get; set; }
+        public string Script { get; set; }
     }
 }

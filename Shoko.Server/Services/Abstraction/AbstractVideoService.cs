@@ -52,6 +52,8 @@ public class AbstractVideoService : IVideoService
 
     private readonly IVideoReleaseService _videoReleaseService;
 
+    private readonly IRelocationService _relocationService;
+
     private readonly VideoLocal_PlaceService _vlpService;
 
     private readonly ISchedulerFactory _schedulerFactory;
@@ -92,6 +94,7 @@ public class AbstractVideoService : IVideoService
         FileNameHashRepository fileNameHashRepository,
         IVideoHashingService videoHashingService,
         IVideoReleaseService videoReleaseService,
+        IRelocationService relocationService,
         VideoLocal_PlaceService vlpService,
         ISchedulerFactory schedulerFactory,
         ISettingsProvider settingsProvider,
@@ -108,6 +111,7 @@ public class AbstractVideoService : IVideoService
         _fileNameHashRepository = fileNameHashRepository;
         _videoHashingService = (VideoHashingService)videoHashingService;
         _videoReleaseService = videoReleaseService;
+        _relocationService = relocationService;
         _vlpService = vlpService;
         _schedulerFactory = schedulerFactory;
         _settingsProvider = settingsProvider;
@@ -115,7 +119,7 @@ public class AbstractVideoService : IVideoService
 
         ShokoEventHandler.Instance.FileDeleted += OnFileDeleted;
         _videoHashingService.FileHashed += OnFileHashed;
-        ShokoEventHandler.Instance.FileRelocated += OnFileRelocated;
+        _relocationService.FileRelocated += OnFileRelocated;
         _managedFolderRepository.ManagedFolderAdded += OnManagedFolderAdded;
         _managedFolderRepository.ManagedFolderUpdated += OnManagedFolderUpdated;
         _managedFolderRepository.ManagedFolderRemoved += OnManagedFolderRemoved;
@@ -125,7 +129,7 @@ public class AbstractVideoService : IVideoService
     {
         ShokoEventHandler.Instance.FileDeleted -= OnFileDeleted;
         _videoHashingService.FileHashed -= OnFileHashed;
-        ShokoEventHandler.Instance.FileRelocated -= OnFileRelocated;
+        _relocationService.FileRelocated -= OnFileRelocated;
         _managedFolderRepository.ManagedFolderAdded -= OnManagedFolderAdded;
         _managedFolderRepository.ManagedFolderUpdated -= OnManagedFolderUpdated;
         _managedFolderRepository.ManagedFolderRemoved -= OnManagedFolderRemoved;

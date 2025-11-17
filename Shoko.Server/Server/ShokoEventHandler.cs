@@ -18,8 +18,6 @@ public class ShokoEventHandler : IShokoEventHandler
 {
     public event EventHandler<FileEventArgs>? FileDeleted;
 
-    public event EventHandler<FileRelocatedEventArgs>? FileRelocated;
-
     public event EventHandler<SeriesInfoUpdatedEventArgs>? SeriesUpdated;
 
     public event EventHandler<EpisodeInfoUpdatedEventArgs>? EpisodeUpdated;
@@ -57,27 +55,6 @@ public class ShokoEventHandler : IShokoEventHandler
             .WhereNotNull()
             .ToList();
         FileDeleted?.Invoke(null, new(path, folder, vlp, vl, episodes, series, groups));
-    }
-
-    public void OnFileRelocated(IManagedFolder oldFolder, IManagedFolder newFolder, string oldPath, string newPath, IVideoFile vlp)
-    {
-        var vl = vlp.Video!;
-        var xrefs = vl.CrossReferences;
-        var episodes = xrefs
-            .Select(x => x.ShokoEpisode)
-            .WhereNotNull()
-            .ToList();
-        var series = xrefs
-            .DistinctBy(x => x.AnidbAnimeID)
-            .Select(x => x.ShokoSeries)
-            .WhereNotNull()
-            .ToList();
-        var groups = series
-            .DistinctBy(a => a.ParentGroupID)
-            .Select(a => a.ParentGroup)
-            .WhereNotNull()
-            .ToList();
-        FileRelocated?.Invoke(null, new(newPath, newFolder, oldPath, oldFolder, vlp, vl, episodes, series, groups));
     }
 
     public void OnSeriesUpdated(SVR_AniDB_Anime anime, UpdateReason reason, IEnumerable<KeyValuePair<SVR_AniDB_Episode, UpdateReason>>? episodes = null)

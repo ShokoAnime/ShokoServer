@@ -49,18 +49,12 @@ public class BaseController(ISettingsProvider settingsProvider) : Controller
     }
 
     [NonAction]
-    protected ActionResult ValidationProblem(string message, string fieldName = "Body")
+    protected ActionResult ValidationProblem(IEnumerable<KeyValuePair<string, IReadOnlyList<string>>> errors, string fieldName = null)
     {
-        ModelState.AddModelError(fieldName, message);
-        return ValidationProblem(ModelState);
-    }
-
-    [NonAction]
-    protected ActionResult ValidationProblem(IEnumerable<KeyValuePair<string, IReadOnlyList<string>>> errors)
-    {
+        var prefix = string.IsNullOrEmpty(fieldName) ? string.Empty : fieldName + ".";
         foreach (var (key, errorsList) in errors)
             foreach (var error in errorsList)
-                ModelState.AddModelError(key, error);
+                ModelState.AddModelError(prefix + key, error);
         return ValidationProblem(ModelState);
     }
 }

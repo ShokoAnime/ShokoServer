@@ -256,6 +256,25 @@ public partial class ConfigurationService : IConfigurationService
         }
     }
 
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ConfigurationInfo info, IConfiguration config)
+    {
+        var json = Serialize(config);
+        try
+        {
+            var (_, errors) = ((JToken, Dictionary<string, IReadOnlyList<string>>))typeof(ConfigurationService)
+                .GetMethod(nameof(ValidateInternal), BindingFlags.NonPublic | BindingFlags.Instance)!
+                .MakeGenericMethod(info.Type)
+                .Invoke(this, [info, json, config, false, false])!;
+            return errors;
+        }
+        catch (TargetInvocationException ex)
+        {
+            if (ex.InnerException is null)
+                throw;
+            throw ex.InnerException;
+        }
+    }
+
     public IReadOnlyDictionary<string, IReadOnlyList<string>> Validate<TConfig>(TConfig config) where TConfig : class, IConfiguration, new()
         => ValidateInternal(GetConfigurationInfo<TConfig>(), SerializeInternal(config), config).Errors;
 
@@ -598,6 +617,9 @@ public partial class ConfigurationService : IConfigurationService
     private TConfig LoadInternal<TConfig>(bool copy) where TConfig : class, IConfiguration, new()
     {
         var info = GetConfigurationInfo<TConfig>();
+        if (info.IsBase)
+            throw new InvalidOperationException("Unable to load a base configuration.");
+
         if (_loadedConfigurations.GetValueOrDefault(info.ID) is TConfig config)
             return copy ? config.DeepClone() : config;
 
@@ -681,6 +703,9 @@ public partial class ConfigurationService : IConfigurationService
 
     private bool SaveInternal<TConfig>(ConfigurationInfo info, string originalJson, TConfig? config = null) where TConfig : class, IConfiguration, new()
     {
+        if (info.IsBase)
+            throw new InvalidOperationException("Unable to save a base configuration.");
+
         var storedJson = AddSchemaProperty(info, originalJson);
         var pendingRestart = InternalRestartPendingFor.Count > 0;
         var (token, errors) = ValidateInternal(info, storedJson, config, saveValidation: true);

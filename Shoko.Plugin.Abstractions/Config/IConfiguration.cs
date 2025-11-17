@@ -10,6 +10,17 @@ namespace Shoko.Plugin.Abstractions.Config;
 public interface IConfiguration { }
 
 /// <summary>
+/// Interface for signaling that the the configuration is a base configuration
+/// for other configurations, and should not be saved or loaded directly.
+/// </summary>
+/// <remarks>
+/// Base configurations are used by other services and/or plugins to validate
+/// and/or (de-)serialize their configuration instances using the configuration
+/// service. They may also have custom actions to run on the configuration.
+/// </remarks>
+public interface IBaseConfiguration : IConfiguration { }
+
+/// <summary>
 /// Interface for signaling that the configuration should use Newtonsoft.Json
 /// for serialization/deserialization instead of System.Text.Json.
 /// </summary>
@@ -30,3 +41,8 @@ public interface IHashProviderConfiguration : IHiddenConfiguration { }
 /// provider.
 /// </summary>
 public interface IReleaseInfoProviderConfiguration : IHiddenConfiguration { }
+
+/// <summary>
+/// Interface for signaling that the configuration is tied to a renamer provider.
+/// </summary>
+public interface IRelocationProviderConfiguration : IHiddenConfiguration, IBaseConfiguration { }

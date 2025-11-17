@@ -18,6 +18,8 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.Relocation;
+using Shoko.Server.API.v3.Models.Relocation.Input;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -43,7 +45,17 @@ namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
 [Authorize]
-public class FileController : BaseController
+public class FileController(
+    TraktTVHelper _traktHelper,
+    ISchedulerFactory _schedulerFactory,
+    VideoLocalService _vlService,
+    VideoLocal_PlaceService _vlPlaceService,
+    VideoLocal_UserRepository _vlUsers,
+    IVideoReleaseService _videoReleaseService,
+    IUserDataService _userDataService,
+    IRelocationService _relocationService,
+    ISettingsProvider settingsProvider
+) : BaseController(settingsProvider)
 {
     private const string FileUserStatsNotFoundWithFileID = "No FileUserStats entry for the given fileID for the current user";
 
@@ -60,34 +72,6 @@ public class FileController : BaseController
     internal const string FileNotFoundWithHash = "No File entry for the given hash and file size.";
 
     internal const string FileLocationNotFoundWithLocationID = "No File.Location entry for the given locationID.";
-
-    private readonly TraktTVHelper _traktHelper;
-    private readonly ISchedulerFactory _schedulerFactory;
-    private readonly VideoLocalService _vlService;
-    private readonly VideoLocal_PlaceService _vlPlaceService;
-    private readonly VideoLocal_UserRepository _vlUsers;
-    private readonly IVideoReleaseService _videoReleaseService;
-    private readonly IUserDataService _userDataService;
-
-    public FileController(
-        TraktTVHelper traktHelper,
-        ISchedulerFactory schedulerFactory,
-        ISettingsProvider settingsProvider,
-        VideoLocal_PlaceService vlPlaceService,
-        VideoLocal_UserRepository vlUsers,
-        IUserDataService watchedService,
-        IVideoReleaseService videoReleaseService,
-        VideoLocalService vlService
-    ) : base(settingsProvider)
-    {
-        _traktHelper = traktHelper;
-        _vlPlaceService = vlPlaceService;
-        _vlUsers = vlUsers;
-        _userDataService = watchedService;
-        _videoReleaseService = videoReleaseService;
-        _vlService = vlService;
-        _schedulerFactory = schedulerFactory;
-    }
 
     internal const string FileForbiddenForUser = "Accessing File is not allowed for the current user";
 
@@ -405,11 +389,65 @@ public class FileController : BaseController
     [HttpGet("Location/{locationID}")]
     public ActionResult<File.Location> GetFileLocation([FromRoute, Range(1, int.MaxValue)] int locationID)
     {
-        var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
-        if (fileLocation == null)
+        if (RepoFactory.VideoLocalPlace.GetByID(locationID) is not { } fileLocation)
             return NotFound(FileLocationNotFoundWithLocationID);
 
         return new File.Location(fileLocation, true);
+    }
+
+    /// <summary>
+    /// Directly relocates a file to a new location specified by the user.
+    /// </summary>
+    /// <param name="locationID">The ID of the file location to be relocated.</param>
+    /// <param name="body">New location information.</param>
+    /// <returns>A result object containing information about the relocation process.</returns>
+    [Authorize("admin")]
+    [HttpPost("Location/{locationID}")]
+    public async Task<ActionResult<RelocationResult>> DirectlyRelocateFileLocation([FromRoute, Range(1, int.MaxValue)] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] RelocateBody body)
+    {
+        if (RepoFactory.VideoLocalPlace.GetByID(locationID) is not { } fileLocation)
+            return NotFound(FileLocationNotFoundWithLocationID);
+
+        if (RepoFactory.ShokoManagedFolder.GetByID(body.ManagedFolderID) is not { } folder)
+            return BadRequest($"Unknown managed folder with the given id `{body.ManagedFolderID}`.");
+
+        // Store the old managed folder id and relative path for comparison.
+        var oldFolderId = fileLocation.ManagedFolderID;
+        var oldRelativePath = fileLocation.RelativePath;
+
+        // Rename and move the file.
+        var result = await _relocationService.DirectlyRelocateFile(
+            fileLocation,
+            new()
+            {
+                CancellationToken = HttpContext.RequestAborted,
+                ManagedFolder = folder,
+                RelativePath = body.RelativePath,
+                DeleteEmptyDirectories = body.DeleteEmptyDirectories,
+                AllowRelocationInsideDestination = true,
+            }
+        );
+        if (!result.Success)
+            return new RelocationResult
+            {
+                FileID = fileLocation.VideoID,
+                FileLocationID = fileLocation.ID,
+                IsSuccess = false,
+                ErrorMessage = result.Error.Message,
+            };
+
+        // Check if it was actually relocated, or if we landed on the same location as earlier.
+        var relocated = !string.Equals(oldRelativePath, result.RelativePath, StringComparison.InvariantCultureIgnoreCase) || oldFolderId != result.ManagedFolder.ID;
+        return new RelocationResult
+        {
+            FileID = fileLocation.VideoID,
+            FileLocationID = fileLocation.ID,
+            ManagedFolderID = result.ManagedFolder.ID,
+            IsSuccess = true,
+            IsRelocated = relocated,
+            RelativePath = result.RelativePath,
+            AbsolutePath = result.AbsolutePath,
+        };
     }
 
     /// <summary>
@@ -1004,6 +1042,25 @@ public class FileController : BaseController
 
         var scheduler = await _schedulerFactory.GetScheduler();
         await scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = file.Hash, prioritize: true).ConfigureAwait(false);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Schedule a file and all it's locations to be automatically relocated in the queue.
+    /// </summary>
+    /// <param name="fileID">The file id.</param>
+    /// <param name="priority">Whether to start the job immediately. Default false</param>
+    /// <returns>A result object containing information about the relocation process.</returns>
+    [Authorize("admin")]
+    [HttpPost("{fileID}/Action/AutoRelocate")]
+    public async Task<ActionResult> ScheduleAutoRelocationForFileLocation([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = false)
+    {
+        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        await _relocationService.ScheduleAutoRelocationForVideo(file, prioritize: priority);
 
         return Ok();
     }

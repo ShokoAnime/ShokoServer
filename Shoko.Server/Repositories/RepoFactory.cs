@@ -62,12 +62,12 @@ public class RepoFactory
     public static IgnoreAnimeRepository IgnoreAnime;
     public static JMMUserRepository JMMUser;
     public static PlaylistRepository Playlist;
-    public static RenamerConfigRepository RenamerConfig;
     public static ScanFileRepository ScanFile;
     public static ScanRepository Scan;
     public static ScheduledUpdateRepository ScheduledUpdate;
     public static ShokoManagedFolderRepository ShokoManagedFolder;
     public static StoredReleaseInfoRepository StoredReleaseInfo;
+    public static StoredRelocationPipeRepository StoredRelocationPipe;
     public static StoredReleaseInfo_MatchAttemptRepository StoredReleaseInfo_MatchAttempt;
     public static TMDB_AlternateOrdering_EpisodeRepository TMDB_AlternateOrdering_Episode;
     public static TMDB_AlternateOrdering_SeasonRepository TMDB_AlternateOrdering_Season;
@@ -144,11 +144,11 @@ public class RepoFactory
         IgnoreAnimeRepository ignoreAnime,
         JMMUserRepository jmmUser,
         PlaylistRepository playlist,
-        RenamerConfigRepository renamerConfig,
         ScanFileRepository scanFile,
         ScanRepository scan,
         ScheduledUpdateRepository scheduledUpdate,
         ShokoManagedFolderRepository shokoManagedFolder,
+        StoredRelocationPipeRepository storedRelocationPipe,
         StoredReleaseInfoRepository storedReleaseInfo,
         StoredReleaseInfo_MatchAttemptRepository storedReleaseInfoMatchAttempt,
         TMDB_AlternateOrdering_EpisodeRepository tmdbAlternateOrderingEpisode,
@@ -226,12 +226,12 @@ public class RepoFactory
         IgnoreAnime = ignoreAnime;
         JMMUser = jmmUser;
         Playlist = playlist;
-        RenamerConfig = renamerConfig;
         Scan = scan;
         ScanFile = scanFile;
         ScheduledUpdate = scheduledUpdate;
         ShokoManagedFolder = shokoManagedFolder;
         StoredReleaseInfo = storedReleaseInfo;
+        StoredRelocationPipe = storedRelocationPipe;
         StoredReleaseInfo_MatchAttempt = storedReleaseInfoMatchAttempt;
         TMDB_AlternateOrdering = tmdbAlternateOrdering;
         TMDB_AlternateOrdering_Episode = tmdbAlternateOrderingEpisode;

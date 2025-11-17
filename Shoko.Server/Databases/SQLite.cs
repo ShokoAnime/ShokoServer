@@ -1,20 +1,14 @@
 using System;
 using System.Collections.Generic;
-using Microsoft.Data.Sqlite;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
-using MessagePack;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
-using Shoko.Plugin.Abstractions;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Databases.SqliteFixes;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models;
-using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -27,7 +21,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 138;
+    public override int RequiredVersion => 139;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -43,7 +37,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
             if (_databasePath != null)
                 return _databasePath;
 
-            var dirPath =  Utils.SettingsProvider.GetSettings().Database.MySqliteDirectory;
+            var dirPath = Utils.SettingsProvider.GetSettings().Database.MySqliteDirectory;
             if (string.IsNullOrWhiteSpace(dirPath))
                 return _databasePath = Utils.ApplicationPath;
 
@@ -733,8 +727,8 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(115, 33, DatabaseFixes.CleanupAfterAddingTMDB),
         new(115, 34, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'HasTMDbLinkExpression', 'HasTmdbLinkExpression');"),
         new(115, 35, "UPDATE TMDB_Image SET IsEnabled = 1;"),
-        new(116, 1, MigrateRenamers),
-        new(116, 2, "DELETE FROM RenamerInstance WHERE NAME = 'AAA_WORKINGFILE_TEMP_AAA';"),
+        new(116, 1, DatabaseFixes.MigrateRenamers),
+        new(116, 2, DatabaseFixes.NoOperation),
         new(116, 3, DatabaseFixes.CreateDefaultRenamerConfig),
         new(117, 1, "UPDATE CrossRef_AniDB_TMDB_Episode SET MatchRating = CASE MatchRating WHEN 'UserVerified' THEN 1 WHEN 'DateAndTitleMatches' THEN 2 WHEN 'DateMatches' THEN 3 WHEN 'TitleMatches' THEN 4 WHEN 'FirstAvailable' THEN 5 WHEN 'SarahJessicaParker' THEN 6 ELSE MatchRating END;"),
         new(117, 2, "UPDATE CrossRef_AniDB_TMDB_Show SET Source = CASE Source WHEN 'Automatic' THEN 0 WHEN 'User' THEN 2 ELSE Source END;"),
@@ -881,129 +875,12 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(138, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
         new(138, 05, "ALTER TABLE ImportFolder DROP COLUMN ImportFolderType;"),
         new(138, 06, "ALTER TABLE VideoLocal_Place DROP COLUMN ImportFolderType;"),
+        new(139, 01, "CREATE TABLE StoredRelocationPipe (StoredRelocationPipeID INTEGER PRIMARY KEY AUTOINCREMENT, ProviderID text NOT NULL, Name text NOT NULL, Configuration BLOB);"),
+        new(139, 02, "CREATE INDEX IX_StoredRelocationPipe_ProviderID ON StoredRelocationPipe(ProviderID);"),
+        new(139, 03, "CREATE INDEX IX_StoredRelocationPipe_Name ON StoredRelocationPipe(Name);"),
+        new(139, 04, DatabaseFixes.MigrateRenamers),
     };
 
-    private static Tuple<bool, string> MigrateRenamers(object connection)
-    {
-        var factory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
-        var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
-        var settingsProvider = Utils.SettingsProvider;
-
-        var sessionFactory = factory.CreateSessionFactory();
-        using var session = sessionFactory.OpenSession();
-        using var transaction = session.BeginTransaction();
-        try
-        {
-            const string createCommand = """
-                                         CREATE TABLE IF NOT EXISTS RenamerInstance (ID INTEGER PRIMARY KEY AUTOINCREMENT, Name text NOT NULL, Type text NOT NULL, Settings BLOB);
-                                         CREATE INDEX IX_RenamerInstance_Name ON RenamerInstance(Name);
-                                         CREATE INDEX IX_RenamerInstance_Type ON RenamerInstance(Type);
-                                         """;
-
-            session.CreateSQLQuery(createCommand).ExecuteUpdate();
-
-            const string selectCommand = "SELECT ScriptName, RenamerType, IsEnabledOnImport, Script FROM RenameScript;";
-            var reader = session.CreateSQLQuery(selectCommand)
-                .AddScalar("ScriptName", NHibernateUtil.String)
-                .AddScalar("RenamerType", NHibernateUtil.String)
-                .AddScalar("IsEnabledOnImport", NHibernateUtil.Int32)
-                .AddScalar("Script", NHibernateUtil.String)
-                .List<object[]>();
-            string defaultName = null;
-            var renamerInstances = reader.Select(a =>
-            {
-                try
-                {
-                    var type = ((string)a[1]).Equals("Legacy")
-                        ? typeof(WebAOMRenamer)
-                        : renamerService.RenamersByKey.ContainsKey((string)a[1])
-                            ? renamerService.RenamersByKey[(string)a[1]].GetType()
-                            : Type.GetType((string)a[1]);
-                    if (type == null)
-                    {
-                        if ((string)a[1] == "GroupAwareRenamer")
-                            return (Renamer: new RenamerConfig
-                            {
-                                Name = (string)a[0],
-                                Type = typeof(WebAOMRenamer),
-                                Settings = new WebAOMSettings
-                                {
-                                    Script = (string)a[3], GroupAwareSorting = true
-                                }
-                            }, IsDefault: (int)a[2] == 1);
-
-                        Logger.Warn("A RenameScipt could not be converted to RenamerConfig. Renamer name: " + (string)a[0] + " Renamer type: " + (string)a[1] +
-                                    " Script: " + (string)a[3]);
-                        return default;
-                    }
-
-                    var settingsType = type.GetInterfaces().FirstOrDefault(b => b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>))
-                        ?.GetGenericArguments().FirstOrDefault();
-                    object settings = null;
-                    if (settingsType != null)
-                    {
-                        settings = ActivatorUtilities.CreateInstance(Utils.ServiceContainer, settingsType);
-                        settingsType.GetProperties(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(b => b.Name == "Script")
-                            ?.SetValue(settings, (string)a[3]);
-                    }
-
-                    return (Renamer: new RenamerConfig
-                    {
-                        Name = (string)a[0], Type = type, Settings = settings
-                    }, IsDefault: (int)a[2] == 1);
-                }
-                catch (Exception ex)
-                {
-                    if (a is { Length: >= 4 })
-                    {
-                        Logger.Warn(ex, "A RenameScipt could not be converted to RenamerConfig. Renamer name: " + a[0] + " Renamer type: " + a[1] +
-                                    " Script: " + a[3]);
-                    }
-                    else
-                    {
-                        Logger.Warn(ex, "A RenameScipt could not be converted to RenamerConfig, but there wasn't enough data to log");
-                    }
-
-                    return default;
-                }
-            }).WhereNotDefault().GroupBy(a => a.Renamer.Name).SelectMany(a => a.Select((b, i) =>
-            {
-                // Names are distinct
-                var renamer = b.Renamer;
-                if (i > 0) renamer.Name = renamer.Name + "_" + (i + 1);
-                if (b.IsDefault) defaultName = renamer.Name;
-                return renamer;
-            }));
-
-            if (defaultName != null)
-            {
-                var settings = settingsProvider.GetSettings();
-                settings.Plugins.Renamer.DefaultRenamer = defaultName;
-                settingsProvider.SaveSettings(settings);
-            }
-
-            const string insertCommand = "INSERT INTO RenamerInstance (Name, Type, Settings) VALUES (:Name, :Type, :Settings);";
-            foreach (var renamer in renamerInstances)
-            {
-                var command = session.CreateSQLQuery(insertCommand);
-                command.SetParameter("Name", renamer.Name);
-                command.SetParameter("Type", renamer.Type.ToString());
-                command.SetParameter("Settings", renamer.Settings == null ? null : MessagePackSerializer.Typeless.Serialize(renamer.Settings));
-                command.ExecuteUpdate();
-            }
-
-            const string dropCommand = "DROP TABLE RenameScript;";
-            session.CreateSQLQuery(dropCommand).ExecuteUpdate();
-            transaction.Commit();
-        }
-        catch (Exception e)
-        {
-            transaction.Rollback();
-            return new Tuple<bool, string>(false, e.ToString());
-        }
-
-        return new Tuple<bool, string>(true, null);
-    }
 
     private static Tuple<bool, string> DropLanguage(object connection)
     {

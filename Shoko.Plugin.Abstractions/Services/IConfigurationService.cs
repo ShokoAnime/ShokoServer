@@ -137,6 +137,21 @@ public interface IConfigurationService
     IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ConfigurationInfo info, string json);
 
     /// <summary>
+    ///   Validates a stringified JSON configuration against the specified
+    ///   <see cref="ConfigurationInfo" />'s schema.
+    /// </summary>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" />.
+    /// </param>
+    /// <param name="config">
+    ///   The configuration instance.
+    /// </param>
+    /// <returns>
+    ///   A read-only dictionary of validation errors per property path.
+    /// </returns>
+    IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ConfigurationInfo info, IConfiguration config);
+
+    /// <summary>
     ///   Validates a configuration instance against it's schema.
     /// </summary>
     /// <typeparam name="TConfig">
@@ -316,6 +331,9 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     ///   Thrown when a configuration fails validation.
     /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when trying to load a base configuration.
+    /// </exception>
     /// <returns>
     ///   The loaded configuration instance.
     /// </returns>
@@ -337,6 +355,9 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     ///   Thrown when a configuration fails validation.
     /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when trying to load a base configuration.
+    /// </exception>
     /// <returns>
     ///   The loaded configuration instance.
     /// </returns>
@@ -354,7 +375,10 @@ public interface IConfigurationService
     ///   The stringified configuration to save.
     /// </param>
     /// <exception cref="ConfigurationValidationException">
-    /// Thrown when a configuration fails validation.
+    ///   Thrown when a configuration fails validation.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when trying to save a base configuration.
     /// </exception>
     /// <returns>
     ///   A boolean indicating whether the configuration was saved to disk. If
@@ -375,7 +399,10 @@ public interface IConfigurationService
     ///   The stringified configuration to save.
     /// </param>
     /// <exception cref="ConfigurationValidationException">
-    /// Thrown when a configuration fails validation.
+    ///   Thrown when a configuration fails validation.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when trying to save a base configuration.
     /// </exception>
     /// <returns>
     ///   A boolean indicating whether the configuration was saved to disk. If
@@ -393,7 +420,10 @@ public interface IConfigurationService
     ///   The type of the configuration.
     /// </typeparam>
     /// <exception cref="ConfigurationValidationException">
-    /// Thrown when a configuration fails validation.
+    ///   Thrown when a configuration fails validation.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when trying to save a base configuration.
     /// </exception>
     /// <returns>
     ///   A boolean indicating whether the configuration was saved to disk. If
@@ -411,7 +441,10 @@ public interface IConfigurationService
     /// </typeparam>
     /// <param name="config">The configuration to save.</param>
     /// <exception cref="ConfigurationValidationException">
-    /// Thrown when a configuration fails validation.
+    ///   Thrown when a configuration fails validation.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when trying to save a base configuration.
     /// </exception>
     /// <returns>
     ///   A boolean indicating whether the configuration was saved to disk. If
@@ -431,7 +464,10 @@ public interface IConfigurationService
     ///   The stringified configuration to save.
     /// </param>
     /// <exception cref="ConfigurationValidationException">
-    /// Thrown when a configuration fails validation.
+    ///   Thrown when a configuration fails validation.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when trying to save a base configuration.
     /// </exception>
     /// <returns>
     ///   A boolean indicating whether the configuration was saved to disk. If

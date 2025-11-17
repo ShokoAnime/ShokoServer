@@ -1,6 +1,6 @@
 using System;
 
-namespace Shoko.Plugin.Abstractions.Events;
+namespace Shoko.Plugin.Abstractions.Relocation;
 
 /// <summary>
 /// An error or exception that occurred during a relocation operation.
@@ -26,6 +26,15 @@ public class RelocationError
     public RelocationError(string message, Exception? exception = null)
     {
         Message = message;
+        Exception = exception;
+    }
+    /// <summary>
+    /// Create a new relocation error.
+    /// </summary>
+    /// <param name="exception">Exception that caused the error</param>
+    public RelocationError(Exception exception)
+    {
+        Message = exception.Message;
         Exception = exception;
     }
 }

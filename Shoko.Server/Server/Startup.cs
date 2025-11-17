@@ -18,7 +18,6 @@ using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
-using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Services;
@@ -65,8 +64,6 @@ public class Startup
             services.AddSingleton(settingsProvider);
             services.AddSingleton(pluginManager);
 
-            services.AddSingleton<IRelocationService, RelocationService>();
-            services.AddSingleton<RenameFileService>();
             services.AddSingleton<FileWatcherService>();
             services.AddSingleton<ShokoServer>();
             services.AddSingleton<LogRotator>();
@@ -92,6 +89,7 @@ public class Startup
             services.AddSingleton<IVideoService, AbstractVideoService>();
             services.AddSingleton<IVideoReleaseService, VideoReleaseService>();
             services.AddSingleton<IVideoHashingService, VideoHashingService>();
+            services.AddSingleton<IRelocationService, RelocationService>();
             services.AddSingleton(typeof(ConfigurationProvider<>));
             services.AddSingleton<IUserService, AbstractUserService>();
             services.AddSingleton<IUserDataService, UserDataService>();

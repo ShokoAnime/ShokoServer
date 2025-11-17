@@ -11,7 +11,6 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Server.Databases;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;

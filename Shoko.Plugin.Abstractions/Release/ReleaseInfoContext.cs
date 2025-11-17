@@ -3,9 +3,9 @@ using Shoko.Plugin.Abstractions.DataModels;
 namespace Shoko.Plugin.Abstractions.Release;
 
 /// <summary>
-/// Request for release information about a video.
+/// Context for when requesting release information for a video.
 /// </summary>
-public class ReleaseInfoRequest
+public class ReleaseInfoContext
 {
     /// <summary>
     /// The video for which to get release information.

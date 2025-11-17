@@ -116,7 +116,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     }
 
     /// <inheritdoc/>
-    public async Task<ReleaseInfo?> GetReleaseInfoForVideo(ReleaseInfoRequest request, CancellationToken cancellationToken)
+    public async Task<ReleaseInfo?> GetReleaseInfoForVideo(ReleaseInfoContext request, CancellationToken cancellationToken)
     {
         var (video, isAutomatic) = request;
         _logger.LogDebug("Getting release info for {Video}", video.ID);

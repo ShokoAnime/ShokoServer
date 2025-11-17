@@ -1,10 +1,11 @@
+using System;
 using System.IO;
 using Shoko.Plugin.Abstractions.DataModels;
 
-namespace Shoko.Plugin.Abstractions.Events;
+namespace Shoko.Plugin.Abstractions.Relocation;
 
 /// <summary>
-/// The result of a relocation operation by a <see cref="IRenamer"/>.
+/// The result of a relocation operation by a <see cref="IRelocationProvider"/>.
 /// </summary>
 public class RelocationResult
 {
@@ -38,12 +39,12 @@ public class RelocationResult
     /// The new managed folder where the file should live.
     /// </summary>
     /// <remarks>
-    /// This should be set from <see cref="RelocationEventArgs.AvailableFolders"/>,
+    /// This should be set from <see cref="RelocationContext.AvailableFolders"/>,
     /// and shouldn't be null unless a) there was an <see cref="Error"/>, b) the
     /// renamer doesn't support moving, or c) the move operation will be skipped
     /// as indicated by <see cref="SkipMove"/>.
     /// </remarks>
-    public IManagedFolder? DestinationFolder { get; set; }
+    public IManagedFolder? ManagedFolder { get; set; }
 
     /// <summary>
     /// Indicates that the result does not contain a path and destination, and
@@ -65,4 +66,32 @@ public class RelocationResult
     /// An exception can be provided if relevant.
     /// </summary>
     public RelocationError? Error { get; set; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RelocationResult"/> class from
+    /// a relocation error.
+    /// </summary>
+    /// <param name="error">The relocation error.</param>
+    /// <returns>A <see cref="RelocationResult"/> with the error set.</returns>
+    public static RelocationResult FromError(RelocationError error)
+        => new() { Error = error };
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RelocationResult"/> class from
+    /// an error message.
+    /// </summary>
+    /// <param name="message">The error message.</param>
+    /// <param name="exception">The exception that caused the relocation operation to fail.</param>
+    /// <returns>A <see cref="RelocationResult"/> with the error set.</returns>
+    public static RelocationResult FromError(string message, Exception? exception = null)
+        => new() { Error = new(message, exception) };
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RelocationResult"/> class from an
+    /// exception.
+    /// </summary>
+    /// <param name="exception ">The exception that caused the relocation operation to fail.</param>
+    /// <returns>A <see cref="RelocationResult"/> with the exception set.</returns>
+    public static RelocationResult FromError(Exception exception)
+        => new() { Error = new(exception) };
 }

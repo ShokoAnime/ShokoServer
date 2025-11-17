@@ -374,7 +374,7 @@ public class VideoReleaseService(
         var selectedProvider = (ReleaseProviderInfo?)null;
         var releaseInfo = (IReleaseInfo?)null;
         var exception = (Exception?)null;
-        var request = new ReleaseInfoRequest()
+        var request = new ReleaseInfoContext()
         {
             Video = video,
             IsAutomatic = isAutomatic,
@@ -464,7 +464,7 @@ public class VideoReleaseService(
         }
     }
 
-    private async Task<(IReleaseInfo?, ReleaseProviderInfo?)> FileReleaseForVideoSequential(ReleaseInfoRequest request, IReadOnlyList<ReleaseProviderInfo> providers, CancellationToken cancellationToken)
+    private async Task<(IReleaseInfo?, ReleaseProviderInfo?)> FileReleaseForVideoSequential(ReleaseInfoContext request, IReadOnlyList<ReleaseProviderInfo> providers, CancellationToken cancellationToken)
     {
         foreach (var providerInfo in providers)
         {
@@ -482,7 +482,7 @@ public class VideoReleaseService(
         return default;
     }
 
-    private async Task<(IReleaseInfo?, ReleaseProviderInfo?)> FileReleaseForVideoParallel(ReleaseInfoRequest request, IReadOnlyList<ReleaseProviderInfo> providers, CancellationToken cancellationToken)
+    private async Task<(IReleaseInfo?, ReleaseProviderInfo?)> FileReleaseForVideoParallel(ReleaseInfoContext request, IReadOnlyList<ReleaseProviderInfo> providers, CancellationToken cancellationToken)
     {
         // Start as many providers as possible in parallel until we've exhausted the list or the token is cancelled.
         var tasks = new Dictionary<Task<IReleaseInfo?>, (ReleaseProviderInfo providerInfo, CancellationTokenSource source)>();

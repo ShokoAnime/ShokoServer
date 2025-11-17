@@ -40,6 +40,11 @@ public class ConfigurationInfo(AbstractConfigurationInfo info)
     public bool IsHidden { get; init; } = info.IsHidden;
 
     /// <summary>
+    /// Wether or not the configuration is a base configuration.
+    /// </summary>
+    public bool IsBase => info.IsBase;
+
+    /// <summary>
     /// Whether or not the configuration has custom new factory.
     /// </summary>
     public bool HasCustomNewFactory { get; init; } = info.HasCustomNewFactory;

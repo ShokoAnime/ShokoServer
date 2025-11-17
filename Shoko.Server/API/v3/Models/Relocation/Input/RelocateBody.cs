@@ -1,7 +1,8 @@
-#nullable enable
 using System.ComponentModel.DataAnnotations;
+using Shoko.Server.API.v3.Models.Shoko;
 
-namespace Shoko.Server.API.v3.Models.Shoko.Relocation;
+#nullable enable
+namespace Shoko.Server.API.v3.Models.Relocation.Input;
 
 /// <summary>
 /// Represents the information required to create or move to a new file

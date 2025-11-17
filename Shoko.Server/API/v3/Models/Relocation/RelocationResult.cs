@@ -1,8 +1,9 @@
-#nullable enable
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
+using Shoko.Server.API.v3.Models.Shoko;
 
-namespace Shoko.Server.API.v3.Models.Shoko.Relocation;
+#nullable enable
+namespace Shoko.Server.API.v3.Models.Relocation;
 
 /// <summary>
 /// Represents the result of a file relocation process.
@@ -28,7 +29,7 @@ public class RelocationResult
     /// a manual relocation.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public string? ConfigName { get; set; } = null;
+    public string? PipeName { get; set; } = null;
 
     /// <summary>
     /// The new id of the <see cref="ManagedFolder"/> where the file now

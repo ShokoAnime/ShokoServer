@@ -4,10 +4,9 @@ using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoko.Plugin.Abstractions;
-using Shoko.Plugin.Abstractions.Attributes;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Plugin.Abstractions.Relocation;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
@@ -15,54 +14,36 @@ using Shoko.Server.Models.Release;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 #nullable enable
 namespace Shoko.Server.Renamer;
 
-[RenamerID(RENAMER_ID)]
-public class WebAOMRenamer : IRenamer<WebAOMSettings>
+public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IRelocationService _relocationService) : IRelocationProvider<WebAOMSettings>
 {
     private static readonly char[] _validTests = "AGFEHXRTYDSCIZJWUMN".ToCharArray();
 
-    private const string RENAMER_ID = "WebAOM";
-
-    private readonly ILogger<WebAOMRenamer> _logger;
-
-    private readonly IRelocationService _relocationService;
-
     public string Name => "WebAOM Renamer";
 
-    public string Description => "The legacy renamer, based on WebAOM's renamer. You can find information for it at https://wiki.anidb.net/WebAOM#Scripting";
+    public string Description => """
+      The legacy renamer, based on WebAOM's renamer. You can find information
+      for it at https://wiki.anidb.net/WebAOM#Scripting
+    """;
 
-    public bool SupportsMoving => true;
-
-    public bool SupportsRenaming => true;
-
-    public WebAOMRenamer(ILogger<WebAOMRenamer> logger, IRelocationService relocationService)
+    public RelocationResult GetPath(RelocationContext<WebAOMSettings> args)
     {
-        _logger = logger;
-        _relocationService = relocationService;
-    }
-
-    public Shoko.Plugin.Abstractions.Events.RelocationResult GetNewPath(RelocationEventArgs<WebAOMSettings> args)
-    {
-        var script = args.Settings.Script;
-        if (args.RenameEnabled && script == null)
-        {
-            return new Shoko.Plugin.Abstractions.Events.RelocationResult
-            {
-                Error = new RelocationError("No script available for renamer")
-            };
-        }
+        var script = args.Configuration.Script;
+        if (args.RenameEnabled && string.IsNullOrEmpty(script))
+            return new() { Error = new RelocationError("No script available for renamer") };
 
         string? newFilename = null;
         var success = true;
-        (IManagedFolder? dest, string folder) destination = default;
+        (IManagedFolder? dest, string? folder)? destination = default;
         Exception? ex = null;
         try
         {
-            if (args.RenameEnabled) (success, newFilename) = GetNewFileName(args, args.Settings, script);
+            if (args.RenameEnabled) (success, newFilename) = GetNewFileName(args, args.Configuration, script);
             if (args.MoveEnabled)
             {
                 destination = GetDestinationFolder(args);
@@ -76,18 +57,13 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
 
         if (!success)
-        {
-            return new Shoko.Plugin.Abstractions.Events.RelocationResult
-            {
-                Error = ex == null ? null : new RelocationError(ex.Message, ex)
-            };
-        }
+            return new() { Error = ex == null ? null : new RelocationError(ex.Message, ex) };
 
-        return new Shoko.Plugin.Abstractions.Events.RelocationResult
+        return new()
         {
             FileName = newFilename,
-            DestinationFolder = destination.dest,
-            Path = destination.folder
+            ManagedFolder = destination?.dest,
+            Path = destination?.folder,
         };
     }
 
@@ -1445,7 +1421,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    private (bool success, string name) GetNewFileName(RelocationEventArgs args, WebAOMSettings settings, string script)
+    private (bool success, string name) GetNewFileName(RelocationContext args, WebAOMSettings settings, string script)
     {
         // Cheat and just look it up by location to avoid rewriting this whole file.
         var sourceFolder = RepoFactory.ShokoManagedFolder.GetAll()
@@ -2161,15 +2137,15 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         }
     }
 
-    public (IManagedFolder? dest, string folder) GetDestinationFolder(RelocationEventArgs<WebAOMSettings> args)
+    public (IManagedFolder? dest, string? folder)? GetDestinationFolder(RelocationContext<WebAOMSettings> args)
     {
-        if (args.Settings.GroupAwareSorting)
+        if (args.Configuration.GroupAwareSorting)
             return GetGroupAwareDestination(args);
 
         return GetFlatFolderDestination(args);
     }
 
-    private (IManagedFolder? dest, string folder) GetGroupAwareDestination(RelocationEventArgs<WebAOMSettings> args)
+    private (IManagedFolder? dest, string folder) GetGroupAwareDestination(RelocationContext<WebAOMSettings> args)
     {
         if (args?.Episodes == null || args.Episodes.Count == 0)
         {
@@ -2226,7 +2202,7 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
         return dest?.DropFolderType.HasFlag(DropFolderType.Destination) ?? false;
     }
 
-    private (IManagedFolder? dest, string folder) GetFlatFolderDestination(RelocationEventArgs args)
+    private (IManagedFolder? dest, string? folder)? GetFlatFolderDestination(RelocationContext args)
     {
         if (_relocationService.GetExistingSeriesLocationWithSpace(args) is { } existingSeriesLocation)
             return existingSeriesLocation;
@@ -2258,50 +2234,4 @@ public class WebAOMRenamer : IRenamer<WebAOMSettings>
 
         return (videoWidth, videoHeight);
     }
-
-    public WebAOMSettings DefaultSettings => new()
-    {
-        GroupAwareSorting = false,
-        Script = """
-// Sample Output: [Coalgirls]_Highschool_of_the_Dead_-_01_(1920x1080_Blu-ray_H264)_[90CC6DC1].mkv
-// Sub group name
-DO ADD '[%grp] '
-// Anime Name, use english name if it exists, otherwise use the Romaji name
-IF I(eng) DO ADD '%eng '
-IF I(ann);I(!eng) DO ADD '%ann '
-// Episode Number, don't use episode number for movies
-IF T(!Movie) DO ADD '- %enr'
-// If the file version is v2 or higher add it here
-IF F(!1) DO ADD 'v%ver'
-// Video Resolution
-DO ADD ' (%res'
-// Video Source (only if blu-ray or DVD)
-IF R(DVD),R(Blu-ray) DO ADD ' %src'
-// Video Codec
-DO ADD ' %vid'
-// Video Bit Depth (only if 10bit)
-IF Z(10) DO ADD ' %bitbit'
-DO ADD ') '
-DO ADD '[%CRC]'
-
-// Replacement rules (cleanup)
-DO REPLACE ' ' '_' // replace spaces with underscores
-DO REPLACE 'H264/AVC' 'H264'
-DO REPLACE '0x0' ''
-DO REPLACE '__' '_'
-DO REPLACE '__' '_'
-
-// Replace all illegal file name characters
-DO REPLACE '<' '('
-DO REPLACE '>' ')'
-DO REPLACE ':' '-'
-DO REPLACE '" + (char)34 +' '`'
-DO REPLACE '/' '_'
-DO REPLACE '/' '_'
-DO REPLACE '\\' '_'
-DO REPLACE '|' '_'
-DO REPLACE '?' '_'
-DO REPLACE '*' '_'
-"""
-    };
 }

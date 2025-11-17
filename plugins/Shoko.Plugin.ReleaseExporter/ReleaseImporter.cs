@@ -36,7 +36,7 @@ public class ReleaseImporter(ILogger<ReleaseImporter> logger, IApplicationPaths 
         => Task.FromResult<ReleaseInfo?>(null);
 
     /// <inheritdoc/>
-    public async Task<ReleaseInfo?> GetReleaseInfoForVideo(ReleaseInfoRequest request, CancellationToken cancellationToken)
+    public async Task<ReleaseInfo?> GetReleaseInfoForVideo(ReleaseInfoContext request, CancellationToken cancellationToken)
     {
         var (video, _) = request;
         logger.LogTrace("Trying to find release for video. (Video={VideoID})", video.ID);
