@@ -2553,6 +2553,8 @@ public class SeriesController : BaseController
         if (defaultImage.ImageID == body.ID && defaultImage.ImageSource == dataSource)
             return new Image(body.ID, imageEntityType, dataSource, true);
 
+        defaultImage.ImageID = body.ID;
+        defaultImage.ImageSource = dataSource;
         var isNew = defaultImage.AniDB_Anime_PreferredImageID is 0;
         RepoFactory.AniDB_Anime_PreferredImage.Save(defaultImage);
 
@@ -2808,11 +2810,12 @@ public class SeriesController : BaseController
     /// <param name="query">target string</param>
     /// <param name="fuzzy">whether or not to use fuzzy search</param>
     /// <param name="limit">number of return items</param>
+    /// <param name="searchById">Enable search by anidb anime id.</param>
     /// <returns>List<see cref="Series.SearchResult"/></returns>
     [HttpGet("Search")]
     public ActionResult<IEnumerable<Series.SearchResult>> SearchQuery([FromQuery] string query = "", [FromQuery] bool fuzzy = true,
-        [FromQuery, Range(0, 1000)] int limit = 50)
-        => SearchInternal(query, fuzzy, limit);
+        [FromQuery, Range(0, 1000)] int limit = 50, [FromQuery] bool searchById = false)
+        => SearchInternal(query, fuzzy, limit, searchById);
 
     /// <summary>
     /// Search for series with given query in name or tag
@@ -2847,15 +2850,19 @@ public class SeriesController : BaseController
     /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
     /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
     /// <param name="includeTitles">Include titles in the results.</param>
+    /// <param name="searchById">Enable search by anidb anime id.</param>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [HttpGet("AniDB/Search")]
     public ActionResult<ListResult<AnidbAnime>> AnidbSearchQuery([FromQuery] string query = "",
-        [FromQuery] bool fuzzy = true, [FromQuery] bool? local = null,
-        [FromQuery] bool includeTitles = true, [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery] bool fuzzy = true,
+        [FromQuery] bool? local = null,
+        [FromQuery] bool includeTitles = true,
+        [FromQuery] bool searchById = true,
+        [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
-        => AnidbSearchInternal(query, fuzzy, local, includeTitles, pageSize, page);
+        => AnidbSearchInternal(query, fuzzy, local, includeTitles, searchById, pageSize, page);
 
     /// <summary>
     /// Search the title dump for the given query or directly using the anidb id.
@@ -2864,23 +2871,34 @@ public class SeriesController : BaseController
     /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
     /// <param name="local">Only search for results in the local collection if it's true and only search for results not in the local collection if false. Omit to include both.</param>
     /// <param name="includeTitles">Include titles in the results.</param>
+    /// <param name="searchById">Enable search by anidb anime id.</param>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [Obsolete("Use the other endpoint instead.")]
     [HttpGet("AniDB/Search/{query}")]
     public ActionResult<ListResult<AnidbAnime>> AnidbSearchPath([FromRoute] string query,
-        [FromQuery] bool fuzzy = true, [FromQuery] bool? local = null,
-        [FromQuery] bool includeTitles = true, [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery] bool fuzzy = true,
+        [FromQuery] bool? local = null,
+        [FromQuery] bool includeTitles = true,
+        [FromQuery] bool searchById = true,
+        [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
-        => AnidbSearchInternal(HttpUtility.UrlDecode(query), fuzzy, local, includeTitles, pageSize, page);
+        => AnidbSearchInternal(HttpUtility.UrlDecode(query), fuzzy, local, includeTitles, searchById, pageSize, page);
 
     [NonAction]
-    internal ListResult<AnidbAnime> AnidbSearchInternal(string query, bool fuzzy = true, bool? local = null,
-        bool includeTitles = true, int pageSize = 50, int page = 1)
+    internal ListResult<AnidbAnime> AnidbSearchInternal(
+        string query,
+        bool fuzzy = true,
+        bool? local = null,
+        bool searchById = true,
+        bool includeTitles = true,
+        int pageSize = 50,
+        int page = 1
+    )
     {
         // We're searching using the anime ID, so first check the local db then the title cache for a match.
-        if (int.TryParse(query, out var animeID))
+        if (searchById && int.TryParse(query, out var animeID))
         {
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
             if (anime != null)
