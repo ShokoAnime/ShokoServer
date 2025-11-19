@@ -631,29 +631,6 @@ public class DatabaseFixes
         service.ScanForMatches().ConfigureAwait(false).GetAwaiter().GetResult();
     }
 
-    public static void CreateDefaultRenamerConfig()
-    {
-        var existingRenamer = RepoFactory.StoredRelocationPipe.GetByName("Default");
-        if (existingRenamer != null)
-            return;
-        var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
-        var relocationService = Utils.ServiceContainer.GetRequiredService<IRelocationService>();
-        var provider = relocationService.GetProviderInfo<WebAOMRenamer>();
-        var configuration = provider.ConfigurationInfo is null ? null : Encoding.UTF8.GetBytes(
-            configurationService.Serialize(
-                configurationService.New(provider.ConfigurationInfo)
-            )
-        );
-        var pipe = new StoredRelocationPipe()
-        {
-            Name = "Default",
-            Configuration = configuration,
-            ProviderID = provider.ID,
-        };
-
-        RepoFactory.StoredRelocationPipe.Save(pipe);
-    }
-
     public static void CleanupAfterRemovingTvDB()
     {
         var dir = new DirectoryInfo(Path.Join(ImageUtils.BaseImagesPath, "TvDB"));
