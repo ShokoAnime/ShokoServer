@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
@@ -272,49 +272,7 @@ public class Core : BaseController
     [Obsolete]
     [HttpGet("anidb/updatemissingcache")]
     public async Task<ActionResult> UpdateMissingAniDBXML()
-    {
-        try
-        {
-            var scheduler = await _schedulerFactory.GetScheduler();
-            var allAnime = RepoFactory.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
-            logger.Info($"Starting the check for {allAnime.Count} anime XML files");
-            var updatedAnime = 0;
-            for (var i = 0; i < allAnime.Count; i++)
-            {
-                var animeID = allAnime[i];
-                if (i % 10 == 1)
-                {
-                    logger.Info($"Checking anime {i + 1}/{allAnime.Count} for XML file");
-                }
-
-                var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
-                var rawXml = await xmlUtils.LoadAnimeHTTPFromFile(animeID);
-
-                if (rawXml != null)
-                {
-                    continue;
-                }
-
-                await scheduler.StartJob<GetAniDBAnimeJob>(
-                    c =>
-                    {
-                        c.AnimeID = animeID;
-                        c.ForceRefresh = true;
-                    }
-                );
-                updatedAnime++;
-            }
-
-            logger.Info($"Updating {updatedAnime} anime");
-        }
-        catch (Exception e)
-        {
-            logger.Error($"Error checking and queuing AniDB XML Updates: {e}");
-            return APIStatus.InternalError(e.Message);
-        }
-
-        return APIStatus.OK();
-    }
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     #endregion
 
