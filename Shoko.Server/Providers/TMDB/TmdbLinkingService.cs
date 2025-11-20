@@ -18,8 +18,6 @@ using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-
-using CrossRefSource = Shoko.Models.Enums.CrossRefSource;
 using MatchRating = Shoko.Models.Enums.MatchRating;
 
 // Suggestions we don't need in this file.

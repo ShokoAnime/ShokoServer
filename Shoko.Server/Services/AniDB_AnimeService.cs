@@ -92,12 +92,12 @@ public class AniDB_AnimeService
         cl.Stat_AudioLanguages = _languages.GetLanguagesForAnime(anime.AnimeID);
         cl.Stat_SubtitleLanguages = _subtitles.GetLanguagesForAnime(anime.AnimeID);
         cl.Stat_AllVideoQuality =
-            new HashSet<string>(_videoLocals.GetByAniDBAnimeID(anime.AnimeID).Select(a => a.AniDBFile?.File_Source).Where(a => a != null),
+            new HashSet<string>(_videoLocals.GetByAniDBAnimeID(anime.AnimeID).Select(a => a.AniDBFile?.File_Source).WhereNotNull(),
                 StringComparer.InvariantCultureIgnoreCase);
         cl.Stat_AllVideoQuality_Episodes = new HashSet<string>(
             _videoLocals.GetByAniDBAnimeID(anime.AnimeID).Select(a => a.AniDBFile)
                 .Where(a => a != null && a.Episodes.Any(b => b.AnimeID == anime.AnimeID && b.EpisodeType == (int)EpisodeType.Episode))
-                .Select(a => a.File_Source).Where(a => a != null).GroupBy(b => b).ToDictionary(b => b.Key, b => b.Count())
+                .Select(a => a.File_Source).WhereNotNull().GroupBy(b => b).ToDictionary(b => b.Key, b => b.Count())
                 .Where(a => a.Value >= anime.EpisodeCountNormal).Select(a => a.Key), StringComparer.InvariantCultureIgnoreCase);
 
         return cl;

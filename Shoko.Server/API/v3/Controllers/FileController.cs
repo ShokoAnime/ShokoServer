@@ -134,7 +134,7 @@ public class FileController : BaseController
     {
         // Search.
         var searched = RepoFactory.VideoLocal.GetAll()
-            .Search(query, tuple => tuple.Places.Select(place => place?.FilePath).Where(path => path != null), fuzzy)
+            .Search(query, tuple => tuple.Places.Select(place => place?.FilePath).WhereNotNull(), fuzzy)
             .Select(result => result.Result)
             .ToList();
         return ModelHelper.FilterFiles(searched, User, pageSize, page, include, exclude, include_only, sortOrder,
@@ -164,7 +164,7 @@ public class FileController : BaseController
                     ModelState.AddModelError("fileIds", $"Unable to find a file with id {fileId}");
                 return file;
             })
-            .Where(a => a != null)
+            .WhereNotNull()
             .ToList();
 
         if (!ModelState.IsValid)
@@ -1029,7 +1029,7 @@ public class FileController : BaseController
                     ModelState.AddModelError(nameof(body.EpisodeIDs), $"Unable to find shoko episode with id {episodeID}");
                 return episode;
             })
-            .Where(episode => episode != null)
+            .WhereNotNull()
             .ToList();
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -1238,7 +1238,7 @@ public class FileController : BaseController
 
                 return file;
             })
-            .Where(file => file != null)
+            .WhereNotNull()
             .ToList();
         if (body.FileIDs.Length == 0)
             ModelState.AddModelError(nameof(body.FileIDs), "`FileIDs` must contain at least one element.");
@@ -1337,7 +1337,7 @@ public class FileController : BaseController
 
                 return file;
             })
-            .Where(file => file != null)
+            .WhereNotNull()
             .ToList();
         if (body.FileIDs.Length == 0)
             ModelState.AddModelError(nameof(body.FileIDs), "`FileIDs` must contain at least one element.");

@@ -100,7 +100,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             return RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID)
                 .Where(a => a != null && !a.IsHidden)
                 .Select(a => _episodeService.GetV1Contract(a, userID))
-                .Where(a => a != null)
+                .WhereNotNull()
                 .Where(a => a.WatchedCount == 0)
                 .OrderBy(a => a.EpisodeType)
                 .ThenBy(a => a.EpisodeNumber)
@@ -161,7 +161,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
             var groupService = HttpContext.RequestServices.GetRequiredService<AnimeGroupService>();
-            var comboGroups = evaluator.EvaluateFilter(gf, userID).Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).Where(a => a != null)
+            var comboGroups = evaluator.EvaluateFilter(gf, userID).Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).WhereNotNull()
                 .Select(a => groupService.GetV1Contract(a, userID));
 
             foreach (var group in comboGroups)
@@ -406,7 +406,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             var series = RepoFactory.AnimeSeries.GetMostRecentlyAdded(maxRecords, userID);
-            retSeries.AddRange(series.Select(a => seriesService.GetV1UserContract(a, userID)).Where(a => a != null));
+            retSeries.AddRange(series.Select(a => seriesService.GetV1UserContract(a, userID)).WhereNotNull());
         }
         catch (Exception ex)
         {
@@ -1161,7 +1161,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 RepoFactory.AnimeEpisode.GetBySeriesID(animeSeriesID)
                     .Where(a => a != null && !a.IsHidden)
                     .Select(a => _episodeService.GetV1Contract(a, userID))
-                    .Where(a => a != null)
+                    .WhereNotNull()
                     .ToList();
         }
         catch (Exception ex)
@@ -1807,7 +1807,7 @@ public partial class ShokoServiceImplementation : IShokoServer
                 var evaluator = HttpContext.RequestServices.GetRequiredService<FilterEvaluator>();
                 var results = evaluator.EvaluateFilter(gf, userID);
                 var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
-                retGroups = results.Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).Where(a => a != null).Select(a => groupService.GetV1Contract(a, userID))
+                retGroups = results.Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).WhereNotNull().Select(a => groupService.GetV1Contract(a, userID))
                     .ToList();
             }
 
@@ -3081,7 +3081,7 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             gfs = legacyConverter.ToClient(allGfs)
-                .Where(a => a != null)
+                .WhereNotNull()
                 .ToList();
         }
         catch (Exception ex)
@@ -3105,7 +3105,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             _logger.LogInformation("GetAllGroupFilters (Database) in {0} ms", ts.TotalMilliseconds);
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             gfs = legacyConverter.ToClient(allGfs)
-                .Where(a => a != null)
+                .WhereNotNull()
                 .ToList();
         }
         catch (Exception ex)

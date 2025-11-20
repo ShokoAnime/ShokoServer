@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using Shoko.Models.Server;
+using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models;
@@ -14,7 +15,7 @@ public class SVR_Scan : Scan
             this.ImportFolders.Split(',')
                 .Select(int.Parse)
                 .Select(RepoFactory.ImportFolder.GetByID)
-                .Where(a => a != null)
+                .WhereNotNull()
                 .Select(a => a.ImportFolderLocation
                     .Split(
                         new[] { Path.PathSeparator, Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },

@@ -205,7 +205,7 @@ public class FilterController : BaseController
                     Name = criteria.Name,
                     Description = criteria.HelpDescription
                 };
-            }).Where(a => a != null).ToArray();
+            }).WhereNotNull().ToArray();
         return _sortingTypes;
     }
 

@@ -294,7 +294,7 @@ public static class SeriesSearch
                         Result = series,
                     };
                 })
-                .Where(a => a != null)
+                .WhereNotNull()
             )
             .OrderBy(a => a.Result.PreferredTitle)
             .Take(limit)
@@ -321,7 +321,7 @@ public static class SeriesSearch
                         Result = series,
                     };
                 })
-                .Where(a => a != null)
+                .WhereNotNull()
             )
             .OrderBy(a => a)
             .ThenBy(a => a.Result.PreferredTitle)
@@ -347,7 +347,7 @@ public static class SeriesSearch
 
                 return result;
             })
-            .Where(a => a != null);
+            .WhereNotNull();
         seriesList.AddRange(customTags
             .SelectMany(tag => RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.Result.CustomTagID)
                 .Select(xref =>
@@ -371,7 +371,7 @@ public static class SeriesSearch
                         Result = series,
                     };
                 })
-                .Where(b => b != null)
+                .WhereNotNull()
             )
             .OrderBy(a => a)
             .ThenBy(b => b.Result.PreferredTitle)
@@ -388,7 +388,7 @@ public static class SeriesSearch
 
                 return result;
             })
-            .Where(a => a != null);
+            .WhereNotNull();
         seriesList.AddRange(tags
             .SelectMany(tag => RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.Result.TagID)
                 .Select(xref =>
@@ -409,7 +409,7 @@ public static class SeriesSearch
                         Result = series,
                     };
                 })
-                .Where(a => a != null)
+                .WhereNotNull()
             )
             .OrderBy(a => a)
             .ThenBy(a => a.Result.PreferredTitle)

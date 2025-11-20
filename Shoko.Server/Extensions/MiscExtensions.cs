@@ -1,7 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
 using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;

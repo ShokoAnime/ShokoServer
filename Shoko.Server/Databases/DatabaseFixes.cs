@@ -15,6 +15,7 @@ using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models;
 using Shoko.Server.Models.CrossReference;
@@ -320,7 +321,7 @@ public class DatabaseFixes
             // Fetch the file user record for when a file for the episode was last watched.
             var fileUserRecord = fileListDict[episodeUserRecord.AnimeEpisodeID]
                 .Select(file => RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(episodeUserRecord.JMMUserID, file.VideoLocalID))
-                .Where(record => record != null)
+                .WhereNotNull()
                 .OrderByDescending(record => record.LastUpdated)
                 .FirstOrDefault(record => record.WatchedDate.HasValue);
             if (fileUserRecord != null)
@@ -379,7 +380,7 @@ public class DatabaseFixes
         }
 
         var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
-        var groups = seriesList.Select(a => a.Item1.AnimeGroup).Where(a => a != null).DistinctBy(a => a.AnimeGroupID);
+        var groups = seriesList.Select(a => a.Item1.AnimeGroup).WhereNotNull().DistinctBy(a => a.AnimeGroupID);
         foreach (var group in groups)
         {
             groupService.UpdateStatsFromTopLevel(group, true, true);
@@ -573,7 +574,7 @@ public class DatabaseFixes
             .Select(episode => episode.AnimeSeriesID)
             .Distinct()
             .Select(seriesID => RepoFactory.AnimeSeries.GetByID(seriesID))
-            .Where(series => series != null)
+            .WhereNotNull()
             .ToList();
 
         var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
@@ -646,12 +647,12 @@ public class DatabaseFixes
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(shokoEpisode.AniDB_EpisodeID);
             var videos = xrefs
                 .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
-                .Where(video => video != null)
+                .WhereNotNull()
                 .ToList();
             var anidbFiles = xrefs
                 .Where(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)
                 .Select(xref => RepoFactory.AniDB_File.GetByEd2kAndFileSize(xref.Hash, xref.FileSize))
-                .Where(anidbFile => anidbFile != null)
+                .WhereNotNull()
                 .ToList();
             var tmdbXrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(shokoEpisode.AniDB_EpisodeID);
             xrefsToRemove.AddRange(xrefs);

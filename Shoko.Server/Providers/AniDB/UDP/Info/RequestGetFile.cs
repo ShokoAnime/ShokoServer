@@ -185,7 +185,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
 
                                     return new ResponseGetFile.EpisodeXRef { EpisodeID = epid, Percentage = per };
                                 }
-                            ).Where(a => a != null).ToArray();
+                            ).WhereNotNull().ToArray();
                             if (tempXrefs.Length > 0)
                             {
                                 otherXrefs.AddRange(tempXrefs);
@@ -210,7 +210,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
 
                                     return new ResponseGetFile.EpisodeXRef { EpisodeID = epid, Percentage = per };
                                 }
-                            ).Where(a => a != null).ToArray();
+                            ).WhereNotNull().ToArray();
                             if (tempXrefs.Length > 0)
                             {
                                 otherXrefs.AddRange(tempXrefs);

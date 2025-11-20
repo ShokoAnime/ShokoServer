@@ -760,7 +760,7 @@ public class ActionService(
             var missingFiles = RepoFactory.AniDB_File.GetAll()
                 .Where(a => a.GroupID == 0)
                 .Select(a => RepoFactory.VideoLocal.GetByEd2k(a.Hash))
-                .Where(f => f != null)
+                .WhereNotNull()
                 .Select(a => a.VideoLocalID)
                 .ToList();
             vidsToUpdate.UnionWith(missingFiles);

@@ -103,8 +103,7 @@ public class AnimeSeriesService
             .ToList();
         var vlIDsToUpdate = filesToUpdate
             .Select(a => a.VideoLocal?.VideoLocalID)
-            .Where(a => a != null)
-            .Select(a => a.Value)
+            .WhereNotNull()
             .ToList();
 
         // queue rescan for the files
@@ -529,7 +528,7 @@ public class AnimeSeriesService
                     return Array.Empty<int>();
                 }
 
-                var aniFiles = vls.Select(b => b.AniDBFile).Where(b => b != null).ToList();
+                var aniFiles = vls.Select(b => b.AniDBFile).WhereNotNull().ToList();
                 if (!aniFiles.Any())
                 {
                     return Array.Empty<int>();
@@ -740,7 +739,7 @@ public class AnimeSeriesService
         foreach (var ep in series.AllAnimeEpisodes)
         {
             var service = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
-            foreach (var place in series.VideoLocals.SelectMany(a => a.Places).Where(a => a != null))
+            foreach (var place in series.VideoLocals.SelectMany(a => a.Places).WhereNotNull())
             {
                 if (deleteFiles)
                 {

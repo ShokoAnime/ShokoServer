@@ -7,7 +7,6 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;

@@ -339,7 +339,7 @@ public class AnimeCreator
         var epsBelongingToOtherAnime = epIDs
             .Where(id => !epsBelongingToThisAnime.ContainsKey(id))
             .Select(id => RepoFactory.AniDB_Episode.GetByEpisodeID(id))
-            .Where(episode => episode != null)
+            .WhereNotNull()
             .ToList();
         var currentAniDBEpisodes = epsBelongingToThisAnime.Values
             .Concat(epsBelongingToOtherAnime)
@@ -541,12 +541,12 @@ public class AnimeCreator
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID);
             var videos = xrefs
                 .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
-                .Where(video => video != null)
+                .WhereNotNull()
                 .ToList();
             var anidbFiles = xrefs
                 .Where(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)
                 .Select(xref => RepoFactory.AniDB_File.GetByEd2kAndFileSize(xref.Hash, xref.FileSize))
-                .Where(anidbFile => anidbFile != null)
+                .WhereNotNull()
                 .ToList();
             var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
@@ -567,12 +567,12 @@ public class AnimeCreator
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID);
             var videos = xrefs
                 .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
-                .Where(video => video != null)
+                .WhereNotNull()
                 .ToList();
             var anidbFiles = xrefs
                 .Where(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)
                 .Select(xref => RepoFactory.AniDB_File.GetByEd2kAndFileSize(xref.Hash, xref.FileSize))
-                .Where(anidbFile => anidbFile != null)
+                .WhereNotNull()
                 .ToList();
             var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);

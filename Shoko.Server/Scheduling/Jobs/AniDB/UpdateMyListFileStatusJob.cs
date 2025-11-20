@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.User;
@@ -80,7 +81,7 @@ public class UpdateMyListFileStatusJob : BaseJob
         {
             // we have a manual link, so get the xrefs and add the episodes instead as generic files
             var xrefs = vid.EpisodeCrossReferences;
-            foreach (var episode in xrefs.Select(xref => xref.AniDBEpisode).Where(episode => episode != null))
+            foreach (var episode in xrefs.Select(xref => xref.AniDBEpisode).WhereNotNull())
             {
                 _logger.LogInformation("Updating Episode MyList Status: AnimeID: {AnimeID}, Episode Type: {Type}, Episode No: {EP}", episode.AnimeID,
                     episode.EpisodeTypeEnum, episode.EpisodeNumber);

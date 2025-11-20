@@ -129,7 +129,7 @@ public class ProcessFileJob : BaseJob
         // We do this inside, as the info will not be available as needed otherwise
         var videoLocals =
             aniFile.EpisodeIDs?.SelectMany(a => RepoFactory.VideoLocal.GetByAniDBEpisodeID(a))
-                .Where(b => b != null)
+                .WhereNotNull()
                 .ToList();
         if (videoLocals == null) return null;
 

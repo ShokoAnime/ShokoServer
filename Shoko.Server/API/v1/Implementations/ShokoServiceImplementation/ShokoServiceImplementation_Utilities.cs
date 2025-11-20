@@ -135,7 +135,7 @@ public partial class ShokoServiceImplementation
             var epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
             var eps =
                 epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
-                    .Where(b => b != null)
+                    .WhereNotNull()
                     .ToList();
 
             var videosToDelete = new List<SVR_VideoLocal>();
@@ -185,7 +185,7 @@ public partial class ShokoServiceImplementation
         var epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
         var eps =
             epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
-                .Where(b => b != null)
+                .WhereNotNull()
                 .ToList();
 
         var videosToDelete = new List<SVR_VideoLocal>();
@@ -211,7 +211,7 @@ public partial class ShokoServiceImplementation
         var epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
         var eps =
             epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
-                .Where(b => b != null)
+                .WhereNotNull()
                 .ToList();
 
         var videosToDelete = new List<SVR_VideoLocal>();
@@ -718,7 +718,7 @@ public partial class ShokoServiceImplementation
                 return
                     RepoFactory.AnimeSeries.GetWithMissingEpisodes()
                         .Select(a => seriesService.GetV1UserContract(a, userID))
-                        .Where(a => a != null)
+                        .WhereNotNull()
                         .ToList();
         }
         catch (Exception ex)
@@ -1155,7 +1155,7 @@ public partial class ShokoServiceImplementation
         {
             var contract = new CL_GroupVideoQuality();
             var videoLocals = key.ToList();
-            var eps = videoLocals.Select(a => (a?.AnimeEpisodes).FirstOrDefault()).Where(a => a != null).ToList();
+            var eps = videoLocals.Select(a => (a?.AnimeEpisodes).FirstOrDefault()).WhereNotNull().ToList();
             var ani = videoLocals.First().AniDBFile;
             contract.AudioStreamCount = videoLocals.First()
                 .MediaInfo?.AudioStreams.Count ?? 0;

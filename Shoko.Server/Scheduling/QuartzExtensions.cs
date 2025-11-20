@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Nito.AsyncEx;
 using NLog;
 using Quartz;
+using Shoko.Server.Extensions;
 using Shoko.Server.Scheduling.GenericJobBuilder;
 
 namespace Shoko.Server.Scheduling;
@@ -90,7 +91,7 @@ public static class QuartzExtensions
         {
             using var _ = await SchedulerLock.ReaderLockAsync(token);
             var nextFire = (await scheduler.GetTriggersOfJob(job.Key, token).ConfigureAwait(true)).Select(a => a.GetNextFireTimeUtc())
-                .Where(a => a != null).Select(a => a.Value).DefaultIfEmpty().Min();
+                .WhereNotNull().DefaultIfEmpty().Min();
 
             // we are not set to replace the job, then return the first scheduled time
             if (nextFire != default)

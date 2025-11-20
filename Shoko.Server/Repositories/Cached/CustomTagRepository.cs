@@ -3,6 +3,7 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Extensions;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
@@ -28,7 +29,7 @@ public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
     public List<CustomTag> GetByAnimeID(int animeID)
         => RepoFactory.CrossRef_CustomTag.GetByAnimeID(animeID)
             .Select(a => GetByID(a.CustomTagID))
-            .Where(a => a != null)
+            .WhereNotNull()
             .ToList();
 
     public CustomTag? GetByTagName(string? tagName)
