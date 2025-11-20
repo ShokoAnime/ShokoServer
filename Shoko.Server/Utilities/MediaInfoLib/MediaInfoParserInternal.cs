@@ -908,7 +908,7 @@ public static class MediaInfoParserInternal
                 p.OptimizedForStreaming = 0;
                 m.OptimizedForStreaming = 0;
                 var buffer = new byte[8];
-                var fs = new FileStream(filename, FileMode.Open);
+                using var fs = new FileStream(filename, FileMode.Open);
                 fs.Read(buffer, 0, 4);
                 var siz = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
                 fs.Seek(siz, SeekOrigin.Begin);
