@@ -321,26 +321,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
     [HttpPost("CloudAccount/Directory")]
     public List<string> DirectoriesFromImportFolderPath([FromForm] string path)
-    {
-        if (path == null)
-        {
-            return [];
-        }
-
-        try
-        {
-            return !Directory.Exists(path)
-                ? []
-                : new DirectoryInfo(path).EnumerateDirectories().Select(a => a.FullName).OrderByNatural(a => a)
-                    .ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex);
-        }
-
-        return [];
-    }
+        => [];
 
     #region Settings
 

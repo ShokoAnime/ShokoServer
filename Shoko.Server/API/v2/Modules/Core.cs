@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
@@ -146,9 +146,7 @@ public class Core : BaseController
     /// <returns></returns>
     [HttpPost("config/get")]
     public ActionResult<Setting> GetSetting(Setting setting)
-    {
-        return new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
-    }
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     /// <summary>
     /// 
@@ -565,21 +563,8 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("os/folder/base")]
-    public OSFolder GetOSBaseFolder()
-    {
-        var dir = new OSFolder { full_path = Environment.CurrentDirectory };
-        var dir_info = new DirectoryInfo(dir.full_path);
-        dir.dir = dir_info.Name;
-        dir.subdir = new List<OSFolder>();
-
-        foreach (var info in dir_info.GetDirectories())
-        {
-            var subdir = new OSFolder { full_path = info.FullName, dir = info.Name };
-            dir.subdir.Add(subdir);
-        }
-
-        return dir;
-    }
+    public ActionResult<OSFolder> GetOSBaseFolder()
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     /// <summary>
     /// Return OSFolder object of directory that was given via
@@ -589,42 +574,15 @@ public class Core : BaseController
     /// <returns></returns>
     [HttpPost("/os/folder")]
     public ActionResult<OSFolder> GetOSFolder([FromQuery] string folder, OSFolder dir)
-    {
-        if (!string.IsNullOrEmpty(dir.full_path))
-        {
-            var dir_info = new DirectoryInfo(dir.full_path);
-            dir.dir = dir_info.Name;
-            dir.subdir = new List<OSFolder>();
-
-            foreach (var info in dir_info.GetDirectories())
-            {
-                var subdir = new OSFolder { full_path = info.FullName, dir = info.Name };
-                dir.subdir.Add(subdir);
-            }
-
-            return dir;
-        }
-
-        return new APIMessage(400, "full_path missing");
-    }
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     /// <summary>
     /// Return OSFolder with subdirs as every driver on local system
     /// </summary>
     /// <returns></returns>
     [HttpGet("os/drives")]
-    public OSFolder GetOSDrives()
-    {
-        var drives = Directory.GetLogicalDrives();
-        var dir = new OSFolder { dir = "/", full_path = "/", subdir = new List<OSFolder>() };
-        foreach (var str in drives)
-        {
-            var driver = new OSFolder { dir = str, full_path = str };
-            dir.subdir.Add(driver);
-        }
-
-        return dir;
-    }
+    public ActionResult<OSFolder> GetOSDrives()
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     #endregion
 
