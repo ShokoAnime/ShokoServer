@@ -95,7 +95,7 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
                 result.Add((Type: "foreign-metadata", Name: "bangumi", URL: $"https://bgm.tv/subject/{BangumiID.Value}"));
 
             if (LainID.HasValue && LainID.Value > 0)
-                result.Add((Type: "foreign-metadata", Name: ".lain", URL: $"http://lain.gr.jp/mediadb/media/{LainID.Value}"));
+                result.Add((Type: "foreign-metadata", Name: ".lain", URL: $"https://lain.gr.jp/mediadb/media/{LainID.Value}"));
 
             if (ANNID.HasValue && ANNID.Value > 0)
                 result.Add((Type: "english-metadata", Name: "AnimeNewsNetwork", URL: $"https://www.animenewsnetwork.com/encyclopedia/php?id={ANNID.Value}"));
