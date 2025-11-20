@@ -165,31 +165,35 @@ public partial class ConfigurationService : IConfigurationService
             var description = TypeReflectionExtensions.GetDescription(contextualType);
             var name = schema.Title!;
             string? path = null;
-            if (definition is IConfigurationDefinitionWithCustomSaveLocation { } p0)
+            // If it's a base config then it should not have a path as it cannot be loaded or saved.
+            if (!configurationType.IsAssignableTo(typeof(IBaseConfiguration)))
             {
-                var relativePath = p0.RelativePath;
-                if (!relativePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                    relativePath += ".json";
-                path = Path.Join(_applicationPaths.DataPath, relativePath);
-            }
-            else if (definition is IConfigurationDefinitionWithCustomSaveName { } p1)
-            {
-                // If name is empty or null, then treat it as an in-memory configuration.
-                if (!string.IsNullOrEmpty(p1.Name))
+                if (definition is IConfigurationDefinitionWithCustomSaveLocation { } p0)
                 {
-                    var fileName = p1.Name;
-                    if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                        fileName += ".json";
-                    path = Path.Join(_applicationPaths.ConfigurationsPath, pluginInfo.ID.ToString(), fileName);
+                    var relativePath = p0.RelativePath;
+                    if (!relativePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                        relativePath += ".json";
+                    path = Path.Join(_applicationPaths.DataPath, relativePath);
                 }
-            }
-            else
-            {
-                var fileName = name
-                    .RemoveInvalidPathCharacters()
-                    .Replace(' ', '-')
-                    .ToLower();
-                path = Path.Join(_applicationPaths.ConfigurationsPath, pluginInfo.ID.ToString(), fileName + ".json");
+                else if (definition is IConfigurationDefinitionWithCustomSaveName { } p1)
+                {
+                    // If name is empty or null, then treat it as an in-memory configuration.
+                    if (!string.IsNullOrEmpty(p1.Name))
+                    {
+                        var fileName = p1.Name;
+                        if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                            fileName += ".json";
+                        path = Path.Join(_applicationPaths.ConfigurationsPath, pluginInfo.ID.ToString(), fileName);
+                    }
+                }
+                else
+                {
+                    var fileName = name
+                        .RemoveInvalidPathCharacters()
+                        .Replace(' ', '-')
+                        .ToLower();
+                    path = Path.Join(_applicationPaths.ConfigurationsPath, pluginInfo.ID.ToString(), fileName + ".json");
+                }
             }
 
             _configurationTypes[id] = new(this)
