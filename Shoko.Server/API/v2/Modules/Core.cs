@@ -26,7 +26,7 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules;
 
-[Authorize]
+[Authorize("admin")]
 [ApiController] // As this module requireAuthentication all request need to have apikey in header.
 [Route("/api")]
 [ApiVersion("2.0")]
@@ -504,7 +504,6 @@ public class Core : BaseController
     /// Create user from Contract_JMMUser
     /// </summary>
     /// <returns></returns>
-    [Authorize("admin")]
     [HttpPost("user/create")]
     public ActionResult CreateUser(JMMUser user)
     {
@@ -533,7 +532,6 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/password/{uid}")]
-    [Authorize("admin")]
     public ActionResult ChangePassword(int uid, JMMUser user)
     {
         return _service.ChangePassword(uid, user.Password) == string.Empty
@@ -546,7 +544,6 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/delete")]
-    [Authorize("admin")]
     public ActionResult DeleteUser(JMMUser user)
     {
         return _service.DeleteUser(user.JMMUserID) == string.Empty
@@ -605,7 +602,6 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("log/rotate")]
-    [Authorize("admin")]
     public ActionResult SetRotateLogs(Logs rotator)
     {
         _settings.LogRotator.Enabled = rotator.rotate;
