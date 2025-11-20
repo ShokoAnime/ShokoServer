@@ -7,9 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Plugin.Input;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
+using AbstractPluginInfo = Shoko.Plugin.Abstractions.Plugin.PluginInfo;
 using PluginInfo = Shoko.Server.API.v3.Models.Plugin.PluginInfo;
 
 #nullable enable
@@ -29,15 +32,84 @@ public class PluginController(ISettingsProvider settingsProvider, IPluginManager
     /// <summary>
     ///   Gets a list of all registered plugins.
     /// </summary>
+    /// <param name="query">
+    ///   An optional query to filter plugins by name.
+    /// </param>
+    /// <param name="active">
+    ///   Whether to include all active plugins, include only active plugins,
+    ///   or exclude all active plugins.
+    /// </param>
+    /// <param name="installed">
+    ///   Whether to include all installed plugins, include only installed
+    ///   plugins, or exclude all installed plugins.
+    /// </param>
+    /// <param name="enabled">
+    ///   Whether to include all enabled plugins, include only enabled plugins,
+    ///   or exclude all enabled plugins.
+    /// </param>
+    /// <param name="restartPending">
+    ///   Whether to include all plugins that require a restart, include only
+    ///   plugins that require a restart, or exclude all plugins that require a
+    ///   restart.
+    /// </param>
+    /// <param name="allVersions">
+    ///   Whether to include all versions of plugins, or only the active or
+    ///   highest version.
+    /// </param>
     /// <returns>
     ///   A list of <see cref="PluginInfo"/> for all registered plugins and
     ///   versions.
     /// </returns>
     [HttpGet]
-    public ActionResult<List<PluginInfo>> GetPlugins()
-        => pluginManager.GetPluginInfos()
+    public ActionResult<List<PluginInfo>> GetPlugins(
+        [FromQuery] string? query = null,
+        [FromQuery] IncludeOnlyFilter active = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter installed = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter enabled = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter restartPending = IncludeOnlyFilter.True,
+        [FromQuery] bool allVersions = false
+    )
+    {
+        var enumerable = (IEnumerable<AbstractPluginInfo>)pluginManager.GetPluginInfos();
+        if (!allVersions)
+            enumerable = enumerable.DistinctBy(pluginInfo => pluginInfo.ID);
+        if (!string.IsNullOrEmpty(query))
+            enumerable = enumerable
+                .Search(query, p => [p.Name])
+                .Select(pluginInfo => pluginInfo.Result)
+                .OrderBy(pluginInfo => pluginInfo.LoadOrder);
+        return enumerable
+            .Where(pluginInfo =>
+            {
+                if (active is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideActive = active is IncludeOnlyFilter.False;
+                    if (shouldHideActive == pluginInfo.IsActive)
+                        return false;
+                }
+                if (installed is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideInstalled = installed is IncludeOnlyFilter.False;
+                    if (shouldHideInstalled == pluginInfo.IsInstalled)
+                        return false;
+                }
+                if (enabled is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideEnabled = enabled is IncludeOnlyFilter.False;
+                    if (shouldHideEnabled == pluginInfo.IsEnabled)
+                        return false;
+                }
+                if (restartPending is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideRequiresRestart = restartPending is IncludeOnlyFilter.False;
+                    if (shouldHideRequiresRestart == pluginInfo.RestartPending)
+                        return false;
+                }
+                return true;
+            })
             .Select(pluginInfo => new PluginInfo(pluginInfo))
             .ToList();
+    }
 
     /// <summary>
     ///   Attempts to load plugin infos from the specified paths.
