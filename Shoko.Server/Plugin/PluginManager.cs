@@ -90,8 +90,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
         logger.LogTrace("Scanning {Count} directories for IPlugin and IPluginServiceRegistration implementations", directories.Length);
         var settingsChanged = false;
         var settings = Utils.SettingsProvider.GetSettings();
-        foreach (var (dirPath, dlls) in directories)
-            if (LoadBasicPluginInfo(dirPath, dlls, settings, ref settingsChanged) is { } basicPluginInfo)
+        foreach (var (dirPath, dlls, isSystem) in directories)
+            if (LoadBasicPluginInfo(dirPath, dlls, isSystem, settings, ref settingsChanged) is { } basicPluginInfo)
                 basicPlugins.Add(basicPluginInfo);
 
         GC.Collect();
@@ -225,7 +225,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
         relocationService.AddParts(GetExports<IRelocationProvider>());
     }
 
-    private IEnumerable<(string?, string[])> GetPluginDirectories()
+    private IEnumerable<(string?, string[], bool)> GetPluginDirectories()
     {
         // Load plugins from the system directory.
         var systemPluginDir = Path.Join(applicationPaths.ApplicationPath, "plugins");
@@ -242,7 +242,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
                     continue;
                 }
 
-                yield return (null, [filePath]);
+                yield return (null, [filePath], true);
             }
 
             foreach (var directoryPath in Directory.GetDirectories(systemPluginDir, "*", new EnumerationOptions() { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System }))
@@ -256,7 +256,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
                     continue;
                 }
 
-                yield return (directoryPath, Directory.GetFiles(directoryPath, "*.dll", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System }));
+                yield return (directoryPath, Directory.GetFiles(directoryPath, "*.dll", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System }), true);
             }
         }
 
@@ -275,7 +275,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
                     continue;
                 }
 
-                yield return (null, [filePath]);
+                yield return (null, [filePath], false);
             }
 
             foreach (var directoryPath in Directory.GetDirectories(userPluginDir, "*", new EnumerationOptions() { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System }))
@@ -289,7 +289,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
                     continue;
                 }
 
-                yield return (directoryPath, Directory.GetFiles(directoryPath, "*.dll", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System }));
+                yield return (directoryPath, Directory.GetFiles(directoryPath, "*.dll", new EnumerationOptions() { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System }), false);
             }
         }
     }
@@ -298,7 +298,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
     {
         var settingsChanged = false;
         var settings = Utils.SettingsProvider.GetSettings();
-        var basicPluginInfo = LoadBasicPluginInfo(containingDirectory, dlls, settings, ref settingsChanged);
+        var basicPluginInfo = LoadBasicPluginInfo(containingDirectory, dlls, false, settings, ref settingsChanged);
         if (settingsChanged)
             Utils.SettingsProvider.SaveSettings();
 
@@ -307,7 +307,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
         return basicPluginInfo;
     }
 
-    private BasicPluginInfo? LoadBasicPluginInfo(string? dirPath, string[] dlls, IServerSettings settings, ref bool settingsChanged)
+    private BasicPluginInfo? LoadBasicPluginInfo(string? dirPath, string[] dlls, bool isSystem, IServerSettings settings, ref bool settingsChanged)
     {
         var alc = new IsolatedLoadContext();
         try
@@ -396,7 +396,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
                         HasServices = registrationImpl.Count > 0,
                         ContainingDirectory = dirPath,
                         Priority = settings.Plugins.Priority.IndexOf(name),
-                        CanUninstall = true,
+                        CanUninstall = !isSystem,
                         DLLs = [dllPath, .. dlls.Except([dllPath])],
                     };
                 }
@@ -451,29 +451,18 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
     public PluginInfo? LoadFromPath(string path)
     {
         var userPluginDir = applicationPaths.PluginsPath;
-        if (path.StartsWith("%ApplicationPath%"))
-            path = path.Replace("%ApplicationPath%", applicationPaths.ApplicationPath);
-        else if (path.StartsWith("%PluginsPath%"))
+        if (path.StartsWith("%PluginsPath%"))
             path = path.Replace("%PluginsPath%", userPluginDir);
 
-        var systemPluginDir = Path.Join(applicationPaths.ApplicationPath, "plugins");
         if (Path.IsPathFullyQualified(path))
         {
-            if (!path.StartsWith(systemPluginDir + Path.DirectorySeparatorChar) && !path.StartsWith(userPluginDir + Path.DirectorySeparatorChar))
+            if (!path.StartsWith(userPluginDir + Path.DirectorySeparatorChar))
                 return null;
 
             return LoadFromPathInternal(path);
         }
 
-        var fullPath = Path.Combine(systemPluginDir, path);
-        if (!fullPath.StartsWith(systemPluginDir + Path.DirectorySeparatorChar))
-            return null;
-
-        var plugin = LoadFromPathInternal(fullPath);
-        if (plugin is not null)
-            return plugin;
-
-        fullPath = Path.Combine(userPluginDir, path);
+        var fullPath = Path.Combine(userPluginDir, path);
         if (!fullPath.StartsWith(userPluginDir + Path.DirectorySeparatorChar))
             return null;
 

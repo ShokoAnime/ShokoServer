@@ -133,14 +133,13 @@ public interface IPluginManager
     ///   Loads a new plugin info from the given path.
     /// </summary>
     /// <remarks>
-    ///   The path should be relative to the user or system plugin directories.
-    ///   If it lies outside those, then the operation will fail.
+    ///   The path should be relative to the user plugin directory. If it lies
+    ///   outside the directory, then the operation will fail.
     /// </remarks>
     /// <param name="path">
     ///   The path to the plugin. If relative, it will be first checked if it's
-    ///   relative to the system plugin directory followed by the user plugin
-    ///   directory. If absolute, it will be checked if it lies within one of
-    ///   the two mentioned directories.
+    ///   relative to the user plugin directory. If absolute, it will be checked
+    ///   if it lies within the mentioned directory.
     /// </param>
     /// <returns>
     ///   The loaded <see cref="PluginInfo"/> for the plugin.
