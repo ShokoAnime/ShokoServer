@@ -32,12 +32,12 @@ public class RelocationPipe(RelocationPipeInfo pipe, RelocationProviderInfo? pro
     public bool IsDefault { get; init; } = pipe.IsDefault;
 
     /// <summary>
-    /// Indicates that this pipe is available for use.
+    /// Indicates that this pipe is currently usable.
     /// </summary>
-    public bool IsAvailable { get; init; } = provider is not null;
+    public bool IsUsable { get; init; } = provider is not null;
 
     /// <summary>
     ///   Indicates that the pipe has a configuration attached to it.
     /// </summary>
-    public bool? HasConfiguration { get; init; } = provider is null ? null : provider.ConfigurationInfo is not null;
+    public bool HasConfiguration { get; init; } = provider is null ? pipe.Configuration is { Length: > 0 } : provider.ConfigurationInfo is not null;
 }
