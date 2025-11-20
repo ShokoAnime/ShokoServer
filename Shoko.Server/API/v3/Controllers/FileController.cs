@@ -125,7 +125,7 @@ public class FileController(
     {
         // Search.
         var searched = RepoFactory.VideoLocal.GetAll()
-            .Search(query, tuple => tuple.Places.Select(place => place?.RelativePath).Where(path => path != null), fuzzy)
+            .Search(query, tuple => tuple.Places.Select(place => place?.RelativePath).WhereNotNull(), fuzzy)
             .Select(result => result.Result)
             .ToList();
         return ModelHelper.FilterFiles(searched, User, pageSize, page, include, exclude, include_only, sortOrder,
@@ -155,7 +155,7 @@ public class FileController(
                     ModelState.AddModelError("fileIds", $"Unable to find a file with id {fileId}");
                 return file;
             })
-            .Where(a => a != null)
+            .WhereNotNull()
             .ToList();
 
         if (!ModelState.IsValid)

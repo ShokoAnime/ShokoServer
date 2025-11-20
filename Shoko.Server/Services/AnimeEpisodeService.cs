@@ -54,7 +54,7 @@ public class AnimeEpisodeService
         // get all the cross refs
         return ep?.FileCrossReferences
             .Select(xref => xref.VideoLocal)
-            .Where(v => v != null)
+            .WhereNotNull()
             .Select(v => _vlService.GetV1DetailedContract(v, userID)).ToList() ?? [];
     }
 

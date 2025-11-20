@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using Microsoft.Extensions.Logging;
 using Shoko.Models.Enums;
+using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Settings;
 
@@ -29,21 +30,21 @@ public class RequestVotes : HttpRequest<List<ResponseVote>>
             var myitems = docAnime["votes"]?["anime"]?.GetElementsByTagName("vote");
             if (myitems != null)
             {
-                results.AddRange(myitems.Cast<XmlNode>().Select(GetAnime).Where(vote => vote != null));
+                results.AddRange(myitems.Cast<XmlNode>().Select(GetAnime).WhereNotNull());
             }
 
             // get the temporary anime votes
             myitems = docAnime["votes"]?["animetemporary"]?.GetElementsByTagName("vote");
             if (myitems != null)
             {
-                results.AddRange(myitems.Cast<XmlNode>().Select(GetAnimeTemp).Where(vote => vote != null));
+                results.AddRange(myitems.Cast<XmlNode>().Select(GetAnimeTemp).WhereNotNull());
             }
 
             // get the episode votes
             myitems = docAnime["votes"]?["episode"]?.GetElementsByTagName("vote");
             if (myitems != null)
             {
-                results.AddRange(myitems.Cast<XmlNode>().Select(GetEpisode).Where(vote => vote != null));
+                results.AddRange(myitems.Cast<XmlNode>().Select(GetEpisode).WhereNotNull());
             }
 
             return Task.FromResult(new HttpResponse<List<ResponseVote>> { Code = data.Code, Response = results });

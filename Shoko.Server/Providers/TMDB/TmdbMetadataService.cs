@@ -2481,6 +2481,9 @@ public class TmdbMetadataService
             }
         }
 
+        cancellationTokenSource.Dispose();
+        semaphore.Dispose();
+
         if (exceptions.Count > 0)
             throw new AggregateException(exceptions);
     }

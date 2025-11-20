@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Plugin.Abstractions.Services;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
 using Shoko.Server.Plex.Collection;
@@ -47,7 +48,7 @@ public class SyncPlexWatchedStatesJob : BaseJob
             var allSeries = ((SVR_Directory)section).GetShows();
             foreach (var series in allSeries)
             {
-                var episodes = ((SVR_PlexLibrary)series)?.GetEpisodes()?.Where(s => s != null);
+                var episodes = ((SVR_PlexLibrary)series)?.GetEpisodes()?.WhereNotNull();
                 if (episodes == null) continue;
 
                 foreach (var ep in episodes)
@@ -80,7 +81,7 @@ public class SyncPlexWatchedStatesJob : BaseJob
 
                     var alreadyWatched = animeEpisode.VideoLocals
                         .Select(a => _vlUsers.GetByUserIDAndVideoLocalID(User.JMMUserID, a.VideoLocalID))
-                        .Where(a => a != null)
+                        .WhereNotNull()
                         .Any(x => x.WatchedDate is not null || x.WatchedCount > 0);
 
                     if (!alreadyWatched && userRecord != null)

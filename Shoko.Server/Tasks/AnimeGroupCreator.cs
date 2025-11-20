@@ -344,7 +344,7 @@ public class AnimeGroupCreator
             // We basically pick the first group that any of the related series belongs to already
             animeGroup = grpAnimeIds.Where(id => id != series.AniDB_ID)
                 .Select(id => _animeSeriesRepo.GetByAnimeID(id))
-                .Where(s => s != null)
+                .WhereNotNull()
                 .Select(s => _animeGroupRepo.GetByID(s.AnimeGroupID))
                 .FirstOrDefault(s => s != null);
 
@@ -414,7 +414,7 @@ public class AnimeGroupCreator
             // We basically pick the first group that any of the related series belongs to already
             animeGroup = grpAnimeIds.Where(id => id != anime.AnimeID)
                 .Select(id => _animeSeriesRepo.GetByAnimeID(id))
-                .Where(s => s != null)
+                .WhereNotNull()
                 .Select(s => _animeGroupRepo.GetByID(s.AnimeGroupID))
                 .FirstOrDefault(s => s != null);
 

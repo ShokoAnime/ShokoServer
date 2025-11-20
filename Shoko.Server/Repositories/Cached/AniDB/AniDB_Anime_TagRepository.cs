@@ -4,6 +4,7 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Databases;
+using Shoko.Server.Extensions;
 
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
@@ -38,7 +39,7 @@ public class AniDB_Anime_TagRepository(DatabaseFactory databaseFactory) : BaseCa
     public List<AniDB_Anime_Tag> GetAllForLocalSeries()
         => RepoFactory.AnimeSeries.GetAll()
             .SelectMany(a => GetByAnimeID(a.AniDB_ID))
-            .Where(a => a != null)
+            .WhereNotNull()
             .Distinct()
             .ToList();
 }

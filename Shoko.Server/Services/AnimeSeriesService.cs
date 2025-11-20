@@ -738,7 +738,7 @@ public class AnimeSeriesService
         foreach (var ep in series.AllAnimeEpisodes)
         {
             var service = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
-            foreach (var place in series.VideoLocals.SelectMany(a => a.Places).Where(a => a != null))
+            foreach (var place in series.VideoLocals.SelectMany(a => a.Places).WhereNotNull())
             {
                 if (deleteFiles) await service.RemoveRecordAndDeletePhysicalFile(place);
                 else await service.RemoveRecord(place);

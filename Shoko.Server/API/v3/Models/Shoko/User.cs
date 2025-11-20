@@ -68,7 +68,7 @@ public class User
 
         RestrictedTags = user.GetHideCategories()
             .Select(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault()!)
-            .Where(tag => tag != null)
+            .WhereNotNull()
             .Select(tag => tag.TagID)
             .ToList();
 

@@ -323,7 +323,7 @@ public class WebUI
                         },
                     };
                 })
-                .Where(file => file != null)
+                .WhereNotNull()
                 .ToList();
             var presentEpisodes = files
                 .Select(xref => xref.Episode.EpisodeID)

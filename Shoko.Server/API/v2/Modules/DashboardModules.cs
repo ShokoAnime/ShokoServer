@@ -63,7 +63,7 @@ public class DashboardModules : BaseController
             });
 
             hours = Math.Round((decimal)watched.Select(a => RepoFactory.VideoLocal.GetByID(a.VideoLocalID))
-                    .Where(a => a != null)
+                    .WhereNotNull()
                     .Sum(a => a.MediaInfo?.GeneralStream?.Duration ?? 0) / 3600, 1,
                 MidpointRounding.AwayFromZero); // 60s * 60m = ?h
 
@@ -87,7 +87,7 @@ public class DashboardModules : BaseController
             tags = RepoFactory.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
                 .ToDictionary(a => a.Key, a => a.Count()).OrderByDescending(a => a.Value)
                 .Select(a => RepoFactory.AniDB_Tag.GetByTagID(a.Key)?.TagName)
-                .Where(a => a != null).ToList();
+                .WhereNotNull().ToList();
             var tagfilter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source;
             tags = TagFilter.String.ProcessTags(tagfilter, tags).Take(10).ToList();
         }

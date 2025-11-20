@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -12,10 +11,8 @@ using NLog;
 using Quartz;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
@@ -28,7 +25,7 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules;
 
-[Authorize]
+[Authorize("admin")]
 [ApiController] // As this module requireAuthentication all request need to have apikey in header.
 [Route("/api")]
 [ApiVersion("2.0")]
@@ -157,9 +154,7 @@ public class Core : BaseController
     /// <returns></returns>
     [HttpPost("config/get")]
     public ActionResult<Setting> GetSetting(Setting setting)
-    {
-        return new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
-    }
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     /// <summary>
     /// 
@@ -285,43 +280,7 @@ public class Core : BaseController
     [Obsolete]
     [HttpGet("anidb/updatemissingcache")]
     public async Task<ActionResult> UpdateMissingAniDBXML()
-    {
-        try
-        {
-            var scheduler = await _schedulerFactory.GetScheduler();
-            var allAnime = RepoFactory.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
-            logger.Info($"Starting the check for {allAnime.Count} anime XML files");
-            var updatedAnime = 0;
-            for (var i = 0; i < allAnime.Count; i++)
-            {
-                var animeID = allAnime[i];
-                if (i % 10 == 1)
-                {
-                    logger.Info($"Checking anime {i + 1}/{allAnime.Count} for XML file");
-                }
-
-                var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
-                var rawXml = await xmlUtils.LoadAnimeHTTPFromFile(animeID);
-
-                if (rawXml != null)
-                {
-                    continue;
-                }
-
-                _anidbService.ScheduleRefreshByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).GetAwaiter().GetResult();
-                updatedAnime++;
-            }
-
-            logger.Info($"Updating {updatedAnime} anime");
-        }
-        catch (Exception e)
-        {
-            logger.Error($"Error checking and queuing AniDB XML Updates: {e}");
-            return APIStatus.InternalError(e.Message);
-        }
-
-        return APIStatus.OK();
-    }
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     #endregion
 
@@ -511,7 +470,6 @@ public class Core : BaseController
     /// Create user from Contract_JMMUser
     /// </summary>
     /// <returns></returns>
-    [Authorize("admin")]
     [HttpPost("user/create")]
     public ActionResult CreateUser(JMMUser user)
     {
@@ -540,7 +498,6 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/password/{uid}")]
-    [Authorize("admin")]
     public ActionResult ChangePassword(int uid, JMMUser user)
     {
         return _service.ChangePassword(uid, user.Password) == string.Empty
@@ -553,7 +510,6 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/delete")]
-    [Authorize("admin")]
     public ActionResult DeleteUser(JMMUser user)
     {
         return _service.DeleteUser(user.JMMUserID) == string.Empty
@@ -570,21 +526,8 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("os/folder/base")]
-    public OSFolder GetOSBaseFolder()
-    {
-        var dir = new OSFolder { full_path = Environment.CurrentDirectory };
-        var dir_info = new DirectoryInfo(dir.full_path);
-        dir.dir = dir_info.Name;
-        dir.subdir = new List<OSFolder>();
-
-        foreach (var info in dir_info.GetDirectories())
-        {
-            var subdir = new OSFolder { full_path = info.FullName, dir = info.Name };
-            dir.subdir.Add(subdir);
-        }
-
-        return dir;
-    }
+    public ActionResult<OSFolder> GetOSBaseFolder()
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     /// <summary>
     /// Return OSFolder object of directory that was given via
@@ -594,42 +537,15 @@ public class Core : BaseController
     /// <returns></returns>
     [HttpPost("/os/folder")]
     public ActionResult<OSFolder> GetOSFolder([FromQuery] string folder, OSFolder dir)
-    {
-        if (!string.IsNullOrEmpty(dir.full_path))
-        {
-            var dir_info = new DirectoryInfo(dir.full_path);
-            dir.dir = dir_info.Name;
-            dir.subdir = new List<OSFolder>();
-
-            foreach (var info in dir_info.GetDirectories())
-            {
-                var subdir = new OSFolder { full_path = info.FullName, dir = info.Name };
-                dir.subdir.Add(subdir);
-            }
-
-            return dir;
-        }
-
-        return new APIMessage(400, "full_path missing");
-    }
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     /// <summary>
     /// Return OSFolder with subdirs as every driver on local system
     /// </summary>
     /// <returns></returns>
     [HttpGet("os/drives")]
-    public OSFolder GetOSDrives()
-    {
-        var drives = Directory.GetLogicalDrives();
-        var dir = new OSFolder { dir = "/", full_path = "/", subdir = new List<OSFolder>() };
-        foreach (var str in drives)
-        {
-            var driver = new OSFolder { dir = str, full_path = str };
-            dir.subdir.Add(driver);
-        }
-
-        return dir;
-    }
+    public ActionResult<OSFolder> GetOSDrives()
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     #endregion
 
@@ -652,7 +568,6 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("log/rotate")]
-    [Authorize("admin")]
     public ActionResult SetRotateLogs(Logs rotator)
     {
         _settings.LogRotator.Enabled = rotator.rotate;

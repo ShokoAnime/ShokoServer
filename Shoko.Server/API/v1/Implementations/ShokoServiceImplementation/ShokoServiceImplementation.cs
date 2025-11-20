@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.AspNetCore.Mvc;
@@ -138,7 +137,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             c.Filters = new CL_Changes<CL_GroupFilter>
             {
                 ChangedItems = legacyConverter.ToClient(RepoFactory.FilterPreset.GetAll(), userID)
-                    .Where(a => a != null)
+                    .WhereNotNull()
                     .ToList(),
                 RemovedItems = [],
                 LastChange = DateTime.Now
@@ -155,7 +154,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
             c.Groups.ChangedItems = changes[0]
                 .ChangedItems.Select(a => RepoFactory.AnimeGroup.GetByID(a))
-                .Where(a => a != null)
+                .WhereNotNull()
                 .Select(a => groupService.GetV1Contract(a, userID))
                 .ToList();
 
@@ -173,7 +172,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
             c.Series.ChangedItems = changes[2]
                 .ChangedItems.Select(a => RepoFactory.AnimeSeries.GetByID(a))
-                .Where(a => a != null)
+                .WhereNotNull()
                 .Select(a => seriesService.GetV1UserContract(a, userID))
                 .ToList();
             c.Series.RemovedItems = changes[2].RemovedItems.ToList();
@@ -205,7 +204,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         {
             var legacyConverter = HttpContext.RequestServices.GetRequiredService<LegacyFilterConverter>();
             c.ChangedItems = legacyConverter.ToClient(RepoFactory.FilterPreset.GetAll())
-                .Where(a => a != null)
+                .WhereNotNull()
                 .ToList();
             c.RemovedItems = [];
             c.LastChange = DateTime.Now;
@@ -329,26 +328,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 
     [HttpPost("CloudAccount/Directory")]
     public List<string> DirectoriesFromImportFolderPath([FromForm] string path)
-    {
-        if (path == null)
-        {
-            return [];
-        }
-
-        try
-        {
-            return !Directory.Exists(path)
-                ? []
-                : new DirectoryInfo(path).EnumerateDirectories().Select(a => a.FullName).OrderByNatural(a => a)
-                    .ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex);
-        }
-
-        return [];
-    }
+        => [];
 
     #region Settings
 
