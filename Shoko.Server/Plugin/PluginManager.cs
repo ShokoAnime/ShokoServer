@@ -453,20 +453,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
         var userPluginDir = applicationPaths.PluginsPath;
         if (path.StartsWith("%PluginsPath%"))
             path = path.Replace("%PluginsPath%", userPluginDir);
-
-        if (Path.IsPathFullyQualified(path))
-        {
-            if (!path.StartsWith(userPluginDir + Path.DirectorySeparatorChar))
-                return null;
-
-            return LoadFromPathInternal(path);
-        }
-
-        var fullPath = Path.Combine(userPluginDir, path);
-        if (!fullPath.StartsWith(userPluginDir + Path.DirectorySeparatorChar))
+        if (!Path.IsPathFullyQualified(path))
+            path = Path.Combine(userPluginDir, path);
+        if (!path.StartsWith(userPluginDir + Path.DirectorySeparatorChar))
             return null;
 
-        return LoadFromPathInternal(fullPath);
+        return LoadFromPathInternal(path);
     }
 
     public PluginInfo EnablePlugin(PluginInfo pluginInfo)
