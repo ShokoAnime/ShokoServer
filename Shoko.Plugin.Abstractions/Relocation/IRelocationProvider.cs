@@ -30,6 +30,13 @@ public interface IRelocationProvider
     bool SupportsUnrecognized { get => false; }
 
     /// <summary>
+    ///   This should be true if the renamer can handle cases where part of or
+    ///   all the metadata for the episodes and/or series linked to the video
+    ///   is missing.
+    /// </summary>
+    bool SupportsIncompleteMetadata { get => false; }
+
+    /// <summary>
     ///   Indicates that the renamer supports moving files. That is, changing
     ///   the directory the file is in.
     /// </summary>

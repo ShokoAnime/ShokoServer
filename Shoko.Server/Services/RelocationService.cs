@@ -618,18 +618,6 @@ public class RelocationService(
         // Or if it's in a drop destination not also marked as a drop source and relocating inside destinations is disabled.
         if (managedFolder.DropFolderType is DropFolderType.Destination && !shouldAllowRelocationInsideDestination)
             return RelocationResponse.FromError("Not relocating file because it's in a drop destination not also marked as a drop source and relocating inside destinations is disabled.");
-
-        var videoLocal = place.Video;
-        var xrefs = videoLocal.CrossReferences;
-        var episodes = xrefs
-            .Select(x => x.ShokoEpisode)
-            .WhereNotNull()
-            .ToList();
-
-        // We don't have all the data yet, so don't try to rename yet.
-        if (xrefs.Count != episodes.Count)
-            return RelocationResponse.FromError($"Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes.");
-
         if (pipe is null)
         {
             var defaultRenamerName = settings.Plugins.Renamer.DefaultRenamer;
@@ -644,9 +632,20 @@ public class RelocationService(
         }
 
         if (service.GetProviderInfo(pipe.ProviderID) is not { } providerInfo)
-            return RelocationResponse.FromError($"No relocation provider configured for provider ID \"{pipe.ProviderID}\".");
+            return RelocationResponse.FromError($"No relocation provider with ID \"{pipe.ProviderID}\" is unavailable or unknown.");
 
-        // Check if it's unrecognized.
+        var videoLocal = place.Video;
+        var xrefs = videoLocal.CrossReferences;
+        var episodes = xrefs
+            .Select(x => x.ShokoEpisode)
+            .WhereNotNull()
+            .ToList();
+
+        // We don't have all the data yet, so don't try to relocate yet if the provider doesn't support handling incomplete metadata.
+        if (xrefs.Count != episodes.Count && !providerInfo.SupportsIncompleteMetadata)
+            return RelocationResponse.FromError($"Not enough data to do renaming for the recognized file. Missing metadata for {xrefs.Count - episodes.Count} episodes.");
+
+        // Don't try to relocate if the provider doesn't support unrecognized files and the file is unrecognized.
         if (xrefs.Count == 0 && !providerInfo.SupportsUnrecognized)
             return RelocationResponse.FromError("Configured renamer does not support unrecognized files, and the file is unrecognized.");
 

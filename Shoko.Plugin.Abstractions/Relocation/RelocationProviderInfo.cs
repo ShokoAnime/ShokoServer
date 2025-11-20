@@ -36,6 +36,13 @@ public class RelocationProviderInfo
     public bool SupportsUnrecognized { get => Provider.SupportsUnrecognized; }
 
     /// <summary>
+    ///   This should be true if the renamer can handle cases where part of or
+    ///   all the metadata for the episodes and/or series linked to the video
+    ///   is missing.
+    /// </summary>
+    public bool SupportsIncompleteMetadata { get => Provider.SupportsIncompleteMetadata; }
+
+    /// <summary>
     ///   Indicates that the renamer supports moving files. That is, changing
     ///   the directory the file is in.
     /// </summary>
