@@ -106,7 +106,7 @@ public class VideoHashingService(
                 .Select((provider, priority) =>
                 {
                     var providerType = provider.GetType();
-                    var pluginInfo = Loader.GetTypes<IPlugin>(providerType.Assembly).Aggregate((PluginInfo?)null, (p, t) => p ?? pluginManager.GetPluginInfo(t))!;
+                    var pluginInfo = pluginManager.GetPluginInfo(providerType.Assembly)!;
                     var id = GetID(providerType, pluginInfo);
                     var contextualType = providerType.ToContextualType();
                     var enabledHashes = enabled.Where(kp => kp.Value == id).Select(kp => kp.Key).Order().ToHashSet();
@@ -127,7 +127,7 @@ public class VideoHashingService(
                         EnabledHashTypes = enabledHashes,
                     };
                 })
-                .OrderByDescending(info => info.PluginInfo.PluginType == typeof(CorePlugin))
+                .OrderByDescending(info => typeof(CorePlugin) == info.PluginInfo.PluginType)
                 .ThenBy(info => info.PluginInfo.Name)
                 .ThenBy(info => info.Name)
                 .ThenBy(info => info.ID)
@@ -161,7 +161,7 @@ public class VideoHashingService(
     public IEnumerable<HashProviderInfo> GetAvailableProviders(bool onlyEnabled = false)
         => _hashProviderInfos.Values
             .Where(info => !onlyEnabled || info.EnabledHashTypes.Count > 0)
-            .OrderByDescending(info => info.PluginInfo.PluginType == typeof(CorePlugin))
+            .OrderByDescending(info => typeof(CorePlugin) == info.PluginInfo.PluginType)
             .ThenBy(info => info.PluginInfo.Name)
             .ThenBy(info => info.Name)
             .ThenBy(info => info.ID)
@@ -792,7 +792,7 @@ public class VideoHashingService(
     #region ID Helpers
 
     private Guid GetID(Type providerType)
-        => _loaded && Loader.GetTypes<IPlugin>(providerType.Assembly).Aggregate((PluginInfo?)null, (p, t) => p ?? pluginManager.GetPluginInfo(t)) is { } pluginInfo
+        => _loaded && pluginManager.GetPluginInfo(providerType.Assembly) is { } pluginInfo
             ? GetID(providerType, pluginInfo)
             : Guid.Empty;
 

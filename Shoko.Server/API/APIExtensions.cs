@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
@@ -14,15 +15,15 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Sentry;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Server.API.ActionFilters;
 using Shoko.Server.API.Authentication;
+using Shoko.Server.API.FileProviders;
 using Shoko.Server.API.SignalR;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.Swagger;
 using Shoko.Server.API.v3.Helpers;
-using Shoko.Server.API.FileProviders;
 using Shoko.Server.Extensions;
-using Shoko.Server.Plugin;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
@@ -34,7 +35,7 @@ namespace Shoko.Server.API;
 
 public static class APIExtensions
 {
-    public static IServiceCollection AddAPI(this IServiceCollection services)
+    public static IServiceCollection AddAPI(this IServiceCollection services, IPluginManager pluginManager)
     {
         services.AddSingleton<LoggingEmitter>();
         services.AddSingleton<IEventEmitter, AniDBEventEmitter>();
@@ -117,7 +118,7 @@ public static class APIExtensions
                     options.IncludeXmlComments(xmlPath);
                 }
 
-                options.AddPlugins();
+                options.AddPlugins(pluginManager);
 
                 var v3Enums = typeof(APIExtensions).Assembly.GetTypes()
                     .Concat(typeof(TitleLanguage).Assembly.GetTypes())
@@ -149,7 +150,7 @@ public static class APIExtensions
                 options.CustomSchemaIds(GetTypeName);
             });
         services.AddSwaggerGenNewtonsoftSupport();
-        services.AddSignalR(options => 
+        services.AddSignalR(options =>
             {
                 options.EnableDetailedErrors = true;
                 options.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // default timeout is 30 seconds
@@ -192,7 +193,7 @@ public static class APIExtensions
                 json.SerializerSettings.DefaultValueHandling = DefaultValueHandling.Populate;
                 // json.SerializerSettings.DateFormatString = "yyyy-MM-dd";
             })
-            .AddPluginControllers()
+            .AddPluginControllers(pluginManager)
             .AddControllersAsServices();
 
         services.AddApiVersioning(o =>
@@ -217,6 +218,38 @@ public static class APIExtensions
             options.AllowSynchronousIO = true;
         });
         return services;
+    }
+
+    public static IMvcBuilder AddPluginControllers(this IMvcBuilder mvc, IPluginManager pluginManager)
+    {
+        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
+        {
+            var assembly = pluginInfo.PluginType!.Assembly;
+            if (assembly == Assembly.GetCallingAssembly())
+            {
+                continue; //Skip the current assembly, this is implicitly added by ASP.
+            }
+
+            mvc.AddApplicationPart(assembly);
+        }
+
+        return mvc;
+    }
+
+    public static SwaggerGenOptions AddPlugins(this SwaggerGenOptions options, IPluginManager pluginManager)
+    {
+        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
+        {
+            var assembly = pluginInfo.PluginType!.Assembly;
+            var location = assembly.Location;
+            var xml = Path.ChangeExtension(location, "xml");
+            if (File.Exists(xml))
+            {
+                options.IncludeXmlComments(xml, true); //Include the XML comments if it exists.
+            }
+        }
+
+        return options;
     }
 
     private static string GetTypeName(Type type) =>

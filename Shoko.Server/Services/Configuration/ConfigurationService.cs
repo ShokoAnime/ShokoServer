@@ -149,7 +149,7 @@ public partial class ConfigurationService : IConfigurationService
 
         var configurationDefinitionDict = configurationDefinitions
             .Except([typeof(ServerSettingsDefinition)])
-            .Select(Loader.CreateInstance<IConfigurationDefinition>)
+            .Select(_pluginManager.GetExport<IConfigurationDefinition>)
             .WhereNotNull()
             .ToDictionary(GetID);
         foreach (var configurationType in configurationTypes)
@@ -157,7 +157,7 @@ public partial class ConfigurationService : IConfigurationService
             if (configurationType == typeof(ServerSettings))
                 continue;
 
-            var pluginInfo = Loader.GetTypes<IPlugin>(configurationType.Assembly).Aggregate((PluginInfo?)null, (p, t) => p ?? _pluginManager.GetPluginInfo(t))!;
+            var pluginInfo = _pluginManager.GetPluginInfo(configurationType.Assembly)!;
             var id = GetID(configurationType, pluginInfo);
             var definition = configurationDefinitionDict.GetValueOrDefault(id);
             var contextualType = configurationType.ToContextualType();
@@ -214,7 +214,7 @@ public partial class ConfigurationService : IConfigurationService
 
     public IEnumerable<ConfigurationInfo> GetAllConfigurationInfos()
         => _configurationTypes.Values
-            .OrderByDescending(p => p.PluginInfo.PluginType == typeof(CorePlugin))
+            .OrderByDescending(p => typeof(CorePlugin) == p.PluginInfo.PluginType)
             .ThenBy(p => p.PluginInfo.Name)
             .ThenBy(p => p.Name);
 
@@ -727,6 +727,11 @@ public partial class ConfigurationService : IConfigurationService
                 _savedMemoryConfigurations[info.ID] = storedJson;
                 _logger.LogTrace("Saved in-memory configuration for {Name}.", info.Name);
             }
+            else if (info.PluginInfo is { IsInstalled: false, IsEnabled: false })
+            {
+                _logger.LogWarning("Unable to save a physical copy of the configuration for {Name} after plugin has been uninstalled. Skipping save.", info.Name);
+                return false;
+            }
             else
             {
                 var parentDir = Path.GetDirectoryName(info.Path)!;
@@ -932,7 +937,7 @@ public partial class ConfigurationService : IConfigurationService
     private Guid GetID(IConfigurationDefinition provider) => GetID(provider.ConfigurationType);
 
     private Guid GetID(Type type)
-        => _loaded && Loader.GetTypes<IPlugin>(type.Assembly).Aggregate((PluginInfo?)null, (p, t) => p ?? _pluginManager.GetPluginInfo(t)) is { } pluginInfo
+        => _loaded && _pluginManager.GetPluginInfo(type.Assembly) is { } pluginInfo
             ? GetID(type, pluginInfo)
             : Guid.Empty;
 

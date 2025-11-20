@@ -50,7 +50,7 @@ public class Startup
     public Startup(ILoggerFactory loggerFactory)
     {
         _logger = loggerFactory.CreateLogger<Startup>();
-        _pluginManager = new PluginManager();
+        _pluginManager = new PluginManager(loggerFactory.CreateLogger<PluginManager>(), ApplicationPaths.Instance);
         _configurationService = new ConfigurationService(loggerFactory, ApplicationPaths.Instance, _pluginManager);
         _settingsProvider = new SettingsProvider(loggerFactory.CreateLogger<SettingsProvider>(), _configurationService.CreateProvider<ServerSettings>());
     }
@@ -63,6 +63,8 @@ public class Startup
             services.AddSingleton(configurationService);
             services.AddSingleton(settingsProvider);
             services.AddSingleton(pluginManager);
+            services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
+            services.AddSingleton(ApplicationPaths.Instance);
 
             services.AddSingleton<FileWatcherService>();
             services.AddSingleton<ShokoServer>();
@@ -83,8 +85,6 @@ public class Startup
             services.AddSingleton<VideoLocal_PlaceService>();
             services.AddSingleton<CssThemeService>();
             services.AddSingleton<WebUIUpdateService>();
-            services.AddSingleton<IShokoEventHandler>(ShokoEventHandler.Instance);
-            services.AddSingleton<IApplicationPaths>(ApplicationPaths.Instance);
             services.AddSingleton<IMetadataService, AbstractMetadataService>();
             services.AddSingleton<IVideoService, AbstractVideoService>();
             services.AddSingleton<IVideoReleaseService, VideoReleaseService>();
@@ -106,8 +106,10 @@ public class Startup
 
             services.AddAniDB();
             services.AddSingleton<IAnidbService, AnidbService>();
-            services.AddPlugins(settingsProvider);
-            services.AddAPI();
+
+            pluginManager.RegisterPlugins(services);
+
+            services.AddAPI(pluginManager);
         }
 
         public void Configure(IApplicationBuilder app)
@@ -208,7 +210,7 @@ public class Startup
         Utils.ServiceContainer = result.Services;
 
         // Init. plugins before starting the IHostedService services.
-        Loader.InitPlugins(result.Services);
+        _pluginManager.InitPlugins();
 
         _logger.LogInformation("Web Hosts initialized.");
 

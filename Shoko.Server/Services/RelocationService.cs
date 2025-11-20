@@ -139,7 +139,7 @@ public class RelocationService(
                 .Select(provider =>
                 {
                     var providerType = provider.GetType();
-                    var pluginInfo = Loader.GetTypes<IPlugin>(providerType.Assembly).Aggregate((PluginInfo?)null, (p, t) => p ?? pluginManager.GetPluginInfo(t))!;
+                    var pluginInfo = pluginManager.GetPluginInfo(providerType.Assembly)!;
                     var id = GetID(providerType, pluginInfo);
                     var description = provider.Description?.CleanDescription() ?? string.Empty;
                     var configurationType = providerType.GetInterfaces()
@@ -157,7 +157,9 @@ public class RelocationService(
                         PluginInfo = pluginInfo,
                     };
                 })
-                .OrderBy(info => info.Provider.Name)
+                .OrderByDescending(info => typeof(CorePlugin) == info.PluginInfo.PluginType)
+                .ThenBy(info => info.PluginInfo.Name)
+                .ThenBy(info => info.Name)
                 .ThenBy(info => info.ID)
                 .Select((info, priority) => new RelocationProviderInfo()
                 {
@@ -181,13 +183,15 @@ public class RelocationService(
 
     public IEnumerable<RelocationProviderInfo> GetAvailableProviders()
         => _relocationProviderInfos.Values
-            .OrderBy(info => info.Provider.Name)
+            .OrderByDescending(info => typeof(CorePlugin) == info.PluginInfo.PluginType)
+            .ThenBy(info => info.PluginInfo.Name)
+            .ThenBy(info => info.Name)
             .ThenBy(info => info.ID);
 
     public IReadOnlyList<RelocationProviderInfo> GetProviderInfo(IPlugin plugin)
         => _relocationProviderInfos.Values
             .Where(info => info.PluginInfo.ID == plugin.ID)
-            .OrderBy(info => info.Provider.Name)
+            .OrderBy(info => info.Name)
             .ThenBy(info => info.ID)
             .ToList();
 
@@ -1225,7 +1229,7 @@ public class RelocationService(
     #region ID Helpers
 
     private Guid GetID(Type providerType)
-        => _loaded && Loader.GetTypes<IPlugin>(providerType.Assembly).Aggregate((PluginInfo?)null, (p, t) => p ?? pluginManager.GetPluginInfo(t)) is { } pluginInfo
+        => _loaded && pluginManager.GetPluginInfo(providerType.Assembly) is { } pluginInfo
             ? GetID(providerType, pluginInfo)
             : Guid.Empty;
 

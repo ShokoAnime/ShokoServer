@@ -43,7 +43,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     [HttpGet]
     public ActionResult<List<ConfigurationInfo>> GetConfigurations([FromQuery] Guid? pluginID = null)
         => pluginID.HasValue
-            ? pluginManager.GetPluginInfo(pluginID.Value) is { } pluginInfo
+            ? pluginManager.GetPluginInfo(pluginID.Value) is { IsActive: true } pluginInfo
                 ? configurationService.GetConfigurationInfo(pluginInfo.Plugin)
                     .Select(i => new ConfigurationInfo(i))
                     .ToList()

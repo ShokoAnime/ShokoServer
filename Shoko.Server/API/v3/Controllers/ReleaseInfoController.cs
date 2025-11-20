@@ -77,7 +77,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     [HttpGet("Provider")]
     public ActionResult<List<ReleaseInfoProvider>> GetAvailableReleaseProviders([FromQuery] Guid? pluginID = null)
         => pluginID.HasValue
-            ? pluginManager.GetPluginInfo(pluginID.Value) is { } pluginInfo
+            ? pluginManager.GetPluginInfo(pluginID.Value) is { IsActive: true } pluginInfo
                 ? videoReleaseService.GetProviderInfo(pluginInfo.Plugin)
                     .Select(providerInfo => new ReleaseInfoProvider(providerInfo))
                     .ToList()

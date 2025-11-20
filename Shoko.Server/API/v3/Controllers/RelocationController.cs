@@ -10,6 +10,7 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Shoko.Plugin.Abstractions.Config;
 using Shoko.Plugin.Abstractions.Config.Exceptions;
+using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Relocation;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
@@ -21,9 +22,9 @@ using Shoko.Server.Services;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
 
-using RelocationPipe = Shoko.Plugin.Abstractions.Relocation.RelocationPipe;
-using ApiRelocationResult = Shoko.Server.API.v3.Models.Relocation.RelocationResult;
 using ApiRelocationPipe = Shoko.Server.API.v3.Models.Relocation.RelocationPipe;
+using ApiRelocationResult = Shoko.Server.API.v3.Models.Relocation.RelocationResult;
+using RelocationPipe = Shoko.Plugin.Abstractions.Relocation.RelocationPipe;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
@@ -33,6 +34,9 @@ namespace Shoko.Server.API.v3.Controllers;
 /// </summary>
 /// <param name="settingsProvider">
 ///   Settings provider.
+/// </param>
+/// <param name="pluginManager">
+///   Plugin manager.
 /// </param>
 /// <param name="configurationService">
 ///   Configuration Service.
@@ -47,7 +51,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class RelocationController(ISettingsProvider settingsProvider, IConfigurationService configurationService, IVideoService videoService, IRelocationService relocationService) : BaseController(settingsProvider)
+public class RelocationController(ISettingsProvider settingsProvider, IPluginManager pluginManager, IConfigurationService configurationService, IVideoService videoService, IRelocationService relocationService) : BaseController(settingsProvider)
 {
     #region Settings
 
@@ -107,10 +111,16 @@ public class RelocationController(ISettingsProvider settingsProvider, IConfigura
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("Provider")]
-    public ActionResult<List<RelocationProvider>> GetAllRenamers()
-        => relocationService.GetAvailableProviders()
-            .Select(r => new RelocationProvider(r))
-            .ToList();
+    public ActionResult<List<RelocationProvider>> GetAvailableReleaseProviders([FromQuery] Guid? pluginID = null)
+        => pluginID.HasValue
+            ? pluginManager.GetPluginInfo(pluginID.Value) is { IsActive: true } pluginInfo
+                ? relocationService.GetProviderInfo(pluginInfo.Plugin)
+                    .Select(providerInfo => new RelocationProvider(providerInfo))
+                    .ToList()
+                : []
+            : relocationService.GetAvailableProviders()
+                .Select(providerInfo => new RelocationProvider(providerInfo))
+                .ToList();
 
     /// <summary>
     ///   Gets a specific relocation provider by ID.

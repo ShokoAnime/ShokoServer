@@ -123,7 +123,7 @@ public class VideoReleaseService(
                 .Select(provider =>
                 {
                     var providerType = provider.GetType();
-                    var pluginInfo = Loader.GetTypes<IPlugin>(providerType.Assembly).Aggregate((PluginInfo?)null, (p, t) => p ?? pluginManager.GetPluginInfo(t))!;
+                    var pluginInfo = pluginManager.GetPluginInfo(providerType.Assembly)!;
                     var id = GetID(providerType, pluginInfo);
                     var isEnabled = enabled.TryGetValue(id, out var enabledValue) ? enabledValue : provider.Name is "AniDB";
                     var description = provider.Description?.CleanDescription() ?? string.Empty;
@@ -193,7 +193,7 @@ public class VideoReleaseService(
     public IReadOnlyList<ReleaseProviderInfo> GetProviderInfo(IPlugin plugin)
         => _releaseProviderInfos.Values
             .Where(info => info.PluginInfo.ID == plugin.ID)
-            .OrderBy(info => info.Provider.Name)
+            .OrderBy(info => info.Name)
             .ThenBy(info => info.ID)
             // Create a copy so that we don't affect the original entries
             .Select(info => new ReleaseProviderInfo()
@@ -1055,7 +1055,7 @@ public class VideoReleaseService(
     #region ID Helpers
 
     private Guid GetID(Type providerType)
-        => _loaded && Loader.GetTypes<IPlugin>(providerType.Assembly).Aggregate((PluginInfo?)null, (p, t) => p ?? pluginManager.GetPluginInfo(t)) is { } pluginInfo
+        => _loaded && pluginManager.GetPluginInfo(providerType.Assembly) is { } pluginInfo
             ? GetID(providerType, pluginInfo)
             : Guid.Empty;
 

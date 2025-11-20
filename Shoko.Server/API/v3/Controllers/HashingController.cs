@@ -57,7 +57,7 @@ public class HashingController(ISettingsProvider settingsProvider, IPluginManage
     [HttpGet("Provider")]
     public ActionResult<List<HashProvider>> GetAvailableHashProviders([FromQuery] Guid? pluginID = null)
         => pluginID.HasValue
-            ? pluginManager.GetPluginInfo(pluginID.Value) is { } pluginInfo
+            ? pluginManager.GetPluginInfo(pluginID.Value) is { IsActive: true } pluginInfo
                 ? videoHashingService.GetProviderInfo(pluginInfo.Plugin)
                     .Select(providerInfo => new HashProvider(providerInfo))
                     .ToList()
