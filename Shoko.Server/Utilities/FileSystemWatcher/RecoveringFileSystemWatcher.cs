@@ -132,6 +132,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         foreach (var file in Directory.GetFiles(item.FullPath, "*.*", SearchOption.AllDirectories))
         {
             var fileItem = item with { FullPath = file };
+            if (_pathExclusions.Any(a => a.IsMatch(fileItem.FullPath))) continue;  // Apply exclusion rules to files enumerated due to recursion.
             if (_filters.Any() && !_filters.Any(a => fileItem.FullPath.ToLowerInvariant().EndsWith(a))) continue;
             if (_buffer.ContainsKey(fileItem.FullPath)) continue;
             if (!_buffer.TryAdd(fileItem.FullPath, fileItem.Type)) continue;
