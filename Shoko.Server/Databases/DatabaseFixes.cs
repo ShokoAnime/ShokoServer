@@ -48,7 +48,7 @@ public class DatabaseFixes
 {
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-    public static Tuple<bool, string> NoOperation(object connection) { return default; }
+    public static Tuple<bool, string> NoOperation(object connection) { return new Tuple<bool, string>(true, null); }
 
     public static void UpdateAllStats()
     {

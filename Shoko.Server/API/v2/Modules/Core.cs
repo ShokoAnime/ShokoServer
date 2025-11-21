@@ -279,7 +279,7 @@ public class Core : BaseController
 
     [Obsolete]
     [HttpGet("anidb/updatemissingcache")]
-    public async Task<ActionResult> UpdateMissingAniDBXML()
+    public ActionResult UpdateMissingAniDBXML()
         => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     #endregion

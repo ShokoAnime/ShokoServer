@@ -49,7 +49,7 @@ public class AggregateHub : Hub
         => [.. _allFeeds!.Keys];
 
     [HubMethodName("feed.list_joined")]
-    public async Task<IReadOnlyList<string>> ListJoinedFeeds()
+    public IReadOnlyList<string> ListJoinedFeeds()
     {
         var connectionId = Context.ConnectionId;
         var feeds = new List<string>();
