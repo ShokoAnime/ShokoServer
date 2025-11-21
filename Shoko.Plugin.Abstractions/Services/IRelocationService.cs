@@ -343,7 +343,7 @@ public interface IRelocationService
     ///   The video to schedule the files for potential relocation.
     /// </param>
     /// <param name="prioritize">
-    ///   If set to <c>true</c>, then this video will be given higher than
+    ///   If set to <c>true</c>, then the job will be given higher than
     ///   default priority in the queue.
     /// </param>
     /// <returns>
@@ -360,7 +360,7 @@ public interface IRelocationService
     ///   The video file to schedule for potential relocation.
     /// </param>
     /// <param name="prioritize">
-    ///   If set to <c>true</c>, then this video will be given higher than
+    ///   If set to <c>true</c>, then the job will be given higher than
     ///   default priority in the queue.
     /// </param>
     /// <returns>

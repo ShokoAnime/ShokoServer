@@ -77,6 +77,11 @@ public class RelocationService(
 
     #region Settings
 
+    public bool RelocateOnImport
+    {
+        get => settingsProvider.GetSettings().Plugins.Renamer.RelocateOnImport;
+    }
+
     public bool RenameOnImport
     {
         get => settingsProvider.GetSettings().Plugins.Renamer.RenameOnImport;
@@ -441,14 +446,51 @@ public class RelocationService(
 
     public async Task ScheduleAutoRelocationForVideo(IVideo video, bool prioritize = false)
     {
+        var fileName = video.Files is { Count: > 0 } files
+            ? Path.GetFileName(files[0].RelativePath)
+            : null;
+        if (!RelocateOnImport)
+        {
+            logger.LogTrace("Auto-Relocation is disabled. Skipping relocation for video: {FileName} (Video={VideoID})", fileName, video.ID);
+            return;
+        }
+
+        if (video.Files.DistinctBy(x => x.ManagedFolderID).All(x => x.ManagedFolder.DropFolderType is DropFolderType.Excluded))
+        {
+            logger.LogTrace("All files for video are not in a drop destination or source. Skipping relocation for video: {FileName} (Video={VideoID})", fileName, video.ID);
+            return;
+        }
+
+        logger.LogTrace("Scheduling relocation for video: {FileName} (Video={VideoID})", fileName, video.ID);
         var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
         await scheduler.StartJob<RenameMoveFileJob>(b => b.VideoLocalID = video.ID, prioritize: prioritize).ConfigureAwait(false);
     }
 
-    public async Task ScheduleAutoRelocationForVideoFile(IVideoFile video, bool prioritize = false)
+    public async Task ScheduleAutoRelocationForVideoFile(IVideoFile file, bool prioritize = false)
     {
+        var locationPath = file.Path;
+        var folder = file is VideoLocal_Place place ? place.ManagedFolder : file.ManagedFolder;
+        if (string.IsNullOrEmpty(locationPath) || folder is null)
+        {
+            logger.LogTrace("Invalid path or managed folder. Skipping relocation for video file: {Path}. (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
+            return;
+        }
+
+        if (!RelocateOnImport)
+        {
+            logger.LogTrace("Auto-Relocation is disabled. Skipping relocation for video file: {Path} (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
+            return;
+        }
+
+        if (file.ManagedFolder.DropFolderType is DropFolderType.Excluded)
+        {
+            logger.LogTrace("Not in a drop destination or source. Skipping relocation for video file: {Path}. (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
+            return;
+        }
+
+        logger.LogTrace("Scheduling relocation for video file: {Path} (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
         var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await scheduler.StartJob<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (video.ManagedFolderID, video.RelativePath), prioritize: prioritize).ConfigureAwait(false);
+        await scheduler.StartJob<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (file.ManagedFolderID, file.RelativePath), prioritize: prioritize).ConfigureAwait(false);
     }
 
     /// <summary>

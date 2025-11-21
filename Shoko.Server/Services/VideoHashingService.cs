@@ -41,6 +41,7 @@ public class VideoHashingService(
     IVideoReleaseService videoReleaseService,
     IPluginManager pluginManager,
     ISettingsProvider settingsProvider,
+    IRelocationService relocationService,
     ConfigurationProvider<VideoHashingServiceSettings> configurationProvider,
     VideoLocal_PlaceService locationService,
     ShokoManagedFolderRepository managedFolderRepository,
@@ -539,11 +540,7 @@ public class VideoHashingService(
             (folder.DropFolderType.HasFlag(DropFolderType.Destination) && settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport)
         );
         if (shouldRelocate)
-        {
-            logger.LogTrace("Scheduling video relocation for: {Path}", originalPath);
-            var scheduler = await schedulerFactory.GetScheduler(cancellationToken).ConfigureAwait(false);
-            await scheduler.StartJob<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (folder.ID, videoLocation.RelativePath));
-        }
+            await relocationService.ScheduleAutoRelocationForVideoFile(videoLocation).ConfigureAwait(false);
 
         // Add the process file job if we're not forcefully re-hashing the file.
         if (!skipFindRelease && (useExistingHashes || video.ReleaseInfo is null))

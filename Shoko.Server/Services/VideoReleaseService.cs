@@ -46,6 +46,7 @@ public class VideoReleaseService(
     IUserService userService,
     IServiceProvider serviceProvider,
     IPluginManager pluginManager,
+    IRelocationService relocationService,
     VideoLocalRepository videoRepository,
     StoredReleaseInfoRepository releaseInfoRepository,
     StoredReleaseInfo_MatchAttemptRepository releaseInfoMatchAttemptRepository,
@@ -336,16 +337,24 @@ public class VideoReleaseService(
 
     #region Find Release
 
-    public async Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool addToMylist = true, bool prioritize = false)
+    public async Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool addToMylist = true, bool relocateFiles = true, bool prioritize = false)
     {
+        var scheduler = await schedulerFactory.GetScheduler();
         if (!AutoMatchEnabled)
+        {
+            if (relocateFiles)
+                await relocationService.ScheduleAutoRelocationForVideo(video);
             return;
+        }
 
         if (!force && releaseInfoRepository.GetByEd2kAndFileSize(video.ED2K, video.Size) is { } existingRelease)
+        {
+            if (relocateFiles)
+                await relocationService.ScheduleAutoRelocationForVideo(video);
             return;
+        }
 
-        var scheduler = await schedulerFactory.GetScheduler();
-        await scheduler.StartJob<ProcessFileJob>(b => (b.VideoLocalID, b.ForceRecheck) = (video.ID, true), prioritize: prioritize);
+        await scheduler.StartJob<ProcessFileJob>(b => (b.VideoLocalID, b.ForceRecheck, b.ShouldRelocate) = (video.ID, true, relocateFiles), prioritize: prioritize);
     }
 
     public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool addToMylist = true, bool isAutomatic = true, CancellationToken cancellationToken = default)

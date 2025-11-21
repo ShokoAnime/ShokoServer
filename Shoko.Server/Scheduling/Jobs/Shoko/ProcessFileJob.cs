@@ -22,6 +22,8 @@ public class ProcessFileJob : BaseJob
 {
     private readonly IVideoReleaseService _videoReleaseService;
 
+    private readonly IRelocationService _relocationService;
+
     private VideoLocal _vlocal;
     private string _fileName;
 
@@ -30,6 +32,8 @@ public class ProcessFileJob : BaseJob
     public bool ForceRecheck { get; set; }
 
     public bool SkipMyList { get; set; }
+
+    public bool ShouldRelocate { get; set; }
 
     public override string TypeName => "Get Release Information for Video";
 
@@ -70,16 +74,18 @@ public class ProcessFileJob : BaseJob
         }
 
         // Process and get the AniDB file entry.
-        if (!ForceRecheck && _videoReleaseService.GetCurrentReleaseForVideo(_vlocal) is { } currentRelease)
-            return;
+        if (ForceRecheck || _videoReleaseService.GetCurrentReleaseForVideo(_vlocal) is not { } currentRelease)
+            await _videoReleaseService.FindReleaseForVideo(_vlocal, addToMylist: !SkipMyList, isAutomatic: true);
 
-        await _videoReleaseService.FindReleaseForVideo(_vlocal, addToMylist: !SkipMyList, isAutomatic: true);
+        if (ShouldRelocate)
+            await _relocationService.ScheduleAutoRelocationForVideo(_vlocal);
     }
 
 
-    public ProcessFileJob(IVideoReleaseService videoReleaseService)
+    public ProcessFileJob(IVideoReleaseService videoReleaseService, IRelocationService relocationService)
     {
         _videoReleaseService = videoReleaseService;
+        _relocationService = relocationService;
     }
 
     protected ProcessFileJob() { }

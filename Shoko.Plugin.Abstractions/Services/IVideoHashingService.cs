@@ -185,7 +185,8 @@ public interface IVideoHashingService
     ///   user's MyList if a release is found and saved.
     /// </param>
     /// <param name="prioritize">
-    ///   If true, the hashing of the file will be prioritized in the queue.
+    ///   If set to <c>true</c>, then the job will be given higher than
+    ///   default priority in the queue.
     /// </param>
     /// <exception cref="InvalidOperationException">
     ///   Thrown if the file is not a video or video container.

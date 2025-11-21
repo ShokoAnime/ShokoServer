@@ -187,15 +187,19 @@ public interface IVideoReleaseService
     ///   Optional. Set to <c>false</c> to not add the release to the user's
     ///   MyList if a release is found and saved.
     /// </param>
+    /// <param name="relocateFiles">
+    ///   If set to <c>true</c>, then the video will be relocated afterwards,
+    ///   regardless of whether a release was found or not.
+    /// </param>
     /// <param name="prioritize">
-    ///   If set to <c>true</c>, then this video will be given higher than
+    ///   If set to <c>true</c>, then the job will be given higher than
     ///   default priority in the queue.
     /// </param>
     /// <returns>
     ///   A <see cref="Task"/> representing the asynchronous operation of
     ///   scheduling the job in the queue.
     /// </returns>
-    Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool addToMylist = true, bool prioritize = false);
+    Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool addToMylist = true, bool relocateFiles = true, bool prioritize = false);
 
     /// <summary>
     ///   If parallel mode is disabled, then it will run all enabled
