@@ -494,12 +494,12 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
             return NotFound("Relocation pipe not found");
 
         var updated = false;
-        if (!string.IsNullOrEmpty(body.Name))
+        if (!string.IsNullOrEmpty(body.Name) && pipeInfo.Name != body.Name)
         {
             pipeInfo.Name = body.Name;
             updated = false;
         }
-        if (body.IsDefault.HasValue)
+        if (body.IsDefault.HasValue && pipeInfo.IsDefault != body.IsDefault.Value)
         {
             pipeInfo.IsDefault = body.IsDefault.Value;
             updated = true;
