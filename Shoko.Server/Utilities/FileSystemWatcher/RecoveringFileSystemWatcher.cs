@@ -133,14 +133,9 @@ public class RecoveringFileSystemWatcher : IDisposable
         if (item.Type == WatcherChangeTypes.Deleted) return true;
         _logger.LogTrace("New Directory Found. Iterating: {Path}", item.FullPath);
         // iterate and send a command for each containing file
-        foreach (var file in Directory.GetFiles(item.FullPath, "*.*", SearchOption.AllDirectories))
-        {
-            var fileItem = item with { FullPath = file };
-            if (_filters.Any() && !_filters.Any(a => fileItem.FullPath.ToLowerInvariant().EndsWith(a))) continue;
-            if (_buffer.ContainsKey(fileItem.FullPath)) continue;
-            if (!_buffer.TryAdd(fileItem.FullPath, fileItem.Type)) continue;
-            OnFileEvent(fileItem.FullPath, fileItem.Type);
-        }
+        bool IsMatch(string p) => !_pathExclusions.Any(a => a.IsMatch(p)) && _buffer.TryAdd(p, item.Type);
+        foreach (var file in FileSystemHelpers.GetFilePaths(item.FullPath, recursive: true, extensions: _filters, filter: IsMatch))
+            OnFileEvent(file, item.Type);
 
         return true;
     }

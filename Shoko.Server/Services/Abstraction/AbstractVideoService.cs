@@ -609,16 +609,7 @@ public class AbstractVideoService : IVideoService
         var settings = _settingsProvider.GetSettings();
         var scheduler = await _schedulerFactory.GetScheduler();
         files = files
-            .Where(filePath =>
-            {
-                if (settings.Import.Exclude.Any(s => Regex.IsMatch(filePath, s)))
-                {
-                    _logger.LogTrace("Import exclusion, skipping --- {Name}", filePath);
-                    return false;
-                }
-
-                return !onlyNewFiles || !existingFiles.Contains(filePath);
-            })
+            .Where(filePath => !onlyNewFiles || !existingFiles.Contains(filePath))
             .Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase)
             .ToList();
         var total = files.Count;

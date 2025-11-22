@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
@@ -93,9 +95,18 @@ public class ShokoManagedFolder : IManagedFolder
     /// file system.
     /// </summary>
     public IReadOnlyList<string> Files
-        => Directory.Exists(Path)
-            ? Directory.GetFiles(Path, "*", new EnumerationOptions() { RecurseSubdirectories = true, MatchType = MatchType.Simple, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System })
-            : [];
+    {
+        get
+        {
+            if (!Directory.Exists(Path))
+                return [];
+            var exclusions = Utils.SettingsProvider.GetSettings().Import.Exclude
+                .Select(s => new Regex(s, RegexOptions.Compiled))
+                .ToArray();
+            bool IsMatch(string p) => !exclusions.Any(r => r.IsMatch(p));
+            return FileSystemHelpers.GetFilePaths(Path, recursive: true, filter: IsMatch);
+        }
+    }
 
     public override string ToString()
     {
