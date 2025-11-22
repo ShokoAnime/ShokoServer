@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Plugin.Abstractions.Config;
+using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
@@ -20,16 +23,21 @@ public class FileWatcherService
 
     private readonly ILogger<FileWatcherService> _logger;
 
-    private readonly ISettingsProvider _settingsProvider;
+    private readonly ConfigurationProvider<ServerSettings> _settingsProvider;
 
     private readonly ShokoManagedFolderRepository _managedFolders;
 
+    private List<string>? _videoExtensions;
+
+    private IReadOnlyList<Regex>? _excludeExpressions;
+
     private IVideoService? _videoService;
 
-    public FileWatcherService(ILogger<FileWatcherService> logger, ISettingsProvider settingsProvider, ShokoManagedFolderRepository managedFolders)
+    public FileWatcherService(ILogger<FileWatcherService> logger, ConfigurationProvider<ServerSettings> settingsProvider, ShokoManagedFolderRepository managedFolders)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
+        _settingsProvider.Saved += ConfigurationSaved;
         _managedFolders = managedFolders;
         _managedFolders.ManagedFolderAdded += ManagedFoldersChanged;
         _managedFolders.ManagedFolderUpdated += ManagedFoldersChanged;
@@ -38,9 +46,22 @@ public class FileWatcherService
 
     ~FileWatcherService()
     {
+        _settingsProvider.Saved -= ConfigurationSaved;
         _managedFolders.ManagedFolderAdded -= ManagedFoldersChanged;
         _managedFolders.ManagedFolderUpdated -= ManagedFoldersChanged;
         _managedFolders.ManagedFolderRemoved -= ManagedFoldersChanged;
+    }
+
+    private void ConfigurationSaved(object? sender, ConfigurationSavedEventArgs<ServerSettings> e)
+    {
+        if (_excludeExpressions is null || _videoExtensions is null)
+            return;
+        var settings = e.Configuration;
+        if (_excludeExpressions == settings.Import.ExcludeExpressions && _videoExtensions == settings.Import.VideoExtensions)
+            return;
+
+        StopWatchingFiles();
+        StartWatchingFiles();
     }
 
     private void ManagedFoldersChanged(object? sender, EventArgs e)
@@ -53,7 +74,10 @@ public class FileWatcherService
     {
         _videoService ??= Utils.ServiceContainer.GetRequiredService<IVideoService>();
         _fileWatchers = [];
-        var settings = _settingsProvider.GetSettings();
+        var settings = _settingsProvider.Load();
+
+        _videoExtensions = settings.Import.VideoExtensions;
+        _excludeExpressions = settings.Import.ExcludeExpressions;
 
         foreach (var share in _managedFolders.GetAll())
         {
@@ -73,8 +97,8 @@ public class FileWatcherService
                 _logger.LogInformation("Parsed Path: {Path}", share.Path);
 
                 var fsw = new RecoveringFileSystemWatcher(share.Path,
-                    filters: settings.Import.VideoExtensions.Select(a => "." + a.ToLowerInvariant().TrimStart('.')),
-                    pathExclusions: settings.Import.Exclude);
+                    filters: _videoExtensions,
+                    pathExclusions: _excludeExpressions);
                 fsw.Options = new FileSystemWatcherLockOptions
                 {
                     Enabled = settings.Import.FileLockChecking,

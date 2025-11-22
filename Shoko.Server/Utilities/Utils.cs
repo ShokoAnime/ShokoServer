@@ -244,17 +244,8 @@ public static partial class Utils
         };
     }
 
-    private static HashSet<string> _videoExtensions = null;
-
     public static bool IsVideo(string fileName)
-    {
-        _videoExtensions ??= SettingsProvider.GetSettings().Import.VideoExtensions
-            .Select(ext => ext.Trim().ToUpper())
-            .WhereNotDefault()
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-
-        return _videoExtensions.Contains(Path.GetExtension(fileName).Replace(".", string.Empty).Trim());
-    }
+        => SettingsProvider.GetSettings().Import.VideoExtensions.Any(extName => fileName.EndsWith(extName, StringComparison.OrdinalIgnoreCase));
 
     public static bool IsLinux
     {

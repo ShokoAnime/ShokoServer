@@ -30,31 +30,15 @@ public class RecoveringFileSystemWatcher : IDisposable
     public event EventHandler<string> FileDeleted;
     public FileSystemWatcherLockOptions Options { get; set; } = new();
 
-    public RecoveringFileSystemWatcher(string path, IEnumerable<string> filters = null, IEnumerable<string> pathExclusions = null)
+    public RecoveringFileSystemWatcher(string path, IReadOnlyCollection<string> filters, IReadOnlyCollection<Regex> pathExclusions)
     {
         if (path == null) throw new ArgumentException(nameof(path) + " cannot be null");
         if (!Directory.Exists(path)) throw new ArgumentException(nameof(path) + $" must be a directory that exists: {path}");
         // bad, but meh for now
         _logger = Utils.ServiceContainer.GetRequiredService<ILoggerFactory>().CreateLogger("RecoveringFileSystemWatcher:" + path);
         _path = path;
-        _filters = filters?.AsReadOnlyCollection() ?? Enumerable.Empty<string>().AsReadOnlyCollection();
-
-        pathExclusions ??= Enumerable.Empty<string>();
-        var exclusions = new List<Regex>();
-        foreach (var exclusion in pathExclusions)
-        {
-            try
-            {
-                var regex = new Regex(exclusion, RegexOptions.Compiled);
-                exclusions.Add(regex);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Unable to add Exclusion Regex: {Regex}", exclusion);
-            }
-        }
-
-        _pathExclusions = exclusions.AsReadOnlyCollection();
+        _filters = filters;
+        _pathExclusions = pathExclusions;
     }
 
     private void OnFileEvent(string path, WatcherChangeTypes type)

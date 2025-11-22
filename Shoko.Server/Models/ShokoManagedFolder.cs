@@ -100,9 +100,7 @@ public class ShokoManagedFolder : IManagedFolder
         {
             if (!Directory.Exists(Path))
                 return [];
-            var exclusions = Utils.SettingsProvider.GetSettings().Import.Exclude
-                .Select(s => new Regex(s, RegexOptions.Compiled))
-                .ToArray();
+            var exclusions = Utils.SettingsProvider.GetSettings().Import.ExcludeExpressions;
             bool IsMatch(string p) => !exclusions.Any(r => r.IsMatch(p));
             return FileSystemHelpers.GetFilePaths(Path, recursive: true, filter: IsMatch);
         }

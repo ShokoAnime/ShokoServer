@@ -17,6 +17,8 @@ namespace Shoko.Server.Settings;
 
 public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWithCustomSaveLocation, IConfigurationDefinitionWithCustomValidation<ServerSettings>, IConfigurationDefinitionWithMigrations, IConfigurationDefinitionWithCustomActions<ServerSettings>
 {
+    internal static ILogger<ServerSettingsDefinition> Logger = null!;
+
     private readonly ILogger<ServerSettingsDefinition> _logger;
 
     private IUDPConnectionHandler? _udpHandler;
@@ -37,6 +39,7 @@ public class ServerSettingsDefinition : IDisposable, IConfigurationDefinitionWit
 
     public ServerSettingsDefinition(ILogger<ServerSettingsDefinition> logger, ConfigurationProvider<ServerSettings> configurationProvider)
     {
+        Logger = logger;
         _logger = logger;
         _configurationProvider = configurationProvider;
         _configurationProvider.Saved += OnSettingsSaved;

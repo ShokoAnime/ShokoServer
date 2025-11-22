@@ -64,7 +64,7 @@ public class VideoLocal_PlaceService(
                         var level = path == directoryToClean ? 0 : path[(directoryToClean.Length + 1)..].Split(Path.DirectorySeparatorChar).Length;
                         if (path == directoryToClean)
                             break;
-                        if (_settingsProvider.GetSettings().Import.Exclude.Any(reg => Regex.IsMatch(path, reg)))
+                        if (_settingsProvider.GetSettings().Import.ExcludeExpressions.Any(reg => reg.IsMatch(path)))
                             isExcludedAt = level;
                         paths.Add((path, level));
                         path = Path.GetDirectoryName(path);

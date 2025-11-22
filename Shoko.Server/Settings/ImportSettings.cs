@@ -1,10 +1,15 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Shoko.Plugin.Abstractions.Config.Attributes;
 using Shoko.Plugin.Abstractions.Config.Enums;
 
+#nullable enable
 namespace Shoko.Server.Settings;
 
 public class ImportSettings
@@ -27,7 +32,6 @@ public class ImportSettings
     /// List of video file extensions to import.
     /// </summary>
     [Visibility(Size = DisplayElementSize.Large)]
-    [RequiresRestart]
     [MinLength(1)]
     [DefaultValue(new string[] { "MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V" })]
     [List(UniqueItems = true, Sortable = true)]
@@ -35,9 +39,9 @@ public class ImportSettings
     {
         get => _internalVideoExtensions;
         set => _internalVideoExtensions = value
-            .Select(ext => ext.StartsWith('.') ? ext.TrimStart('.').ToUpper().Trim() : ext.ToUpper().Trim())
+            .Select(ext => "." + ext.ToLowerInvariant().TrimStart('.').Trim())
             .Distinct()
-            .Except([string.Empty, null])
+            .Except([string.Empty, null!])
             .ToList();
     }
 
@@ -55,11 +59,46 @@ public class ImportSettings
     public List<string> Exclude
     {
         get => _internalExclude;
-        set => _internalExclude = value
-            .Select(ext => string.IsNullOrWhiteSpace(ext) ? string.Empty : ext)
-            .Distinct()
-            .Except([string.Empty, null])
-            .ToList();
+        set
+        {
+            _internalExcludeRegexes = null;
+            _internalExclude = value
+                .Select(ext => string.IsNullOrWhiteSpace(ext) ? string.Empty : ext)
+                .Distinct()
+                .Except([string.Empty, null!])
+                .ToList();
+        }
+    }
+
+    private List<Regex>? _internalExcludeRegexes;
+
+    /// <summary>
+    /// List of regular expression instances to exclude any files that match on the full path.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<Regex> ExcludeExpressions
+    {
+        get
+        {
+            if (_internalExcludeRegexes is not null)
+                return _internalExcludeRegexes;
+
+            var excludes = new List<Regex>();
+            foreach (var exclusion in _internalExclude)
+            {
+                try
+                {
+                    var regex = new Regex(exclusion, RegexOptions.Compiled);
+                    excludes.Add(regex);
+                }
+                catch (Exception e)
+                {
+                    ServerSettingsDefinition.Logger.LogError(e, "Unable to compile exclusion regular expression: {Regex}", exclusion);
+                }
+            }
+
+            return _internalExcludeRegexes = excludes;
+        }
     }
 
     /// <summary>
@@ -177,7 +216,7 @@ public class ImportSettings
     [Visibility(Size = DisplayElementSize.Full, Advanced = true)]
     [Display(Name = "Override MediaInfo Path")]
     [DefaultValue(null)]
-    public string MediaInfoPath { get; set; }
+    public string? MediaInfoPath { get; set; }
 
     /// <summary>
     /// Timeout for wait for MediaInfo to finish scanning a file before killing
