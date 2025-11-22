@@ -64,7 +64,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("Summary")]
-    public ActionResult<RelocationSummary> GetReleaseInfoSummary()
+    public ActionResult<RelocationSummary> GetRelocationSummary()
         => new RelocationSummary
         {
             RenameOnImport = relocationService.RenameOnImport,
@@ -86,7 +86,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpPost("Settings")]
-    public ActionResult UpdateReleaseInfoSettings([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateRelocationSettingsBody body)
+    public ActionResult UpdateRelocationSettings([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateRelocationSettingsBody body)
     {
         if (body.RenameOnImport.HasValue)
             relocationService.RenameOnImport = body.RenameOnImport.Value;
@@ -111,7 +111,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("Provider")]
-    public ActionResult<List<RelocationProvider>> GetAvailableReleaseProviders([FromQuery] Guid? pluginID = null)
+    public ActionResult<List<RelocationProvider>> GetAvailableRelocationProviders([FromQuery] Guid? pluginID = null)
         => pluginID.HasValue
             ? pluginManager.GetPluginInfo(pluginID.Value) is { IsActive: true } pluginInfo
                 ? relocationService.GetProviderInfo(pluginInfo.Plugin)
@@ -134,7 +134,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("Provider/{providerID}")]
-    public ActionResult<RelocationProvider> GetRenamer([FromRoute] Guid providerID)
+    public ActionResult<RelocationProvider> GetRelocationProviderByProviderID([FromRoute] Guid providerID)
     {
         if (relocationService.GetProviderInfo(providerID) is not { } value)
             return NotFound("Renamer not found");
@@ -172,7 +172,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     /// </returns>
     [Authorize("admin")]
     [HttpPost("Preview")]
-    public ActionResult<IEnumerable<ApiRelocationResult>> BatchPreviewFilesByScriptID(
+    public ActionResult<IEnumerable<ApiRelocationResult>> BatchPreviewFilesWithProviderAndConfig(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] BatchRelocatePreviewBody body,
         bool? move = null,
         bool? rename = null,
@@ -286,14 +286,29 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     #region Relocate
 
     /// <summary>
-    /// Relocate a batch of files using the default Config
+    ///   Run the default relocation pipe on a batch of files.
     /// </summary>
-    /// <param name="fileIDs">The files to relocate</param>
-    /// <param name="deleteEmptyDirectories">Whether or not to delete empty directories</param>
-    /// <param name="move">Whether or not to move the files. If <c>null</c>, defaults to `Settings.Plugins.Renamer.MoveOnImport`</param>
-    /// <param name="rename">Whether or not to rename the files. If <c>null</c>, defaults to `Settings.Plugins.Renamer.RenameOnImport`</param>
-    /// <param name="allowRelocationInsideDestination">Whether or not to allow relocation of files inside the destination. If <c>null</c>, defaults to `Settings.Plugins.Renamer.AllowRelocationInsideDestination`</param>
-    /// <returns>A stream of relocation results.</returns>
+    /// <param name="fileIDs">
+    ///   The body with the file IDs to use.
+    /// </param>
+    /// <param name="deleteEmptyDirectories">
+    ///   Whether or not to delete empty directories. Defaults to true.
+    /// </param>
+    /// <param name="move">
+    ///   Whether or not to get the destination of the files. If <c>null</c>, to
+    ///   <see cref="RelocationSummary.MoveOnImport"/>.
+    /// </param>
+    /// <param name="rename">
+    ///   Whether or not to get the new name of the files. If <c>null</c>,
+    ///   defaults to <see cref="RelocationSummary.RenameOnImport"/>.
+    /// </param>
+    /// <param name="allowRelocationInsideDestination">
+    ///   Whether or not to allow relocation of files inside the destination. If
+    ///   <c>null</c>, defaults to <see cref="RelocationSummary.AllowRelocationInsideDestinationOnImport"/>.
+    /// </param>
+    /// <returns>
+    ///   A stream of <see cref="ApiRelocationResult"/>s.
+    /// </returns>
     [Authorize("admin")]
     [HttpPost("Relocate")]
     public ActionResult<IAsyncEnumerable<ApiRelocationResult>> BatchRelocateFilesWithDefaultConfig(
@@ -310,7 +325,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
         return Ok(InternalBatchRelocateFiles(fileIDs, new AutoRelocateRequest
         {
             Pipe = pipe,
-            DeleteEmptyDirectories = deleteEmptyDirectories,
+            DeleteEmptyDirectories = deleteEmptyDirectories && (move ?? relocationService.MoveOnImport),
             Move = move ?? relocationService.MoveOnImport,
             Rename = rename ?? relocationService.RenameOnImport,
             AllowRelocationInsideDestination = allowRelocationInsideDestination ?? relocationService.AllowRelocationInsideDestinationOnImport,
@@ -411,9 +426,11 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     #region Pipes
 
     /// <summary>
-    /// Get a list of all Configs
+    ///   Gets a list of all relocation pipes.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    ///   A list of <see cref="ApiRelocationPipe"/>s.
+    /// </returns>
     [HttpGet("Pipe")]
     public ActionResult<List<ApiRelocationPipe>> GetAllRelocationPipes()
         => relocationService.GetStoredPipes()
@@ -422,27 +439,19 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
             .ToList();
 
     /// <summary>
-    /// Get the Config by the given Name
+    ///   Create a new relocation pipe from the given body.
     /// </summary>
-    /// <param name="pipeID">Relocation pipe ID.</param>
-    /// <returns></returns>
-    [HttpGet("Pipe/{pipeID}")]
-    public ActionResult<ApiRelocationPipe> GetRenamerConfig([FromRoute] Guid pipeID)
-    {
-        if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
-            return NotFound("Relocation pipe not found");
-
-        return new ApiRelocationPipe(pipeInfo, pipeInfo.ProviderInfo);
-    }
-
-    /// <summary>
-    /// Create a new Config
-    /// </summary>
-    /// <param name="body">Config</param>
-    /// <returns></returns>
+    /// <param name="body">
+    ///   The details such as the name and provider of the pipe to be created,
+    ///   optionally with the configuration if the provider requires it, but
+    ///   it can be left out to use a new configuration.
+    /// </param>
+    /// <returns>
+    ///   The newly created <see cref="ApiRelocationPipe"/>.
+    /// </returns>
     [Authorize("admin")]
     [HttpPost("Pipe")]
-    public ActionResult<ApiRelocationPipe> PostRenamerConfig([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] CreateRelocationPipeBody body)
+    public ActionResult<ApiRelocationPipe> NewRelocationPipe([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] CreateRelocationPipeBody body)
     {
         if (string.IsNullOrWhiteSpace(body.Name)) return BadRequest("Name is required");
         if (relocationService.GetProviderInfo(body.ProviderID) is not { } providerInfo)
@@ -481,14 +490,36 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     }
 
     /// <summary>
-    /// Update the Config by the given Name
+    ///   Get the relocation pipe by the given pipe ID.
     /// </summary>
-    /// <param name="pipeID">Relocation pipe ID.</param>
-    /// <param name="body">Config</param>
+    /// <param name="pipeID">
+    ///   Relocation pipe ID.
+    /// </param>
+    /// <returns>
+    ///   The <see cref="ApiRelocationPipe"/>.
+    /// </returns>
+    [HttpGet("Pipe/{pipeID}")]
+    public ActionResult<ApiRelocationPipe> GetRelocationPipeByPipeID([FromRoute] Guid pipeID)
+    {
+        if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
+            return NotFound("Relocation pipe not found");
+
+        return new ApiRelocationPipe(pipeInfo, pipeInfo.ProviderInfo);
+    }
+
+    /// <summary>
+    ///   Modify the relocation pipe by the given pipe ID.
+    /// </summary>
+    /// <param name="pipeID">
+    ///    Relocation pipe ID.
+    /// </param>
+    /// <param name="body">
+    ///   The details for what to update.
+    /// </param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPut("Pipe/{pipeID}")]
-    public ActionResult<ApiRelocationPipe> PutRenamerConfig([FromRoute] Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ModifyRelocationPipeBody body)
+    public ActionResult<ApiRelocationPipe> PutRelocationPipeByPipeID([FromRoute] Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ModifyRelocationPipeBody body)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
             return NotFound("Relocation pipe not found");
@@ -511,22 +542,22 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     }
 
     /// <summary>
-    /// Applies a JSON patch document to modify the Config with the given Name
+    ///   Applies a JSON patch document to modify the relocation pipe by the
+    ///   given pipe ID.
     /// </summary>
     /// <param name="pipeID">
-    /// The name of the config to be patched.
+    ///   Relocation pipe ID.
     /// </param>
     /// <param name="patchDocument">
-    /// A JSON Patch document containing the modifications to be applied to the config.
+    ///   A JSON Patch document containing the modifications to be applied to
+    ///   the relocation pipe.
     /// </param>
     /// <returns>
-    /// The modified config if the operation is successful, or an error
-    /// response if the config is not found, the patch document is invalid, or
-    /// the modifications fail.
+    ///   The newly updated <see cref="ApiRelocationPipe"/>.
     /// </returns>
     [Authorize("admin")]
     [HttpPatch("Pipe/{pipeID}")]
-    public ActionResult<ApiRelocationPipe> PatchRenamer([FromRoute] Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<ModifyRelocationPipeBody> patchDocument)
+    public ActionResult<ApiRelocationPipe> PatchRelocationPipeByPipeID([FromRoute] Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<ModifyRelocationPipeBody> patchDocument)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
             return NotFound("Relocation pipe not found");
@@ -536,17 +567,21 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        return PutRenamerConfig(pipeID, body);
+        return PutRelocationPipeByPipeID(pipeID, body);
     }
 
     /// <summary>
-    /// Delete the Config by the given Name
+    /// Delete the relocation pipe by the given pipe ID.
     /// </summary>
-    /// <param name="pipeID">Relocation pipe ID.</param>
-    /// <returns></returns>
+    /// <param name="pipeID">
+    ///   Relocation pipe ID.
+    /// </param>
+    /// <returns>
+    ///   No content.
+    /// </returns>
     [Authorize("admin")]
     [HttpDelete("Pipe/{pipeID}")]
-    public ActionResult DeleteRenamerConfig([FromRoute] Guid pipeID)
+    public ActionResult DeleteRelocationPipeByPipeID([FromRoute] Guid pipeID)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
             return NotFound("Relocation pipe not found");
@@ -556,14 +591,18 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
 
         relocationService.DeletePipe(pipeInfo);
 
-        return Ok();
+        return NoContent();
     }
 
     /// <summary>
-    /// Get the relocation provider by the given pipe ID
+    ///   Get the relocation provider by the given pipe ID.
     /// </summary>
-    /// <param name="pipeID">Relocation pipe ID</param>
-    /// <returns></returns>
+    /// <param name="pipeID">
+    ///   Relocation pipe ID.
+    /// </param>
+    /// <returns>
+    ///   The <see cref="RelocationProvider"/> for the pipe.
+    /// </returns>
     [HttpGet("Pipe/{pipeID}/Provider")]
     public ActionResult<RelocationProvider> GetRelocationProviderByPipeID([FromRoute] Guid pipeID)
     {
@@ -579,14 +618,30 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     #region Pipes | Preview
 
     /// <summary>
-    /// Preview the changes made by an existing Config, by the given Config Name
+    ///   Preview what would happen if you were to apply the relocation pipe by
+    ///   the given pipe ID to the given files.
     /// </summary>
-    /// <param name="pipeID">Relocation pipe ID.</param>
-    /// <param name="fileIDs">The file IDs to preview</param>
-    /// <param name="move">Whether or not to get the destination of the files. If <c>null</c>, defaults to `Settings.Plugins.Renamer.MoveOnImport`</param>
-    /// <param name="rename">Whether or not to get the new name of the files. If <c>null</c>, defaults to `Settings.Plugins.Renamer.RenameOnImport`</param>
-    /// <param name="allowRelocationInsideDestination">Whether or not to allow relocation of files inside the destination. If <c>null</c>, defaults to `Settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport`</param>
-    /// <returns>A stream of relocate results.</returns>
+    /// <param name="pipeID">
+    ///   Relocation pipe ID.
+    /// </param>
+    /// <param name="fileIDs">
+    ///   The file IDs to preview.
+    /// </param>
+    /// <param name="move">
+    ///   Whether or not to get the destination of the files. If <c>null</c>, to
+    ///   <see cref="RelocationSummary.MoveOnImport"/>.
+    /// </param>
+    /// <param name="rename">
+    ///   Whether or not to get the new name of the files. If <c>null</c>,
+    ///   defaults to <see cref="RelocationSummary.RenameOnImport"/>.
+    /// </param>
+    /// <param name="allowRelocationInsideDestination">
+    ///   Whether or not to allow relocation of files inside the destination. If
+    ///   <c>null</c>, defaults to <see cref="RelocationSummary.AllowRelocationInsideDestinationOnImport"/>.
+    /// </param>
+    /// <returns>
+    ///   A stream of <see cref="ApiRelocationResult"/>s.
+    /// </returns>
     [Authorize("admin")]
     [HttpPost("Pipe/{pipeID}/Preview")]
     public ActionResult<IEnumerable<ApiRelocationResult>> BatchRelocateFilesByScriptID(
@@ -614,15 +669,32 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     #region Pipes | Relocate
 
     /// <summary>
-    /// Relocate a batch of files using a Config of the given name
+    ///   Relocate the files with the relocation pipe by the given pipe ID.
     /// </summary>
-    /// <param name="pipeID">Relocation pipe ID.</param>
-    /// <param name="fileIDs">The files to relocate</param>
-    /// <param name="deleteEmptyDirectories">Whether or not to delete empty directories</param>
-    /// <param name="move">Whether or not to move the files. If <c>null</c>, defaults to `Settings.Plugins.Renamer.MoveOnImport`</param>
-    /// <param name="rename">Whether or not to rename the files. If <c>null</c>, defaults to `Settings.Plugins.Renamer.RenameOnImport`</param>
-    /// <param name="allowRelocationInsideDestination">Whether or not to allow relocation of files inside the destination. If <c>null</c>, defaults to `Settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport`</param>
-    /// <returns>A stream of relocation results.</returns>
+    /// <param name="pipeID">
+    ///   Relocation pipe ID.
+    /// </param>
+    /// <param name="fileIDs">
+    ///   The file IDs to relocate.
+    /// </param>
+    /// <param name="deleteEmptyDirectories">
+    ///   Whether or not to delete empty directories. Defaults to true.
+    /// </param>
+    /// <param name="move">
+    ///   Whether or not to get the destination of the files. If <c>null</c>, to
+    ///   <see cref="RelocationSummary.MoveOnImport"/>.
+    /// </param>
+    /// <param name="rename">
+    ///   Whether or not to get the new name of the files. If <c>null</c>,
+    ///   defaults to <see cref="RelocationSummary.RenameOnImport"/>.
+    /// </param>
+    /// <param name="allowRelocationInsideDestination">
+    ///   Whether or not to allow relocation of files inside the destination. If
+    ///   <c>null</c>, defaults to <see cref="RelocationSummary.AllowRelocationInsideDestinationOnImport"/>.
+    /// </param>
+    /// <returns>
+    ///   A stream of <see cref="ApiRelocationResult"/>s.
+    /// </returns>
     [Authorize("admin")]
     [HttpPost("Pipe/{pipeID}/Relocate")]
     public ActionResult<IAsyncEnumerable<ApiRelocationResult>> BatchRelocateFilesByConfig(
@@ -654,13 +726,18 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     #region Relocation | Configuration
 
     /// <summary>
-    /// Get the current configuration for the relocation pipe with the given id.
+    ///   Get the current configuration for the relocation pipe with the given
+    ///   ID.
     /// </summary>
-    /// <param name="pipeID">Relocation pipe ID.</param>
-    /// <returns></returns>
+    /// <param name="pipeID">
+    ///   Relocation pipe ID.
+    /// </param>
+    /// <returns>
+    ///   The current configuration for the relocation pipe.
+    /// </returns>
     [Produces("application/json")]
     [HttpGet("Pipe/{pipeID}/Configuration")]
-    public ActionResult GetConfiguration(Guid pipeID)
+    public ActionResult GetConfigurationForRelocationPipeByPipeID(Guid pipeID)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
             return NotFound("Relocation pipe not found");
@@ -689,13 +766,20 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     }
 
     /// <summary>
-    /// Overwrite the contents of the configuration for the relocation pipe with the given id.
+    ///   Overwrite the contents of the configuration for the relocation pipe
+    ///   with the given ID.
     /// </summary>
-    /// <param name="pipeID">Relocation pipe ID.</param>
-    /// <param name="body">Configuration data</param>
-    /// <returns></returns>
+    /// <param name="pipeID">
+    ///   Relocation pipe ID.
+    /// </param>
+    /// <param name="body">
+    ///   The new configuration.
+    /// </param>
+    /// <returns>
+    ///   Ok if successful.
+    /// </returns>
     [HttpPut("Pipe/{pipeID}/Configuration")]
-    public ActionResult UpdateConfiguration(Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body)
+    public ActionResult PutConfigurationForRelocationPipeByPipeID(Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
             return NotFound("Relocation pipe not found");
@@ -714,13 +798,20 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     }
 
     /// <summary>
-    /// Patches the configuration for the relocation pipe with the given id using a JSON patch document.
+    ///   Patches the configuration for the relocation pipe with the given ID
+    ///   using a JSON patch document.
     /// </summary>
-    /// <param name="pipeID">Relocation pipe ID.</param>
-    /// <param name="patchDocument">JSON patch document with operations to apply.</param>
-    /// <returns></returns>
+    /// <param name="pipeID">
+    ///   Relocation pipe ID.
+    /// </param>
+    /// <param name="patchDocument">
+    ///   JSON patch document with operations to apply.
+    /// </param>
+    /// <returns>
+    ///   Ok if successful.
+    /// </returns>
     [HttpPatch("Pipe/{pipeID}/Configuration")]
-    public ActionResult UpdateConfiguration(Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument patchDocument)
+    public ActionResult PatchConfigurationForRelocationPipeByPipeID(Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument patchDocument)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
             return NotFound("Relocation pipe not found");

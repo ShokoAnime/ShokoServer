@@ -2,6 +2,9 @@
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Relocation.Input;
 
+/// <summary>
+///   Settings for the relocation service's APIv3 REST API.
+/// </summary>
 public class UpdateRelocationSettingsBody
 {
     /// <summary>
