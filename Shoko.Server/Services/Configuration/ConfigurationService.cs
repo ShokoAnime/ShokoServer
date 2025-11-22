@@ -220,7 +220,8 @@ public partial class ConfigurationService : IConfigurationService
         => _configurationTypes.Values
             .OrderByDescending(p => typeof(CorePlugin) == p.PluginInfo.PluginType)
             .ThenBy(p => p.PluginInfo.Name)
-            .ThenBy(p => p.Name);
+            .ThenBy(p => p.Name)
+            .ThenBy(p => p.ID);
 
     public IReadOnlyList<ConfigurationInfo> GetConfigurationInfo(IPlugin plugin)
         => _configurationTypes.Values

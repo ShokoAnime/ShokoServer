@@ -13,8 +13,12 @@ using Shoko.Plugin.Abstractions.Config.Exceptions;
 using Shoko.Plugin.Abstractions.Plugin;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Configuration;
+using Shoko.Server.Plugin;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
+
 using Operation = Microsoft.AspNetCore.JsonPatch.Operations.Operation;
 using ConfigurationActionType = Shoko.Plugin.Abstractions.Config.ConfigurationActionType;
 
@@ -36,21 +40,115 @@ namespace Shoko.Server.API.v3.Controllers;
 public class ConfigurationController(ISettingsProvider settingsProvider, IPluginManager pluginManager, IConfigurationService configurationService) : BaseController(settingsProvider)
 {
     /// <summary>
-    /// Get a list with information about all configurations.
+    ///   Get a list with information about all registered configurations.
     /// </summary>
-    /// <param name="pluginID">Optional. Plugin ID to get configurations for.</param>
-    /// <returns></returns>
+    /// <param name="query">
+    ///   An optional query to filter configurations by name.
+    /// </param>
+    /// <param name="pluginID">
+    ///   Whether to include only configurations for a specific plugin, or
+    ///   all configurations if omitted.
+    /// </param>
+    /// <param name="hidden">
+    ///   Whether to include all hidden configurations, include only hidden
+    ///   configurations, or exclude all hidden configurations.
+    /// </param>
+    /// <param name="isBase">
+    ///   Whether to include all base configurations, include only base
+    ///   configurations, or exclude all base configurations.
+    /// </param>
+    /// <param name="customNewFactory">
+    ///   Whether to include all configurations with a custom new factory,
+    ///   include only configurations with a custom new factory, or exclude all
+    ///   configurations with a custom new factory.
+    /// </param>
+    /// <param name="customValidation">
+    ///   Whether to include all configurations with custom validation, include
+    ///   only configurations with custom validation, or exclude all
+    ///   configurations with custom validation.
+    /// </param>
+    /// <param name="customActions">
+    ///   Whether to include all configurations with custom actions, include
+    ///   only configurations with custom actions, or exclude all configurations
+    ///   with custom actions.
+    /// </param>
+    /// <param name="reactiveActions">
+    ///   Whether to include all configurations with reactive actions, include
+    ///   only configurations with reactive actions, or exclude all
+    ///   configurations with reactive actions.
+    /// </param>
+    /// <returns>
+    ///   A list of <see cref="ConfigurationInfo"/> for all configurations.
+    /// </returns>
     [HttpGet]
-    public ActionResult<List<ConfigurationInfo>> GetConfigurations([FromQuery] Guid? pluginID = null)
-        => pluginID.HasValue
+    public ActionResult<List<ConfigurationInfo>> GetConfigurations(
+        [FromQuery] string? query = null,
+        [FromQuery] Guid? pluginID = null,
+        [FromQuery] IncludeOnlyFilter hidden = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter isBase = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter customNewFactory = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter customValidation = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter customActions = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter reactiveActions = IncludeOnlyFilter.True
+    )
+    {
+        var enumerable = pluginID.HasValue
             ? pluginManager.GetPluginInfo(pluginID.Value) is { IsActive: true } pluginInfo
                 ? configurationService.GetConfigurationInfo(pluginInfo.Plugin)
-                    .Select(i => new ConfigurationInfo(i))
-                    .ToList()
                 : []
-            : configurationService.GetAllConfigurationInfos()
-                .Select(i => new ConfigurationInfo(i))
-                .ToList();
+            : configurationService.GetAllConfigurationInfos();
+        if (!string.IsNullOrEmpty(query))
+            enumerable = enumerable
+                .Search(query, c => [c.Name])
+                .Select(c => c.Result)
+                .OrderByDescending(p => typeof(CorePlugin) == p.PluginInfo.PluginType)
+                .ThenBy(p => p.PluginInfo.Name)
+                .ThenBy(p => p.Name)
+                .ThenBy(p => p.ID);
+        return enumerable
+            .Where(configurationInfo =>
+            {
+                if (hidden is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideHidden = hidden is IncludeOnlyFilter.False;
+                    if (shouldHideHidden == configurationInfo.IsHidden)
+                        return false;
+                }
+                if (isBase is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideBase = isBase is IncludeOnlyFilter.False;
+                    if (shouldHideBase == configurationInfo.IsBase)
+                        return false;
+                }
+                if (customNewFactory is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideCustomNewFactory = customNewFactory is IncludeOnlyFilter.False;
+                    if (shouldHideCustomNewFactory == configurationInfo.HasCustomNewFactory)
+                        return false;
+                }
+                if (customValidation is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideCustomValidation = customValidation is IncludeOnlyFilter.False;
+                    if (shouldHideCustomValidation == configurationInfo.HasCustomValidation)
+                        return false;
+                }
+                if (customActions is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideCustomActions = customActions is IncludeOnlyFilter.False;
+                    if (shouldHideCustomActions == configurationInfo.HasCustomActions)
+                        return false;
+                }
+                if (reactiveActions is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideReactiveActions = reactiveActions is IncludeOnlyFilter.False;
+                    if (shouldHideReactiveActions == configurationInfo.HasReactiveActions)
+                        return false;
+                }
+                return true;
+            })
+            .Select(configurationInfo => new ConfigurationInfo(configurationInfo))
+            .ToList();
+    }
 
     /// <summary>
     /// Get the current configuration with the given id.
