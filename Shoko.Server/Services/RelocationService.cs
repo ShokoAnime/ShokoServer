@@ -274,39 +274,7 @@ public class RelocationService(
     {
         ArgumentNullException.ThrowIfNull(provider);
         ArgumentException.ThrowIfNullOrEmpty(name);
-        name = name.Trim();
-
-        // Ensure the name is unique by appending "(copy)" or "(copy #X)"
-        if (storedRelocationPipeRepository.GetByName(name) is not null)
-        {
-            var index = 1;
-            if (name.EndsWith(" (copy)", StringComparison.OrdinalIgnoreCase))
-            {
-                index = 2;
-                name = name[..^7].Trim();
-            }
-            else if (Regex.Match(name, @" \(copy #(?<i>\d+)\)$") is { Success: true } match)
-            {
-                index = int.Parse(match.Groups["i"].Value) + 1;
-                if (index is >= 100)
-                    index = 1;
-                else
-                    name = name[..^match.Length].Trim();
-            }
-
-            var tempName = index is 1 ? $"{name} (copy)" : $"{name} (copy #{index})";
-            while (storedRelocationPipeRepository.GetByName(tempName) is not null)
-            {
-                index++;
-                if (index is >= 100)
-                {
-                    name += " (copy #99)";
-                    index = 1;
-                }
-                tempName = index is 1 ? $"{name} (copy)" : $"{name} (copy #{index})";
-            }
-            name = tempName;
-        }
+        name = FindNextAvailableName(name);
 
         byte[]? configurationAsBytes = null;
         var providerInfo = GetProviderInfo(provider);
@@ -366,7 +334,8 @@ public class RelocationService(
         var updated = false;
         if (pipe.Name != storedPipe.Name)
         {
-            storedPipe.Name = pipe.Name;
+            var name = FindNextAvailableName(pipe.Name);
+            storedPipe.Name = name;
             updated = true;
         }
         if (
@@ -431,6 +400,41 @@ public class RelocationService(
         storedRelocationPipeRepository.Delete(storedPipe);
 
         Task.Run(() => PipeDeleted?.Invoke(this, new() { RelocationPipe = new RelocationPipeInfo(this, configurationService, storedPipe) }));
+    }
+
+    private string FindNextAvailableName(string name)
+    {
+        name = name.Trim();
+        if (storedRelocationPipeRepository.GetByName(name) is null)
+            return name;
+        // Ensure the name is unique by appending "(copy)" or "(copy #X)"
+        var index = 1;
+        if (name.EndsWith(" (copy)", StringComparison.OrdinalIgnoreCase))
+        {
+            index = 2;
+            name = name[..^7].Trim();
+        }
+        else if (Regex.Match(name, @" \(copy #(?<i>\d+)\)$") is { Success: true } match)
+        {
+            index = int.Parse(match.Groups["i"].Value) + 1;
+            if (index is >= 100)
+                index = 1;
+            else
+                name = name[..^match.Length].Trim();
+        }
+
+        var tempName = index is 1 ? $"{name} (copy)" : $"{name} (copy #{index})";
+        while (storedRelocationPipeRepository.GetByName(tempName) is not null)
+        {
+            index++;
+            if (index is >= 100)
+            {
+                name += " (copy #99)";
+                index = 1;
+            }
+            tempName = index is 1 ? $"{name} (copy)" : $"{name} (copy #{index})";
+        }
+        return tempName;
     }
 
     #endregion
