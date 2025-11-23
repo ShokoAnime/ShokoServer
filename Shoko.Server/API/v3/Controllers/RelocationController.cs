@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -460,7 +460,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
         IRelocationProviderConfiguration? configuration = null;
         if (providerInfo.ConfigurationInfo is not null)
         {
-            if (body.Configuration is not null)
+            if (body.Configuration is not null and not { Type: JTokenType.Null })
             {
                 if (body.Configuration is not { Type: JTokenType.Object })
                     return ValidationProblem("The provided configuration is not a valid JSON object or null.", nameof(body.Configuration));

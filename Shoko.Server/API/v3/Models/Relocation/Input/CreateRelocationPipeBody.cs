@@ -32,5 +32,5 @@ public class CreateRelocationPipeBody
     ///   Optional. The configuration for the pipe if the provider requires one.
     ///   If omitted, then a new configuration will be generated instead.
     /// </summary>
-    public JObject? Configuration { get; set; } = null;
+    public JToken? Configuration { get; set; } = null;
 }
