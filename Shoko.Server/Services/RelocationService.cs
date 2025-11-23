@@ -753,7 +753,7 @@ public class RelocationService(
 
         var newFolder = shouldMove && !response.SkipMove ? response.ManagedFolder! : file.ManagedFolder!;
         var newFileName = shouldRename && !response.SkipRename ? response.FileName! : file.FileName;
-        var newRelativeDirectory = shouldMove && !response.SkipMove ? response.Path : Path.GetDirectoryName(file.RelativePath);
+        var newRelativeDirectory = shouldMove && !response.SkipMove ? response.Path : Path.GetDirectoryName(file.RelativePath[1..]);
         var newRelativePath = !string.IsNullOrEmpty(newRelativeDirectory) && newRelativeDirectory.Length > 0 ? Path.Combine(newRelativeDirectory, newFileName) : newFileName;
         var newFullPath = Path.Join(newFolder.Path, newRelativePath);
         return RelocationResponse.FromResult(
