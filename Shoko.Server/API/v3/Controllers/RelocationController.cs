@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -528,7 +528,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
         if (!string.IsNullOrEmpty(body.Name) && pipeInfo.Name != body.Name)
         {
             pipeInfo.Name = body.Name;
-            updated = false;
+            updated = true;
         }
         if (body.IsDefault.HasValue && pipeInfo.IsDefault != body.IsDefault.Value)
         {
