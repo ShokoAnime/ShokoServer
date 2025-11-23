@@ -1,7 +1,9 @@
+using Shoko.Plugin.Abstractions.Config.Attributes;
+
 namespace Shoko.Plugin.Abstractions.Enums;
 
 /// <summary>
-/// Coding languages for <see cref="RenamerSettingType.Code"/>.
+/// Coding languages for <see cref="CodeEditorAttribute"/>.
 /// </summary>
 public enum CodeLanguage
 {

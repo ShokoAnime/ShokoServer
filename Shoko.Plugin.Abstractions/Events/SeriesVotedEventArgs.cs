@@ -1,5 +1,6 @@
 using System;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Anidb;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
 using Shoko.Plugin.Abstractions.Enums;
 
@@ -18,7 +19,7 @@ public class SeriesVotedEventArgs : EventArgs
     /// <summary>
     /// The AniDB anime metadata.
     /// </summary>
-    public ISeries AnidbAnime { get; }
+    public IAnidbAnime AnidbAnime { get; }
 
     /// <summary>
     /// The vote value (normalized to AniDB's scale).
@@ -38,7 +39,7 @@ public class SeriesVotedEventArgs : EventArgs
     /// <summary>
     /// Initializes a new instance of the <see cref="SeriesVotedEventArgs"/> class.
     /// </summary>
-    public SeriesVotedEventArgs(IShokoSeries series, ISeries anidbAnime, decimal voteValue, VoteType voteType, IShokoUser user)
+    public SeriesVotedEventArgs(IShokoSeries series, IAnidbAnime anidbAnime, decimal voteValue, VoteType voteType, IShokoUser user)
     {
         Series = series;
         AnidbAnime = anidbAnime;

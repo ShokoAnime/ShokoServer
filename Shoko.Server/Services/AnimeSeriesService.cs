@@ -9,9 +9,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Models.Client;
-using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
@@ -20,8 +20,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Utilities;
 using AnimeType = Shoko.Models.Enums.AnimeType;
 using EpisodeType = Shoko.Models.Enums.EpisodeType;
@@ -37,37 +35,45 @@ public class AnimeSeriesService
     private readonly AniDB_AnimeService _animeService;
     private readonly AnimeGroupService _groupService;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly JobFactory _jobFactory;
-    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, JobFactory jobFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers)
+    private readonly IAnidbService _anidbService;
+    private readonly IVideoReleaseService _videoReleaseService;
+
+    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, AnimeSeries_UserRepository seriesUsers, ISchedulerFactory schedulerFactory, IAnidbService anidbService, JobFactory jobFactory, AniDB_AnimeService animeService, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService)
     {
         _logger = logger;
         _seriesUsers = seriesUsers;
         _schedulerFactory = schedulerFactory;
-        _jobFactory = jobFactory;
+        _anidbService = anidbService;
         _animeService = animeService;
         _groupService = groupService;
         _vlUsers = vlUsers;
+        _videoReleaseService = videoReleaseService;
     }
 
     public async Task<bool> QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
         bool cacheOnly = false, bool skipTmdbUpdate = false)
     {
-        if (animeID == 0) return false;
+        if (animeID == 0)
+            return false;
+
+        var refreshMethod = AnidbRefreshMethod.None;
+        if (!cacheOnly)
+            refreshMethod |= AnidbRefreshMethod.Remote;
+        if (!force)
+            refreshMethod |= AnidbRefreshMethod.Cache;
+        if (downloadRelations)
+            refreshMethod |= AnidbRefreshMethod.DownloadRelations;
+        if (createSeriesEntry)
+            refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
+        if (force || !cacheOnly)
+            refreshMethod |= AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
+        if (skipTmdbUpdate)
+            refreshMethod |= AnidbRefreshMethod.SkipTmdbUpdate;
         if (immediate)
         {
-            var job = _jobFactory.CreateJob<GetAniDBAnimeJob>(c =>
-            {
-                c.AnimeID = animeID;
-                c.DownloadRelations = downloadRelations;
-                c.ForceRefresh = force;
-                c.CacheOnly = !force && cacheOnly;
-                c.CreateSeriesEntry = createSeriesEntry;
-                c.SkipTmdbUpdate = skipTmdbUpdate;
-            });
-
             try
             {
-                return await job.Process() != null;
+                return await _anidbService.RefreshByID(animeID, refreshMethod).ConfigureAwait(false) != null;
             }
             catch
             {
@@ -75,16 +81,7 @@ public class AnimeSeriesService
             }
         }
 
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<GetAniDBAnimeJob>(c =>
-        {
-            c.AnimeID = animeID;
-            c.DownloadRelations = downloadRelations;
-            c.ForceRefresh = force;
-            c.CacheOnly = !force && cacheOnly;
-            c.CreateSeriesEntry = createSeriesEntry;
-            c.SkipTmdbUpdate = skipTmdbUpdate;
-        });
+        await _anidbService.ScheduleRefreshByID(animeID, refreshMethod).ConfigureAwait(false);
         return false;
     }
 
@@ -102,14 +99,18 @@ public class AnimeSeriesService
             .SelectMany(a => a.FileCrossReferences)
             .ToList();
         var vlIDsToUpdate = filesToUpdate
-            .Select(a => a.VideoLocal?.VideoLocalID)
+            .Select(a => a.VideoLocal)
             .WhereNotNull()
             .ToList();
 
-        // queue rescan for the files
+        // remove the current release and schedule a recheck for the file if
+        // auto match is enabled.
         var scheduler = await _schedulerFactory.GetScheduler();
-        foreach (var id in vlIDsToUpdate)
-            await scheduler.StartJob<ProcessFileJob>(a => a.VideoLocalID = id);
+        foreach (var video in vlIDsToUpdate)
+        {
+            await _videoReleaseService.ClearReleaseForVideo(video);
+            await _videoReleaseService.ScheduleFindReleaseForVideo(video);
+        }
 
         _logger.LogTrace($"Generating {anidbEpisodes.Count} episodes for {anime.MainTitle}");
 
@@ -367,6 +368,12 @@ public class AnimeSeriesService
             var tsEps = DateTime.Now - startEps;
             _logger.LogTrace("Got episodes for SERIES {Name} in {Elapsed}ms", name, tsEps.TotalMilliseconds);
 
+            // Ensure the episode added date is accurate.
+            series.EpisodeAddedDate = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID)
+                .Select(a => a.LastUpdatedAt)
+                .DefaultIfEmpty()
+                .Max();
+
             if (watchedStats) UpdateWatchedStats(series, eps, name, ref start);
             if (missingEpsStats) UpdateMissingEpisodeStats(series, eps, name, ref start);
 
@@ -391,7 +398,7 @@ public class AnimeSeriesService
             {
                 var users = xref?.SelectMany(a => RepoFactory.VideoLocalUser.GetByVideoLocalID(a.VideoLocalID));
                 return users?.Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)) ??
-                       Array.Empty<(int EpisodeID, SVR_VideoLocal_User VideoLocalUser)>();
+                       Array.Empty<(int EpisodeID, VideoLocal_User VideoLocalUser)>();
             }
         ).Where(a => a.VideoLocalUser != null).ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.JMMUserID),
             b => b.VideoLocalUser);
@@ -422,7 +429,7 @@ public class AnimeSeriesService
                 ep.EpisodeTypeEnum is EpisodeType.Episode or EpisodeType.Special).ForAll(
                 ep =>
                 {
-                    SVR_VideoLocal_User vlUser = null;
+                    VideoLocal_User vlUser = null;
                     DateTime? lastUpdated = null;
                     if (vlUsers.Contains((ep.AniDB_EpisodeID, juser.JMMUserID)))
                     {
@@ -519,24 +526,16 @@ public class AnimeSeriesService
         var epGroupReleasedList = new EpisodeList(animeType);
         var daysofweekcounter = new Dictionary<DayOfWeek, int>();
 
-        var userReleaseGroups = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(
-            a =>
-            {
-                var vls = a.VideoLocals;
-                if (!vls.Any())
-                {
-                    return Array.Empty<int>();
-                }
-
-                var aniFiles = vls.Select(b => b.AniDBFile).WhereNotNull().ToList();
-                if (!aniFiles.Any())
-                {
-                    return Array.Empty<int>();
-                }
-
-                return aniFiles.Select(b => b.GroupID);
-            }
-        ).Distinct().ToList();
+        var userReleaseGroups = eps
+            .Where(a => a.EpisodeTypeEnum == EpisodeType.Episode)
+            .SelectMany(a => a.VideoLocals
+                .Select(b => b.ReleaseGroup)
+                .WhereNotNull()
+                .Where(b => b.Source is "AniDB" && int.TryParse(b.ID, out var groupID) && groupID > 0)
+                .Select(b => int.Parse(b.ID))
+            )
+            .Distinct()
+            .ToList();
 
         var videoLocals = eps.Where(a => a.EpisodeTypeEnum == EpisodeType.Episode).SelectMany(a =>
                 a.VideoLocals.Select(b => new
@@ -734,27 +733,20 @@ public class AnimeSeriesService
         return results;
     }
 
-    public async Task DeleteSeries(SVR_AnimeSeries series, bool deleteFiles, bool updateGroups, bool completelyRemove = false)
+    public async Task DeleteSeries(SVR_AnimeSeries series, bool deleteFiles, bool updateGroups, bool completelyRemove = false, bool removeFromMylist = true)
     {
         foreach (var ep in series.AllAnimeEpisodes)
         {
             var service = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
             foreach (var place in series.VideoLocals.SelectMany(a => a.Places).WhereNotNull())
             {
-                if (deleteFiles)
-                {
-                    RepoFactory.FileNameHash.Delete(RepoFactory.FileNameHash.GetByHash(place.VideoLocal!.Hash));
-                    await service.RemoveRecordAndDeletePhysicalFile(place);
-                }
+                if (deleteFiles) await service.RemoveRecordAndDeletePhysicalFile(place);
                 else await service.RemoveRecord(place);
             }
 
             RepoFactory.AnimeEpisode.Delete(ep.AnimeEpisodeID);
         }
         RepoFactory.AnimeSeries.Delete(series);
-
-        var manualLinks = RepoFactory.CrossRef_File_Episode.GetByAnimeID(series.AniDB_ID).Where(a => a.CrossRefSource == (int)CrossRefSource.User).ToArray();
-        RepoFactory.CrossRef_File_Episode.Delete(manualLinks);
 
         if (!updateGroups)
         {
@@ -792,9 +784,6 @@ public class AnimeSeriesService
 
         if (completelyRemove)
         {
-            var xrefs = RepoFactory.CrossRef_File_Episode.GetByAnimeID(series.AniDB_ID);
-            RepoFactory.CrossRef_File_Episode.Delete(xrefs);
-
             // episodes, anime, characters, images, staff relations, tag relations, titles
             var images = RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(series.AniDB_ID);
             RepoFactory.AniDB_Anime_PreferredImage.Delete(images);
@@ -835,6 +824,11 @@ public class AnimeSeriesService
 
             var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(series.AniDB_ID);
             RepoFactory.AniDB_AnimeUpdate.Delete(update);
+
+            // remove all releases linked to this series
+            var releases = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID);
+            foreach (var release in releases)
+                await _videoReleaseService.RemoveRelease(release, removeFromMylist);
         }
     }
 

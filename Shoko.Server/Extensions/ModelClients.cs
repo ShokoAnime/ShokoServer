@@ -5,6 +5,7 @@ using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Plugin.Abstractions.Release;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
@@ -30,8 +31,8 @@ public static class ModelClients
             AniDB_AVDumpKey = settings.AniDb.AVDumpKey,
             AniDB_DownloadRelatedAnime = settings.AniDb.DownloadRelatedAnime,
             AniDB_DownloadSimilarAnime = false,
-            AniDB_DownloadReviews = settings.AniDb.DownloadReviews,
-            AniDB_DownloadReleaseGroups = settings.AniDb.DownloadReleaseGroups,
+            AniDB_DownloadReviews = false,
+            AniDB_DownloadReleaseGroups = false,
             AniDB_MyList_AddFiles = settings.AniDb.MyList_AddFiles,
             AniDB_MyList_StorageState = (int)settings.AniDb.MyList_StorageState,
             AniDB_MyList_DeleteType = (int)settings.AniDb.MyList_DeleteType,
@@ -77,9 +78,6 @@ public static class ModelClients
             Import_UseExistingFileWatchedStatus = settings.Import.UseExistingFileWatchedStatus,
             RunImportOnStart = settings.Import.RunOnStart,
             ScanDropFoldersOnStart = settings.Import.ScanDropFoldersOnStart,
-            Hash_CRC32 = settings.Import.Hasher.CRC,
-            Hash_MD5 = settings.Import.Hasher.MD5,
-            Hash_SHA1 = settings.Import.Hasher.SHA1,
             SkipDiskSpaceChecks = settings.Import.SkipDiskSpaceChecks,
 
             // Language
@@ -427,15 +425,38 @@ public static class ModelClients
                 .ToDictionary(a => a.LanguageCode, a => a.Title),
         };
 
-    public static CL_VideoLocal_Place ToClient(this SVR_VideoLocal_Place vlp)
+    public static CL_VideoLocal_Place ToClient(this VideoLocal_Place vlp)
         => new()
         {
-            FilePath = vlp.FilePath,
-            ImportFolderID = vlp.ImportFolderID,
-            ImportFolderType = vlp.ImportFolderType,
-            VideoLocalID = vlp.VideoLocalID,
-            ImportFolder = vlp.ImportFolder,
-            VideoLocal_Place_ID = vlp.VideoLocal_Place_ID
+            VideoLocal_Place_ID = vlp.ID,
+            ImportFolderID = vlp.ManagedFolderID,
+            FilePath = vlp.RelativePath,
+            ImportFolderType = 1 /* HDD */,
+            VideoLocalID = vlp.VideoID,
+            ImportFolder = vlp.ManagedFolder?.ToClient(),
+        };
+
+    public static CL_ImportFolder ToClient(this ShokoManagedFolder mf)
+        => new()
+        {
+            ImportFolderID = mf.ID,
+            ImportFolderLocation = mf.Path,
+            ImportFolderName = mf.Name,
+            ImportFolderType = 1 /* HDD */,
+            IsDropDestination = mf.IsDropDestination ? 1 : 0,
+            IsDropSource = mf.IsDropSource ? 1 : 0,
+            IsWatched = mf.IsWatched ? 1 : 0,
+        };
+
+    public static ShokoManagedFolder ToServer(this CL_ImportFolder mf)
+        => new()
+        {
+            ID = mf.ImportFolderID,
+            Path = mf.ImportFolderLocation,
+            Name = mf.ImportFolderName,
+            IsDropDestination = mf.IsDropDestination == 1,
+            IsDropSource = mf.IsDropSource == 1,
+            IsWatched = mf.IsWatched == 1,
         };
 
     public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
@@ -498,20 +519,20 @@ public static class ModelClients
                 StringComparer.InvariantCultureIgnoreCase)
         };
 
-    public static CL_AniDB_ReleaseGroup? ToClient(this AniDB_ReleaseGroup? group)
+    public static CL_AniDB_ReleaseGroup? ToClient(this IReleaseGroup? group)
         => group is null ? null : new CL_AniDB_ReleaseGroup
         {
-            AniDB_ReleaseGroupID = group.AniDB_ReleaseGroupID,
-            AnimeCount = group.AnimeCount,
-            FileCount = group.FileCount,
-            GroupID = group.GroupID,
-            GroupName = group.GroupName,
-            GroupNameShort = group.GroupNameShort,
-            IRCChannel = group.IRCChannel,
-            IRCServer = group.IRCServer,
-            Picname = group.Picname,
-            Rating = group.Rating,
-            URL = group.URL,
-            Votes = group.Votes,
+            AniDB_ReleaseGroupID = 0,
+            AnimeCount = 0,
+            FileCount = 0,
+            GroupID = int.TryParse(group.ID, out var id) ? id : 0,
+            GroupName = group.Name,
+            GroupNameShort = group.ShortName,
+            IRCChannel = null,
+            IRCServer = null,
+            Picname = null,
+            Rating = 0,
+            URL = null,
+            Votes = 0,
         };
 }

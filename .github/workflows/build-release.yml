@@ -257,6 +257,10 @@ jobs:
 
       - name: Install SSH key
         uses: shimataro/ssh-key-action@d4fffb50872869abe2d9a9098a6d9c5aa7d16be4
+        if: ${{ env.SSH_USERNAME != '' && env.SSH_SERVER != '' }}
+        env:
+          SSH_USERNAME: ${{ secrets.FILES_USERNAME }}
+          SSH_SERVER: ${{ secrets.FILES_SERVER }}
         with:
           key: ${{ secrets.FILES_SSH_KEY }}
           name: files_id_rsa
@@ -264,6 +268,7 @@ jobs:
 
       - name: Upload Installer to site
         shell: pwsh
+        if: ${{ env.SSH_USERNAME != '' && env.SSH_SERVER != '' }}
         env:
           SSH_USERNAME: ${{ secrets.FILES_USERNAME }}
           SSH_SERVER: ${{ secrets.FILES_SERVER }}

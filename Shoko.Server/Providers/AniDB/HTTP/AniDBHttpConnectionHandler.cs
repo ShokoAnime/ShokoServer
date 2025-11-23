@@ -23,9 +23,9 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
         _httpClientFactory = httpClientFactory;
     }
 
-    public async Task<HttpResponse<string>> GetHttp(string url)
+    public async Task<HttpResponse<string>> GetHttp(string url, bool force = false)
     {
-        if (IsBanned)
+        if (!force && IsBanned)
         {
             throw new AniDBBannedException
             {

@@ -10,7 +10,7 @@ using RType = Shoko.Plugin.Abstractions.DataModels.RelationType;
 #nullable enable
 namespace Shoko.Server.Models;
 
-public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedMetadata<ISeries>, IEquatable<IRelatedMetadata<ISeries>>, IEquatable<SVR_AniDB_Anime_Relation>
+public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedMetadata<ISeries, ISeries>, IEquatable<IRelatedMetadata<ISeries, ISeries>>, IEquatable<SVR_AniDB_Anime_Relation>
 {
     public RType AbstractRelationType =>
         RelationType.ToLowerInvariant() switch
@@ -27,6 +27,13 @@ public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedMetadata<I
                 : RType.Other
         };
 
+    public SVR_AniDB_Anime_Relation Reversed => new()
+    {
+        AnimeID = RelatedAnimeID,
+        RelatedAnimeID = AnimeID,
+        RelationType = ((IRelatedMetadata)this).RelationType.Reverse().ToString(),
+    };
+
     public bool Equals(IRelatedMetadata? other)
     {
         if (other is null)
@@ -40,7 +47,7 @@ public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedMetadata<I
             AbstractRelationType == other.RelationType;
     }
 
-    public bool Equals(IRelatedMetadata<ISeries>? other)
+    public bool Equals(IRelatedMetadata<ISeries, ISeries>? other)
         => other is IRelatedMetadata otherMetadata && Equals(otherMetadata);
 
     public bool Equals(SVR_AniDB_Anime_Relation? other)
@@ -94,25 +101,20 @@ public class SVR_AniDB_Anime_Relation : AniDB_Anime_Relation, IRelatedMetadata<I
 
     #region IRelatedMetadata<ISeries> implementation
 
-    ISeries? IRelatedMetadata<ISeries>.Base =>
+    ISeries? IRelatedMetadata<ISeries, ISeries>.Base =>
         RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 
-    ISeries? IRelatedMetadata<ISeries>.Related =>
+    ISeries? IRelatedMetadata<ISeries, ISeries>.Related =>
         RepoFactory.AniDB_Anime.GetByAnimeID(RelatedAnimeID);
 
-    IRelatedMetadata<ISeries> IRelatedMetadata<ISeries>.Reversed => new SVR_AniDB_Anime_Relation
+    IRelatedMetadata<ISeries, ISeries> IRelatedMetadata<ISeries, ISeries>.Reversed => new SVR_AniDB_Anime_Relation
     {
         AnimeID = RelatedAnimeID,
         RelatedAnimeID = AnimeID,
         RelationType = ((IRelatedMetadata)this).RelationType.Reverse().ToString(),
     };
 
-    IRelatedMetadata IRelatedMetadata.Reversed => new SVR_AniDB_Anime_Relation
-    {
-        AnimeID = RelatedAnimeID,
-        RelatedAnimeID = AnimeID,
-        RelationType = ((IRelatedMetadata)this).RelationType.Reverse().ToString(),
-    };
+    IRelatedMetadata IRelatedMetadata.Reversed => Reversed;
 
     #endregion
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -48,9 +49,12 @@ public class BaseController(ISettingsProvider settingsProvider) : Controller
     }
 
     [NonAction]
-    protected ActionResult ValidationProblem(string message, string fieldName = "Body")
+    protected ActionResult ValidationProblem(IEnumerable<KeyValuePair<string, IReadOnlyList<string>>> errors, string fieldName = null)
     {
-        ModelState.AddModelError(fieldName, message);
+        var prefix = string.IsNullOrEmpty(fieldName) ? string.Empty : fieldName + ".";
+        foreach (var (key, errorsList) in errors)
+            foreach (var error in errorsList)
+                ModelState.AddModelError(prefix + key, error);
         return ValidationProblem(ModelState);
     }
 }

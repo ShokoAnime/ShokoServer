@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using NLog;
 using NLog.Config;
 using NLog.Filters;
@@ -19,7 +20,7 @@ using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities;
 
-public static class Utils
+public static partial class Utils
 {
     public static ShokoServer ShokoServer { get; set; }
 
@@ -244,14 +245,7 @@ public static class Utils
     }
 
     public static bool IsVideo(string fileName)
-    {
-        var videoExtensions = SettingsProvider.GetSettings().Import.VideoExtensions
-            .Select(ext => ext.Trim().ToUpper())
-            .WhereNotDefault()
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-
-        return videoExtensions.Contains(Path.GetExtension(fileName).Replace(".", string.Empty).Trim());
-    }
+        => SettingsProvider.GetSettings().Import.VideoExtensions.Any(extName => fileName.EndsWith(extName, StringComparison.OrdinalIgnoreCase));
 
     public static bool IsLinux
     {
@@ -308,5 +302,63 @@ public static class Utils
 
         return Encoding.ASCII;
 #pragma warning restore SYSLIB0001
+    }
+
+    [GeneratedRegex(@"(?<=^|/)\.{1,}\/")]
+    private static partial Regex MultiDotRegex();
+
+    [GeneratedRegex(@"\/{2,}")]
+    private static partial Regex MultiSlashRegex();
+
+    public static string EnsureUsablePath(string path)
+    {
+        if (IsLinux)
+            return path;
+
+        // Use long paths if we're on Windows and the path is longer than 250
+        // characters.
+        if (path.Length > 250)
+            path = path.StartsWith(@"\\") && !path.StartsWith(@"\\?\")
+                ? @"\\?\UNC" + path[1..]
+                : @"\\?\" + path;
+        return path.Replace('/', '\\');
+    }
+
+    public static string StripLongPathPrefix(string path)
+    {
+        if (IsLinux)
+            return path;
+        if (!path.StartsWith(@"\\?\"))
+            return path;
+
+        if (path.StartsWith(@"\\?\UNC\"))
+            return "\\" + path[7..];
+
+        return path[4..];
+    }
+
+    public static readonly StringComparison PlatformComparison = IsLinux
+        ? StringComparison.Ordinal
+        : StringComparison.OrdinalIgnoreCase;
+
+    public static string CleanPath(string value, bool osDependent = false, bool cleanStart = false)
+    {
+        var isUNC = value.StartsWith(@"\\") && !IsLinux;
+        value ??= string.Empty;
+        value = value.Replace(Path.DirectorySeparatorChar, '/')
+            .Replace(Path.AltDirectorySeparatorChar, '/')
+            .Replace(MultiDotRegex(), "")
+            .Replace(MultiSlashRegex(), "/");
+        if (value.EndsWith('/'))
+            value = value[..^1];
+        if (cleanStart && value.StartsWith('/'))
+            value = value[1..];
+        if (osDependent)
+        {
+            value = value.Replace('/', Path.DirectorySeparatorChar);
+            if (isUNC)
+                value = $@"\{value}";
+        }
+        return value;
     }
 }

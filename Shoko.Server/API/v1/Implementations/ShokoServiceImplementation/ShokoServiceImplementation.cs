@@ -5,12 +5,14 @@ using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Quartz;
 using Shoko.Models;
 using Shoko.Models.Client;
 using Shoko.Models.Enums;
 using Shoko.Models.Interfaces;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Extensions;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Extensions;
@@ -39,17 +41,19 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
 {
     private readonly ILogger<ShokoServiceImplementation> _logger;
     private readonly AnimeGroupCreator _groupCreator;
-    private readonly JobFactory _jobFactory;
     private readonly TraktTVHelper _traktHelper;
     private readonly TmdbLinkingService _tmdbLinkingService;
     private readonly TmdbMetadataService _tmdbMetadataService;
     private readonly TmdbSearchService _tmdbSearchService;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly AnidbService _anidbService;
     private readonly ActionService _actionService;
     private readonly AnimeEpisodeService _episodeService;
     private readonly VideoLocalService _videoLocalService;
     private readonly IUserDataService _userDataService;
+    private readonly IVideoService _videoService;
+    private readonly IVideoReleaseService _videoReleaseService;
 
     public ShokoServiceImplementation(
         TraktTVHelper traktHelper,
@@ -57,14 +61,16 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         TmdbMetadataService tmdbMetadataService,
         TmdbSearchService tmdbSearchService,
         ISchedulerFactory schedulerFactory,
+        IAnidbService anidbService,
         ISettingsProvider settingsProvider,
         ILogger<ShokoServiceImplementation> logger,
         ActionService actionService,
         AnimeGroupCreator groupCreator,
-        JobFactory jobFactory,
         AnimeEpisodeService episodeService,
         IUserDataService userDataService,
-        VideoLocalService videoLocalService
+        VideoLocalService videoLocalService,
+        IVideoService videoService,
+        IVideoReleaseService videoReleaseService
     )
     {
         _traktHelper = traktHelper;
@@ -72,14 +78,16 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbSearchService = tmdbSearchService;
         _schedulerFactory = schedulerFactory;
+        _anidbService = (AnidbService)anidbService;
         _settingsProvider = settingsProvider;
         _logger = logger;
         _actionService = actionService;
         _groupCreator = groupCreator;
-        _jobFactory = jobFactory;
         _episodeService = episodeService;
         _userDataService = userDataService;
         _videoLocalService = videoLocalService;
+        _videoService = videoService;
+        _videoReleaseService = videoReleaseService;
     }
 
     #region Bookmarks
@@ -377,8 +385,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.AniDb.AVDumpKey = contractIn.AniDB_AVDumpKey;
 
             settings.AniDb.DownloadRelatedAnime = contractIn.AniDB_DownloadRelatedAnime;
-            settings.AniDb.DownloadReleaseGroups = contractIn.AniDB_DownloadReleaseGroups;
-            settings.AniDb.DownloadReviews = contractIn.AniDB_DownloadReviews;
 
             settings.AniDb.MyList_AddFiles = contractIn.AniDB_MyList_AddFiles;
             settings.AniDb.MyList_ReadUnwatched = contractIn.AniDB_MyList_ReadUnwatched;
@@ -417,15 +423,11 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
             if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
             {
-                settings.FileQualityPreferences =
-                    SettingsProvider.Deserialize<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
+                settings.FileQualityPreferences = JsonConvert.DeserializeObject<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
             }
 
             settings.Import.RunOnStart = contractIn.RunImportOnStart;
             settings.Import.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
-            settings.Import.Hasher.CRC = contractIn.Hash_CRC32;
-            settings.Import.Hasher.MD5 = contractIn.Hash_MD5;
-            settings.Import.Hasher.SHA1 = contractIn.Hash_SHA1;
             settings.Plugins.Renamer.RenameOnImport = contractIn.Import_RenameOnImport;
             settings.Plugins.Renamer.MoveOnImport = contractIn.Import_MoveOnImport;
             settings.Import.SkipDiskSpaceChecks = contractIn.SkipDiskSpaceChecks;
@@ -514,14 +516,14 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     [HttpPost("Folder/Scan")]
     public void ScanDropFolders()
     {
-        Utils.ServiceContainer.GetRequiredService<ActionService>().RunImport_DetectFiles(onlyInSourceFolders: true).GetAwaiter().GetResult();
+        _videoService.ScheduleScanForManagedFolders(onlyDropSources: true).GetAwaiter().GetResult();
     }
 
     [HttpPost("Folder/Scan/{importFolderID}")]
     public void ScanFolder(int importFolderID)
     {
         var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJob<ScanFolderJob>(a => a.ImportFolderID = importFolderID).GetAwaiter().GetResult();
+        scheduler.StartJob<ScanFolderJob>(a => a.ManagedFolderID = importFolderID).GetAwaiter().GetResult();
     }
 
     [HttpPost("Folder/RemoveMissing")]
@@ -540,7 +542,7 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     public void SyncMyList()
     {
         var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJobNow<SyncAniDBMyListJob>(c => c.ForceRefresh = true).GetAwaiter().GetResult();
+        scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = true, prioritize: true).GetAwaiter().GetResult();
     }
 
     [HttpPost("AniDB/Vote/Sync")]
@@ -655,7 +657,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.AniDB_File.GetAll().Select(a => a.File_Source).Distinct().OrderBy(a => a).ToList();
+            return RepoFactory.StoredReleaseInfo.GetAll()
+                .Select(a => a.LegacySource)
+                .WhereNotDefault()
+                .Distinct()
+                .OrderBy(a => a)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -669,8 +676,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.CrossRef_Languages_AniDB_File.GetAll().Select(a => a.LanguageName).Distinct()
-                .OrderBy(a => a).ToList();
+            return RepoFactory.StoredReleaseInfo.GetAll()
+                .SelectMany(a => a.AudioLanguages ?? [])
+                .Distinct()
+                .Select(a => a.GetString())
+                .OrderBy(a => a)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -684,8 +695,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
     {
         try
         {
-            return RepoFactory.CrossRef_Subtitles_AniDB_File.GetAll().Select(a => a.LanguageName).Distinct()
-                .OrderBy(a => a).ToList();
+            return RepoFactory.StoredReleaseInfo.GetAll()
+                .SelectMany(a => a.SubtitleLanguages ?? [])
+                .Distinct()
+                .Select(a => a.GetString())
+                .OrderBy(a => a)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -1186,15 +1201,12 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
                 foreach (var h in hashes)
                 {
                     var vid = vids.First(a => a.Hash == h);
-                    AniDB_File anifile = vid.AniDBFile;
-                    if (anifile != null)
+                    if (vid.ReleaseGroup is { Source: "AniDB" } group && int.TryParse(group.ID, out var groupId))
                     {
-                        if (!userReleaseGroups.ContainsKey(anifile.GroupID))
-                        {
-                            userReleaseGroups[anifile.GroupID] = 0;
-                        }
+                        if (!userReleaseGroups.ContainsKey(groupId))
+                            userReleaseGroups[groupId] = 0;
 
-                        userReleaseGroups[anifile.GroupID] = userReleaseGroups[anifile.GroupID] + 1;
+                        userReleaseGroups[groupId] = userReleaseGroups[groupId] + 1;
                     }
                 }
             }

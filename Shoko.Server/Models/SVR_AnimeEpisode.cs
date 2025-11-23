@@ -4,7 +4,9 @@ using System.Linq;
 using Shoko.Models.Enums;
 using Shoko.Models.Server;
 using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Plugin.Abstractions.DataModels.Anidb;
 using Shoko.Plugin.Abstractions.DataModels.Shoko;
+using Shoko.Plugin.Abstractions.DataModels.Tmdb;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
@@ -197,10 +199,10 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
     public SVR_AnimeSeries? AnimeSeries
         => RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
 
-    public IReadOnlyList<SVR_VideoLocal> VideoLocals
+    public IReadOnlyList<VideoLocal> VideoLocals
         => RepoFactory.VideoLocal.GetByAniDBEpisodeID(AniDB_EpisodeID);
 
-    public IReadOnlyList<SVR_CrossRef_File_Episode> FileCrossReferences
+    public IReadOnlyList<CrossRef_File_Episode> FileCrossReferences
         => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
     #endregion
@@ -380,10 +382,10 @@ public class SVR_AnimeEpisode : AnimeEpisode, IShokoEpisode
 
     IShokoSeries? IShokoEpisode.Series => AnimeSeries;
 
-    IEpisode IShokoEpisode.AnidbEpisode => AniDB_Episode ??
+    IAnidbEpisode IShokoEpisode.AnidbEpisode => AniDB_Episode ??
         throw new NullReferenceException($"Unable to find AniDB Episode {AniDB_EpisodeID} for AnimeEpisode {AnimeEpisodeID}");
 
-    IReadOnlyList<IEpisode> IShokoEpisode.TmdbEpisodes => TmdbEpisodes;
+    IReadOnlyList<ITmdbEpisode> IShokoEpisode.TmdbEpisodes => TmdbEpisodes;
 
     IReadOnlyList<IMovie> IShokoEpisode.TmdbMovies => TmdbMovies;
 

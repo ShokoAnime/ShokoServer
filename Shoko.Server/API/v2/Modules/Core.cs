@@ -11,6 +11,7 @@ using NLog;
 using Quartz;
 using Shoko.Models.Client;
 using Shoko.Models.Server;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
@@ -31,17 +32,26 @@ namespace Shoko.Server.API.v2.Modules;
 public class Core : BaseController
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
     private readonly ShokoServiceImplementation _service;
-    private readonly IServerSettings _settings;
+
     private readonly ISchedulerFactory _schedulerFactory;
+
+    private readonly IAnidbService _anidbService;
+
     private readonly ActionService _actionService;
 
-    public Core(ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, ActionService actionService, ShokoServiceImplementation service) : base(settingsProvider)
+    private readonly ISettingsProvider _settingsProvider;
+
+    private IServerSettings _settings => _settingsProvider.GetSettings();
+
+    public Core(ShokoServiceImplementation service, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IAnidbService anidbService, ActionService actionService) : base(settingsProvider)
     {
-        _schedulerFactory = schedulerFactory;
-        _actionService = actionService;
         _service = service;
-        _settings = settingsProvider.GetSettings();
+        _settingsProvider = settingsProvider;
+        _schedulerFactory = schedulerFactory;
+        _anidbService = anidbService;
+        _actionService = actionService;
     }
 
     #region 01.Settings
@@ -269,7 +279,7 @@ public class Core : BaseController
 
     [Obsolete]
     [HttpGet("anidb/updatemissingcache")]
-    public async Task<ActionResult> UpdateMissingAniDBXML()
+    public ActionResult UpdateMissingAniDBXML()
         => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     #endregion

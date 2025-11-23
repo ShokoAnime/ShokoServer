@@ -14,9 +14,9 @@ public class SVR_Scan : Scan
         CreationTIme.ToString(CultureInfo.CurrentUICulture) + " (" + string.Join(" | ",
             this.ImportFolders.Split(',')
                 .Select(int.Parse)
-                .Select(RepoFactory.ImportFolder.GetByID)
+                .Select(RepoFactory.ShokoManagedFolder.GetByID)
                 .WhereNotNull()
-                .Select(a => a.ImportFolderLocation
+                .Select(a => a.Path
                     .Split(
                         new[] { Path.PathSeparator, Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
                         StringSplitOptions.RemoveEmptyEntries)

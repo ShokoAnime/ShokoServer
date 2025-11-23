@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
+using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using Shoko.Models;
 using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions;
+using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Renamer;
@@ -319,28 +319,25 @@ public abstract class BaseDatabase<T> : IDatabase
 
     private void CreateInitialRenameScript()
     {
-        if (RepoFactory.RenamerConfig.GetAll().Any())
-        {
+        if (RepoFactory.StoredRelocationPipe.GetAll().Any())
             return;
-        }
 
-        var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
-        renamerService.RenamersByKey.TryGetValue("WebAOM", out var renamer);
-        
-        if (renamer == null)
-            return;
-        
-        var defaultSettings = renamer.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
-            ?.GetProperties(BindingFlags.Public | BindingFlags.Instance).FirstOrDefault(a => a.Name == "DefaultSettings")?.GetMethod?.Invoke(renamer, null);
-        
-        var config = new RenamerConfig
+        var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
+        var relocationService = Utils.ServiceContainer.GetRequiredService<IRelocationService>();
+        var provider = relocationService.GetProviderInfo<WebAOMRenamer>();
+        var configuration = provider.ConfigurationInfo is null ? null : Encoding.UTF8.GetBytes(
+            configurationService.Serialize(
+                configurationService.New(provider.ConfigurationInfo)
+            )
+        );
+        var pipe = new StoredRelocationPipe()
         {
             Name = "Default",
-            Type = typeof(WebAOMRenamer),
-            Settings = defaultSettings,
+            Configuration = configuration,
+            ProviderID = provider.ID,
         };
 
-        RepoFactory.RenamerConfig.Save(config);
+        RepoFactory.StoredRelocationPipe.Save(pipe);
     }
 
     public void CreateInitialCustomTags()
