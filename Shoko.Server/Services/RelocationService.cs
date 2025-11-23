@@ -732,10 +732,10 @@ public class RelocationService(
             var argsType = typeof(RelocationContext<>).MakeGenericType(configInfo.Type);
             args = (RelocationContext)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, argsType, args, config);
 
-            return UnAbstractResult(place, ProcessPipe((r, a) => (RelocationResult)method.Invoke(r, [a])!, providerInfo.Provider, args, shouldRename, shouldMove), shouldMove, shouldRename);
+            return ConvertToResponse(place, ProcessPipe((r, a) => (RelocationResult)method.Invoke(r, [a])!, providerInfo.Provider, args, shouldRename, shouldMove), shouldMove, shouldRename);
         }
 
-        return UnAbstractResult(place, ProcessPipe((r, a) => (r).GetPath(a), providerInfo.Provider, args, shouldRename, shouldMove), shouldMove, shouldRename);
+        return ConvertToResponse(place, ProcessPipe((r, a) => (r).GetPath(a), providerInfo.Provider, args, shouldRename, shouldMove), shouldMove, shouldRename);
     }
 
     /// <summary>
@@ -746,7 +746,7 @@ public class RelocationService(
     /// <param name="shouldMove">Indicates that we should have moved.</param>
     /// <param name="shouldRename">Indicates that we should have renamed.</param>
     /// <returns>An non-abstract relocation result.</returns>
-    private static RelocationResponse UnAbstractResult(IVideoFile file, RelocationResult response, bool shouldMove, bool shouldRename)
+    private static RelocationResponse ConvertToResponse(IVideoFile file, RelocationResult response, bool shouldMove, bool shouldRename)
     {
         if (response.Error is not null)
             return RelocationResponse.FromError(response.Error);
