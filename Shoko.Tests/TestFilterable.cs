@@ -4,6 +4,7 @@ using Shoko.Models.Enums;
 using Shoko.Plugin.Abstractions.Enums;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Server;
+using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
 
 namespace Shoko.Tests;
 
@@ -33,6 +34,7 @@ public class TestFilterable : IFilterable
     public bool HasMissingTmdbLink { get; init; }
     public int AutomaticTmdbEpisodeLinks { get; init; }
     public int UserVerifiedTmdbEpisodeLinks { get; init; }
+    public int MissingTmdbEpisodeLinks { get; init; }
     public bool HasTraktLink { get; init; }
     public bool HasTraktAutoLinkingDisabled { get; init; }
     public bool HasMissingTraktLink { get; init; }
@@ -48,7 +50,7 @@ public class TestFilterable : IFilterable
     public decimal HighestAniDBRating { get; init; }
     public IReadOnlySet<string> VideoSources { get; init; }
     public IReadOnlySet<string> SharedVideoSources { get; init; }
-    public IReadOnlySet<string> AnimeTypes { get; init; }
+    public IReadOnlySet<AnimeType> AnimeTypes { get; init; }
     public IReadOnlySet<string> AudioLanguages { get; init; }
     public IReadOnlySet<string> SharedAudioLanguages { get; init; }
     public IReadOnlySet<string> SubtitleLanguages { get; init; }

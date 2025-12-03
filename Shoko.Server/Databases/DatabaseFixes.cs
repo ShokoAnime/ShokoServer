@@ -268,7 +268,7 @@ public class DatabaseFixes
     {
         var emptyGroups = RepoFactory.AnimeGroup.GetAll().Where(a => a.AllSeries.Count == 0).ToArray();
         RepoFactory.AnimeGroup.Delete(emptyGroups);
-        var orphanedSeries = RepoFactory.AnimeSeries.GetAll().Where(a => a.AnimeGroup == null).ToArray();
+        var orphanedSeries = RepoFactory.AnimeSeries.GetAll().Where(a => a.AnimeGroupID == 0 || a.AnimeGroup == null).ToArray();
         var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
         using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         foreach (var series in orphanedSeries)
