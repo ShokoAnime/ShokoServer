@@ -79,4 +79,14 @@ public interface ISeries : IWithTitles, IWithDescriptions, IWithImages, IWithCas
     /// Get all videos linked to the series, if any.
     /// </summary>
     IReadOnlyList<IVideo> Videos { get; }
+
+    /// <summary>
+    /// Tags associated with a series
+    /// </summary>
+    IReadOnlyList<ITag> Tags { get; }
+
+    /// <summary>
+    /// Custom Tags associated with a series
+    /// </summary>
+    IReadOnlyList<ITag> CustomTags { get; }
 }

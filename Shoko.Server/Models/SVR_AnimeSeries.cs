@@ -732,6 +732,18 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
 
     EpisodeCounts ISeries.EpisodeCounts => (this as IShokoSeries).AnidbAnime.EpisodeCounts;
 
+    IReadOnlyList<ITag> ISeries.Tags => AniDB_Anime?.AnimeTags.Select(a =>
+    {
+        var tag = RepoFactory.AniDB_Tag.GetByTagID(a.TagID);
+        if (tag == null) return null;
+        return new CustomTag
+        {
+            TagName = tag.TagName, TagDescription = tag.TagDescription, Spoiler = a.LocalSpoiler || tag.GlobalSpoiler,
+        };
+    }).WhereNotNull().ToList() ?? [];
+
+    IReadOnlyList<ITag> ISeries.CustomTags => RepoFactory.CustomTag.GetByAnimeID(AniDB_ID).ToList();
+
     #endregion
 
     #region IShokoSeries Implementation

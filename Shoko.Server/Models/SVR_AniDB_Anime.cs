@@ -110,6 +110,18 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
     public IEnumerable<(int Year, AnimeSeason Season)> Seasons
         => AirDate.GetYearlySeasons(EndDate);
 
+    IReadOnlyList<ITag> ISeries.Tags => AnimeTags.Select(a =>
+    {
+        var tag = RepoFactory.AniDB_Tag.GetByTagID(a.TagID);
+        if (tag == null) return null;
+        return new CustomTag
+        {
+            TagName = tag.TagName, TagDescription = tag.TagDescription, Spoiler = a.LocalSpoiler || tag.GlobalSpoiler,
+        };
+    }).WhereNotNull().ToList();
+
+    IReadOnlyList<ITag> ISeries.CustomTags => CustomTags;
+
     public List<CustomTag> CustomTags
         => RepoFactory.CustomTag.GetByAnimeID(AnimeID);
 

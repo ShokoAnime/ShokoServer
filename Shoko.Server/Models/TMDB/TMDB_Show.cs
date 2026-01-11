@@ -659,6 +659,10 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
         .WhereNotNull()
         .ToList();
 
+    public IReadOnlyList<ITag> Tags => [];
+    public IReadOnlyList<ITag> CustomTags => [];
+
     #endregion
+
 }
 
