@@ -263,7 +263,7 @@ public partial class WebUIUpdateService
                                 ReleaseChannel = channel,
                                 ReleaseDate = releaseDate,
                                 Tag = tagName,
-                                Description = description.Trim(),
+                                Description = description?.Trim(),
                             }, _cacheTTL);
                         }
                     }
@@ -291,7 +291,7 @@ public partial class WebUIUpdateService
                     ReleaseChannel = channel,
                     ReleaseDate = releaseDate,
                     Tag = tagName,
-                    Description = description.Trim(),
+                    Description = description?.Trim(),
                 }, _cacheTTL);
             }
         }
