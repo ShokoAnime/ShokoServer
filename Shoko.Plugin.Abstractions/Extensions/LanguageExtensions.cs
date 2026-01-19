@@ -10,6 +10,15 @@ namespace Shoko.Plugin.Abstractions.Extensions;
 public static class LanguageExtensions
 {
     /// <summary>
+    /// Convert a language code and country code to a <see cref="TitleLanguage"/>.
+    /// </summary>
+    /// <param name="languageCode">The language code.</param>
+    /// <param name="countryCode">The country code.</param>
+    /// <returns>The <see cref="TitleLanguage"/> or <see cref="TitleLanguage.Unknown"/> if not found.</returns>
+    public static TitleLanguage GetTitleLanguage(this string languageCode, string countryCode)
+        => GetTitleLanguage($"{languageCode}-{countryCode}".ToUpperInvariant());
+
+    /// <summary>
     /// Convert a language code to a <see cref="TitleLanguage"/>.
     /// </summary>
     /// <param name="lang">The language code or name.</param>
