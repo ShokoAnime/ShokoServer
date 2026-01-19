@@ -16,7 +16,7 @@ public class TMDB_Title : IEquatable<TMDB_Title>
 
     public TitleLanguage Language
     {
-        get => string.IsNullOrEmpty(LanguageCode) ? TitleLanguage.None : LanguageCode.GetTitleLanguage();
+        get => string.IsNullOrEmpty(LanguageCode) ? TitleLanguage.None : string.IsNullOrEmpty(CountryCode) ? LanguageCode.GetTitleLanguage() : $"{LanguageCode}-{CountryCode}".GetTitleLanguage();
     }
 
     /// <summary>

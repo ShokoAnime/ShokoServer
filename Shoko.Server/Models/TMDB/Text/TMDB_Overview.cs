@@ -15,7 +15,7 @@ public class TMDB_Overview
 
     public TitleLanguage Language
     {
-        get => string.IsNullOrEmpty(LanguageCode) ? TitleLanguage.None : LanguageCode.GetTitleLanguage();
+        get => string.IsNullOrEmpty(LanguageCode) ? TitleLanguage.None : string.IsNullOrEmpty(CountryCode) ? LanguageCode.GetTitleLanguage() : $"{LanguageCode}-{CountryCode}".GetTitleLanguage();
     }
 
     /// <summary>
