@@ -2042,7 +2042,7 @@ public class TmdbMetadataService
                 alwaysInclude = true;
             }
 
-            var shouldInclude = alwaysInclude || preferredTitleLanguages is null || preferredTitleLanguages.Contains(languageCode.GetTitleLanguage());
+            var shouldInclude = alwaysInclude || preferredTitleLanguages is null || preferredTitleLanguages.Contains(languageCode.GetTitleLanguage()) || preferredTitleLanguages.Contains(languageCode.GetTitleLanguage(countryCode));
             var existingTitle = existingTitles.FirstOrDefault(title => title.LanguageCode == languageCode && title.CountryCode == countryCode);
             if (shouldInclude && !string.IsNullOrEmpty(currentTitle) && !(
                 // Make sure the "translation" is not just the English Title or
@@ -2075,7 +2075,7 @@ public class TmdbMetadataService
                 currentOverview = tmdbEntity.EnglishOverview ?? translation.Data.Overview ?? string.Empty;
             }
 
-            shouldInclude = alwaysInclude || preferredOverviewLanguages is null || preferredOverviewLanguages.Contains(languageCode.GetTitleLanguage());
+            shouldInclude = alwaysInclude || preferredOverviewLanguages is null || preferredOverviewLanguages.Contains(languageCode.GetTitleLanguage()) || preferredOverviewLanguages.Contains(languageCode.GetTitleLanguage(countryCode));
             var existingOverview = existingOverviews.FirstOrDefault(overview => overview.LanguageCode == languageCode && overview.CountryCode == countryCode);
             if (shouldInclude && !string.IsNullOrEmpty(currentOverview))
             {
