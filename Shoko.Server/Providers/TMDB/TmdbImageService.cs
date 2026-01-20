@@ -152,8 +152,14 @@ public class TmdbImageService
 
             if (!validImages.Contains(image.RemoteFileName) || (isLimitEnabled && count >= maxCount))
             {
-                RemoveImageFromEntity(image, foreignType, foreignId, imageType);
-                continue;
+                // Check if the image is set as the preferred image for the given type for any series or episodes.
+                var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, imageType, image.TMDB_ImageID);
+                var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, imageType, image.TMDB_ImageID);
+                if (preferredAnimeImages.Count == 0 && preferredEpisodeImages.Count == 0)
+                {
+                    RemoveImageFromEntity(image, foreignType, foreignId, imageType);
+                    continue;
+                }
             }
 
             var updated = imageEntity.Populate(count++, releasedAt);
@@ -178,8 +184,25 @@ public class TmdbImageService
         foreach (var image in _tmdbImages.GetAll())
         {
             var references = _tmdbImageEntities.GetByRemoteFileName(image.RemoteFileName);
-            if (references.Count == 0)
-                toRemove.Add(image);
+            if (references.Count > 0)
+                continue;
+
+            // Check if the image is set as any preferred image for any series or episodes.
+            var shouldKeep = false;
+            foreach (var iT in Enum.GetValues<ImageEntityType>())
+            {
+                var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, iT, image.TMDB_ImageID);
+                var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, iT, image.TMDB_ImageID);
+                if (preferredAnimeImages.Count > 0 || preferredEpisodeImages.Count > 0)
+                {
+                    shouldKeep = true;
+                    break;
+                }
+            }
+            if (shouldKeep)
+                continue;
+
+            toRemove.Add(image);
         }
 
         _logger.LogDebug(
@@ -204,7 +227,7 @@ public class TmdbImageService
             RemoveImageFromEntity(image, foreignType, foreignId);
     }
 
-    private void RemoveImageFromEntity(TMDB_Image image, ForeignEntityType? foreignType = null, int? foreignId = null, ImageEntityType? imageType = null)
+    private bool RemoveImageFromEntity(TMDB_Image image, ForeignEntityType? foreignType = null, int? foreignId = null, ImageEntityType? imageType = null)
     {
         if (foreignType.HasValue && foreignId.HasValue)
         {
@@ -247,20 +270,23 @@ public class TmdbImageService
 
         // Only delete the image metadata and/or file if all references were removed.
         if (_tmdbImageEntities.GetByRemoteFileName(image.RemoteFileName).Count > 0)
-            return;
+            return false;
+
+        // Check if the image is set as any preferred image for any series or episodes.
+        foreach (var iT in Enum.GetValues<ImageEntityType>())
+        {
+            var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, iT, image.TMDB_ImageID);
+            var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, iT, image.TMDB_ImageID);
+            if (preferredAnimeImages.Count > 0 || preferredEpisodeImages.Count > 0)
+                return false;
+        }
 
         if (!string.IsNullOrEmpty(image.LocalPath) && File.Exists(image.LocalPath))
             File.Delete(image.LocalPath);
 
         _tmdbImages.Delete(image);
 
-        foreach (var iT in Enum.GetValues<ImageEntityType>())
-        {
-            var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, iT, image.TMDB_ImageID);
-            var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, iT, image.TMDB_ImageID);
-            _preferredImages.Delete(preferredAnimeImages);
-            _preferredEpisodeImages.Delete(preferredEpisodeImages);
-        }
+        return true;
     }
 
     public void ResetPreferredImage(int anidbAnimeId, ForeignEntityType foreignType, int foreignId)
