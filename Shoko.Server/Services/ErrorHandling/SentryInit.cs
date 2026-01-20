@@ -118,9 +118,6 @@ public static class SentryInit
 
             if (type.GetCustomAttribute<SentryIgnoreAttribute>() is not null) return false;
 
-            if (_includedEvents.Contains(type)) return true;
-            if (type.GetCustomAttribute<SentryIncludeAttribute>() is not null) return true;
-
             if (ex is GenericADOException adoEx)
             {
                 // Error codes: https://www.sqlite.org/rescode.html
@@ -137,6 +134,9 @@ public static class SentryInit
                     }) return false;
                 if (adoEx.InnerException is MySqlException { Number: (int)MySqlErrorCode.UnableToConnectToHost }) return false;
             }
+
+            if (_includedEvents.Contains(type)) return true;
+            if (type.GetCustomAttribute<SentryIncludeAttribute>() is not null) return true;
 
             if (ex is WebException webEx)
             {
