@@ -81,7 +81,8 @@ public static class SentryInit
         typeof(FileNotFoundException),
         typeof(DirectoryNotFoundException),
         typeof(UnauthorizedAccessException),
-        typeof(HttpRequestException)
+        typeof(HttpRequestException),
+        typeof(ObjectAlreadyExistsException)
     };
 
     private static readonly HashSet<Type> _includedEvents = new()
