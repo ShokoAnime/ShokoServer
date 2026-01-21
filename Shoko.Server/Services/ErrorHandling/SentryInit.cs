@@ -118,10 +118,11 @@ public static class SentryInit
 
             if (type.GetCustomAttribute<SentryIgnoreAttribute>() is not null) return false;
 
-            if (ex is GenericADOException adoEx)
+            if (ex is GenericADOException or JobPersistenceException)
             {
+                var innerException = ex.InnerException;
                 // Error codes: https://www.sqlite.org/rescode.html
-                if (adoEx.InnerException is SqliteException
+                if (innerException is SqliteException
                     {
                         SqliteErrorCode:
                             4 /* aborted by app */ or
@@ -132,7 +133,7 @@ public static class SentryInit
                             14 /* cannot open file */ or
                             22 /* no LFS support */
                     }) return false;
-                if (adoEx.InnerException is MySqlException { Number: (int)MySqlErrorCode.UnableToConnectToHost }) return false;
+                if (innerException is MySqlException { Number: (int)MySqlErrorCode.UnableToConnectToHost }) return false;
             }
 
             if (_includedEvents.Contains(type)) return true;
