@@ -1139,7 +1139,7 @@ public class TmdbMetadataService
         var episodesToAdd = 0;
         var episodesToSkip = new ConcurrentBag<int>();
         var episodesToSave = new ConcurrentBag<TMDB_Episode>();
-        var episodeEventsToEmit = new Dictionary<TMDB_Episode, UpdateReason>();
+        var episodeEventsToEmit = new ConcurrentDictionary<TMDB_Episode, UpdateReason>();
         var allPeopleToAddOrKeep = new ConcurrentBag<int>();
         var allPeopleToPotentiallyRemove = new ConcurrentBag<int>();
         foreach (var reducedSeason in show.Seasons)
@@ -1212,7 +1212,7 @@ public class TmdbMetadataService
 
                 if ((newlyAddedEpisode && shouldFireEvents) || episodeUpdated)
                 {
-                    episodeEventsToEmit.Add(tmdbEpisode, newlyAddedEpisode ? UpdateReason.Added : UpdateReason.Updated);
+                    episodeEventsToEmit.TryAdd(tmdbEpisode, newlyAddedEpisode ? UpdateReason.Added : UpdateReason.Updated);
                     if (shouldFireEvents)
                         tmdbEpisode.LastUpdatedAt = DateTime.Now;
                     episodesToSave.Add(tmdbEpisode);
@@ -1284,7 +1284,7 @@ public class TmdbMetadataService
         foreach (var episode in episodesToRemove)
         {
             PurgeShowEpisode(episode);
-            episodeEventsToEmit.Add(episode, UpdateReason.Removed);
+            episodeEventsToEmit.TryAdd(episode, UpdateReason.Removed);
         }
 
         _tmdbEpisodes.Delete(episodesToRemove);
@@ -1292,7 +1292,7 @@ public class TmdbMetadataService
         if (quickRefresh)
             return (
                 seasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || episodesToSave.IsEmpty || episodesToRemove.Count > 0,
-                episodeEventsToEmit,
+                episodeEventsToEmit.ToDictionary(),
                 totalEpisodeCount,
                 totalHiddenEpisodeCount
             );
@@ -1328,7 +1328,7 @@ public class TmdbMetadataService
 
         return (
             seasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || episodesToSave.IsEmpty || episodesToRemove.Count > 0 || peopleAdded > 0 || peoplePurged > 0,
-            episodeEventsToEmit,
+            episodeEventsToEmit.ToDictionary(),
             totalEpisodeCount,
             totalHiddenEpisodeCount
         );
