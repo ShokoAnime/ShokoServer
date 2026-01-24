@@ -265,4 +265,9 @@ public interface IFilterable
     /// Creator Roles
     /// </summary>
     IReadOnlyDictionary<CreatorRoleType, IReadOnlySet<string>> CreatorRoles { get; }
+
+    /// <summary>
+    /// Release Group Names
+    /// </summary>
+    IReadOnlySet<string> ReleaseGroupNames { get; }
 }
