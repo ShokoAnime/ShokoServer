@@ -904,6 +904,10 @@ public class TraktTVHelper
             string json;
             if (syncType is TraktSyncType.CollectionAdd or TraktSyncType.CollectionRemove)
             {
+                if (!settings.TraktTv.VipStatus)
+                {
+                    return;
+                }
                 var sync = new TraktV2SyncCollectionEpisodesByNumber(slug, season,
                     epNumber,
                     epDate);
@@ -1832,48 +1836,6 @@ public class TraktTVHelper
                 "Sync Check Status:  Trakt: {ShowID} - S:{Season} - EP:{EpNumber} - Collection: {OnlineCollection} - Watched: {Watched}",
                 traktShowID, season, epNumber, onlineCollection, onlineWatched);
 
-            // sync the collection status
-            if (localCollection)
-            {
-                // is in the local collection, but not Trakt, so let's ADD it
-                if (!onlineCollection)
-                {
-                    _logger.LogTrace(
-                        "SYNC LOCAL: Adding to Trakt Collection:  Slug: {ShowID} - S:{Season} - EP:{EpNumber}",
-                        traktShowID, season, epNumber);
-                    var epDate = GetEpisodeDateForSync(ep, TraktSyncType.CollectionAdd);
-                    if (sendNow)
-                    {
-                        SyncEpisodeToTrakt(TraktSyncType.CollectionAdd, traktShowID, season, epNumber, epDate);
-                    }
-                    else
-                    {
-                        return new EpisodeSyncDetails(TraktSyncType.CollectionAdd, traktShowID, season, epNumber,
-                            epDate);
-                    }
-                }
-            }
-            else
-            {
-                // is in the trakt collection, but not local, so let's REMOVE it
-                if (onlineCollection)
-                {
-                    _logger.LogTrace(
-                        "SYNC LOCAL: Removing from Trakt Collection:  Slug: {ShowID} - S:{Season} - EP:{EpNumber}",
-                        traktShowID, season, epNumber);
-                    var epDate = GetEpisodeDateForSync(ep, TraktSyncType.CollectionRemove);
-                    if (sendNow)
-                    {
-                        SyncEpisodeToTrakt(TraktSyncType.CollectionRemove, traktShowID, season, epNumber, epDate);
-                    }
-                    else
-                    {
-                        return new EpisodeSyncDetails(TraktSyncType.CollectionRemove, traktShowID, season, epNumber,
-                            epDate);
-                    }
-                }
-            }
-
             // sync the watched status
             if (localWatched)
             {
@@ -1920,6 +1882,53 @@ public class TraktTVHelper
                 }
             }
 
+            if (!_settingsProvider.GetSettings().TraktTv.VipStatus)
+            {
+                return null;
+            }
+
+            // sync the collection status
+            if (localCollection)
+            {
+                // is in the local collection, but not Trakt, so let's ADD it
+                if (!onlineCollection)
+                {
+                    _logger.LogTrace(
+                        "SYNC LOCAL: Adding to Trakt Collection:  Slug: {ShowID} - S:{Season} - EP:{EpNumber}",
+                        traktShowID, season, epNumber);
+                    var epDate = GetEpisodeDateForSync(ep, TraktSyncType.CollectionAdd);
+                    if (sendNow)
+                    {
+                        SyncEpisodeToTrakt(TraktSyncType.CollectionAdd, traktShowID, season, epNumber, epDate);
+                    }
+                    else
+                    {
+                        return new EpisodeSyncDetails(TraktSyncType.CollectionAdd, traktShowID, season, epNumber,
+                            epDate);
+                    }
+                }
+            }
+            else
+            {
+                // is in the trakt collection, but not local, so let's REMOVE it
+                if (onlineCollection)
+                {
+                    _logger.LogTrace(
+                        "SYNC LOCAL: Removing from Trakt Collection:  Slug: {ShowID} - S:{Season} - EP:{EpNumber}",
+                        traktShowID, season, epNumber);
+                    var epDate = GetEpisodeDateForSync(ep, TraktSyncType.CollectionRemove);
+                    if (sendNow)
+                    {
+                        SyncEpisodeToTrakt(TraktSyncType.CollectionRemove, traktShowID, season, epNumber, epDate);
+                    }
+                    else
+                    {
+                        return new EpisodeSyncDetails(TraktSyncType.CollectionRemove, traktShowID, season, epNumber,
+                            epDate);
+                    }
+                }
+            }
+
             return null;
         }
         catch (Exception ex)
@@ -1935,7 +1944,7 @@ public class TraktTVHelper
         try
         {
             var settings = _settingsProvider.GetSettings();
-            if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken) || !settings.TraktTv.VipStatus)
+            if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
             {
                 return false;
             }
