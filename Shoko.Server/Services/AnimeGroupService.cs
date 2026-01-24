@@ -408,7 +408,6 @@ public class AnimeGroupService
         var hasFinishedAiring = false;
         var isCurrentlyAiring = false;
         var videoQualityEpisodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-        var traktXrefByAnime = RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeIDs(allIDs);
         var allVidQualByGroup = allSeriesForGroup.SelectMany(a => _fileEpisodes.GetByAnimeID(a.AniDB_ID)).Select(a => _files.GetByHash(a.Hash)?.File_Source)
             .WhereNotNull().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         var tmdbShowXrefByAnime = allIDs
@@ -570,14 +569,9 @@ public class AnimeGroupService
 
             // For the group, if any of the series don't have a tmdb link
             // we will consider the group as not having a tmdb link
-            var foundTraktLink = traktXrefByAnime[anime.AnimeID].Any();
             var foundTMDBShowLink = tmdbShowXrefByAnime.TryGetValue(anime.AnimeID, out var _);
             var foundTMDBMovieLink = tmdbMovieXrefByAnime.TryGetValue(anime.AnimeID, out var _);
             var isMovie = anime.AnimeType == (int)AnimeType.Movie;
-            if (!foundTraktLink)
-            {
-                missingTraktLink = true;
-            }
 
             if (!foundTMDBShowLink && !foundTMDBMovieLink)
             {

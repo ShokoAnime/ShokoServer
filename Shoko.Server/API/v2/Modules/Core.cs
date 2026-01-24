@@ -147,7 +147,7 @@ public class Core : BaseController
         => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     /// <summary>
-    /// 
+    ///
     /// </summary>
     /// <param name="jsonSettings"></param>
     /// <returns></returns>
@@ -319,29 +319,11 @@ public class Core : BaseController
         if (_settings.TraktTv.Enabled && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken))
         {
             var scheduler = await _schedulerFactory.GetScheduler();
-            await scheduler.StartJob<SyncTraktCollectionJob>(c => c.ForceRefresh = true);
+            await scheduler.StartJob<SyncWatchStatusToTraktJob>(c => c.ForceRefresh = true);
             return APIStatus.OK();
         }
 
         return new APIMessage(204, "Trakt is not enabled or you are missing the authtoken");
-    }
-
-    /// <summary>
-    /// Scan Trakt
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("trakt/scan")]
-    public ActionResult ScanTrakt()
-    {
-        _actionService.RunImport_ScanTrakt();
-        return APIStatus.OK();
-    }
-
-    [HttpPost("trakt/set")]
-    [HttpGet("trakt/create")]
-    public ActionResult TraktNotImplemented()
-    {
-        return APIStatus.NotImplemented();
     }
 
     #endregion

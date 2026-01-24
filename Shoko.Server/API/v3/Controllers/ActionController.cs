@@ -31,7 +31,6 @@ public class ActionController : BaseController
     private readonly AnimeGroupCreator _groupCreator;
     private readonly ActionService _actionService;
     private readonly AnimeGroupService _groupService;
-    private readonly TraktTVHelper _traktHelper;
     private readonly TmdbMetadataService _tmdbMetadataService;
     private readonly TmdbLinkingService _tmdbLinkingService;
     private readonly TmdbImageService _tmdbImageService;
@@ -39,7 +38,6 @@ public class ActionController : BaseController
 
     public ActionController(
         ILogger<ActionController> logger,
-        TraktTVHelper traktHelper,
         TmdbMetadataService tmdbMetadataService,
         TmdbLinkingService tmdbLinkingService,
         TmdbImageService tmdbImageService,
@@ -51,7 +49,6 @@ public class ActionController : BaseController
     ) : base(settingsProvider)
     {
         _logger = logger;
-        _traktHelper = traktHelper;
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbImageService = tmdbImageService;
@@ -123,7 +120,7 @@ public class ActionController : BaseController
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<SyncTraktCollectionJob>(c => c.ForceRefresh = true);
+        await scheduler.StartJobNow<SyncWatchStatusToTraktJob>(c => c.ForceRefresh = true);
 
         return Ok();
     }
@@ -271,24 +268,6 @@ public class ActionController : BaseController
             if (resetAutoLinkingState.HasValue)
                 _tmdbLinkingService.ResetAutoLinkingState(resetAutoLinkingState.Value);
         });
-        return Ok();
-    }
-
-    /// <summary>
-    /// Update all Trakt info. Right now, that's not much.
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("UpdateAllTraktInfo")]
-    public ActionResult UpdateTraktInfo()
-    {
-        var settings = SettingsProvider.GetSettings().TraktTv;
-        if (!settings.Enabled ||
-            string.IsNullOrEmpty(settings.AuthToken))
-        {
-            return BadRequest();
-        }
-
-        _traktHelper.UpdateAllInfo();
         return Ok();
     }
 

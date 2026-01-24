@@ -108,10 +108,11 @@ public static class FilterExtensions
                     .ToHashSet();
                 return series.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
             },
+            // TODO: Remove Trakt filters when removing API v1
             HasTraktLinkDelegate = () =>
-                series.TraktShowCrossReferences.Count is > 0,
+                false,
             HasTraktAutoLinkingDisabledDelegate = () =>
-                series.IsTraktAutoMatchingDisabled,
+                false,
             IsFinishedDelegate = () =>
                 series.AniDB_Anime?.EndDate is { } endDate && endDate < DateTime.Now,
             LastAirDateDelegate = () =>
@@ -305,9 +306,9 @@ public static class FilterExtensions
                 return acc + ser.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
             }),
             HasTraktLinkDelegate = () =>
-                series.Any(a => a.TraktShowCrossReferences.Count is > 0),
+                false,
             HasTraktAutoLinkingDisabledDelegate = () =>
-                series.Any(a => a.IsTraktAutoMatchingDisabled),
+                false,
             IsFinishedDelegate = () =>
                 series.All(a => a.EndDate is not null && a.EndDate <= DateTime.Today),
             AddedDateDelegate = () =>

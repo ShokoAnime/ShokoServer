@@ -3175,9 +3175,6 @@ public class Common : BaseController
         var links = new Dictionary<string, object>();
 
         var serie = RepoFactory.AnimeSeries.GetByID(id);
-        var trakt = serie?.TraktShow;
-        if (trakt != null)
-            links.Add("trakt", trakt.Where(a => !string.IsNullOrEmpty(a.URL)).Select(x => x.URL).ToArray());
 
         if (serie?.TmdbShows is { Count: > 0 } tmdbShows)
             links.Add("tvdb", tmdbShows.Select(x => x.TvdbShowID).WhereNotNull().ToArray());

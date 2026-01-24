@@ -48,9 +48,6 @@ public static class RepositoryStartup
         services.AddDirectRepository<TMDB_PersonRepository>();
         services.AddDirectRepository<TMDB_Show_NetworkRepository>();
         services.AddDirectRepository<TMDB_TitleRepository>();
-        services.AddDirectRepository<Trakt_EpisodeRepository>();
-        services.AddDirectRepository<Trakt_SeasonRepository>();
-        services.AddDirectRepository<Trakt_ShowRepository>();
         services.AddDirectRepository<VersionsRepository>();
         services.AddDirectRepository<AniDB_MessageRepository>();
         services.AddDirectRepository<AniDB_NotifyQueueRepository>();
@@ -81,7 +78,6 @@ public static class RepositoryStartup
         services.AddCachedRepository<CrossRef_AniDB_TMDB_EpisodeRepository>();
         services.AddCachedRepository<CrossRef_AniDB_TMDB_MovieRepository>();
         services.AddCachedRepository<CrossRef_AniDB_TMDB_ShowRepository>();
-        services.AddCachedRepository<CrossRef_AniDB_TraktV2Repository>();
         services.AddCachedRepository<CrossRef_CustomTagRepository>();
         services.AddCachedRepository<CrossRef_File_EpisodeRepository>();
         services.AddCachedRepository<CrossRef_Languages_AniDB_FileRepository>();

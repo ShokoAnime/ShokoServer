@@ -17,20 +17,20 @@ namespace Shoko.Server.Scheduling.Jobs.Trakt;
 [NetworkRequired]
 [DisallowConcurrencyGroup(ConcurrencyGroups.Trakt)]
 [JobKeyGroup(JobKeyGroup.Trakt)]
-public class SyncTraktCollectionJob : BaseJob
+public class SyncWatchStatusToTraktJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
     public bool ForceRefresh { get; set; }
 
-    public override string TypeName => "Sync Trakt Collection";
-    public override string Title => "Syncing Trakt Collection";
+    public override string TypeName => "Sync Watch Status To Trakt";
+    public override string Title => "Syncing Watch Status To Trakt";
 
     public override Task Process()
     {
-        _logger.LogInformation("Processing {Job}", nameof(SyncTraktCollectionJob));
+        _logger.LogInformation("Processing {Job}", nameof(SyncWatchStatusToTraktJob));
         var settings = _settingsProvider.GetSettings();
-        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken) || !settings.TraktTv.VipStatus) return Task.CompletedTask;
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return Task.CompletedTask;
 
         var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSync);
         if (sched == null)
@@ -52,16 +52,16 @@ public class SyncTraktCollectionJob : BaseJob
         sched.LastUpdate = DateTime.Now;
         RepoFactory.ScheduledUpdate.Save(sched);
 
-        _helper.SyncCollectionToTrakt();
+        _helper.SyncWatchStatusToTrakt();
 
         return Task.CompletedTask;
     }
 
-    public SyncTraktCollectionJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
+    public SyncWatchStatusToTraktJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
     {
         _helper = helper;
         _settingsProvider = settingsProvider;
     }
 
-    protected SyncTraktCollectionJob() { }
+    protected SyncWatchStatusToTraktJob() { }
 }

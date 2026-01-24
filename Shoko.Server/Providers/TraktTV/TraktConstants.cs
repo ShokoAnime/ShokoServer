@@ -10,10 +10,8 @@ public static class TraktConstants
 
 public enum TraktSyncType
 {
-    CollectionAdd = 1,
-    CollectionRemove = 2,
-    HistoryAdd = 3,
-    HistoryRemove = 4
+    HistoryAdd = 1,
+    HistoryRemove = 2
 }
 
 public enum ScrobblePlayingStatus

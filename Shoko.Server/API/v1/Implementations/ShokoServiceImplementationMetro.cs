@@ -143,14 +143,6 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
                 contract.MAL_URL = string.Format(Constants.URLS.MAL_Series, malRef[0].MALID);
                 contract.MAL_DiscussURL = string.Format(Constants.URLS.MAL_Series, malRef[0].MALID);
             }
-
-            // Trakt
-            var traktRef = anime.TraktShowCrossReferences;
-            if (traktRef is not null && traktRef.Count > 0)
-            {
-                contract.Trakt_ID = traktRef[0].TraktID;
-                contract.Trakt_URL = string.Format(Constants.URLS.Trakt_Series, traktRef[0].TraktID);
-            }
         }
         catch (Exception ex)
         {
@@ -856,7 +848,7 @@ public class ShokoServiceImplementationMetro : IShokoServerMetro, IHttpContextAc
             return null;
         }
     }
-    
+
     private static string GetAniDBDate(int secs)
     {
         if (secs == 0) return "";

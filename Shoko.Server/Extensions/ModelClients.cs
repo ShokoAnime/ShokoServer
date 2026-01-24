@@ -9,7 +9,6 @@ using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
-using Shoko.Server.Models.Trakt;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
@@ -94,7 +93,7 @@ public static class ModelClients
             Trakt_AuthToken = settings.TraktTv.AuthToken,
             Trakt_RefreshToken = settings.TraktTv.RefreshToken,
             Trakt_TokenExpirationDate = settings.TraktTv.TokenExpirationDate,
-            Trakt_UpdateFrequency = (int)settings.TraktTv.UpdateFrequency,
+            Trakt_UpdateFrequency = 0,
             Trakt_SyncFrequency = (int)settings.TraktTv.SyncFrequency,
 
             // LogRotator
@@ -360,31 +359,6 @@ public static class ModelClients
                 _ => CL_ImageEntityType.None,
             },
             _ => CL_ImageEntityType.None,
-        };
-
-    public static CL_Trakt_Season ToClient(this Trakt_Season season)
-        => new()
-        {
-            Trakt_SeasonID = season.Trakt_SeasonID,
-            Trakt_ShowID = season.Trakt_ShowID,
-            Season = season.Season,
-            URL = season.URL,
-            Episodes = season.GetTraktEpisodes(),
-        };
-
-    public static CL_Trakt_Show ToClient(this Trakt_Show show)
-        => new()
-        {
-            Trakt_ShowID = show.Trakt_ShowID,
-            TraktID = show.TraktID,
-            Title = show.Title,
-            Year = show.Year,
-            URL = show.URL,
-            Overview = show.Overview,
-            TvDB_ID = null,
-            Seasons = show.GetTraktSeasons()
-                .Select(a => a.ToClient())
-                .ToList(),
         };
 
     public static CL_AniDB_Character ToClient(this AniDB_Character character)

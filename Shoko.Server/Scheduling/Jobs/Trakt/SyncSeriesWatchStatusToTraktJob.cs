@@ -14,46 +14,46 @@ namespace Shoko.Server.Scheduling.Jobs.Trakt;
 [NetworkRequired]
 [DisallowConcurrencyGroup(ConcurrencyGroups.Trakt)]
 [JobKeyGroup(JobKeyGroup.Trakt)]
-public class UpdateTraktShowJob : BaseJob
+public class SyncSeriesWatchStatusToTraktJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
-    private string _showName;
-    public string TraktShowID { get; set; }
+    private string _seriesName;
+    public int AnimeSeriesID { get; set; }
 
-    public override string TypeName => "Update Trakt Show data";
-    public override string Title => "Updating Trakt Show data";
-    
+    public override string TypeName => "Sync Series Watch Status to Trakt";
+    public override string Title => "Syncing Series Watch Status to Trakt";
+
     public override void PostInit()
     {
-        _showName = RepoFactory.Trakt_Show?.GetByTraktSlug(TraktShowID)?.Title ?? TraktShowID;
+        _seriesName = RepoFactory.AnimeSeries?.GetByID(AnimeSeriesID)?.PreferredTitle ?? AnimeSeriesID.ToString();
     }
 
-    public override Dictionary<string, object> Details => new() { { "Show", _showName } };
-    
+    public override Dictionary<string, object> Details => new() { { "Anime", _seriesName } };
+
     public override Task Process()
     {
-        _logger.LogInformation("Processing {Job} -> Show: {Name}", nameof(UpdateTraktShowJob), _showName);
+        _logger.LogInformation("Processing {Job} -> Series: {Name}", nameof(SyncSeriesWatchStatusToTraktJob), _seriesName);
         var settings = _settingsProvider.GetSettings();
         if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return Task.CompletedTask;
 
-        var show = RepoFactory.Trakt_Show.GetByTraktSlug(TraktShowID);
-        if (show == null)
+        var series = RepoFactory.AnimeSeries.GetByID(AnimeSeriesID);
+        if (series == null)
         {
-            _logger.LogError("Could not find trakt show: {TraktShowID}", TraktShowID);
+            _logger.LogError("Could not find anime series: {AnimeSeriesID}", AnimeSeriesID);
             return Task.CompletedTask;
         }
 
-        _helper.UpdateAllInfo(TraktShowID);
+        _helper.SyncSeriesWatchStatusToTrakt(series);
 
         return Task.CompletedTask;
     }
-    
-    public UpdateTraktShowJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
+
+    public SyncSeriesWatchStatusToTraktJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
     {
         _helper = helper;
         _settingsProvider = settingsProvider;
     }
 
-    protected UpdateTraktShowJob() { }
+    protected SyncSeriesWatchStatusToTraktJob() { }
 }

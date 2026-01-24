@@ -280,13 +280,6 @@ public class SVR_AniDB_Anime : AniDB_Anime, ISeries
 
     #endregion
 
-    #region Trakt
-
-    public IReadOnlyList<CrossRef_AniDB_TraktV2> TraktShowCrossReferences
-        => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AnimeID);
-
-    #endregion
-
     #region TMDB
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Show> TmdbShowCrossReferences

@@ -56,7 +56,6 @@ public class RepoFactory
     public static CrossRef_AniDB_TMDB_EpisodeRepository CrossRef_AniDB_TMDB_Episode;
     public static CrossRef_AniDB_TMDB_MovieRepository CrossRef_AniDB_TMDB_Movie;
     public static CrossRef_AniDB_TMDB_ShowRepository CrossRef_AniDB_TMDB_Show;
-    public static CrossRef_AniDB_TraktV2Repository CrossRef_AniDB_TraktV2;
     public static CrossRef_CustomTagRepository CrossRef_CustomTag;
     public static CrossRef_File_EpisodeRepository CrossRef_File_Episode;
     public static CrossRef_Languages_AniDB_FileRepository CrossRef_Languages_AniDB_File;
@@ -94,9 +93,6 @@ public class RepoFactory
     public static TMDB_Show_NetworkRepository TMDB_Show_Network;
     public static TMDB_ShowRepository TMDB_Show;
     public static TMDB_TitleRepository TMDB_Title;
-    public static Trakt_EpisodeRepository Trakt_Episode;
-    public static Trakt_SeasonRepository Trakt_Season;
-    public static Trakt_ShowRepository Trakt_Show;
     public static VersionsRepository Versions;
     public static VideoLocal_PlaceRepository VideoLocalPlace;
     public static VideoLocal_UserRepository VideoLocalUser;
@@ -140,7 +136,6 @@ public class RepoFactory
         CrossRef_AniDB_TMDB_EpisodeRepository crossRefAniDBTmdbEpisode,
         CrossRef_AniDB_TMDB_MovieRepository crossRefAniDBTmdbMovie,
         CrossRef_AniDB_TMDB_ShowRepository crossRefAniDBTmdbShow,
-        CrossRef_AniDB_TraktV2Repository crossRefAniDBTraktV2,
         CrossRef_CustomTagRepository crossRefCustomTag,
         CrossRef_File_EpisodeRepository crossRefFileEpisode,
         CrossRef_Languages_AniDB_FileRepository crossRefLanguagesAniDBFile,
@@ -156,9 +151,6 @@ public class RepoFactory
         ScanFileRepository scanFile,
         ScanRepository scan,
         ScheduledUpdateRepository scheduledUpdate,
-        Trakt_EpisodeRepository traktEpisode,
-        Trakt_SeasonRepository traktSeason,
-        Trakt_ShowRepository traktShow,
         TMDB_AlternateOrdering_EpisodeRepository tmdbAlternateOrderingEpisode,
         TMDB_AlternateOrdering_SeasonRepository tmdbAlternateOrderingSeason,
         TMDB_AlternateOrderingRepository tmdbAlternateOrdering,
@@ -224,7 +216,6 @@ public class RepoFactory
         CrossRef_AniDB_TMDB_Episode = crossRefAniDBTmdbEpisode;
         CrossRef_AniDB_TMDB_Movie = crossRefAniDBTmdbMovie;
         CrossRef_AniDB_TMDB_Show = crossRefAniDBTmdbShow;
-        CrossRef_AniDB_TraktV2 = crossRefAniDBTraktV2;
         CrossRef_CustomTag = crossRefCustomTag;
         CrossRef_File_Episode = crossRefFileEpisode;
         CrossRef_Languages_AniDB_File = crossRefLanguagesAniDBFile;
@@ -262,9 +253,6 @@ public class RepoFactory
         TMDB_Show = tmdbShow;
         TMDB_Show_Network = tmdbShowNetwork;
         TMDB_Title = tmdbTitle;
-        Trakt_Episode = traktEpisode;
-        Trakt_Season = traktSeason;
-        Trakt_Show = traktShow;
         Versions = versions;
         VideoLocal = videoLocal;
         VideoLocalPlace = videoLocalPlace;

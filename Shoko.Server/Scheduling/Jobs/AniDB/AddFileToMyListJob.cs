@@ -203,21 +203,6 @@ public class AddFileToMyListJob : BaseJob
 
         var scheduler = await _schedulerFactory.GetScheduler();
         await Task.WhenAll(series.Select(id => scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = id)));
-
-        // let's also try adding to the users trakt collection
-        if (settings.TraktTv.Enabled && !string.IsNullOrEmpty(settings.TraktTv.AuthToken))
-        {
-            foreach (var aep in _videoLocal.AnimeEpisodes)
-            {
-                await scheduler.StartJob<SyncTraktCollectionEpisodeJob>(
-                    c =>
-                    {
-                        c.AnimeEpisodeID = aep.AnimeEpisodeID;
-                        c.Action = TraktSyncAction.Add;
-                    }
-                );
-            }
-        }
     }
 
     public AddFileToMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_UserRepository vlUsers, IUserDataService userDataService)

@@ -24,9 +24,6 @@ public class ImportJob : BaseJob
         // drop folder
         await _service.RunImport_DetectFiles(onlyInSourceFolders: true);
 
-        // Trakt association checks
-        _service.RunImport_ScanTrakt();
-
         // TMDB association checks
         await _service.RunImport_ScanTMDB();
 
