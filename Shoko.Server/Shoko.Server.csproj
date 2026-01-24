@@ -55,7 +55,7 @@
     <PackageReference Include="FluentNHibernate" Version="3.3.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
     <PackageReference Include="Libuv" Version="1.10.0" />
-    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.9.1" />
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.10.2" />
     <PackageReference Include="MessagePack" Version="2.5.187" />
     <PackageReference Include="MessagePackAnalyzer" Version="2.5.140">
       <PrivateAssets>all</PrivateAssets>
