@@ -164,6 +164,9 @@ public static class FilterExtensions
                 series.VideoLocals.Select(a => a.FirstValidPlace?.ImportFolder?.ImportFolderName).WhereNotNull().ToHashSet(),
             FilePathsDelegate = () =>
                 series.VideoLocals.Select(a => a.FirstValidPlace?.FilePath).WhereNotNull().ToHashSet(),
+            ReleaseGroupNamesDelegate = () =>
+                series.VideoLocals.Select(a => a.ReleaseGroup?.GroupName).WhereNotNull().ToHashSet(),
+
         };
 
         return filterable;
@@ -351,6 +354,8 @@ public static class FilterExtensions
                 series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.ImportFolder?.ImportFolderName)).WhereNotNull().ToHashSet(),
             FilePathsDelegate = () =>
                 series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.FilePath)).WhereNotNull().ToHashSet(),
+            ReleaseGroupNamesDelegate = () =>
+                series.SelectMany(s => s.VideoLocals.Select(a => a.ReleaseGroup?.GroupName)).WhereNotNull().ToHashSet(),
         };
         return filterable;
     }

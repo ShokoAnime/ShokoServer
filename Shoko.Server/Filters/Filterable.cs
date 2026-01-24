@@ -62,6 +62,7 @@ public class Filterable : IFilterable
     private readonly Lazy<IReadOnlyDictionary<CharacterAppearanceType, IReadOnlySet<string>>> _characterAppearances;
     private readonly Lazy<IReadOnlySet<string>> _creatorIDs;
     private readonly Lazy<IReadOnlyDictionary<CreatorRoleType, IReadOnlySet<string>>> _creatorRoles;
+    private readonly Lazy<IReadOnlySet<string>> _releaseGroupNames;
 
     public string Name => _name.Value;
 
@@ -420,5 +421,12 @@ public class Filterable : IFilterable
     public required Func<IReadOnlySet<string>> FilePathsDelegate
     {
         init => _filePaths = new Lazy<IReadOnlySet<string>>(value);
+    }
+
+    public IReadOnlySet<string> ReleaseGroupNames => _releaseGroupNames.Value;
+
+    public required Func<IReadOnlySet<string>> ReleaseGroupNamesDelegate
+    {
+        init => _releaseGroupNames = new Lazy<IReadOnlySet<string>>(value);
     }
 }
