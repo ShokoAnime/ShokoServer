@@ -639,6 +639,8 @@ public class TraktTVHelper
 
     #endregion
 
+    // TODO: Add action to sync data FROM trakt
+
     public void SyncSeriesWatchStatusToTrakt(SVR_AnimeSeries series)
     {
         try
