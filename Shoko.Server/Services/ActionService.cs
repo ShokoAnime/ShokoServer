@@ -17,14 +17,12 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.TMDB;
-using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Utils = Shoko.Server.Utilities.Utils;
@@ -39,7 +37,6 @@ public class ActionService(
     VideoLocal_PlaceService _placeService,
     TmdbMetadataService _tmdbService,
     AnimeSeriesService _seriesService,
-    TraktTVHelper _traktHelper,
     DatabaseFactory _databaseFactory,
     HttpXmlUtils _xmlUtils
 )
@@ -468,9 +465,6 @@ public class ActionService(
 
         return false;
     }
-
-    public void RunImport_ScanTrakt()
-        => _traktHelper.ScanForMatches();
 
     public Task RunImport_ScanTMDB()
         => _tmdbService.ScanForMatches();
@@ -906,47 +900,6 @@ public class ActionService(
         }
 
         await scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = forceRefresh);
-    }
-
-    public async Task CheckForTraktAllSeriesUpdate(bool forceRefresh)
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (!settings.TraktTv.Enabled) return;
-        if (settings.TraktTv.UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-
-        // update the calendar every xxx hours
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate);
-        if (schedule == null)
-        {
-            schedule = new ScheduledUpdate
-            {
-                UpdateType = (int)ScheduledUpdateType.TraktUpdate,
-                UpdateDetails = string.Empty
-            };
-        }
-        else
-        {
-            var freqHours = Utils.GetScheduledHours(settings.TraktTv.UpdateFrequency);
-
-            // if we have run this in the last xxx hours then exit
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
-        }
-
-        schedule.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(schedule);
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-
-        // update all info
-        var allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
-        foreach (var xref in allCrossRefs)
-        {
-            scheduler.StartJob<GetTraktSeriesJob>(c => c.TraktID = xref.TraktID).GetAwaiter().GetResult();
-        }
-
-        // scan for new matches
-        _traktHelper.ScanForMatches();
     }
 
     public async Task CheckForAniDBFileUpdate(bool forceRefresh)

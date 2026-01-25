@@ -26,7 +26,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 156;
+    public override int RequiredVersion { get; } = 157;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -952,6 +952,11 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(156, 04, "ALTER TABLE `CrossRef_AniDB_TMDB_Show` ADD COLUMN `MatchRating` INT NOT NULL DEFAULT 1;"),
         new(156, 05, "UPDATE `CrossRef_AniDB_TMDB_Show` SET `MatchRating` = 5 WHERE `Source` = 0;"),
         new(156, 06, "ALTER TABLE `CrossRef_AniDB_TMDB_Show` DROP COLUMN `Source`;"),
+        new(157, 1, "DROP TABLE IF EXISTS CrossRef_AniDB_Trakt_Episode;"),
+        new(157, 2, "DROP TABLE IF EXISTS CrossRef_AniDB_TraktV2;"),
+        new(157, 3, "DROP TABLE IF EXISTS Trakt_Episode;"),
+        new(157, 4, "DROP TABLE IF EXISTS Trakt_Show;"),
+        new(157, 5, "DROP TABLE IF EXISTS Trakt_Season;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
@@ -1356,8 +1361,8 @@ public class MySQL : BaseDatabase<MySqlConnection>
                 .Port(settings.Database.Port)
                 .Username(settings.Database.Username)
                 .Password(settings.Database.Password));
-            
-        
+
+
         return Fluently.Configure()
             .Database(connectionConfig)
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoServer>())

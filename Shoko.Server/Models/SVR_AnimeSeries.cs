@@ -11,7 +11,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
-using Shoko.Server.Models.Trakt;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
@@ -45,21 +44,6 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
                 DisableAutoMatchFlags |= DataSourceType.TMDB;
             else
                 DisableAutoMatchFlags &= ~DataSourceType.TMDB;
-        }
-    }
-
-    public bool IsTraktAutoMatchingDisabled
-    {
-        get
-        {
-            return DisableAutoMatchFlags.HasFlag(DataSourceType.Trakt);
-        }
-        set
-        {
-            if (value)
-                DisableAutoMatchFlags |= DataSourceType.Trakt;
-            else
-                DisableAutoMatchFlags &= ~DataSourceType.Trakt;
         }
     }
 
@@ -483,30 +467,6 @@ public class SVR_AnimeSeries : AnimeSeries, IShokoSeries
             .Select(xref => xref.TmdbSeasonCrossReference)
             .WhereNotNull().Distinct()
             .ToList();
-
-    #endregion
-
-    #region Trakt
-
-    public IReadOnlyList<CrossRef_AniDB_TraktV2> TraktShowCrossReferences
-        => RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(AniDB_ID);
-
-    public List<Trakt_Show> TraktShow
-    {
-        get
-        {
-            var series = new List<Trakt_Show>();
-            var xrefs = TraktShowCrossReferences;
-            if (xrefs.Count == 0)
-                return [];
-
-            using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
-            return xrefs
-                .Select(xref => xref.GetByTraktShow(session))
-                .WhereNotNull()
-                .ToList();
-        }
-    }
 
     #endregion
 

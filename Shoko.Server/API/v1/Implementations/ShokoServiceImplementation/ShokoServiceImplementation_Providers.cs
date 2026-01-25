@@ -54,18 +54,6 @@ public partial class ShokoServiceImplementation : IShokoServer
                 return result;
             }
 
-            // Trakt
-            foreach (var xref in anime.TraktShowCrossReferences)
-            {
-                result.CrossRef_AniDB_Trakt.Add(xref);
-
-                var show = RepoFactory.Trakt_Show.GetByTraktSlug(session, xref.TraktID);
-                if (show != null)
-                {
-                    result.TraktShows.Add(show.ToClient());
-                }
-            }
-
             // TMDB
             var (xrefMovie, _) = anime.TmdbMovieCrossReferences;
             result.CrossRef_AniDB_MovieDB = xrefMovie?.ToClient();
@@ -300,40 +288,13 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpGet("Trakt/Episode/{traktShowID?}")]
     public List<Trakt_Episode> GetAllTraktEpisodes(int? traktShowID)
     {
-        try
-        {
-            if (traktShowID.HasValue)
-            {
-                return RepoFactory.Trakt_Episode.GetByShowID(traktShowID.Value).ToList();
-            }
-
-            return RepoFactory.Trakt_Episode.GetAll().ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return [];
-        }
+        return [];
     }
 
     [HttpGet("Trakt/Episode/FromTraktId/{traktID}")]
     public List<Trakt_Episode> GetAllTraktEpisodesByTraktID(string traktID)
     {
-        try
-        {
-            var show = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
-            if (show != null)
-            {
-                return GetAllTraktEpisodes(show.Trakt_ShowID);
-            }
-
-            return [];
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return [];
-        }
+        return [];
     }
 
     [HttpGet("WebCache/CrossRef/Trakt/{animeID}/{isAdmin}")]
@@ -347,60 +308,13 @@ public partial class ShokoServiceImplementation : IShokoServer
     public string LinkAniDBTrakt(int animeID, int aniEpType, int aniEpNumber, string traktID, int seasonNumber,
         int traktEpNumber, int? crossRef_AniDB_TraktV2ID)
     {
-        try
-        {
-            if (crossRef_AniDB_TraktV2ID.HasValue)
-            {
-                var xrefTemp =
-                    RepoFactory.CrossRef_AniDB_TraktV2.GetByID(crossRef_AniDB_TraktV2ID.Value);
-                // delete the existing one if we are updating
-                _traktHelper.RemoveLinkAniDBTrakt(xrefTemp.AnimeID, (EpisodeType)xrefTemp.AniDBStartEpisodeType,
-                    xrefTemp.AniDBStartEpisodeNumber,
-                    xrefTemp.TraktID, xrefTemp.TraktSeasonNumber, xrefTemp.TraktStartEpisodeNumber);
-            }
-
-            var xref = RepoFactory.CrossRef_AniDB_TraktV2.GetByTraktID(traktID, seasonNumber,
-                traktEpNumber, animeID,
-                aniEpType,
-                aniEpNumber);
-            if (xref != null)
-            {
-                var msg = string.Format("You have already linked Anime ID {0} to this Trakt show/season/ep",
-                    xref.AnimeID);
-                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID);
-                if (anime != null)
-                {
-                    msg = string.Format("You have already linked Anime {0} ({1}) to this Trakt show/season/ep",
-                        anime.MainTitle,
-                        xref.AnimeID);
-                }
-
-                return msg;
-            }
-
-            return _traktHelper.LinkAniDBTrakt(animeID, (EpisodeType)aniEpType, aniEpNumber, traktID,
-                seasonNumber,
-                traktEpNumber, false);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return ex.Message;
-        }
+        return string.Empty;
     }
 
     [HttpGet("Trakt/CrossRef/{animeID}")]
     public List<CrossRef_AniDB_TraktV2> GetTraktCrossRefV2(int animeID)
     {
-        try
-        {
-            return RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID).ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return [];
-        }
+        return [];
     }
 
     [HttpGet("Trakt/CrossRef/Episode/{animeID}")]
@@ -412,51 +326,13 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpGet("Trakt/Search/{criteria}")]
     public List<CL_TraktTVShowResponse> SearchTrakt(string criteria)
     {
-        var results = new List<CL_TraktTVShowResponse>();
-        try
-        {
-            var traktResults = _traktHelper.SearchShowV2(criteria);
-
-            foreach (var res in traktResults)
-            {
-                results.Add(res.ToContract());
-            }
-
-            return results;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return results;
-        }
+        return [];
     }
 
     [HttpDelete("Trakt/CrossRef/{animeID}")]
     public string RemoveLinkAniDBTraktForAnime(int animeID)
     {
-        try
-        {
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-
-            if (ser == null)
-            {
-                return "Could not find Series for Anime!";
-            }
-
-            foreach (var xref in RepoFactory.CrossRef_AniDB_TraktV2.GetByAnimeID(animeID))
-            {
-                _traktHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType)xref.AniDBStartEpisodeType,
-                    xref.AniDBStartEpisodeNumber,
-                    xref.TraktID, xref.TraktSeasonNumber, xref.TraktStartEpisodeNumber);
-            }
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return ex.Message;
-        }
+        return string.Empty;
     }
 
     [HttpDelete("Trakt/CrossRef/{animeID}/{aniEpType}/{aniEpNumber}/{traktID}/{traktSeasonNumber}/{traktEpNumber}")]
@@ -464,88 +340,25 @@ public partial class ShokoServiceImplementation : IShokoServer
         int traktSeasonNumber,
         int traktEpNumber)
     {
-        try
-        {
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-
-            if (ser == null)
-            {
-                return "Could not find Series for Anime!";
-            }
-
-            _traktHelper.RemoveLinkAniDBTrakt(animeID, (EpisodeType)aniEpType, aniEpNumber,
-                traktID, traktSeasonNumber, traktEpNumber);
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return ex.Message;
-        }
+        return string.Empty;
     }
 
     [HttpGet("Trakt/Seasons/{traktID}")]
     public List<int> GetSeasonNumbersForTrakt(string traktID)
     {
-        var seasonNumbers = new List<int>();
-        try
-        {
-            // refresh show info including season numbers from trakt
-            _traktHelper.GetShowInfoV2(traktID);
-
-            var show = RepoFactory.Trakt_Show.GetByTraktSlug(traktID);
-            if (show == null)
-            {
-                return seasonNumbers;
-            }
-
-            foreach (var season in show.GetTraktSeasons())
-            {
-                seasonNumbers.Add(season.Season);
-            }
-
-            return seasonNumbers;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return seasonNumbers;
-        }
+        return [];
     }
 
     [HttpDelete("Trakt/Friend/{friendUsername}")]
     public CL_Response<bool> TraktFriendRequestDeny(string friendUsername)
     {
         return new CL_Response<bool> { Result = false };
-        /*
-        try
-        {
-            return TraktTVHelper.FriendRequestDeny(friendUsername, ref returnMessage);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError( ex,"Error in TraktFriendRequestDeny: " + ex.ToString());
-            returnMessage = ex.Message;
-            return false;
-        }*/
     }
 
     [HttpPost("Trakt/Friend/{friendUsername}")]
     public CL_Response<bool> TraktFriendRequestApprove(string friendUsername)
     {
         return new CL_Response<bool> { Result = false };
-        /*
-        try
-        {
-            return TraktTVHelper.FriendRequestApprove(friendUsername, ref returnMessage);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError( ex,"Error in TraktFriendRequestDeny: " + ex.ToString());
-            returnMessage = ex.Message;
-            return false;
-        }*/
     }
 
     [HttpPost("Trakt/Scrobble/{animeId}/{type}/{progress}/{status}")]
@@ -572,19 +385,8 @@ public partial class ShokoServiceImplementation : IShokoServer
 
             if (isValidProgress)
             {
-                switch (type)
-                {
-                    // Movie
-                    case (int)ScrobblePlayingType.movie:
-                        return _traktHelper.Scrobble(
-                            ScrobblePlayingType.movie, animeId.ToString(),
-                            statusTraktV2, progressTrakt);
-                    // TV episode
-                    case (int)ScrobblePlayingType.episode:
-                        return _traktHelper.Scrobble(
-                            ScrobblePlayingType.episode,
-                            animeId.ToString(), statusTraktV2, progressTrakt);
-                }
+                var animeEpisode = RepoFactory.AnimeEpisode.GetByID(animeId);
+                return _traktHelper.Scrobble(animeEpisode, statusTraktV2, progressTrakt);
             }
 
             return 500;
@@ -599,15 +401,6 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("Trakt/Refresh/{traktID}")]
     public string UpdateTraktData(string traktID)
     {
-        try
-        {
-            _traktHelper.UpdateAllInfo(traktID);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-        }
-
         return string.Empty;
     }
 
@@ -628,7 +421,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var scheduler = _schedulerFactory.GetScheduler().Result;
-            scheduler.StartJob<SyncTraktCollectionSeriesJob>(c => c.AnimeSeriesID = ser.AnimeSeriesID).GetAwaiter().GetResult();
+            scheduler.StartJob<SendSeriesWatchStatesToTraktJob>(c => c.AnimeSeriesID = ser.AnimeSeriesID).GetAwaiter().GetResult();
 
             return string.Empty;
         }
@@ -648,30 +441,12 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("Trakt/LinkValidity/{slug}/{removeDBEntries}")]
     public bool CheckTraktLinkValidity(string slug, bool removeDBEntries)
     {
-        try
-        {
-            return _traktHelper.CheckTraktValidity(slug, removeDBEntries);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-        }
-
-        return false;
+        return true;
     }
 
     [HttpGet("Trakt/CrossRef")]
     public List<CrossRef_AniDB_TraktV2> GetAllTraktCrossRefs()
     {
-        try
-        {
-            return RepoFactory.CrossRef_AniDB_TraktV2.GetAll().ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-        }
-
         return [];
     }
 

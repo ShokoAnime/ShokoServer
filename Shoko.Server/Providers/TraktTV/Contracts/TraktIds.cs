@@ -2,8 +2,8 @@
 
 namespace Shoko.Server.Providers.TraktTV.Contracts;
 
-[DataContract(Name = "ids")]
-public class TraktV2Ids
+[DataContract]
+public class TraktIds
 {
     [DataMember(Name = "trakt")]
     public int TraktID { get; set; }

@@ -111,9 +111,9 @@ public class SeriesController : BaseController
 
     internal const string TmdbNotFoundForSeriesID = "No TMDB.Show entry for the given seriesID";
 
-    internal const string TmdbForbiddenForUser = "Accessing TMDB.Show is not allowed for the current user";
+    internal const string TmdbLinkNotFoundForSeriesID = "No TMDB entry for the given seriesID";
 
-    internal const string TraktShowNotFound = "No Trakt.Show entry for the given showID";
+    internal const string TmdbForbiddenForUser = "Accessing TMDB.Show is not allowed for the current user";
 
     #endregion
 
@@ -1716,7 +1716,7 @@ public class SeriesController : BaseController
     /// <summary>
     /// Shows all existing episode cross-references for a Shoko Series grouped
     /// by their corresponding cross-reference groups. Optionally allows
-    /// filtering it to a specific TMDB show. 
+    /// filtering it to a specific TMDB show.
     /// </summary>
     /// <param name="seriesID">The Shoko Series ID.</param>
     /// <param name="tmdbShowID">The TMDB Show ID to filter the episode mappings. If not specified, mappings for any show may be included.</param>
@@ -1803,12 +1803,12 @@ public class SeriesController : BaseController
     #region Trakt
 
     /// <summary>
-    /// Queue a job for refreshing series data from Trakt
+    /// Queue a job for sending series watch states to Trakt
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
     /// <returns></returns>
-    [HttpPost("{seriesID}/Trakt/Refresh")]
-    public async Task<ActionResult> RefreshTraktBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
+    [HttpPost("{seriesID}/Trakt/SendWatchStates")]
+    public async Task<ActionResult> SendWatchStatesToTraktBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -1827,55 +1827,13 @@ public class SeriesController : BaseController
             return InternalError(AnidbNotFoundForSeriesID);
         }
 
-        var traktShows = series.TraktShow;
-        if (traktShows.Count == 0)
+        if (series.TmdbShowCrossReferences.Count == 0 && series.TmdbMovieCrossReferences.Count == 0)
         {
-            return ValidationProblem(TraktShowNotFound);
+            return ValidationProblem(TmdbLinkNotFoundForSeriesID);
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-
-        foreach (var show in traktShows)
-        {
-            await scheduler.StartJob<UpdateTraktShowJob>(c => c.TraktShowID = show.TraktID);
-        }
-
-        return Ok();
-    }
-
-    /// <summary>
-    /// Queue a job for syncing series status to Trakt
-    /// </summary>
-    /// <param name="seriesID">Shoko ID</param>
-    /// <returns></returns>
-    [HttpPost("{seriesID}/Trakt/Sync")]
-    public async Task<ActionResult> SyncTraktBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
-    {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
-        {
-            return NotFound(SeriesNotFoundWithSeriesID);
-        }
-
-        if (!User.AllowedSeries(series))
-        {
-            return Forbid(SeriesForbiddenForUser);
-        }
-
-        var anidb = series.AniDB_Anime;
-        if (anidb == null)
-        {
-            return InternalError(AnidbNotFoundForSeriesID);
-        }
-
-        var traktShows = series.TraktShow;
-        if (traktShows.Count == 0)
-        {
-            return ValidationProblem(TraktShowNotFound);
-        }
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncTraktCollectionSeriesJob>(c => c.AnimeSeriesID = seriesID);
+        await scheduler.StartJob<SendSeriesWatchStatesToTraktJob>(c => c.AnimeSeriesID = seriesID);
         return Ok();
     }
 

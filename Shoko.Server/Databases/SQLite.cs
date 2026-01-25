@@ -27,7 +27,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 137;
+    public override int RequiredVersion => 138;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -870,6 +870,11 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(137, 04, "ALTER TABLE CrossRef_AniDB_TMDB_Show ADD COLUMN MatchRating INTEGER NOT NULL DEFAULT 1;"),
         new(137, 05, "UPDATE CrossRef_AniDB_TMDB_Show SET MatchRating = 5 WHERE Source = 0;"),
         new(137, 06, "ALTER TABLE CrossRef_AniDB_TMDB_Show DROP COLUMN Source;"),
+        new(138, 1, "DROP TABLE IF EXISTS CrossRef_AniDB_Trakt_Episode;"),
+        new(138, 2, "DROP TABLE IF EXISTS CrossRef_AniDB_TraktV2;"),
+        new(138, 3, "DROP TABLE IF EXISTS Trakt_Episode;"),
+        new(138, 4, "DROP TABLE IF EXISTS Trakt_Show;"),
+        new(138, 5, "DROP TABLE IF EXISTS Trakt_Season;"),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)

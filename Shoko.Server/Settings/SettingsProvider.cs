@@ -159,7 +159,6 @@ public class SettingsProvider : ISettingsProvider
                 AuthToken = legacy.Trakt_AuthToken,
                 RefreshToken = legacy.Trakt_RefreshToken,
                 TokenExpirationDate = legacy.Trakt_TokenExpirationDate,
-                UpdateFrequency = legacy.Trakt_UpdateFrequency,
                 SyncFrequency = legacy.Trakt_SyncFrequency
             },
             Linux = new LinuxSettings

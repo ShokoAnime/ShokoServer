@@ -367,12 +367,6 @@ public class GetAniDBAnimeJob : BaseJob<SVR_AniDB_Anime>
         if (_settings.TMDB.AutoLink && !series.IsTMDBAutoMatchingDisabled)
             await scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = AnimeID).ConfigureAwait(false);
 
-        if (!anime.IsRestricted)
-        {
-            if (_settings.TraktTv.Enabled && _settings.TraktTv.AutoLink && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken) && !series.IsTraktAutoMatchingDisabled)
-                await scheduler.StartJob<SearchTraktSeriesJob>(c => c.AnimeID = AnimeID).ConfigureAwait(false);
-        }
-
         return series;
     }
 

@@ -10,16 +10,6 @@ namespace Shoko.Server.Extensions;
 
 public static class ModelProviders
 {
-    public static void Populate(this Trakt_Show show, TraktV2ShowExtended tvShow)
-    {
-        show.Overview = tvShow.Overview;
-        show.Title = tvShow.Title;
-        show.TraktID = tvShow.IDs.TraktSlug;
-        show.TmdbShowID = tvShow.IDs.TmdbID;
-        show.URL = tvShow.URL;
-        show.Year = tvShow.Year.ToString();
-    }
-
     public static Metro_AniDB_Character ToContractMetro(this AniDB_Character character,
         AniDB_Anime_Character charRel)
     {

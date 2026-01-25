@@ -845,11 +845,7 @@ public class FileController : BaseController
         if (User.IsTraktUser == 0)
             return;
 
-        var scrobbleType = episode.AnimeSeries?.AniDB_Anime?.AnimeType == (int)AnimeType.Movie
-            ? ScrobblePlayingType.movie
-            : ScrobblePlayingType.episode;
-
-        _traktHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), status, percentage);
+        _traktHelper.Scrobble(episode, status, percentage);
     }
 
     /// <summary>

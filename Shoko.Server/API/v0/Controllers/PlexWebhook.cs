@@ -102,11 +102,7 @@ public class PlexWebhook : BaseController
                   (metadata.ViewOffset /
                    (float)vl.Duration); //this will be nice if plex would ever give me the duration, so I don't have to guess it.
 
-        var scrobbleType = episode.AnimeSeries?.AniDB_Anime?.AnimeType == (int)AnimeType.Movie
-            ? ScrobblePlayingType.movie
-            : ScrobblePlayingType.episode;
-
-        _traktHelper.Scrobble(scrobbleType, episode.AnimeEpisodeID.ToString(), type, per);
+        _traktHelper.Scrobble(episode, type, per);
     }
 
     [NonAction]

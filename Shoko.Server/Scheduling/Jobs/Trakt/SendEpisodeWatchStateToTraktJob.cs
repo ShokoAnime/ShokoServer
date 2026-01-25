@@ -17,19 +17,19 @@ namespace Shoko.Server.Scheduling.Jobs.Trakt;
 [NetworkRequired]
 [DisallowConcurrencyGroup(ConcurrencyGroups.Trakt)]
 [JobKeyGroup(JobKeyGroup.Trakt)]
-public class SyncTraktCollectionEpisodeJob : BaseJob
+public class SendEpisodeWatchStateToTraktJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
     private SVR_AniDB_Episode _episode;
     public int AnimeEpisodeID { get; set; }
-    public TraktSyncAction Action { get; set; }
+    public TraktSyncAction Action { get; set; } = TraktSyncAction.Add;
 
-    public override string TypeName => "Sync Episode to Trakt Collection";
-    public override string Title => "Syncing Episode to Trakt Collection";
+    public override string TypeName => "Send Episode Watch State to Trakt";
+    public override string Title => "Sending Episode Watch State to Trakt";
     public override void PostInit()
     {
-        _episode = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID)?.AniDB_Episode;
+        _episode = RepoFactory.AnimeEpisode?.GetByID(AnimeEpisodeID)?.AniDB_Episode;
     }
 
     public override Dictionary<string, object> Details =>
@@ -40,41 +40,33 @@ public class SyncTraktCollectionEpisodeJob : BaseJob
         {
             { "Anime", RepoFactory.AniDB_Anime.GetByAnimeID(_episode.AnimeID)?.PreferredTitle },
             { "Episode Type", ((EpisodeType)_episode.EpisodeType).ToString() },
-            { "Episode Number", _episode.EpisodeNumber }
+            { "Episode Number", _episode.EpisodeNumber },
+            { "Sync Action", Action.ToString() }
         };
 
     public override Task Process()
     {
-        _logger.LogInformation("Processing {Job} -> Episode: {Episode} | Action: {Action}", nameof(SyncTraktCollectionEpisodeJob), AnimeEpisodeID, Action);
+        _logger.LogInformation("Processing {Job}", nameof(SendEpisodeWatchStateToTraktJob));
         var settings = _settingsProvider.GetSettings();
 
-        if (!settings.TraktTv.Enabled ||
-            string.IsNullOrEmpty(settings.TraktTv.AuthToken) ||
-            !settings.TraktTv.VipStatus)
-        {
-            return Task.CompletedTask;
-        }
+        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return Task.CompletedTask;
 
-        var ep = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
-        if (ep != null)
-        {
-            var syncType = TraktSyncType.CollectionAdd;
-            if (Action == TraktSyncAction.Remove)
-            {
-                syncType = TraktSyncType.CollectionRemove;
-            }
+        var episode = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
+        if (episode == null) return Task.CompletedTask;
 
-            _helper.SyncEpisodeToTrakt(ep, syncType);
-        }
+        var syncType = TraktSyncType.HistoryAdd;
+        if (Action == TraktSyncAction.Remove) syncType = TraktSyncType.HistoryRemove;
+
+        _helper.SyncEpisodeWatchStatusToTrakt(syncType, episode);
 
         return Task.CompletedTask;
     }
 
-    public SyncTraktCollectionEpisodeJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
+    public SendEpisodeWatchStateToTraktJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
     {
         _helper = helper;
         _settingsProvider = settingsProvider;
     }
 
-    protected SyncTraktCollectionEpisodeJob() { }
+    protected SendEpisodeWatchStateToTraktJob() { }
 }

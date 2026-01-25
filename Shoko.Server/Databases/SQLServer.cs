@@ -27,7 +27,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 148;
+    public override int RequiredVersion { get; } = 149;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -905,6 +905,11 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(148, 04, "ALTER TABLE CrossRef_AniDB_TMDB_Show ADD MatchRating int NOT NULL DEFAULT 1;"),
         new DatabaseCommand(148, 05, "UPDATE CrossRef_AniDB_TMDB_Show SET MatchRating = 5 WHERE Source = 0;"),
         new DatabaseCommand(148, 06, "ALTER TABLE CrossRef_AniDB_TMDB_Show DROP COLUMN Source;"),
+        new DatabaseCommand(149, 1, "DROP TABLE IF EXISTS CrossRef_AniDB_Trakt_Episode;"),
+        new DatabaseCommand(149, 2, "DROP TABLE IF EXISTS CrossRef_AniDB_TraktV2;"),
+        new DatabaseCommand(149, 3, "DROP TABLE IF EXISTS Trakt_Episode;"),
+        new DatabaseCommand(149, 4, "DROP TABLE IF EXISTS Trakt_Show;"),
+        new DatabaseCommand(149, 5, "DROP TABLE IF EXISTS Trakt_Season;"),
     };
 
     private static void AlterImdbMovieIDType()
@@ -1142,7 +1147,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         DropDefaultConstraint("AniDB_Creator", "LastUpdatedAt");
         return Tuple.Create<bool, string>(true, null);
     }
-    
+
     private static Tuple<bool, string> DropDefaultOnTMDBShowMovieKeywords(object connection)
         {
             DropDefaultConstraint("TMDB_Show", "Keywords");

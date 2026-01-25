@@ -136,7 +136,6 @@ public class Series : BaseModel
                 Movie = tmdbMovieXRefs.Select(a => a.TmdbMovieID).Distinct().ToList(),
                 Show = tmdbShowXRefs.Select(a => a.TmdbShowID).Distinct().ToList(),
             },
-            TraktTv = ser.TraktShowCrossReferences.Select(a => a.TraktID).Distinct().ToList(),
             MAL = ser.MalCrossReferences.Select(a => a.MALID).Distinct().ToList()
         };
         Links = anime.Resources
@@ -336,7 +335,6 @@ public class Series : BaseModel
         public AutoMatchSettings()
         {
             TMDB = false;
-            Trakt = false;
             // MAL = false;
             // AniList = false;
             // Animeshon = false;
@@ -346,7 +344,6 @@ public class Series : BaseModel
         public AutoMatchSettings(SVR_AnimeSeries series)
         {
             TMDB = !series.IsTMDBAutoMatchingDisabled;
-            Trakt = !series.IsTraktAutoMatchingDisabled;
             // MAL = !series.IsMALAutoMatchingDisabled;
             // AniList = !series.IsAniListAutoMatchingDisabled;
             // Animeshon = !series.IsAnimeshonAutoMatchingDisabled;
@@ -356,7 +353,6 @@ public class Series : BaseModel
         public AutoMatchSettings MergeWithExisting(SVR_AnimeSeries series)
         {
             series.IsTMDBAutoMatchingDisabled = !TMDB;
-            series.IsTraktAutoMatchingDisabled = !Trakt;
             // series.IsMALAutoMatchingDisabled = !MAL;
             // series.IsAniListAutoMatchingDisabled = !AniList;
             // series.IsAnimeshonAutoMatchingDisabled = !Animeshon;
@@ -372,12 +368,6 @@ public class Series : BaseModel
         /// </summary>
         [Required]
         public bool TMDB { get; set; }
-
-        /// <summary>
-        /// Auto-match against Trakt.
-        /// </summary>
-        [Required]
-        public bool Trakt { get; set; }
 
         // /// <summary>
         // /// Auto-match against My Anime List (MAL).
@@ -449,11 +439,6 @@ public class Series : BaseModel
         /// The MyAnimeList IDs
         /// </summary>
         public List<int> MAL { get; set; } = [];
-
-        /// <summary>
-        /// The TraktTv IDs
-        /// </summary>
-        public List<string> TraktTv { get; set; } = [];
 
         #endregion
 

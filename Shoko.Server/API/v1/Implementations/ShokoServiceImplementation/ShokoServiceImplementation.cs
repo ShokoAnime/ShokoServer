@@ -442,8 +442,6 @@ public partial class ShokoServiceImplementation : Controller, IShokoServer
             settings.TraktTv.AuthToken = contractIn.Trakt_AuthToken;
             settings.TraktTv.RefreshToken = contractIn.Trakt_RefreshToken;
             settings.TraktTv.TokenExpirationDate = contractIn.Trakt_TokenExpirationDate;
-            settings.TraktTv.UpdateFrequency =
-                (ScheduledUpdateFrequency)contractIn.Trakt_UpdateFrequency;
             settings.TraktTv.SyncFrequency = (ScheduledUpdateFrequency)contractIn.Trakt_SyncFrequency;
 
             //Plex

@@ -126,7 +126,7 @@ public class AbstractUserDataService(
                     SaveWatchedStatus(episode, u.ID, true, userDataUpdate.LastPlayedAt);
 
                 if (syncTrakt)
-                    await scheduler.StartJob<SyncTraktEpisodeHistoryJob>(c =>
+                    await scheduler.StartJob<SendEpisodeWatchStateToTraktJob>(c =>
                     {
                         c.AnimeEpisodeID = episode.ID;
                         c.Action = TraktSyncAction.Add;
@@ -163,7 +163,7 @@ public class AbstractUserDataService(
                         toUpdateSeries.TryAdd(series.AnimeSeriesID, series);
 
                     if (syncTrakt)
-                        await scheduler.StartJob<SyncTraktEpisodeHistoryJob>(c =>
+                        await scheduler.StartJob<SendEpisodeWatchStateToTraktJob>(c =>
                         {
                             c.AnimeEpisodeID = episode.ID;
                             c.Action = TraktSyncAction.Remove;
