@@ -604,7 +604,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in SearchSeries");
+            _logger.LogError(ex, "Error in TraktTVHelper.GetWatchedShows");
         }
 
         return [];
@@ -631,7 +631,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in SearchSeries");
+            _logger.LogError(ex, "Error in TraktTVHelper.GetWatchedMovies");
         }
 
         return [];
@@ -672,7 +672,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.SyncSeriesWatchStatusToTrakt");
+            _logger.LogError(ex, "Error in TraktTVHelper.SendSeriesWatchStatesToTrakt");
         }
     }
 
@@ -789,7 +789,7 @@ public class TraktTVHelper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in TraktTVHelper.SyncWatchStatusToTrakt");
+            _logger.LogError(ex, "Error in TraktTVHelper.SendWatchStatesToTrakt");
         }
     }
 
