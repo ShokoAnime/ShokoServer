@@ -17,18 +17,18 @@ namespace Shoko.Server.Scheduling.Jobs.Trakt;
 [NetworkRequired]
 [DisallowConcurrencyGroup(ConcurrencyGroups.Trakt)]
 [JobKeyGroup(JobKeyGroup.Trakt)]
-public class SyncWatchStatusToTraktJob : BaseJob
+public class SendWatchStatesToTraktJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
     public bool ForceRefresh { get; set; }
 
-    public override string TypeName => "Sync Watch Status To Trakt";
-    public override string Title => "Syncing Watch Status To Trakt";
+    public override string TypeName => "Send Watch States To Trakt";
+    public override string Title => "Sending Watch States To Trakt";
 
     public override Task Process()
     {
-        _logger.LogInformation("Processing {Job}", nameof(SyncWatchStatusToTraktJob));
+        _logger.LogInformation("Processing {Job}", nameof(SendWatchStatesToTraktJob));
         var settings = _settingsProvider.GetSettings();
         if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return Task.CompletedTask;
 
@@ -52,16 +52,16 @@ public class SyncWatchStatusToTraktJob : BaseJob
         sched.LastUpdate = DateTime.Now;
         RepoFactory.ScheduledUpdate.Save(sched);
 
-        _helper.SyncWatchStatusToTrakt();
+        _helper.SendWatchStatesToTrakt();
 
         return Task.CompletedTask;
     }
 
-    public SyncWatchStatusToTraktJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
+    public SendWatchStatesToTraktJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
     {
         _helper = helper;
         _settingsProvider = settingsProvider;
     }
 
-    protected SyncWatchStatusToTraktJob() { }
+    protected SendWatchStatesToTraktJob() { }
 }

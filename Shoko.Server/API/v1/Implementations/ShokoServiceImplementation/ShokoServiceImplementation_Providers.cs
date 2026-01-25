@@ -421,7 +421,7 @@ public partial class ShokoServiceImplementation : IShokoServer
             }
 
             var scheduler = _schedulerFactory.GetScheduler().Result;
-            scheduler.StartJob<SyncSeriesWatchStatusToTraktJob>(c => c.AnimeSeriesID = ser.AnimeSeriesID).GetAwaiter().GetResult();
+            scheduler.StartJob<SendSeriesWatchStatesToTraktJob>(c => c.AnimeSeriesID = ser.AnimeSeriesID).GetAwaiter().GetResult();
 
             return string.Empty;
         }

@@ -1803,12 +1803,12 @@ public class SeriesController : BaseController
     #region Trakt
 
     /// <summary>
-    /// Queue a job for syncing series status to Trakt
+    /// Queue a job for sending series watch states to Trakt
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
     /// <returns></returns>
-    [HttpPost("{seriesID}/Trakt/Sync")]
-    public async Task<ActionResult> SyncTraktBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
+    [HttpPost("{seriesID}/Trakt/SendWatchStates")]
+    public async Task<ActionResult> SendWatchStatesToTraktBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -1833,7 +1833,7 @@ public class SeriesController : BaseController
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncSeriesWatchStatusToTraktJob>(c => c.AnimeSeriesID = seriesID);
+        await scheduler.StartJob<SendSeriesWatchStatesToTraktJob>(c => c.AnimeSeriesID = seriesID);
         return Ok();
     }
 

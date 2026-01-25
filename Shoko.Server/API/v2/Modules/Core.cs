@@ -319,7 +319,7 @@ public class Core : BaseController
         if (_settings.TraktTv.Enabled && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken))
         {
             var scheduler = await _schedulerFactory.GetScheduler();
-            await scheduler.StartJob<SyncWatchStatusToTraktJob>(c => c.ForceRefresh = true);
+            await scheduler.StartJob<SendWatchStatesToTraktJob>(c => c.ForceRefresh = true);
             return APIStatus.OK();
         }
 

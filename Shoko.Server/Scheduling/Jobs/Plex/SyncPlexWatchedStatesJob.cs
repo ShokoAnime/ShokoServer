@@ -41,7 +41,7 @@ public class SyncPlexWatchedStatesJob : BaseJob
 
     public override async Task Process()
     {
-        _logger.LogInformation("Processing {Job} -> User: {Name}", nameof(SyncSeriesWatchStatusToTraktJob), User.Username);
+        _logger.LogInformation("Processing {Job} -> User: {Name}", nameof(SendSeriesWatchStatesToTraktJob), User.Username);
         var settings = _settingsProvider.GetSettings();
         foreach (var section in PlexHelper.GetForUser(User).GetDirectories().Where(a => settings.Plex.Libraries.Contains(a.Key)))
         {

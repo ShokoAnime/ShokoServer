@@ -106,11 +106,11 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Sync Trakt states. Requires Trakt to be set up, obviously
+    /// Send local watch states Trakt for the whole collection
     /// </summary>
     /// <returns></returns>
-    [HttpGet("SyncTrakt")]
-    public async Task<ActionResult> SyncTrakt()
+    [HttpGet("SendWatchStatesToTrakt")]
+    public async Task<ActionResult> SendWatchStatesToTrakt()
     {
         var settings = SettingsProvider.GetSettings().TraktTv;
         if (!settings.Enabled ||
@@ -120,7 +120,7 @@ public class ActionController : BaseController
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<SyncWatchStatusToTraktJob>(c => c.ForceRefresh = true);
+        await scheduler.StartJobNow<SendWatchStatesToTraktJob>(c => c.ForceRefresh = true);
 
         return Ok();
     }

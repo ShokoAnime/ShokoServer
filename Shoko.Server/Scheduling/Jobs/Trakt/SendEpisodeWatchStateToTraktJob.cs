@@ -17,7 +17,7 @@ namespace Shoko.Server.Scheduling.Jobs.Trakt;
 [NetworkRequired]
 [DisallowConcurrencyGroup(ConcurrencyGroups.Trakt)]
 [JobKeyGroup(JobKeyGroup.Trakt)]
-public class SyncEpisodeWatchStatusToTraktJob : BaseJob
+public class SendEpisodeWatchStateToTraktJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
@@ -25,8 +25,8 @@ public class SyncEpisodeWatchStatusToTraktJob : BaseJob
     public int AnimeEpisodeID { get; set; }
     public TraktSyncAction Action { get; set; } = TraktSyncAction.Add;
 
-    public override string TypeName => "Sync Episode Watch Status to Trakt";
-    public override string Title => "Syncing Episode Watch Status to Trakt";
+    public override string TypeName => "Send Episode Watch State to Trakt";
+    public override string Title => "Sending Episode Watch State to Trakt";
     public override void PostInit()
     {
         _episode = RepoFactory.AnimeEpisode?.GetByID(AnimeEpisodeID)?.AniDB_Episode;
@@ -46,7 +46,7 @@ public class SyncEpisodeWatchStatusToTraktJob : BaseJob
 
     public override Task Process()
     {
-        _logger.LogInformation("Processing {Job}", nameof(SyncEpisodeWatchStatusToTraktJob));
+        _logger.LogInformation("Processing {Job}", nameof(SendEpisodeWatchStateToTraktJob));
         var settings = _settingsProvider.GetSettings();
 
         if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return Task.CompletedTask;
@@ -62,11 +62,11 @@ public class SyncEpisodeWatchStatusToTraktJob : BaseJob
         return Task.CompletedTask;
     }
 
-    public SyncEpisodeWatchStatusToTraktJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
+    public SendEpisodeWatchStateToTraktJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
     {
         _helper = helper;
         _settingsProvider = settingsProvider;
     }
 
-    protected SyncEpisodeWatchStatusToTraktJob() { }
+    protected SendEpisodeWatchStateToTraktJob() { }
 }
