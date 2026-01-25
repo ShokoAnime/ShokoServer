@@ -910,6 +910,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(149, 3, "DROP TABLE IF EXISTS Trakt_Episode;"),
         new DatabaseCommand(149, 4, "DROP TABLE IF EXISTS Trakt_Show;"),
         new DatabaseCommand(149, 5, "DROP TABLE IF EXISTS Trakt_Season;"),
+        new DatabaseCommand(149, 6, DatabaseFixes.ClearQuartzQueue),
     };
 
     private static void AlterImdbMovieIDType()

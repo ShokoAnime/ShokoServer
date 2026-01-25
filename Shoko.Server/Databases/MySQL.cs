@@ -957,6 +957,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(157, 3, "DROP TABLE IF EXISTS Trakt_Episode;"),
         new(157, 4, "DROP TABLE IF EXISTS Trakt_Show;"),
         new(157, 5, "DROP TABLE IF EXISTS Trakt_Season;"),
+        new(157, 6, DatabaseFixes.ClearQuartzQueue),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

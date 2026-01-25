@@ -875,6 +875,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(138, 3, "DROP TABLE IF EXISTS Trakt_Episode;"),
         new(138, 4, "DROP TABLE IF EXISTS Trakt_Show;"),
         new(138, 5, "DROP TABLE IF EXISTS Trakt_Season;"),
+        new(138, 6, DatabaseFixes.ClearQuartzQueue),
     };
 
     private static Tuple<bool, string> MigrateRenamers(object connection)
