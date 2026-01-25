@@ -301,7 +301,6 @@ public static class ModelClients
             DataSourceEnum.Animeshon => DataSourceType.Animeshon,
             DataSourceEnum.Shoko => DataSourceType.Shoko,
             DataSourceEnum.TMDB => DataSourceType.TMDB,
-            DataSourceEnum.Trakt => DataSourceType.Trakt,
             DataSourceEnum.User => DataSourceType.User,
             _ => DataSourceType.None,
         };
@@ -314,7 +313,6 @@ public static class ModelClients
             DataSourceType.Animeshon => DataSourceEnum.Animeshon,
             DataSourceType.Shoko => DataSourceEnum.Shoko,
             DataSourceType.TMDB => DataSourceEnum.TMDB,
-            DataSourceType.Trakt => DataSourceEnum.Trakt,
             DataSourceType.User => DataSourceEnum.User,
             _ => DataSourceEnum.AniDB,
         };

@@ -40,9 +40,4 @@ public enum DataSourceEnum
     /// Animeshon.
     /// </summary>
     Animeshon = 4,
-
-    /// <summary>
-    /// TraktTv.
-    /// </summary>
-    Trakt = 5,
 }
