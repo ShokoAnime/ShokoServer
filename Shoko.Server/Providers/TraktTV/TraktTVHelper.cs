@@ -817,6 +817,10 @@ public class TraktTVHelper
                 "Trakt Sync Check Status: AniDB: {ShowID} - {EpisodeTypeEnum} - {EpisodeID} - Watched: {Watched}",
                 series.AniDB_ID, episode.EpisodeTypeEnum, episode.AniDB_EpisodeID, watchedOnShoko);
 
+            // As we are currently only sending data for watched episodes
+            if (!watchedOnShoko)
+                return [];
+
             var tmdbEpisodeIdsToWatch = new List<int>();
             var tmdbMovieIdsToWatch = new List<int>();
 
