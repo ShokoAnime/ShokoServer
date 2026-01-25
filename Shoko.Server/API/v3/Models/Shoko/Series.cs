@@ -335,7 +335,6 @@ public class Series : BaseModel
         public AutoMatchSettings()
         {
             TMDB = false;
-            Trakt = false;
             // MAL = false;
             // AniList = false;
             // Animeshon = false;
@@ -369,12 +368,6 @@ public class Series : BaseModel
         /// </summary>
         [Required]
         public bool TMDB { get; set; }
-
-        /// <summary>
-        /// Auto-match against Trakt.
-        /// </summary>
-        [Required]
-        public bool Trakt { get; set; }
 
         // /// <summary>
         // /// Auto-match against My Anime List (MAL).
