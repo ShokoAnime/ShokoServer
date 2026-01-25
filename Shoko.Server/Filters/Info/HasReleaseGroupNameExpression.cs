@@ -11,20 +11,25 @@ public class HasReleaseGroupNameExpression : FilterExpression<bool>, IWithString
     {
         Parameter = parameter;
     }
+
     public HasReleaseGroupNameExpression() { }
+
     public string Parameter { get; set; }
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if any of the anime have the files of specified releae group name";
     public override string[] HelpPossibleParameters => RepoFactory.AniDB_ReleaseGroup.GetAll().Select(a => a?.GroupName).ToArray();
+
     public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
     {
         return filterable.ReleaseGroupNames.Contains(Parameter);
     }
-    protected bool Equals(HasTagExpression other)
+
+    protected bool Equals(HasReleaseGroupNameExpression other)
     {
         return base.Equals(other) && Parameter == other.Parameter;
     }
+
     public override bool Equals(object obj)
     {
         if (ReferenceEquals(null, obj))
