@@ -52,7 +52,7 @@ public class SendWatchStatesToTraktJob : BaseJob
         sched.LastUpdate = DateTime.Now;
         RepoFactory.ScheduledUpdate.Save(sched);
 
-        _helper.SendWatchStatesToTrakt();
+        _helper.SendWatchStates();
 
         return Task.CompletedTask;
     }

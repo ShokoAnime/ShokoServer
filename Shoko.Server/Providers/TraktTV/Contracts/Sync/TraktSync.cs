@@ -7,8 +7,8 @@ namespace Shoko.Server.Providers.TraktTV.Contracts.Sync;
 internal class TraktSync
 {
     [DataMember(Name = "episodes")]
-    public IReadOnlyList<TraktSyncHistoryItem> Episodes { get; set; }
+    public List<TraktSyncHistoryItem> Episodes { get; set; } = [];
 
     [DataMember(Name = "movies")]
-    public IReadOnlyList<TraktSyncHistoryItem> Movies { get; set; }
+    public List<TraktSyncHistoryItem> Movies { get; set; } = [];
 }

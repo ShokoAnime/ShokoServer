@@ -44,7 +44,7 @@ public class SendSeriesWatchStatesToTraktJob : BaseJob
             return Task.CompletedTask;
         }
 
-        _helper.SendSeriesWatchStatesToTrakt(series);
+        _helper.SendWatchStates(series);
 
         return Task.CompletedTask;
     }

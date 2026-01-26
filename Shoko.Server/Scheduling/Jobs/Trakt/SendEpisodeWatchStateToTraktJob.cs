@@ -57,7 +57,7 @@ public class SendEpisodeWatchStateToTraktJob : BaseJob
         var syncType = TraktSyncType.HistoryAdd;
         if (Action == TraktSyncAction.Remove) syncType = TraktSyncType.HistoryRemove;
 
-        _helper.SyncEpisodeWatchStatusToTrakt(syncType, episode);
+        _helper.SendEpisodeWatchState(syncType, episode);
 
         return Task.CompletedTask;
     }
