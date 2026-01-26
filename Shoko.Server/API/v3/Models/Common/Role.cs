@@ -1,9 +1,12 @@
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.TMDB;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -92,8 +95,18 @@ public class Role
 
     public Role(TMDB_Movie_Cast cast)
     {
-        var person = cast.GetTmdbPerson() ??
-            throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
+        var person = cast.GetTmdbPerson();
+        // Band-aid for missing data until the root cause is found and fixed.
+        if (person is null)
+        {
+            var tmdbMetadataService = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
+            tmdbMetadataService.UpdatePerson(cast.TmdbPersonID)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+            person = cast.GetTmdbPerson() ??
+                throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
+        }
         var personImages = person.GetImages();
         Character = new()
         {
@@ -113,8 +126,18 @@ public class Role
 
     public Role(TMDB_Show_Cast cast)
     {
-        var person = cast.GetTmdbPerson() ??
-            throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
+        var person = cast.GetTmdbPerson();
+        // Band-aid for missing data until the root cause is found and fixed.
+        if (person is null)
+        {
+            var tmdbMetadataService = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
+            tmdbMetadataService.UpdatePerson(cast.TmdbPersonID)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+            person = cast.GetTmdbPerson() ??
+                throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
+        }
         var personImages = person.GetImages();
         Character = new()
         {
