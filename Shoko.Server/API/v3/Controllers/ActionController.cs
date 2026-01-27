@@ -288,21 +288,6 @@ public class ActionController : BaseController
     #region Admin Actions
 
     /// <summary>
-    /// Purges all TVDB data, including images and episode/series links.
-    /// This is a one-time action and will be blocked if ran again.
-    /// <br/>
-    /// This action is only accessible to admins.
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("PurgeAllOfTvDB")]
-    [HttpPost("PurgeAllOfTvDB")]
-    public ActionResult PurgeAllTvdbData()
-    {
-        return Ok();
-    }
-
-    /// <summary>
     /// Gets files whose data does not match AniDB
     /// </summary>
     /// <returns></returns>
