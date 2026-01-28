@@ -364,38 +364,7 @@ public partial class ShokoServiceImplementation : IShokoServer
     [HttpPost("Trakt/Scrobble/{animeId}/{type}/{progress}/{status}")]
     public int TraktScrobble(int animeId, int type, int progress, int status)
     {
-        try
-        {
-            var statusTraktV2 = ScrobblePlayingStatus.Start;
-
-            switch (status)
-            {
-                case (int)ScrobblePlayingStatus.Start:
-                    statusTraktV2 = ScrobblePlayingStatus.Start;
-                    break;
-                case (int)ScrobblePlayingStatus.Pause:
-                    statusTraktV2 = ScrobblePlayingStatus.Pause;
-                    break;
-                case (int)ScrobblePlayingStatus.Stop:
-                    statusTraktV2 = ScrobblePlayingStatus.Stop;
-                    break;
-            }
-
-            var isValidProgress = float.TryParse(progress.ToString(), out var progressTrakt);
-
-            if (isValidProgress)
-            {
-                var animeEpisode = RepoFactory.AnimeEpisode.GetByID(animeId);
-                return _traktHelper.Scrobble(animeEpisode, statusTraktV2, progressTrakt);
-            }
-
-            return 500;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return 500;
-        }
+        return 200;
     }
 
     [HttpPost("Trakt/Refresh/{traktID}")]

@@ -14,19 +14,6 @@ public enum TraktSyncType
     HistoryRemove = 2
 }
 
-public enum ScrobblePlayingStatus
-{
-    Start = 1,
-    Pause = 2,
-    Stop = 3
-}
-
-public enum ScrobblePlayingType
-{
-    movie = 1,
-    episode = 2
-}
-
 public static class TraktStatusCodes
 {
     // http://docs.trakt.apiary.io/#introduction/status-codes

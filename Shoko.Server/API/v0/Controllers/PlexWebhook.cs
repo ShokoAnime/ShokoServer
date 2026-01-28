@@ -18,7 +18,6 @@ using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Plex;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Plex;
@@ -38,14 +37,12 @@ namespace Shoko.Server.API.v0.Controllers;
 public class PlexWebhook : BaseController
 {
     private readonly ILogger<PlexWebhook> _logger;
-    private readonly TraktTVHelper _traktHelper;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IUserDataService _userDataService;
 
-    public PlexWebhook(ILogger<PlexWebhook> logger, TraktTVHelper traktHelper, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IUserDataService userDataService) : base(settingsProvider)
+    public PlexWebhook(ILogger<PlexWebhook> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IUserDataService userDataService) : base(settingsProvider)
     {
         _logger = logger;
-        _traktHelper = traktHelper;
         _schedulerFactory = schedulerFactory;
         _userDataService = userDataService;
     }
@@ -64,46 +61,15 @@ public class PlexWebhook : BaseController
         }
 
         _logger.LogTrace($"{payload.Event}: {payload.Metadata?.Guid}");
-        switch (payload.Event)
-        {
-            case "media.scrobble":
-                await Scrobble(payload, User);
-                break;
-            case "media.resume":
-            case "media.play":
-                TraktScrobble(payload, ScrobblePlayingStatus.Start);
-                break;
-            case "media.pause":
-                TraktScrobble(payload, ScrobblePlayingStatus.Pause);
-                break;
-            case "media.stop":
-                TraktScrobble(payload, ScrobblePlayingStatus.Stop);
-                break;
-        }
+
+        if (payload.Event.EqualsInvariantIgnoreCase("media.scrobble"))
+            await Scrobble(payload, User);
 
         return Ok(); //doesn't need to be an ApiStatus.OK() since really, all I take is plex.
     }
 
 
     #region Plex events
-
-    [NonAction]
-    private void TraktScrobble(PlexEvent evt, ScrobblePlayingStatus type)
-    {
-        var metadata = evt.Metadata;
-        var (episode, _) = GetEpisode(metadata);
-
-        if (episode == null) return;
-
-        var vl = RepoFactory.VideoLocal.GetByAniDBEpisodeID(episode.AniDB_EpisodeID).FirstOrDefault();
-        if (vl == null || vl.Duration == 0) return;
-
-        var per = 100 *
-                  (metadata.ViewOffset /
-                   (float)vl.Duration); //this will be nice if plex would ever give me the duration, so I don't have to guess it.
-
-        _traktHelper.Scrobble(episode, type, per);
-    }
 
     [NonAction]
     private async Task Scrobble(PlexEvent data, SVR_JMMUser user)

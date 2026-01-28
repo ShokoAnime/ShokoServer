@@ -21,7 +21,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
@@ -57,7 +56,6 @@ public class FileController : BaseController
 
     internal const string FileLocationNotFoundWithLocationID = "No File.Location entry for the given locationID.";
 
-    private readonly TraktTVHelper _traktHelper;
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly VideoLocalService _vlService;
     private readonly VideoLocal_PlaceService _vlPlaceService;
@@ -65,7 +63,6 @@ public class FileController : BaseController
     private readonly IUserDataService _userDataService;
 
     public FileController(
-        TraktTVHelper traktHelper,
         ISchedulerFactory schedulerFactory,
         ISettingsProvider settingsProvider,
         VideoLocal_PlaceService vlPlaceService,
@@ -74,7 +71,6 @@ public class FileController : BaseController
         VideoLocalService vlService
     ) : base(settingsProvider)
     {
-        _traktHelper = traktHelper;
         _vlPlaceService = vlPlaceService;
         _vlUsers = vlUsers;
         _userDataService = watchedService;
@@ -765,7 +761,7 @@ public class FileController : BaseController
     /// </summary>
     /// <param name="fileID">VideoLocal ID. Watch status and resume position is kept per file, regardless of how many duplicates the file has.</param>
     /// <param name="eventName">The name of the event that triggered the scrobble.</param>
-    /// <param name="episodeID">The episode id to scrobble to trakt.</param>
+    /// <param name="episodeID">The episode id to scrobble.</param>
     /// <param name="watched">True if file should be marked as watched, false if file should be unmarked, or null if it shall not be updated.</param>
     /// <param name="resumePosition">Number of ticks into the video to resume from, or null if it shall not be updated.</param>
     /// <returns></returns>
@@ -787,30 +783,6 @@ public class FileController : BaseController
         {
             watched = true;
             playbackPositionTicks = TimeSpan.Zero;
-        }
-
-        switch (eventName)
-        {
-            // The playback was started.
-            case "play":
-            // The playback was resumed after a pause.
-            case "resume":
-                ScrobbleToTrakt(episode, (float)(playbackPositionTicks / totalDurationTicks), ScrobblePlayingStatus.Start);
-                break;
-            // The playback was paused.
-            case "pause":
-                ScrobbleToTrakt(episode, (float)(playbackPositionTicks / totalDurationTicks), ScrobblePlayingStatus.Pause);
-                break;
-            // The playback was ended.
-            case "stop":
-                ScrobbleToTrakt(episode, (float)(playbackPositionTicks / totalDurationTicks), ScrobblePlayingStatus.Stop);
-                break;
-            // The playback is still active, but the playback position changed.
-            case "scrobble":
-                break;
-            // A user interaction caused the watch state to change.
-            case "user-interaction":
-                break;
         }
 
         var reason = eventName switch
@@ -837,15 +809,6 @@ public class FileController : BaseController
         }, reason);
 
         return NoContent();
-    }
-
-    [NonAction]
-    private void ScrobbleToTrakt(SVR_AnimeEpisode episode, float percentage, ScrobblePlayingStatus status)
-    {
-        if (User.IsTraktUser == 0)
-            return;
-
-        _traktHelper.Scrobble(episode, status, percentage);
     }
 
     /// <summary>

@@ -13,7 +13,6 @@ using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Providers.TraktTV.Contracts;
-using Shoko.Server.Providers.TraktTV.Contracts.Scrobble;
 using Shoko.Server.Providers.TraktTV.Contracts.Sync;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -457,84 +456,6 @@ public class TraktTVHelper
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in TraktTVHelper.SyncHistory");
-        }
-    }
-
-    public int Scrobble(SVR_AnimeEpisode episode, ScrobblePlayingStatus scrobbleStatus, float progress)
-    {
-        try
-        {
-            var settings = _settingsProvider.GetSettings();
-            if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken))
-            {
-                return 401;
-            }
-
-            string url;
-            switch (scrobbleStatus)
-            {
-                case ScrobblePlayingStatus.Start:
-                    url = TraktURIs.SetScrobbleStart;
-                    break;
-                case ScrobblePlayingStatus.Pause:
-                    url = TraktURIs.SetScrobblePause;
-                    break;
-                case ScrobblePlayingStatus.Stop:
-                    url = TraktURIs.SetScrobbleStop;
-                    break;
-                default:
-                    return 400;
-            }
-
-            // TODO: Figure out scrobbling if the episode has multiple links
-            var tmdbEpisodeIds = GetTmdbEpisodeIdsFromEpisode(episode);
-            var tmdbMovieIds = GetTmdbMovieIdsFromEpisode(episode);
-
-            if (tmdbEpisodeIds.Count == 0 && tmdbMovieIds.Count == 0)
-            {
-                _logger.LogWarning(
-                    "TraktTVHelper.Scrobble: No TMDB IDs found for: Anime Episode ID: {ID} Anime: {Title}", episode.AnimeEpisodeID,
-                    episode.PreferredTitle);
-                return 404;
-            }
-
-            var retData = string.Empty;
-            var scrobble = new TraktScrobble
-            {
-                Progress = progress
-            };
-
-            if (tmdbEpisodeIds.Count > 0)
-            {
-                scrobble.Episode = new TraktScrobbleItem
-                {
-                    Ids = new TraktIds
-                    {
-                        TmdbID = tmdbEpisodeIds.First()
-                    }
-                };
-            }
-            else
-            {
-                scrobble.Movie = new TraktScrobbleItem
-                {
-                    Ids = new TraktIds
-                    {
-                        TmdbID = tmdbEpisodeIds.First()
-                    }
-                };
-            }
-
-            var json = JsonConvert.SerializeObject(scrobble);
-            TraktTVRateLimiter.Instance.EnsureRate();
-            SendData(url, json, "POST", BuildRequestHeaders(), ref retData);
-
-            return 200;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in TraktTVHelper.Scrobble");
-            return 500;
         }
     }
 
