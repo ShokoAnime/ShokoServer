@@ -17,27 +17,27 @@ namespace Shoko.Server.Scheduling.Jobs.Trakt;
 [NetworkRequired]
 [DisallowConcurrencyGroup(ConcurrencyGroups.Trakt)]
 [JobKeyGroup(JobKeyGroup.Trakt)]
-public class SendWatchStatesToTraktJob : BaseJob
+public class GetWatchStatesFromTraktJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
     private readonly TraktTVHelper _helper;
     public bool ForceRefresh { get; set; }
 
-    public override string TypeName => "Send Watch States to Trakt";
-    public override string Title => "Sending Watch States to Trakt";
+    public override string TypeName => "Get Watch States from Trakt";
+    public override string Title => "Getting Watch States from Trakt";
 
     public override Task Process()
     {
-        _logger.LogInformation("Processing {Job}", nameof(SendWatchStatesToTraktJob));
+        _logger.LogInformation("Processing {Job}", nameof(GetWatchStatesFromTraktJob));
         var settings = _settingsProvider.GetSettings();
         if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return Task.CompletedTask;
 
-        var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktSendWatchStates);
+        var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktGetWatchStates);
         if (sched == null)
         {
             sched = new ScheduledUpdate
             {
-                UpdateType = (int)ScheduledUpdateType.TraktSendWatchStates, UpdateDetails = string.Empty
+                UpdateType = (int)ScheduledUpdateType.TraktGetWatchStates, UpdateDetails = string.Empty
             };
         }
         else
@@ -52,16 +52,16 @@ public class SendWatchStatesToTraktJob : BaseJob
         sched.LastUpdate = DateTime.Now;
         RepoFactory.ScheduledUpdate.Save(sched);
 
-        _helper.SendWatchStates();
+        _helper.GetWatchStates();
 
         return Task.CompletedTask;
     }
 
-    public SendWatchStatesToTraktJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
+    public GetWatchStatesFromTraktJob(TraktTVHelper helper, ISettingsProvider settingsProvider)
     {
         _helper = helper;
         _settingsProvider = settingsProvider;
     }
 
-    protected SendWatchStatesToTraktJob() { }
+    protected GetWatchStatesFromTraktJob() { }
 }

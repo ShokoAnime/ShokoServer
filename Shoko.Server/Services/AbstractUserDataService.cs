@@ -13,6 +13,7 @@ using Shoko.Plugin.Abstractions.Events;
 using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
+using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
@@ -125,11 +126,11 @@ public class AbstractUserDataService(
                 foreach (var u in users)
                     SaveWatchedStatus(episode, u.ID, true, userDataUpdate.LastPlayedAt);
 
-                if (syncTrakt)
+                if (syncTrakt && reason is not UserDataSaveReason.TraktSync)
                     await scheduler.StartJob<SendEpisodeWatchStateToTraktJob>(c =>
                     {
                         c.AnimeEpisodeID = episode.ID;
-                        c.Action = TraktSyncAction.Add;
+                        c.Action = TraktSyncType.HistoryAdd;
                     });
             }
         }
@@ -166,7 +167,7 @@ public class AbstractUserDataService(
                         await scheduler.StartJob<SendEpisodeWatchStateToTraktJob>(c =>
                         {
                             c.AnimeEpisodeID = episode.ID;
-                            c.Action = TraktSyncAction.Remove;
+                            c.Action = TraktSyncType.HistoryRemove;
                         });
                 }
             }

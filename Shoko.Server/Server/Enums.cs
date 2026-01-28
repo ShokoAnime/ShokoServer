@@ -15,17 +15,10 @@ public enum ScheduledUpdateType
     AniDBCalendar = 1,
     AniDBUpdates = 3,
     AniDBMyListSync = 5,
-    TraktSync = 6,
-    TraktUpdate = 7,
+    TraktSendWatchStates = 6,
+    TraktGetWatchStates = 7,
     AniDBFileUpdates = 10,
-    TraktToken = 13,
     AniDBNotify = 15,
-}
-
-public enum TraktSyncAction
-{
-    Add = 1,
-    Remove = 2
 }
 
 public enum AniDBNotifyType

@@ -106,7 +106,7 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Send local watch states Trakt for the whole collection
+    /// Send local watch states to Trakt for the whole collection
     /// </summary>
     /// <returns></returns>
     [HttpGet("SendWatchStatesToTrakt")]
@@ -121,6 +121,26 @@ public class ActionController : BaseController
 
         var scheduler = await _schedulerFactory.GetScheduler();
         await scheduler.StartJobNow<SendWatchStatesToTraktJob>(c => c.ForceRefresh = true);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Get remove watch states from Trakt for the whole collection
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("GetWatchStatesFromTrakt")]
+    public async Task<ActionResult> GetWatchStatesFromTrakt()
+    {
+        var settings = SettingsProvider.GetSettings().TraktTv;
+        if (!settings.Enabled ||
+            string.IsNullOrEmpty(settings.AuthToken))
+        {
+            return BadRequest();
+        }
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJobNow<GetWatchStatesFromTraktJob>(c => c.ForceRefresh = true);
 
         return Ok();
     }

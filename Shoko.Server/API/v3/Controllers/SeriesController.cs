@@ -1837,6 +1837,41 @@ public class SeriesController : BaseController
         return Ok();
     }
 
+    /// <summary>
+    /// Queue a job for getting series watch states from Trakt
+    /// </summary>
+    /// <param name="seriesID">Shoko ID</param>
+    /// <returns></returns>
+    [HttpPost("{seriesID}/Trakt/GetWatchStates")]
+    public async Task<ActionResult> GetWatchStatesFromTraktBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
+    {
+        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        if (series == null)
+        {
+            return NotFound(SeriesNotFoundWithSeriesID);
+        }
+
+        if (!User.AllowedSeries(series))
+        {
+            return Forbid(SeriesForbiddenForUser);
+        }
+
+        var anidb = series.AniDB_Anime;
+        if (anidb == null)
+        {
+            return InternalError(AnidbNotFoundForSeriesID);
+        }
+
+        if (series.TmdbShowCrossReferences.Count == 0 && series.TmdbMovieCrossReferences.Count == 0)
+        {
+            return ValidationProblem(TmdbLinkNotFoundForSeriesID);
+        }
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<GetSeriesWatchStatesFromTraktJob>(c => c.AnimeSeriesID = seriesID);
+        return Ok();
+    }
+
     #endregion
 
     #endregion

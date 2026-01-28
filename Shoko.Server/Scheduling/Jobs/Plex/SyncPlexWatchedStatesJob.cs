@@ -22,8 +22,8 @@ namespace Shoko.Server.Scheduling.Jobs.Plex;
 
 [DatabaseRequired]
 [NetworkRequired]
-[DisallowConcurrencyGroup(ConcurrencyGroups.Trakt)]
-[JobKeyGroup(JobKeyGroup.Trakt)]
+[LimitConcurrency(1, 1)]
+[JobKeyGroup(JobKeyGroup.Actions)]
 public class SyncPlexWatchedStatesJob : BaseJob
 {
     private readonly ISettingsProvider _settingsProvider;
