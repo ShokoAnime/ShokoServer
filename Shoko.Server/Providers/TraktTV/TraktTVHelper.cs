@@ -658,8 +658,8 @@ public class TraktTVHelper
             _logger.LogInformation("Trakt: Sending watch states");
 
             // check that we have at least one user nominated for Trakt
-            var traktUser = RepoFactory.JMMUser.GetTraktUsers().FirstOrDefault();
-            if (traktUser is null)
+            var traktEnabledUser = RepoFactory.JMMUser.GetTraktUsers().FirstOrDefault();
+            if (traktEnabledUser is null)
             {
                 _logger.LogError("Trakt: No trakt users found!");
                 return;
@@ -709,7 +709,7 @@ public class TraktTVHelper
                 {
                     _logger.LogTrace("Trakt: Start comparing watch states for {Anime} - {EpisodeType} {Episode}",
                         series.PreferredTitle, episode.EpisodeTypeEnum, episode.AniDB_Episode?.EpisodeNumber);
-                    var episodeSyncDetailsList = CompareWatchStates(series, episode, traktUser, watchedShows, watchedMovies);
+                    var episodeSyncDetailsList = CompareWatchStates(traktEnabledUser, series, episode, watchedShows, watchedMovies);
 
                     var episodeHistoryAdd = new List<TraktSyncHistoryItem>();
                     var episodeHistoryRemove = new List<TraktSyncHistoryItem>();
@@ -778,8 +778,8 @@ public class TraktTVHelper
             _logger.LogInformation("Trakt: Getting watch states");
 
             // check that we have at least one user nominated for Trakt
-            var traktUser = RepoFactory.JMMUser.GetTraktUsers().FirstOrDefault();
-            if (traktUser is null)
+            var traktEnabledUser = RepoFactory.JMMUser.GetTraktUsers().FirstOrDefault();
+            if (traktEnabledUser is null)
             {
                 _logger.LogError("Trakt: No trakt users found!");
                 return;
@@ -791,7 +791,7 @@ public class TraktTVHelper
             if (!GetWatchedShowsInfo(ref watchedShows) || !GetWatchedMoviesInfo(ref watchedMovies))
                 return;
 
-            StoreWatchStates(traktUser, watchedShows, watchedMovies, series);
+            StoreWatchStates(traktEnabledUser, watchedShows, watchedMovies, series);
         }
         catch (Exception ex)
         {
@@ -800,7 +800,7 @@ public class TraktTVHelper
         }
     }
 
-    private List<EpisodeSyncDetails> CompareWatchStates(SVR_AnimeSeries series, SVR_AnimeEpisode episode, SVR_JMMUser traktUser,
+    private List<EpisodeSyncDetails> CompareWatchStates(SVR_JMMUser traktEnabledUser, SVR_AnimeSeries series, SVR_AnimeEpisode episode,
         Dictionary<int, TraktSyncWatchedShowsResult> watchedShows, Dictionary<int, TraktSyncWatchedMoviesResult> watchedMovies)
     {
         try
@@ -813,7 +813,7 @@ public class TraktTVHelper
             }
 
             var episodeSyncDetails = new List<EpisodeSyncDetails>();
-            var watchedOnShoko = episode.GetUserRecord(traktUser.JMMUserID)?.WatchedDate is not null;
+            var watchedOnShoko = episode.GetUserRecord(traktEnabledUser.JMMUserID)?.WatchedDate is not null;
 
             _logger.LogTrace("Trakt: Comparing watch states for {Anime} - {EpisodeType} - {Episode} - Watched: {Watched}",
                 series.PreferredTitle, episode.EpisodeTypeEnum, episode.AniDB_Episode?.EpisodeNumber, watchedOnShoko);
@@ -865,7 +865,7 @@ public class TraktTVHelper
 
             if (tmdbEpisodeIdsToWatch.Count > 0 || tmdbMovieIdsToWatch.Count > 0)
             {
-                var episodeDate = GetEpisodeDateForSync( TraktSyncType.HistoryAdd, episode);
+                var episodeDate = GetEpisodeDateForSync(traktEnabledUser, TraktSyncType.HistoryAdd, episode);
                 episodeSyncDetails.Add(new EpisodeSyncDetails(TraktSyncType.HistoryAdd, tmdbEpisodeIdsToWatch, tmdbMovieIdsToWatch, episodeDate));
             }
 
@@ -878,7 +878,7 @@ public class TraktTVHelper
         }
     }
 
-    private void StoreWatchStates(SVR_JMMUser traktUser, Dictionary<int, TraktSyncWatchedShowsResult> watchedShows, Dictionary<int, TraktSyncWatchedMoviesResult> watchedMovies, SVR_AnimeSeries? series = null)
+    private void StoreWatchStates(SVR_JMMUser traktEnabledUser, Dictionary<int, TraktSyncWatchedShowsResult> watchedShows, Dictionary<int, TraktSyncWatchedMoviesResult> watchedMovies, SVR_AnimeSeries? series = null)
     {
         try
         {
@@ -888,14 +888,14 @@ public class TraktTVHelper
             {
                 _logger.LogInformation("Trakt: Getting watch states for series {Anime}", series.PreferredTitle);
                 episodes = series.AllAnimeEpisodes
-                    .Where(x => x.VideoLocals.Count > 0 && x.GetUserRecord(traktUser.JMMUserID)?.WatchedDate is null)
+                    .Where(x => x.VideoLocals.Count > 0 && x.GetUserRecord(traktEnabledUser.JMMUserID)?.WatchedDate is null)
                     .ToList();
             }
             else
             {
                 _logger.LogInformation("Trakt: Getting watch states for whole collection");
                 episodes = RepoFactory.AnimeEpisode.GetAll()
-                    .Where(x => x.VideoLocals.Count > 0 && x.GetUserRecord(traktUser.JMMUserID)?.WatchedDate is null)
+                    .Where(x => x.VideoLocals.Count > 0 && x.GetUserRecord(traktEnabledUser.JMMUserID)?.WatchedDate is null)
                     .ToList();
             }
 
@@ -911,7 +911,7 @@ public class TraktTVHelper
                 if (matchedEpisode is not null)
                 {
                     _logger.LogTrace("Trakt: Episode match found for episode ID {EpisodeID}", episode.AnimeEpisodeID);
-                    _userDataService.SetEpisodeWatchedStatus(traktUser, episode, true, matchedEpisode.LastWatchedAt, UserDataSaveReason.TraktSync);
+                    _userDataService.SetEpisodeWatchedStatus(traktEnabledUser, episode, true, matchedEpisode.LastWatchedAt, UserDataSaveReason.TraktSync);
                     // If an episode is watched, we don't need to check movies as well as it's already marked as watched.
                     continue;
                 }
@@ -924,7 +924,7 @@ public class TraktTVHelper
                 if (matchedMovie is not null)
                 {
                     _logger.LogTrace("Trakt: Movie match found for episode ID {EpisodeID}", episode.AnimeEpisodeID);
-                    _userDataService.SetEpisodeWatchedStatus(traktUser, episode, true, matchedMovie.LastWatchedAt, UserDataSaveReason.TraktSync);
+                    _userDataService.SetEpisodeWatchedStatus(traktEnabledUser, episode, true, matchedMovie.LastWatchedAt, UserDataSaveReason.TraktSync);
                 }
             }
         }
@@ -937,48 +937,32 @@ public class TraktTVHelper
         }
     }
 
-    private static DateTime GetEpisodeDateForSync(TraktSyncType syncType, SVR_AnimeEpisode episode)
+    private static DateTime GetEpisodeDateForSync(SVR_JMMUser traktEnabledUser, TraktSyncType syncType, SVR_AnimeEpisode episode)
     {
-        var epDate = DateTime.Now;
-
         if (syncType is not TraktSyncType.HistoryAdd)
-            return epDate;
+            return DateTime.Now;
 
         // get the latest user record and find the latest date this episode was watched
         DateTime? thisDate = null;
-        var traktUsers = RepoFactory.JMMUser.GetTraktUsers();
-        if (traktUsers.Count == 0)
+
+        var userRecord = episode.GetUserRecord(traktEnabledUser.JMMUserID);
+        if (userRecord == null)
         {
-            return epDate;
+            return DateTime.Now;
         }
 
-        foreach (var user in traktUsers)
+        if (!thisDate.HasValue && userRecord.WatchedDate.HasValue)
         {
-            var userRecord = episode.GetUserRecord(user.JMMUserID);
-            if (userRecord == null)
-            {
-                continue;
-            }
-
-            if (!thisDate.HasValue && userRecord.WatchedDate.HasValue)
-            {
-                thisDate = userRecord.WatchedDate;
-            }
-
-            if (userRecord.WatchedDate.HasValue && thisDate.HasValue &&
-                userRecord.WatchedDate > thisDate)
-            {
-                thisDate = userRecord.WatchedDate;
-            }
-
-            if (thisDate.HasValue)
-            {
-                epDate = thisDate.Value;
-                break;
-            }
+            thisDate = userRecord.WatchedDate;
         }
 
-        return epDate;
+        if (userRecord.WatchedDate.HasValue && thisDate.HasValue &&
+            userRecord.WatchedDate > thisDate)
+        {
+            thisDate = userRecord.WatchedDate;
+        }
+
+        return thisDate ?? DateTime.Now;
     }
 
     private static List<int> GetTmdbEpisodeIdsFromEpisode(SVR_AnimeEpisode episode)
