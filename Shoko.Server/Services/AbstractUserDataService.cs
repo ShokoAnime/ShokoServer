@@ -76,7 +76,10 @@ public class AbstractUserDataService(
 
         var settings = settingsProvider.GetSettings();
         var scheduler = await schedulerFactory.GetScheduler();
-        var syncTrakt = ((SVR_JMMUser)user).IsTraktUser == 1 && settings.TraktTv.Enabled && !string.IsNullOrEmpty(settings.TraktTv.AuthToken);
+        var syncTrakt = ((SVR_JMMUser)user).IsTraktUser == 1
+                        && settings.TraktTv.Enabled
+                        && !string.IsNullOrEmpty(settings.TraktTv.AuthToken)
+                        && reason is UserDataSaveReason.None or UserDataSaveReason.UserInteraction or UserDataSaveReason.PlaybackEnd or UserDataSaveReason.AnidbImport;
         var syncAnidb = reason is not UserDataSaveReason.AnidbImport && ((SVR_JMMUser)user).IsAniDBUser == 1 && ((userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetWatched) || (!userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetUnwatched));
         IReadOnlyList<IShokoUser> users = ((SVR_JMMUser)user).IsAniDBUser == 1 ? userRepository.GetAniDBUsers() : [user];
         var lastUpdatedAt = userDataUpdate.LastUpdatedAt ?? DateTime.Now;
@@ -126,7 +129,7 @@ public class AbstractUserDataService(
                 foreach (var u in users)
                     SaveWatchedStatus(episode, u.ID, true, userDataUpdate.LastPlayedAt);
 
-                if (syncTrakt && reason is not UserDataSaveReason.TraktSync)
+                if (syncTrakt)
                     await scheduler.StartJob<SendEpisodeWatchStateToTraktJob>(c =>
                     {
                         c.AnimeEpisodeID = episode.ID;
