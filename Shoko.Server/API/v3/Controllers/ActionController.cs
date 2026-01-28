@@ -106,21 +106,39 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Send local watch states Trakt for the whole collection
+    /// Send local watch states to Trakt for the whole collection
     /// </summary>
     /// <returns></returns>
     [HttpGet("SendWatchStatesToTrakt")]
     public async Task<ActionResult> SendWatchStatesToTrakt()
     {
         var settings = SettingsProvider.GetSettings().TraktTv;
-        if (!settings.Enabled ||
-            string.IsNullOrEmpty(settings.AuthToken))
+        if (!settings.Enabled || string.IsNullOrEmpty(settings.AuthToken))
         {
-            return BadRequest();
+            return BadRequest("Trakt account is not linked!");
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
         await scheduler.StartJobNow<SendWatchStatesToTraktJob>(c => c.ForceRefresh = true);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Get remote watch states from Trakt for the whole collection
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("GetWatchStatesFromTrakt")]
+    public async Task<ActionResult> GetWatchStatesFromTrakt()
+    {
+        var settings = SettingsProvider.GetSettings().TraktTv;
+        if (!settings.Enabled || string.IsNullOrEmpty(settings.AuthToken))
+        {
+            return BadRequest("Trakt account is not linked!");
+        }
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJobNow<GetWatchStatesFromTraktJob>(c => c.ForceRefresh = true);
 
         return Ok();
     }

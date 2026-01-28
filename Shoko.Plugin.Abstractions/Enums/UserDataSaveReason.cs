@@ -45,4 +45,9 @@ public enum UserDataSaveReason
     /// The user data is being saved during an import from AniDB.
     /// </summary>
     AnidbImport,
+
+    /// <summary>
+    /// The user data is being saved during a Trakt sync.
+    /// </summary>
+    TraktSync,
 }

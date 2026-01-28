@@ -23,7 +23,7 @@ public class SendEpisodeWatchStateToTraktJob : BaseJob
     private readonly TraktTVHelper _helper;
     private SVR_AniDB_Episode _episode;
     public int AnimeEpisodeID { get; set; }
-    public TraktSyncAction Action { get; set; } = TraktSyncAction.Add;
+    public TraktSyncType Action { get; set; }
 
     public override string TypeName => "Send Episode Watch State to Trakt";
     public override string Title => "Sending Episode Watch State to Trakt";
@@ -54,10 +54,7 @@ public class SendEpisodeWatchStateToTraktJob : BaseJob
         var episode = RepoFactory.AnimeEpisode.GetByID(AnimeEpisodeID);
         if (episode == null) return Task.CompletedTask;
 
-        var syncType = TraktSyncType.HistoryAdd;
-        if (Action == TraktSyncAction.Remove) syncType = TraktSyncType.HistoryRemove;
-
-        _helper.SendEpisodeWatchState(syncType, episode);
+        _helper.SendEpisodeWatchState(Action, episode);
 
         return Task.CompletedTask;
     }
