@@ -113,10 +113,9 @@ public class ActionController : BaseController
     public async Task<ActionResult> SendWatchStatesToTrakt()
     {
         var settings = SettingsProvider.GetSettings().TraktTv;
-        if (!settings.Enabled ||
-            string.IsNullOrEmpty(settings.AuthToken))
+        if (!settings.Enabled || string.IsNullOrEmpty(settings.AuthToken))
         {
-            return BadRequest();
+            return BadRequest("Trakt account is not linked!");
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
@@ -126,17 +125,16 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Get remove watch states from Trakt for the whole collection
+    /// Get remote watch states from Trakt for the whole collection
     /// </summary>
     /// <returns></returns>
     [HttpGet("GetWatchStatesFromTrakt")]
     public async Task<ActionResult> GetWatchStatesFromTrakt()
     {
         var settings = SettingsProvider.GetSettings().TraktTv;
-        if (!settings.Enabled ||
-            string.IsNullOrEmpty(settings.AuthToken))
+        if (!settings.Enabled || string.IsNullOrEmpty(settings.AuthToken))
         {
-            return BadRequest();
+            return BadRequest("Trakt account is not linked!");
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();

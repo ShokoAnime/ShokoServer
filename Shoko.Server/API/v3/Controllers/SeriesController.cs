@@ -1810,6 +1810,12 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/Trakt/SendWatchStates")]
     public async Task<ActionResult> SendWatchStatesToTraktBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
+        var settings = SettingsProvider.GetSettings().TraktTv;
+        if (!settings.Enabled || string.IsNullOrEmpty(settings.AuthToken))
+        {
+            return BadRequest("Trakt account is not linked!");
+        }
+
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
@@ -1845,6 +1851,12 @@ public class SeriesController : BaseController
     [HttpPost("{seriesID}/Trakt/GetWatchStates")]
     public async Task<ActionResult> GetWatchStatesFromTraktBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
+        var settings = SettingsProvider.GetSettings().TraktTv;
+        if (!settings.Enabled || string.IsNullOrEmpty(settings.AuthToken))
+        {
+            return BadRequest("Trakt account is not linked!");
+        }
+
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
         {
