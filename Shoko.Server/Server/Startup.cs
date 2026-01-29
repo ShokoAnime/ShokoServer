@@ -110,6 +110,7 @@ public class Startup
                 .WithCompression(MessagePackCompression.Lz4BlockArray);
 
             _logger.LogInformation("Initializing Web Hosts...");
+            ServerState.Instance.ServerStarting = true;
             ServerState.Instance.ServerStartingStatus = "Initializing Hosts...";
             if (!await StartWebHost(_settingsProvider)) return;
 
@@ -127,7 +128,10 @@ public class Startup
         if (settings?.FirstRun is false)
             Utils.ShokoServer.RunWorkSetupDB();
         else
+        {
+            ServerState.Instance.ServerStarting = false;
             _logger.LogWarning("The Server is NOT STARTED. It needs to be configured via webui or the settings.json");
+        }
     }
 
     private async Task<bool> StartWebHost(ISettingsProvider settingsProvider)

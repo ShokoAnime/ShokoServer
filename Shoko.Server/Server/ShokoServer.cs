@@ -91,7 +91,6 @@ public class ShokoServer
 
         ServerState.Instance.DatabaseAvailable = false;
         ServerState.Instance.ServerOnline = false;
-        ServerState.Instance.ServerStarting = false;
         ServerState.Instance.StartupFailed = false;
         ServerState.Instance.StartupFailedMessage = string.Empty;
 
