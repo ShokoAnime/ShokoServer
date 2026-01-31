@@ -63,6 +63,8 @@ public partial class WebUIUpdateService
         ServerRepoName = Environment.GetEnvironmentVariable("SHOKO_SERVER_REPO") is { } serverRepoName && CompiledRepoNameRegex().IsMatch(serverRepoName)
             ? serverRepoName
             : "ShokoAnime/ShokoServer";
+        if (Environment.GetEnvironmentVariable("GITHUB_TOKEN") is { Length: > 0 } githubToken)
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {githubToken}");
     }
 
     /// <summary>
