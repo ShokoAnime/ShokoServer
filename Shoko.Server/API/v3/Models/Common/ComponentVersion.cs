@@ -14,6 +14,12 @@ public class ComponentVersion
     public string? Version { get; set; }
 
     /// <summary>
+    /// Minimum Shoko Server version compatible with the Web UI.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public Version? MinimumServerVersion { get; set; }
+
+    /// <summary>
     /// Commit SHA.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]

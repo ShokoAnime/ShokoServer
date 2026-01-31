@@ -80,6 +80,7 @@ public static class APIv3_Extensions
             ReleaseDate = componentVersion.ReleaseDate,
             Tag = componentVersion.Tag,
             Version = componentVersion.Version,
+            MinimumServerVersion = componentVersion.MinimumServerVersion,
         };
 
     public static IEnumerable<IImageMetadata> InLanguage(this IEnumerable<IImageMetadata> imageList, IReadOnlySet<TitleLanguage>? language = null)

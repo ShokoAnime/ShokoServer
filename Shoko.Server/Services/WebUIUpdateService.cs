@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
@@ -45,6 +46,10 @@ public partial class WebUIUpdateService
 
     public readonly string ServerRepoName;
 
+    private const string MinimumServerVersionPrefix = "Minimum Server Version: **";
+
+    private const string MinimumServerVersionSuffix = "**";
+
     public WebUIUpdateService(ISettingsProvider settingsProvider, IApplicationPaths applicationPaths)
     {
         _settingsProvider = settingsProvider;
@@ -80,11 +85,12 @@ public partial class WebUIUpdateService
     /// and install the update.
     /// </summary>
     /// <param name="channel">Channel to download the update for.</param>
+    /// <param name="allowIncompatible">Allow incompatible updates.</param>
     /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
     /// <returns></returns>
-    public void InstallUpdateForChannel(ReleaseChannel channel)
+    public void InstallUpdateForChannel(ReleaseChannel channel, bool allowIncompatible = false)
     {
-        var version = GetLatestVersion(channel);
+        var version = GetLatestVersion(channel, allowIncompatible: allowIncompatible);
         ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
         var release = DownloadApiResponse($"releases/tags/{version.Tag}", ClientRepoName);
         if (release is null)
@@ -190,6 +196,11 @@ public partial class WebUIUpdateService
             webuiVersion.Version = version.Version;
             changed = true;
         }
+        if (version.MinimumServerVersion is null ? webuiVersion.MinimumServerVersion is not null : (webuiVersion.MinimumServerVersion is not { } || webuiVersion.MinimumServerVersion != version.MinimumServerVersion))
+        {
+            webuiVersion.MinimumServerVersion = version.MinimumServerVersion;
+            changed = true;
+        }
         if (webuiVersion.Tag is not { Length: > 0 } || webuiVersion.Tag != version.Tag)
         {
             webuiVersion.Tag = version.Tag;
@@ -226,15 +237,18 @@ public partial class WebUIUpdateService
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
     /// <param name="force">Bypass the cache and search for a new version online.</param>
+    /// <param name="allowIncompatible">Allow incompatible updates.</param>
     /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
     /// <returns></returns>
-    public ComponentVersion GetLatestVersion(ReleaseChannel channel = ReleaseChannel.Auto, bool force = false)
+    public ComponentVersion GetLatestVersion(ReleaseChannel channel = ReleaseChannel.Auto, bool force = false, bool allowIncompatible = false)
     {
         if (channel == ReleaseChannel.Auto)
             channel = GetCurrentWebUIReleaseChannel();
         var key = $"webui:{channel}";
         if (!force && _cache.TryGetValue<ComponentVersion>(key, out var componentVersion))
             return componentVersion!;
+        var isNotDev = channel is not ReleaseChannel.Dev;
+        var currentServerVersion = Assembly.GetExecutingAssembly().GetName().Version!;
         switch (channel)
         {
             // Check for dev channel updates.
@@ -245,6 +259,14 @@ public partial class WebUIUpdateService
                 {
                     string tagName = release.tag_name;
                     var version = tagName[0] == 'v' ? tagName[1..] : tagName;
+                    if (isNotDev && version.Contains("-dev"))
+                        continue;
+
+                    string? description = release.body;
+                    var minServerVersion = GetMinimumServerVersion(description);
+                    if (!allowIncompatible && (minServerVersion is null || minServerVersion > currentServerVersion))
+                        continue;
+
                     foreach (var asset in release.assets)
                     {
                         // We don't care what the zip is named, only that it is attached.
@@ -255,15 +277,15 @@ public partial class WebUIUpdateService
                             string commit = tag["object"].sha;
                             DateTime releaseDate = release.published_at;
                             releaseDate = releaseDate.ToUniversalTime();
-                            string description = release.body;
                             return _cache.Set(key, new ComponentVersion
                             {
                                 Version = version,
+                                MinimumServerVersion = minServerVersion,
                                 Commit = commit,
                                 ReleaseChannel = channel,
                                 ReleaseDate = releaseDate,
                                 Tag = tagName,
-                                Description = description?.Trim(),
+                                Description = description?.Trim() ?? string.Empty,
                             }, _cacheTTL);
                         }
                     }
@@ -277,24 +299,45 @@ public partial class WebUIUpdateService
             default:
             {
                 var latestRelease = DownloadApiResponse("releases/latest", ClientRepoName);
+                string? description = latestRelease.body;
+                var minServerVersion = GetMinimumServerVersion(description);
+                if (!allowIncompatible && (minServerVersion is null || minServerVersion > currentServerVersion))
+                    goto case ReleaseChannel.Dev;
+
                 string tagName = latestRelease.tag_name;
                 var version = tagName[0] == 'v' ? tagName[1..] : tagName;
                 var tag = DownloadApiResponse($"git/ref/tags/{tagName}", ClientRepoName);
                 string commit = tag["object"].sha;
                 DateTime releaseDate = latestRelease.published_at;
                 releaseDate = releaseDate.ToUniversalTime();
-                string description = latestRelease.body;
                 return _cache.Set(key, new ComponentVersion
                 {
                     Version = version,
+                    MinimumServerVersion = minServerVersion,
                     Commit = commit,
                     ReleaseChannel = channel,
                     ReleaseDate = releaseDate,
                     Tag = tagName,
-                    Description = description?.Trim(),
+                    Description = description?.Trim() ?? string.Empty,
                 }, _cacheTTL);
             }
         }
+    }
+
+    private Version? GetMinimumServerVersion(string? description)
+    {
+        if (string.IsNullOrEmpty(description))
+            return null;
+
+        if (description.IndexOf(MinimumServerVersionPrefix) is var index && index is -1)
+            return null;
+
+        var startIndex = index + MinimumServerVersionPrefix.Length;
+        var endIndex = description.IndexOf(MinimumServerVersionSuffix, startIndex);
+        if (endIndex is -1 || !Version.TryParse(description[startIndex..endIndex].Trim().TrimStart(['v', 'V']).Replace("-dev", ""), out var minVersion))
+            return null;
+
+        return minVersion;
     }
 
     /// <summary>
@@ -390,7 +433,7 @@ public partial class WebUIUpdateService
                 string commit = tagResponse["object"].sha;
                 DateTime releaseDate = latestRelease.published_at;
                 releaseDate = releaseDate.ToUniversalTime();
-                string description = latestRelease.body;
+                string? description = latestRelease.body;
                 return _cache.Set(key, new ComponentVersion
                 {
                     Version = version,
@@ -398,7 +441,7 @@ public partial class WebUIUpdateService
                     ReleaseChannel = ReleaseChannel.Stable,
                     ReleaseDate = releaseDate,
                     Tag = tagName,
-                    Description = description.Trim(),
+                    Description = description?.Trim() ?? string.Empty,
                 }, _cacheTTL);
             }
         }
@@ -453,6 +496,12 @@ public partial class WebUIUpdateService
         public Version VersionAsVersion => new(Version.Replace("-dev", ""));
 
         /// <summary>
+        /// Minimum Shoko Server version compatible with the Web UI.
+        /// </summary>
+        [JsonProperty("minimumServerVersion", NullValueHandling = NullValueHandling.Ignore)]
+        public Version? MinimumServerVersion { get; set; }
+
+        /// <summary>
         /// Git tag.
         /// </summary>
         [JsonProperty("tag")]
@@ -467,7 +516,7 @@ public partial class WebUIUpdateService
         /// <summary>
         /// Release date for web ui release.
         /// </summary>
-        [JsonProperty("date")]
+        [JsonProperty("date", NullValueHandling = NullValueHandling.Ignore)]
         public DateTime? Date { get; set; } = null;
 
         [JsonIgnore]
@@ -497,6 +546,11 @@ public partial class WebUIUpdateService
         /// Version number.
         /// </summary>
         public required string Version { get; set; }
+
+        /// <summary>
+        /// Minimum Shoko Server version compatible with the Web UI.
+        /// </summary>
+        public Version? MinimumServerVersion { get; set; }
 
         /// <summary>
         /// Commit SHA.

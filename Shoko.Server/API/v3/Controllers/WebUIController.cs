@@ -355,12 +355,13 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
     /// You don't need to be authenticated to use this endpoint.
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
+    /// <param name="allowIncompatible">Allow downloading an incompatible version.</param>
     /// <returns></returns>
     [AllowAnonymous]
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpPost("Install")]
-    public ActionResult InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
+    public ActionResult InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
     {
         var indexLocation = Path.Join(applicationPaths.WebPath, "index.html");
         if (System.IO.File.Exists(indexLocation))
@@ -373,7 +374,7 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
 
         try
         {
-            updateService.InstallUpdateForChannel(channel);
+            updateService.InstallUpdateForChannel(channel, allowIncompatible);
         }
         catch (WebException ex)
         {
@@ -393,23 +394,24 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
     [InitFriendly]
     [HttpGet("Install")]
     [Obsolete("Post is correct, but we want legacy versions of the webui boot-strapper to be able to install. We can remove this later™.")]
-    public ActionResult UpdateWebUILegacy([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
-        => InstallWebUI(channel);
+    public ActionResult UpdateWebUILegacy([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
+        => InstallWebUI(channel, allowIncompatible);
 
     /// <summary>
     /// Update an existing version of the web ui to the latest for the selected
     /// <paramref name="channel"/>.
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
+    /// <param name="allowIncompatible">Allow downloading an incompatible version.</param>
     /// <returns></returns>
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpPost("Update")]
-    public ActionResult UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
+    public ActionResult UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
     {
         try
         {
-            updateService.InstallUpdateForChannel(channel);
+            updateService.InstallUpdateForChannel(channel, allowIncompatible);
         }
         catch (WebException ex)
         {
@@ -429,8 +431,8 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
     [InitFriendly]
     [HttpGet("Update")]
     [Obsolete("Post is correct, but we want old versions of the webui to be able to update. We can remove this later™.")]
-    public ActionResult UpdateWebUIOld([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
-        => UpdateWebUI(channel);
+    public ActionResult UpdateWebUIOld([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
+        => UpdateWebUI(channel, allowIncompatible);
 
     /// <summary>
     /// Check for latest version for the selected <paramref name="channel"/> and
@@ -439,15 +441,16 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
     /// <param name="force">Bypass the cache and search for a new version online.</param>
+    /// <param name="allowIncompatible">Allow downloading an incompatible version.</param>
     /// <returns></returns>
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("LatestVersion")]
-    public ActionResult<ComponentVersion> LatestWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool force = false)
+    public ActionResult<ComponentVersion> LatestWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool force = false, [FromQuery] bool allowIncompatible = false)
     {
         try
         {
-            return updateService.GetLatestVersion(channel, force).ToDto();
+            return updateService.GetLatestVersion(channel, force, allowIncompatible).ToDto();
         }
         catch (WebException ex)
         {
