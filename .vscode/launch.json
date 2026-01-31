@@ -13,6 +13,7 @@
             "program": "${workspaceFolder}/Shoko.Server/bin/Debug/net8.0/Shoko.CLI",
             "args": [],
             "cwd": "${workspaceFolder}/Shoko.Server/bin/Debug/net8.0",
+            "envFile": "${workspaceFolder}/.env",
             "env": {
               "SHOKO_HOME": "${workspaceFolder}/Shoko.Server/bin/Data"
             },
