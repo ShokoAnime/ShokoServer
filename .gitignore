@@ -175,3 +175,5 @@ UpgradeLog*.htm
 # Jetbrains
 /.idea/
 /Shoko.Server.VC.db
+
+.env
