@@ -256,41 +256,61 @@ public partial class WebUIUpdateService
             // Check for dev channel updates.
             case ReleaseChannel.Dev:
             {
-                var releases = DownloadApiResponse("releases?per_page=10&page=1", ClientRepoName);
-                foreach (var release in releases)
+                const int MaxPages = 4;
+                for (var page = 1; page <= MaxPages; page++)
                 {
-                    string tagName = release.tag_name;
-                    var version = tagName[0] == 'v' ? tagName[1..] : tagName;
-                    if (isNotDev && version.Contains("-dev"))
-                        continue;
-
-                    string? description = release.body;
-                    var minServerVersion = GetMinimumServerVersion(description);
-                    if (!allowIncompatible && (minServerVersion is null || minServerVersion > currentServerVersion))
-                        continue;
-
-                    foreach (var asset in release.assets)
+                    var releases = DownloadApiResponse($"releases?per_page=25&page={page}", ClientRepoName);
+                    foreach (var release in releases)
                     {
-                        // We don't care what the zip is named, only that it is attached.
-                        string fileName = asset.name;
-                        if (Path.GetExtension(fileName) is ".zip")
+                        string tagName = release.tag_name;
+                        var version = tagName[0] == 'v' ? tagName[1..] : tagName;
+                        if (isNotDev && version.Contains("-dev"))
+                            continue;
+
+                        string? description = release.body;
+                        var minServerVersion = GetMinimumServerVersion(description);
+                        if (!allowIncompatible && (minServerVersion is null || minServerVersion > currentServerVersion))
+                            continue;
+
+                        foreach (var asset in release.assets)
                         {
-                            var tag = DownloadApiResponse($"git/ref/tags/{tagName}", ClientRepoName);
-                            string commit = tag["object"].sha;
-                            DateTime releaseDate = release.published_at;
-                            releaseDate = releaseDate.ToUniversalTime();
-                            return _cache.Set(key, new ComponentVersion
+                            // We don't care what the zip is named, only that it is attached.
+                            string fileName = asset.name;
+                            if (Path.GetExtension(fileName) is ".zip")
                             {
-                                Version = version,
-                                MinimumServerVersion = minServerVersion,
-                                Commit = commit,
-                                ReleaseChannel = channel,
-                                ReleaseDate = releaseDate,
-                                Tag = tagName,
-                                Description = description?.Trim() ?? string.Empty,
-                            }, _cacheTTL);
+                                var tag = DownloadApiResponse($"git/ref/tags/{tagName}", ClientRepoName);
+                                string commit = tag["object"].sha;
+                                DateTime releaseDate = release.published_at;
+                                releaseDate = releaseDate.ToUniversalTime();
+                                return _cache.Set(key, new ComponentVersion
+                                {
+                                    Version = version,
+                                    MinimumServerVersion = minServerVersion,
+                                    Commit = commit,
+                                    ReleaseChannel = channel,
+                                    ReleaseDate = releaseDate,
+                                    Tag = tagName,
+                                    Description = description?.Trim() ?? string.Empty,
+                                }, _cacheTTL);
+                            }
                         }
                     }
+                }
+
+                // Stop now if we got here from the default case.
+                if (isNotDev)
+                {
+                    var webuiVersion = LoadWebUIVersionInfo(_applicationPaths);
+                    return _cache.Set(key, new ComponentVersion
+                    {
+                        Version = webuiVersion?.Version ?? "1.0.0",
+                        MinimumServerVersion = webuiVersion?.MinimumServerVersion,
+                        Commit = webuiVersion?.Commit ?? "0000000000000000000000000000000000000000",
+                        ReleaseChannel = channel,
+                        ReleaseDate = webuiVersion?.Date ?? DateTime.MinValue,
+                        Tag = webuiVersion?.Tag ?? "1.0.0",
+                        Description = string.Empty,
+                    }, _cacheTTL);
                 }
 
                 // Fallback to stable.
