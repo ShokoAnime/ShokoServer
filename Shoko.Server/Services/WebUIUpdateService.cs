@@ -256,7 +256,7 @@ public partial class WebUIUpdateService
             // Check for dev channel updates.
             case ReleaseChannel.Dev:
             {
-                var releases = DownloadApiResponse("releases?per_page=25&page=1", ClientRepoName);
+                var releases = DownloadApiResponse("releases?per_page=100&page=1", ClientRepoName);
                 foreach (var release in releases)
                 {
                     string tagName = release.tag_name;
