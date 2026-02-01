@@ -256,43 +256,39 @@ public partial class WebUIUpdateService
             // Check for dev channel updates.
             case ReleaseChannel.Dev:
             {
-                const int MaxPages = 4;
-                for (var page = 1; page <= MaxPages; page++)
+                var releases = DownloadApiResponse("releases?per_page=25&page=1", ClientRepoName);
+                foreach (var release in releases)
                 {
-                    var releases = DownloadApiResponse($"releases?per_page=25&page={page}", ClientRepoName);
-                    foreach (var release in releases)
+                    string tagName = release.tag_name;
+                    var version = tagName[0] == 'v' ? tagName[1..] : tagName;
+                    if (isNotDev && version.Contains("-dev"))
+                        continue;
+
+                    string? description = release.body;
+                    var minServerVersion = GetMinimumServerVersion(description);
+                    if (!allowIncompatible && (minServerVersion is null || minServerVersion > currentServerVersion))
+                        continue;
+
+                    foreach (var asset in release.assets)
                     {
-                        string tagName = release.tag_name;
-                        var version = tagName[0] == 'v' ? tagName[1..] : tagName;
-                        if (isNotDev && version.Contains("-dev"))
-                            continue;
-
-                        string? description = release.body;
-                        var minServerVersion = GetMinimumServerVersion(description);
-                        if (!allowIncompatible && (minServerVersion is null || minServerVersion > currentServerVersion))
-                            continue;
-
-                        foreach (var asset in release.assets)
+                        // We don't care what the zip is named, only that it is attached.
+                        string fileName = asset.name;
+                        if (Path.GetExtension(fileName) is ".zip")
                         {
-                            // We don't care what the zip is named, only that it is attached.
-                            string fileName = asset.name;
-                            if (Path.GetExtension(fileName) is ".zip")
+                            var tag = DownloadApiResponse($"git/ref/tags/{tagName}", ClientRepoName);
+                            string commit = tag["object"].sha;
+                            DateTime releaseDate = release.published_at;
+                            releaseDate = releaseDate.ToUniversalTime();
+                            return _cache.Set(key, new ComponentVersion
                             {
-                                var tag = DownloadApiResponse($"git/ref/tags/{tagName}", ClientRepoName);
-                                string commit = tag["object"].sha;
-                                DateTime releaseDate = release.published_at;
-                                releaseDate = releaseDate.ToUniversalTime();
-                                return _cache.Set(key, new ComponentVersion
-                                {
-                                    Version = version,
-                                    MinimumServerVersion = minServerVersion,
-                                    Commit = commit,
-                                    ReleaseChannel = channel,
-                                    ReleaseDate = releaseDate,
-                                    Tag = tagName,
-                                    Description = description?.Trim() ?? string.Empty,
-                                }, _cacheTTL);
-                            }
+                                Version = version,
+                                MinimumServerVersion = minServerVersion,
+                                Commit = commit,
+                                ReleaseChannel = channel,
+                                ReleaseDate = releaseDate,
+                                Tag = tagName,
+                                Description = description?.Trim() ?? string.Empty,
+                            }, _cacheTTL);
                         }
                     }
                 }
