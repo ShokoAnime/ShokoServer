@@ -381,7 +381,7 @@ public class Group : BaseModel
                 else
                 {
                     group.OverrideDescription = 0;
-                    group.Description = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.AniDB_Anime?.Description ?? group.Description;
+                    group.Description = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.PreferredOverview ?? group.Description;
                 }
 
                 // Update stats for all groups in the chain

@@ -43,9 +43,7 @@ public static class ModelProviders
 
     public static void Populate(this SVR_AnimeGroup group, SVR_AnimeSeries series, DateTime now)
     {
-        var anime = series.AniDB_Anime;
-
-        group.Description = anime.Description;
+        group.Description = series.PreferredOverview;
         var name = series.PreferredTitle;
         group.GroupName = name;
         group.MainAniDBAnimeID = series.AniDB_ID;

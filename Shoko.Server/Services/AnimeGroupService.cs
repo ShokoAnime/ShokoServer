@@ -71,7 +71,7 @@ public class AnimeGroupService
         if (group.IsManuallyNamed == 0 && current != null)
             group.GroupName = current!.PreferredTitle;
         if (group.OverrideDescription == 0 && current != null)
-            group.Description = current!.AniDB_Anime.Description;
+            group.Description = current!.PreferredOverview;
 
         // Save the changes for this group only.
         group.DateTimeUpdated = DateTime.Now;
@@ -135,7 +135,7 @@ public class AnimeGroupService
                 if (grp.IsManuallyNamed == 0)
                     grp.GroupName = series.PreferredTitle;
                 if (grp.OverrideDescription == 0)
-                    grp.Description = series.AniDB_Anime.Description;
+                    grp.Description = series.PreferredOverview;
 
                 // Save the changes for this group only.
                 grp.DateTimeUpdated = DateTime.Now;
@@ -189,7 +189,7 @@ public class AnimeGroupService
             if (group.IsManuallyNamed == 0)
                 group.GroupName = mainSeries.PreferredTitle;
             if (group.OverrideDescription == 0)
-                group.Description = mainSeries.AniDB_Anime.Description;
+                group.Description = mainSeries.PreferredOverview;
         }
 
         if (missingEpsStats)

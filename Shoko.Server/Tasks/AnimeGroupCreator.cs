@@ -375,7 +375,7 @@ public class AnimeGroupCreator
                     }
                     // Override the group desc. if the group doesn't have an override.
                     if (animeGroup.OverrideDescription == 0)
-                        animeGroup.Description = series.AniDB_Anime.Description;
+                        animeGroup.Description = series.PreferredOverview;
                 }
                 animeGroup.DateTimeUpdated = DateTime.Now;
                 _animeGroupRepo.Save(animeGroup, true);
