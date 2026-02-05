@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Utilities;
@@ -58,10 +56,6 @@ public static class Languages
                     .Select(l => new NamingLanguage(l))
                     .ExceptBy(_invalidLanguages, l => l.Language)
                     .ToList();
-
-                // Reset all preferred titles when the language setting has been updated.
-                Task.Run(() => RepoFactory.AnimeSeries.GetAll().AsParallel().ForAll(series => series.ResetPreferredTitle()));
-                Task.Run(() => RepoFactory.AniDB_Anime.GetAll().AsParallel().ForAll(anime => anime.ResetPreferredTitle()));
             }
         }
     }
@@ -142,9 +136,6 @@ public static class Languages
                     .Select(l => new NamingLanguage(l))
                     .ExceptBy(_invalidLanguages, l => l.Language)
                     .ToList();
-
-                // Reset all preferred overviews when the language setting has been updated.
-                Task.Run(() => RepoFactory.AnimeSeries.GetAll().AsParallel().ForAll(ser => ser.ResetPreferredOverview()));
             }
         }
     }

@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Shoko.Models.Enums;
-using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Settings;
@@ -27,7 +26,6 @@ public class LanguageSettings
         set
         {
             _seriesTitleLanguageOrder = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
-            Languages.PreferredNamingLanguages = [];
         }
     }
 
@@ -54,7 +52,6 @@ public class LanguageSettings
         set
         {
             _episodeLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
-            Languages.PreferredEpisodeNamingLanguages = [];
         }
     }
 
@@ -81,7 +78,6 @@ public class LanguageSettings
         set
         {
             _descriptionLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
-            Languages.PreferredDescriptionNamingLanguages = [];
         }
     }
 

@@ -5,12 +5,16 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Force.DeepCloner;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Server.FileHelper;
+using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.MediaInfoLib;
 using Constants = Shoko.Server.Server.Constants;
@@ -25,6 +29,12 @@ public class SettingsProvider : ISettingsProvider
     private const string SettingsFilename = "settings-server.json";
     private static readonly object SettingsLock = new();
     private static IServerSettings Instance { get; set; }
+
+    private List<string> _seriesTitleLanguageOrder = null;
+
+    private List<string> _episodeTitleLanguageOrder = null;
+
+    private List<string> _descriptionLanguageOrder = null;
 
     public SettingsProvider(ILogger<SettingsProvider> logger)
     {
@@ -287,6 +297,7 @@ public class SettingsProvider : ISettingsProvider
             throw new ValidationException();
         }
 
+        var settingsSaved = false;
         lock (SettingsLock)
         {
             var onDisk = File.Exists(path) ? File.ReadAllText(path) : string.Empty;
@@ -294,9 +305,55 @@ public class SettingsProvider : ISettingsProvider
             if (!onDisk.Equals(inCode, StringComparison.Ordinal))
             {
                 File.WriteAllText(path, inCode);
-                ShokoEventHandler.Instance.OnSettingsSaved();
+                settingsSaved = true;
             }
         }
+
+        // Init language settings and react to changes.
+        if (_seriesTitleLanguageOrder is null)
+        {
+            _seriesTitleLanguageOrder = Instance.Language.SeriesTitleLanguageOrder;
+        }
+        else if (settingsSaved && !Instance.Language.SeriesTitleLanguageOrder.SequenceEqual(_seriesTitleLanguageOrder))
+        {
+            _seriesTitleLanguageOrder = Instance.Language.SeriesTitleLanguageOrder;
+            Languages.PreferredNamingLanguages = [];
+
+            // Reset all preferred titles when the language setting has been updated.
+            Parallel.ForEach(RepoFactory.AnimeSeries.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredTitle());
+            Parallel.ForEach(RepoFactory.AniDB_Anime.GetAll(), new() { MaxDegreeOfParallelism = 10 }, anime => anime.ResetPreferredTitle());
+            if (Utils.ServiceContainer?.GetService<AnimeGroupService>() is { } groupService)
+                Task.Factory.StartNew(groupService.RenameAllGroups, TaskCreationOptions.LongRunning);
+        }
+
+        if (_episodeTitleLanguageOrder is null)
+        {
+            _episodeTitleLanguageOrder = Instance.Language.EpisodeTitleLanguageOrder;
+        }
+        else if (settingsSaved && !Instance.Language.EpisodeTitleLanguageOrder.SequenceEqual(_episodeTitleLanguageOrder))
+        {
+            _episodeTitleLanguageOrder = Instance.Language.EpisodeTitleLanguageOrder;
+            Languages.PreferredEpisodeNamingLanguages = [];
+        }
+
+        if (_descriptionLanguageOrder is null)
+        {
+            _descriptionLanguageOrder = Instance.Language.DescriptionLanguageOrder;
+        }
+        else if (settingsSaved && !Instance.Language.DescriptionLanguageOrder.SequenceEqual(_descriptionLanguageOrder))
+        {
+            _descriptionLanguageOrder = Instance.Language.DescriptionLanguageOrder;
+            Languages.PreferredDescriptionNamingLanguages = [];
+
+            // Reset all preferred overviews when the language setting has been updated.
+            Parallel.ForEach(RepoFactory.AnimeSeries.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredOverview());
+            if (Utils.ServiceContainer?.GetService<AnimeGroupService>() is { } groupService)
+                Task.Factory.StartNew(groupService.RenameAllGroups, TaskCreationOptions.LongRunning);
+        }
+
+        // Fire off the settings saved event now.
+        if (settingsSaved)
+            ShokoEventHandler.Instance.OnSettingsSaved();
     }
 
     public static string Serialize(object obj, bool indent = false)

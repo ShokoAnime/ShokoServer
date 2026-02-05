@@ -469,7 +469,7 @@ public class ActionController : BaseController
     [HttpGet("RenameAllGroups")]
     public ActionResult RenameAllGroups()
     {
-        Task.Factory.StartNew(_groupService.RenameAllGroups).ConfigureAwait(false);
+        Task.Factory.StartNew(_groupService.RenameAllGroups, TaskCreationOptions.LongRunning).ConfigureAwait(false);
         return Ok();
     }
 
