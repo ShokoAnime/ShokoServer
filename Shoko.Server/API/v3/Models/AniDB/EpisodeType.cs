@@ -22,11 +22,6 @@ public enum EpisodeType
     Episode = 2,
 
     /// <summary>
-    /// A normal episode.
-    /// </summary>
-    Normal = Episode,
-
-    /// <summary>
     /// A special episode.
     /// </summary>
     Special = 3,
@@ -40,11 +35,6 @@ public enum EpisodeType
     /// An opening song, ending song, or other type of credits.
     /// </summary>
     Credits = 5,
-
-    /// <summary>
-    /// Either an opening-song, or an ending-song.
-    /// </summary>
-    ThemeSong = Credits,
 
     /// <summary>
     /// AniDB parody type. Where else would this be useful?
