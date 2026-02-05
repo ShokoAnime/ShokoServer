@@ -83,7 +83,7 @@ public class AnidbAnime
     public Image? Poster { get; set; }
 
     /// <summary>
-    /// Number of <see cref="EpisodeType.Normal"/> episodes contained within the series if it's known.
+    /// Number of <see cref="EpisodeType.Episode"/> episodes contained within the series if it's known.
     /// </summary>
     public int? EpisodeCount { get; set; }
 

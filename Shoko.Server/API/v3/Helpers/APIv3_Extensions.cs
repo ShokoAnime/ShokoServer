@@ -57,10 +57,10 @@ public static class APIv3_Extensions
     internal static EpisodeType ToV3Dto(this AbstractEpisodeType episodeType)
         => episodeType switch
         {
-            AbstractEpisodeType.Episode => EpisodeType.Normal,
+            AbstractEpisodeType.Episode => EpisodeType.Episode,
             AbstractEpisodeType.Special => EpisodeType.Special,
             AbstractEpisodeType.Parody => EpisodeType.Parody,
-            AbstractEpisodeType.Credits => EpisodeType.ThemeSong,
+            AbstractEpisodeType.Credits => EpisodeType.Credits,
             AbstractEpisodeType.Trailer => EpisodeType.Trailer,
             AbstractEpisodeType.Other => EpisodeType.Other,
             _ => EpisodeType.Unknown,

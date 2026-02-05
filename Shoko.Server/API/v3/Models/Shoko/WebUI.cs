@@ -159,7 +159,7 @@ public class WebUI
         )
         {
             // By default only show 'normal', 'special' or 'other' episodes.
-            episodeTypes ??= [EpisodeType.Normal, EpisodeType.Special, EpisodeType.Other];
+            episodeTypes ??= [EpisodeType.Episode, EpisodeType.Special, EpisodeType.Other];
             // By default, don't divide into groups.
             groupByCriteria ??= [];
             var now = DateTime.Now;

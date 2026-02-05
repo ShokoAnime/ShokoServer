@@ -19,7 +19,12 @@ public enum EpisodeType
     /// <summary>
     /// A normal episode.
     /// </summary>
-    Normal = 2,
+    Episode = 2,
+
+    /// <summary>
+    /// A normal episode.
+    /// </summary>
+    Normal = Episode,
 
     /// <summary>
     /// A special episode.
@@ -45,9 +50,4 @@ public enum EpisodeType
     /// AniDB parody type. Where else would this be useful?
     /// </summary>
     Parody = 6,
-
-    /// <summary>
-    /// A DVD or BD extra, e.g. BD-menu or deleted scenes.
-    /// </summary>
-    Extra = 7,
 }
