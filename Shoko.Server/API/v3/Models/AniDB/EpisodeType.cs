@@ -32,9 +32,14 @@ public enum EpisodeType
     Trailer = 4,
 
     /// <summary>
+    /// An opening song, ending song, or other type of credits.
+    /// </summary>
+    Credits = 5,
+
+    /// <summary>
     /// Either an opening-song, or an ending-song.
     /// </summary>
-    ThemeSong = 5,
+    ThemeSong = Credits,
 
     /// <summary>
     /// AniDB parody type. Where else would this be useful?
