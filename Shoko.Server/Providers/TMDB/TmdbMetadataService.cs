@@ -999,6 +999,9 @@ public class TmdbMetadataService
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var xref in allXRefs)
         {
+            if (xref.TmdbShowID is 0)
+                continue;
+
             if (xref.AnimeSeries is null)
                 continue;
 
@@ -1024,6 +1027,9 @@ public class TmdbMetadataService
 
     public async Task ScheduleUpdateOfShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadAlternateOrdering = null)
     {
+        if (showId is 0)
+            return;
+
         // Schedule the show info to be downloaded or updated.
         await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<UpdateTmdbShowJob>(c =>
         {
@@ -1037,6 +1043,9 @@ public class TmdbMetadataService
 
     public async Task<bool> UpdateShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadAlternateOrdering = false, bool quickRefresh = false)
     {
+        if (showId is 0)
+            return false;
+
         using (await GetLockForEntity(ForeignEntityType.Show, showId, "metadata", "Update").ConfigureAwait(false))
         {
             // Abort if we're within a certain time frame as to not try and get us rate-limited.
