@@ -441,6 +441,10 @@ public class TmdbMetadataService
         _logger.LogInformation("Scheduling {Count} movies to be updated.", allXRefs.Count);
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var xref in allXRefs)
+        {
+            if (xref.AnimeSeries is null)
+                continue;
+
             await scheduler.StartJob<UpdateTmdbMovieJob>(
                 c =>
                 {
@@ -449,6 +453,7 @@ public class TmdbMetadataService
                     c.DownloadImages = saveImages;
                 }
             ).ConfigureAwait(false);
+        }
     }
 
     public async Task ScheduleUpdateOfMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadCollections = null)
@@ -994,6 +999,9 @@ public class TmdbMetadataService
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var xref in allXRefs)
         {
+            if (xref.AnimeSeries is null)
+                continue;
+
             await scheduler.StartJob<UpdateTmdbShowJob>(
                 c =>
                 {
