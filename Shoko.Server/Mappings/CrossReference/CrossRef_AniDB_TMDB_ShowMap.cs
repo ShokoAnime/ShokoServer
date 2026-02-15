@@ -1,5 +1,5 @@
 using FluentNHibernate.Mapping;
-using Shoko.Models.Enums;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Models.CrossReference;
 
 namespace Shoko.Server.Mappings;

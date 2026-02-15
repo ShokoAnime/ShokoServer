@@ -1,11 +1,9 @@
 using System.Collections.Generic;
-using Shoko.Models.Enums;
-using Shoko.Models.Server;
+using Shoko.Server.API.v1.Models;
 using Shoko.Server.Filters.Info;
 using Shoko.Server.Filters.Legacy;
-using Shoko.Server.Filters.Logic;
 using Shoko.Server.Filters.Logic.Expressions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Xunit;
 
 namespace Shoko.Tests;
@@ -19,17 +17,17 @@ public class LegacyFilterConditionTests
         var filter = new FilterPreset { Name = "Test", Expression = top };
 
         var success = LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
-        var expectedConditions = new List<GroupFilterCondition>
+        var expectedConditions = new List<CL_GroupFilterCondition>
         {
             new()
             {
-                ConditionOperator = (int)GroupFilterOperator.NotIn,
-                ConditionType = (int)GroupFilterConditionType.Tag,
+                ConditionOperator = (int)CL_GroupFilterOperator.NotIn,
+                ConditionType = (int)CL_GroupFilterConditionType.Tag,
                 ConditionParameter = "comedy"
             }
         };
         Assert.True(success);
-        Assert.Equal(GroupFilterBaseCondition.Include, baseCondition);
+        Assert.Equal(CL_GroupFilterBaseCondition.Include, baseCondition);
         Assert.Equivalent(expectedConditions, conditions);
     }
 
@@ -40,17 +38,17 @@ public class LegacyFilterConditionTests
         var filter = new FilterPreset { Name = "Test", Expression = top };
 
         var success = LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
-        var expectedConditions = new List<GroupFilterCondition>
+        var expectedConditions = new List<CL_GroupFilterCondition>
         {
             new()
             {
-                ConditionOperator = (int)GroupFilterOperator.In,
-                ConditionType = (int)GroupFilterConditionType.Tag,
+                ConditionOperator = (int)CL_GroupFilterOperator.In,
+                ConditionType = (int)CL_GroupFilterConditionType.Tag,
                 ConditionParameter = "comedy,shounen,action"
             }
         };
         Assert.True(success);
-        Assert.Equal(GroupFilterBaseCondition.Include, baseCondition);
+        Assert.Equal(CL_GroupFilterBaseCondition.Include, baseCondition);
         Assert.Equivalent(expectedConditions, conditions);
     }
 
@@ -61,20 +59,20 @@ public class LegacyFilterConditionTests
         var filter = new FilterPreset { Name = "Test", Expression = top };
 
         var success = LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
-        var expectedConditions = new List<GroupFilterCondition>
+        var expectedConditions = new List<CL_GroupFilterCondition>
         {
             new()
             {
-                ConditionOperator = (int)GroupFilterOperator.NotIn,
-                ConditionType = (int)GroupFilterConditionType.Tag,
+                ConditionOperator = (int)CL_GroupFilterOperator.NotIn,
+                ConditionType = (int)CL_GroupFilterConditionType.Tag,
                 ConditionParameter = "comedy,shounen,action"
             }
         };
         Assert.True(success);
-        Assert.Equal(GroupFilterBaseCondition.Include, baseCondition);
+        Assert.Equal(CL_GroupFilterBaseCondition.Include, baseCondition);
         Assert.Equivalent(expectedConditions, conditions);
     }
-    
+
     [Fact]
     public void ToConditions_AnimeType_In_Single()
     {
@@ -82,17 +80,17 @@ public class LegacyFilterConditionTests
         var filter = new FilterPreset { Name = "Test", Expression = top };
 
         var success = LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
-        var expectedConditions = new List<GroupFilterCondition>
+        var expectedConditions = new List<CL_GroupFilterCondition>
         {
             new()
             {
-                ConditionOperator = (int)GroupFilterOperator.In,
-                ConditionType = (int)GroupFilterConditionType.AnimeType,
+                ConditionOperator = (int)CL_GroupFilterOperator.In,
+                ConditionType = (int)CL_GroupFilterConditionType.AnimeType,
                 ConditionParameter = "TVSeries"
             }
         };
         Assert.True(success);
-        Assert.Equal(GroupFilterBaseCondition.Include, baseCondition);
+        Assert.Equal(CL_GroupFilterBaseCondition.Include, baseCondition);
         Assert.Equivalent(expectedConditions, conditions);
     }
 
@@ -103,17 +101,17 @@ public class LegacyFilterConditionTests
         var filter = new FilterPreset { Name = "Test", Expression = top };
 
         var success = LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
-        var expectedConditions = new List<GroupFilterCondition>
+        var expectedConditions = new List<CL_GroupFilterCondition>
         {
             new()
             {
-                ConditionOperator = (int)GroupFilterOperator.NotIn,
-                ConditionType = (int)GroupFilterConditionType.AnimeType,
+                ConditionOperator = (int)CL_GroupFilterOperator.NotIn,
+                ConditionType = (int)CL_GroupFilterConditionType.AnimeType,
                 ConditionParameter = "TVSeries"
             }
         };
         Assert.True(success);
-        Assert.Equal(GroupFilterBaseCondition.Include, baseCondition);
+        Assert.Equal(CL_GroupFilterBaseCondition.Include, baseCondition);
         Assert.Equivalent(expectedConditions, conditions);
     }
 
@@ -124,17 +122,17 @@ public class LegacyFilterConditionTests
         var filter = new FilterPreset { Name = "Test", Expression = top };
 
         var success = LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
-        var expectedConditions = new List<GroupFilterCondition>
+        var expectedConditions = new List<CL_GroupFilterCondition>
         {
             new()
             {
-                ConditionOperator = (int)GroupFilterOperator.In,
-                ConditionType = (int)GroupFilterConditionType.AnimeType,
+                ConditionOperator = (int)CL_GroupFilterOperator.In,
+                ConditionType = (int)CL_GroupFilterConditionType.AnimeType,
                 ConditionParameter = "TVSeries,Movie,OVA"
             }
         };
         Assert.True(success);
-        Assert.Equal(GroupFilterBaseCondition.Include, baseCondition);
+        Assert.Equal(CL_GroupFilterBaseCondition.Include, baseCondition);
         Assert.Equivalent(expectedConditions, conditions);
     }
 
@@ -145,50 +143,50 @@ public class LegacyFilterConditionTests
         var filter = new FilterPreset { Name = "Test", Expression = top };
 
         var success = LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);
-        var expectedConditions = new List<GroupFilterCondition>
+        var expectedConditions = new List<CL_GroupFilterCondition>
         {
             new()
             {
-                ConditionOperator = (int)GroupFilterOperator.NotIn,
-                ConditionType = (int)GroupFilterConditionType.AnimeType,
+                ConditionOperator = (int)CL_GroupFilterOperator.NotIn,
+                ConditionType = (int)CL_GroupFilterConditionType.AnimeType,
                 ConditionParameter = "TVSeries,Movie,OVA"
             }
         };
         Assert.True(success);
-        Assert.Equal(GroupFilterBaseCondition.Include, baseCondition);
+        Assert.Equal(CL_GroupFilterBaseCondition.Include, baseCondition);
         Assert.Equivalent(expectedConditions, conditions);
     }
 
     [Fact]
     public void ToExpression_Tags_In_Single()
     {
-        var conditions = new List<GroupFilterCondition>
+        var conditions = new List<CL_GroupFilterCondition>
         {
             new()
             {
-                ConditionOperator = (int)GroupFilterOperator.In,
-                ConditionType = (int)GroupFilterConditionType.Tag,
+                ConditionOperator = (int)CL_GroupFilterOperator.In,
+                ConditionType = (int)CL_GroupFilterConditionType.Tag,
                 ConditionParameter = "comedy"
             }
         };
-        var expression = LegacyConditionConverter.GetExpression(conditions, GroupFilterBaseCondition.Include);
+        var expression = LegacyConditionConverter.GetExpression(conditions, CL_GroupFilterBaseCondition.Include);
         var expected = new HasTagExpression("comedy");
         Assert.Equivalent(expected, expression);
     }
-    
+
     [Fact]
     public void ToExpression_Tags_NotIn_Single()
     {
-        var conditions = new List<GroupFilterCondition>
+        var conditions = new List<CL_GroupFilterCondition>
         {
             new()
             {
-                ConditionOperator = (int)GroupFilterOperator.NotIn,
-                ConditionType = (int)GroupFilterConditionType.Tag,
+                ConditionOperator = (int)CL_GroupFilterOperator.NotIn,
+                ConditionType = (int)CL_GroupFilterConditionType.Tag,
                 ConditionParameter = "comedy"
             }
         };
-        var expression = LegacyConditionConverter.GetExpression(conditions, GroupFilterBaseCondition.Include);
+        var expression = LegacyConditionConverter.GetExpression(conditions, CL_GroupFilterBaseCondition.Include);
         var expected = new NotExpression(new HasTagExpression("comedy"));
         Assert.Equivalent(expected, expression);
     }

@@ -1,360 +1,125 @@
 using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.IO;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using Force.DeepCloner;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Server.FileHelper;
-using Shoko.Server.Repositories;
+using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Events;
+using Shoko.Server.Hashing;
+using Shoko.Server.MediaInfo;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
-using Shoko.Server.Utilities.MediaInfoLib;
-using Constants = Shoko.Server.Server.Constants;
-using Formatting = Newtonsoft.Json.Formatting;
-using Legacy = Shoko.Server.Settings.Migration.ServerSettings_Legacy;
 
+#nullable enable
 namespace Shoko.Server.Settings;
 
-public class SettingsProvider : ISettingsProvider
+public class SettingsProvider : ISettingsProvider, IDisposable
 {
     private readonly ILogger<SettingsProvider> _logger;
-    private const string SettingsFilename = "settings-server.json";
-    private static readonly object SettingsLock = new();
-    private static IServerSettings Instance { get; set; }
 
-    private List<string> _seriesTitleLanguageOrder = null;
+    private readonly ConfigurationProvider<ServerSettings> _configurationProvider;
 
-    private List<string> _episodeTitleLanguageOrder = null;
+    private string[] _seriesTitleLanguageOrder = [];
 
-    private List<string> _descriptionLanguageOrder = null;
+    private string[] _episodeTitleLanguageOrder = [];
 
-    public SettingsProvider(ILogger<SettingsProvider> logger)
+    private string[] _descriptionLanguageOrder = [];
+
+    private bool _ready = false;
+
+    public SettingsProvider(ILogger<SettingsProvider> logger, ConfigurationProvider<ServerSettings> configurationProvider)
     {
         _logger = logger;
+        _configurationProvider = configurationProvider;
+        _configurationProvider.Saved += OnSettingsSaved;
+        ShokoEventHandler.Instance.Started += OnSettingsReady;
     }
 
-    public IServerSettings GetSettings(bool copy = false)
+    public void Dispose()
     {
-        if (Instance == null) LoadSettings();
-        if (copy) return Instance.DeepClone();
-        return Instance;
+        _configurationProvider.Saved -= OnSettingsSaved;
+        ShokoEventHandler.Instance.Started -= OnSettingsReady;
+        GC.SuppressFinalize(this);
     }
 
-    public void SaveSettings(IServerSettings settings)
+    private void OnSettingsReady(object? sender, EventArgs eventArgs)
     {
-        Instance = settings;
-        SaveSettings();
+        _ready = true;
+        OnSettingsSaved(sender, new ConfigurationSavedEventArgs<ServerSettings> { ConfigurationInfo = _configurationProvider.ConfigurationInfo, Configuration = _configurationProvider.Load() });
     }
 
-    public void LoadSettings()
+    private void OnSettingsSaved(object? sender, ConfigurationSavedEventArgs<ServerSettings> eventArgs)
     {
-        var appPath = Utils.ApplicationPath;
-        if (!Directory.Exists(appPath))
-            Directory.CreateDirectory(appPath);
-
-        var path = Path.Combine(appPath, SettingsFilename);
-        if (!File.Exists(path))
-        {
-            Instance = File.Exists(Path.Combine(appPath, "settings.json"))
-                ? LoadLegacySettings()
-                : new();
-            SaveSettings();
-            return;
-        }
-
-        LoadSettingsFromFile(path);
-        SaveSettings();
-    }
-
-    private static ServerSettings LoadLegacySettings()
-    {
-        var legacy = Legacy.LoadSettingsFromFile();
-#pragma warning disable CS0618 // Type or member is obsolete
-        var settings = new ServerSettings
-        {
-            ImagesPath = legacy.ImagesPath,
-            Web = new()
-            {
-                Port = (ushort)legacy.JMMServerPort,
-            },
-            WebUI_Settings = legacy.WebUI_Settings,
-            FirstRun = legacy.FirstRun,
-            LogRotator =
-                new LogRotatorSettings
-                {
-                    Enabled = legacy.RotateLogs,
-                    Zip = legacy.RotateLogs_Zip,
-                    Delete = legacy.RotateLogs_Delete,
-                    Delete_Days = legacy.RotateLogs_Delete_Days
-                },
-            AniDb = new AniDbSettings
-            {
-                Username = legacy.AniDB_Username,
-                Password = legacy.AniDB_Password,
-                HTTPServerUrl = $"http://${legacy.AniDB_ServerAddress}:{ushort.Parse(legacy.AniDB_ServerPort)}",
-                ClientPort = ushort.Parse(legacy.AniDB_ClientPort),
-                AVDumpKey = legacy.AniDB_AVDumpKey,
-                AVDumpClientPort = ushort.Parse(legacy.AniDB_AVDumpClientPort),
-                DownloadRelatedAnime = legacy.AniDB_DownloadRelatedAnime,
-                DownloadReviews = legacy.AniDB_DownloadReviews,
-                DownloadReleaseGroups = legacy.AniDB_DownloadReleaseGroups,
-                MyList_AddFiles = legacy.AniDB_MyList_AddFiles,
-                MyList_StorageState = legacy.AniDB_MyList_StorageState,
-                MyList_DeleteType = legacy.AniDB_MyList_DeleteType,
-                MyList_ReadUnwatched = legacy.AniDB_MyList_ReadUnwatched,
-                MyList_ReadWatched = legacy.AniDB_MyList_ReadWatched,
-                MyList_SetWatched = legacy.AniDB_MyList_SetWatched,
-                MyList_SetUnwatched = legacy.AniDB_MyList_SetUnwatched,
-                MyList_UpdateFrequency = legacy.AniDB_MyList_UpdateFrequency,
-                Calendar_UpdateFrequency = legacy.AniDB_Calendar_UpdateFrequency,
-                Anime_UpdateFrequency = legacy.AniDB_Anime_UpdateFrequency,
-                File_UpdateFrequency = legacy.AniDB_File_UpdateFrequency,
-                DownloadCharacters = legacy.AniDB_DownloadCharacters,
-                DownloadCreators = legacy.AniDB_DownloadCreators,
-                MaxRelationDepth = legacy.AniDB_MaxRelationDepth
-            },
-            TMDB =
-                new TMDBSettings
-                {
-                    AutoDownloadBackdrops = legacy.MovieDB_AutoFanart,
-                    MaxAutoBackdrops = legacy.MovieDB_AutoFanartAmount,
-                    AutoDownloadPosters = legacy.MovieDB_AutoPosters,
-                    MaxAutoPosters = legacy.MovieDB_AutoPostersAmount
-                },
-            Import =
-                new ImportSettings
-                {
-                    VideoExtensions = legacy.VideoExtensions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
-                    RunOnStart = legacy.RunImportOnStart,
-                    ScanDropFoldersOnStart = legacy.ScanDropFoldersOnStart,
-                    Hasher = new()
-                    {
-                        CRC = legacy.Hash_CRC32,
-                        MD5 = legacy.Hash_MD5,
-                        SHA1 = legacy.Hash_SHA1,
-                    },
-                    UseExistingFileWatchedStatus = legacy.Import_UseExistingFileWatchedStatus
-                },
-            Plex =
-                new PlexSettings
-                {
-                    Libraries = legacy.Plex_Libraries.ToList(),
-                    Server = legacy.Plex_Server
-                },
-            AutoGroupSeries = legacy.AutoGroupSeries,
-            AutoGroupSeriesRelationExclusions = legacy.AutoGroupSeriesRelationExclusions.Replace("alternate", "alternative", StringComparison.InvariantCultureIgnoreCase).Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
-            AutoGroupSeriesUseScoreAlgorithm = legacy.AutoGroupSeriesUseScoreAlgorithm,
-            FileQualityFilterEnabled = legacy.FileQualityFilterEnabled,
-            FileQualityPreferences = legacy.FileQualityFilterPreferences,
-            Language = new()
-            {
-                UseSynonyms = legacy.LanguageUseSynonyms,
-                SeriesTitleLanguageOrder = legacy.LanguagePreference.Split(',').ToList(),
-                SeriesTitleSourceOrder = [legacy.SeriesNameSource],
-                EpisodeTitleLanguageOrder = legacy.EpisodeLanguagePreference.Split(',').ToList(),
-                EpisodeTitleSourceOrder = [legacy.EpisodeTitleSource],
-                DescriptionSourceOrder = [legacy.SeriesDescriptionSource],
-            },
-            TraktTv = new TraktSettings
-            {
-                Enabled = legacy.Trakt_IsEnabled,
-                AuthToken = legacy.Trakt_AuthToken,
-                RefreshToken = legacy.Trakt_RefreshToken,
-                TokenExpirationDate = legacy.Trakt_TokenExpirationDate,
-                SyncFrequency = legacy.Trakt_SyncFrequency
-            },
-            Linux = new LinuxSettings
-            {
-                UID = legacy.Linux_UID,
-                GID = legacy.Linux_GID,
-                Permission = legacy.Linux_Permission
-            },
-            TraceLog = legacy.TraceLog,
-            Database = new DatabaseSettings
-            {
-                MySqliteDirectory = legacy.MySqliteDirectory,
-                DatabaseBackupDirectory = legacy.DatabaseBackupDirectory,
-                Type = legacy.DatabaseType
-            }
-        };
-#pragma warning restore CS0618 // Type or member is obsolete
-
-        switch (legacy.DatabaseType)
-        {
-            case Constants.DatabaseType.MySQL:
-                settings.Database.Username = legacy.MySQL_Username;
-                settings.Database.Password = legacy.MySQL_Password;
-                settings.Database.Schema = legacy.MySQL_SchemaName;
-                settings.Database.Host = legacy.MySQL_Hostname;
-                break;
-            case Constants.DatabaseType.SqlServer:
-                settings.Database.Username = legacy.DatabaseUsername;
-                settings.Database.Password = legacy.DatabasePassword;
-                settings.Database.Schema = legacy.DatabaseName;
-                settings.Database.Host = legacy.DatabaseServer;
-                break;
-        }
-
-        return settings;
-    }
-
-    public static T Deserialize<T>(string json) where T : class
-    {
-        return Deserialize(typeof(T), json) as T;
-    }
-
-    public static object Deserialize(Type t, string json)
-    {
-        var serializerSettings = new JsonSerializerSettings
-        {
-            ContractResolver = new NullToDefaultValueResolver(),
-            Converters = new List<JsonConverter> { new StringEnumConverter() },
-            ObjectCreationHandling = ObjectCreationHandling.Replace,
-            MissingMemberHandling = MissingMemberHandling.Ignore
-        };
-        var result = JsonConvert.DeserializeObject(json, t, serializerSettings);
-        if (result == null)
-        {
-            return null;
-        }
-
-        var context = new ValidationContext(result, null, null);
-        var results = new List<ValidationResult>();
-
-        if (!Validator.TryValidateObject(result, context, results))
-        {
-            throw new ValidationException(string.Join("\n", results.Select(a => a.ErrorMessage)));
-        }
-
-        return result;
-    }
-
-    public void LoadSettingsFromFile(string path)
-    {
-        var settings = File.ReadAllText(path);
-        settings = SettingsMigrations.MigrateSettings(settings);
-        settings = FixNonEmittedDefaults(path, settings);
-        try
-        {
-            Instance = Deserialize<ServerSettings>(settings);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "An error occurred while loading the settings from file");
-        }
-    }
-
-    /// <summary>
-    /// Fix the behavior of missing members in pre-4.0
-    /// </summary>
-    /// <param name="path"></param>
-    /// <param name="settings"></param>
-    private static string FixNonEmittedDefaults(string path, string settings)
-    {
-        if (settings.Contains("\"FirstRun\":")) return settings;
-
-        var serializerSettings = new JsonSerializerSettings
-        {
-            Converters = new List<JsonConverter> { new StringEnumConverter() },
-            Error = (sender, args) => { args.ErrorContext.Handled = true; },
-            ObjectCreationHandling = ObjectCreationHandling.Replace,
-            MissingMemberHandling = MissingMemberHandling.Ignore,
-            DefaultValueHandling = DefaultValueHandling.Populate
-        };
-        var result = JsonConvert.DeserializeObject<ServerSettings>(settings, serializerSettings);
-        var inCode = Serialize(result, true);
-        File.WriteAllText(path, inCode);
-        return inCode;
-    }
-
-    public void SaveSettings()
-    {
-        if (Instance == null)
-        {
-            _logger.LogWarning("Tried to save settings, but the settings were null");
-            return;
-        }
-
         // Always update the trace logging settings when the settings change.
-        Utils.SetTraceLogging(Instance.TraceLog);
-
-        var path = Path.Combine(Utils.ApplicationPath, SettingsFilename);
-
-        var context = new ValidationContext(Instance, null, null);
-        var results = new List<ValidationResult>();
-
-        if (!Validator.TryValidateObject(Instance, context, results))
-        {
-            results.ForEach(s => _logger.LogError("{ex}", s.ErrorMessage));
-            throw new ValidationException();
-        }
-
-        var settingsSaved = false;
-        lock (SettingsLock)
-        {
-            var onDisk = File.Exists(path) ? File.ReadAllText(path) : string.Empty;
-            var inCode = Serialize(Instance, true);
-            if (!onDisk.Equals(inCode, StringComparison.Ordinal))
-            {
-                File.WriteAllText(path, inCode);
-                settingsSaved = true;
-            }
-        }
+        Utils.SetTraceLogging(eventArgs.Configuration.TraceLog);
 
         // Init language settings and react to changes.
         if (_seriesTitleLanguageOrder is null)
         {
-            _seriesTitleLanguageOrder = Instance.Language.SeriesTitleLanguageOrder;
+            _seriesTitleLanguageOrder = eventArgs.Configuration.Language.SeriesTitleLanguageOrder.ToArray();
         }
-        else if (settingsSaved && !Instance.Language.SeriesTitleLanguageOrder.SequenceEqual(_seriesTitleLanguageOrder))
+        else if (_ready && !eventArgs.Configuration.Language.SeriesTitleLanguageOrder.SequenceEqual(_seriesTitleLanguageOrder))
         {
-            _seriesTitleLanguageOrder = Instance.Language.SeriesTitleLanguageOrder;
+            _seriesTitleLanguageOrder = eventArgs.Configuration.Language.SeriesTitleLanguageOrder.ToArray();
             Languages.PreferredNamingLanguages = [];
 
             // Reset all preferred titles when the language setting has been updated.
-            Parallel.ForEach(RepoFactory.AnimeSeries.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredTitle());
-            Parallel.ForEach(RepoFactory.AniDB_Anime.GetAll(), new() { MaxDegreeOfParallelism = 10 }, anime => anime.ResetPreferredTitle());
-            if (Utils.ServiceContainer?.GetService<AnimeGroupService>() is { } groupService)
-                Task.Factory.StartNew(groupService.RenameAllGroups, TaskCreationOptions.LongRunning);
+            var animeSeriesRepository = Utils.ServiceContainer.GetRequiredService<AnimeSeriesRepository>();
+            var anidbAnimeRepository = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeRepository>();
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            Parallel.ForEach(animeSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredTitle());
+            Parallel.ForEach(anidbAnimeRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, anime => anime.ResetPreferredTitle());
+            Task.Factory.StartNew(groupService.RenameAllGroups, TaskCreationOptions.LongRunning);
         }
 
         if (_episodeTitleLanguageOrder is null)
         {
-            _episodeTitleLanguageOrder = Instance.Language.EpisodeTitleLanguageOrder;
+            _episodeTitleLanguageOrder = eventArgs.Configuration.Language.EpisodeTitleLanguageOrder.ToArray();
         }
-        else if (settingsSaved && !Instance.Language.EpisodeTitleLanguageOrder.SequenceEqual(_episodeTitleLanguageOrder))
+        else if (_ready && !eventArgs.Configuration.Language.EpisodeTitleLanguageOrder.SequenceEqual(_episodeTitleLanguageOrder))
         {
-            _episodeTitleLanguageOrder = Instance.Language.EpisodeTitleLanguageOrder;
+            _episodeTitleLanguageOrder = eventArgs.Configuration.Language.EpisodeTitleLanguageOrder.ToArray();
             Languages.PreferredEpisodeNamingLanguages = [];
         }
 
         if (_descriptionLanguageOrder is null)
         {
-            _descriptionLanguageOrder = Instance.Language.DescriptionLanguageOrder;
+            _descriptionLanguageOrder = eventArgs.Configuration.Language.DescriptionLanguageOrder.ToArray();
         }
-        else if (settingsSaved && !Instance.Language.DescriptionLanguageOrder.SequenceEqual(_descriptionLanguageOrder))
+        else if (_ready && !eventArgs.Configuration.Language.DescriptionLanguageOrder.SequenceEqual(_descriptionLanguageOrder))
         {
-            _descriptionLanguageOrder = Instance.Language.DescriptionLanguageOrder;
+            _descriptionLanguageOrder = eventArgs.Configuration.Language.DescriptionLanguageOrder.ToArray();
             Languages.PreferredDescriptionNamingLanguages = [];
 
             // Reset all preferred overviews when the language setting has been updated.
-            Parallel.ForEach(RepoFactory.AnimeSeries.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredOverview());
-            if (Utils.ServiceContainer?.GetService<AnimeGroupService>() is { } groupService)
-                Task.Factory.StartNew(groupService.RenameAllGroups, TaskCreationOptions.LongRunning);
+            var animeSeriesRepository = Utils.ServiceContainer.GetRequiredService<AnimeSeriesRepository>();
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            Parallel.ForEach(animeSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredOverview());
+            Task.Factory.StartNew(groupService.RenameAllGroups, TaskCreationOptions.LongRunning);
         }
-
-        // Fire off the settings saved event now.
-        if (settingsSaved)
-            ShokoEventHandler.Instance.OnSettingsSaved();
     }
+
+    public IServerSettings GetSettings(bool copy = false)
+        => _configurationProvider.Load(copy);
+
+    public void SaveSettings(IServerSettings settings)
+    {
+        if (settings is not ServerSettings serverSettings)
+            return;
+
+        _configurationProvider.Save(serverSettings);
+    }
+
+    public void SaveSettings()
+        => _configurationProvider.Save();
 
     public static string Serialize(object obj, bool indent = false)
     {
@@ -363,38 +128,31 @@ public class SettingsProvider : ISettingsProvider
             Formatting = indent ? Formatting.Indented : Formatting.None,
             DefaultValueHandling = DefaultValueHandling.Include,
             MissingMemberHandling = MissingMemberHandling.Ignore,
-            Converters = new List<JsonConverter> { new StringEnumConverter() }
+            Converters = [new StringEnumConverter()]
         };
         return JsonConvert.SerializeObject(obj, serializerSettings);
     }
 
     private void DumpSettings(object obj, string path = "")
     {
-        if (obj == null)
-        {
-            _logger.LogInformation("{Path}: null", path);
-            return;
-        }
-
         foreach (var prop in obj.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
             var type = prop.PropertyType;
-            if (type.FullName.StartsWith("Shoko.Server") ||
-                type.FullName.StartsWith("Shoko.Models") ||
-                type.FullName.StartsWith("Shoko.Plugin"))
+            if (type.FullName!.StartsWith("Shoko.Server") ||
+                type.FullName!.StartsWith("Shoko.Plugin"))
             {
-                DumpSettings(prop.GetValue(obj), path + $".{prop.Name}");
+                DumpSettings(prop.GetValue(obj)!, path + $".{prop.Name}");
                 continue;
             }
 
-            var value = prop.GetValue(obj);
+            var value = prop.GetValue(obj)!;
 
             if (!IsPrimitive(type))
             {
-                value = Serialize(value);
+                value = Serialize(value!);
             }
 
-            if (prop.Name.ToLower().EndsWith("password") || prop.Name.ToLower().EndsWith("avdumpkey"))
+            if (prop.GetCustomAttribute<PasswordPropertyTextAttribute>() is not null)
             {
                 value = "***HIDDEN***";
             }
@@ -452,31 +210,19 @@ public class SettingsProvider : ISettingsProvider
             _logger.LogWarning("Error in log (server version lookup): {Ex}", ex);
         }
 
-        /*
-        try
-        {
-            if (DatabaseFactory.Instance != null)
-                logger.Info($"Database Version: {DatabaseFactory.Instance.GetDatabaseVersion()}");
-        }
-        catch (Exception ex)
-        {
-            // whops, can't create file
-            logger.Warn("Error in log (database version lookup: {0}", ex.Message);
-        }
-        */
         _logger.LogInformation("Operating System: {OSInfo}", RuntimeInformation.OSDescription);
 
         try
         {
             var mediaInfoVersion = "**** MediaInfo Not found *****";
 
-            var tempVersion = MediaInfo.GetVersion();
+            var tempVersion = MediaInfoUtility.GetVersion();
             if (tempVersion != null) mediaInfoVersion = $"MediaInfo: {tempVersion}";
             _logger.LogInformation("{msg}", mediaInfoVersion);
 
             var hasherInfoVersion = "**** Hasher - DLL NOT found *****";
 
-            tempVersion = Hasher.GetVersion();
+            tempVersion = CoreHashProvider.GetRhashVersion();
             if (tempVersion != null) hasherInfoVersion = $"RHash: {tempVersion}";
             _logger.LogInformation("{msg}", hasherInfoVersion);
         }
@@ -491,7 +237,7 @@ public class SettingsProvider : ISettingsProvider
 
         _logger.LogInformation("----------------- SERVER SETTINGS ----------------------");
 
-        DumpSettings(Instance, "Settings");
+        DumpSettings(_configurationProvider.Load(), "Settings");
 
         _logger.LogInformation("-------------------------------------------------------");
     }

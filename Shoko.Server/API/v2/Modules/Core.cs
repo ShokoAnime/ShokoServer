@@ -6,11 +6,14 @@ using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 using NLog;
 using Quartz;
-using Shoko.Models.Client;
-using Shoko.Models.Server;
+using Shoko.Abstractions.Services;
+using Shoko.Server.API.v1.Implementations;
+using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
@@ -31,17 +34,26 @@ namespace Shoko.Server.API.v2.Modules;
 public class Core : BaseController
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
     private readonly ShokoServiceImplementation _service;
-    private readonly IServerSettings _settings;
+
     private readonly ISchedulerFactory _schedulerFactory;
+
+    private readonly IAnidbService _anidbService;
+
     private readonly ActionService _actionService;
 
-    public Core(ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, ActionService actionService, ShokoServiceImplementation service) : base(settingsProvider)
+    private readonly ISettingsProvider _settingsProvider;
+
+    private IServerSettings _settings => _settingsProvider.GetSettings();
+
+    public Core(ShokoServiceImplementation service, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IAnidbService anidbService, ActionService actionService) : base(settingsProvider)
     {
-        _schedulerFactory = schedulerFactory;
-        _actionService = actionService;
         _service = service;
-        _settings = settingsProvider.GetSettings();
+        _settingsProvider = settingsProvider;
+        _schedulerFactory = schedulerFactory;
+        _anidbService = anidbService;
+        _actionService = actionService;
     }
 
     #region 01.Settings
@@ -143,7 +155,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("config/get")]
-    public ActionResult<Setting> GetSetting(Setting setting)
+    public ActionResult GetSetting([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken setting)
         => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     /// <summary>
@@ -162,7 +174,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("config/setmultiple")]
-    public ActionResult SetSetting(List<Setting> settings)
+    public ActionResult SetSetting([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken settings)
     {
         return new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's JsonPatch implementation'");
     }
@@ -239,8 +251,11 @@ public class Core : BaseController
     [HttpGet("anidb/votes/sync")]
     public async Task<ActionResult> SyncAniDBVotes()
     {
+        if (User.IsAniDBUser != 1)
+            return BadRequest("User is not an AniDB user. Nothing to do.");
+
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBVotesJob>();
+        await scheduler.StartJob<SyncAniDBVotesJob>(c => c.UserID = User.JMMUserID);
         return APIStatus.OK();
     }
 
@@ -269,7 +284,7 @@ public class Core : BaseController
 
     [Obsolete]
     [HttpGet("anidb/updatemissingcache")]
-    public async Task<ActionResult> UpdateMissingAniDBXML()
+    public ActionResult UpdateMissingAniDBXML()
         => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     #endregion
@@ -443,7 +458,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/create")]
-    public ActionResult CreateUser(JMMUser user)
+    public ActionResult CreateUser(CL_JMMUser user)
     {
         user.Password = Digest.Hash(user.Password);
         user.HideCategories = string.Empty;
@@ -458,7 +473,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/password")]
-    public ActionResult ChangePassword(JMMUser user)
+    public ActionResult ChangePassword(CL_JMMUser user)
     {
         return _service.ChangePassword(user.JMMUserID, user.Password) == string.Empty
             ? APIStatus.OK()
@@ -470,7 +485,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/password/{uid}")]
-    public ActionResult ChangePassword(int uid, JMMUser user)
+    public ActionResult ChangePassword(int uid, CL_JMMUser user)
     {
         return _service.ChangePassword(uid, user.Password) == string.Empty
             ? APIStatus.OK()
@@ -482,7 +497,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/delete")]
-    public ActionResult DeleteUser(JMMUser user)
+    public ActionResult DeleteUser(CL_JMMUser user)
     {
         return _service.DeleteUser(user.JMMUserID) == string.Empty
             ? APIStatus.OK()
@@ -498,7 +513,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("os/folder/base")]
-    public ActionResult<OSFolder> GetOSBaseFolder()
+    public ActionResult GetOSBaseFolder()
         => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     /// <summary>
@@ -508,7 +523,7 @@ public class Core : BaseController
     /// <param name="dir"></param>
     /// <returns></returns>
     [HttpPost("/os/folder")]
-    public ActionResult<OSFolder> GetOSFolder([FromQuery] string folder, OSFolder dir)
+    public ActionResult GetOSFolder([FromQuery] string folder, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken dir)
         => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     /// <summary>
@@ -516,7 +531,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("os/drives")]
-    public ActionResult<OSFolder> GetOSDrives()
+    public ActionResult GetOSDrives()
         => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     #endregion

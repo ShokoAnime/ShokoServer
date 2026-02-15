@@ -186,7 +186,7 @@ public static class Search
                 : null;
             UserRating = new Rating()
             {
-                Value = (decimal)movie.UserRating,
+                Value = movie.UserRating,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
@@ -211,7 +211,7 @@ public static class Search
                 : null;
             UserRating = new Rating()
             {
-                Value = (decimal)movie.VoteAverage,
+                Value = movie.VoteAverage,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
@@ -236,7 +236,7 @@ public static class Search
                 : null;
             UserRating = new Rating()
             {
-                Value = (decimal)movie.VoteAverage,
+                Value = movie.VoteAverage,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
@@ -317,7 +317,7 @@ public static class Search
                 : null;
             UserRating = new Rating()
             {
-                Value = (decimal)show.UserRating,
+                Value = show.UserRating,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
@@ -342,7 +342,7 @@ public static class Search
                 : null;
             UserRating = new Rating()
             {
-                Value = (decimal)show.VoteAverage,
+                Value = show.VoteAverage,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
@@ -367,7 +367,7 @@ public static class Search
                 : null;
             UserRating = new Rating()
             {
-                Value = (decimal)show.VoteAverage,
+                Value = show.VoteAverage,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",

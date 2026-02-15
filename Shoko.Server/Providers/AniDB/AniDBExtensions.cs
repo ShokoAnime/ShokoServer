@@ -12,6 +12,9 @@ public static class AniDBExtensions
         return thisDate;
     }
 
+    public static DateOnly? GetAniDBDateAsDateOnly(int secs)
+        => GetAniDBDateAsDate(secs) is { } date ? DateOnly.FromDateTime(date) : null;
+
     public static int GetAniDBDateAsSeconds(DateTime? dtDate)
     {
         if (dtDate == null) return 0;

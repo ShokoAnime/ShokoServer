@@ -1,13 +1,13 @@
-#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Server;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached.TMDB;
 
 public class TMDB_ImageRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<TMDB_Image, int>(databaseFactory)
@@ -19,7 +19,7 @@ public class TMDB_ImageRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
     public override void PopulateIndexes()
     {
-        _tmdbRemoteFileNames = new(Cache, a => a.RemoteFileName);
+        _tmdbRemoteFileNames = Cache.CreateIndex(a => a.RemoteFileName);
     }
 
     public IReadOnlyList<TMDB_Image> GetByTmdbMovieID(int? movieId)

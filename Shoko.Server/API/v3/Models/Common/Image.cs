@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.TMDB;
@@ -51,6 +52,12 @@ public class Image
     public string? RelativeFilepath { get; set; }
 
     /// <summary>
+    /// Indicates the image is available locally and can be served through the
+    /// API.
+    /// </summary>
+    public bool Available { get; set; }
+
+    /// <summary>
     /// Indicates this is the preferred image for the <see cref="Type"/> for the
     /// selected entity.
     /// </summary>
@@ -85,15 +92,25 @@ public class Image
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public ImageSeriesInfo? Series { get; set; } = null;
 
-    public Image(IImageMetadata imageMetadata, bool? preferredOverride = null)
+    public Image(IImage imageMetadata, bool? preferredOverride = null)
     {
         ID = imageMetadata.ID;
         Type = imageMetadata.ImageType.ToV3Dto();
         Source = imageMetadata.Source.ToV3Dto();
 
+        Available = imageMetadata.IsEnabled;
         Preferred = preferredOverride ?? imageMetadata.IsPreferred;
         Disabled = !imageMetadata.IsEnabled;
         LanguageCode = imageMetadata.LanguageCode;
+        if (imageMetadata.HasRating)
+            CommunityRating = new()
+            {
+                Value = imageMetadata.Rating.Value,
+                Votes = imageMetadata.RatingVotes.Value,
+                MaxValue = 10,
+                Type = "User",
+                Source = imageMetadata.Source.ToString(),
+            };
 
         // we need to set _something_ for the clients that determine
         // if an image exists by checking if a relative path is set,
@@ -103,14 +120,6 @@ public class Image
         {
             Width = tmdbImage.Width;
             Height = tmdbImage.Height;
-            CommunityRating = new()
-            {
-                Value = (decimal)tmdbImage.UserRating,
-                Votes = tmdbImage.UserVotes,
-                MaxValue = 10,
-                Type = "User",
-                Source = "TMDB",
-            };
         }
         else if (imageMetadata is Image_Base imageBase && imageBase._width.HasValue && imageBase._height.HasValue)
         {
@@ -124,7 +133,7 @@ public class Image
         }
     }
 
-    public Image(int id, ImageEntityType imageEntityType, DataSourceType dataSource, bool preferred = false, bool disabled = false)
+    public Image(int id, ImageEntityType imageEntityType, DataSource dataSource, bool preferred = false, bool disabled = false)
     {
         ID = id;
         Type = imageEntityType.ToV3Dto();
@@ -134,13 +143,13 @@ public class Image
         Disabled = disabled;
         switch (dataSource)
         {
-            case DataSourceType.User:
+            case DataSource.User:
                 if (imageEntityType == ImageEntityType.Art)
                 {
-                    var user = RepoFactory.JMMUser.GetByID(id);
-                    if (user != null && user.HasAvatarImage)
+                    if (RepoFactory.JMMUser.GetByID(id) is { HasAvatarImage: true } user)
                     {
                         var imageMetadata = user.AvatarImageMetadata;
+                        Available = true;
                         // we need to set _something_ for the clients that determine
                         // if an image exists by checking if a relative path is set,
                         // so we set the id.
@@ -152,10 +161,11 @@ public class Image
                 break;
 
             // We can now grab the metadata from the database(!)
-            case DataSourceType.TMDB:
+            case DataSource.TMDB:
                 var tmdbImage = RepoFactory.TMDB_Image.GetByID(id);
                 if (tmdbImage != null)
                 {
+                    Available = true;
                     LanguageCode = tmdbImage.LanguageCode;
                     var relativePath = tmdbImage.RelativePath;
                     if (!string.IsNullOrEmpty(relativePath))
@@ -168,7 +178,7 @@ public class Image
                     Height = tmdbImage.Height;
                     CommunityRating = new()
                     {
-                        Value = (decimal)tmdbImage.UserRating,
+                        Value = tmdbImage.UserRating,
                         Votes = tmdbImage.UserVotes,
                         MaxValue = 10,
                         Type = "User",
@@ -178,10 +188,11 @@ public class Image
                 break;
 
             default:
-                var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, id);
+                var metadata = Utils.ServiceContainer.GetRequiredService<IImageManager>().GetImage(dataSource, imageEntityType, id);
                 if (metadata is not null && metadata.IsLocalAvailable)
                 {
-                    RelativeFilepath = metadata.LocalPath!.Replace(ImageUtils.GetBaseImagesPath(), "").Replace("\\", "/");
+                    Available = true;
+                    RelativeFilepath = metadata.LocalPath!.Replace(ImageUtils.BaseImagesPath, "").Replace("\\", "/");
                     if (RelativeFilepath[0] != '/')
                         RelativeFilepath = "/" + RelativeFilepath;
                     // This causes serious IO lag on some systems. Enable at own risk.
@@ -195,38 +206,38 @@ public class Image
         }
     }
 
-    private static readonly List<DataSourceType> _bannerImageSources =
+    private static readonly List<DataSource> _bannerImageSources =
     [
-        DataSourceType.TMDB,
+        DataSource.TMDB,
     ];
 
-    private static readonly List<DataSourceType> _posterImageSources =
+    private static readonly List<DataSource> _posterImageSources =
     [
-        DataSourceType.AniDB,
-        DataSourceType.TMDB,
+        DataSource.AniDB,
+        DataSource.TMDB,
     ];
 
-    private static readonly List<DataSourceType> _thumbImageSources =
+    private static readonly List<DataSource> _thumbImageSources =
     [
-        DataSourceType.TMDB,
+        DataSource.TMDB,
     ];
 
-    private static readonly List<DataSourceType> _backdropImageSources =
+    private static readonly List<DataSource> _backdropImageSources =
     [
-        DataSourceType.TMDB,
+        DataSource.TMDB,
     ];
 
-    private static readonly List<DataSourceType> _characterImageSources =
+    private static readonly List<DataSource> _characterImageSources =
     [
-        DataSourceType.AniDB,
+        DataSource.AniDB,
     ];
 
-    private static readonly List<DataSourceType> _staffImageSources =
+    private static readonly List<DataSource> _staffImageSources =
     [
-        DataSourceType.AniDB,
+        DataSource.AniDB,
     ];
 
-    internal static DataSourceType GetRandomImageSource(ImageType imageType)
+    internal static DataSource GetRandomImageSource(ImageType imageType)
     {
         var sourceList = imageType switch
         {
@@ -313,10 +324,17 @@ public class Image
         Character = 5,
 
         /// <summary>
+        /// Creator image. For people, it may be a close up portrait of the
+        /// person, or a full-body view of the person. For companies, it may be
+        /// their logo. For collaborations, it may be a group photo or similar.
+        /// </summary>
+        Creator = 6,
+
+        /// <summary>
         /// Staff image. May be a close up portrait of the person, or a
         /// full-body view of the person.
         /// </summary>
-        Staff = 6,
+        Staff = Creator,
 
         /// <summary>
         /// Clear-text logo.
@@ -393,7 +411,7 @@ public static class ImageExtensions
             Image.ImageType.Character => ImageEntityType.Character,
             Image.ImageType.Backdrop => ImageEntityType.Backdrop,
             Image.ImageType.Poster => ImageEntityType.Poster,
-            Image.ImageType.Staff => ImageEntityType.Person,
+            Image.ImageType.Staff => ImageEntityType.Creator,
             Image.ImageType.Thumb => ImageEntityType.Thumbnail,
             Image.ImageType.Logo => ImageEntityType.Logo,
             _ => ImageEntityType.None,
@@ -407,18 +425,15 @@ public static class ImageExtensions
             ImageEntityType.Character => Image.ImageType.Character,
             ImageEntityType.Backdrop => Image.ImageType.Backdrop,
             ImageEntityType.Poster => Image.ImageType.Poster,
-            ImageEntityType.Person => Image.ImageType.Staff,
+            ImageEntityType.Creator => Image.ImageType.Staff,
             ImageEntityType.Thumbnail => Image.ImageType.Thumb,
             ImageEntityType.Logo => Image.ImageType.Logo,
             _ => Image.ImageType.Staff,
         };
 
-    public static DataSourceType ToServer(this Image.ImageSource source)
-        => Enum.Parse<DataSourceType>(source.ToString());
+    public static DataSource ToServer(this Image.ImageSource source)
+        => Enum.Parse<DataSource>(source.ToString());
 
-    public static Image.ImageSource ToV3Dto(this DataSourceType source)
-        => Enum.Parse<Image.ImageSource>(source.ToString());
-
-    public static Image.ImageSource ToV3Dto(this DataSourceEnum source)
+    public static Image.ImageSource ToV3Dto(this DataSource source)
         => Enum.Parse<Image.ImageSource>(source.ToString());
 }

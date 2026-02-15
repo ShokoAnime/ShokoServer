@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Video.Media;
+using Shoko.Server.Models.Shoko;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -80,7 +81,7 @@ public class MediaInfo
     /// </summary>
     public List<ChapterInfo> Chapters { get; }
 
-    public MediaInfo(SVR_VideoLocal file, IMediaInfo mediaInfo)
+    public MediaInfo(VideoLocal file, IMediaInfo mediaInfo)
     {
         Title = mediaInfo.Title;
         Duration = file.DurationTimeSpan;
@@ -331,7 +332,7 @@ public class MediaInfo
         public int Height { get; }
 
         /// <summary>
-        /// Standarized resolution.
+        /// Standardized resolution.
         /// </summary>
         public string Resolution { get; }
 

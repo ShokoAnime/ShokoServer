@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models;
 using Shoko.Server.Databases;
+using Shoko.Server.Models.Internal;
 
 namespace Shoko.Server.Repositories.Direct;
 
-public class VersionsRepository : BaseDirectRepository<Versions, int>
+public class VersionsRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<Versions, int>(databaseFactory)
 {
     public Dictionary<(string, string), Versions> GetAllByType(string vertype)
     {
@@ -18,9 +18,5 @@ public class VersionsRepository : BaseDirectRepository<Versions, int>
                 .GroupBy(a => (a.VersionValue ?? string.Empty, a.VersionRevision ?? string.Empty))
                 .ToDictionary(a => a.Key, a => a.FirstOrDefault());
         });
-    }
-
-    public VersionsRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

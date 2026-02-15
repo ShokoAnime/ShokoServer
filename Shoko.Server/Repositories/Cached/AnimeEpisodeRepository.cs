@@ -4,23 +4,21 @@ using System.IO;
 using System.Linq;
 using NHibernate;
 using NutzCode.InMemoryIndex;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
-using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Services;
-
-using AnimeType = Shoko.Models.Enums.AnimeType;
-using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int>
+public class AnimeEpisodeRepository : BaseCachedRepository<AnimeEpisode, int>
 {
-    private PocoIndex<int, SVR_AnimeEpisode, int>? _seriesIDs;
+    private PocoIndex<int, AnimeEpisode, int>? _seriesIDs;
 
-    private PocoIndex<int, SVR_AnimeEpisode, int>? _anidbEpisodeIDs;
+    private PocoIndex<int, AnimeEpisode, int>? _anidbEpisodeIDs;
 
     public AnimeEpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
@@ -31,7 +29,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
         };
     }
 
-    protected override int SelectKey(SVR_AnimeEpisode entity)
+    protected override int SelectKey(AnimeEpisode entity)
         => entity.AnimeEpisodeID;
 
     public override void PopulateIndexes()
@@ -40,10 +38,10 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
         _anidbEpisodeIDs = Cache.CreateIndex(a => a.AniDB_EpisodeID);
     }
 
-    public List<SVR_AnimeEpisode> GetBySeriesID(int seriesID)
+    public List<AnimeEpisode> GetBySeriesID(int seriesID)
         => ReadLock(() => _seriesIDs!.GetMultiple(seriesID));
 
-    public SVR_AnimeEpisode? GetByAniDBEpisodeID(int episodeID)
+    public AnimeEpisode? GetByAniDBEpisodeID(int episodeID)
         => ReadLock(() => _anidbEpisodeIDs!.GetOne(episodeID));
 
     /// <summary>
@@ -51,19 +49,19 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
     /// </summary>
     /// <param name="name">The filename of the anime to search for.</param>
     /// <returns>the AnimeEpisode given the file information</returns>
-    public SVR_AnimeEpisode? GetByFilename(string name)
+    public AnimeEpisode? GetByFilename(string name)
     {
         if (string.IsNullOrEmpty(name))
             return null;
 
         var eps = RepoFactory.VideoLocalPlace.GetAll()
-            .Where(v => name.Equals(v?.FilePath?.Split(Path.DirectorySeparatorChar).LastOrDefault(), StringComparison.InvariantCultureIgnoreCase))
-            .Select(a => RepoFactory.VideoLocal.GetByID(a.VideoLocalID))
+            .Where(v => name.Equals(v?.RelativePath?.Split(Path.DirectorySeparatorChar).LastOrDefault(), StringComparison.InvariantCultureIgnoreCase))
+            .Select(a => RepoFactory.VideoLocal.GetByID(a.VideoID))
             .WhereNotNull()
             .SelectMany(a => GetByHash(a.Hash))
-            .OrderBy(a => a.AniDB_Episode?.EpisodeTypeEnum is EpisodeType.Episode)
+            .OrderBy(a => a.AniDB_Episode?.EpisodeType is EpisodeType.Episode)
             .ToArray();
-        var ep = eps.FirstOrDefault(a => a.AniDB_Episode?.EpisodeTypeEnum is EpisodeType.Episode);
+        var ep = eps.FirstOrDefault(a => a.AniDB_Episode?.EpisodeType is EpisodeType.Episode);
         return ep ?? eps.FirstOrDefault();
     }
 
@@ -76,7 +74,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
     /// </summary>
     /// <param name="hash"></param>
     /// <returns></returns>
-    public List<SVR_AnimeEpisode> GetByHash(string hash)
+    public List<AnimeEpisode> GetByHash(string hash)
     {
         if (string.IsNullOrEmpty(hash))
             return [];
@@ -96,7 +94,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
     private const string MultipleReleasesCountVariationsQuery =
         @"SELECT ani.EpisodeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
 
-    public IEnumerable<SVR_AnimeEpisode> GetWithMultipleReleases(bool ignoreVariations, int? animeID = null)
+    public IEnumerable<AnimeEpisode> GetWithMultipleReleases(bool ignoreVariations, int? animeID = null)
     {
         var ids = Lock(() =>
         {
@@ -121,7 +119,7 @@ public class AnimeEpisodeRepository : BaseCachedRepository<SVR_AnimeEpisode, int
             .Select(episode => (episode, anidbEpisode: episode?.AniDB_Episode))
             .Where(tuple => tuple.anidbEpisode is not null)
             .OrderBy(tuple => tuple.anidbEpisode!.AnimeID)
-            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeTypeEnum)
+            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeType)
             .ThenBy(tuple => tuple.anidbEpisode!.EpisodeNumber)
             .Select(tuple => tuple.episode!);
     }
@@ -191,7 +189,7 @@ GROUP BY
     ani.EpisodeID
 ";
 
-    public IEnumerable<SVR_AnimeEpisode> GetWithDuplicateFiles(int? animeID = null)
+    public IEnumerable<AnimeEpisode> GetWithDuplicateFiles(int? animeID = null)
     {
         var ids = Lock(() =>
         {
@@ -214,20 +212,20 @@ GROUP BY
             .Select(episode => (episode, anidbEpisode: episode?.AniDB_Episode))
             .Where(tuple => tuple.anidbEpisode is not null)
             .OrderBy(tuple => tuple.anidbEpisode!.AnimeID)
-            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeTypeEnum)
+            .ThenBy(tuple => tuple.anidbEpisode!.EpisodeType)
             .ThenBy(tuple => tuple.anidbEpisode!.EpisodeNumber)
             .Select(tuple => tuple.episode!);
     }
 
-    public IEnumerable<SVR_AnimeEpisode> GetMissing(bool collecting, int? animeID = null)
+    public IEnumerable<AnimeEpisode> GetMissing(bool collecting, int? animeID = null)
     {
         // NOTE: For comments about this code, see the AnimeSeriesService.
         var allSeries = animeID.HasValue
-            ? new List<SVR_AnimeSeries?>([RepoFactory.AnimeSeries.GetByAnimeID(animeID.Value)]).WhereNotNull()
+            ? new List<AnimeSeries?>([RepoFactory.AnimeSeries.GetByAnimeID(animeID.Value)]).WhereNotNull()
             : RepoFactory.AnimeSeries.GetWithMissingEpisodes(collecting);
         foreach (var series in allSeries)
         {
-            var animeType = (AnimeType)series.AniDB_Anime!.AnimeType;
+            var animeType = series.AniDB_Anime!.AnimeType;
             var episodeReleasedList = new AnimeSeriesService.EpisodeList(animeType);
             var episodeReleasedGroupList = new AnimeSeriesService.EpisodeList(animeType);
             var animeGroupStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(series.AniDB_ID);
@@ -236,27 +234,17 @@ GROUP BY
                 .Where(tuple => tuple.anidbEpisode is not null)
                 .ToList();
             var localReleaseGroups = allEpisodes
-                .Where(tuple => tuple.anidbEpisode.EpisodeTypeEnum == EpisodeType.Episode)
-                .SelectMany(a =>
-                {
-                    var videos = a.videos;
-                    if (videos.Count is 0)
-                        return [];
-
-                    var aniFiles = videos
-                        .Select(b => b.AniDBFile)
-                        .WhereNotNull()
-                        .ToList();
-                    if (aniFiles.Count is 0)
-                        return [];
-
-                    return aniFiles
-                        .Select(b => b.GroupID);
-                })
+                .Where(tuple => tuple.anidbEpisode.EpisodeType == EpisodeType.Episode)
+                .SelectMany(a => a.videos
+                    .Select(b => b.ReleaseGroup)
+                    .WhereNotNull()
+                    .Where(b => b.Source is "AniDB" && int.TryParse(b.ID, out var groupID) && groupID > 0)
+                    .Select(b => int.Parse(b.ID))
+                )
                 .ToHashSet();
             foreach (var (episode, anidbEpisode, videos) in allEpisodes)
             {
-                if (anidbEpisode.EpisodeTypeEnum is not EpisodeType.Episode || videos.Count is not 0 || !anidbEpisode.HasAired)
+                if (anidbEpisode.EpisodeType is not EpisodeType.Episode || videos.Count is not 0 || !anidbEpisode.HasAired)
                     continue;
 
                 if (animeGroupStatuses.Count is 0)
@@ -267,7 +255,7 @@ GROUP BY
 
                 var filteredGroups = animeGroupStatuses
                     .Where(status =>
-                        status.CompletionState is (int)Group_CompletionStatus.Complete or (int)Group_CompletionStatus.Finished ||
+                        status.CompletionState is (int)Providers.AniDB.Group_CompletionStatus.Complete or (int)Providers.AniDB.Group_CompletionStatus.Finished ||
                         status.HasGroupReleasedEpisode(anidbEpisode.EpisodeNumber)
                     )
                     .ToList();
@@ -291,14 +279,14 @@ GROUP BY
         }
     }
 
-    public IReadOnlyList<SVR_AnimeEpisode> GetAllWatchedEpisodes(int userid, DateTime? after_date)
+    public IReadOnlyList<AnimeEpisode> GetAllWatchedEpisodes(int userid, DateTime? after_date)
         => RepoFactory.AnimeEpisode_User.GetByUserID(userid)
             .Where(a => a.IsWatched && a.WatchedDate > after_date).OrderBy(a => a.WatchedDate)
             .Select(a => a.AnimeEpisode)
             .WhereNotNull()
             .ToList();
 
-    public IReadOnlyList<SVR_AnimeEpisode> GetEpisodesWithNoFiles(bool includeSpecials, bool includeOnlyAired = false)
+    public IReadOnlyList<AnimeEpisode> GetEpisodesWithNoFiles(bool includeSpecials, bool includeOnlyAired = false)
         => GetAll()
             .Where(a =>
             {
@@ -306,10 +294,10 @@ GROUP BY
                 if (anidbEpisode is null || anidbEpisode.HasAired)
                     return false;
 
-                if (anidbEpisode.EpisodeTypeEnum is not EpisodeType.Episode and not EpisodeType.Special)
+                if (anidbEpisode.EpisodeType is not EpisodeType.Episode and not EpisodeType.Special)
                     return false;
 
-                if (!includeSpecials && anidbEpisode.EpisodeTypeEnum is EpisodeType.Special)
+                if (!includeSpecials && anidbEpisode.EpisodeType is EpisodeType.Special)
                     return false;
 
                 if (includeOnlyAired && !anidbEpisode.HasAired)

@@ -10,13 +10,12 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Quartz;
-using Shoko.Models.Enums;
-using Shoko.Models.Plex.Connections;
-using Shoko.Models.Plex.Libraries;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.Services;
+using Shoko.Server.Plex.Models.Connections;
+using Shoko.Server.Plex.Models.Libraries;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Services;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plex;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
@@ -25,7 +24,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 #if DEBUG
-using Shoko.Models.Plex.Collection;
+using Shoko.Server.Plex.Models.Collection;
 using Shoko.Server.Plex.Libraries;
 #endif
 
@@ -72,7 +71,7 @@ public class PlexWebhook : BaseController
     #region Plex events
 
     [NonAction]
-    private async Task Scrobble(PlexEvent data, SVR_JMMUser user)
+    private async Task Scrobble(PlexEvent data, JMMUser user)
     {
         var metadata = data.Metadata;
         var (episode, anime) = GetEpisode(metadata);
@@ -85,20 +84,20 @@ public class PlexWebhook : BaseController
 
         _logger.LogTrace("Got anime: {Anime}, ep: {EpisodeNumber}", anime, episode.AniDB_Episode.EpisodeNumber);
 
-        user ??= RepoFactory.JMMUser.GetAll().FirstOrDefault(u => data.Account.Title.FindIn(u.GetPlexUsers()));
+        user ??= RepoFactory.JMMUser.GetAll().FirstOrDefault(u => u.GetPlexUsers().Contains(data.Account.Title));
         if (user == null)
         {
             _logger.LogInformation("Unable to determine who \"{AccountTitle}\" is in Shoko, make sure this is set under user settings in Desktop", data.Account.Title);
             return; //At this point in time, we don't want to scrobble for unknown users
         }
 
-        await _userDataService.SetEpisodeWatchedStatus(user, episode, true, FromUnixTime(metadata.LastViewedAt));
+        await _userDataService.SetEpisodeWatchedStatus(episode, user, true, FromUnixTime(metadata.LastViewedAt));
     }
 
     #endregion
 
     [NonAction]
-    private (SVR_AnimeEpisode, SVR_AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
+    private (AnimeEpisode, AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
     {
         var guid = new Uri(metadata.Guid);
         if (guid.Scheme != "com.plexapp.agents.shoko" && guid.Scheme != "com.plexapp.agents.shokorelay")
@@ -150,13 +149,13 @@ public class PlexWebhook : BaseController
 
 
         var animeEps = anime
-            .AnimeEpisodes.Where(a => a.EpisodeTypeEnum == episodeType && a.AniDB_Episode?.EpisodeNumber == episodeNumber).ToList();
+            .AnimeEpisodes.Where(a => a.EpisodeType == episodeType && a.AniDB_Episode?.EpisodeNumber == episodeNumber).ToList();
 
         //if only one possible match
         if (animeEps.Count == 1) return (animeEps.First(), anime);
 
         // Check for Tmdb matches
-        SVR_AnimeEpisode result;
+        AnimeEpisode result;
         if ((result = animeEps.FirstOrDefault(a => a.TmdbEpisodes.Any(e => e.SeasonNumber == series))) != null)
         {
             return (result, anime);
@@ -298,7 +297,7 @@ public class PlexWebhook : BaseController
     [NonAction]
     private T CallPlexHelper<T>(Func<PlexHelper, T> act)
     {
-        JMMUser user = HttpContext.GetUser();
+        var user = HttpContext.GetUser();
         return act(PlexHelper.GetForUser(user));
     }
 

@@ -1,5 +1,5 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Models.Server;
+using Shoko.Server.Models.Internal;
 
 namespace Shoko.Server.Mappings;
 

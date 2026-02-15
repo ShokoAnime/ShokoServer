@@ -1,16 +1,16 @@
 using System;
-using System.ComponentModel;
-using NHibernate.SqlTypes;
-using NHibernate.UserTypes;
-using System.Data;
-using System.Data.Common;
-using NHibernate;
-using NHibernate.Engine;
-using System.Globalization;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Data.Common;
+using System.Globalization;
 using System.Linq;
-using Shoko.Server.Extensions;
+using NHibernate;
+using NHibernate.Engine;
+using NHibernate.SqlTypes;
+using NHibernate.UserTypes;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Models.TMDB;
 
 #nullable enable
@@ -37,7 +37,7 @@ public class TmdbProductionCountryConverter : TypeConverter, IUserType
         => value switch
         {
             null => [],
-            string i => i.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(s => TMDB_ProductionCountry.FromString(s)).ToList(),
+            string i => i.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(TMDB_ProductionCountry.FromString).ToList(),
             List<TMDB_ProductionCountry> l => l,
             _ => throw new ArgumentException($"DestinationType must be {nameof(String)}.")
         };

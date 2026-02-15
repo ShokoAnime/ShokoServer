@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Legacy;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Mappings;
 
-public class ScanMap : ClassMap<SVR_Scan>
+public class ScanMap : ClassMap<Scan>
 {
     public ScanMap()
     {
@@ -13,6 +14,6 @@ public class ScanMap : ClassMap<SVR_Scan>
         Id(x => x.ScanID);
         Map(x => x.CreationTIme).Not.Nullable();
         Map(x => x.ImportFolders).Not.Nullable();
-        Map(x => x.Status).Not.Nullable();
+        Map(x => x.Status).Not.Nullable().CustomType<ScanStatus>();
     }
 }

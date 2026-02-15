@@ -1,12 +1,12 @@
 using System.Collections.Generic;
-using Shoko.Plugin.Abstractions;
+using Shoko.Abstractions;
 using Xunit;
 
 namespace Shoko.Tests
 {
     public class RenamerPaddingTest
     {
-        public static IEnumerable<object[]> Data => new List<object[]> 
+        public static IEnumerable<object[]> Data => new List<object[]>
         {
             new object[] {1, 10, "01"},
             new object[] {1, 100, "001"},

@@ -37,7 +37,8 @@ public class RequestLogin : UDPRequest<ResponseLogin>
         var imageServer = receivedData.Split('\n', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
         return new UDPResponse<ResponseLogin>
         {
-            Response = new ResponseLogin { SessionID = sessionID, ImageServer = imageServer }, Code = code
+            Response = new ResponseLogin { SessionID = sessionID, ImageServer = imageServer },
+            Code = code
         };
     }
 

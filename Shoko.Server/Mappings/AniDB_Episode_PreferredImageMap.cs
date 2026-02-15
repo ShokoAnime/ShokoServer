@@ -1,6 +1,5 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Mappings;
@@ -16,7 +15,7 @@ public class AniDB_Episode_PreferredImageMap : ClassMap<AniDB_Episode_PreferredI
         Map(x => x.AnidbAnimeID).Not.Nullable();
         Map(x => x.AnidbEpisodeID).Not.Nullable();
         Map(x => x.ImageID).Not.Nullable();
-        Map(x => x.ImageSource).Not.Nullable().CustomType<DataSourceType>();
+        Map(x => x.ImageSource).Not.Nullable().CustomType<DataSource>();
         Map(x => x.ImageType).Not.Nullable().CustomType<ImageEntityType>();
     }
 }

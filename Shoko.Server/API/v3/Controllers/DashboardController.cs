@@ -4,20 +4,21 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Info;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
-using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -60,7 +61,7 @@ public class DashboardController : BaseController
             .Where(a => a.GetUserRecord(User.JMMUserID)?.WatchedDate != null)
             .ToList();
         // Count local watched series in the user's collection.
-        var watchedSeries = allSeries.Count(series =>
+        var watchedSeries = allSeries.Count((Func<AnimeSeries, bool>)(series =>
         {
             // If we don't have an anime entry then something is very wrong, but
             // we don't care about that right now, so just skip it.
@@ -86,10 +87,10 @@ public class DashboardController : BaseController
             // normal episodes.
             var totalWatchableNormalEpisodes = anime.EpisodeCountNormal - missingNormalEpisodesTotal;
             var count = episodeDict[series]
-                .Count(episode => episode.AniDB_Episode.EpisodeTypeEnum == EpisodeType.Episode &&
-                                  episode.GetUserRecord(User.JMMUserID)?.WatchedDate != null);
+                .Count((Func<AnimeEpisode, bool>)(episode => episode.AniDB_Episode.EpisodeType == EpisodeType.Episode &&
+                                  episode.GetUserRecord(User.JMMUserID)?.WatchedDate != null));
             return count >= totalWatchableNormalEpisodes;
-        });
+        }));
         // Calculate watched hours for both local episodes and non-local episodes.
         var hoursWatched = Math.Round(
             (decimal)watchedEpisodes.Sum(a => a.VideoLocals.FirstOrDefault()?.DurationTimeSpan.TotalHours ?? new TimeSpan(0, 0, a.AniDB_Episode?.LengthSeconds ?? 0).TotalHours),
@@ -131,9 +132,9 @@ public class DashboardController : BaseController
         };
     }
 
-    private static bool MissingTMDBLink(SVR_AnimeSeries ser)
+    private static bool MissingTMDBLink(AnimeSeries ser)
     {
-        if (MissingTmdbLinkExpression.AnimeTypes.Contains(ser.AniDB_Anime?.AbstractAnimeType ?? AnimeType.Unknown))
+        if (MissingTmdbLinkExpression.AnimeTypes.Contains(ser.AniDB_Anime?.AnimeType ?? AnimeType.Unknown))
             return false;
 
         if (ser.IsTMDBAutoMatchingDisabled)
@@ -189,7 +190,7 @@ public class DashboardController : BaseController
     {
         var series = RepoFactory.AnimeSeries.GetAll()
             .Where(User.AllowedSeries)
-            .GroupBy(a => a.AniDB_Anime?.AbstractAnimeType ?? ((AnimeType)(-99)))
+            .GroupBy(a => a.AniDB_Anime?.AnimeType ?? ((AnimeType)0x42))
             .ToDictionary(a => a.Key, a => a.Count());
 
         return new Dashboard.SeriesSummary
@@ -202,7 +203,7 @@ public class DashboardController : BaseController
             Other = series.GetValueOrDefault(AnimeType.Other, 0),
             MusicVideo = series.GetValueOrDefault(AnimeType.MusicVideo, 0),
             Unknown = series.GetValueOrDefault(AnimeType.Unknown, 0),
-            None = series.GetValueOrDefault((AnimeType)(-99), 0),
+            None = series.GetValueOrDefault((AnimeType)0x42, 0),
         };
     }
 
@@ -401,21 +402,21 @@ public class DashboardController : BaseController
     }
 
     [NonAction]
-    public Dashboard.Episode GetEpisodeDetailsForSeriesAndEpisode(SVR_JMMUser user, SVR_AnimeEpisode episode,
-        SVR_AnimeSeries series, SVR_AniDB_Anime anime = null, SVR_VideoLocal file = null)
+    public Dashboard.Episode GetEpisodeDetailsForSeriesAndEpisode(JMMUser user, AnimeEpisode episode,
+        AnimeSeries series, AniDB_Anime anime = null, VideoLocal file = null)
     {
-        SVR_VideoLocal_User userRecord;
+        VideoLocal_User userRecord;
         var animeEpisode = episode.AniDB_Episode;
         anime ??= series.AniDB_Anime;
 
         if (file is not null)
         {
-            userRecord = _vlUsers.GetByUserIDAndVideoLocalID(user.JMMUserID, file.VideoLocalID);
+            userRecord = _vlUsers.GetByUserAndVideoLocalID(user.JMMUserID, file.VideoLocalID);
         }
         else
         {
             (file, userRecord) = episode.VideoLocals
-                .Select(f => (file: f, userRecord: _vlUsers.GetByUserIDAndVideoLocalID(user.JMMUserID, f.VideoLocalID)))
+                .Select(f => (file: f, userRecord: _vlUsers.GetByUserAndVideoLocalID(user.JMMUserID, f.VideoLocalID)))
                 .OrderByDescending(tuple => tuple.userRecord?.LastUpdated)
                 .ThenByDescending(tuple => tuple.file.DateTimeCreated)
                 .FirstOrDefault();

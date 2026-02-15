@@ -12,14 +12,14 @@ public class ComponentVersionSet
     public ComponentVersion Server { get; set; } = new();
 
     /// <summary>
-    /// Shoko.Commons version. Will be removed in the future when Commons is
+    /// Shoko Commons version. Will be removed in the future when Commons is
     /// merged back into the server.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public ComponentVersion? Commons { get; set; }
 
     /// <summary>
-    /// Shoko.Models version. Will be removed in the future when Commons is
+    /// Shoko Models version. Will be removed in the future when Commons is
     /// merged back into the server.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]

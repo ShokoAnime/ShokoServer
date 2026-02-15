@@ -1,7 +1,6 @@
 using System;
-using System.Linq;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
-using Shoko.Server.Models;
 
 namespace Shoko.Server.Filters.Files;
 
@@ -15,15 +14,12 @@ public class HasSubtitleLanguageExpression : FilterExpression<bool>, IWithString
     public HasSubtitleLanguageExpression() { }
 
     public string Parameter { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if any of the files have the specified subtitle language";
-    public override string[] HelpPossibleParameters => SVR_AniDB_File.GetPossibleSubtitleLanguages();
+    public override string[] HelpPossibleParameters => PossibleSubtitleLanguages;
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        var paramLang = SVR_AniDB_File.GetLanguage(Parameter);
-        return filterable.SubtitleLanguages.Any(sl => SVR_AniDB_File.GetLanguage(sl) == paramLang);
+        return filterable.SubtitleLanguages.Contains(Parameter);
     }
 
     protected bool Equals(HasSubtitleLanguageExpression other)
@@ -65,4 +61,80 @@ public class HasSubtitleLanguageExpression : FilterExpression<bool>, IWithString
     {
         return !Equals(left, right);
     }
+
+    public static readonly string[] PossibleSubtitleLanguages =
+    {
+        "afrikaans",
+        "albanian",
+        "arabic",
+        "basque",
+        "bengali",
+        "bosnian",
+        "bulgarian",
+        "burmese",
+        "catalan",
+        "chinese",
+        "croatian",
+        "czech",
+        "danish",
+        "dutch",
+        "english",
+        "esperanto",
+        "estonian",
+        "filipino",
+        "tagalog",
+        "finnish",
+        "french",
+        "galician",
+        "georgian",
+        "german",
+        "greek",
+        "haitian creole",
+        "hebrew",
+        "hindi",
+        "hungarian",
+        "icelandic",
+        "indonesian",
+        "italian",
+        "japanese",
+        "javanese",
+        "korean",
+        "latin",
+        "latvian",
+        "lithuanian",
+        "malay",
+        "mongolian",
+        "nepali",
+        "norwegian",
+        "persian",
+        "polish",
+        "portuguese",
+        "portuguese (brazilian)",
+        "romanian",
+        "russian",
+        "serbian",
+        "sinhala",
+        "slovak",
+        "slovenian",
+        "spanish",
+        "spanish (latin american)",
+        "swedish",
+        "tamil",
+        "tatar",
+        "telugu",
+        "thai",
+        "turkish",
+        "ukrainian",
+        "vietnamese",
+        "chinese (simplified)",
+        "chinese (traditional)",
+        "chinese (transcription)",
+        "greek (ancient)",
+        "japanese (transcription)",
+        "korean (transcription)",
+        "thai (transcription)",
+        "urdu",
+        "unknown",
+        "other",
+    };
 }

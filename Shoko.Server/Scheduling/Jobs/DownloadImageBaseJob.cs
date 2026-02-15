@@ -4,9 +4,11 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Services;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -26,7 +28,7 @@ public abstract class DownloadImageBaseJob : BaseJob, IImageDownloadJob
 
     public bool ForceDownload { get; set; }
 
-    public abstract DataSourceEnum Source { get; }
+    public abstract DataSource Source { get; }
 
     public virtual ImageEntityType ImageType { get; set; }
 
@@ -45,7 +47,7 @@ public abstract class DownloadImageBaseJob : BaseJob, IImageDownloadJob
         _logger.LogInformation("Processing {Job} for {Parent} -> Image Type: {ImageType} | ImageID: {EntityID}", GetType().Name, ParentName, ImageType, ImageID);
 
         var imageType = $"{Source} {ImageType.ToString().Replace("_", " ")}";
-        var image = ImageUtils.GetImageMetadata(Source, ImageType, ImageID);
+        var image = Utils.ServiceContainer.GetRequiredService<IImageManager>().GetImage(Source, ImageType, ImageID);
         if (image is null)
         {
             _logger.LogWarning("Image failed to download: Can\'t find valid {ImageType} with ID: {ImageID}", imageType, ImageID);
@@ -94,15 +96,15 @@ public abstract class DownloadImageBaseJob : BaseJob, IImageDownloadJob
         }
     }
 
-    private void EmitEventForRelatedEntities(IImageMetadata image, UpdateReason reason)
+    private void EmitEventForRelatedEntities(IImage image, UpdateReason reason)
     {
         switch ((Source, ImageType))
         {
-            case (DataSourceEnum.AniDB, ImageEntityType.Poster) when RepoFactory.AniDB_Anime.GetByAnimeID(ImageID) is { } anime:
+            case (DataSource.AniDB, ImageEntityType.Poster) when RepoFactory.AniDB_Anime.GetByAnimeID(ImageID) is { } anime:
                 ShokoEventHandler.Instance.OnSeriesUpdated(anime, reason);
                 break;
 
-            case (DataSourceEnum.TMDB, _) when image is TMDB_Image tmdbImage:
+            case (DataSource.TMDB, _) when image is TMDB_Image tmdbImage:
                 var linkedEntities = RepoFactory.TMDB_Image_Entity.GetByRemoteFileName(tmdbImage.RemoteFileName);
                 foreach (var linkedEntity in linkedEntities)
                 {

@@ -4,8 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Models.Server;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Services;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.AniDB.UDP.Info;
@@ -27,8 +28,9 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
     private readonly AniDBTitleHelper _titleHelper;
     private readonly IRequestFactory _requestFactory;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IAnidbService _anidbService;
     private readonly ISettingsProvider _settingsProvider;
-    private SVR_AniDB_Anime _anime;
+    private AniDB_Anime _anime;
     private string _animeName;
     public int AnimeID { get; set; }
     public bool ForceRefresh { get; set; }
@@ -39,7 +41,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
     public override void PostInit()
     {
         _anime = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID);
-        _animeName = _anime?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle;
+        _animeName = _anime?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title;
     }
 
     public override Dictionary<string, object> Details => _animeName == null ? new()
@@ -55,7 +57,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
 
     public override async Task Process()
     {
-        _logger.LogInformation("Processing {Job}: {GroupID}", nameof(GetAniDBReleaseGroupJob), AnimeID);
+        _logger.LogInformation("Processing {Job}: {GroupID}", nameof(GetAniDBReleaseGroupStatusJob), AnimeID);
 
         if (AnimeID == 0) return;
         // only get group status if we have an associated series
@@ -111,29 +113,18 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
             var eps = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeNumber(AnimeID, maxEpisode);
             if (eps.Count == 0)
             {
-                await scheduler.StartJobNow<GetAniDBAnimeJob>(c =>
-                {
-                    c.AnimeID = AnimeID;
-                    c.ForceRefresh = true;
-                    c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
-                });
+                var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
+                if (settings.AniDb.AutomaticallyImportSeries)
+                    refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
+                await _anidbService.ScheduleRefreshByID(AnimeID, refreshMethod).ConfigureAwait(false);
             }
 
             // update the missing episode stats on groups and children
             await scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = series.AniDB_ID);
         }
-
-        if (settings.AniDb.DownloadReleaseGroups && response is { Response.Count: > 0 })
-        {
-            // shouldn't need the where, but better safe than sorry.
-            foreach (var g in response.Response.DistinctBy(a => a.GroupID).Where(a => a.GroupID != 0))
-            {
-                await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = g.GroupID);
-            }
-        }
     }
 
-    private bool ShouldSkip(SVR_AniDB_Anime anime)
+    private bool ShouldSkip(AniDB_Anime anime)
     {
         if (ForceRefresh)
         {
@@ -161,10 +152,11 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
         return grpStatuses is { Count: > 0 };
     }
 
-    public GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
+    public GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
     {
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;
+        _anidbService = anidbService;
         _settingsProvider = settingsProvider;
         _titleHelper = titleHelper;
     }

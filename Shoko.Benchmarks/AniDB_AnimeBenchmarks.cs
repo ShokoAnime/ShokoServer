@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
-using Shoko.Models.Enums;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Enums;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.TestData;
 
@@ -12,10 +12,10 @@ namespace Benchmarks;
 [BenchmarkCategory("AniDB_Anime")]
 public class AniDB_AnimeBenchmarks
 {
-    private readonly SVR_AniDB_Anime[] _anime = TestData.AniDB_Anime.Value.Where(a => a.AirDate != null).ToArray();
-    
+    private readonly AniDB_Anime[] _anime = TestData.AniDB_Anime.Value.Where(a => a.AirDate != null).ToArray();
+
     [Benchmark]
-    public List<(int Year, AnimeSeason Season)> GetAllSeasons()
+    public List<(int Year, YearlySeason Season)> GetAllSeasons()
     {
         return AnimeSeriesRepository.GetAllSeasons(_anime).ToList();
     }

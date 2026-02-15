@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Models.CrossReference;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
@@ -18,12 +18,12 @@ public class CrossRef_AniDB_MALRepository(DatabaseFactory databaseFactory) : Bas
 
     public override void PopulateIndexes()
     {
-        _malIDs = new PocoIndex<int, CrossRef_AniDB_MAL, int>(Cache, a => a.MALID);
-        _animeIDs = new PocoIndex<int, CrossRef_AniDB_MAL, int>(Cache, a => a.AnimeID);
+        _malIDs = Cache.CreateIndex(a => a.MALID);
+        _animeIDs = Cache.CreateIndex(a => a.AnimeID);
     }
 
     public IReadOnlyList<CrossRef_AniDB_MAL> GetByAnimeID(int animeID)
-        => ReadLock(() => _animeIDs!.GetMultiple(animeID).OrderBy(a => a.StartEpisodeType).ThenBy(a => a.StartEpisodeNumber).ToList());
+        => ReadLock(() => _animeIDs!.GetMultiple(animeID).ToList());
 
     public IReadOnlyList<CrossRef_AniDB_MAL> GetByMALID(int malID)
         => ReadLock(() => _malIDs!.GetMultiple(malID));

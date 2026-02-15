@@ -3,20 +3,20 @@ using System.IO;
 using ImageMagick;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
-using Shoko.Models.Enums;
-using Shoko.Models.Interfaces;
+using Shoko.Abstractions.Services;
+using Shoko.Server.API.v1.Models;
+using Shoko.Server.Extensions;
 using Shoko.Server.Properties;
-using Shoko.Server.Utilities;
 
 using Mime = MimeMapping.MimeUtility;
 
-namespace Shoko.Server;
+namespace Shoko.Server.API.v1.Implementations;
 
 [ApiController]
 [Route("/api/Image")]
 [ApiVersionNeutral]
 [ApiExplorerSettings(IgnoreApi = true)]
-public class ShokoServiceImplementationImage : Controller, IShokoServerImage
+public class ShokoServiceImplementationImage(IImageManager imageManager) : Controller
 {
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
@@ -125,7 +125,7 @@ public class ShokoServiceImplementationImage : Controller, IShokoServerImage
         try
         {
             var it = (CL_ImageEntityType)imageType;
-            return ImageUtils.GetImageMetadata(it, imageId) is { } metadata && metadata.IsLocalAvailable ? metadata.LocalPath! : string.Empty;
+            return imageManager.GetImage(it.ToServerSource(), it.ToServerType(), imageId) is { } metadata && metadata.IsLocalAvailable ? metadata.LocalPath! : string.Empty;
         }
         catch (Exception ex)
         {

@@ -1,11 +1,12 @@
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Overview
+public class TMDB_Overview : IText
 {
     public int TMDB_OverviewID { get; set; }
 
@@ -40,4 +41,13 @@ public class TMDB_Overview
         LanguageCode = languageCode;
         CountryCode = countryCode;
     }
+
+    public bool Equals(IText? other)
+        => IText.Equals(this, other);
+
+    #region IMetadata Implementation
+
+    DataSource IMetadata.Source => DataSource.TMDB;
+
+    #endregion
 }

@@ -1,7 +1,7 @@
 
 using System.IO;
 using System.Reflection;
-using Shoko.Plugin.Abstractions;
+using Shoko.Abstractions.Plugin;
 using Shoko.Server.Utilities;
 
 #nullable enable
@@ -9,23 +9,45 @@ namespace Shoko.Server.Services;
 
 public class ApplicationPaths : IApplicationPaths
 {
-    public static ApplicationPaths Instance { get; set; } = new();
+    private static ApplicationPaths? _instance = null;
+
+    public static IApplicationPaths Instance
+        => _instance ??= new();
+
+    private string? _applicationPath = null;
 
     /// <inheritdoc/>
-    public string ExecutableDirectoryPath => Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+    public string ApplicationPath
+        => _applicationPath ??= Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+
+    private string? _webPath = null;
 
     /// <inheritdoc/>
-    public string WebPath => Path.Combine(ProgramDataPath, Utils.SettingsProvider.GetSettings().Web.WebUIPath);
+    public string WebPath
+        => _webPath ??= Path.Combine(DataPath, Utils.SettingsProvider.GetSettings().Web.WebUIPath);
+
+    private string? _dataPath = null;
 
     /// <inheritdoc/>
-    public string ProgramDataPath => Utils.ApplicationPath;
+    public string DataPath => _dataPath ??= Utils.ApplicationPath;
+
+    private string? _imagesPath = null;
 
     /// <inheritdoc/>
-    public string ImageDirectoryPath => ImageUtils.GetBaseImagesPath();
+    public string ImagesPath
+        => _imagesPath ??= Utils.SettingsProvider.GetSettings().ImagesPath is { Length: > 0 } imagePath
+            ? Path.Combine(Utils.ApplicationPath, imagePath)
+            : Utils.DefaultImagePath;
 
     /// <inheritdoc/>
-    public string PluginsPath => Path.Combine(ProgramDataPath, "plugins");
+    public string PluginsPath
+        => Path.Combine(DataPath, "plugins");
 
     /// <inheritdoc/>
-    public string LogDirectoryPath => Path.Combine(ProgramDataPath, "logs");
+    public string ConfigurationsPath
+        => Path.Combine(DataPath, "configuration");
+
+    /// <inheritdoc/>
+    public string LogsPath
+        => Path.Combine(DataPath, "logs");
 }

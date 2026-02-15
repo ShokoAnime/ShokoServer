@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
@@ -52,17 +53,11 @@ public class DebugController : BaseController
     /// <param name="count"></param>
     /// <param name="seconds"></param>
     [HttpGet("ScheduleJobs/Delay/{count}")]
-    public async Task<ActionResult> ScheduleTestJobs(int count, [FromQuery]int seconds = 60)
+    public async Task<ActionResult> ScheduleTestJobs(int count, [FromQuery] int seconds = 60)
     {
         var scheduler = await _schedulerFactory.GetScheduler();
         for (var i = 0; i < count; i++)
-        {
-            await scheduler.StartJobNow<TestDelayJob>(t =>
-            {
-                t.DelaySeconds = seconds;
-                t.Offset = i;
-            });
-        }
+            await scheduler.StartJob<TestDelayJob>(t => (t.DelaySeconds, t.Offset) = (seconds, i), prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }
@@ -76,12 +71,7 @@ public class DebugController : BaseController
     {
         var scheduler = await _schedulerFactory.GetScheduler();
         for (var i = 0; i < count; i++)
-        {
-            await scheduler.StartJobNow<TestErrorJob>(t =>
-            {
-                t.Offset = i;
-            });
-        }
+            await scheduler.StartJob<TestErrorJob>(t => t.Offset = i, prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }
@@ -95,7 +85,7 @@ public class DebugController : BaseController
     public async Task<ActionResult> FetchAniDBMessage(int id)
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<GetAniDBMessageJob>(r => r.MessageID = id);
+        await scheduler.StartJob<GetAniDBMessageJob>(r => r.MessageID = id, prioritize: true).ConfigureAwait(false);
         return Ok();
     }
 
@@ -150,20 +140,24 @@ public class DebugController : BaseController
             {
                 case UDPReturnCode.INVALID_SESSION:
                 case UDPReturnCode.ILLEGAL_INPUT_OR_ACCESS_DENIED:
+                {
                     _udpHandler.IsInvalidSession = true;
                     return new() { Code = UDPReturnCode.NOT_LOGGED_IN };
+                }
                 case UDPReturnCode.INTERNAL_SERVER_ERROR:
                 case UDPReturnCode.ANIDB_OUT_OF_SERVICE:
                 case UDPReturnCode.SERVER_BUSY:
                 case UDPReturnCode.TIMEOUT_DELAY_AND_RESUBMIT:
-                    {
-                        var errorMessage = $"{(int)returnCode} {returnCode}";
-                        _logger.LogTrace("Waiting. AniDB returned {StatusCode} {Status}", (int)returnCode, returnCode);
-                        _udpHandler.StartBackoffTimer(300, errorMessage);
-                        break;
-                    }
+                {
+                    var errorMessage = $"{(int)returnCode} {returnCode}";
+                    _logger.LogTrace("Waiting. AniDB returned {StatusCode} {Status}", (int)returnCode, returnCode);
+                    _udpHandler.StartBackoffTimer(300, errorMessage);
+                    break;
+                }
                 case UDPReturnCode.UNKNOWN_COMMAND:
+                {
                     return new() { Code = returnCode, Response = fullResponse };
+                }
             }
 
             return new()
@@ -194,17 +188,17 @@ public class DebugController : BaseController
         /// </summary>
         [Required]
         [MinLength(1)]
-        public string Action = string.Empty;
+        public string Action { get; set; } = string.Empty;
 
         /// <summary>
         /// Run the action without checking if we're banned and what-not.
         /// </summary>
-        public bool Unsafe = false;
+        public bool Unsafe { get; set; } = false;
 
         /// <summary>
         /// Extra payload to use with the action.
         /// </summary>
-        public Dictionary<string, object?> Payload = new();
+        public Dictionary<string, object?> Payload { get; set; } = [];
 
         /// <summary>
         /// The computed command for the action and payload.
@@ -259,16 +253,22 @@ public class DebugController : BaseController
             }
         }
 
+        private bool? _fullResponse = null;
+
         /// <summary>
         /// Indicates that we would want the whole response, and not just the
         /// decoded response.
         /// </summary>
-        [JsonIgnore]
+        [DefaultValue(false)]
         public bool FullResponse
         {
             get
             {
-                return string.Equals(Action, "LOGIN", StringComparison.InvariantCultureIgnoreCase);
+                return _fullResponse ?? string.Equals(Action, "LOGIN", StringComparison.InvariantCultureIgnoreCase);
+            }
+            set
+            {
+                _fullResponse = value;
             }
         }
 
@@ -324,12 +324,12 @@ public class DebugController : BaseController
         /// The UDP return code for the request.
         /// </summary>
         [JsonConverter(typeof(StringEnumConverter))]
-        public UDPReturnCode Code = UDPReturnCode.UNKNOWN_COMMAND;
+        public UDPReturnCode Code { get; set; } = UDPReturnCode.UNKNOWN_COMMAND;
 
         /// <summary>
         /// The response body.
         /// </summary>
-        public string Response = string.Empty;
+        public string Response { get; set; } = string.Empty;
     }
 }
 

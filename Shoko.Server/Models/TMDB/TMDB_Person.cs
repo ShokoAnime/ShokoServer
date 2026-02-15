@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Providers.TMDB;
@@ -90,6 +92,11 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
     /// When the metadata was last synchronized with the remote.
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
+
+    /// <summary>
+    /// When the person was last linked to a crew or cast role in the local system.
+    /// </summary>
+    public DateTime? LastOrphanedAt { get; set; }
 
     #endregion
 
@@ -199,7 +206,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
 
     ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Person;
 
-    DataSourceEnum IEntityMetadata.DataSource => DataSourceEnum.TMDB;
+    DataSource IEntityMetadata.DataSource => DataSource.TMDB;
 
     string IEntityMetadata.EnglishTitle => EnglishName;
 
@@ -220,23 +227,30 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
 
     int IMetadata<int>.ID => TmdbPersonID;
 
-    DataSourceEnum IMetadata.Source => DataSourceEnum.TMDB;
+    DataSource IMetadata.Source => DataSource.TMDB;
 
     #endregion
 
     #region IWithDescriptions Implementation
 
-    string IWithDescriptions.DefaultDescription => EnglishBiography;
+    IText? IWithDescriptions.DefaultDescription => new TextStub()
+    {
+        Language = TitleLanguage.EnglishAmerican,
+        CountryCode = "US",
+        LanguageCode = "en",
+        Value = EnglishBiography,
+        Source = DataSource.TMDB,
+    };
 
-    string IWithDescriptions.PreferredDescription => GetPreferredBiography(useFallback: true)!.Value;
+    IText? IWithDescriptions.PreferredDescription => GetPreferredBiography();
 
-    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions => throw new NotImplementedException();
+    IReadOnlyList<IText> IWithDescriptions.Descriptions => GetAllBiographies();
 
     #endregion
 
     #region IWithPortraitImage Implementation
 
-    IImageMetadata? IWithPortraitImage.PortraitImage => GetImages(ImageEntityType.Person) is { Count: > 0 } images ? images[0] : null;
+    IImage? IWithPortraitImage.PortraitImage => GetImages(ImageEntityType.Creator) is { Count: > 0 } images ? images[0] : null;
 
     #endregion
 

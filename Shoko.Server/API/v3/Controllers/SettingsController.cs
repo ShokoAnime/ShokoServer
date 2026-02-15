@@ -3,8 +3,12 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Config.Exceptions;
+using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -20,10 +24,13 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize(Roles = "admin,init")]
 [DatabaseBlockedExempt]
 [InitFriendly]
-public class SettingsController : BaseController
+public class SettingsController(ISettingsProvider settingsProvider, ConfigurationProvider<ServerSettings> configurationProvider, ILogger<SettingsController> logger, IUDPConnectionHandler udpHandler) : BaseController(settingsProvider)
 {
-    private readonly IUDPConnectionHandler _udpHandler;
-    private readonly ILogger<SettingsController> _logger;
+    private readonly ConfigurationProvider<ServerSettings> _configurationProvider = configurationProvider;
+
+    private readonly IUDPConnectionHandler _udpHandler = udpHandler;
+
+    private readonly ILogger<SettingsController> _logger = logger;
 
     // As far as I can tell, only GET and PATCH should be supported, as we don't support unset settings.
     // Some may be patched to "", though.
@@ -36,31 +43,27 @@ public class SettingsController : BaseController
     /// <returns></returns>
     [HttpGet]
     public ActionResult<IServerSettings> GetSettings()
-    {
-        return new ActionResult<IServerSettings>(SettingsProvider.GetSettings());
-    }
+        => new(SettingsProvider.GetSettings());
 
     /// <summary>
     /// JsonPatch the settings
     /// </summary>
     /// <param name="settings">JsonPatch operations</param>
-    /// <param name="skipValidation">Skip Model Validation. Use with caution</param>
     /// <returns></returns>
     [HttpPatch]
-    public ActionResult SetSettings([FromBody] JsonPatchDocument<ServerSettings> settings, bool skipValidation = false)
+    public ActionResult SetSettings([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<ServerSettings> settings)
     {
-        if (settings == null)
+        try
         {
-            return ValidationProblem("The settings object is invalid.");
+            var existingSettings = (ServerSettings)SettingsProvider.GetSettings(copy: true);
+            settings.ApplyTo(existingSettings, ModelState);
+            SettingsProvider.SaveSettings(existingSettings);
+            return Ok();
         }
-
-        var existingSettings = SettingsProvider.GetSettings(copy: true);
-        settings.ApplyTo((ServerSettings)existingSettings, ModelState);
-        if (!skipValidation && !TryValidateModel(existingSettings))
-            return ValidationProblem(ModelState);
-
-        SettingsProvider.SaveSettings(existingSettings);
-        return Ok();
+        catch (ConfigurationValidationException ex)
+        {
+            return ValidationProblem(ex.ValidationErrors);
+        }
     }
 
     /// <summary>
@@ -96,12 +99,6 @@ public class SettingsController : BaseController
         }
 
         return Ok();
-    }
-
-    public SettingsController(ISettingsProvider settingsProvider, ILogger<SettingsController> logger, IUDPConnectionHandler udpHandler) : base(settingsProvider)
-    {
-        _logger = logger;
-        _udpHandler = udpHandler;
     }
 
     /// <summary>

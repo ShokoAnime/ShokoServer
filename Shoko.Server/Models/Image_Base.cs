@@ -10,16 +10,16 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Extensions;
 using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Models;
 
-public class Image_Base : IImageMetadata
+public class Image_Base : IImage
 {
     #region Static Fields
 
@@ -101,7 +101,7 @@ public class Image_Base : IImageMetadata
     }
 
     /// <inheritdoc/>
-    public DataSourceEnum Source { get; }
+    public DataSource Source { get; }
 
     /// <inheritdoc/>
     public ImageEntityType ImageType { get; set; }
@@ -247,7 +247,7 @@ public class Image_Base : IImageMetadata
         }
     }
 
-    public Image_Base(DataSourceEnum source, ImageEntityType type, int id, string? localPath = null, string? remoteURL = null)
+    public Image_Base(DataSource source, ImageEntityType type, int id, string? localPath = null, string? remoteURL = null)
     {
         InternalID = id;
         ImageType = type;
@@ -332,12 +332,12 @@ public class Image_Base : IImageMetadata
 
     public override bool Equals(object? other)
     {
-        if (other is null || other is not IImageMetadata imageMetadata)
+        if (other is null || other is not IImage imageMetadata)
             return false;
         return Equals(imageMetadata);
     }
 
-    public bool Equals(IImageMetadata? other)
+    public bool Equals(IImage? other)
     {
         if (other is null)
             return false;

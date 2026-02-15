@@ -1,39 +1,30 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Enums;
-using Shoko.Models.MediaInfo;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.UserData.Enums;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
-using Shoko.Server.Providers.AniDB;
+using Shoko.Server.MediaInfo;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
-
-using AnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
-using EpisodeType = Shoko.Models.Enums.EpisodeType;
 
 #nullable enable
 namespace Shoko.Server.Filters;
 
 public static class FilterExtensions
 {
-    #region Filter
-
-    public static bool IsDirectory(this FilterPreset filter) => filter.FilterType.HasFlag(GroupFilterType.Directory);
-
-    #endregion
-
     #region Series
 
-    public static Filterable ToFilterable(this SVR_AnimeSeries series)
+    public static Filterable ToFilterable(this AnimeSeries series, DateTime now)
     {
         var filterable = new Filterable
         {
             NameDelegate = () =>
-                series.PreferredTitle,
+                series.Title,
             NamesDelegate = () =>
             {
-                var titles = series.Titles.Select(t => t.Title).ToHashSet();
+                var titles = series.Titles.Select(t => t.Value).ToHashSet();
                 foreach (var group in series.AllGroupsAbove)
                     titles.Add(group.GroupName);
 
@@ -42,14 +33,8 @@ public static class FilterExtensions
             AniDBIDsDelegate = () =>
                 new HashSet<string>() { series.AniDB_ID.ToString() },
             SortingNameDelegate = () =>
-                series.PreferredTitle.ToSortName(),
+                series.Title.ToSortName(),
             SeriesCountDelegate = () => 1,
-            SeriesVoteCountDelegate = () =>
-                RepoFactory.AniDB_Vote.GetByAnimeID(series.AniDB_ID) is { VoteValue: >= 0 } ? 1 : 0,
-            SeriesTemporaryVoteCountDelegate = () =>
-                RepoFactory.AniDB_Vote.GetByAnimeID(series.AniDB_ID) is { VoteValue: >= 0, VoteType: (int)AniDBVoteType.AnimeTemp } ? 1 : 0,
-            SeriesPermanentVoteCountDelegate = () =>
-                RepoFactory.AniDB_Vote.GetByAnimeID(series.AniDB_ID) is { VoteValue: >= 0, VoteType: (int)AniDBVoteType.Anime } ? 1 : 0,
             AirDateDelegate = () =>
                 series.AniDB_Anime?.AirDate,
             MissingEpisodesDelegate = () =>
@@ -69,14 +54,14 @@ public static class FilterExtensions
             YearsDelegate = () =>
                 series.Years,
             SeasonsDelegate = () =>
-                series.AniDB_Anime?.Seasons.ToHashSet() ?? [],
+                series.AniDB_Anime?.YearlySeasons.ToHashSet() ?? [],
             AvailableImageTypesDelegate = () =>
                 series.GetAvailableImageTypes(),
             PreferredImageTypesDelegate = () =>
                 series.GetPreferredImageTypes(),
             CharacterAppearancesDelegate = () =>
                 RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID)
-                    .GroupBy(a => a.AppearanceType)
+                    .GroupBy(a => a.CastRoleType)
                     .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CharacterID.ToString()).ToHashSet()),
             CharacterIDsDelegate = () =>
                 RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID)
@@ -87,9 +72,9 @@ public static class FilterExtensions
                     .Concat(RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID).Select(a => a.CreatorID.ToString()))
                     .ToHashSet(),
             CreatorRolesDelegate = () =>
-                RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID).Select(a => (a.RoleType, a.CreatorID))
-                    .Concat(RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID).Select(a => (RoleType: CreatorRoleType.Actor, a.CreatorID)))
-                    .GroupBy(a => a.RoleType)
+                RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID).Select(a => (a.CrewRoleType, a.CreatorID))
+                    .Concat(RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID).Select(a => (CrewRoleType: CrewRoleType.Actor, a.CreatorID)))
+                    .GroupBy(a => a.CrewRoleType)
                     .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CreatorID.ToString()).ToHashSet()),
             HasTmdbLinkDelegate = () =>
                 series.TmdbShowCrossReferences.Count is > 0 || series.TmdbMovieCrossReferences.Count is > 0,
@@ -108,13 +93,8 @@ public static class FilterExtensions
                     .ToHashSet();
                 return series.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
             },
-            // TODO: Remove Trakt filters when removing API v1
-            HasTraktLinkDelegate = () =>
-                false,
-            HasTraktAutoLinkingDisabledDelegate = () =>
-                false,
             IsFinishedDelegate = () =>
-                series.AniDB_Anime?.EndDate is { } endDate && endDate < DateTime.Now,
+                series.AniDB_Anime?.EndDate is { } endDate && endDate < now.Date,
             LastAirDateDelegate = () =>
                 series.EndDate ?? series.AllAnimeEpisodes.Select(a => a.AniDB_Episode?.GetAirDateAsDate()).WhereNotNull().DefaultIfEmpty().Max(),
             AddedDateDelegate = () =>
@@ -126,75 +106,82 @@ public static class FilterExtensions
             TotalEpisodeCountDelegate = () =>
                 series.AniDB_Anime?.EpisodeCount ?? 0,
             LowestAniDBRatingDelegate = () =>
-                decimal.Round(Convert.ToDecimal(series.AniDB_Anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
+                double.Round(Convert.ToDouble(series.AniDB_Anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
             HighestAniDBRatingDelegate = () =>
-                decimal.Round(Convert.ToDecimal(series.AniDB_Anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
+                double.Round(Convert.ToDouble(series.AniDB_Anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
             AverageAniDBRatingDelegate = () =>
-                decimal.Round(Convert.ToDecimal(series.AniDB_Anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
+                double.Round(Convert.ToDouble(series.AniDB_Anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
             AnimeTypesDelegate = () =>
                 series.AniDB_Anime is { } anime
-                    ? new HashSet<AnimeType> { anime.AbstractAnimeType }
+                    ? new HashSet<AnimeType> { anime.AnimeType }
                     : [],
             VideoSourcesDelegate = () =>
-                series.VideoLocals.Select(a => a.AniDBFile).WhereNotNull().Select(a => a.File_Source).ToHashSet(),
+                series.VideoLocals.Select(a => a.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet(),
             SharedVideoSourcesDelegate = () =>
-                series.VideoLocals.Select(b => b.AniDBFile).WhereNotNull().Select(a => a.File_Source).ToHashSet() is { Count: > 0 } sources ? sources : [],
+                series.VideoLocals.Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet() is { Count: > 0 } sources ? sources : [],
             AudioLanguagesDelegate = () => series.VideoLocals
-                .Select(a => a.AniDBFile)
+                .Select(a => a.ReleaseInfo)
                 .WhereNotNull()
-                .SelectMany(a => a.Languages.Select(b => b.LanguageName))
+                .SelectMany(a => a.AudioLanguages?.Select(b => b.GetString()) ?? [])
                 .ToHashSet(StringComparer.InvariantCultureIgnoreCase),
             SharedAudioLanguagesDelegate = () =>
-                series.VideoLocals.Select(b => b.AniDBFile).WhereNotNull().Select(a => a.Languages.Select(b => b.LanguageName)).ToList() is { Count: > 0 } audioNames
+                series.VideoLocals.Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.AudioLanguages?.Select(b => b.GetString()) ?? []).ToList() is { Count: > 0 } audioNames
                     ? audioNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet()
                     : [],
             SubtitleLanguagesDelegate = () =>
-                series.VideoLocals.Select(a => a.AniDBFile).WhereNotNull().SelectMany(a => a.Subtitles.Select(b => b.LanguageName)).ToHashSet(StringComparer.InvariantCultureIgnoreCase),
+                series.VideoLocals.Select(a => a.ReleaseInfo).WhereNotNull().SelectMany(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? []).ToHashSet(StringComparer.InvariantCultureIgnoreCase),
             SharedSubtitleLanguagesDelegate = () =>
-                series.VideoLocals.Select(b => b.AniDBFile).WhereNotNull().Select(a => a.Subtitles.Select(b => b.LanguageName)).ToList() is { Count: > 0 } subtitleNames
+                series.VideoLocals.Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? []).ToList() is { Count: > 0 } subtitleNames
                     ? subtitleNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet()
                     : [],
             ResolutionsDelegate = () =>
                 series.VideoLocals
                     .Where(a => a.MediaInfo?.VideoStream is not null)
-                    .Select(a => MediaInfoUtils.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
+                    .Select(a => MediaInfoUtility.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
                     .ToHashSet(),
-            ImportFolderIDsDelegate = () =>
-                series.VideoLocals.Select(a => a.FirstValidPlace?.ImportFolderID.ToString()).WhereNotNull().ToHashSet(),
-            ImportFolderNamesDelegate = () =>
-                series.VideoLocals.Select(a => a.FirstValidPlace?.ImportFolder?.ImportFolderName).WhereNotNull().ToHashSet(),
+            ManagedFolderIDsDelegate = () =>
+                series.VideoLocals.Select(a => a.FirstValidPlace?.ManagedFolderID.ToString()).WhereNotNull().ToHashSet(),
+            ManagedFolderNamesDelegate = () =>
+                series.VideoLocals.Select(a => a.FirstValidPlace?.ManagedFolder?.Name).WhereNotNull().ToHashSet(),
             FilePathsDelegate = () =>
-                series.VideoLocals.Select(a => a.FirstValidPlace?.FilePath).WhereNotNull().ToHashSet(),
+                series.VideoLocals.Select(a => a.FirstValidPlace?.RelativePath).WhereNotNull().ToHashSet(),
             ReleaseGroupNamesDelegate = () =>
-                series.VideoLocals.Select(a => a.ReleaseGroup?.GroupName).WhereNotNull().ToHashSet(),
+                series.VideoLocals.Select(a => a.ReleaseGroup?.Name).WhereNotNull().ToHashSet(),
 
         };
 
         return filterable;
     }
 
-    public static FilterableUserInfo ToFilterableUserInfo(this SVR_AnimeSeries series, int userID)
+    public static FilterableUserInfo ToFilterableUserInfo(this AnimeSeries series, int userID, DateTime now)
     {
         var anime = series.AniDB_Anime;
         var user = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, series.AnimeSeriesID);
-        var vote = anime?.UserVote;
         var watchedDates = series.VideoLocals
-            .Select(a => RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, a.VideoLocalID)?.WatchedDate)
+            .Select(a => RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(userID, a.VideoLocalID)?.WatchedDate)
             .WhereNotNull()
-            .OrderBy(a => a)
+            .Order()
             .ToList();
         var filterable = new FilterableUserInfo
         {
-            IsFavoriteDelegate = () => false,
+            IsFavoriteDelegate = () => user?.IsFavorite ?? false,
+            UserTagsDelegate = () => user?.UserTags.ToHashSet() ?? [],
             WatchedEpisodesDelegate = () => user?.WatchedEpisodeCount ?? 0,
             UnwatchedEpisodesDelegate = () => user?.UnwatchedEpisodeCount ?? 0,
-            LowestUserRatingDelegate = () => vote?.VoteValue ?? 0,
-            HighestUserRatingDelegate = () => vote?.VoteValue ?? 0,
-            HasVotesDelegate = () => vote is not null,
-            HasPermanentVotesDelegate = () => vote is { VoteType: (int)AniDBVoteType.Anime },
-            MissingPermanentVotesDelegate = () => vote is not { VoteType: (int)AniDBVoteType.Anime } && anime?.EndDate is not null && anime.EndDate > DateTime.Now,
+            LowestUserRatingDelegate = () => user?.UserRating ?? 0,
+            HighestUserRatingDelegate = () => user?.UserRating ?? 0,
+            HasVotesDelegate = () => user is { HasUserRating: true },
+            HasPermanentVotesDelegate = () => user is { HasUserRating: true, UserRatingVoteType: SeriesVoteType.Permanent },
+            SeriesVoteCountDelegate = () =>
+                user is { HasUserRating: true } ? 1 : 0,
+            SeriesTemporaryVoteCountDelegate = () =>
+                user is { HasUserRating: true, UserRatingVoteType: SeriesVoteType.Temporary } ? 1 : 0,
+            SeriesPermanentVoteCountDelegate = () =>
+                user is { HasUserRating: true, UserRatingVoteType: SeriesVoteType.Permanent } ? 1 : 0,
+            MissingPermanentVotesDelegate = () =>
+                user is not { HasUserRating: true } && anime?.EndDate is not null && anime.EndDate > now.Date,
             WatchedDateDelegate = () => watchedDates.FirstOrDefault(),
-            LastWatchedDateDelegate = () => watchedDates.LastOrDefault()
+            LastWatchedDateDelegate = () => watchedDates.LastOrDefault(),
         };
         return filterable;
     }
@@ -203,7 +190,7 @@ public static class FilterExtensions
 
     #region Group
 
-    public static Filterable ToFilterable(this SVR_AnimeGroup group)
+    public static Filterable ToFilterable(this AnimeGroup group, DateTime now)
     {
         var series = group.AllSeries;
         var anime = group.Anime;
@@ -216,7 +203,7 @@ public static class FilterExtensions
                 var result = new HashSet<string>() { group.GroupName };
                 foreach (var grp in group.AllGroupsAbove)
                     result.Add(grp.GroupName);
-                result.UnionWith(series.SelectMany(a => a.Titles.Select(t => t.Title)));
+                result.UnionWith(series.SelectMany(a => a.Titles.Select(t => t.Value)));
                 return result;
             },
             AniDBIDsDelegate = () =>
@@ -225,12 +212,6 @@ public static class FilterExtensions
                 group.GroupName.ToSortName(),
             SeriesCountDelegate = () =>
                 series.Count,
-            SeriesVoteCountDelegate = () =>
-                series.Count(ser => RepoFactory.AniDB_Vote.GetByAnimeID(ser.AniDB_ID) is { VoteValue: >= 0 }),
-            SeriesTemporaryVoteCountDelegate = () =>
-                series.Count(ser => RepoFactory.AniDB_Vote.GetByAnimeID(ser.AniDB_ID) is { VoteValue: >= 0, VoteType: (int)AniDBVoteType.AnimeTemp }),
-            SeriesPermanentVoteCountDelegate = () =>
-                series.Count(ser => RepoFactory.AniDB_Vote.GetByAnimeID(ser.AniDB_ID) is { VoteValue: >= 0, VoteType: (int)AniDBVoteType.Anime }),
             AirDateDelegate = () =>
                 series.Select(a => a.AirDate).DefaultIfEmpty(DateTime.MaxValue).Min(),
             LastAirDateDelegate = () =>
@@ -253,7 +234,7 @@ public static class FilterExtensions
             YearsDelegate = () =>
                 group.Years,
             SeasonsDelegate = () =>
-                group.Seasons,
+                group.YearlySeasons,
             AvailableImageTypesDelegate = () =>
                 group.AvailableImageTypes,
             PreferredImageTypesDelegate = () =>
@@ -264,9 +245,9 @@ public static class FilterExtensions
                     .ToHashSet(),
             CharacterAppearancesDelegate = () =>
                 series.SelectMany(ser => RepoFactory.AniDB_Anime_Character.GetByAnimeID(ser.AniDB_ID))
-                    .DistinctBy(a => (a.AppearanceType, a.CharacterID))
-                    .Select(a => (a.AppearanceType, a.CharacterID))
-                    .GroupBy(a => a.AppearanceType)
+                    .DistinctBy(a => (a.CastRoleType, a.CharacterID))
+                    .Select(a => (a.CastRoleType, a.CharacterID))
+                    .GroupBy(a => a.CastRoleType)
                     .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CharacterID.ToString()).ToHashSet()),
             CreatorIDsDelegate = () =>
                 series.SelectMany(ser => RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(ser.AniDB_ID))
@@ -275,14 +256,14 @@ public static class FilterExtensions
                     .ToHashSet(),
             CreatorRolesDelegate = () =>
                 series.SelectMany(ser => RepoFactory.AniDB_Anime_Staff.GetByAnimeID(ser.AniDB_ID))
-                    .Select(a => (a.RoleType, a.CreatorID))
-                    .DistinctBy(a => (a.RoleType, a.CreatorID))
+                    .Select(a => (a.CrewRoleType, a.CreatorID))
+                    .DistinctBy(a => (a.CrewRoleType, a.CreatorID))
                     .Concat(
                         series.SelectMany(ser => RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(ser.AniDB_ID)
                             .DistinctBy(a => a.CreatorID)
-                            .Select(a => (RoleType: CreatorRoleType.Actor, a.CreatorID)))
+                            .Select(a => (CrewRoleType: CrewRoleType.Actor, a.CreatorID)))
                     )
-                    .GroupBy(a => a.RoleType)
+                    .GroupBy(a => a.CrewRoleType)
                     .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CreatorID.ToString()).ToHashSet()),
             HasTmdbLinkDelegate = () =>
                 series.Any(a => a.TmdbShowCrossReferences.Count is > 0 || a.TmdbMovieCrossReferences.Count is > 0),
@@ -305,12 +286,8 @@ public static class FilterExtensions
                     .ToHashSet();
                 return acc + ser.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
             }),
-            HasTraktLinkDelegate = () =>
-                false,
-            HasTraktAutoLinkingDisabledDelegate = () =>
-                false,
             IsFinishedDelegate = () =>
-                series.All(a => a.EndDate is not null && a.EndDate <= DateTime.Today),
+                series.All(a => a.EndDate is not null && a.EndDate <= now.Date),
             AddedDateDelegate = () =>
                 group.DateTimeCreated,
             LastAddedDateDelegate = () =>
@@ -320,60 +297,63 @@ public static class FilterExtensions
             TotalEpisodeCountDelegate = () =>
                 series.Sum(a => a.AniDB_Anime?.EpisodeCount ?? 0),
             LowestAniDBRatingDelegate = () =>
-                anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Min(),
+                anime.Select(a => double.Round(Convert.ToDouble(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Min(),
             HighestAniDBRatingDelegate = () =>
-                anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Max(),
+                anime.Select(a => double.Round(Convert.ToDouble(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Max(),
             AverageAniDBRatingDelegate = () =>
-                anime.Select(a => decimal.Round(Convert.ToDecimal(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Average(),
+                anime.Select(a => double.Round(Convert.ToDouble(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Average(),
             AnimeTypesDelegate = () =>
-                new HashSet<AnimeType>(anime.Select(a => a.AbstractAnimeType)),
+                new HashSet<AnimeType>(anime.Select(a => a.AnimeType)),
             VideoSourcesDelegate = () =>
-                series.SelectMany(a => a.VideoLocals).Select(a => a.AniDBFile).WhereNotNull().Select(a => a.File_Source).ToHashSet(),
+                series.SelectMany(a => a.VideoLocals).Select(a => a.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet(),
             SharedVideoSourcesDelegate = () =>
-                series.SelectMany(a => a.VideoLocals).Select(b => b.AniDBFile).WhereNotNull().Select(a => a.File_Source).ToHashSet() is { Count: > 0 } sources ? sources : [],
+                series.SelectMany(a => a.VideoLocals).Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.LegacySource).ToHashSet() is { Count: > 0 } sources ? sources : [],
             AudioLanguagesDelegate = () =>
-                series.SelectMany(a => a.VideoLocals.Select(b => b.AniDBFile)).WhereNotNull().SelectMany(a => a.Languages.Select(b => b.LanguageName)).ToHashSet(),
+                series.SelectMany(a => a.VideoLocals.Select(b => b.ReleaseInfo)).WhereNotNull().SelectMany(a => a.AudioLanguages?.Select(b => b.GetString()) ?? []).ToHashSet(),
             SharedAudioLanguagesDelegate = () =>
-                series.SelectMany(a => a.VideoLocals.Select(b => b.AniDBFile)).WhereNotNull().Select(a => a.Languages.Select(b => b.LanguageName)).ToList() is { Count: > 0 } audioLanguageNames
+                series.SelectMany(a => a.VideoLocals.Select(b => b.ReleaseInfo)).WhereNotNull().Select(a => a.AudioLanguages?.Select(b => b.GetString()) ?? []).ToList() is { Count: > 0 } audioLanguageNames
                     ? audioLanguageNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet()
                     : [],
             SubtitleLanguagesDelegate = () =>
-                series.SelectMany(a => a.VideoLocals.Select(b => b.AniDBFile)).WhereNotNull().SelectMany(a => a.Subtitles.Select(b => b.LanguageName)).ToHashSet(),
+                series.SelectMany(a => a.VideoLocals.Select(b => b.ReleaseInfo)).WhereNotNull().SelectMany(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? []).ToHashSet(),
             SharedSubtitleLanguagesDelegate = () =>
-                series.SelectMany(a => a.VideoLocals.Select(b => b.AniDBFile)).WhereNotNull().Select(a => a.Subtitles.Select(b => b.LanguageName)).ToList() is { Count: > 0 } subtitleLanguageNames
+                series.SelectMany(a => a.VideoLocals.Select(b => b.ReleaseInfo)).WhereNotNull().Select(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? []).ToList() is { Count: > 0 } subtitleLanguageNames
                     ? subtitleLanguageNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet()
                     : [],
             ResolutionsDelegate = () =>
                 series
                     .SelectMany(a => a.VideoLocals)
                     .Where(a => a.MediaInfo?.VideoStream is not null)
-                    .Select(a => MediaInfoUtils.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
+                    .Select(a => MediaInfoUtility.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
                     .ToHashSet(),
-            ImportFolderIDsDelegate = () =>
-                series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.ImportFolderID.ToString())).WhereNotNull().ToHashSet(),
-            ImportFolderNamesDelegate = () =>
-                series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.ImportFolder?.ImportFolderName)).WhereNotNull().ToHashSet(),
+            ManagedFolderIDsDelegate = () =>
+                series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.ManagedFolderID.ToString())).WhereNotNull().ToHashSet(),
+            ManagedFolderNamesDelegate = () =>
+                series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.ManagedFolder?.Name)).WhereNotNull().ToHashSet(),
             FilePathsDelegate = () =>
-                series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.FilePath)).WhereNotNull().ToHashSet(),
+                series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.RelativePath)).WhereNotNull().ToHashSet(),
             ReleaseGroupNamesDelegate = () =>
-                series.SelectMany(s => s.VideoLocals.Select(a => a.ReleaseGroup?.GroupName)).WhereNotNull().ToHashSet(),
+                series.SelectMany(s => s.VideoLocals.Select(a => a.ReleaseGroup?.Name)).WhereNotNull().ToHashSet(),
         };
         return filterable;
     }
 
-    public static FilterableUserInfo ToFilterableUserInfo(this SVR_AnimeGroup group, int userID)
+    public static FilterableUserInfo ToFilterableUserInfo(this AnimeGroup group, int userID, DateTime now)
     {
         var series = group.AllSeries;
         var anime = group.Anime;
         var user = RepoFactory.AnimeGroup_User.GetByUserAndGroupID(userID, group.AnimeGroupID);
-        var vote = anime.Select(a => a.UserVote)
-            .Where(a => a is { VoteType: (int)VoteType.AnimePermanent or (int)VoteType.AnimeTemporary })
+        var seriesUserDict = series.Select(a => RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userID, a.AnimeSeriesID))
             .WhereNotNull()
-            .Select(a => a.VoteValue)
-            .OrderBy(a => a)
+            .ToDictionary(a => a.AnimeSeriesID);
+        var ratings = seriesUserDict.Values
+            .Where(u => u.HasUserRating)
+            .Select(a => a.UserRating!.Value)
+            .Order()
             .ToList();
-        var watchedDates = series.SelectMany(a => a.VideoLocals)
-            .Select(a => RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, a.VideoLocalID)?.WatchedDate)
+        var watchedDates = series
+            .SelectMany(a => a.VideoLocals)
+            .Select(a => RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(userID, a.VideoLocalID)?.WatchedDate)
             .WhereNotNull()
             .OrderBy(a => a)
             .ToList();
@@ -384,7 +364,7 @@ public static class FilterExtensions
             var count = 0;
             foreach (var ep in series.SelectMany(s => s.AnimeEpisodes))
             {
-                if (ep.EpisodeTypeEnum is not (EpisodeType.Episode or EpisodeType.Special)) continue;
+                if (ep.EpisodeType is not (EpisodeType.Episode or EpisodeType.Special)) continue;
                 var vls = ep.VideoLocals;
                 if (vls.Count == 0 || vls.All(vl => vl.IsIgnored)) continue;
 
@@ -397,14 +377,21 @@ public static class FilterExtensions
 
         var filterable = new FilterableUserInfo
         {
-            IsFavoriteDelegate = () => user?.IsFave == 1,
+            IsFavoriteDelegate = () => seriesUserDict.Values.Any(a => a.IsFavorite),
+            UserTagsDelegate = () => seriesUserDict.Values.SelectMany(a => a.UserTags).ToHashSet(),
             WatchedEpisodesDelegate = () => GetEpCount(true),
             UnwatchedEpisodesDelegate = () => GetEpCount(false),
-            LowestUserRatingDelegate = () => vote.FirstOrDefault(),
-            HighestUserRatingDelegate = () => vote.LastOrDefault(),
-            HasVotesDelegate = () => vote.Any(),
-            HasPermanentVotesDelegate = () => anime.Select(a => a.UserVote).Any(a => a is { VoteType: (int)VoteType.AnimePermanent }),
-            MissingPermanentVotesDelegate = () => anime.Any(a => a.UserVote is not { VoteType: (int)VoteType.AnimePermanent } && a.EndDate is not null && a.EndDate > DateTime.Now),
+            LowestUserRatingDelegate = () => ratings.FirstOrDefault(),
+            HighestUserRatingDelegate = () => ratings.LastOrDefault(),
+            HasVotesDelegate = () => ratings.Count > 0,
+            HasPermanentVotesDelegate = () => seriesUserDict.Values.Any(a => a is { HasUserRating: true, UserRatingVoteType: SeriesVoteType.Permanent }),
+            SeriesVoteCountDelegate = () =>
+                seriesUserDict.Count,
+            SeriesTemporaryVoteCountDelegate = () =>
+                seriesUserDict.Values.Count(userData => userData is { HasUserRating: true, UserRatingVoteType: SeriesVoteType.Temporary }),
+            SeriesPermanentVoteCountDelegate = () =>
+                seriesUserDict.Values.Count(userData => userData is { HasUserRating: true, UserRatingVoteType: SeriesVoteType.Permanent }),
+            MissingPermanentVotesDelegate = () => series.Any(ser => !(seriesUserDict.TryGetValue(ser.AnimeSeriesID, out var userData) && userData.HasUserRating) && ser.EndDate is not null && ser.EndDate > now.Date),
             WatchedDateDelegate = () => watchedDates.FirstOrDefault(),
             LastWatchedDateDelegate = () => watchedDates.LastOrDefault()
         };

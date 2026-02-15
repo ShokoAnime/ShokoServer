@@ -4,14 +4,13 @@ using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Enums;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Models;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
@@ -106,19 +105,18 @@ public class AnidbAnime
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public RelationType? Relation { get; set; }
 
-    private AnidbAnime(int animeId, bool includeTitles, SVR_AnimeSeries? series = null, SVR_AniDB_Anime? anime = null, ResponseAniDBTitles.Anime? result = null)
+    private AnidbAnime(int animeId, bool includeTitles, AnimeSeries? series = null, AniDB_Anime? anime = null, ResponseAniDBTitles.Anime? result = null)
     {
         ID = animeId;
         if ((anime ??= (series is not null ? series.AniDB_Anime : RepoFactory.AniDB_Anime.GetByAnimeID(animeId))) is not null)
         {
             ArgumentNullException.ThrowIfNull(anime);
             series ??= RepoFactory.AnimeSeries.GetByAnimeID(animeId);
-            var seriesTitle = series?.PreferredTitle ?? anime.PreferredTitle;
             ShokoID = series?.AnimeSeriesID;
-            Type = anime.AbstractAnimeType.ToV3Dto();
-            Title = seriesTitle;
+            Type = anime.AnimeType.ToV3Dto();
+            Title = series?.Title ?? anime.Title;
             Titles = includeTitles
-                ? anime.Titles.Select(title => new Title(title, anime.MainTitle, seriesTitle)).ToList()
+                ? anime.Titles.Select(title => new Title(title, anime.MainTitle, Title)).ToList()
                 : null;
             Description = anime.Description;
             Restricted = anime.IsRestricted;
@@ -139,10 +137,10 @@ public class AnidbAnime
         else if ((result ??= TitleHelper.SearchAnimeID(animeId)) is not null)
         {
             Type = AnimeType.Unknown;
-            Title = result.PreferredTitle;
+            Title = result.Title;
             Titles = includeTitles
                 ? result.Titles.Select(
-                    title => new Title(title, result.MainTitle, Title)
+                    title => new Title(title, result.DefaultTitle.Value, Title)
                     {
                         Language = title.LanguageCode,
                         Name = title.Title,
@@ -153,24 +151,24 @@ public class AnidbAnime
                 ).ToList()
                 : null;
             Description = null;
-            Poster = new Image(animeId, ImageEntityType.Poster, DataSourceType.AniDB);
+            Poster = new Image(animeId, ImageEntityType.Poster, DataSource.AniDB);
         }
         else
         {
             Type = AnimeType.Unknown;
             Title = string.Empty;
             Titles = includeTitles ? [] : null;
-            Poster = new Image(animeId, ImageEntityType.Poster, DataSourceType.AniDB);
+            Poster = new Image(animeId, ImageEntityType.Poster, DataSource.AniDB);
         }
     }
 
-    public AnidbAnime(SVR_AniDB_Anime anime, SVR_AnimeSeries? series = null, bool includeTitles = true)
+    public AnidbAnime(AniDB_Anime anime, AnimeSeries? series = null, bool includeTitles = true)
         : this(anime.AnimeID, includeTitles, series, anime) { }
 
-    public AnidbAnime(ResponseAniDBTitles.Anime result, SVR_AnimeSeries? series = null, bool includeTitles = true)
+    public AnidbAnime(ResponseAniDBTitles.Anime result, AnimeSeries? series = null, bool includeTitles = true)
         : this(result.AnimeID, includeTitles, series) { }
 
-    public AnidbAnime(IRelatedMetadata relation, SVR_AnimeSeries? series = null, bool includeTitles = true)
+    public AnidbAnime(IRelatedMetadata relation, AnimeSeries? series = null, bool includeTitles = true)
         : this(relation.RelatedID, includeTitles, series)
     {
         Relation = relation.RelationType;
@@ -179,7 +177,7 @@ public class AnidbAnime
             Restricted = RepoFactory.AniDB_Anime.GetByAnimeID(relation.BaseID) is { IsRestricted: true };
     }
 
-    public AnidbAnime(AniDB_Anime_Similar similar, SVR_AnimeSeries? series = null, bool includeTitles = true)
+    public AnidbAnime(AniDB_Anime_Similar similar, AnimeSeries? series = null, bool includeTitles = true)
         : this(similar.SimilarAnimeID, includeTitles, series)
     {
         UserApproval = new()

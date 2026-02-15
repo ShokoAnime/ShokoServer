@@ -3,10 +3,9 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Plugin.Abstractions;
-using Shoko.Plugin.Abstractions.Events;
+using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Events;
 using Shoko.Server.Settings;
-using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 #nullable enable
 namespace Shoko.Server.Providers.AniDB.HTTP;
@@ -14,7 +13,7 @@ namespace Shoko.Server.Providers.AniDB.HTTP;
 public class HttpRateLimiter
 {
     private readonly ILogger _logger;
-    private readonly SemaphoreSlim _lock = new(1,1);
+    private readonly SemaphoreSlim _lock = new(1, 1);
 
     private readonly object _settingsLock = new();
 
@@ -22,9 +21,7 @@ public class HttpRateLimiter
 
     private readonly Stopwatch _activeTimeWatch = new();
 
-    private readonly ISettingsProvider _settingsProvider;
-
-    private readonly IShokoEventHandler _eventHandler;
+    private readonly ConfigurationProvider<ServerSettings> _settingsProvider;
 
     private readonly Func<IServerSettings, AnidbRateLimitSettings> _settingsSelector;
 
@@ -100,7 +97,7 @@ public class HttpRateLimiter
             if (!force && _shortDelay.HasValue)
                 return;
 
-            var settings = _settingsSelector(_settingsProvider.GetSettings());
+            var settings = _settingsSelector(_settingsProvider.Load());
             var baseRate = settings.BaseRateInSeconds * 1000;
             _shortDelay = baseRate;
             _longDelay = baseRate * settings.SlowRateMultiplier;
@@ -109,23 +106,22 @@ public class HttpRateLimiter
         }
     }
 
-    public HttpRateLimiter(ILogger<HttpRateLimiter> logger, ISettingsProvider settingsProvider, IShokoEventHandler eventHandler)
+    public HttpRateLimiter(ILogger<HttpRateLimiter> logger, ConfigurationProvider<ServerSettings> settingsProvider)
     {
         _logger = logger;
         _requestWatch.Start();
         _activeTimeWatch.Start();
         _settingsProvider = settingsProvider;
         _settingsSelector = s => s.AniDb.HTTPRateLimit;
-        _eventHandler = eventHandler;
-        _eventHandler.SettingsSaved += OnSettingsSaved;
+        _settingsProvider.Saved += OnSettingsSaved;
     }
 
     ~HttpRateLimiter()
     {
-        _eventHandler.SettingsSaved -= OnSettingsSaved;
+        _settingsProvider.Saved -= OnSettingsSaved;
     }
 
-    private void OnSettingsSaved(object? sender, SettingsSavedEventArgs eventArgs)
+    private void OnSettingsSaved(object? sender, ConfigurationSavedEventArgs<ServerSettings> eventArgs)
     {
         // Reset the cached values when the settings are updated.
         EnsureUsable(true);

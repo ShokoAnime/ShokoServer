@@ -1,9 +1,8 @@
 using System;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Models.AniDB;
@@ -37,16 +36,9 @@ public class AniDB_Cast : ICast
 
     public int Ordering => _xref.Ordering;
 
-    public CastRoleType RoleType => _xref.AppearanceType switch
-    {
-        CharacterAppearanceType.Main_Character => CastRoleType.MainCharacter,
-        CharacterAppearanceType.Minor_Character => CastRoleType.MinorCharacter,
-        CharacterAppearanceType.Background_Character => CastRoleType.BackgroundCharacter,
-        CharacterAppearanceType.Cameo => CastRoleType.Cameo,
-        _ => CastRoleType.None,
-    };
+    public CastRoleType RoleType => _xref.CastRoleType;
 
-    public IImageMetadata? PortraitImage => _character.GetImageMetadata();
+    public IImage? PortraitImage => _character.GetImageMetadata();
 
     public IMetadata<int>? Parent => _getParent();
 
@@ -72,7 +64,7 @@ public class AniDB_Cast : ICast
 
     #region IMetadata Implementation
 
-    DataSourceEnum IMetadata.Source => DataSourceEnum.AniDB;
+    DataSource IMetadata.Source => DataSource.AniDB;
 
     #endregion
 

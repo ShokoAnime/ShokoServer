@@ -4,15 +4,13 @@ using System.ComponentModel;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
-
-using MatchRatingEnum = Shoko.Models.Enums.MatchRating;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
@@ -186,7 +184,7 @@ public class TmdbEpisode
         }
         UserRating = new()
         {
-            Value = (decimal)episode.UserRating,
+            Value = episode.UserRating,
             MaxValue = 10,
             Votes = episode.UserVotes,
             Source = "TMDB",
@@ -361,10 +359,7 @@ public class TmdbEpisode
             TmdbShowID = xref.TmdbShowID;
             TmdbEpisodeID = xref.TmdbEpisodeID;
             Index = index ?? xref.Ordering;
-            Rating = "None";
-            // NOTE: Internal easter-eggs stays internally.
-            if (xref.MatchRating != MatchRatingEnum.SarahJessicaParker)
-                Rating = xref.MatchRating.ToString();
+            Rating = xref.MatchRating.ToString();
         }
     }
 

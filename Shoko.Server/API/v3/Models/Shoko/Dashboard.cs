@@ -5,7 +5,8 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
 #nullable enable
@@ -139,8 +140,8 @@ public static class Dashboard
     /// </summary>
     public class Episode
     {
-        public Episode(SVR_AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries? series = null,
-            SVR_VideoLocal? file = null, SVR_VideoLocal_User? userRecord = null)
+        public Episode(AniDB_Episode episode, AniDB_Anime anime, AnimeSeries? series = null,
+            VideoLocal? file = null, VideoLocal_User? userRecord = null)
         {
             IDs = new EpisodeDetailsIDs()
             {
@@ -152,14 +153,14 @@ public static class Dashboard
                     ? RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID)?.AnimeEpisodeID
                     : null
             };
-            Title = episode.PreferredTitle.Title;
+            Title = episode.Title;
             Number = episode.EpisodeNumber;
-            Type = episode.AbstractEpisodeType.ToV3Dto();
+            Type = episode.EpisodeType.ToV3Dto();
             AirDate = episode.GetAirDateAsDate()?.ToDateOnly();
             Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, episode.LengthSeconds);
-            ResumePosition = userRecord?.ResumePositionTimeSpan;
+            ResumePosition = userRecord?.ProgressPosition;
             Watched = userRecord?.WatchedDate?.ToUniversalTime();
-            SeriesTitle = series?.PreferredTitle ?? anime.PreferredTitle;
+            SeriesTitle = series?.Title ?? anime.Title;
             SeriesPoster = new Image(anime.PreferredOrDefaultPoster);
             Thumbnail = episode.PreferredOrDefaultThumbnail is { } image ? new Image(image) : null;
         }

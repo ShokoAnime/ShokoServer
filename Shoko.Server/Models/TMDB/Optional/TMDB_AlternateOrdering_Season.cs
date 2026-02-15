@@ -1,16 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Abstractions.Metadata.Tmdb;
+using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 using TMDbLib.Objects.TvShows;
-
-using AnimeSeason = Shoko.Models.Enums.AnimeSeason;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
+public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
 {
     #region Properties
 
@@ -162,9 +169,9 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
     /// <summary>
     /// Get all yearly seasons the show was released in.
     /// </summary>
-    public IEnumerable<(int Year, AnimeSeason Season)> Seasons
-        => TmdbAlternateOrderingEpisodes.Select(e => e.TmdbEpisode?.AiredAt).WhereNotDefault().Distinct().ToList() is { Count: > 0 } airsAt
-                ? airsAt.Min().GetYearlySeasons(airsAt.Max())
+    public IReadOnlyList<(int Year, YearlySeason Season)> YearlySeasons
+        => TmdbAlternateOrderingEpisodes.Select(e => e.TmdbEpisode?.AiredAt).WhereNotNullOrDefault().Distinct().ToList() is { Count: > 0 } airsAt
+                ? [.. airsAt.Min().GetYearlySeasons(airsAt.Max())]
                 : [];
 
     public TMDB_Show? TmdbShow =>
@@ -175,6 +182,126 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
 
     public IReadOnlyList<TMDB_AlternateOrdering_Episode> TmdbAlternateOrderingEpisodes =>
         RepoFactory.TMDB_AlternateOrdering_Episode.GetByTmdbEpisodeGroupID(TmdbEpisodeGroupID);
+
+    #endregion
+
+    #region IMetadata Implementation
+
+    string IMetadata<string>.ID => TmdbEpisodeGroupID.ToString();
+
+    DataSource IMetadata.Source => DataSource.TMDB;
+
+    #endregion
+
+    #region IWithTitles Implementation
+
+    string IWithTitles.Title => EnglishTitle;
+
+    ITitle IWithTitles.DefaultTitle => new TitleStub()
+    {
+        Language = TitleLanguage.EnglishAmerican,
+        CountryCode = "US",
+        LanguageCode = "en",
+        Value = EnglishTitle,
+        Source = DataSource.TMDB,
+    };
+
+    ITitle? IWithTitles.PreferredTitle => Utils.SettingsProvider.GetSettings().Language.SeriesTitleLanguageOrder.Contains("en-US")
+        ? new TitleStub()
+        {
+            Language = TitleLanguage.EnglishAmerican,
+            CountryCode = "US",
+            LanguageCode = "en",
+            Value = EnglishTitle,
+            Source = DataSource.TMDB,
+        }
+        : null;
+
+    IReadOnlyList<ITitle> IWithTitles.Titles =>
+    [
+        new TitleStub()
+        {
+            Language = TitleLanguage.EnglishAmerican,
+            CountryCode = "US",
+            LanguageCode = "en",
+            Value = EnglishTitle,
+            Source = DataSource.TMDB,
+        },
+    ];
+
+    #endregion
+
+    #region IWithDescriptions Implementation
+
+    IText? IWithDescriptions.DefaultDescription => null;
+
+    IText? IWithDescriptions.PreferredDescription => null;
+
+    IReadOnlyList<IText> IWithDescriptions.Descriptions => [];
+
+    #endregion
+
+    #region IWithCreationDate Implementation
+
+    DateTime IWithCreationDate.CreatedAt => CreatedAt.ToUniversalTime();
+
+    #endregion
+
+    #region IWithUpdateDate Implementation
+
+    DateTime IWithUpdateDate.LastUpdatedAt => LastUpdatedAt.ToUniversalTime();
+
+    #endregion
+
+    #region IWithCastAndCrew Implementation
+
+    IReadOnlyList<ICast> IWithCastAndCrew.Cast => Cast;
+
+    IReadOnlyList<ICrew> IWithCastAndCrew.Crew => Crew;
+
+    #endregion
+
+    #region IWithImages Implementation
+
+    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType) => null;
+
+    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType) => [];
+
+    #endregion
+
+    #region ISeason Implementation
+
+    int ISeason.SeriesID => TmdbShowID;
+
+    IImage? ISeason.DefaultPoster => null;
+
+    ISeries? ISeason.Series => TmdbShow;
+
+    IReadOnlyList<IEpisode> ISeason.Episodes => TmdbAlternateOrderingEpisodes;
+
+    #endregion
+
+    #region ITmdbSeason Implementation
+
+    string ITmdbSeason.OrderingID => TmdbEpisodeGroupCollectionID;
+
+    ITmdbShow? ITmdbSeason.Series => TmdbShow;
+
+    ITmdbShowOrderingInformation? ITmdbSeason.CurrentShowOrdering => TmdbAlternateOrdering;
+
+    IReadOnlyList<ITmdbEpisode> ITmdbSeason.Episodes => TmdbAlternateOrderingEpisodes;
+
+    IReadOnlyList<ITmdbSeasonCrossReference> ITmdbSeason.TmdbSeasonCrossReferences =>
+        TmdbAlternateOrderingEpisodes
+            .SelectMany(e => RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByTmdbEpisodeID(e.TmdbEpisodeID))
+            .DistinctBy(xref => xref.AnidbAnimeID)
+            .Select(xref => new CrossRef_AniDB_TMDB_Season(xref.AnidbAnimeID, TmdbEpisodeGroupID, TmdbShowID, SeasonNumber))
+            .ToList();
+
+    IReadOnlyList<ITmdbEpisodeCrossReference> ITmdbSeason.TmdbEpisodeCrossReferences =>
+        TmdbAlternateOrderingEpisodes
+            .SelectMany(e => RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByTmdbEpisodeID(e.TmdbEpisodeID))
+            .ToList();
 
     #endregion
 }

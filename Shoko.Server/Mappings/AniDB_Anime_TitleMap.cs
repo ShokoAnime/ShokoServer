@@ -1,10 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
 using Shoko.Server.Databases.NHibernate;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Mappings;
 
-public class AniDB_Anime_TitleMap : ClassMap<SVR_AniDB_Anime_Title>
+public class AniDB_Anime_TitleMap : ClassMap<AniDB_Anime_Title>
 {
     public AniDB_Anime_TitleMap()
     {

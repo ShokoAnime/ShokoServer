@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Internal;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Server;
 
@@ -23,6 +24,8 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
         _authTokens = authTokens;
         _users = users;
     }
+
+    private const string BearerPrefix = "Bearer ";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -41,17 +44,24 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
                 new AuthenticationTicket(initPrincipal, Options.Scheme)));
         }
 
-
         // Get Authorization header value and join with the query
-        var authkeys = Request.Headers["apikey"].Union(Request.Query["apikey"]).ToList();
+        var authKeys = Request.Headers["apikey"]
+            .Union(Request.Query["apikey"])
+            .ToList();
 
-        if (authkeys.Count == 0)
+        // SignalR auth handling.
+        if (authKeys.Count == 0 && Request.Path.ToString().StartsWith("/signalr/"))
+            authKeys = Request.Headers.Authorization.Where(a => a.StartsWith(BearerPrefix)).Select(a => a[BearerPrefix.Length..])
+                .Union(Request.Query["access_token"])
+                .ToList();
+
+        if (authKeys.Count == 0)
         {
             return Task.FromResult(AuthenticateResult.Fail("Cannot read authorization header or query."));
         }
 
         //Find authenticated user.
-        var user = authkeys.Select(GetUserForKey).FirstOrDefault(s => s != null);
+        var (user, token) = authKeys.Select(GetUserForKey).FirstOrDefault(s => s.user != null);
 
         if (user == null)
         {
@@ -63,7 +73,9 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
         {
             new(ClaimTypes.Role, "user"),
             new(ClaimTypes.NameIdentifier, user.JMMUserID.ToString()),
-            new(ClaimTypes.AuthenticationMethod, "apikey")
+            new(ClaimTypes.AuthenticationMethod, "apikey"),
+            new("apikey", token.Token),
+            new("apikey.device", token.DeviceName),
         };
         if (user.IsAdmin == 1)
         {
@@ -78,20 +90,23 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
 
-    private SVR_JMMUser GetUserForKey(string ctx)
+    private (JMMUser user, AuthTokens apikey) GetUserForKey(string ctx)
     {
         if (!(ServerState.Instance?.ServerOnline ?? false))
         {
-            return null;
+            return (null, null);
         }
 
         var apikey = ctx?.Trim();
         if (string.IsNullOrEmpty(apikey))
         {
-            return null;
+            return (null, null);
         }
 
         var auth = _authTokens.GetByToken(apikey);
-        return auth != null ? _users.GetByID(auth.UserID) : null;
+        return (
+            auth != null ? _users.GetByID(auth.UserID) : null,
+            auth
+        );
     }
 }

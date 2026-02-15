@@ -4,16 +4,19 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.MediaInfo;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Release;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.MediaInfo;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 
-using CrossRefSource = Shoko.Models.Enums.CrossRefSource;
+using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
+using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -149,7 +152,7 @@ public class WebUI
     public class WebUISeriesFileSummary
     {
         public WebUISeriesFileSummary(
-            SVR_AnimeSeries series,
+            AnimeSeries series,
             HashSet<EpisodeType>? episodeTypes = null,
             bool withEpisodeDetails = false,
             bool withLocationDetails = false,
@@ -172,7 +175,7 @@ public class WebUI
                 .Select(shoko =>
                 {
                     var anidb = shoko.AniDB_Episode!;
-                    var type = anidb.AbstractEpisodeType.ToV3Dto();
+                    var type = anidb.EpisodeType.ToV3Dto();
                     var airDate = anidb.GetAirDateAsDate();
                     return new
                     {
@@ -188,20 +191,13 @@ public class WebUI
                 // Show everything if no types are provided, otherwise filter to the given types.
                 .Where(episode => episodeTypes.Count == 0 || episodeTypes.Contains(episode.Type))
                 .ToDictionary(episode => episode.ID);
-            var anidbFiles = crossRefs
-                // We only check for the file if the source is anidb.
-                .Select(tuple => (CrossRefSource)tuple.xref.CrossRefSource == CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByHash(tuple.xref.Hash) : null)
+            var releases = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID)
+                .ToDictionary(release => (release.ED2K, release.FileSize), release => (IReleaseInfo)release);
+            var releaseGroups = releases.Values
+                .Select(r => r.Group)
                 .WhereNotNull()
-                // Multiple cross-references can be linked to the same anidb file.
-                .DistinctBy(anidbFile => anidbFile.Hash)
-                .ToDictionary(anidbFile => anidbFile.Hash);
-            var releaseGroups = anidbFiles.Values
-                .Select(anidbFile => anidbFile.GroupID)
-                .Distinct()
-                .Where(groupID => groupID != 0)
-                .Select(RepoFactory.AniDB_ReleaseGroup.GetByGroupID)
-                .WhereNotNull()
-                .ToDictionary(releaseGroup => releaseGroup.GroupID);
+                .DistinctBy(r => (r.ID, r.Source))
+                .ToDictionary(releaseGroup => (releaseGroup.ID, releaseGroup.Source));
             // We only care about files with exist and have actual media info and with an actual physical location. (Which should hopefully exclude nothing.)
             var filesWithXrefAndLocation = crossRefs
                 .Where(tuple => episodes.ContainsKey(tuple.xref.EpisodeID))
@@ -233,29 +229,28 @@ public class WebUI
                     var (file, xref, location) = tuple;
                     var media = new MediaInfo(file, file.MediaInfo!);
                     var episode = episodes[xref.EpisodeID];
-                    var isAutoLinked = (CrossRefSource)xref.CrossRefSource == CrossRefSource.AniDB;
-                    var anidbFile = isAutoLinked && anidbFiles.TryGetValue(xref.Hash, out var aniFi) ? aniFi : null;
-                    var releaseGroup = anidbFile != null && anidbFile.GroupID != 0 && releaseGroups.TryGetValue(anidbFile.GroupID, out var reGr) ? reGr : null;
+                    var releaseInfo = releases.TryGetValue((xref.Hash, xref.FileSize), out var release) ? release : null;
+                    var releaseGroup = releaseInfo?.Group;
                     var groupByDetails = new GroupByDetails();
 
                     // Release group criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.GroupName))
                     {
-                        groupByDetails.GroupName = isAutoLinked ? releaseGroup?.GroupName ?? "Unknown" : "None";
-                        groupByDetails.GroupNameShort = isAutoLinked ? releaseGroup?.GroupNameShort ?? "Unk" : "-";
+                        groupByDetails.GroupName = releaseGroup?.Name ?? (releaseGroup is { Source: "AniDB" } ? "Unknown" : "None");
+                        groupByDetails.GroupNameShort = releaseGroup?.ShortName ?? (releaseGroup is { Source: "AniDB" } ? "Unk" : "-");
                     }
 
                     // File criteria
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileVersion))
-                        groupByDetails.FileVersion = isAutoLinked ? anidbFile?.FileVersion ?? 1 : 1;
+                        groupByDetails.FileVersion = release?.Version ?? 1;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileSource))
-                        groupByDetails.FileSource = File.ParseFileSource(anidbFile?.File_Source);
+                        groupByDetails.FileSource = release?.Source ?? ReleaseSource.Unknown;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileLocation))
-                        groupByDetails.FileLocation = System.IO.Path.GetDirectoryName(location.FullServerPath)!;
+                        groupByDetails.FileLocation = System.IO.Path.GetDirectoryName(location.Path)!;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileIsDeprecated))
-                        groupByDetails.FileIsDeprecated = anidbFile?.IsDeprecated ?? false;
-                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ImportFolder))
-                        groupByDetails.ImportFolder = location.ImportFolderID;
+                        groupByDetails.FileIsDeprecated = release?.IsCorrupted ?? false;
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ManagedFolder))
+                        groupByDetails.ManagedFolder = location.ManagedFolderID;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ED2K))
                         groupByDetails.ED2K = $"{file.Hash}+{file.FileSize}";
 
@@ -278,7 +273,7 @@ public class WebUI
                             var height = videoStream?.Height ?? 0;
                             groupByDetails.VideoWidth = width;
                             groupByDetails.VideoHeight = height;
-                            groupByDetails.VideoResolution = MediaInfoUtils.GetStandardResolution(new(width, height));
+                            groupByDetails.VideoResolution = MediaInfoUtility.GetStandardResolution(new(width, height));
                         }
                     }
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.VideoHasChapters))
@@ -341,7 +336,7 @@ public class WebUI
             {
                 TotalFileSize = files.Sum(fileWrapper => fileWrapper.Episode.Size),
                 ReleaseGroups = releaseGroups.Values
-                    .Select(group => group.GroupNameShort ?? group.GroupName)
+                    .Select(group => group.ShortName ?? group.Name)
                     .WhereNotNull()
                     .Distinct()
                     .ToList(),
@@ -349,8 +344,8 @@ public class WebUI
                     .Select(t =>
                     {
                         var episodeType = episodes[t.xref.EpisodeID].Type;
-                        var fileSource = t.xref.CrossRefSource == (int)CrossRefSource.AniDB && anidbFiles.TryGetValue(t.xref.Hash, out var anidbFile)
-                            ? File.ParseFileSource(anidbFile.File_Source) : FileSource.Unknown;
+                        var fileSource = releases.TryGetValue((t.xref.Hash, t.xref.FileSize), out var release)
+                            ? release?.Source ?? ReleaseSource.Unknown : ReleaseSource.Unknown;
 
                         return (episodeType, fileSource);
                     })
@@ -407,7 +402,7 @@ public class WebUI
                         FileSource = details.FileSource,
                         FileLocation = details.FileLocation,
                         FileIsDeprecated = details.FileIsDeprecated,
-                        ImportFolder = details.ImportFolder,
+                        ManagedFolder = details.ManagedFolder,
                         ED2K = details.ED2K,
                         VideoCodecs = details.VideoCodecs,
                         VideoBitDepth = details.VideoBitDepth,
@@ -433,7 +428,7 @@ public class WebUI
                             : null,
                         Locations = withLocationDetails
                             ? list.Select(episode => new File.Location(episode.Location, false))
-                                .OrderBy(location => location.ImportFolderID)
+                                .OrderBy(location => location.ManagedFolderID)
                                 .ThenBy(location => location.FileID)
                                 .ThenBy(location => location.RelativePath)
                                 .ToList()
@@ -474,7 +469,7 @@ public class WebUI
             SubtitleStreamCount = 4096,
             VideoHasChapters = 8192,
             FileIsDeprecated = 16384,
-            ImportFolder = 32768,
+            ManagedFolder = 32768,
             ED2K = 65536,
             MultipleLocations = 131072,
         }
@@ -510,7 +505,7 @@ public class WebUI
             /// The source type for the files in this range (e.g., BluRay, Web, etc.).
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public FileSource? FileSource { get; set; }
+            public ReleaseSource? FileSource { get; set; }
 
             /// <summary>
             /// The parent directory location of the files in this range.
@@ -526,10 +521,10 @@ public class WebUI
             public bool? FileIsDeprecated { get; set; }
 
             /// <summary>
-            /// The import folder ID of the files in this range.
+            /// The managed folder ID of the files in this range.
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public int? ImportFolder { get; set; }
+            public int? ManagedFolder { get; set; }
 
             /// <summary>
             /// The ED2K hash + file size of the file in this range.
@@ -771,7 +766,7 @@ public class WebUI
 
             public int? FileVersion { get; set; }
 
-            public FileSource? FileSource { get; set; }
+            public ReleaseSource? FileSource { get; set; }
 
             public int? VideoBitDepth { get; set; }
 
@@ -801,7 +796,7 @@ public class WebUI
 
             public bool? FileIsDeprecated { get; set; }
 
-            public int? ImportFolder { get; set; }
+            public int? ManagedFolder { get; set; }
 
             public string? ED2K { get; set; }
 
@@ -822,7 +817,7 @@ public class WebUI
                     FileSource == other.FileSource &&
                     FileLocation == other.FileLocation &&
                     FileIsDeprecated == other.FileIsDeprecated &&
-                    ImportFolder == other.ImportFolder &&
+                    ManagedFolder == other.ManagedFolder &&
                     ED2K == other.ED2K &&
 
                     VideoCodecs == other.VideoCodecs &&
@@ -852,7 +847,7 @@ public class WebUI
                         FileSource,
                         FileLocation,
                         FileIsDeprecated,
-                        ImportFolder,
+                        ManagedFolder,
                         ED2K
                     ),
                     HashCode.Combine(
@@ -889,7 +884,7 @@ public class WebUI
             public required int FileID { get; init; }
 
             [JsonIgnore]
-            public required SVR_VideoLocal_Place Location { get; init; }
+            public required VideoLocal_Place Location { get; init; }
 
             /// <summary>
             /// AniDB Episode Type.
@@ -951,7 +946,7 @@ public class WebUI
             /// The file source.
             /// </summary>
             [JsonConverter(typeof(StringEnumConverter))]
-            public FileSource Type { get; set; }
+            public ReleaseSource Type { get; set; }
 
             /// <summary>
             /// Amount of files with this file source.

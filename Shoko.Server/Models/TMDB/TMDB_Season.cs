@@ -1,8 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Abstractions.Metadata.Tmdb;
+using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Providers.TMDB;
@@ -11,15 +16,13 @@ using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.TvShows;
 
-using AnimeSeason = Shoko.Models.Enums.AnimeSeason;
-
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 /// <summary>
 /// The Movie DataBase (TMDB) Season Database Model.
 /// </summary>
-public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
+public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmdbSeason
 {
     #region Properties
 
@@ -277,9 +280,9 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
     /// <summary>
     /// Get all yearly seasons the show was released in.
     /// </summary>
-    public IEnumerable<(int Year, AnimeSeason Season)> Seasons
-        => TmdbEpisodes.Select(e => e?.AiredAt).WhereNotDefault().Distinct().ToList() is { Count: > 0 } airsAt
-                ? airsAt.Min().GetYearlySeasons(airsAt.Max())
+    public IReadOnlyList<(int Year, YearlySeason Season)> YearlySeasons
+        => TmdbEpisodes.Select(e => e?.AiredAt).WhereNotNullOrDefault().Distinct().ToList() is { Count: > 0 } airsAt
+                ? [.. airsAt.Min().GetYearlySeasons(airsAt.Max())]
                 : [];
 
     /// <summary>
@@ -305,7 +308,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
 
     ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Season;
 
-    DataSourceEnum IEntityMetadata.DataSource => DataSourceEnum.TMDB;
+    DataSource IEntityMetadata.DataSource => DataSource.TMDB;
 
     string? IEntityMetadata.OriginalTitle => null;
 
@@ -321,7 +324,110 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>
 
     int IMetadata<int>.ID => TmdbSeasonID;
 
-    DataSourceEnum IMetadata.Source => DataSourceEnum.TMDB;
+    string IMetadata<string>.ID => TmdbSeasonID.ToString();
+
+    DataSource IMetadata.Source => DataSource.TMDB;
+
+    #endregion
+
+    #region IWithTitles Implementation
+
+    string IWithTitles.Title => GetPreferredTitle()?.Value ?? EnglishTitle;
+
+    ITitle IWithTitles.DefaultTitle => new TitleStub()
+    {
+        Language = TitleLanguage.EnglishAmerican,
+        CountryCode = "US",
+        LanguageCode = "en",
+        Value = EnglishTitle,
+        Source = DataSource.TMDB,
+    };
+
+    ITitle? IWithTitles.PreferredTitle => GetPreferredTitle();
+
+    IReadOnlyList<ITitle> IWithTitles.Titles => GetAllTitles();
+
+    #endregion
+
+    #region IWithDescriptions Implementation
+
+    IText? IWithDescriptions.DefaultDescription => new TextStub()
+    {
+        Language = TitleLanguage.EnglishAmerican,
+        CountryCode = "US",
+        LanguageCode = "en",
+        Value = EnglishOverview,
+        Source = DataSource.TMDB,
+    };
+
+    IText? IWithDescriptions.PreferredDescription => GetPreferredOverview();
+
+    IReadOnlyList<IText> IWithDescriptions.Descriptions => GetAllOverviews();
+
+    #endregion
+
+    #region IWithCreationDate Implementation
+
+    DateTime IWithCreationDate.CreatedAt => CreatedAt.ToUniversalTime();
+
+    #endregion
+
+    #region IWithUpdateDate Implementation
+
+    DateTime IWithUpdateDate.LastUpdatedAt => LastUpdatedAt.ToUniversalTime();
+
+    #endregion
+
+    #region IWithCastAndCrew Implementation
+
+    IReadOnlyList<ICast> IWithCastAndCrew.Cast => Cast;
+
+    IReadOnlyList<ICrew> IWithCastAndCrew.Crew => Crew;
+
+    #endregion
+
+    #region IWithImages Implementation
+
+    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType) => null;
+
+    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType) => GetImages(entityType);
+
+    #endregion
+
+    #region ISeason Implementation
+
+    int ISeason.SeriesID => TmdbShowID;
+
+    IImage? ISeason.DefaultPoster => DefaultPoster;
+
+    ISeries? ISeason.Series => TmdbShow;
+
+    IReadOnlyList<IEpisode> ISeason.Episodes => TmdbEpisodes;
+
+    #endregion
+
+    #region ITmdbSeason Implementation
+
+    string ITmdbSeason.OrderingID => TmdbShowID.ToString();
+
+    ITmdbShow? ITmdbSeason.Series => TmdbShow;
+
+    ITmdbShowOrderingInformation? ITmdbSeason.CurrentShowOrdering => TmdbShow;
+
+    IReadOnlyList<ITmdbEpisode> ITmdbSeason.Episodes => TmdbEpisodes;
+
+    IReadOnlyList<ITmdbSeasonCrossReference> ITmdbSeason.TmdbSeasonCrossReferences =>
+        TmdbEpisodes
+            .SelectMany(e => e.CrossReferences)
+            .Select(xref => xref.TmdbSeasonCrossReference)
+            .WhereNotNull()
+            .DistinctBy(xref => xref.TmdbSeasonID)
+            .ToList();
+
+    IReadOnlyList<ITmdbEpisodeCrossReference> ITmdbSeason.TmdbEpisodeCrossReferences =>
+        TmdbEpisodes
+            .SelectMany(e => e.CrossReferences)
+            .ToList();
 
     #endregion
 }

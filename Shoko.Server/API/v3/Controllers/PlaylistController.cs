@@ -6,7 +6,7 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -40,7 +40,8 @@ public class PlaylistController : BaseController
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeReleaseInfo">Include release info data.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("Generate")]
     public ActionResult<IReadOnlyList<PlaylistItem>> GetGeneratedPlaylistJson(
@@ -48,7 +49,8 @@ public class PlaylistController : BaseController
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+        [FromQuery] bool includeReleaseInfo = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null
     )
     {
         if (!_playlistService.TryParsePlaylist(items ?? [], out var playlist, ModelState))
@@ -57,10 +59,10 @@ public class PlaylistController : BaseController
         return playlist
             .Select(tuple => new PlaylistItem(
                 tuple.episodes
-                    .Select(episode => new Episode(HttpContext, (episode as SVR_AnimeEpisode)!, includeDataFrom, withXRefs: includeXRefs))
+                    .Select(episode => new Episode(HttpContext, (episode as AnimeEpisode)!, includeDataFrom, withXRefs: includeXRefs))
                     .ToList(),
                 tuple.videos
-                    .Select(video => new File(HttpContext, (video as SVR_VideoLocal)!, withXRefs: includeXRefs, includeDataFrom, includeMediaInfo, includeAbsolutePaths))
+                    .Select(video => new File(HttpContext, (video as VideoLocal)!, withXRefs: includeXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths))
                     .ToList()
             ))
             .ToList();

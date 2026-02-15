@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Info;
@@ -13,8 +14,7 @@ public class HasCreatorExpression : FilterExpression<bool>, IWithStringParameter
     public HasCreatorExpression() { }
 
     public string CreatorID { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
+
     public override string HelpDescription => "This condition passes if the filterable has a creator.";
 
     string IWithStringParameter.Parameter
@@ -23,7 +23,7 @@ public class HasCreatorExpression : FilterExpression<bool>, IWithStringParameter
         set => CreatorID = value;
     }
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.CreatorIDs.Contains(CreatorID);
     }

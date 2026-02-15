@@ -1,45 +1,48 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
-using Shoko.Models;
-using Shoko.Models.Client;
-using Shoko.Models.Enums;
-using Shoko.Models.Server;
+using Shoko.Server.API.v1.Models;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Services;
+using Shoko.Abstractions.UserData.Enums;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.AniDB;
 
+#nullable enable
 namespace Shoko.Server.Services;
 
 public class AnimeGroupService
 {
     private readonly ILogger<AnimeGroupService> _logger;
+
     private readonly AnimeGroup_UserRepository _groupUsers;
-    private readonly CrossRef_Languages_AniDB_FileRepository _languages;
-    private readonly CrossRef_Subtitles_AniDB_FileRepository _subtitles;
-    private readonly CrossRef_File_EpisodeRepository _fileEpisodes;
-    private readonly AniDB_FileRepository _files;
+
+    private readonly StoredReleaseInfoRepository _storedReleaseInfo;
+
     private readonly AnimeGroupRepository _groups;
+
     private readonly AnimeSeries_UserRepository _seriesUsers;
 
-    public AnimeGroupService(ILogger<AnimeGroupService> logger, AnimeGroup_UserRepository groupUsers, CrossRef_Languages_AniDB_FileRepository languages, CrossRef_Subtitles_AniDB_FileRepository subtitles, CrossRef_File_EpisodeRepository fileEpisodes, AniDB_FileRepository files, AnimeGroupRepository groups, AnimeSeries_UserRepository seriesUsers)
+    private readonly UserDataService _userDataService;
+
+    public AnimeGroupService(ILogger<AnimeGroupService> logger, AnimeGroup_UserRepository groupUsers, StoredReleaseInfoRepository storedReleaseInfo, AnimeGroupRepository groups, AnimeSeries_UserRepository seriesUsers, IUserDataService userDataService)
     {
         _groupUsers = groupUsers;
         _logger = logger;
-        _languages = languages;
-        _subtitles = subtitles;
-        _fileEpisodes = fileEpisodes;
-        _files = files;
+        _storedReleaseInfo = storedReleaseInfo;
         _groups = groups;
         _seriesUsers = seriesUsers;
+        _userDataService = (UserDataService)userDataService;
     }
 
-    public void DeleteGroup(SVR_AnimeGroup group, bool updateParent = true)
+    public void DeleteGroup(AnimeGroup group, bool updateParent = true)
     {
         // delete all sub groups
         foreach (var subGroup in group.AllChildren)
@@ -56,7 +59,7 @@ public class AnimeGroupService
         }
     }
 
-    public void SetMainSeries(SVR_AnimeGroup group, [CanBeNull] SVR_AnimeSeries series)
+    public void SetMainSeries(AnimeGroup group, [CanBeNull] AnimeSeries series)
     {
         // Set the id before potentially resetting the fields, so the getter uses
         // the new id instead of the old.
@@ -69,16 +72,16 @@ public class AnimeGroupService
             ? RepoFactory.AnimeSeries.GetByAnimeID(group.MainAniDBAnimeID.Value)
             : group.AllSeries.FirstOrDefault());
         if (group.IsManuallyNamed == 0 && current != null)
-            group.GroupName = current!.PreferredTitle;
+            group.GroupName = current!.Title;
         if (group.OverrideDescription == 0 && current != null)
-            group.Description = current!.PreferredOverview;
+            group.Description = current!.PreferredOverview?.Value ?? string.Empty;
 
         // Save the changes for this group only.
         group.DateTimeUpdated = DateTime.Now;
         _groups.Save(group, false);
     }
 
-    public void ValidateMainSeries(SVR_AnimeGroup group)
+    public void ValidateMainSeries(AnimeGroup group)
     {
         if (group.MainAniDBAnimeID == null && group.DefaultAnimeSeriesID == null) return;
         var allSeries = group.AllSeries;
@@ -96,21 +99,61 @@ public class AnimeGroupService
         }
     }
 
-    public CL_AnimeGroup_User GetV1Contract(SVR_AnimeGroup group, int userid)
+    [return: NotNullIfNotNull(nameof(group))]
+    public CL_AnimeGroup_User? GetV1Contract(AnimeGroup? group, int userid)
     {
         if (group == null) return null;
+        var groupSeries = group.AllSeries;
+        var mainSeries = group.MainSeries ?? groupSeries.FirstOrDefault();
+        var userDict = groupSeries
+            .Select(a => _seriesUsers.GetByUserAndSeriesID(userid, a.AnimeSeriesID))
+            .WhereNotNull()
+            .ToDictionary(a => a.AnimeSeriesID);
+        var votesByAnime = userDict.Values
+            .Where(x => x.HasUserRating)
+            .ToDictionary(a => a.AnimeSeriesID);
+        var isFavorite = mainSeries is not null && userDict.TryGetValue(mainSeries.AnimeSeriesID, out var mainSeriesUser) && mainSeriesUser.IsFavorite;
         var contract = GetContract(group);
-        var rr = _groupUsers.GetByUserAndGroupID(userid, group.AnimeGroupID);
-        if (rr != null)
+        var allVoteTotal = 0D;
+        var permVoteTotal = 0D;
+        var tempVoteTotal = 0D;
+        var allVoteCount = 0;
+        var permVoteCount = 0;
+        var tempVoteCount = 0;
+        foreach (var series in groupSeries)
         {
-            contract.IsFave = rr.IsFave;
-            contract.UnwatchedEpisodeCount = rr.UnwatchedEpisodeCount;
-            contract.WatchedEpisodeCount = rr.WatchedEpisodeCount;
-            contract.WatchedDate = rr.WatchedDate;
-            contract.PlayedCount = rr.PlayedCount;
-            contract.WatchedCount = rr.WatchedCount;
-            contract.StoppedCount = rr.StoppedCount;
+            if (votesByAnime.TryGetValue(series.AnimeSeriesID, out var seriesUserData))
+            {
+                allVoteCount++;
+                allVoteTotal += seriesUserData.UserRating!.Value;
+
+                switch (seriesUserData.UserRatingVoteType!.Value)
+                {
+                    case SeriesVoteType.Permanent:
+                        permVoteCount++;
+                        permVoteTotal += seriesUserData.UserRating!.Value;
+                        break;
+                    case SeriesVoteType.Temporary:
+                        tempVoteCount++;
+                        tempVoteTotal += seriesUserData.UserRating!.Value;
+                        break;
+                }
+            }
         }
+        var groupUserData = _groupUsers.GetByUserAndGroupID(userid, group.AnimeGroupID);
+        if (groupUserData is not null)
+        {
+            contract.UnwatchedEpisodeCount = groupUserData.UnwatchedEpisodeCount;
+            contract.WatchedEpisodeCount = groupUserData.WatchedEpisodeCount;
+            contract.WatchedDate = groupUserData.WatchedDate;
+            contract.PlayedCount = groupUserData.PlayedCount;
+            contract.WatchedCount = groupUserData.WatchedCount;
+            contract.StoppedCount = groupUserData.StoppedCount;
+        }
+        contract.IsFave = isFavorite ? 1 : 0;
+        contract.Stat_UserVoteOverall = allVoteCount == 0 ? null : (decimal)Math.Round(allVoteTotal / allVoteCount / 100D, 2);
+        contract.Stat_UserVotePermanent = permVoteCount == 0 ? null : (decimal)Math.Round(permVoteTotal / permVoteCount / 100D, 2);
+        contract.Stat_UserVoteTemporary = tempVoteCount == 0 ? null : (decimal)Math.Round(tempVoteTotal / tempVoteCount / 100D, 2);
 
         return contract;
     }
@@ -133,9 +176,9 @@ public class AnimeGroupService
             {
                 // Reset the name/description as needed.
                 if (grp.IsManuallyNamed == 0)
-                    grp.GroupName = series.PreferredTitle;
+                    grp.GroupName = series.Title;
                 if (grp.OverrideDescription == 0)
-                    grp.Description = series.PreferredOverview;
+                    grp.Description = series.PreferredOverview?.Value ?? string.Empty;
 
                 // Save the changes for this group only.
                 grp.DateTimeUpdated = DateTime.Now;
@@ -149,7 +192,7 @@ public class AnimeGroupService
     /// Update stats for all child groups and series
     /// This should only be called from the very top level group.
     /// </summary>
-    public void UpdateStatsFromTopLevel(SVR_AnimeGroup group, bool watchedStats, bool missingEpsStats)
+    public void UpdateStatsFromTopLevel(AnimeGroup? group, bool watchedStats, bool missingEpsStats)
     {
         if (group is not { AnimeGroupParentID: null })
         {
@@ -175,7 +218,7 @@ public class AnimeGroupService
     /// Update the stats for this group based on the child series
     /// Assumes that all the AnimeSeries have had their stats updated already
     /// </summary>
-    private void UpdateStats(SVR_AnimeGroup group, bool watchedStats, bool missingEpsStats)
+    private void UpdateStats(AnimeGroup group, bool watchedStats, bool missingEpsStats)
     {
         var start = DateTime.Now;
         _logger.LogInformation(
@@ -187,9 +230,9 @@ public class AnimeGroupService
         if (mainSeries is not null)
         {
             if (group.IsManuallyNamed == 0)
-                group.GroupName = mainSeries.PreferredTitle;
+                group.GroupName = mainSeries.Title;
             if (group.OverrideDescription == 0)
-                group.Description = mainSeries.PreferredOverview;
+                group.Description = mainSeries.PreferredOverview?.Value ?? string.Empty;
         }
 
         if (missingEpsStats)
@@ -201,11 +244,12 @@ public class AnimeGroupService
         {
             var allUsers = RepoFactory.JMMUser.GetAll();
 
-            UpdateWatchedStats(group, seriesList, allUsers, (userRecord, _) =>
+            UpdateWatchedStats(group, seriesList, allUsers, (userRecord, _, isUpdated) =>
             {
                 // Now update the stats for the groups
                 _logger.LogTrace("Updating stats for {0}", ToString());
-                RepoFactory.AnimeGroup_User.Save(userRecord);
+                if (isUpdated)
+                    _groupUsers.Save(userRecord);
             });
         }
 
@@ -215,13 +259,13 @@ public class AnimeGroupService
     }
 
     /// <summary>
-    /// Batch updates watched/missing episode stats for the specified sequence of <see cref="SVR_AnimeGroup"/>s.
+    /// Batch updates watched/missing episode stats for the specified sequence of <see cref="AnimeGroup"/>s.
     /// </summary>
     /// <remarks>
     /// NOTE: This method does NOT save the changes made to the database.
     /// NOTE 2: Assumes that all the AnimeSeries have had their stats updated already.
     /// </remarks>
-    /// <param name="animeGroups">The sequence of <see cref="SVR_AnimeGroup"/>s whose missing episode stats are to be updated.</param>
+    /// <param name="animeGroups">The sequence of <see cref="AnimeGroup"/>s whose missing episode stats are to be updated.</param>
     /// <param name="watchedStats"><c>true</c> to update watched stats; otherwise, <c>false</c>.</param>
     /// <param name="missingEpsStats"><c>true</c> to update missing episode stats; otherwise, <c>false</c>.</param>
     /// <param name="createdGroupUsers">The <see cref="ICollection{T}"/> to add any <see cref="AnimeGroup_User"/> records
@@ -229,41 +273,30 @@ public class AnimeGroupService
     /// <param name="updatedGroupUsers">The <see cref="ICollection{T}"/> to add any <see cref="AnimeGroup_User"/> records
     /// that were modified when updating watched stats.</param>
     /// <exception cref="ArgumentNullException"><paramref name="animeGroups"/> is <c>null</c>.</exception>
-    public void BatchUpdateStats(IEnumerable<SVR_AnimeGroup> animeGroups, bool watchedStats = true,
+    public void BatchUpdateStats(IEnumerable<AnimeGroup> animeGroups, bool watchedStats = true,
         bool missingEpsStats = true,
-        ICollection<AnimeGroup_User> createdGroupUsers = null,
-        ICollection<AnimeGroup_User> updatedGroupUsers = null)
+        ICollection<AnimeGroup_User>? createdGroupUsers = null,
+        ICollection<AnimeGroup_User>? updatedGroupUsers = null)
     {
-        if (animeGroups == null)
-        {
-            throw new ArgumentNullException(nameof(animeGroups));
-        }
-
+        ArgumentNullException.ThrowIfNull(animeGroups);
         if (!watchedStats && !missingEpsStats)
-        {
             return; // Nothing to do
-        }
 
         var allUsers = RepoFactory.JMMUser.GetAll();
-
         foreach (var animeGroup in animeGroups)
         {
             var animeSeries = animeGroup.AllSeries;
-
             if (missingEpsStats)
-            {
                 UpdateMissingEpisodeStats(animeGroup, animeSeries);
-            }
-
             if (watchedStats)
             {
-                UpdateWatchedStats(animeGroup, animeSeries, allUsers, (userRecord, isNew) =>
+                UpdateWatchedStats(animeGroup, animeSeries, allUsers, (userRecord, isNew, isUpdated) =>
                 {
                     if (isNew)
                     {
                         createdGroupUsers?.Add(userRecord);
                     }
-                    else
+                    else if (isUpdated)
                     {
                         updatedGroupUsers?.Add(userRecord);
                     }
@@ -275,55 +308,18 @@ public class AnimeGroupService
     /// <summary>
     /// Updates the watched stats for the specified anime group.
     /// </summary>
-    /// <param name="animeGroup">The <see cref="SVR_AnimeGroup"/> that is to have it's watched stats updated.</param>
-    /// <param name="seriesList">The list of <see cref="SVR_AnimeSeries"/> that belong to <paramref name="animeGroup"/>.</param>
+    /// <param name="animeGroup">The <see cref="AnimeGroup"/> that is to have it's watched stats updated.</param>
+    /// <param name="seriesList">The list of <see cref="AnimeSeries"/> that belong to <paramref name="animeGroup"/>.</param>
     /// <param name="allUsers">A sequence of all JMM users.</param>
-    /// <param name="newAnimeGroupUsers">A methed that will be called for each processed <see cref="AnimeGroup_User"/>
+    /// <param name="newAnimeGroupUsers">A method that will be called for each processed <see cref="AnimeGroup_User"/>
     /// and whether or not the <see cref="AnimeGroup_User"/> is new.</param>
-    private void UpdateWatchedStats(SVR_AnimeGroup animeGroup,
-        IReadOnlyCollection<SVR_AnimeSeries> seriesList,
-        IEnumerable<SVR_JMMUser> allUsers, Action<AnimeGroup_User, bool> newAnimeGroupUsers)
+    private void UpdateWatchedStats(AnimeGroup animeGroup,
+        IReadOnlyList<AnimeSeries> seriesList,
+        IEnumerable<JMMUser> allUsers, Action<AnimeGroup_User, bool, bool> newAnimeGroupUsers)
     {
-        foreach (var juser in allUsers)
+        foreach (var user in allUsers)
         {
-            var userRecord = _groupUsers.GetByUserAndGroupID(juser.JMMUserID, animeGroup.AnimeGroupID);
-            var isNewRecord = false;
-
-            if (userRecord == null)
-            {
-                userRecord = new AnimeGroup_User
-                {
-                    JMMUserID = juser.JMMUserID,
-                    AnimeGroupID = animeGroup.AnimeGroupID
-                };
-                isNewRecord = true;
-            }
-
-            // Reset stats
-            userRecord.WatchedCount = 0;
-            userRecord.UnwatchedEpisodeCount = 0;
-            userRecord.PlayedCount = 0;
-            userRecord.StoppedCount = 0;
-            userRecord.WatchedEpisodeCount = 0;
-            userRecord.WatchedDate = null;
-
-            foreach (var serUserRecord in seriesList.Select(ser => _seriesUsers.GetByUserAndSeriesID(juser.JMMUserID, ser.AnimeSeriesID))
-                         .WhereNotNull())
-            {
-                userRecord.WatchedCount += serUserRecord.WatchedCount;
-                userRecord.UnwatchedEpisodeCount += serUserRecord.UnwatchedEpisodeCount;
-                userRecord.PlayedCount += serUserRecord.PlayedCount;
-                userRecord.StoppedCount += serUserRecord.StoppedCount;
-                userRecord.WatchedEpisodeCount += serUserRecord.WatchedEpisodeCount;
-
-                if (serUserRecord.WatchedDate != null
-                    && (userRecord.WatchedDate == null || serUserRecord.WatchedDate > userRecord.WatchedDate))
-                {
-                    userRecord.WatchedDate = serUserRecord.WatchedDate;
-                }
-            }
-
-            newAnimeGroupUsers(userRecord, isNewRecord);
+            _userDataService.UpdateWatchedStats(animeGroup, user, seriesList, newAnimeGroupUsers);
         }
     }
 
@@ -334,10 +330,10 @@ public class AnimeGroupService
     /// NOTE: This method does NOT save the changes made to the database.
     /// NOTE 2: Assumes that all the AnimeSeries have had their stats updated already.
     /// </remarks>
-    /// <param name="animeGroup">The <see cref="SVR_AnimeGroup"/> that is to have it's missing episode stats updated.</param>
-    /// <param name="seriesList">The list of <see cref="SVR_AnimeSeries"/> that belong to <paramref name="animeGroup"/>.</param>
-    private static void UpdateMissingEpisodeStats(SVR_AnimeGroup animeGroup,
-        IEnumerable<SVR_AnimeSeries> seriesList)
+    /// <param name="animeGroup">The <see cref="AnimeGroup"/> that is to have it's missing episode stats updated.</param>
+    /// <param name="seriesList">The list of <see cref="AnimeSeries"/> that belong to <paramref name="animeGroup"/>.</param>
+    private static void UpdateMissingEpisodeStats(AnimeGroup animeGroup,
+        IEnumerable<AnimeSeries> seriesList)
     {
         var missingEpisodeCount = 0;
         var missingEpisodeCountGroups = 0;
@@ -369,33 +365,34 @@ public class AnimeGroupService
         animeGroup.LatestEpisodeAirDate = latestEpisodeAirDate;
     }
 
-    public CL_AnimeGroup_User GetContract(SVR_AnimeGroup animeGroup)
+    [return: NotNullIfNotNull(nameof(animeGroup))]
+    public CL_AnimeGroup_User? GetContract(AnimeGroup? animeGroup)
     {
         if (animeGroup == null) return null;
-
-        var votes = GetVotes(animeGroup);
         var now = DateTime.Now;
 
-        var contract = new CL_AnimeGroup_User();
-        contract.AnimeGroupID = animeGroup.AnimeGroupID;
-        contract.AnimeGroupParentID = animeGroup.AnimeGroupParentID;
-        contract.DefaultAnimeSeriesID = animeGroup.DefaultAnimeSeriesID;
-        contract.GroupName = animeGroup.GroupName;
-        contract.Description = animeGroup.Description;
-        contract.LatestEpisodeAirDate = animeGroup.LatestEpisodeAirDate;
-        contract.SortName = animeGroup.GroupName.ToSortName();
-        contract.EpisodeAddedDate = animeGroup.EpisodeAddedDate;
-        contract.OverrideDescription = animeGroup.OverrideDescription;
-        contract.DateTimeUpdated = animeGroup.DateTimeUpdated;
-        contract.IsFave = 0;
-        contract.UnwatchedEpisodeCount = 0;
-        contract.WatchedEpisodeCount = 0;
-        contract.WatchedDate = null;
-        contract.PlayedCount = 0;
-        contract.WatchedCount = 0;
-        contract.StoppedCount = 0;
-        contract.MissingEpisodeCount = animeGroup.MissingEpisodeCount;
-        contract.MissingEpisodeCountGroups = animeGroup.MissingEpisodeCountGroups;
+        var contract = new CL_AnimeGroup_User
+        {
+            AnimeGroupID = animeGroup.AnimeGroupID,
+            AnimeGroupParentID = animeGroup.AnimeGroupParentID,
+            DefaultAnimeSeriesID = animeGroup.DefaultAnimeSeriesID,
+            GroupName = animeGroup.GroupName,
+            Description = animeGroup.Description,
+            LatestEpisodeAirDate = animeGroup.LatestEpisodeAirDate,
+            SortName = animeGroup.GroupName.ToSortName(),
+            EpisodeAddedDate = animeGroup.EpisodeAddedDate,
+            OverrideDescription = animeGroup.OverrideDescription,
+            DateTimeUpdated = animeGroup.DateTimeUpdated,
+            IsFave = 0,
+            UnwatchedEpisodeCount = 0,
+            WatchedEpisodeCount = 0,
+            WatchedDate = null,
+            PlayedCount = 0,
+            WatchedCount = 0,
+            StoppedCount = 0,
+            MissingEpisodeCount = animeGroup.MissingEpisodeCount,
+            MissingEpisodeCountGroups = animeGroup.MissingEpisodeCountGroups
+        };
 
         var allSeriesForGroup = animeGroup.AllSeries;
         var allIDs = allSeriesForGroup.Select(a => a.AniDB_ID).ToArray();
@@ -408,8 +405,10 @@ public class AnimeGroupService
         var hasFinishedAiring = false;
         var isCurrentlyAiring = false;
         var videoQualityEpisodes = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-        var allVidQualByGroup = allSeriesForGroup.SelectMany(a => _fileEpisodes.GetByAnimeID(a.AniDB_ID)).Select(a => _files.GetByHash(a.Hash)?.File_Source)
-            .WhereNotNull().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+        var allVidQualByGroup = allSeriesForGroup
+            .SelectMany(a => _storedReleaseInfo.GetByAnidbAnimeID(a.AniDB_ID))
+            .Select(a => a.LegacySource)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         var tmdbShowXrefByAnime = allIDs
             .Select(RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID)
             .Where(a => a is { Count: > 0 })
@@ -418,16 +417,15 @@ public class AnimeGroupService
             .Select(RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID)
             .Where(a => a is { Count: > 0 })
             .ToDictionary(a => a[0].AnidbAnimeID);
-        var malXRefByAnime = allIDs.SelectMany(a => RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID(a)).ToLookup(a => a.AnimeID);
+        var malXRefByAnime = allIDs.SelectMany(RepoFactory.CrossRef_AniDB_MAL.GetByAnimeID).ToLookup(a => a.AnimeID);
         // Even though the contract value says 'has link', it's easier to think about whether it's missing
-        var missingTraktLink = false;
         var missingMALLink = false;
         var missingTMDBLink = false;
         var seriesCount = 0;
         var epCount = 0;
 
         var allYears = new HashSet<int>();
-        var allSeasons = new SortedSet<string>(new SeasonComparator());
+        var allSeasons = new SortedSet<string>(new CL_SeasonComparator());
 
         foreach (var series in allSeriesForGroup)
         {
@@ -436,7 +434,7 @@ public class AnimeGroupService
             var vidsTemp = RepoFactory.VideoLocal.GetByAniDBAnimeID(series.AniDB_ID);
             var crossRefs = RepoFactory.CrossRef_File_Episode.GetByAnimeID(series.AniDB_ID);
             var crossRefsLookup = crossRefs.ToLookup(cr => cr.EpisodeID);
-            var dictVids = new Dictionary<string, SVR_VideoLocal>();
+            var dictVids = new Dictionary<string, VideoLocal>();
 
             foreach (var vid in vidsTemp)
             // Hashes may be repeated from multiple locations, but we don't care
@@ -450,16 +448,16 @@ public class AnimeGroupService
             // Also look at languages
             var vidQualEpCounts = new Dictionary<string, int>();
             // video quality, count of episodes
-            var anime = series.AniDB_Anime;
+            var anime = series.AniDB_Anime!;
 
             foreach (var ep in series.AllAnimeEpisodes)
             {
-                if (ep.AniDB_Episode == null || ep.EpisodeTypeEnum != EpisodeType.Episode)
+                if (ep.AniDB_Episode is null || ep.EpisodeType is not EpisodeType.Episode)
                 {
                     continue;
                 }
 
-                var epVids = new List<SVR_VideoLocal>();
+                var epVids = new List<VideoLocal>();
 
                 foreach (var xref in crossRefsLookup[ep.AniDB_EpisodeID])
                 {
@@ -480,21 +478,21 @@ public class AnimeGroupService
                 // Handle mutliple files of the same quality for one episode
                 foreach (var vid in epVids)
                 {
-                    var anifile = vid.AniDBFile;
+                    var release = vid.ReleaseInfo;
 
-                    if (anifile == null)
+                    if (release == null)
                     {
                         continue;
                     }
 
-                    if (!qualityAddedSoFar.Contains(anifile.File_Source))
+                    if (!qualityAddedSoFar.Contains(release.LegacySource))
                     {
-                        vidQualEpCounts.TryGetValue(anifile.File_Source, out var srcCount);
-                        vidQualEpCounts[anifile.File_Source] =
+                        vidQualEpCounts.TryGetValue(release.LegacySource, out var srcCount);
+                        vidQualEpCounts[release.LegacySource] =
                             srcCount +
                             1; // If the file source wasn't originally in the dictionary, then it will be set to 1
 
-                        qualityAddedSoFar.Add(anifile.File_Source);
+                        qualityAddedSoFar.Add(release.LegacySource);
                     }
                 }
             }
@@ -571,7 +569,7 @@ public class AnimeGroupService
             // we will consider the group as not having a tmdb link
             var foundTMDBShowLink = tmdbShowXrefByAnime.TryGetValue(anime.AnimeID, out var _);
             var foundTMDBMovieLink = tmdbMovieXrefByAnime.TryGetValue(anime.AnimeID, out var _);
-            var isMovie = anime.AnimeType == (int)AnimeType.Movie;
+            var isMovie = anime.AnimeType is AnimeType.Movie;
 
             if (!foundTMDBShowLink && !foundTMDBMovieLink)
             {
@@ -615,7 +613,7 @@ public class AnimeGroupService
                 }
 
                 allYears.UnionWith(years);
-                allSeasons.UnionWith(anime.Seasons.Select(tuple => $"{tuple.Season} {tuple.Year}"));
+                allSeasons.UnionWith(anime.YearlySeasons.Select(tuple => $"{tuple.Season} {tuple.Year}"));
             }
         }
 
@@ -624,13 +622,13 @@ public class AnimeGroupService
         contract.Stat_AllTags = animeGroup.Tags.Select(a => a.TagName.Trim()).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.Stat_AllCustomTags = animeGroup.CustomTags.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.Stat_AllTitles = animeGroup.Titles.Select(a => a.Title).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-        contract.Stat_AnimeTypes = allSeriesForGroup.Select(a => a.AniDB_Anime.AnimeTypeEnum.ToString().Replace('_', ' ')).WhereNotNull().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+        contract.Stat_AnimeTypes = allSeriesForGroup.Select(a => a.AniDB_Anime!.AnimeType.ToString().Replace('_', ' ')).WhereNotNull().ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.Stat_AllVideoQuality = allVidQualByGroup;
         contract.Stat_IsComplete = isComplete;
         contract.Stat_HasFinishedAiring = hasFinishedAiring;
         contract.Stat_IsCurrentlyAiring = isCurrentlyAiring;
         contract.Stat_HasTvDBLink = false; // Deprecated
-        contract.Stat_HasTraktLink = !missingTraktLink; // Has a link if it isn't missing
+        contract.Stat_HasTraktLink = false; // Has a link if it isn't missing
         contract.Stat_HasMALLink = !missingMALLink; // Has a link if it isn't missing
         contract.Stat_HasMovieDBLink = !missingTMDBLink; // Has a link if it isn't missing
         contract.Stat_HasMovieDBOrTvDBLink = !missingTMDBLink; // Has a link if it isn't missing
@@ -642,55 +640,20 @@ public class AnimeGroupService
         contract.Stat_EndDate = groupEndDate;
         contract.Stat_SeriesCreatedDate = seriesCreatedDate;
         contract.Stat_AniDBRating = animeGroup.AniDBRating;
-        contract.Stat_AudioLanguages = _languages.GetLanguagesForGroup(animeGroup);
-        contract.Stat_SubtitleLanguages = _subtitles.GetLanguagesForGroup(animeGroup);
+        contract.Stat_AudioLanguages = animeGroup.AllSeries
+            .Select(a => a.AniDB_Anime)
+            .WhereNotNull()
+            .SelectMany(a => _storedReleaseInfo.GetByAnidbAnimeID(a.AnimeID))
+            .SelectMany(a => a.AudioLanguages?.Select(b => b.GetString()) ?? [])
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+        contract.Stat_SubtitleLanguages = animeGroup.AllSeries
+            .Select(a => a.AniDB_Anime)
+            .WhereNotNull()
+            .SelectMany(a => _storedReleaseInfo.GetByAnidbAnimeID(a.AnimeID))
+            .SelectMany(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? [])
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
         contract.LatestEpisodeAirDate = animeGroup.LatestEpisodeAirDate;
-        contract.Stat_UserVoteOverall = votes?.AllVotes;
-        contract.Stat_UserVotePermanent = votes?.PermanentVotes;
-        contract.Stat_UserVoteTemporary = votes?.TemporaryVotes;
 
         return contract;
-    }
-
-    private GroupVotes GetVotes(SVR_AnimeGroup animeGroup)
-    {
-        var groupSeries = animeGroup.AllSeries;
-        var votesByAnime = groupSeries
-            .Select(a => new { AnimeID = a.AniDB_ID, Vote = RepoFactory.AniDB_Vote.GetByAnimeID(a.AniDB_ID) })
-            .Where(a => a.Vote != null)
-            .ToDictionary(a => a.AnimeID, a => a.Vote);
-        var allVoteTotal = 0m;
-        var permVoteTotal = 0m;
-        var tempVoteTotal = 0m;
-        var allVoteCount = 0;
-        var permVoteCount = 0;
-        var tempVoteCount = 0;
-        foreach (var series in groupSeries)
-        {
-            if (votesByAnime.TryGetValue(series.AniDB_ID, out var vote))
-            {
-                allVoteCount++;
-                allVoteTotal += vote.VoteValue;
-
-                switch (vote.VoteType)
-                {
-                    case (int)AniDBVoteType.Anime:
-                        permVoteCount++;
-                        permVoteTotal += vote.VoteValue;
-                        break;
-                    case (int)AniDBVoteType.AnimeTemp:
-                        tempVoteCount++;
-                        tempVoteTotal += vote.VoteValue;
-                        break;
-                }
-            }
-        }
-
-        var groupVotes = new GroupVotes(
-            allVoteCount == 0 ? null : allVoteTotal / allVoteCount / 100m,
-            permVoteCount == 0 ? null : permVoteTotal / permVoteCount / 100m,
-            tempVoteCount == 0 ? null : tempVoteTotal / tempVoteCount / 100m);
-
-        return groupVotes;
     }
 }

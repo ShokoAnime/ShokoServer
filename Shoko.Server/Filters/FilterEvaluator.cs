@@ -1,108 +1,84 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
-using Shoko.Models.Enums;
-using Shoko.Server.Filters.Interfaces;
+using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.SortingSelectors;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Abstractions.User;
 
+#nullable enable
 namespace Shoko.Server.Filters;
 
-public class FilterEvaluator
+public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupRepository _groups, AnimeSeriesRepository _series) : IFilterEvaluator
 {
-    private readonly AnimeGroupRepository _groups;
-
-    private readonly AnimeSeriesRepository _series;
-
-    private readonly JMMUserRepository _user;
-
-    private readonly ILogger<FilterEvaluator> _logger;
-
-    public FilterEvaluator(ILogger<FilterEvaluator> logger, AnimeGroupRepository groups, AnimeSeriesRepository series, JMMUserRepository user)
-    {
-        _logger = logger;
-        _groups = groups;
-        _series = series;
-        _user = user;
-    }
-
-    /// <summary>
-    /// Evaluate the given filter, applying the necessary logic
-    /// </summary>
-    /// <param name="filter"></param>
-    /// <param name="userID"></param>
-    /// <returns>SeriesIDs, grouped by the direct parent GroupID</returns>
-    /// <exception cref="ArgumentNullException"></exception>
-    public IEnumerable<IGrouping<int, int>> EvaluateFilter(FilterPreset filter, int? userID)
+    public IReadOnlyList<IGrouping<int, int>> EvaluateFilter(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
     {
         ArgumentNullException.ThrowIfNull(filter);
         var needsUser = (filter.Expression?.UserDependent ?? false) || (filter.SortingExpression?.UserDependent ?? false);
-        if (needsUser && userID == null) throw new ArgumentNullException(nameof(userID));
-
-        var user = userID != null ? _user.GetByID(userID.Value) : null;
-
+        if (needsUser)
+            ArgumentNullException.ThrowIfNull(user);
+        if (needsUser && user is not JMMUser)
+            throw new ArgumentException("Input user must be of type JMMUser.", nameof(user));
+        var now = time?.ToLocalTime() ?? DateTime.Now;
+        var shokoUser = user as JMMUser;
         var filterable = filter.ApplyAtSeriesLevel switch
         {
-            true when needsUser => _series?.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true).Select(a =>
-                                       new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(), a.ToFilterableUserInfo(userID.Value))) ??
-                                   Array.Empty<FilterableWithID>().AsParallel(),
-            true => _series?.GetAll().AsParallel().Where(a => user?.AllowedSeries(a) ?? true)
-                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable())) ?? Array.Empty<FilterableWithID>().AsParallel(),
-            false when needsUser => _groups?.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true).Select(a =>
-                                        new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(), a.ToFilterableUserInfo(userID.Value))) ??
-                                    Array.Empty<FilterableWithID>().AsParallel(),
-            false => _groups?.GetAll().AsParallel().Where(a => user?.AllowedGroup(a) ?? true)
-                .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable())) ?? Array.Empty<FilterableWithID>().AsParallel()
+            true when needsUser => _series.GetAll()
+                .AsParallel()
+                .Where(a => shokoUser?.AllowedSeries(a) ?? true)
+                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now))),
+            true => _series.GetAll()
+                .AsParallel()
+                .Where(a => shokoUser?.AllowedSeries(a) ?? true)
+                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now))),
+            false when needsUser =>
+                _groups.GetAll()
+                    .AsParallel()
+                    .Where(a => shokoUser?.AllowedGroup(a) ?? true)
+                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now))),
+            false => _groups.GetAll()
+                .AsParallel()
+                .Where(a => shokoUser?.AllowedGroup(a) ?? true)
+                .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now))),
         };
-
-        // Filtering
-        var errors = new List<Exception>();
         var filtered = filterable.Where(a =>
         {
             try
             {
-                return filter.Expression?.Evaluate(a.Filterable, a.UserInfo) ?? true;
+                return filter.Expression?.Evaluate(a.Filterable, a.UserInfo, time) ?? true;
             }
             catch (Exception e)
             {
-                errors.Add(e);
+                _logger.LogError(
+                    e,
+                    "There was an error while evaluating filter expression: {Expression} (GroupID={GroupID}, SeriesID={SeriesID})",
+                    filter.Expression,
+                    a.GroupID,
+                    a.SeriesID is 0 ? null : a.SeriesID
+                );
                 return false;
             }
         });
-
-        if (errors.Count != 0)
-            _logger.LogError(new AggregateException(errors.DistinctBy(a => a.StackTrace)), "There were one or more errors while evaluating filter: {Filter}",
-                filter);
-
-        // ordering
-        var ordered = OrderFilterable(filter, filtered);
-
-        var result = ordered.GroupBy(a => a.GroupID, a => a.SeriesID);
-        if (!filter.ApplyAtSeriesLevel)
-        {
-            result = result.Select(a => new Grouping(a.Key, _series.GetByGroupID(a.Key).Select(ser => ser.AnimeSeriesID).ToArray()));
-        }
-
-        return result;
+        var sorted = skipSorting
+            ? (IEnumerable<FilterableWithID>)filtered
+            : OrderFilterable(filter, filtered, now);
+        var result = filter.ApplyAtSeriesLevel
+            ? sorted.GroupBy(a => a.GroupID, a => a.SeriesID)
+            : sorted.Select(a => new Grouping(a.GroupID, _series.GetByGroupID(a.GroupID).Select(ser => ser.AnimeSeriesID)));
+        return result.ToArray();
     }
 
-    /// <summary>
-    /// Evaluate the given filter, applying the necessary logic
-    /// </summary>
-    /// <param name="filters"></param>
-    /// <param name="userID"></param>
-    /// <param name="skipSorting"></param>
-    /// <returns>SeriesIDs, grouped by the direct parent GroupID</returns>
-    /// <exception cref="ArgumentNullException"></exception>
-    public Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>> BatchEvaluateFilters(IReadOnlyList<FilterPreset> filters, int? userID, bool skipSorting = false)
+    public IReadOnlyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>> BatchPrepareFilters<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset
     {
         ArgumentNullException.ThrowIfNull(filters);
-        if (filters.Count == 0) return [];
-        // count it as a user filter if it needs to sort using a user-dependent expression
+        if (filters.Count == 0)
+            return new LazyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>>();
         var hasSeries = filters.Any(a => a.ApplyAtSeriesLevel);
         var seriesNeedsUser = hasSeries && filters.Any(a =>
         {
@@ -120,76 +96,92 @@ public class FilterEvaluator
             return a.SortingExpression?.UserDependent ?? false;
         });
         var needsUser = seriesNeedsUser || groupsNeedUser;
-        if (needsUser && userID == null) throw new ArgumentNullException(nameof(userID));
-
-        var user = userID != null ? _user.GetByID(userID.Value) : null;
-
-        FilterableWithID[] series = null;
-        if (hasSeries)
+        if (needsUser)
+            ArgumentNullException.ThrowIfNull(user);
+        if (needsUser && user is not JMMUser)
+            throw new ArgumentException("Input user must be of type JMMUser.", nameof(user));
+        var shokoUser = user as JMMUser;
+        var now = time?.ToLocalTime() ?? DateTime.Now;
+        var series = !hasSeries ? [] : seriesNeedsUser
+            ? _series.GetAll()
+                .Where(a => shokoUser?.AllowedSeries(a) ?? true)
+                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now)))
+                .ToArray()
+            : _series.GetAll()
+                .Where(a => shokoUser?.AllowedSeries(a) ?? true)
+                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now)))
+                .ToArray();
+        var groups = !hasGroups ? [] : groupsNeedUser
+            ? _groups.GetAll()
+                .Where(a => shokoUser?.AllowedGroup(a) ?? true)
+                .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now)))
+                .ToArray()
+            : _groups.GetAll()
+                .Where(a => shokoUser?.AllowedGroup(a) ?? true)
+                .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now)))
+                .ToArray();
+        var results = new Dictionary<TFilter, Lazy<IReadOnlyList<IGrouping<int, int>>>>();
+        foreach (var filter in filters.Where(a => !a.IsDirectory))
         {
-            var allowedSeries = _series.GetAll().Where(a => user?.AllowedSeries(a) ?? true);
-            series = seriesNeedsUser
-                ? allowedSeries.Select(a =>
-                    new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(), a.ToFilterableUserInfo(userID.Value))).ToArray()
-                : allowedSeries.Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable())).ToArray();
-        }
-
-        FilterableWithID[] groups = null;
-        if (hasGroups)
-        {
-            var allowedGroups = _groups.GetAll().Where(a => user?.AllowedGroup(a) ?? true);
-            groups = groupsNeedUser
-                ? allowedGroups.Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(), a.ToFilterableUserInfo(userID.Value)))
-                    .ToArray()
-                : allowedGroups.Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable())).ToArray();
-        }
-
-        var filterableMap = filters.Where(a => (a.FilterType & GroupFilterType.Directory) == 0)
-            .ToDictionary(filter => filter, filter => filter.ApplyAtSeriesLevel switch { true => series, false => groups });
-
-        var results = new Dictionary<FilterPreset, IEnumerable<IGrouping<int, int>>>();
-
-        filterableMap.AsParallel().AsUnordered().ForAll(kv =>
-        {
-            var (filter, filterable) = kv;
+            var filterable = filter.ApplyAtSeriesLevel ? series : groups;
             var expression = filter.Expression;
-            // Filtering
-            var filtered = filterable.AsParallel().AsUnordered().Where(a => expression?.Evaluate(a.Filterable, a.UserInfo) ?? true).ToArray();
-            // Sorting
-            var ordered = skipSorting ? (IEnumerable<FilterableWithID>)filtered : OrderFilterable(filter, filtered);
-            // Building Group -> Series map
-            var result = ordered.GroupBy(a => a.GroupID, a => a.SeriesID);
-            // Fill Series IDs for filters calculated at the group level
-            if (!filter.ApplyAtSeriesLevel)
-                result = result.Select(a => new Grouping(a.Key, _series.GetByGroupID(a.Key).Select(ser => ser.AnimeSeriesID)));
-            lock (results) results[filter] = result;
-        });
-
-        foreach (var filter in filters.Where(filter => !results.ContainsKey(filter)))
-            results.Add(filter, Array.Empty<IGrouping<int, int>>());
-
-        return results;
+            var filtered = filterable
+                .AsParallel()
+                .AsUnordered()
+                .Where(a =>
+                {
+                    try
+                    {
+                        return expression?.Evaluate(a.Filterable, a.UserInfo, time) ?? true;
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogError(
+                            e,
+                            "There was an error while evaluating filter expression: {Expression} (GroupID={GroupID}, SeriesID={SeriesID})",
+                            filter.Expression,
+                            a.GroupID,
+                            a.SeriesID is 0 ? null : a.SeriesID
+                        );
+                        return false;
+                    }
+                });
+            var sorted = skipSorting
+                ? (IEnumerable<FilterableWithID>)filtered
+                : OrderFilterable(filter, filtered, now);
+            var result = filter.ApplyAtSeriesLevel
+                ? sorted.GroupBy(a => a.GroupID, a => a.SeriesID)
+                : sorted.Select(a => new Grouping(a.GroupID, _series.GetByGroupID(a.GroupID).Select(ser => ser.AnimeSeriesID)));
+            results[filter] = new(() => result.ToArray());
+        }
+        foreach (var filter in filters.Except(results.Keys))
+            results.Add(filter, new());
+        return new LazyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>>(results);
     }
 
-    private static IOrderedEnumerable<FilterableWithID> OrderFilterable(FilterPreset filter, IEnumerable<FilterableWithID> filtered)
+    private static IOrderedEnumerable<FilterableWithID> OrderFilterable(IFilterPreset filter, IEnumerable<FilterableWithID> filtered, DateTime now)
     {
-        var nameSorter = new NameSortingSelector();
-        var ordered = filter.SortingExpression == null ? filtered.OrderBy(a => nameSorter.Evaluate(a.Filterable, a.UserInfo)) :
-            !filter.SortingExpression.Descending ? filtered.OrderBy(a => filter.SortingExpression.Evaluate(a.Filterable, a.UserInfo)) :
-            filtered.OrderByDescending(a => filter.SortingExpression.Evaluate(a.Filterable, a.UserInfo));
-
+        if (filter.SortingExpression is null)
+        {
+            var nameSorter = new NameSortingSelector();
+            return filtered.OrderBy(a => nameSorter.Evaluate(a.Filterable, a.UserInfo, now));
+        }
+        var ordered = !filter.SortingExpression.Descending
+            ? filtered.OrderBy(a => filter.SortingExpression.Evaluate(a.Filterable, a.UserInfo, now))
+            : filtered.OrderByDescending(a => filter.SortingExpression.Evaluate(a.Filterable, a.UserInfo, now));
         var next = filter.SortingExpression?.Next;
-        while (next != null)
+        while (next is not null)
         {
             var expr = next;
-            ordered = !next.Descending ? ordered.ThenBy(a => expr.Evaluate(a.Filterable, a.UserInfo)) : ordered.ThenByDescending(a => expr.Evaluate(a.Filterable, a.UserInfo));
+            ordered = !next.Descending
+                ? ordered.ThenBy(a => expr.Evaluate(a.Filterable, a.UserInfo, now))
+                : ordered.ThenByDescending(a => expr.Evaluate(a.Filterable, a.UserInfo, now));
             next = next.Next;
         }
-
         return ordered;
     }
 
-    private record FilterableWithID(int SeriesID, int GroupID, IFilterable Filterable, IFilterableUserInfo UserInfo = null);
+    private record FilterableWithID(int SeriesID, int GroupID, IFilterableInfo Filterable, IFilterableUserInfo? UserInfo = null);
 
     private record Grouping(int GroupID, IEnumerable<int> SeriesIDs) : IGrouping<int, int>
     {
@@ -206,5 +198,39 @@ public class FilterEvaluator
         }
 
         public int Key => GroupID;
+    }
+
+    private sealed class LazyDictionary<TKey, TValue>(Dictionary<TKey, Lazy<TValue>>? dictionary = null) : IReadOnlyDictionary<TKey, TValue> where TKey : notnull
+    {
+        private readonly Dictionary<TKey, Lazy<TValue>> _dictionary = dictionary ?? [];
+
+        public TValue this[TKey key] => _dictionary[key].Value;
+
+        public IEnumerable<TKey> Keys => _dictionary.Keys;
+
+        public IEnumerable<TValue> Values => _dictionary.Values.Select(a => a.Value);
+
+        public int Count => _dictionary.Count;
+
+        public bool ContainsKey(TKey key)
+            => _dictionary.ContainsKey(key);
+
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+            => _dictionary.Select(a => new KeyValuePair<TKey, TValue>(a.Key, a.Value.Value)).GetEnumerator();
+
+        public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+        {
+            if (_dictionary.TryGetValue(key, out var lazy))
+            {
+                value = lazy.Value;
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+            => GetEnumerator();
     }
 }

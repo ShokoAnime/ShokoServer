@@ -12,8 +12,9 @@ using System.Threading.Tasks;
 using NLog;
 using SharpCompress.Common;
 using SharpCompress.Readers;
-using Shoko.Plugin.Abstractions.Events;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Utilities;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Utilities;
@@ -30,7 +31,7 @@ public static partial class AVDumpHelper
 
     private const string AVDumpURL = @"AVD3_URL_GOES_HERE";
 
-    private static readonly string AVDumpExecutable = Path.Combine(WorkingDirectory, Utils.IsRunningOnLinuxOrMac() ? "AVDump3CL.dll" : "AVDump3CL.exe");
+    private static readonly string AVDumpExecutable = Path.Combine(WorkingDirectory, PlatformUtility.IsWindows ? "AVDump3CL.exe" : "AVDump3CL.dll");
 
     private static readonly ConcurrentDictionary<int, AVDumpSession> ActiveSessions = new();
 
@@ -115,7 +116,7 @@ public static partial class AVDumpHelper
     /// </summary>
     /// <param name="video"></param>
     /// <returns></returns>
-    public static AVDumpSession? GetSessionForVideo(SVR_VideoLocal video)
+    public static AVDumpSession? GetSessionForVideo(VideoLocal video)
     {
         // Check if we have an active session for the video (x1).
         return ActiveSessions.TryGetValue(video.VideoLocalID, out var session) ? session : null;
@@ -478,7 +479,7 @@ public static partial class AVDumpHelper
             CreateNoWindow = true
         };
 
-        if (Utils.IsRunningOnLinuxOrMac())
+        if (!PlatformUtility.IsWindows)
         {
             startInfo.FileName = "dotnet";
             startInfo.ArgumentList.Add(AVDumpExecutable);

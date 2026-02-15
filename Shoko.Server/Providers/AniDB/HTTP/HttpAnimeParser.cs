@@ -6,8 +6,7 @@ using System.Net;
 using System.Web;
 using System.Xml;
 using Microsoft.Extensions.Logging;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
@@ -188,7 +187,7 @@ public class HttpAnimeParser
             {
                 anime.EndDate = date;
             }
-            
+
             if (anime.EndDate != null)
             {
                 // define datetimeoffset to make anime.EndDate timezone aware
@@ -613,7 +612,10 @@ public class HttpAnimeParser
         var creatorName = UnescapeXml(node.InnerText).Replace('`', '\'');
         return new ResponseStaff
         {
-            AnimeID = animeID, CreatorID = creatorID, CreatorName = creatorName, CreatorType = creatorType
+            AnimeID = animeID,
+            CreatorID = creatorID,
+            CreatorName = creatorName,
+            CreatorType = creatorType
         };
     }
 
@@ -725,7 +727,9 @@ public class HttpAnimeParser
 
                     var resource = new ResponseResource
                     {
-                        AnimeID = animeID, ResourceID = resourceID, ResourceType = (AniDB_ResourceLinkType)typeInt
+                        AnimeID = animeID,
+                        ResourceID = resourceID,
+                        ResourceType = (ResourceLinkType)typeInt
                     };
                     result.Add(resource);
                 }

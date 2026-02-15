@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using Shoko.Models;
 
 namespace Shoko.Server.Settings;
 

@@ -1,4 +1,5 @@
-using Shoko.Server.Filters.Interfaces;
+using System;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Info;
 
@@ -7,14 +8,14 @@ namespace Shoko.Server.Filters.Info;
 /// </summary>
 public class MissingPermanentVoteExpression : FilterExpression<bool>
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
+    public override bool TimeDependent => true;
+    public override bool UserDependent => true;
     public override string Name => "Missing Permanent Vote";
     public override string HelpDescription => "This condition passes if all of the anime are finished but we do not have permanent votes for all of them.";
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return filterable.IsFinished && filterable.SeriesCount != filterable.SeriesPermanentVoteCount;
+        return filterable.IsFinished && filterable.SeriesCount != userInfo.SeriesPermanentVoteCount;
     }
 
     protected bool Equals(MissingPermanentVoteExpression other)

@@ -2,20 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
-using MessagePack;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NHibernate.AdoNet;
 using NHibernate.Driver;
-using Shoko.Plugin.Abstractions;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
-using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -27,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 149;
+    public override int RequiredVersion { get; } = 151;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -132,7 +127,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         using var connection = new SqlConnection(GetConnectionString());
         var command = new SqlCommand(cmd, connection);
         connection.Open();
-        var count = (int) (command.ExecuteScalar() ?? 0);
+        var count = (int)(command.ExecuteScalar() ?? 0);
         return count > 0;
     }
 
@@ -451,7 +446,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(34, 1, "ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL"),
         new DatabaseCommand(35, 1, DatabaseFixes.PopulateTagWeight),
         new DatabaseCommand(36, 1, "ALTER TABLE Trakt_Episode ADD TraktID int NULL"),
-        new DatabaseCommand(37, 1, DatabaseFixes.FixHashes),
+        new DatabaseCommand(37, 1, DatabaseFixes.NoOperation),
         new DatabaseCommand(38, 1, "DROP TABLE LogMessage"),
         new DatabaseCommand(39, 1, "ALTER TABLE AnimeSeries ADD DefaultFolder nvarchar(max) NULL"),
         new DatabaseCommand(40, 1, "ALTER TABLE JMMUser ADD PlexUsers nvarchar(max) NULL"),
@@ -665,7 +660,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(102, 1, "UPDATE v SET DateTimeImported = DateTimeCreated FROM VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash;"),
         new DatabaseCommand(103, 1, "CREATE TABLE AniDB_FileUpdate ( AniDB_FileUpdateID INT IDENTITY(1,1) NOT NULL, FileSize BIGINT NOT NULL, Hash nvarchar(150) NOT NULL, HasResponse BIT NOT NULL, UpdatedAt datetime NOT NULL )"),
         new DatabaseCommand(103, 2, "CREATE INDEX IX_AniDB_FileUpdate ON AniDB_FileUpdate(FileSize, Hash)"),
-        new DatabaseCommand(103, 3, DatabaseFixes.MigrateAniDB_FileUpdates),
+        new DatabaseCommand(103, 3, DatabaseFixes.NoOperation),
         new DatabaseCommand(104, 1, "ALTER TABLE AniDB_Anime DROP COLUMN DisableExternalLinksFlag;"),
         new DatabaseCommand(104, 2, "ALTER TABLE AnimeSeries ADD DisableAutoMatchFlags integer NOT NULL DEFAULT 0;"),
         new DatabaseCommand(104, 3, "ALTER TABLE AniDB_Anime ADD VNDBID int, BangumiID int, LianID int, FunimationID nvarchar(max), HiDiveID nvarchar(max)"),
@@ -738,9 +733,9 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(122, 34, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'HasTMDbLinkExpression', 'HasTmdbLinkExpression');"),
         new DatabaseCommand(122, 35, "exec sp_rename 'TMDB_Movie.EnglishOvervie', 'EnglishOverview', 'COLUMN';"),
         new DatabaseCommand(122, 36, "UPDATE TMDB_Image SET IsEnabled = 1;"),
-        new DatabaseCommand(123, 1, MigrateRenamers),
-        new DatabaseCommand(123, 2, "DELETE FROM RenamerInstance WHERE Name = 'AAA_WORKINGFILE_TEMP_AAA';"),
-        new DatabaseCommand(123, 3, DatabaseFixes.CreateDefaultRenamerConfig),
+        new DatabaseCommand(123, 1, DatabaseFixes.NoOperation),
+        new DatabaseCommand(123, 2, DatabaseFixes.NoOperation),
+        new DatabaseCommand(123, 3, DatabaseFixes.NoOperation),
         new DatabaseCommand(124, 1, "ALTER TABLE TMDB_Show ADD TvdbShowID INT NULL DEFAULT NULL;"),
         new DatabaseCommand(124, 2, "ALTER TABLE TMDB_Episode ADD TvdbEpisodeID INT NULL DEFAULT NULL;"),
         new DatabaseCommand(124, 3, "ALTER TABLE TMDB_Movie ADD ImdbMovieID INT NULL DEFAULT NULL;"),
@@ -895,7 +890,6 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(144, 02, DatabaseFixes.MoveTmdbImagesOnDisc),
         new DatabaseCommand(145, 01, "DROP TABLE IF EXISTS DuplicateFile;"),
         new DatabaseCommand(145, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
-        new DatabaseCommand(146, 01, DropDefaultOnTMDBShowMovieKeywords),
         new DatabaseCommand(146, 02, "ALTER TABLE TMDB_Show ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
         new DatabaseCommand(146, 03, "ALTER TABLE TMDB_Movie ALTER COLUMN Keywords NVARCHAR(MAX) NULL;"),
         new DatabaseCommand(147, 01, "EXEC sp_rename 'Tmdb_Show_Network', 'TMDB_Show_Network';"),
@@ -911,6 +905,36 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(149, 4, "DROP TABLE IF EXISTS Trakt_Show;"),
         new DatabaseCommand(149, 5, "DROP TABLE IF EXISTS Trakt_Season;"),
         new DatabaseCommand(149, 6, DatabaseFixes.ClearQuartzQueue),
+        new DatabaseCommand(150, 01, "CREATE TABLE StoredReleaseInfo (StoredReleaseInfoID INT IDENTITY(1,1), ED2K NVARCHAR(40) NOT NULL, FileSize BIGINT NOT NULL, ID NVARCHAR(128), ProviderName NVARCHAR(128) NOT NULL, ReleaseURI NVARCHAR(1024), Version INT NOT NULL, ProvidedFileSize BIGINT, Comment NVARCHAR(1024), OriginalFilename NVARCHAR(1024), IsCensored INT, IsChaptered INT, IsCreditless INT, IsCorrupted INT NOT NULL, Source INT NOT NULL, GroupID NVARCHAR(128), GroupSource NVARCHAR(128), GroupName NVARCHAR(128), GroupShortName NVARCHAR(128), Hashes TEXT NULL, AudioLanguages NVARCHAR(128), SubtitleLanguages NVARCHAR(128), CrossReferences NVARCHAR(10240) NOT NULL, Metadata TEXT NULL, ReleasedAt DATE, LastUpdatedAt DATETIME2 NOT NULL, CreatedAt DATETIME2 NOT NULL);"),
+        new DatabaseCommand(150, 02, "CREATE TABLE StoredReleaseInfo_MatchAttempt (StoredReleaseInfo_MatchAttemptID INT IDENTITY(1,1), AttemptProviderNames NVARCHAR(1024) NOT NULL, ProviderName NVARCHAR(128), ProviderID NVARCHAR(40), ED2K NVARCHAR(40) NOT NULL, FileSize BIGINT NOT NULL, AttemptStartedAt DATETIME2 NOT NULL, AttemptEndedAt DATETIME2 NOT NULL);"),
+        new DatabaseCommand(150, 03, "CREATE TABLE VideoLocal_HashDigest (VideoLocal_HashDigestID INT IDENTITY(1,1), VideoLocalID INT NOT NULL, Type NVARCHAR(32) NOT NULL, Value NVARCHAR(10240) NOT NULL, Metadata TEXT);"),
+        new DatabaseCommand(150, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
+        new DatabaseCommand(150, 05, "ALTER TABLE ImportFolder DROP COLUMN ImportFolderType;"),
+        new DatabaseCommand(150, 06, "ALTER TABLE VideoLocal_Place DROP COLUMN ImportFolderType;"),
+        new DatabaseCommand(150, 01, DropDefaultOnTMDBShowMovieKeywords),
+        new DatabaseCommand(151, 01, "CREATE TABLE StoredRelocationPipe (StoredRelocationPipeID INT IDENTITY(1,1), ProviderID NVARCHAR(40) NOT NULL, Name NVARCHAR(128) NOT NULL, Configuration NVARCHAR(MAX));"),
+        new DatabaseCommand(151, 02, "CREATE INDEX IX_StoredRelocationPipe_ProviderID ON StoredRelocationPipe(ProviderID);"),
+        new DatabaseCommand(151, 03, "CREATE INDEX IX_StoredRelocationPipe_Name ON StoredRelocationPipe(Name);"),
+        new DatabaseCommand(151, 04, DatabaseFixes.MigrateRenamers),
+        new DatabaseCommand(151, 05, "DROP TABLE IF EXISTS `CrossRef_AniDB_Trakt_Episode`;"),
+        new DatabaseCommand(151, 06, "DROP TABLE IF EXISTS `AniDB_Recommendation`;"),
+        new DatabaseCommand(151, 07, "UPDATE CrossRef_AniDB_TMDB_Show SET MatchRating = 0 WHERE MatchRating = 6;"),
+        new DatabaseCommand(151, 08, "UPDATE CrossRef_AniDB_TMDB_Episode SET MatchRating = 0 WHERE MatchRating = 6;"),
+        new DatabaseCommand(151, 09, "UPDATE CrossRef_AniDB_TMDB_Movie SET MatchRating = 0 WHERE MatchRating = 6;"),
+        new DatabaseCommand(151, 10, "ALTER TABLE AnimeSeries_User ADD AbsoluteUserRating INT;"),
+        new DatabaseCommand(151, 11, "ALTER TABLE AnimeSeries_User ADD UserRatingVoteType INT;"),
+        new DatabaseCommand(151, 12, "ALTER TABLE AnimeSeries_User ADD IsFavorite INT NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(151, 14, "ALTER TABLE AnimeSeries_User ADD LastVideoUpdate datetime2;"),
+        new DatabaseCommand(151, 15, "ALTER TABLE AnimeSeries_User ADD LastUpdated datetime2 NOT NULL DEFAULT '0001-01-01 00:00:00';"),
+        new DatabaseCommand(151, 16, "ALTER TABLE AnimeSeries_User ADD UserTags NOT NULL DEFAULT '';"),
+        new DatabaseCommand(151, 17, "ALTER TABLE AnimeEpisode_User ADD AbsoluteUserRating INT;"),
+        new DatabaseCommand(151, 18, "ALTER TABLE AnimeEpisode_User ADD IsFavorite INT NOT NULL DEFAULT 0;"),
+        new DatabaseCommand(151, 19, "ALTER TABLE AnimeEpisode_User ADD LastUpdated datetime2 NOT NULL DEFAULT '0001-01-01 00:00:00';"),
+        new DatabaseCommand(151, 20, "ALTER TABLE AnimeEpisode_User ADD UserTags NOT NULL DEFAULT '';"),
+        new DatabaseCommand(151, 21, DatabaseFixes.MigrateAnidbVotes),
+        new DatabaseCommand(151, 22, DatabaseFixes.RefreshAnimeSeriesUserStats),
+        new DatabaseCommand(151, 23, "ALTER TABLE TMDB_Person ADD LastOrphanedAt DATETIME2;"),
+        new DatabaseCommand(151, 24, "ALTER TABLE TMDB_Network ADD LastOrphanedAt DATETIME2;"),
     };
 
     private static void AlterImdbMovieIDType()
@@ -923,128 +947,6 @@ public class SQLServer : BaseDatabase<SqlConnection>
         const string alterCommand = "ALTER TABLE TMDB_Movie ADD ImdbMovieID NVARCHAR(12) NULL DEFAULT NULL;";
         session.CreateSQLQuery(alterCommand).ExecuteUpdate();
         transaction.Commit();
-    }
-
-    private static Tuple<bool, string> MigrateRenamers(object connection)
-    {
-        var factory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
-        var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
-        var settingsProvider = Utils.SettingsProvider;
-
-        var sessionFactory = factory.CreateSessionFactory();
-        using var session = sessionFactory.OpenSession();
-        using var transaction = session.BeginTransaction();
-        try
-        {
-            const string createCommand = """
-                                         CREATE TABLE RenamerInstance (ID INT IDENTITY(1,1) PRIMARY KEY, Name nvarchar(250) NOT NULL, Type nvarchar(250) NOT NULL, Settings varbinary(MAX));
-                                         CREATE INDEX IX_RenamerInstance_Name ON RenamerInstance(Name);
-                                         CREATE INDEX IX_RenamerInstance_Type ON RenamerInstance(Type);
-                                         """;
-
-            session.CreateSQLQuery(createCommand).ExecuteUpdate();
-
-            const string selectCommand = "SELECT ScriptName, RenamerType, IsEnabledOnImport, Script FROM RenameScript;";
-            var reader = session.CreateSQLQuery(selectCommand)
-                .AddScalar("ScriptName", NHibernateUtil.String)
-                .AddScalar("RenamerType", NHibernateUtil.String)
-                .AddScalar("IsEnabledOnImport", NHibernateUtil.Int32)
-                .AddScalar("Script", NHibernateUtil.String)
-                .List<object[]>();
-            string defaultName = null;
-            var renamerInstances = reader.Select(a =>
-            {
-                try
-                {
-                    var type = ((string)a[1]).Equals("Legacy")
-                        ? typeof(WebAOMRenamer)
-                        : renamerService.RenamersByKey.ContainsKey((string)a[1])
-                            ? renamerService.RenamersByKey[(string)a[1]].GetType()
-                            : Type.GetType((string)a[1]);
-                    if (type == null)
-                    {
-                        if ((string)a[1] == "GroupAwareRenamer")
-                            return (Renamer: new RenamerConfig
-                            {
-                                Name = (string)a[0],
-                                Type = typeof(WebAOMRenamer),
-                                Settings = new WebAOMSettings
-                                {
-                                    Script = (string)a[3], GroupAwareSorting = true
-                                }
-                            }, IsDefault: (int)a[2] == 1);
-
-                        Logger.Warn("A RenameScipt could not be converted to RenamerConfig. Renamer name: " + (string)a[0] + " Renamer type: " + (string)a[1] +
-                                    " Script: " + (string)a[3]);
-                        return default;
-                    }
-
-                    var settingsType = type.GetInterfaces().FirstOrDefault(b => b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>))
-                        ?.GetGenericArguments().FirstOrDefault();
-                    object settings = null;
-                    if (settingsType != null)
-                    {
-                        settings = ActivatorUtilities.CreateInstance(Utils.ServiceContainer, settingsType);
-                        settingsType.GetProperties(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(b => b.Name == "Script")
-                            ?.SetValue(settings, (string)a[3]);
-                    }
-
-                    return (Renamer: new RenamerConfig
-                    {
-                        Name = (string)a[0], Type = type, Settings = settings
-                    }, IsDefault: (int)a[2] == 1);
-                }
-                catch (Exception ex)
-                {
-                    if (a is { Length: >= 4 })
-                    {
-                        Logger.Warn(ex, "A RenameScipt could not be converted to RenamerConfig. Renamer name: " + a[0] + " Renamer type: " + a[1] +
-                                        " Script: " + a[3]);
-                    }
-                    else
-                    {
-                        Logger.Warn(ex, "A RenameScipt could not be converted to RenamerConfig, but there wasn't enough data to log");
-                    }
-
-                    return default;
-                }
-            }).WhereNotDefault().GroupBy(a => a.Renamer.Name).SelectMany(a => a.Select((b, i) =>
-            {
-                // Names are distinct
-                var renamer = b.Renamer;
-                if (i > 0) renamer.Name = renamer.Name + "_" + (i + 1);
-                if (b.IsDefault) defaultName = renamer.Name;
-                return renamer;
-            }));
-
-            if (defaultName != null)
-            {
-                var settings = settingsProvider.GetSettings();
-                settings.Plugins.Renamer.DefaultRenamer = defaultName;
-                settingsProvider.SaveSettings(settings);
-            }
-
-            const string insertCommand = "INSERT INTO RenamerInstance (Name, Type, Settings) VALUES (:Name, :Type, :Settings);";
-            foreach (var renamer in renamerInstances)
-            {
-                var command = session.CreateSQLQuery(insertCommand);
-                command.SetParameter("Name", renamer.Name);
-                command.SetParameter("Type", renamer.Type.ToString());
-                command.SetParameter("Settings", renamer.Settings == null ? null : MessagePackSerializer.Typeless.Serialize(renamer.Settings));
-                command.ExecuteUpdate();
-            }
-
-            const string dropCommand = "DROP TABLE RenameScript;";
-            session.CreateSQLQuery(dropCommand).ExecuteUpdate();
-            transaction.Commit();
-        }
-        catch (Exception e)
-        {
-            transaction.Rollback();
-            return new Tuple<bool, string>(false, e.ToString());
-        }
-
-        return new Tuple<bool, string>(true, null);
     }
 
     private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
@@ -1150,11 +1052,11 @@ public class SQLServer : BaseDatabase<SqlConnection>
     }
 
     private static Tuple<bool, string> DropDefaultOnTMDBShowMovieKeywords(object connection)
-        {
-            DropDefaultConstraint("TMDB_Show", "Keywords");
-            DropDefaultConstraint("TMDB_Movie", "Keywords");
-            return Tuple.Create<bool, string>(true, null);
-        }
+    {
+        DropDefaultConstraint("TMDB_Show", "Keywords");
+        DropDefaultConstraint("TMDB_Movie", "Keywords");
+        return Tuple.Create<bool, string>(true, null);
+    }
 
     protected override Tuple<bool, string> ExecuteCommand(SqlConnection connection, string command)
     {

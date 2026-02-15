@@ -1,3 +1,4 @@
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
@@ -18,11 +19,23 @@ public class AniDB_Anime_Staff
 
     public CreatorRoleType RoleType { get; set; }
 
+    public CrewRoleType CrewRoleType => RoleType switch
+    {
+        CreatorRoleType.Producer => CrewRoleType.Producer,
+        CreatorRoleType.Director => CrewRoleType.Director,
+        CreatorRoleType.SeriesComposer => CrewRoleType.SeriesComposer,
+        CreatorRoleType.CharacterDesign => CrewRoleType.CharacterDesign,
+        CreatorRoleType.Music => CrewRoleType.Music,
+        CreatorRoleType.SourceWork => CrewRoleType.SourceWork,
+        CreatorRoleType.Actor => CrewRoleType.Actor,
+        _ => CrewRoleType.None,
+    };
+
     public int Ordering { get; set; }
 
     #endregion
 
-    public SVR_AniDB_Anime? Anime
+    public AniDB_Anime? Anime
         => RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 
     public AniDB_Creator? Creator

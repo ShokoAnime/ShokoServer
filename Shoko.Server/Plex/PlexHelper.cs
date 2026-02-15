@@ -9,22 +9,18 @@ using System.Net.Http.Headers;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
-using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using NLog;
-using Quartz;
-using Shoko.Models.Plex;
-using Shoko.Models.Plex.Connections;
-using Shoko.Models.Plex.Login;
-using Shoko.Models.Server;
-using Shoko.Server.Models;
+using Shoko.Server.Plex.Models;
+using Shoko.Server.Plex.Models.Connections;
+using Shoko.Server.Plex.Models.Login;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
-using Directory = Shoko.Models.Plex.Libraries.Directory;
-using MediaContainer = Shoko.Models.Plex.Connections.MediaContainer;
+
+using Directory = Shoko.Server.Plex.Models.Libraries.Directory;
+using MediaContainer = Shoko.Server.Plex.Models.Connections.MediaContainer;
 
 namespace Shoko.Server.Plex;
 
@@ -239,107 +235,8 @@ public class PlexHelper
         }
 
         _user.PlexToken = _key.AuthToken;
-        SaveUser(_user);
+        RepoFactory.JMMUser.Save(_user);
         return _user.PlexToken;
-    }
-
-    private void SaveUser(JMMUser user)
-    {
-        try
-        {
-            var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().GetAwaiter().GetResult();
-            var existingUser = false;
-            var updateStats = false;
-            SVR_JMMUser jmmUser;
-            if (user.JMMUserID != 0)
-            {
-                jmmUser = RepoFactory.JMMUser.GetByID(user.JMMUserID);
-                if (jmmUser == null)
-                {
-                    return;
-                }
-
-                existingUser = true;
-            }
-            else
-            {
-                jmmUser = new SVR_JMMUser();
-                updateStats = true;
-            }
-
-            if (existingUser && jmmUser.IsAniDBUser != user.IsAniDBUser)
-            {
-                updateStats = true;
-            }
-
-            var hcat = string.Join(",", user.HideCategories);
-
-            jmmUser.HideCategories = hcat;
-            jmmUser.IsAniDBUser = user.IsAniDBUser;
-            jmmUser.IsTraktUser = user.IsTraktUser;
-            jmmUser.IsAdmin = user.IsAdmin;
-            jmmUser.Username = user.Username;
-            jmmUser.CanEditServerSettings = user.CanEditServerSettings;
-            jmmUser.PlexUsers = user.PlexUsers;
-            jmmUser.PlexToken = user.PlexToken;
-            if (string.IsNullOrEmpty(user.Password))
-            {
-                jmmUser.Password = string.Empty;
-            }
-            else
-            {
-                // Additional check for hashed password, if not hashed we hash it
-                jmmUser.Password = user.Password.Length < 64 ? Digest.Hash(user.Password) : user.Password;
-            }
-
-            // make sure that at least one user is an admin
-            if (jmmUser.IsAdmin == 0)
-            {
-                var adminExists = false;
-                var users = RepoFactory.JMMUser.GetAll();
-                foreach (var userOld in users)
-                {
-                    if (userOld.IsAdmin != 1)
-                    {
-                        continue;
-                    }
-
-                    if (existingUser)
-                    {
-                        if (userOld.JMMUserID != jmmUser.JMMUserID)
-                        {
-                            adminExists = true;
-                        }
-                    }
-                    else
-                    {
-                        //one admin account is needed
-                        adminExists = true;
-                        break;
-                    }
-                }
-
-                if (!adminExists)
-                {
-                    return;
-                }
-            }
-
-            RepoFactory.JMMUser.Save(jmmUser);
-
-            // update stats
-            if (!updateStats)
-            {
-                return;
-            }
-
-            Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(ser => scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = ser.AniDB_ID))).GetAwaiter()
-                .GetResult();
-        }
-        catch
-        {
-            // ignore
-        }
     }
 
     public static PlexHelper GetForUser(JMMUser user)
@@ -461,7 +358,7 @@ public class PlexHelper
         {
             var (_, data) = RequestFromPlexAsync("/library/sections").Result;
             return JsonConvert
-                .DeserializeObject<MediaContainer<Shoko.Models.Plex.Libraries.MediaContainer>>(data, SerializerSettings)
+                .DeserializeObject<MediaContainer<Shoko.Server.Plex.Models.Libraries.MediaContainer>>(data, SerializerSettings)
                 .Container.Directory ?? Array.Empty<Directory>();
         }
         catch (Exception) //I really just don't care now.
@@ -482,6 +379,6 @@ public class PlexHelper
         _user.PlexToken = string.Empty;
         _lastAuthenticated = null;
         _key = null;
-        SaveUser(_user);
+        RepoFactory.JMMUser.Save(_user);
     }
 }

@@ -125,7 +125,7 @@ public static class MiscExtensions
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
             if (obj.GetType() != this.GetType()) return false;
-            return Equals((SearchInfo<T>) obj);
+            return Equals((SearchInfo<T>)obj);
         }
 
         public override int GetHashCode()
@@ -153,7 +153,7 @@ public static class MiscExtensions
     public static SearchInfo<T> DiceFuzzySearch<T>(string text, string pattern, int k, T value)
     {
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(pattern))
-            return new SearchInfo<T> {Index = -1, Distance = int.MaxValue};
+            return new SearchInfo<T> { Index = -1, Distance = int.MaxValue };
         // This forces ASCII, because it's faster to stop caring if ss and ß are the same
         // No it's not perfect, but it works better for those who just want to do lazy searching
         string inputString = text.FilterSearchCharacters();
@@ -167,13 +167,13 @@ public static class MiscExtensions
         inputString = inputString.ToLowerInvariant();
 
         if (string.IsNullOrEmpty(query) || string.IsNullOrEmpty(inputString))
-            return new SearchInfo<T> {Index = -1, Distance = int.MaxValue};
+            return new SearchInfo<T> { Index = -1, Distance = int.MaxValue };
 
         int index = inputString.IndexOf(query, StringComparison.Ordinal);
         // Shortcut
         if (index > -1)
         {
-            return new SearchInfo<T> {Index = index, Distance = 0, ExactMatch = true, Result = value};
+            return new SearchInfo<T> { Index = index, Distance = 0, ExactMatch = true, Result = value };
         }
 
         // always search the longer string for the shorter one
@@ -186,11 +186,11 @@ public static class MiscExtensions
 
         double result = DiceSearch.Distance(inputString, query);
         // Don't count an error as liberally when the title is short
-        if (inputString.Length < 5 && result > 0.5) return new SearchInfo<T> {Index = -1, Distance = int.MaxValue};
+        if (inputString.Length < 5 && result > 0.5) return new SearchInfo<T> { Index = -1, Distance = int.MaxValue };
 
-        if (result >= 0.8) return new SearchInfo<T> {Index = -1, Distance = int.MaxValue};
+        if (result >= 0.8) return new SearchInfo<T> { Index = -1, Distance = int.MaxValue };
 
-        return new SearchInfo<T> {Index = 0, Distance = result, Result = value};
+        return new SearchInfo<T> { Index = 0, Distance = result, Result = value };
     }
 
     public static bool FuzzyMatches(this string text, string query)

@@ -1,10 +1,10 @@
-﻿#nullable enable
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_Anime_CharacterRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Anime_Character, int>(databaseFactory)
@@ -18,8 +18,8 @@ public class AniDB_Anime_CharacterRepository(DatabaseFactory databaseFactory) : 
 
     public override void PopulateIndexes()
     {
-        _animeIDs = new PocoIndex<int, AniDB_Anime_Character, int>(Cache, a => a.AnimeID);
-        _characterIDs = new PocoIndex<int, AniDB_Anime_Character, int>(Cache, a => a.CharacterID);
+        _animeIDs = Cache.CreateIndex(a => a.AnimeID);
+        _characterIDs = Cache.CreateIndex(a => a.CharacterID);
     }
 
     public IReadOnlyList<AniDB_Anime_Character> GetByAnimeID(int animeID)

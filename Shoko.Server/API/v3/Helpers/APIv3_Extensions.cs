@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
@@ -9,12 +8,13 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 
-using AbstractAnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
-using AbstractEpisodeType = Shoko.Plugin.Abstractions.DataModels.EpisodeType;
+using AbstractAnimeType = Shoko.Abstractions.Enums.AnimeType;
+using AbstractEpisodeType = Shoko.Abstractions.Enums.EpisodeType;
+using AbstractYearlySeason = Shoko.Abstractions.Enums.YearlySeason;
 using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
 using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
-using ImageEntityType = Shoko.Plugin.Abstractions.Enums.ImageEntityType;
-using TitleLanguage = Shoko.Plugin.Abstractions.DataModels.TitleLanguage;
+using ImageEntityType = Shoko.Abstractions.Enums.ImageEntityType;
+using TitleLanguage = Shoko.Abstractions.Enums.TitleLanguage;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Helpers;
@@ -66,9 +66,9 @@ public static class APIv3_Extensions
             _ => EpisodeType.Unknown,
         };
 
-    public static List<YearlySeason> ToV3Dto(this IEnumerable<(int Year, AnimeSeason AnimeSeason)> seasons)
+    public static List<SeasonWithYear> ToV3Dto(this IEnumerable<(int Year, AbstractYearlySeason Season)> seasons)
         => seasons
-            .Select(season => new YearlySeason(season.Year, season.AnimeSeason))
+            .Select(season => new SeasonWithYear(season.Year, season.Season))
             .ToList();
 
     public static ComponentVersion ToDto(this WebUIUpdateService.ComponentVersion componentVersion)
@@ -83,17 +83,17 @@ public static class APIv3_Extensions
             MinimumServerVersion = componentVersion.MinimumServerVersion,
         };
 
-    public static IEnumerable<IImageMetadata> InLanguage(this IEnumerable<IImageMetadata> imageList, IReadOnlySet<TitleLanguage>? language = null)
+    public static IEnumerable<IImage> InLanguage(this IEnumerable<IImage> imageList, IReadOnlySet<TitleLanguage>? language = null)
         => language != null && language.Count > 0
             ? imageList.Where(title => language.Contains(title.Language))
             : imageList;
 
     public static Images ToDto(
-        this IEnumerable<IImageMetadata> imageList,
+        this IEnumerable<IImage> imageList,
         IReadOnlySet<TitleLanguage>? language = null,
-        IImageMetadata? preferredPoster = null,
-        IImageMetadata? preferredBackdrop = null,
-        IImageMetadata? preferredThumbnail = null,
+        IImage? preferredPoster = null,
+        IImage? preferredBackdrop = null,
+        IImage? preferredThumbnail = null,
         bool includeDisabled = false,
         bool includeThumbnails = false,
         bool preferredImages = false,

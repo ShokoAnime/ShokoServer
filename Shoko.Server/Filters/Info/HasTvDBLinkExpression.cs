@@ -1,17 +1,16 @@
-using Shoko.Server.Filters.Interfaces;
+using System;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Info;
 
 // TODO: REMOVE THIS FILTER EXPRESSION SOMETIME IN THE FUTURE AFTER THE LEGACY FILTERS ARE REMOVED!!1!
 public class HasTvDBLinkExpression : FilterExpression<bool>
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string Name => "Has TvDB Link";
     public override string HelpDescription => "This condition passes if any of the anime have a TvDB link";
     public override bool Deprecated => true;
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return false;
     }

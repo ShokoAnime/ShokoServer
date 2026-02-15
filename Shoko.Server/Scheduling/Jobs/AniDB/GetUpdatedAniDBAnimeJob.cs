@@ -1,8 +1,9 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
-using Shoko.Models.Server;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Services;
+using Shoko.Server.Models.Internal;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
@@ -25,7 +26,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
 {
     // TODO make this use Quartz scheduling
     private readonly IRequestFactory _requestFactory;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IAnidbService _anidbService;
     private readonly ISettingsProvider _settingsProvider;
     private readonly AniDBTitleHelper _titleHelper;
 
@@ -57,7 +58,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
             // if this is the first time, lets ask for last 3 days
             webUpdateTime = DateTime.UtcNow.AddDays(-3);
 
-            schedule = new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.AniDBUpdates };
+            schedule = new() { UpdateType = (int)ScheduledUpdateType.AniDBUpdates };
         }
         else
         {
@@ -110,15 +111,11 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
             if (anime is null)
             {
-                var name = _titleHelper.SearchAnimeID(animeID)?.MainTitle ?? "<Unknown>";
+                var name = _titleHelper.SearchAnimeID(animeID)?.DefaultTitle.Value ?? "<Unknown>";
                 if (settings.AniDb.AutomaticallyImportSeries)
                 {
                     _logger.LogInformation("Scheduling update for anime: {AnimeTitle} ({AnimeID})", name, animeID);
-                    await (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(c =>
-                    {
-                        c.AnimeID = animeID;
-                        c.CreateSeriesEntry = true;
-                    });
+                    await _anidbService.ScheduleRefreshByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.CreateShokoSeries).ConfigureAwait(false);
                     countAnime++;
                 }
                 else
@@ -135,11 +132,10 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
             var ts = DateTime.Now - (update?.UpdatedAt ?? DateTime.UnixEpoch);
             if (ts.TotalHours > 4)
             {
-                await (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBAnimeJob>(c =>
-                {
-                    c.AnimeID = animeID;
-                    c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
-                });
+                var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
+                if (settings.AniDb.AutomaticallyImportSeries)
+                    refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
+                await _anidbService.ScheduleRefreshByID(animeID, refreshMethod).ConfigureAwait(false);
                 countAnime++;
             }
 
@@ -149,21 +145,17 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
             var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
             if (ser is null) continue;
 
-            await (await _schedulerFactory.GetScheduler()).StartJob<GetAniDBReleaseGroupStatusJob>(c =>
-            {
-                c.AnimeID = animeID;
-                c.ForceRefresh = true;
-            });
+            await _anidbService.ScheduleRefreshByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
             countSeries++;
         }
 
         return (response, countAnime, countSeries);
     }
 
-    public GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
+    public GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
     {
         _requestFactory = requestFactory;
-        _schedulerFactory = schedulerFactory;
+        _anidbService = anidbService;
         _settingsProvider = settingsProvider;
         _titleHelper = titleHelper;
     }

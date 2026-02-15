@@ -5,10 +5,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.TMDB;
@@ -153,8 +151,8 @@ public class TmdbImageService
             if (!validImages.Contains(image.RemoteFileName) || (isLimitEnabled && count >= maxCount))
             {
                 // Check if the image is set as the preferred image for the given type for any series or episodes.
-                var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, imageType, image.TMDB_ImageID);
-                var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, imageType, image.TMDB_ImageID);
+                var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSource.TMDB, imageType, image.TMDB_ImageID);
+                var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSource.TMDB, imageType, image.TMDB_ImageID);
                 if (preferredAnimeImages.Count == 0 && preferredEpisodeImages.Count == 0)
                 {
                     RemoveImageFromEntity(image, foreignType, foreignId, imageType);
@@ -191,8 +189,8 @@ public class TmdbImageService
             var shouldKeep = false;
             foreach (var iT in Enum.GetValues<ImageEntityType>())
             {
-                var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, iT, image.TMDB_ImageID);
-                var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, iT, image.TMDB_ImageID);
+                var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSource.TMDB, iT, image.TMDB_ImageID);
+                var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSource.TMDB, iT, image.TMDB_ImageID);
                 if (preferredAnimeImages.Count > 0 || preferredEpisodeImages.Count > 0)
                 {
                     shouldKeep = true;
@@ -275,8 +273,8 @@ public class TmdbImageService
         // Check if the image is set as any preferred image for any series or episodes.
         foreach (var iT in Enum.GetValues<ImageEntityType>())
         {
-            var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, iT, image.TMDB_ImageID);
-            var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSourceType.TMDB, iT, image.TMDB_ImageID);
+            var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSource.TMDB, iT, image.TMDB_ImageID);
+            var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSource.TMDB, iT, image.TMDB_ImageID);
             if (preferredAnimeImages.Count > 0 || preferredEpisodeImages.Count > 0)
                 return false;
         }
@@ -294,7 +292,7 @@ public class TmdbImageService
         var images = _preferredImages.GetByAnimeID(anidbAnimeId);
         foreach (var defaultImage in images)
         {
-            if (defaultImage.ImageSource == DataSourceType.TMDB)
+            if (defaultImage.ImageSource == DataSource.TMDB)
             {
                 var image = _tmdbImages.GetByID(defaultImage.ImageID);
                 if (image == null)

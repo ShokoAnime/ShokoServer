@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
+
+using TitleLanguage = Shoko.Abstractions.Enums.TitleLanguage;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
@@ -83,7 +84,7 @@ public class TmdbSeason
     /// The yearly seasons this season belongs to.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public List<YearlySeason>? YearlySeasons { get; set; }
+    public List<SeasonWithYear>? YearlySeasons { get; set; }
 
     /// <summary>
     /// The season number for the main ordering or alternate ordering in use.
@@ -145,11 +146,11 @@ public class TmdbSeason
                 .Select(crew => new Role(crew))
                 .ToList();
         if (include.HasFlag(IncludeDetails.YearlySeasons))
-            YearlySeasons = season.Seasons.ToV3Dto();
+            YearlySeasons = season.YearlySeasons.ToV3Dto();
         if (include.HasFlag(IncludeDetails.DaysOfWeek))
             DaysOfWeek = season.TmdbEpisodes
                 .Select(e => e.AiredAt?.DayOfWeek)
-                .WhereNotDefault()
+                .WhereNotNullOrDefault()
                 .Distinct()
                 .Order()
                 .ToList();
@@ -177,11 +178,11 @@ public class TmdbSeason
         if (include.HasFlag(IncludeDetails.Images))
             Images = new();
         if (include.HasFlag(IncludeDetails.YearlySeasons))
-            YearlySeasons = season.Seasons.ToV3Dto();
+            YearlySeasons = season.YearlySeasons.ToV3Dto();
         if (include.HasFlag(IncludeDetails.DaysOfWeek))
             DaysOfWeek = season.TmdbAlternateOrderingEpisodes
                 .Select(e => e.TmdbEpisode?.AiredAt?.DayOfWeek)
-                .WhereNotDefault()
+                .WhereNotNullOrDefault()
                 .Distinct()
                 .Order()
                 .ToList();

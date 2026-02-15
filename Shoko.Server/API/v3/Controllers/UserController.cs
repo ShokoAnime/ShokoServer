@@ -1,14 +1,16 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Exceptions;
+using Shoko.Abstractions.Services;
+using Shoko.Abstractions.User;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
-using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -17,7 +19,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class UserController : BaseController
+public class UserController(IUserService userService, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
     private const string UserByIdNotFound = "An user by the given `userID` doesn't exist.";
 
@@ -31,7 +33,7 @@ public class UserController : BaseController
     [Authorize("admin")]
     [HttpGet]
     public ActionResult<List<User>> GetUsers() =>
-        RepoFactory.JMMUser.GetAll().Select(user => new User(user)).ToList();
+        userService.GetUsers().Select(user => new User(user)).ToList();
 
     /// <summary>
     /// Add a new user.
@@ -104,7 +106,7 @@ public class UserController : BaseController
     /// <param name="body">The body with the new password.</param>
     /// <returns></returns>
     [HttpPost("Current/ChangePassword")]
-    public ActionResult ChangePasswordForCurrentUser([FromBody] User.Input.ChangePasswordBody body) =>
+    public Task<ActionResult> ChangePasswordForCurrentUser([FromBody] User.Input.ChangePasswordBody body) =>
         ChangePassword(User, body);
 
     /// <summary>
@@ -119,7 +121,7 @@ public class UserController : BaseController
     [HttpGet("{userID}")]
     public ActionResult<User> GetUserByUserID([FromRoute, Range(1, int.MaxValue)] int userID)
     {
-        var user = RepoFactory.JMMUser.GetByID(userID);
+        var user = userService.GetUserByID(userID);
         if (user == null)
             return NotFound(UserByIdNotFound);
 
@@ -139,7 +141,7 @@ public class UserController : BaseController
     [HttpPatch("{userID}")]
     public ActionResult<User> PatchUserByUserID([FromRoute, Range(1, int.MaxValue)] int userID, [FromBody] JsonPatchDocument<User.Input.CreateOrUpdateUserBody> document)
     {
-        var user = RepoFactory.JMMUser.GetByID(userID);
+        var user = userService.GetUserByID(userID);
         if (user == null)
             return NotFound(UserByIdNotFound);
 
@@ -169,7 +171,7 @@ public class UserController : BaseController
     [HttpPut("{userID}")]
     public ActionResult<User> PutUserByUserID([FromRoute, Range(1, int.MaxValue)] int userID, [FromBody] User.Input.CreateOrUpdateUserBody body)
     {
-        var user = RepoFactory.JMMUser.GetByID(userID);
+        var user = userService.GetUserByID(userID);
         if (user == null)
             return NotFound(UserByIdNotFound);
 
@@ -190,24 +192,27 @@ public class UserController : BaseController
     /// <returns>Void.</returns>
     [Authorize("admin")]
     [HttpDelete("{userID}")]
-    public ActionResult DeleteUser([FromRoute, Range(1, int.MaxValue)] int userID)
+    public async Task<ActionResult> DeleteUser([FromRoute, Range(1, int.MaxValue)] int userID)
     {
-        var user = RepoFactory.JMMUser.GetByID(userID);
+        var user = userService.GetUserByID(userID);
         if (user == null)
             return NotFound(UserByIdNotFound);
 
-        var allAdmins = RepoFactory.JMMUser.GetAll().Where(a => a.IsAdminUser()).ToList();
-        allAdmins.Remove(user);
-        if (allAdmins.Count < 1)
-            return ValidationProblem("There must be at least one admin user.", "IsAdmin");
+        try
+        {
+            await userService.DeleteUser(user);
+        }
+        catch (GenericValidationException ex)
+        {
+            return ValidationProblem(ex.ValidationErrors);
+        }
 
-        RepoFactory.JMMUser.RemoveUser(userID, true);
         return Ok();
     }
 
     /// <summary>
     /// Change the password for a user.
-    /// </summary>
+    /// /// </summary>
     /// <remarks>
     /// Can only be called by admins or the user the password belongs to.
     /// </remarks>
@@ -216,27 +221,22 @@ public class UserController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{userID}/ChangePassword")]
-    public ActionResult ChangePasswordForUserByUserID([FromRoute, Range(1, int.MaxValue)] int userID, [FromBody] User.Input.ChangePasswordBody body) =>
-        ChangePassword(RepoFactory.JMMUser.GetByID(userID), body);
+    public Task<ActionResult> ChangePasswordForUserByUserID([FromRoute, Range(1, int.MaxValue)] int userID, [FromBody] User.Input.ChangePasswordBody body) =>
+        ChangePassword(userService.GetUserByID(userID), body);
 
     [NonAction]
-    private ActionResult ChangePassword(SVR_JMMUser user, User.Input.ChangePasswordBody body)
+    private async Task<ActionResult> ChangePassword(IUser user, User.Input.ChangePasswordBody body)
     {
         if (user == null)
             return NotFound(UserByIdNotFound);
 
-        if (user.JMMUserID != User.JMMUserID && !User.IsAdminUser())
+        if (user.ID != User.JMMUserID && !User.IsAdminUser())
             return Forbid("User must be admin to change other's password.");
 
-        user.Password = string.IsNullOrEmpty(body.Password) ? "" : Digest.Hash(body.Password);
-        RepoFactory.JMMUser.Save(user);
+        await userService.ChangeUserPassword(user, body.Password);
         if (body.RevokeAPIKeys)
-            RepoFactory.AuthTokens.DeleteAllWithUserID(user.JMMUserID);
+            await userService.InvalidateRestApiTokensForUser(user);
 
         return Ok();
-    }
-
-    public UserController(ISettingsProvider settingsProvider) : base(settingsProvider)
-    {
     }
 }

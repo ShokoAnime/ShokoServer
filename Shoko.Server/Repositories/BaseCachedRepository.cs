@@ -37,7 +37,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     {
         if (displayname)
         {
-            ServerState.Instance.ServerStartingStatus = $"Database Cache - Caching  - {typeof(T).Name.Replace("SVR_", string.Empty)}...";
+            ServerState.Instance.ServerStartingStatus = $"Database Cache - Caching  - {typeof(T).Name}...";
         }
 
         // This is only called from main thread, so we don't need to lock
@@ -60,7 +60,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     // ReSharper disable once InconsistentNaming
     public virtual T GetByID(S id)
     {
-        if (Equals(default(S), id)) throw new InvalidStateException($"Trying to lookup a {typeof(T).Name.Replace("SVR_", string.Empty)} by an ID of 0");
+        if (Equals(default(S), id)) throw new InvalidStateException($"Trying to lookup a {typeof(T).Name} by an ID of 0");
         return ReadLock(() => GetByIDUnsafe(id));
     }
 

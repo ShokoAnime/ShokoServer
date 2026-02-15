@@ -1,8 +1,9 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API;
@@ -14,7 +15,7 @@ namespace Shoko.Server.API;
 public class BaseController(ISettingsProvider settingsProvider) : Controller
 {
     // Override Controller.User to be the SVR_JMMUser, since we'll almost never need HttpContext.User
-    protected new SVR_JMMUser User => HttpContext.GetUser();
+    protected new JMMUser User => HttpContext.GetUser();
 
     protected readonly ISettingsProvider SettingsProvider = settingsProvider;
 
@@ -48,9 +49,12 @@ public class BaseController(ISettingsProvider settingsProvider) : Controller
     }
 
     [NonAction]
-    protected ActionResult ValidationProblem(string message, string fieldName = "Body")
+    protected ActionResult ValidationProblem(IEnumerable<KeyValuePair<string, IReadOnlyList<string>>> errors, string fieldName = null)
     {
-        ModelState.AddModelError(fieldName, message);
+        var prefix = string.IsNullOrEmpty(fieldName) ? string.Empty : fieldName + ".";
+        foreach (var (key, errorsList) in errors)
+            foreach (var error in errorsList)
+                ModelState.AddModelError(prefix + key, error);
         return ValidationProblem(ModelState);
     }
 }

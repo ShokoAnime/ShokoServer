@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
 
@@ -36,14 +37,14 @@ public class SeriesRelation
     [Required]
     public string Source { get; set; }
 
-    public SeriesRelation(IRelatedMetadata relation, AnimeSeries series = null,
-        AnimeSeries relatedSeries = null)
+    public SeriesRelation(IRelatedMetadata relation, IShokoSeries series = null,
+        IShokoSeries relatedSeries = null)
     {
         series ??= RepoFactory.AnimeSeries.GetByAnimeID(relation.BaseID);
         relatedSeries ??= RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedID);
 
-        IDs = new RelationIDs { AniDB = relation.BaseID, Shoko = series?.AnimeSeriesID };
-        RelatedIDs = new RelationIDs { AniDB = relation.RelatedID, Shoko = relatedSeries?.AnimeSeriesID };
+        IDs = new RelationIDs { AniDB = relation.BaseID, Shoko = series?.ID };
+        RelatedIDs = new RelationIDs { AniDB = relation.RelatedID, Shoko = relatedSeries?.ID };
         Type = relation.RelationType;
         Source = "AniDB";
     }

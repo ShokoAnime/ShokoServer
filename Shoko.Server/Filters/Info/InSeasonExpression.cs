@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
-using Shoko.Models.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Repositories;
 
@@ -8,7 +9,7 @@ namespace Shoko.Server.Filters.Info;
 
 public class InSeasonExpression : FilterExpression<bool>, IWithNumberParameter, IWithSecondStringParameter
 {
-    public InSeasonExpression(int year, AnimeSeason season)
+    public InSeasonExpression(int year, YearlySeason season)
     {
         Year = year;
         Season = season;
@@ -16,9 +17,9 @@ public class InSeasonExpression : FilterExpression<bool>, IWithNumberParameter, 
     public InSeasonExpression() { }
 
     public int Year { get; set; }
-    public AnimeSeason Season { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
+    public YearlySeason Season { get; set; }
+
+    public override bool TimeDependent => true;
     public override string HelpDescription => "This condition passes if any of the anime aired in the specified season and year";
     public override string[][] HelpPossibleParameterPairs => RepoFactory.AnimeSeries.GetAllSeasons().Select(a => new[] { a.Year.ToString(), a.Season.ToString() }).ToArray();
 
@@ -31,10 +32,10 @@ public class InSeasonExpression : FilterExpression<bool>, IWithNumberParameter, 
     string IWithSecondStringParameter.SecondParameter
     {
         get => Season.ToString();
-        set => Season = Enum.Parse<AnimeSeason>(value);
+        set => Season = Enum.Parse<YearlySeason>(value, ignoreCase: true);
     }
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.Seasons.Contains((Year, Season));
     }

@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.API.v3.Models.Release;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
 
@@ -21,9 +23,8 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class AniDBController(
     ISettingsProvider settingsProvider,
-    IUDPConnectionHandler udpHandler,
-    IHttpConnectionHandler httpHandler,
-    AniDB_ReleaseGroupRepository anidbReleaseGroups,
+    IAnidbService anidbService,
+    StoredReleaseInfoRepository storedReleaseInfos,
     AniDB_CreatorRepository anidbCreators
 ) : BaseController(settingsProvider)
 {
@@ -39,8 +40,8 @@ public class AniDBController(
     {
         return new Dictionary<string, AnidbBannedStatus>
         {
-            { "UDP", new AnidbBannedStatus(udpHandler.State) },
-            { "HTTP", new AnidbBannedStatus(httpHandler.State) },
+            { "UDP", new AnidbBannedStatus(anidbService.LastUdpBanEventArgs) },
+            { "HTTP", new AnidbBannedStatus(anidbService.LastHttpBanEventArgs) },
         };
     }
 
@@ -59,11 +60,11 @@ public class AniDBController(
     {
         return includeMissing switch
         {
-            IncludeOnlyFilter.False => anidbReleaseGroups.GetUsedReleaseGroups()
+            IncludeOnlyFilter.False => storedReleaseInfos.GetUsedReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
-            IncludeOnlyFilter.Only => anidbReleaseGroups.GetUnusedReleaseGroups()
+            IncludeOnlyFilter.Only => storedReleaseInfos.GetUnusedReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
-            _ => anidbReleaseGroups.GetAll()
+            _ => storedReleaseInfos.GetReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
         };
     }
@@ -76,10 +77,10 @@ public class AniDBController(
     [HttpGet("ReleaseGroup/{id}")]
     public ActionResult<ReleaseGroup> GetReleaseGroup(int id)
     {
-        var group = anidbReleaseGroups.GetByGroupID(id);
-        if (group == null)
+        if (storedReleaseInfos.GetByGroupAndProviderIDs(id.ToString(), "AniDB") is not Shoko.Abstractions.Release.IReleaseInfo { Group.Source: "AniDB" } releaseInfo)
             return NotFound();
-        return new ReleaseGroup(group);
+
+        return new ReleaseGroup(releaseInfo.Group);
     }
 
     /// <summary>

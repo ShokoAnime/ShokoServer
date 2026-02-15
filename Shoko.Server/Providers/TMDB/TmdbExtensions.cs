@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Client;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
-using Shoko.Server.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Models.TMDB;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
@@ -58,15 +56,6 @@ public static class TmdbExtensions
             .OrderBy(genre => genre)
             .ToList();
     }
-
-    public static CL_MovieDBMovieSearch_Response ToContract(this SearchMovie movie)
-        => new()
-        {
-            MovieID = movie.Id,
-            MovieName = movie.Title,
-            OriginalName = movie.OriginalTitle,
-            Overview = movie.Overview,
-        };
 
     public static DateTime ToDateTime(this DateOnly date)
         => date.ToDateTime(MidDay, DateTimeKind.Utc);

@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
+
+using TitleLanguage = Shoko.Abstractions.Enums.TitleLanguage;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
@@ -137,7 +137,7 @@ public class TmdbShow
     /// The yearly seasons this show belongs to.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public List<YearlySeason>? YearlySeasons { get; set; }
+    public List<SeasonWithYear>? YearlySeasons { get; set; }
 
     /// <summary>
     /// Count of episodes associated with the show.
@@ -218,7 +218,7 @@ public class TmdbShow
         IsRestricted = show.IsRestricted;
         UserRating = new()
         {
-            Value = (decimal)show.UserRating,
+            Value = show.UserRating,
             MaxValue = 10,
             Votes = show.UserVotes,
             Source = "TMDB",
@@ -246,11 +246,11 @@ public class TmdbShow
                 .Select(cast => new Role(cast))
                 .ToList();
         if (include.HasFlag(IncludeDetails.YearlySeasons))
-            YearlySeasons = show.Seasons.ToV3Dto();
+            YearlySeasons = show.YearlySeasons.ToV3Dto();
         if (include.HasFlag(IncludeDetails.DaysOfWeek))
             DaysOfWeek = show.TmdbEpisodes
                 .Select(e => e.AiredAt?.DayOfWeek)
-                .WhereNotDefault()
+                .WhereNotNullOrDefault()
                 .Distinct()
                 .Order()
                 .ToList();
@@ -399,10 +399,7 @@ public class TmdbShow
         {
             AnidbAnimeID = xref.AnidbAnimeID;
             TmdbShowID = xref.TmdbShowID;
-            Rating = "None";
-            // NOTE: Internal easter-eggs stays internally.
-            if (xref.MatchRating != MatchRating.SarahJessicaParker)
-                Rating = xref.MatchRating.ToString();
+            Rating = xref.MatchRating.ToString();
         }
     }
 

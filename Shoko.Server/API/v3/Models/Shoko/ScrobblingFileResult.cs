@@ -6,24 +6,24 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
-using Shoko.Plugin.Abstractions.Services;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Services;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class ScrobblingFileResult : PhysicalFileResult
 {
-    private SVR_VideoLocal VideoLocal { get; set; }
-    private SVR_JMMUser User { get; set; }
-    public ScrobblingFileResult(SVR_VideoLocal videoLocal, SVR_JMMUser user, string fileName, string contentType) : base(fileName, contentType)
+    private VideoLocal VideoLocal { get; set; }
+    private JMMUser User { get; set; }
+    public ScrobblingFileResult(VideoLocal videoLocal, JMMUser user, string fileName, string contentType) : base(fileName, contentType)
     {
         VideoLocal = videoLocal;
         User = user;
         EnableRangeProcessing = true;
     }
 
-    public ScrobblingFileResult(SVR_VideoLocal videoLocal, SVR_JMMUser user, string fileName, MediaTypeHeaderValue contentType) : base(fileName, contentType)
+    public ScrobblingFileResult(VideoLocal videoLocal, JMMUser user, string fileName, MediaTypeHeaderValue contentType) : base(fileName, contentType)
     {
         VideoLocal = videoLocal;
         User = user;
@@ -37,7 +37,7 @@ public class ScrobblingFileResult : PhysicalFileResult
         if (end != VideoLocal.FileSize) return;
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         var watchedService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
-        Task.Factory.StartNew(() => watchedService.SetVideoWatchedStatus(User, VideoLocal), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        Task.Factory.StartNew(() => watchedService.SetVideoWatchedStatus(VideoLocal, User), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
     }
 

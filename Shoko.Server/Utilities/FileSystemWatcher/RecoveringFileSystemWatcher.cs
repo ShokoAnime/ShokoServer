@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Extensions;
+using Shoko.Abstractions.Utilities;
 
 namespace Shoko.Server.Utilities.FileSystemWatcher;
 
@@ -30,31 +30,15 @@ public class RecoveringFileSystemWatcher : IDisposable
     public event EventHandler<string> FileDeleted;
     public FileSystemWatcherLockOptions Options { get; set; } = new();
 
-    public RecoveringFileSystemWatcher(string path, IEnumerable<string> filters = null, IEnumerable<string> pathExclusions = null)
+    public RecoveringFileSystemWatcher(string path, IReadOnlyCollection<string> filters, IReadOnlyCollection<Regex> pathExclusions)
     {
         if (path == null) throw new ArgumentException(nameof(path) + " cannot be null");
         if (!Directory.Exists(path)) throw new ArgumentException(nameof(path) + $" must be a directory that exists: {path}");
         // bad, but meh for now
-        _logger = Utils.ServiceContainer.GetRequiredService<ILoggerFactory>().CreateLogger("ImportFolderWatcher: " + path);
+        _logger = Utils.ServiceContainer.GetRequiredService<ILoggerFactory>().CreateLogger("RecoveringFileSystemWatcher:" + path);
         _path = path;
-        _filters = filters?.AsReadOnlyCollection() ?? Enumerable.Empty<string>().AsReadOnlyCollection();
-
-        pathExclusions ??= Enumerable.Empty<string>();
-        var exclusions = new List<Regex>();
-        foreach (var exclusion in pathExclusions)
-        {
-            try
-            {
-                var regex = new Regex(exclusion, RegexOptions.Compiled);
-                exclusions.Add(regex);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Unable to add Exclusion Regex: {Regex}", exclusion);
-            }
-        }
-
-        _pathExclusions = exclusions.AsReadOnlyCollection();
+        _filters = filters;
+        _pathExclusions = pathExclusions;
     }
 
     private void OnFileEvent(string path, WatcherChangeTypes type)
@@ -63,12 +47,18 @@ public class RecoveringFileSystemWatcher : IDisposable
         {
             try
             {
+                path = PlatformUtility.EnsureUsablePath(path);
+                var resolvedPath = File.ResolveLinkTarget(path, true)?.FullName;
+                if (string.IsNullOrEmpty(resolvedPath))
+                    resolvedPath = path;
+                else
+                    _logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
                 switch (type)
                 {
                     case WatcherChangeTypes.Created:
                     case WatcherChangeTypes.Changed:
                     case WatcherChangeTypes.Renamed:
-                        if (!IsLocked(path)) FileAdded?.Invoke(this, path);
+                        if (!IsLocked(resolvedPath)) FileAdded?.Invoke(this, path);
                         break;
                     case WatcherChangeTypes.Deleted:
                         FileDeleted?.Invoke(this, path);
@@ -129,15 +119,9 @@ public class RecoveringFileSystemWatcher : IDisposable
         if (item.Type == WatcherChangeTypes.Deleted) return true;
         _logger.LogTrace("New Directory Found. Iterating: {Path}", item.FullPath);
         // iterate and send a command for each containing file
-        foreach (var file in Directory.GetFiles(item.FullPath, "*.*", SearchOption.AllDirectories))
-        {
-            var fileItem = item with { FullPath = file };
-            if (_pathExclusions.Any(a => a.IsMatch(fileItem.FullPath))) continue;  // Apply exclusion rules to files enumerated due to recursion.
-            if (_filters.Any() && !_filters.Any(a => fileItem.FullPath.ToLowerInvariant().EndsWith(a))) continue;
-            if (_buffer.ContainsKey(fileItem.FullPath)) continue;
-            if (!_buffer.TryAdd(fileItem.FullPath, fileItem.Type)) continue;
-            OnFileEvent(fileItem.FullPath, fileItem.Type);
-        }
+        bool IsMatch(string p, bool isDirectory) => isDirectory || !_pathExclusions.Any(a => a.IsMatch(p)) && _buffer.TryAdd(p, item.Type);
+        foreach (var file in FileSystemHelpers.GetFilePaths(item.FullPath, recursive: true, extensions: _filters, filter: IsMatch))
+            OnFileEvent(file, item.Type);
 
         return true;
     }
@@ -318,7 +302,7 @@ public class RecoveringFileSystemWatcher : IDisposable
                 }
 
                 numAttempts++;
-                Thread.Sleep(1000);
+                Thread.Sleep(waitTime);
                 _logger.LogTrace("Failed to access (or filesize is 0) Attempt # {NumAttempts}, {FileName}",
                     numAttempts, path);
             }
@@ -387,7 +371,7 @@ public class RecoveringFileSystemWatcher : IDisposable
                 if (info.IsReadOnly) info.IsReadOnly = false;
 
                 // check to see if it stuck. On linux, we can't just WinAPI hack our way out, so don't recurse in that case, anyway
-                if (!new FileInfo(fileName).IsReadOnly && !Utils.IsRunningOnLinuxOrMac()) return GetFileSize(fileName, accessType);
+                if (!new FileInfo(fileName).IsReadOnly && PlatformUtility.IsWindows) return GetFileSize(fileName, accessType);
             }
             catch
             {

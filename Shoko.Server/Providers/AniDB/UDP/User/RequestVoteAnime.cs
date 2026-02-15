@@ -17,11 +17,11 @@ public class RequestVoteAnime : UDPRequest<ResponseVote>
     public int AnimeID { get; set; }
 
     /// <summary>
-    /// Between 0 exclusive and 10 inclusive, will be rounded to nearest tenth
+    /// Between 1 exclusive and 10 inclusive, will be rounded to nearest tenth
     /// </summary>
     public double Value { get; set; }
 
-    private int AniDBValue => Value < 0 ? -1 : (int)(Math.Round(Value, 1, MidpointRounding.AwayFromZero) * 100D);
+    private int AniDBValue => Value < 1 || Value > 10 ? -1 : (int)(Math.Round(Value, 1, MidpointRounding.AwayFromZero) * 100D);
 
     /// <summary>
     /// If the anime is not finished (or you haven't finished it), then it is Temporary

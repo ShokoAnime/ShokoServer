@@ -1,10 +1,10 @@
-#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.TMDB;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached.TMDB;
 
 public class TMDB_SeasonRepository : BaseCachedRepository<TMDB_Season, int>

@@ -2,8 +2,8 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.General;
@@ -11,7 +11,7 @@ using TMDbLib.Objects.General;
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Image : Image_Base, IImageMetadata
+public class TMDB_Image : Image_Base, IImage
 {
     #region Properties
 
@@ -94,9 +94,9 @@ public class TMDB_Image : Image_Base, IImageMetadata
 
     #region Constructors
 
-    public TMDB_Image() : base(DataSourceEnum.TMDB, ImageEntityType.None, 0) { }
+    public TMDB_Image() : base(DataSource.TMDB, ImageEntityType.None, 0) { }
 
-    public TMDB_Image(string filePath, ImageEntityType type = ImageEntityType.None) : base(DataSourceEnum.TMDB, type, 0)
+    public TMDB_Image(string filePath, ImageEntityType type = ImageEntityType.None) : base(DataSource.TMDB, type, 0)
     {
         _remoteFileName = filePath;
         if (!string.IsNullOrEmpty(_remoteFileName) && _remoteFileName[0] != '/')
@@ -158,6 +158,14 @@ public class TMDB_Image : Image_Base, IImageMetadata
                 _width = Width,
                 _height = Height,
             };
+
+    #endregion
+
+    #region IImage Implementation
+
+    double? IImage.Rating => UserRating;
+
+    int? IImage.RatingVotes => UserVotes;
 
     #endregion
 }

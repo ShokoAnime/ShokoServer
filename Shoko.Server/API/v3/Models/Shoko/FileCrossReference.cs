@@ -1,11 +1,7 @@
-
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Video;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
 #nullable enable
@@ -152,49 +148,9 @@ public class FileCrossReference
                 .Select(xref =>
                 {
                     // Percentages.
-                    Tuple<int, int> percentage = new(0, 100);
-                    int? releaseGroup = xref.Source == DataSourceEnum.AniDB ? RepoFactory.AniDB_File.GetByEd2kAndFileSize(xref.ED2K, xref.Size)?.GroupID ?? 0 : null;
+                    var releaseGroup = xref.Release.Group is { Source: "AniDB" } group && int.TryParse(group.ID, out var releaseGroupId) ? releaseGroupId : (int?)null;
                     var assumedFileCount = PercentageToFileCount(xref.Percentage);
-                    if (assumedFileCount > 1)
-                    {
-                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID)
-                            // Filter to only cross-references which are partially linked in the same number of parts to the episode, and from the same group as the current cross-reference.
-                            .Where(xref2 => PercentageToFileCount(xref2.Percentage) == assumedFileCount && (xref2.CrossRefSource == (int)CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByEd2kAndFileSize(xref2.Hash, xref2.FileSize)?.GroupID ?? -1 : null) == releaseGroup)
-                            // This will order by the "full" episode if the xref is linked to both a "full" episode and "part" episode,
-                            // then fall back on the episode order if either a "full" episode is not available, or if it's for cross-references
-                            // for a single-file-multiple-episodes file.
-                            .Select(xref2 => (
-                                xref: xref2,
-                                episode: RepoFactory.CrossRef_File_Episode.GetByEd2k(xref2.Hash)
-                                    .FirstOrDefault(xref3 => xref3.Percentage == 100 && (xref3.CrossRefSource == (int)CrossRefSource.AniDB ? RepoFactory.AniDB_File.GetByEd2kAndFileSize(xref3.Hash, xref3.FileSize)?.GroupID ?? -1 : null) == releaseGroup)
-                                    ?.AniDBEpisode
-                            ))
-                            .OrderBy(tuple => tuple.episode?.EpisodeTypeEnum)
-                            .ThenBy(tuple => tuple.episode?.EpisodeNumber)
-                            .ThenBy(tuple => tuple.xref.EpisodeOrder)
-                            .ToList();
-                        var index = xrefs.FindIndex(tuple => string.Equals(tuple.xref.Hash, xref.ED2K) && tuple.xref.FileSize == xref.Size);
-                        if (index > 0)
-                        {
-                            // Note: this is bound to be inaccurate if we don't have all the files linked to the episode locally, but as long
-                            // as we have all the needed files/cross-references then it will work 100% of the time (pun intended).
-                            var accumulatedPercentage = xrefs[..index].Sum(tuple => tuple.xref.Percentage);
-                            var totalPercentage = accumulatedPercentage + xref.Percentage;
-                            if (totalPercentage >= 95)
-                                totalPercentage = 100;
-                            percentage = new(accumulatedPercentage, totalPercentage);
-                        }
-                        else if (index == 0)
-                        {
-                            percentage = new(0, xref.Percentage);
-                        }
-                        else
-                        {
-                            percentage = new(0, 0);
-                        }
-                    }
-
-                    var shokoEpisode = xref.ShokoEpisode as SVR_AnimeEpisode;
+                    var shokoEpisode = xref.ShokoEpisode as AnimeEpisode;
                     return (
                         xref,
                         dto: new EpisodeCrossReferenceIDs
@@ -221,12 +177,12 @@ public class FileCrossReference
                             {
                                 Size = xref.Percentage,
                                 Group = assumedFileCount,
-                                Start = percentage.Item1,
-                                End = percentage.Item2,
+                                Start = xref.PercentageStart,
+                                End = xref.PercentageEnd,
                             },
                             ED2K = xref.ED2K,
                             FileSize = xref.Size,
-                            Source = xref.Source == DataSourceEnum.AniDB ? "AniDB" : "User",
+                            Source = xref.Release?.ProviderName ?? string.Empty,
                         }
                     );
                 })

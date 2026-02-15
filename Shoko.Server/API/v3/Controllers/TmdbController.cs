@@ -13,8 +13,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -23,7 +22,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.API.v3.Models.TMDB.Input;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
@@ -31,11 +29,12 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-using AbstractAnimeType = Shoko.Plugin.Abstractions.DataModels.AnimeType;
-using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
+using AnimeType = Shoko.Abstractions.Enums.AnimeType;
+using EpisodeType = Shoko.Abstractions.Enums.EpisodeType;
+using MatchRating = Shoko.Abstractions.Enums.MatchRating;
+using TitleLanguage = Shoko.Abstractions.Enums.TitleLanguage;
+using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
-using InternalEpisodeType = Shoko.Models.Enums.EpisodeType;
-using MatchRating = Shoko.Models.Enums.MatchRating;
 
 #pragma warning disable CA1822
 #nullable enable
@@ -374,7 +373,7 @@ public partial class TmdbController : BaseController
     }
 
     [HttpGet("Movie/{movieID}/YearlySeasons")]
-    public ActionResult<IReadOnlyList<YearlySeason>> GetYearlySeasonsForTmdbMovieByMovieID(
+    public ActionResult<IReadOnlyList<SeasonWithYear>> GetYearlySeasonsForTmdbMovieByMovieID(
         [FromRoute] int movieID
     )
     {
@@ -384,7 +383,7 @@ public partial class TmdbController : BaseController
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return movie.Seasons.ToV3Dto();
+        return movie.YearlySeasons.ToV3Dto();
     }
 
     #endregion
@@ -461,13 +460,13 @@ public partial class TmdbController : BaseController
     /// </summary>
     /// <param name="movieID">TMDB Movie ID.</param>
     /// <param name="randomImages">Randomize images shown for the <see cref="Series"/>.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("Movie/{movieID}/Shoko/Series")]
     public ActionResult<List<Series>> GetShokoSeriesByTmdbMovieID(
         [FromRoute] int movieID,
         [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null
     )
     {
         var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
@@ -485,12 +484,12 @@ public partial class TmdbController : BaseController
     /// Get all Shoko episodes linked to a TMDB movie.
     /// </summary>
     /// <param name="movieID">TMDB Movie ID.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("Movie/{movieID}/Shoko/Episode")]
     public ActionResult<List<Episode>> GetShokoEpisodesByTmdbMovieID(
         [FromRoute] int movieID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null
     )
     {
         var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
@@ -514,7 +513,6 @@ public partial class TmdbController : BaseController
     /// <param name="exclude">Exclude items of certain types</param>
     /// <param name="include_only">Filter to only include items of certain types</param>
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Movie/{movieID}/Shoko/File")]
     public ActionResult<ListResult<File>> GetShokoFilesByMovieID(
@@ -524,8 +522,7 @@ public partial class TmdbController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[]? exclude = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[]? include_only = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null
     )
     {
         var movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movieID);
@@ -537,7 +534,7 @@ public partial class TmdbController : BaseController
             .WhereNotNull()
             .SelectMany(xref => xref.VideoLocals)
             .DistinctBy(video => video.VideoLocalID);
-        return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
+        return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, sortOrder);
     }
 
     #endregion
@@ -1341,7 +1338,7 @@ public partial class TmdbController : BaseController
     }
 
     [HttpGet("Show/{showID}/YearlySeasons")]
-    public ActionResult<IReadOnlyList<YearlySeason>> GetYearlySeasonsForTmdbShowByShowID(
+    public ActionResult<IReadOnlyList<SeasonWithYear>> GetYearlySeasonsForTmdbShowByShowID(
         [FromRoute] int showID
     )
     {
@@ -1351,7 +1348,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
-        return show.Seasons.ToV3Dto();
+        return show.YearlySeasons.ToV3Dto();
     }
 
     [HttpGet("Show/{showID}/DaysOfWeek")]
@@ -1367,7 +1364,7 @@ public partial class TmdbController : BaseController
 
         return show.TmdbEpisodes
             .Select(e => e.AiredAt?.DayOfWeek.ToString())
-            .WhereNotDefault()
+            .WhereNotNullOrDefault()
             .Distinct()
             .Order()
             .ToList();
@@ -1617,13 +1614,13 @@ public partial class TmdbController : BaseController
     /// </summary>
     /// <param name="showID">TMDB Show ID.</param>
     /// <param name="randomImages">Randomize images shown for the <see cref="Series"/>.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("Show/{showID}/Shoko/Series")]
     public ActionResult<List<Series>> GetShokoSeriesByTmdbShowID(
         [FromRoute] int showID,
         [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null
     )
     {
         var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
@@ -1649,7 +1646,6 @@ public partial class TmdbController : BaseController
     /// <param name="exclude">Exclude items of certain types</param>
     /// <param name="include_only">Filter to only include items of certain types</param>
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Show/{showID}/Shoko/File")]
     public ActionResult<ListResult<File>> GetShokoFilesByTmdbShowID(
@@ -1659,8 +1655,7 @@ public partial class TmdbController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[]? exclude = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[]? include_only = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null
     )
     {
         var show = RepoFactory.TMDB_Show.GetByTmdbShowID(showID);
@@ -1674,7 +1669,7 @@ public partial class TmdbController : BaseController
             .WhereNotNull()
             .SelectMany(xref => xref.VideoLocals)
             .DistinctBy(video => video.VideoLocalID);
-        return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
+        return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, sortOrder);
     }
 
     #endregion
@@ -1701,11 +1696,18 @@ public partial class TmdbController : BaseController
                 return Ok();
 
             var settings = SettingsProvider.GetSettings();
-            await _tmdbMetadataService.UpdateShow(showID, !body.QuickRefresh && body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering, body.QuickRefresh);
+            await _tmdbMetadataService.UpdateShow(
+                showId: showID,
+                forceRefresh: !body.QuickRefresh && body.Force,
+                downloadImages: body.DownloadImages,
+                downloadCrewAndCast: body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast,
+                downloadAlternateOrdering: body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering,
+                downloadNetworks: body.DownloadNetworks ?? settings.TMDB.AutoDownloadNetworks,
+                quickRefresh: body.QuickRefresh);
             return Ok();
         }
 
-        await _tmdbMetadataService.ScheduleUpdateOfShow(showID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadAlternateOrdering);
+        await _tmdbMetadataService.ScheduleUpdateOfShow(showID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadAlternateOrdering, body.DownloadNetworks);
         return NoContent();
     }
 
@@ -2034,7 +2036,7 @@ public partial class TmdbController : BaseController
     }
 
     [HttpGet("Season/{seasonID}/YearlySeasons")]
-    public ActionResult<IReadOnlyList<YearlySeason>> GetYearlySeasonsForTmdbSeasonBySeasonID(
+    public ActionResult<IReadOnlyList<SeasonWithYear>> GetYearlySeasonsForTmdbSeasonBySeasonID(
         [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID
     )
     {
@@ -2046,7 +2048,7 @@ public partial class TmdbController : BaseController
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
-            return altOrderSeason.Seasons.ToV3Dto();
+            return altOrderSeason.YearlySeasons.ToV3Dto();
         }
 
         var seasonId = int.Parse(seasonID);
@@ -2056,7 +2058,7 @@ public partial class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return season.Seasons.ToV3Dto();
+        return season.YearlySeasons.ToV3Dto();
     }
 
     [HttpGet("Season/{seasonID}/DaysOfWeek")]
@@ -2074,7 +2076,7 @@ public partial class TmdbController : BaseController
 
             return altOrderSeason.TmdbAlternateOrderingEpisodes
                 .Select(e => e.TmdbEpisode?.AiredAt?.DayOfWeek.ToString())
-                .WhereNotDefault()
+                .WhereNotNullOrDefault()
                 .Distinct()
                 .Order()
                 .ToList();
@@ -2089,7 +2091,7 @@ public partial class TmdbController : BaseController
 
         return season.TmdbEpisodes
             .Select(e => e.AiredAt?.DayOfWeek.ToString())
-            .WhereNotDefault()
+            .WhereNotNullOrDefault()
             .Distinct()
             .Order()
             .ToList();
@@ -2239,7 +2241,7 @@ public partial class TmdbController : BaseController
     public ActionResult<List<Series>> GetShokoSeriesBySeasonID(
         [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID,
         [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null
     )
     {
         if (seasonID.Length == SeasonIdHexLength)
@@ -2287,7 +2289,6 @@ public partial class TmdbController : BaseController
     /// <param name="exclude">Exclude items of certain types</param>
     /// <param name="include_only">Filter to only include items of certain types</param>
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Season/{seasonID}/Shoko/File")]
     public ActionResult<ListResult<File>> GetShokoFilesBySeasonID(
@@ -2297,8 +2298,7 @@ public partial class TmdbController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[]? exclude = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[]? include_only = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null
     )
     {
         if (seasonID.Length == SeasonIdHexLength)
@@ -2317,7 +2317,7 @@ public partial class TmdbController : BaseController
                 .WhereNotNull()
                 .SelectMany(xref => xref.VideoLocals)
                 .DistinctBy(video => video.VideoLocalID);
-            return ModelHelper.FilterFiles(videoLocals1, User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
+            return ModelHelper.FilterFiles(videoLocals1, User, pageSize, page, include, exclude, include_only, sortOrder);
         }
 
         var seasonId = int.Parse(seasonID);
@@ -2333,7 +2333,7 @@ public partial class TmdbController : BaseController
             .WhereNotNull()
             .SelectMany(xref => xref.VideoLocals)
             .DistinctBy(video => video.VideoLocalID);
-        return ModelHelper.FilterFiles(videoLocals0, User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
+        return ModelHelper.FilterFiles(videoLocals0, User, pageSize, page, include, exclude, include_only, sortOrder);
     }
 
     #endregion
@@ -2733,7 +2733,7 @@ public partial class TmdbController : BaseController
     public ActionResult<List<Series>> GetShokoSeriesByEpisodeID(
         [FromRoute] int episodeID,
         [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
@@ -2753,7 +2753,7 @@ public partial class TmdbController : BaseController
     [HttpGet("Episode/{episodeID}/Shoko/Episode")]
     public ActionResult<List<Episode>> GetShokoEpisodesByEpisodeID(
         [FromRoute] int episodeID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
@@ -2780,7 +2780,6 @@ public partial class TmdbController : BaseController
     /// <param name="exclude">Exclude items of certain types</param>
     /// <param name="include_only">Filter to only include items of certain types</param>
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/Shoko/File")]
     public ActionResult<ListResult<File>> GetShokoFilesByEpisodeID(
@@ -2790,8 +2789,7 @@ public partial class TmdbController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[]? exclude = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[]? include_only = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource>? includeDataFrom = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null
     )
     {
         var episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID);
@@ -2805,7 +2803,7 @@ public partial class TmdbController : BaseController
             .WhereNotNull()
             .SelectMany(xref => xref.VideoLocals)
             .DistinctBy(video => video.VideoLocalID);
-        return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, sortOrder, includeDataFrom);
+        return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, sortOrder);
     }
 
     #endregion
@@ -2830,15 +2828,15 @@ public partial class TmdbController : BaseController
 
     private const string EpisodeCrossReferenceWithIdHeader = "AnidbAnimeId,AnidbEpisodeId,TmdbShowId,TmdbEpisodeId,Rating";
 
-    private string MapAnimeType(AbstractAnimeType? type) =>
+    private string MapAnimeType(AnimeType? type) =>
         type switch
         {
-            AbstractAnimeType.Movie => "MV",
-            AbstractAnimeType.OVA => "VA",
-            AbstractAnimeType.TVSeries => "TV",
-            AbstractAnimeType.TVSpecial => "SP",
-            AbstractAnimeType.Web => "WB",
-            AbstractAnimeType.Other => "OT",
+            AnimeType.Movie => "MV",
+            AnimeType.OVA => "VA",
+            AnimeType.TVSeries => "TV",
+            AnimeType.TVSpecial => "SP",
+            AnimeType.Web => "WB",
+            AnimeType.Other => "OT",
             _ => "??",
         };
 
@@ -2875,7 +2873,7 @@ public partial class TmdbController : BaseController
                 .SelectMany(xref =>
                 {
                     // NOTE: Internal easter eggs should stay internally.
-                    var rating = xref.MatchRating is MatchRating.SarahJessicaParker ? "None" : xref.MatchRating.ToString();
+                    var rating = xref.MatchRating.ToString();
                     var entry = $"{xref.AnidbAnimeID},{xref.AnidbEpisodeID},{xref.TmdbMovieID},{rating}";
                     if (!body.IncludeComments)
                         return new string[1] { entry };
@@ -2888,16 +2886,16 @@ public partial class TmdbController : BaseController
                     var anidbEpisode = xref.AnidbEpisode;
                     if (anidbEpisode is null)
                         episodeNumber = "???";
-                    else if (anidbEpisode.EpisodeType == (int)InternalEpisodeType.Episode)
+                    else if (anidbEpisode.EpisodeType is EpisodeType.Episode)
                         episodeNumber = anidbEpisode.EpisodeNumber.ToString().PadLeft(3, '0');
                     else
-                        episodeNumber = $"{((InternalEpisodeType)anidbEpisode.EpisodeType).ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
+                        episodeNumber = $"{anidbEpisode.EpisodeType.ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
                     episodeNumber += $" (e{xref.AnidbEpisodeID})";
-                    var episodeTitle = anidbEpisode?.DefaultTitle is { AniDB_Episode_TitleID: > 0 } defaultTile ? defaultTile.Title : "<missing title>";
+                    var episodeTitle = anidbEpisode?.DefaultTitle is { } defaultTile ? defaultTile.Value : "<missing title>";
                     return
                     [
                         "",
-                        $"# AniDB: {MapAnimeType(anime?.AbstractAnimeType)} ``{animeTitle}`` (a{xref.AnidbAnimeID}) {episodeNumber} ``{episodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{movieTitle}`` (m{xref.TmdbMovieID})",
+                        $"# AniDB: {MapAnimeType(anime?.AnimeType)} ``{animeTitle}`` (a{xref.AnidbAnimeID}) {episodeNumber} ``{episodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{movieTitle}`` (m{xref.TmdbMovieID})",
                         entry,
                     ];
                 })
@@ -2948,7 +2946,7 @@ public partial class TmdbController : BaseController
                 .SelectMany(xref =>
                 {
                     // NOTE: Internal easter eggs should stay internally.
-                    var rating = xref.MatchRating is MatchRating.SarahJessicaParker ? "None" : xref.MatchRating.ToString();
+                    var rating = xref.MatchRating.ToString();
                     var entry = $"{xref.AnidbAnimeID},{xref.TmdbShowID},{rating}";
                     if (!body.IncludeComments)
                         return new string[1] { entry };
@@ -2960,7 +2958,7 @@ public partial class TmdbController : BaseController
                     return
                     [
                         "",
-                        $"# AniDB: {MapAnimeType(anidbAnime?.AbstractAnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID})",
+                        $"# AniDB: {MapAnimeType(anidbAnime?.AnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID})",
                         entry,
                     ];
                 })
@@ -3008,7 +3006,7 @@ public partial class TmdbController : BaseController
                 .SelectMany(xref =>
                 {
                     // NOTE: Internal easter eggs should stay internally.
-                    var rating = xref.MatchRating is MatchRating.SarahJessicaParker ? "None" : xref.MatchRating.ToString();
+                    var rating = xref.MatchRating.ToString();
                     var entry = $"{xref.AnidbAnimeID},{xref.AnidbEpisodeID},{xref.TmdbShowID},{xref.TmdbEpisodeID},{rating}";
                     if (!body.IncludeComments)
                         return new string[1] { entry };
@@ -3018,11 +3016,11 @@ public partial class TmdbController : BaseController
                     var anidbEpisode = xref.AnidbEpisode;
                     var anidbEpisodeNumber = "???";
                     if (anidbEpisode is not null)
-                        if (anidbEpisode.EpisodeTypeEnum == InternalEpisodeType.Episode)
+                        if (anidbEpisode.EpisodeType is EpisodeType.Episode)
                             anidbEpisodeNumber = anidbEpisode.EpisodeNumber.ToString().PadLeft(3, '0');
                         else
-                            anidbEpisodeNumber = $"{anidbEpisode.EpisodeTypeEnum.ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
-                    var anidbEpisodeTitle = anidbEpisode?.DefaultTitle is { AniDB_Episode_TitleID: > 0 } defaultTile ? defaultTile.Title : "<missing title>";
+                            anidbEpisodeNumber = $"{anidbEpisode.EpisodeType.ToString()[0]}{anidbEpisode.EpisodeNumber.ToString().PadLeft(2, '0')}";
+                    var anidbEpisodeTitle = anidbEpisode?.DefaultTitle is { } defaultTile ? defaultTile.Value : "<missing title>";
                     var tmdbShow = xref.TmdbShow;
                     var tmdbShowTitle = tmdbShow?.EnglishTitle ?? "<missing title>";
                     var tmdbEpisode = xref.TmdbEpisode;
@@ -3033,7 +3031,7 @@ public partial class TmdbController : BaseController
                     return
                     [
                         "",
-                        $"# AniDB: {MapAnimeType(anidbAnime?.AbstractAnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) {anidbEpisodeNumber} ``{anidbEpisodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID}) {tmdbEpisodeNumber} ``{tmdbEpisodeTitle}`` (e{xref.TmdbEpisodeID})",
+                        $"# AniDB: {MapAnimeType(anidbAnime?.AnimeType)} ``{anidbAnimeTitle}`` (a{xref.AnidbAnimeID}) {anidbEpisodeNumber} ``{anidbEpisodeTitle}`` (e{xref.AnidbEpisodeID}) → TMDB: ``{tmdbShowTitle}`` (s{xref.TmdbShowID}) {tmdbEpisodeNumber} ``{tmdbEpisodeTitle}`` (e{xref.TmdbEpisodeID})",
                         entry,
                     ];
                 })
@@ -3130,11 +3128,7 @@ public partial class TmdbController : BaseController
                         !int.TryParse(animeId, out var anidbAnimeId) || anidbAnimeId <= 0 ||
                         !int.TryParse(episodeId, out var anidbEpisodeId) || anidbEpisodeId <= 0 ||
                         !int.TryParse(movieId, out var tmdbMovieId) || tmdbMovieId <= 0 ||
-                        // NOTE: Internal easter eggs should stay internally.
-                        !(
-                            (Enum.TryParse<MatchRating>(rating, true, out var matchRating) && matchRating != MatchRating.SarahJessicaParker) ||
-                            (string.Equals(rating, "None", StringComparison.InvariantCultureIgnoreCase) && (matchRating = MatchRating.SarahJessicaParker) == matchRating)
-                        )
+                        !Enum.TryParse<MatchRating>(rating, true, out var matchRating)
                     )
                     {
                         ModelState.AddModelError("Body", $"Unable to parse movie cross-reference at line {lineNumber}.");
@@ -3151,11 +3145,7 @@ public partial class TmdbController : BaseController
                     if (
                         !int.TryParse(anime, out var anidbAnimeId) || anidbAnimeId <= 0 ||
                         !int.TryParse(show, out var tmdbShowId) || tmdbShowId < 0 ||
-                        // NOTE: Internal easter eggs should stay internally.
-                        !(
-                            (Enum.TryParse<MatchRating>(rating, true, out var matchRating) && matchRating != MatchRating.SarahJessicaParker) ||
-                            (string.Equals(rating, "None", StringComparison.InvariantCultureIgnoreCase) && (matchRating = MatchRating.SarahJessicaParker) == matchRating)
-                        )
+                        !Enum.TryParse<MatchRating>(rating, true, out var matchRating)
                     )
                     {
                         ModelState.AddModelError("Body", $"Unable to parse show cross-reference at line {lineNumber}.");
@@ -3173,11 +3163,7 @@ public partial class TmdbController : BaseController
                         !int.TryParse(anidbEpisode, out var anidbEpisodeId) || anidbEpisodeId <= 0 ||
                         !int.TryParse(show, out var tmdbShowId) || tmdbShowId < 0 ||
                         !int.TryParse(tmdbEpisode, out var tmdbEpisodeId) || tmdbEpisodeId < 0 ||
-                        // NOTE: Internal easter eggs should stay internally.
-                        !(
-                            (Enum.TryParse<MatchRating>(rating, true, out var matchRating) && matchRating != MatchRating.SarahJessicaParker) ||
-                            (string.Equals(rating, "None", StringComparison.InvariantCultureIgnoreCase) && (matchRating = MatchRating.SarahJessicaParker) == matchRating)
-                        )
+                        !Enum.TryParse<MatchRating>(rating, true, out var matchRating)
                     )
                     {
                         ModelState.AddModelError("Body", $"Unable to parse episode cross-reference at line {lineNumber}.");

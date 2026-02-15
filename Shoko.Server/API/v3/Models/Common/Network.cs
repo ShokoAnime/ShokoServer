@@ -35,7 +35,7 @@ public class Network
     /// The source of which the studio metadata belongs to.
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
-    public DataSource Source;
+    public DataSourceType Source { get; init; }
 
     public Network(TMDB_Network company)
     {
@@ -43,6 +43,6 @@ public class Network
         Name = company.Name;
         CountryOfOrigin = company.CountryOfOrigin;
         Size = company.GetTmdbNetworkCrossReferences().Count;
-        Source = DataSource.TMDB;
+        Source = DataSourceType.TMDB;
     }
 }

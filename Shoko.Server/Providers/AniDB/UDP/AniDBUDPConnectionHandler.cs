@@ -6,8 +6,8 @@ using System.Text.RegularExpressions;
 using System.Timers;
 using Microsoft.Extensions.Logging;
 using Polly;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Plugin.Abstractions.Services;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Services;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Connection;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
@@ -38,7 +38,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
     private readonly object _socketHandlerLock = new();
     // IDK Rider said to use a GeneratedRegex attribute
     private static readonly Regex s_logMask = GetLogRegex();
-    
+
     [GeneratedRegex("(?<=(\\bpass=|&pass=\\bs=|&s=))[^&]+", RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-US")]
     private static partial Regex GetLogRegex();
 
@@ -147,7 +147,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         if (settings.AniDb.UDPServerPort == 0) throw new ArgumentException("AniDB UDP Server Port is invalid");
         if (settings.AniDb.ClientPort == 0) throw new ArgumentException("AniDB Client Port is invalid");
 
-        lock(_socketHandlerLock)
+        lock (_socketHandlerLock)
         {
             if (_socketHandler != null)
             {
@@ -231,7 +231,8 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         {
             throw new AniDBBannedException
             {
-                BanType = UpdateType.UDPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
+                BanType = UpdateType.UDPBan,
+                BanExpires = BanTime?.AddHours(BanTimerResetLength)
             };
         }
         // TODO Low Priority: We need to handle Login Attempt Decay, so that we can try again if it's not just a bad user/pass
@@ -259,7 +260,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
 
     public string SendDirectly(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false)
     {
-        lock(_socketHandlerLock)
+        lock (_socketHandlerLock)
             return SendInternal(command, needsUnicode, isPing);
     }
 
@@ -310,7 +311,8 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
                     IsBanned = true;
                     throw new AniDBBannedException
                     {
-                        BanType = UpdateType.UDPBan, BanExpires = BanTime?.AddHours(BanTimerResetLength)
+                        BanType = UpdateType.UDPBan,
+                        BanExpires = BanTime?.AddHours(BanTimerResetLength)
                     };
                 }
 
@@ -397,7 +399,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         Logger.LogTrace("Logging Out");
         try
         {
-            lock(_socketHandlerLock) _requestFactory.Create<RequestLogout>().Send();
+            lock (_socketHandlerLock) _requestFactory.Create<RequestLogout>().Send();
         }
         catch
         {
@@ -429,7 +431,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         _logoutTimer?.Dispose();
         _logoutTimer = null;
 
-        lock(_socketHandlerLock)
+        lock (_socketHandlerLock)
         {
             if (_socketHandler == null) return;
             Logger.LogInformation("AniDB UDP Socket Disposing...");

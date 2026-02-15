@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -56,13 +57,13 @@ public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata<i
 
     #region IMetadata Implementation
 
-    DataSourceEnum IMetadata.Source => DataSourceEnum.TMDB;
+    DataSource IMetadata.Source => DataSource.TMDB;
 
     #endregion
 
     #region IWithPortraitImage Implementation
 
-    IImageMetadata? IWithPortraitImage.PortraitImage =>
+    IImage? IWithPortraitImage.PortraitImage =>
         _company.GetImages(ImageEntityType.Logo) is { Count: > 0 } images ? images[0] : null;
 
     #endregion

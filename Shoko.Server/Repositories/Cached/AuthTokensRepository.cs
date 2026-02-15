@@ -2,32 +2,34 @@
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Models.Internal;
+using Shoko.Server.Models.Shoko;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AuthTokens, int>(databaseFactory)
 {
-    private PocoIndex<int, AuthTokens, string> _tokens;
+    private PocoIndex<int, AuthTokens, string>? _tokens;
 
-    private PocoIndex<int, AuthTokens, int> _userIDs;
+    private PocoIndex<int, AuthTokens, int>? _userIDs;
 
     protected override int SelectKey(AuthTokens entity)
         => entity.AuthID;
 
     public override void PopulateIndexes()
     {
-        _tokens = new PocoIndex<int, AuthTokens, string>(Cache, a => a.Token);
-        _userIDs = new PocoIndex<int, AuthTokens, int>(Cache, a => a.UserID);
+        _tokens = Cache.CreateIndex(a => a.Token);
+        _userIDs = Cache.CreateIndex(a => a.UserID);
     }
 
-    public AuthTokens GetByToken(string token)
+    public AuthTokens? GetByToken(string token)
     {
         if (string.IsNullOrEmpty(token))
             return null;
 
-        var tokens = ReadLock(_tokens.GetMultiple(token.ToLowerInvariant().Trim()).ToList);
+        var tokens = ReadLock(_tokens!.GetMultiple(token.ToLowerInvariant().Trim()).ToList);
         var auth = tokens.FirstOrDefault();
         if (tokens.Count <= 1)
             return auth;
@@ -37,26 +39,25 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
         return auth;
     }
 
-    public void DeleteAllWithUserID(int id)
+    public bool DeleteAllWithUserID(int id)
     {
-        var ids = ReadLock(() => _userIDs.GetMultiple(id));
+        var ids = ReadLock(() => _userIDs!.GetMultiple(id));
         ids.ForEach(Delete);
+        return ids.Count > 0;
     }
 
-    public void DeleteWithToken(string token)
+    public bool DeleteWithToken(string token)
     {
         if (string.IsNullOrEmpty(token))
-            return;
+            return false;
 
-        var tokens = ReadLock(() => _tokens.GetMultiple(token));
+        var tokens = ReadLock(() => _tokens!.GetMultiple(token));
         tokens.ForEach(Delete);
+        return tokens.Count > 0;
     }
 
     public IReadOnlyList<AuthTokens> GetByUserID(int userID)
-        => ReadLock(() => _userIDs.GetMultiple(userID));
-
-    public string ValidateUser(string username, string password, string device)
-        => CreateNewApiKey(RepoFactory.JMMUser.AuthenticateUser(username, password), device);
+        => ReadLock(() => _userIDs!.GetMultiple(userID));
 
     public string CreateNewApiKey(JMMUser user, string device)
     {
@@ -65,7 +66,7 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
         // get tokens that are invalid
         var uid = user.JMMUserID;
-        var ids = ReadLock(() => _userIDs.GetMultiple(uid));
+        var ids = ReadLock(() => _userIDs!.GetMultiple(uid));
         var tokens = ids.Where(a => !string.IsNullOrEmpty(a.Token) && a.DeviceName.Trim().Equals(device.Trim(), StringComparison.InvariantCultureIgnoreCase))
             .ToList();
         var auth = tokens.FirstOrDefault();

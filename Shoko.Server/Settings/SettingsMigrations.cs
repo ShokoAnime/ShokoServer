@@ -4,9 +4,8 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 
 namespace Shoko.Server.Settings;
 
@@ -185,17 +184,17 @@ public static class SettingsMigrations
 
         languageSettings["SeriesTitleSourceOrder"] = new JArray
         {
-            DataSourceType.AniDB, DataSourceType.TMDB
+            DataSource.AniDB, DataSource.TMDB
         };
 
         languageSettings["EpisodeTitleSourceOrder"] = new JArray
         {
-            DataSourceType.AniDB, DataSourceType.TMDB
+            DataSource.AniDB, DataSource.TMDB
         };
 
         languageSettings["DescriptionSourceOrder"] = new JArray
         {
-            DataSourceType.AniDB, DataSourceType.TMDB
+            DataSource.AniDB, DataSource.TMDB
         };
 
         return currentSettings.ToString();

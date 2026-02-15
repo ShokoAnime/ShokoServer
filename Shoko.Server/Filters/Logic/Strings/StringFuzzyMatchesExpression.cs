@@ -1,6 +1,7 @@
 using System;
-using Shoko.Server.Extensions;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
+using Shoko.Server.Extensions;
 
 namespace Shoko.Server.Filters.Logic.Strings;
 
@@ -28,10 +29,10 @@ public class StringFuzzyMatchesExpression : FilterExpression<bool>, IWithStringS
     public override string HelpDescription => "This condition passes if the left selector fuzzy matches either the right selector or the parameter";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        var left = Left.Evaluate(filterable, userInfo);
-        var right = Parameter ?? Right?.Evaluate(filterable, userInfo);
+        var left = Left.Evaluate(filterable, userInfo, time);
+        var right = Parameter ?? Right?.Evaluate(filterable, userInfo, time);
         if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right))
         {
             return false;

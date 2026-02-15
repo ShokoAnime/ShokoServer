@@ -1,10 +1,10 @@
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Providers.AniDB;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.AniDB;
@@ -70,7 +70,7 @@ public class AnidbCreator
         ID = creator.CreatorID;
         Name = creator.Name;
         OriginalName = creator.OriginalName;
-        Type = creator.Type;
+        Type = creator.AbstractType;
         EnglishHomepageUrl = creator.EnglishHomepageUrl;
         JapaneseHomepageUrl = creator.JapaneseHomepageUrl;
         EnglishWikiUrl = creator.EnglishWikiUrl;

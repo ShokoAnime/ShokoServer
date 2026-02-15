@@ -27,7 +27,7 @@ public static class AVDump
             /// <summary>
             /// Increase the priority for the command request.
             /// </summary>
-            public  bool Priority { get; set; } = false;
+            public bool Priority { get; set; } = false;
         }
     }
 }

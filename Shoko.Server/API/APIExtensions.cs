@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
@@ -13,39 +14,41 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Sentry;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Plugin;
 using Shoko.Server.API.ActionFilters;
 using Shoko.Server.API.Authentication;
+using Shoko.Server.API.FileProviders;
 using Shoko.Server.API.SignalR;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.Swagger;
 using Shoko.Server.API.v3.Helpers;
-using Shoko.Server.API.FileProviders;
-using Shoko.Server.Extensions;
-using Shoko.Server.Plugin;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Swashbuckle.AspNetCore.SwaggerGen;
+
 using File = System.IO.File;
-using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
-using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
-using QueueEmitter = Shoko.Server.API.SignalR.Aggregate.QueueEmitter;
-using AVDumpEmitter = Shoko.Server.API.SignalR.Aggregate.AVDumpEmitter;
-using NetworkEmitter = Shoko.Server.API.SignalR.Aggregate.NetworkEmitter;
 
 namespace Shoko.Server.API;
 
 public static class APIExtensions
 {
-    public static IServiceCollection AddAPI(this IServiceCollection services)
+    public static IServiceCollection AddAPI(this IServiceCollection services, IPluginManager pluginManager)
     {
         services.AddSingleton<LoggingEmitter>();
-        services.AddSingleton<AniDBEmitter>();
-        services.AddSingleton<ShokoEventEmitter>();
-        services.AddSingleton<AVDumpEmitter>();
-        services.AddSingleton<NetworkEmitter>();
-        services.AddSingleton<QueueEmitter>();
+        services.AddSingleton<IEventEmitter, AniDBEventEmitter>();
+        services.AddSingleton<IEventEmitter, AVDumpEventEmitter>();
+        services.AddSingleton<IEventEmitter, ConfigurationEventEmitter>();
+        services.AddSingleton<IEventEmitter, FileEventEmitter>();
+        services.AddSingleton<IEventEmitter, ManagedFolderEventEmitter>();
+        services.AddSingleton<IEventEmitter, MetadataEventEmitter>();
+        services.AddSingleton<IEventEmitter, NetworkEventEmitter>();
+        services.AddSingleton<IEventEmitter, QueueEventEmitter>();
+        services.AddSingleton<IEventEmitter, ReleaseEventEmitter>();
+        services.AddSingleton<IEventEmitter, UserDataEventEmitter>();
+        services.AddSingleton<IEventEmitter, UserEventEmitter>();
         services.AddScoped<GeneratedPlaylistService>();
         services.AddScoped<FilterFactory>();
         services.AddScoped<WebUIFactory>();
@@ -115,14 +118,14 @@ public static class APIExtensions
                     options.IncludeXmlComments(xmlPath);
                 }
 
-                options.AddPlugins();
+                options.AddPlugins(pluginManager);
 
                 var v3Enums = typeof(APIExtensions).Assembly.GetTypes()
                     .Concat(typeof(TitleLanguage).Assembly.GetTypes())
                     .Where(a => a.IsEnum)
                     .Where(a =>
                         (a.FullName?.StartsWith("Shoko.Server.API.v3.", StringComparison.InvariantCultureIgnoreCase) ?? false) ||
-                        (a.FullName?.StartsWith("Shoko.Plugin.Abstractions.", StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+                        (a.FullName?.StartsWith("Shoko.Abstractions.", StringComparison.InvariantCultureIgnoreCase) ?? false) ||
                         (a.FullName?.StartsWith("Shoko.Server.Providers.", StringComparison.InvariantCultureIgnoreCase) ?? false)
                     )
                     .Concat([
@@ -130,8 +133,6 @@ public static class APIExtensions
                         typeof(DriveType),
                         typeof(ReleaseChannel),
                         typeof(CreatorRoleType),
-                        typeof(Shoko.Models.Enums.AnimeSeason),
-                        typeof(Shoko.Models.Enums.DataSourceType),
                     ])
                     .ToList();
                 foreach (var type in v3Enums)
@@ -147,7 +148,7 @@ public static class APIExtensions
                 options.CustomSchemaIds(GetTypeName);
             });
         services.AddSwaggerGenNewtonsoftSupport();
-        services.AddSignalR(options => 
+        services.AddSignalR(options =>
             {
                 options.EnableDetailedErrors = true;
                 options.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // default timeout is 30 seconds
@@ -190,7 +191,7 @@ public static class APIExtensions
                 json.SerializerSettings.DefaultValueHandling = DefaultValueHandling.Populate;
                 // json.SerializerSettings.DateFormatString = "yyyy-MM-dd";
             })
-            .AddPluginControllers()
+            .AddPluginControllers(pluginManager)
             .AddControllersAsServices();
 
         services.AddApiVersioning(o =>
@@ -217,6 +218,38 @@ public static class APIExtensions
         return services;
     }
 
+    public static IMvcBuilder AddPluginControllers(this IMvcBuilder mvc, IPluginManager pluginManager)
+    {
+        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
+        {
+            var assembly = pluginInfo.PluginType!.Assembly;
+            if (assembly == Assembly.GetCallingAssembly())
+            {
+                continue; //Skip the current assembly, this is implicitly added by ASP.
+            }
+
+            mvc.AddApplicationPart(assembly);
+        }
+
+        return mvc;
+    }
+
+    public static SwaggerGenOptions AddPlugins(this SwaggerGenOptions options, IPluginManager pluginManager)
+    {
+        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
+        {
+            var assembly = pluginInfo.PluginType!.Assembly;
+            var location = assembly.Location;
+            var xml = Path.ChangeExtension(location, "xml");
+            if (File.Exists(xml))
+            {
+                options.IncludeXmlComments(xml, true); //Include the XML comments if it exists.
+            }
+        }
+
+        return options;
+    }
+
     private static string GetTypeName(Type type) =>
         GetTypeName(type.ToString()!.Replace("+", "."));
 
@@ -239,33 +272,25 @@ public static class APIExtensions
             title = fullName.Split('.').Skip(1).Join('.');
 
         // APIv0 (API independent plugin abstraction) schemas
-        else if (fullName.StartsWith("Shoko.Plugin.Abstractions."))
+        else if (fullName.StartsWith("Shoko.Abstractions."))
             title = fullName
-                .Replace("Shoko.Plugin.Abstractions.", "APIv0.Abstraction.")
+                .Replace("Shoko.Abstractions.", "APIv0.Abstraction.")
                 .Replace("TitleLanguage", "LanguageName")
                 .Replace("DataModels.", "")
                 .Replace("Enums.", "");
 
         // APIv0 (API independent plex webhook) schemas
-        else if (fullName.StartsWith("Shoko.Models.Plex."))
-            title = fullName.Replace("Shoko.Models.Plex.", "APIv0.Plex.");
+        else if (fullName.StartsWith("Shoko.Server.Plex."))
+            title = fullName.Replace("Shoko.Server.Plex.", "APIv0.Plex.");
 
         // APIv0 (API independent settings) schemas
         else if (fullName.StartsWith("Shoko.Server.Settings."))
             title = fullName
                 .Replace("Shoko.Server.Settings.", "APIv0.Settings.");
-        else if (fullName.StartsWith("Shoko.Models.FileQualityPreferences"))
-            title = fullName
-                .Replace("Shoko.Models.FileQualityPreferences", "APIv0.Settings.FileQualityPreferences");
-        else if (fullName.StartsWith("Shoko.Models.Enums."))
-            title = fullName
-                .Replace("Shoko.Models.Enums.", "APIv0.Settings.");
 
         // APIv0 (API independent) schemas
         else if (fullName is "Shoko.Server.TagFilter.Filter")
             title = "APIv0.Shared.TagFilter";
-        else if (fullName is "Shoko.Models.Enums.AnimeSeason")
-            title = "APIv0.Shared.AnimeSeason";
         else if (fullName.StartsWith("Shoko.Server.Server."))
             title = fullName
                 .Replace("Shoko.Server.Server.", "APIv0.Shared.")
@@ -329,7 +354,7 @@ public static class APIExtensions
         return info;
     }
 
-    public static IApplicationBuilder UseAPI(this IApplicationBuilder app)
+    public static IApplicationBuilder UseAPI(this IApplicationBuilder app, IPluginManager pluginManager)
     {
         var settings = Utils.SettingsProvider.GetSettings();
         var webSettings = settings.Web;
@@ -356,7 +381,6 @@ public static class APIExtensions
             });
         }
 
-
 #if DEBUG
         app.UseDeveloperExceptionPage();
 #else
@@ -366,7 +390,7 @@ public static class APIExtensions
 
         // Create web ui directory and add the boot-strapper.
         var webUIDir = new DirectoryInfo(ApplicationPaths.Instance.WebPath);
-        var backupDir = new DirectoryInfo(Path.Combine(ApplicationPaths.Instance.ExecutableDirectoryPath, "webui"));
+        var backupDir = new DirectoryInfo(Path.Combine(ApplicationPaths.Instance.ApplicationPath, "webui"));
         if (!webUIDir.Exists)
         {
             if (backupDir.Exists)
@@ -454,15 +478,21 @@ public static class APIExtensions
             });
         }
 
+        app.UseRouting();
+
         // Important for first run at least
         app.UseAuthentication();
+        app.UseAuthorization();
 
-        app.UseRouting();
         app.UseEndpoints(conf =>
         {
-            conf.MapHub<LoggingHub>("/signalr/logging");
-            conf.MapHub<AggregateHub>("/signalr/aggregate");
+            conf.MapHub<LoggingHub>("/signalr/logging").RequireAuthorization();
+            conf.MapHub<AggregateHub>("/signalr/aggregate").RequireAuthorization();
         });
+
+        var appRegistrations = pluginManager.GetExports<IPluginApplicationRegistration>().ToList();
+        foreach (var appRegistration in appRegistrations)
+            appRegistration.RegisterServices(app, ApplicationPaths.Instance);
 
         app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 

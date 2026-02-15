@@ -1,18 +1,19 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Models.Shoko;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AnimeSeries_UserRepository : BaseCachedRepository<AnimeSeries_User, int>
 {
-    private PocoIndex<int, AnimeSeries_User, int> _userIDs;
+    private PocoIndex<int, AnimeSeries_User, int>? _userIDs;
 
-    private PocoIndex<int, AnimeSeries_User, int> _seriesIDs;
+    private PocoIndex<int, AnimeSeries_User, int>? _seriesIDs;
 
-    private PocoIndex<int, AnimeSeries_User, (int UserID, int SeriesID)> _userSeriesIDs;
+    private PocoIndex<int, AnimeSeries_User, (int UserID, int SeriesID)>? _userSeriesIDs;
 
     private readonly Dictionary<int, ChangeTracker<int>> _changes = [];
 
@@ -43,14 +44,14 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<AnimeSeries_User,
         _changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
     }
 
-    public AnimeSeries_User GetByUserAndSeriesID(int userID, int seriesID)
-        => ReadLock(() => _userSeriesIDs.GetOne((userID, seriesID)));
+    public AnimeSeries_User? GetByUserAndSeriesID(int userID, int seriesID)
+        => ReadLock(() => _userSeriesIDs!.GetOne((userID, seriesID)));
 
     public List<AnimeSeries_User> GetByUserID(int userID)
-        => ReadLock(() => _userIDs.GetMultiple(userID));
+        => ReadLock(() => _userIDs!.GetMultiple(userID));
 
     public List<AnimeSeries_User> GetBySeriesID(int seriesID)
-        => ReadLock(() => _seriesIDs.GetMultiple(seriesID));
+        => ReadLock(() => _seriesIDs!.GetMultiple(seriesID));
 
     public List<AnimeSeries_User> GetMostRecentlyWatched(int userID)
         => GetByUserID(userID)

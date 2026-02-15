@@ -1,12 +1,13 @@
 using System;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Title : IEquatable<TMDB_Title>
+public class TMDB_Title : IEquatable<TMDB_Title>, ITitle
 {
     public int TMDB_TitleID { get; set; }
 
@@ -63,4 +64,22 @@ public class TMDB_Title : IEquatable<TMDB_Title>
         Value == other.Value &&
         LanguageCode == other.LanguageCode &&
         CountryCode == other.CountryCode;
+
+    public bool Equals(IText? other)
+        => IText.Equals(this, other);
+
+    public bool Equals(ITitle? other)
+        => ITitle.Equals(this, other);
+
+    #region IMetadata Implementation
+
+    DataSource IMetadata.Source => DataSource.TMDB;
+
+    #endregion
+
+    #region ITitle Implementation
+
+    TitleType ITitle.Type => TitleType.Official;
+
+    #endregion
 }

@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.DataModels;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
+
+using TitleLanguage = Shoko.Abstractions.Enums.TitleLanguage;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
@@ -146,7 +146,7 @@ public class TmdbMovie
     /// The yearly seasons this movie belongs to.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public List<YearlySeason>? YearlySeasons { get; set; }
+    public List<SeasonWithYear>? YearlySeasons { get; set; }
 
     /// <summary>
     /// Movie cross-references.
@@ -198,7 +198,7 @@ public class TmdbMovie
         IsVideo = movie.IsVideo;
         UserRating = new()
         {
-            Value = (decimal)movie.UserRating,
+            Value = movie.UserRating,
             MaxValue = 10,
             Votes = movie.UserVotes,
             Source = "TMDB",
@@ -226,7 +226,7 @@ public class TmdbMovie
                 .Select(crew => new Role(crew))
                 .ToList();
         if (include.HasFlag(IncludeDetails.YearlySeasons))
-            YearlySeasons = movie.Seasons.ToV3Dto();
+            YearlySeasons = movie.YearlySeasons.ToV3Dto();
         if (include.HasFlag(IncludeDetails.CrossReferences))
             CrossReferences = movie.CrossReferences
                 .Select(xref => new CrossReference(xref))
@@ -362,10 +362,7 @@ public class TmdbMovie
             AnidbAnimeID = xref.AnidbAnimeID;
             AnidbEpisodeID = xref.AnidbEpisodeID;
             TmdbMovieID = xref.TmdbMovieID;
-            Rating = "None";
-            // NOTE: Internal easter-eggs stays internally.
-            if (xref.MatchRating != MatchRating.SarahJessicaParker)
-                Rating = xref.MatchRating.ToString();
+            Rating = xref.MatchRating.ToString();
         }
     }
 

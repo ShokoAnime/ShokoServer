@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.StringSets;
@@ -21,9 +22,9 @@ public class StringInExpression : FilterExpression<bool>, IWithStringSelectorPar
     public override string HelpDescription => "This condition passes if any of the value from the left selector is contained within the parameter set";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        var left = Left.Evaluate(filterable, userInfo);
+        var left = Left.Evaluate(filterable, userInfo, time);
         var right = Parameter;
         return right.Contains(left);
     }

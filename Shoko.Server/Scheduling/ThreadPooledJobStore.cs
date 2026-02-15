@@ -17,6 +17,8 @@ using Shoko.Server.Scheduling.Delegates;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS8618
+#nullable enable
 namespace Shoko.Server.Scheduling;
 
 using JobState = (int WaitingCount, int BlockedCount, QueueItem[] WaitingItems, QueueItem[] ExecutingItems);
@@ -29,15 +31,18 @@ public class ThreadPooledJobStore : JobStoreTX
     private readonly ISettingsProvider _settingsProvider;
     private readonly QueueStateEventHandler _queueStateEventHandler;
     private readonly JobFactory _jobFactory;
-    private readonly Dictionary<JobKey, (IJobDetail Job, DateTime StartTime)> _executingJobs = new();
+    private readonly Dictionary<JobKey, (IJobDetail Job, DateTime StartTime)> _executingJobs = [];
     private readonly IAcquisitionFilter[] _acquisitionFilters;
     private ITypeLoadHelper _typeLoadHelper;
-    private Dictionary<Type, int> _typeConcurrencyCache;
-    private Dictionary<string, Type[]> _concurrencyGroupCache;
-    private int _threadPoolSize;
-    private new IFilteredDriverDelegate Delegate => base.Delegate as IFilteredDriverDelegate;
+    private readonly Dictionary<Type, int> _typeConcurrencyCache;
 
-#region Init
+    private readonly Dictionary<string, Type[]> _concurrencyGroupCache;
+
+    private int _threadPoolSize;
+
+    protected new IFilteredDriverDelegate Delegate => (IFilteredDriverDelegate)base.Delegate;
+
+    #region Init
 
     public ThreadPooledJobStore(ILogger<ThreadPooledJobStore> logger, ISettingsProvider settingsProvider, IEnumerable<IAcquisitionFilter> acquisitionFilters,
         QueueStateEventHandler queueStateEventHandler, JobFactory jobFactory)
@@ -47,28 +52,20 @@ public class ThreadPooledJobStore : JobStoreTX
         _queueStateEventHandler = queueStateEventHandler;
         _jobFactory = jobFactory;
         _acquisitionFilters = acquisitionFilters.ToArray();
-        foreach (var filter in _acquisitionFilters) filter.StateChanged += FilterOnStateChanged;
-        InitConcurrencyCache();
-    }
-
-    public override ValueTask Initialize(ITypeLoadHelper loadHelper, ISchedulerSignaler signaler, CancellationToken cancellationToken = default)
-    {
-        _typeLoadHelper = loadHelper;
-        return base.Initialize(loadHelper, signaler, cancellationToken);
-    }
-
-    private void InitConcurrencyCache()
-    {
-        _concurrencyGroupCache = new Dictionary<string, Type[]>();
-        _typeConcurrencyCache = new Dictionary<Type, int>();
-        var types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
-            .Where(a => typeof(IJob).IsAssignableFrom(a) && !a.IsAbstract).ToList();
+        foreach (var filter in _acquisitionFilters)
+            filter.StateChanged += FilterOnStateChanged;
+        _concurrencyGroupCache = [];
+        _typeConcurrencyCache = [];
+        var types = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(a => a.GetTypes())
+            .Where(a => typeof(IJob).IsAssignableFrom(a) && !a.IsAbstract)
+            .ToList();
 
         foreach (var type in types)
         {
             var limitConcurrencyAttribute = type.GetCustomAttribute<LimitConcurrencyAttribute>();
             if (limitConcurrencyAttribute != null) _typeConcurrencyCache[type] = limitConcurrencyAttribute.MaxConcurrentJobs;
-            
+
             var disallowConcurrentExecutionAttribute = type.GetCustomAttribute<DisallowConcurrentExecutionAttribute>();
             if (disallowConcurrentExecutionAttribute != null) _typeConcurrencyCache[type] = 1;
 
@@ -104,18 +101,25 @@ public class ThreadPooledJobStore : JobStoreTX
         }
     }
 
+    public override ValueTask Initialize(ITypeLoadHelper loadHelper, ISchedulerSignaler signaler, CancellationToken cancellationToken = default)
+    {
+        _typeLoadHelper = loadHelper;
+        return base.Initialize(loadHelper, signaler, cancellationToken);
+    }
+
     ~ThreadPooledJobStore()
     {
         foreach (var filter in _acquisitionFilters) filter.StateChanged -= FilterOnStateChanged;
     }
 
-    private void FilterOnStateChanged(object sender, EventArgs e)
+    private void FilterOnStateChanged(object? sender, EventArgs e)
     {
         SignalSchedulingChangeImmediately(new DateTimeOffset(1982, 6, 28, 0, 0, 0, TimeSpan.FromSeconds(0)));
     }
-#endregion
 
-#region Job Acquisition
+    #endregion
+
+    #region Job Acquisition
 
     protected override async ValueTask<IReadOnlyCollection<IOperableTrigger>> AcquireNextTrigger(ConnectionAndTransactionHolder conn, DateTimeOffset noLaterThan,
             int maxCount, TimeSpan timeWindow, CancellationToken cancellationToken = default)
@@ -269,9 +273,10 @@ public class ThreadPooledJobStore : JobStoreTX
             .ToDictionary(a => a.Key, a => a.Select(b => b.Name).ToArray());
     }
 
-#endregion
+    #endregion
 
-#region Overrides
+    #region Overrides
+
     public override async ValueTask StoreJobAndTrigger(IJobDetail newJob, IOperableTrigger newTrigger, CancellationToken cancellationToken = new CancellationToken())
     {
         // need to check for existence before saving
@@ -305,6 +310,7 @@ public class ThreadPooledJobStore : JobStoreTX
         await ExecuteInReadLock(LockTriggerAccess, async conn =>
         {
             var job = await RetrieveJob(conn, newTrigger.JobKey, cancellationToken);
+            if (job == null) return;
             await OnJobStoring(conn, job, cancellationToken).ConfigureAwait(false);
         }, cancellationToken: cancellationToken).ConfigureAwait(false);
 
@@ -333,7 +339,7 @@ public class ThreadPooledJobStore : JobStoreTX
         return result;
     }
 
-    protected override async ValueTask StoreTrigger(ConnectionAndTransactionHolder conn, IOperableTrigger newTrigger, IJobDetail job, bool replaceExisting, string state, bool forceState,
+    protected override async ValueTask StoreTrigger(ConnectionAndTransactionHolder conn, IOperableTrigger newTrigger, IJobDetail? job, bool replaceExisting, string state, bool forceState,
         bool recovering, CancellationToken cancellationToken = new CancellationToken())
     {
         // most of this is pulled from the base. Some fat is trimmed out, as we handle blocking ourselves
@@ -375,7 +381,10 @@ public class ThreadPooledJobStore : JobStoreTX
         var result = await ExecuteInWriteLock(LockTriggerAccess,
             async conn => (IReadOnlyCollection<TriggerFiredResult>)await TriggersFiredCallback(conn, triggers, cancellationToken),
             async (conn, result) => await TriggersFiredValidator(conn, result, cancellationToken), cancellationToken: cancellationToken);
-        var triggerDetails = result.Select(a => (a.TriggerFiredBundle?.Trigger, a.TriggerFiredBundle?.JobDetail)).ToArray();
+        var triggerDetails = result
+            .Select(result => (trigger: result.TriggerFiredBundle?.Trigger!, jobDetail: result.TriggerFiredBundle?.JobDetail!))
+            .Where(tuple => tuple is ({ }, { }))
+            .ToArray();
         await ExecuteInReadLock(LockTriggerAccess, conn => OnJobExecuting(conn, triggerDetails, cancellationToken), cancellationToken: cancellationToken).ConfigureAwait(false);
         return result;
     }
@@ -425,10 +434,8 @@ public class ThreadPooledJobStore : JobStoreTX
         }
     }
 
-    protected override async ValueTask<TriggerFiredBundle> TriggerFired(ConnectionAndTransactionHolder conn, IOperableTrigger trigger, CancellationToken cancellationToken = default)
+    protected override async ValueTask<TriggerFiredBundle?> TriggerFired(ConnectionAndTransactionHolder conn, IOperableTrigger trigger, CancellationToken cancellationToken = default)
     {
-        IJobDetail job;
-        ICalendar cal = null;
 
         // Make sure trigger wasn't deleted, paused, or completed...
         try
@@ -442,6 +449,7 @@ public class ThreadPooledJobStore : JobStoreTX
             throw new JobPersistenceException("Couldn't select trigger state: " + e.Message, e);
         }
 
+        IJobDetail? job;
         try
         {
             job = await RetrieveJob(conn, trigger.JobKey, cancellationToken).ConfigureAwait(false);
@@ -454,13 +462,14 @@ public class ThreadPooledJobStore : JobStoreTX
                 _logger.LogError(jpe, "Error retrieving job, setting trigger state to ERROR");
                 await Delegate.UpdateTriggerState(conn, trigger.Key, StateError, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception sqle)
+            catch (Exception ex)
             {
-                _logger.LogError(sqle, "Unable to set trigger state to ERROR");
+                _logger.LogError(ex, "Unable to set trigger state to ERROR");
             }
             throw;
         }
 
+        ICalendar? cal = null;
         if (trigger.CalendarName != null)
         {
             cal = await RetrieveCalendar(conn, trigger.CalendarName, cancellationToken).ConfigureAwait(false);
@@ -486,7 +495,7 @@ public class ThreadPooledJobStore : JobStoreTX
         await StoreTrigger(conn, trigger, job, true, nextState, true, false, cancellationToken).ConfigureAwait(false);
 
         job.JobDataMap.ClearDirtyFlag();
-        
+
         return new TriggerFiredBundle(
             job,
             trigger,
@@ -512,9 +521,10 @@ public class ThreadPooledJobStore : JobStoreTX
             .ConfigureAwait(false);
         return null!;
     }
-#endregion
 
-#region Queue State
+    #endregion
+
+    #region Queue State
 
     public ValueTask<int> GetWaitingTriggersCount()
     {
@@ -590,7 +600,7 @@ public class ThreadPooledJobStore : JobStoreTX
     {
         return ExecuteInReadLock(LockTriggerAccess, conn => GetJobSummary(conn, maxCount, offset, excludeBlocked));
     }
-    
+
     public async ValueTask<List<QueueItem>> GetJobSummary(ConnectionAndTransactionHolder conn, int maxCount, int offset, bool excludeBlocked)
     {
         var sw = new Stopwatch();
@@ -624,7 +634,7 @@ public class ThreadPooledJobStore : JobStoreTX
                     Key = a.Item1.Key.ToString(),
                     JobType = job?.TypeName,
                     Title = job?.Title ?? job?.TypeName,
-                    Details = job?.Details ?? new(),
+                    Details = job?.Details ?? [],
                     Blocked = a.Item2
                 };
             }));
@@ -660,7 +670,7 @@ public class ThreadPooledJobStore : JobStoreTX
                 Key = detail.Key.ToString(),
                 JobType = job?.TypeName ?? detail.JobType.Type.Name,
                 Title = job?.Title ?? job?.TypeName,
-                Details = job?.Details ?? new(),
+                Details = job?.Details ?? [],
                 Running = true,
                 StartTime = a.StartTime
             };
@@ -676,7 +686,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
         var (waitingTriggerCount, blockedTriggerCount, waiting, executing) = await GetJobState(conn, cancellationToken);
 
-        _ = Task.Run(() =>_queueStateEventHandler.OnJobAdded(job, new QueueStateContext
+        _ = Task.Run(() => _queueStateEventHandler.OnJobsAdded([job], new QueueStateContext
         {
             ThreadCount = _threadPoolSize,
             WaitingTriggersCount = waitingTriggerCount,
@@ -697,21 +707,15 @@ public class ThreadPooledJobStore : JobStoreTX
 
         var (waitingTriggerCount, blockedTriggerCount, waiting, executing) = await GetJobState(conn, cancellationToken);
 
-        _ = Task.Run(() =>
+        _ = Task.Run(() => _queueStateEventHandler.OnJobsAdded(jobs, new QueueStateContext
         {
-            foreach (var job in jobs)
-            {
-                _queueStateEventHandler.OnJobAdded(job, new QueueStateContext
-                {
-                    ThreadCount = _threadPoolSize,
-                    WaitingTriggersCount = waitingTriggerCount,
-                    BlockedTriggersCount = blockedTriggerCount,
-                    TotalTriggersCount = waitingTriggerCount + blockedTriggerCount + executing.Length,
-                    CurrentlyExecuting = executing,
-                    Waiting = waiting
-                });
-            }
-        }, cancellationToken).ConfigureAwait(false);
+            ThreadCount = _threadPoolSize,
+            WaitingTriggersCount = waitingTriggerCount,
+            BlockedTriggersCount = blockedTriggerCount,
+            TotalTriggersCount = waitingTriggerCount + blockedTriggerCount + executing.Length,
+            CurrentlyExecuting = executing,
+            Waiting = waiting
+        }), cancellationToken).ConfigureAwait(false);
         stopwatch.Stop();
         _logger.LogTrace("OnJobsStoring took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
     }
@@ -768,7 +772,8 @@ public class ThreadPooledJobStore : JobStoreTX
         _logger.LogTrace("OnJobCompleted took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
     }
 
-    private readonly SemaphoreSlim _jobStateLock = new (1, 1);
+    private readonly SemaphoreSlim _jobStateLock = new(1, 1);
+
     private async Task<JobState> GetJobState(ConnectionAndTransactionHolder conn, CancellationToken cancellationToken)
     {
         var stopwatch = new Stopwatch();
@@ -813,6 +818,7 @@ public class ThreadPooledJobStore : JobStoreTX
         _logger.LogTrace("GetJobState took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
         return (waitingTriggerCount, blockedTriggerCount, waiting, executing);
     }
-#endregion
+
+    #endregion
 
 }

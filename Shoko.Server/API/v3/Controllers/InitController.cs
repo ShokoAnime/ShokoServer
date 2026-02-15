@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Shoko.Plugin.Abstractions.Services;
+using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Databases;
@@ -246,8 +247,8 @@ public class InitController : BaseController
         return settings.Database.Type switch
         {
             Constants.DatabaseType.MySQL when new MySQL().TestConnection() => Ok(),
-            Constants.DatabaseType.SqlServer when new SQLServer().TestConnection() => Ok(),
-            Constants.DatabaseType.Sqlite => Ok(),
+            Constants.DatabaseType.SQLServer when new SQLServer().TestConnection() => Ok(),
+            Constants.DatabaseType.SQLite => Ok(),
             _ => BadRequest("Failed to Connect")
         };
     }

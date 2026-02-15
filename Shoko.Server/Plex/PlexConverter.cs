@@ -1,8 +1,8 @@
 ﻿using System;
 using Newtonsoft.Json;
-using Shoko.Models.Plex.Collection;
-using Shoko.Models.Plex.Libraries;
-using Shoko.Models.Plex.TVShow;
+using Shoko.Server.Plex.Models.Collection;
+using Shoko.Server.Plex.Models.Libraries;
+using Shoko.Server.Plex.Models.TVShow;
 using Shoko.Server.Plex.Collection;
 using Shoko.Server.Plex.Libraries;
 using Shoko.Server.Plex.TVShow;

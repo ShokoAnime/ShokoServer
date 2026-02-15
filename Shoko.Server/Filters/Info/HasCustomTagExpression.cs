@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Info;
@@ -12,11 +13,9 @@ public class HasCustomTagExpression : FilterExpression<bool>, IWithStringParamet
     public HasCustomTagExpression() { }
 
     public string Parameter { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if any of the anime have a specified custom tag";
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.CustomTags.Contains(Parameter);
     }

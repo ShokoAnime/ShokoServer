@@ -1,5 +1,6 @@
 using System;
 using System.Text.RegularExpressions;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Strings;
@@ -27,9 +28,9 @@ public class StringRegexMatchesExpression : FilterExpression<bool>, IWithStringS
     public override string HelpDescription => "This condition passes if the left selector matches the regular expression given in the parameter";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        var left = Left.Evaluate(filterable, userInfo);
+        var left = Left.Evaluate(filterable, userInfo, time);
         if (string.IsNullOrEmpty(left) || _regex == null)
         {
             return false;

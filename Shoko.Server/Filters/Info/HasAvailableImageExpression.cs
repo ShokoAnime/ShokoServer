@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Repositories;
 
@@ -18,8 +19,6 @@ public class HasAvailableImageExpression : FilterExpression<bool>, IWithStringPa
     public HasAvailableImageExpression() { }
 
     public ImageEntityType Parameter { get; set; }
-    public override bool TimeDependent => true;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if any of the anime has the available image type.";
     public override string[] HelpPossibleParameters => RepoFactory.AnimeSeries.GetAllImageTypes().Select(a => a.ToString()).ToArray();
 
@@ -34,7 +33,7 @@ public class HasAvailableImageExpression : FilterExpression<bool>, IWithStringPa
         }
     }
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.AvailableImageTypes.Contains(Parameter);
     }

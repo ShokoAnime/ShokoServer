@@ -1,10 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.DataModels.Shoko;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Abstractions.Metadata.Tmdb;
+using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
+using Shoko.Abstractions.Video;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Interfaces;
@@ -14,15 +19,13 @@ using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.Movies;
 
-using AnimeSeason = Shoko.Models.Enums.AnimeSeason;
-
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 /// <summary>
 /// The Movie DataBase (TMDB) Movie Database Model.
 /// </summary>
-public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
+public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
 {
     #region Properties
 
@@ -376,7 +379,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// <param name="preferredImages">The preferred images.</param>
     /// <returns>A read-only list of images that are linked to the movie.
     /// </returns>
-    public IReadOnlyList<IImageMetadata> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImageMetadata> preferredImages) =>
+    public IReadOnlyList<IImage> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImage> preferredImages) =>
         GetImages(entityType)
             .GroupBy(i => i.ImageType)
             .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)
@@ -427,8 +430,8 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// <summary>
     /// Get all yearly seasons the movie was released in.
     /// </summary>
-    public IEnumerable<(int Year, AnimeSeason Season)> Seasons
-        => ReleasedAt.GetYearlySeasons(ReleasedAt);
+    public IReadOnlyList<(int Year, YearlySeason Season)> YearlySeasons
+        => [.. ReleasedAt.GetYearlySeasons(ReleasedAt)];
 
     /// <summary>
     /// Get the TMDB movie collection linked to the movie from the local
@@ -452,7 +455,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
     /// </summary>
     /// <returns>A read-only list of file cross-references associated with the
     /// movie.</returns>
-    public IReadOnlyList<SVR_CrossRef_File_Episode> FileCrossReferences =>
+    public IReadOnlyList<CrossRef_File_Episode> FileCrossReferences =>
         CrossReferences
             .DistinctBy(xref => xref.AnidbEpisodeID)
             .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
@@ -465,7 +468,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
     ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Movie;
 
-    DataSourceEnum IEntityMetadata.DataSource => DataSourceEnum.TMDB;
+    DataSource IEntityMetadata.DataSource => DataSource.TMDB;
 
     TitleLanguage? IEntityMetadata.OriginalLanguage => OriginalLanguage;
 
@@ -473,7 +476,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
     #region IMetadata
 
-    DataSourceEnum IMetadata.Source => DataSourceEnum.TMDB;
+    DataSource IMetadata.Source => DataSource.TMDB;
 
     int IMetadata<int>.ID => Id;
 
@@ -481,47 +484,57 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
     #region IWithTitles
 
-    string IWithTitles.DefaultTitle => EnglishTitle;
+    string IWithTitles.Title => GetPreferredTitle()?.Value ?? EnglishTitle;
 
-    string IWithTitles.PreferredTitle => GetPreferredTitle()!.Value;
+    ITitle IWithTitles.DefaultTitle => new TitleStub()
+    {
+        Language = TitleLanguage.EnglishAmerican,
+        CountryCode = "US",
+        LanguageCode = "en",
+        Value = EnglishTitle,
+        Source = DataSource.TMDB,
+    };
 
-    IReadOnlyList<AnimeTitle> IWithTitles.Titles => GetAllTitles()
-        .Select(title => new AnimeTitle()
-        {
-            Language = title.Language,
-            LanguageCode = title.LanguageCode,
-            Source = DataSourceEnum.TMDB,
-            Title = title.Value,
-            Type = TitleType.Official,
-        })
-        .ToList();
+    ITitle? IWithTitles.PreferredTitle => GetPreferredTitle();
+
+    IReadOnlyList<ITitle> IWithTitles.Titles => GetAllTitles();
 
     #endregion
 
     #region IWithDescriptions
 
-    string IWithDescriptions.DefaultDescription => EnglishOverview;
+    IText? IWithDescriptions.DefaultDescription => new TextStub()
+    {
+        Language = TitleLanguage.EnglishAmerican,
+        CountryCode = "US",
+        LanguageCode = "en",
+        Value = EnglishOverview,
+        Source = DataSource.TMDB,
+    };
 
-    string IWithDescriptions.PreferredDescription => GetPreferredOverview()!.Value;
+    IText? IWithDescriptions.PreferredDescription => GetPreferredOverview();
 
-    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions => GetAllOverviews()
-        .Select(overview => new TextDescription()
-        {
-            CountryCode = overview.CountryCode,
-            Language = overview.Language,
-            LanguageCode = overview.LanguageCode,
-            Source = DataSourceEnum.TMDB,
-            Value = overview.Value,
-        })
-        .ToList();
+    IReadOnlyList<IText> IWithDescriptions.Descriptions => GetAllOverviews();
+
+    #endregion
+
+    #region IWithCreationDate Implementation
+
+    DateTime IWithCreationDate.CreatedAt => CreatedAt.ToUniversalTime();
+
+    #endregion
+
+    #region IWithUpdateDate Implementation
+
+    DateTime IWithUpdateDate.LastUpdatedAt => LastUpdatedAt.ToUniversalTime();
 
     #endregion
 
     #region IWithImages
 
-    IImageMetadata? IWithImages.GetPreferredImageForType(ImageEntityType entityType) => null;
+    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType) => null;
 
-    IReadOnlyList<IImageMetadata> IWithImages.GetImages(ImageEntityType? entityType) => GetImages(entityType);
+    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType) => GetImages(entityType);
 
     #endregion
 
@@ -539,7 +552,13 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
     #endregion
 
-    #region IMovie
+    #region IWithContentRatings Implementation
+
+    IReadOnlyList<IContentRating> IWithContentRatings.ContentRatings => ContentRatings;
+
+    #endregion
+
+    #region IMovie Implementation
 
     bool IMovie.Restricted => IsRestricted;
 
@@ -559,7 +578,9 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
 
     double IMovie.Rating => UserRating;
 
-    IImageMetadata? IMovie.DefaultPoster => DefaultPoster;
+    int IMovie.RatingVotes => UserVotes;
+
+    IImage? IMovie.DefaultPoster => DefaultPoster;
 
     IReadOnlyList<IShokoEpisode> IMovie.ShokoEpisodes => CrossReferences
         .Select(xref => xref.AnimeEpisode)
@@ -571,9 +592,9 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
         .WhereNotNull()
         .ToList();
 
-    IReadOnlyList<IRelatedMetadata<ISeries>> IMovie.RelatedSeries => [];
+    IReadOnlyList<IRelatedMetadata<IMovie, ISeries>> IMovie.RelatedSeries => [];
 
-    IReadOnlyList<IRelatedMetadata<IMovie>> IMovie.RelatedMovies => [];
+    IReadOnlyList<IRelatedMetadata<IMovie, IMovie>> IMovie.RelatedMovies => [];
 
     IReadOnlyList<IVideoCrossReference> IMovie.CrossReferences => CrossReferences
         .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
@@ -584,6 +605,25 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie
         .Select(xref => xref.VideoLocal)
         .WhereNotNull()
         .ToList();
+
+    #endregion
+
+    #region ITmdbMovie Implementation
+
+    string? ITmdbMovie.CollectionID => TmdbCollectionID.ToString();
+
+    IReadOnlyList<string> ITmdbMovie.ProductionCountries => ProductionCountries
+        .Select(country => country.CountryCode)
+        .Order()
+        .ToList();
+
+    IReadOnlyList<string> ITmdbMovie.Keywords => Keywords;
+
+    IReadOnlyList<string> ITmdbMovie.Genres => Genres;
+
+    ITmdbCollection? ITmdbMovie.Collection => TmdbCollection;
+
+    IReadOnlyList<ITmdbMovieCrossReference> ITmdbMovie.TmdbMovieCrossReferences => CrossReferences;
 
     #endregion
 }

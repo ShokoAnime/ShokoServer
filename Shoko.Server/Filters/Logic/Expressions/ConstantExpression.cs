@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Expressions;
@@ -12,14 +13,13 @@ public class ConstantExpression : FilterExpression<bool>, IWithBoolParameter
 
     public ConstantExpression() { }
 
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
+
     public override string HelpDescription => "This condition passes if the left expression is equal to the right expression or the parameter.";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
     public bool Parameter { get; set; }
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return Parameter;
     }

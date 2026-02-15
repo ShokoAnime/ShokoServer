@@ -1,8 +1,8 @@
-#nullable enable
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.TMDB;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached.TMDB;
 
 public class TMDB_ShowRepository : BaseCachedRepository<TMDB_Show, int>

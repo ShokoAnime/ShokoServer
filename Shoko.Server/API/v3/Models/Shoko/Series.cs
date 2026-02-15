@@ -3,23 +3,26 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Server;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Services;
+using Shoko.Abstractions.UserData;
+using Shoko.Abstractions.UserData.Enums;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.TMDB;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
-using AniDBVoteType = Shoko.Models.Enums.AniDBVoteType;
-using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
-using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
+using EpisodeType = Shoko.Abstractions.Enums.EpisodeType;
+using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -46,6 +49,11 @@ public class Series : BaseModel
     public string Description { get; set; }
 
     /// <summary>
+    /// Indicates that the episode is marked as favorite by the user.
+    /// </summary>
+    public bool IsFavorite { get; set; }
+
+    /// <summary>
     /// The default or random pictures for a series. This allows the client to not need to get all images and pick one.
     /// There should always be a poster, but no promises on the rest.
     /// </summary>
@@ -70,7 +78,7 @@ public class Series : BaseModel
     /// <summary>
     /// The yearly seasons this series belongs to.
     /// </summary>
-    public List<YearlySeason> YearlySeasons { get; set; }
+    public List<SeasonWithYear> YearlySeasons { get; set; }
 
     /// <summary>
     /// links to series pages on various sites
@@ -95,27 +103,26 @@ public class Series : BaseModel
     public DateTime Updated { get; set; }
 
     /// <summary>
-    /// The <see cref="Series.AniDB"/>, if <see cref="DataSource.AniDB"/> is
+    /// The <see cref="Series.AniDB"/>, if <see cref="DataSourceType.AniDB"/> is
     /// included in the data to add.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public AnidbAnime? AniDB { get; set; }
 
     /// <summary>
-    /// The <see cref="TmdbData"/> entries, if <see cref="DataSource.TMDB"/>
+    /// The <see cref="TmdbData"/> entries, if <see cref="DataSourceType.TMDB"/>
     /// is included in the data to add.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public TmdbData? TMDB { get; set; }
 
-    public Series(SVR_AnimeSeries ser, int userId = 0, bool randomizeImages = false, HashSet<DataSource>? includeDataFrom = null)
+    public Series(AnimeSeries ser, int userId = 0, bool randomizeImages = false, HashSet<DataSourceType>? includeDataFrom = null)
     {
         var anime = ser.AniDB_Anime ??
             throw new NullReferenceException($"Unable to get AniDB Anime {ser.AniDB_ID} for AnimeSeries {ser.AnimeSeriesID}");
-        var animeType = anime.AbstractAnimeType.ToV3Dto();
+        var animeType = anime.AnimeType.ToV3Dto();
         var allEpisodes = ser.AllAnimeEpisodes;
-        var vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime) ??
-                   RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp);
+        var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userId, ser.AnimeSeriesID);
         var tmdbMovieXRefs = ser.TmdbMovieCrossReferences;
         var tmdbShowXRefs = ser.TmdbShowCrossReferences;
         var sizes = ModelHelper.GenerateSeriesSizes(allEpisodes, userId);
@@ -141,29 +148,30 @@ public class Series : BaseModel
         Links = anime.Resources
             .Select(tuple => new Resource(tuple))
             .ToList();
-        Name = ser.PreferredTitle;
+        Name = ser.Title;
         HasCustomName = !string.IsNullOrEmpty(ser.SeriesNameOverride);
-        Description = ser.PreferredOverview;
+        Description = ser.PreferredOverview?.Value ?? string.Empty;
+        IsFavorite = userData?.IsFavorite ?? false;
         Images = ser.GetImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
         AirsOn = animeType == AnimeType.TV || animeType == AnimeType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
-        YearlySeasons = anime.Seasons
-            .Select(x => new YearlySeason(x.Year, x.Season))
+        YearlySeasons = anime.YearlySeasons
+            .Select(x => new SeasonWithYear(x.Year, x.Season))
             .ToList();
         Sizes = sizes;
         Created = ser.DateTimeCreated.ToUniversalTime();
         Updated = ser.DateTimeUpdated.ToUniversalTime();
         Size = sizes.Local.Credits + sizes.Local.Episodes + sizes.Local.Others + sizes.Local.Parodies + sizes.Local.Specials + sizes.Local.Trailers;
-        if (vote is { VoteValue: >= 0 })
+        if (userData is { HasUserRating: true })
             UserRating = new()
             {
-                Value = (decimal)Math.Round(vote.VoteValue / 100D, 1),
+                Value = userData.UserRating.Value,
                 MaxValue = 10,
-                Type = (AniDBVoteType)vote.VoteType == AniDBVoteType.Anime ? "Permanent" : "Temporary",
-                Source = "User"
+                Type = userData.UserRatingVoteType.Value.ToString(),
+                Source = "User",
             };
-        if (includeDataFrom?.Contains(DataSource.AniDB) ?? false)
+        if (includeDataFrom?.Contains(DataSourceType.AniDB) ?? false)
             AniDB = new(anime, ser);
-        if (includeDataFrom?.Contains(DataSource.TMDB) ?? false)
+        if (includeDataFrom?.Contains(DataSourceType.TMDB) ?? false)
             TMDB = new()
             {
                 Movies = tmdbMovieXRefs
@@ -197,7 +205,7 @@ public class Series : BaseModel
     /// <param name="animeEpisodes">Optionally pass in the episodes so we don't have to fetch them.</param>
     /// <param name="includeThreshold">Threshold of episodes to include in the calculation.</param>
     /// <returns></returns>
-    private static List<DayOfWeek> GetAirsOnDaysOfWeek(IEnumerable<SVR_AnimeEpisode> animeEpisodes, int includeThreshold = 24)
+    private static List<DayOfWeek> GetAirsOnDaysOfWeek(IEnumerable<AnimeEpisode> animeEpisodes, int includeThreshold = 24)
     {
         var now = DateTime.Now;
         var filteredEpisodes = animeEpisodes
@@ -214,7 +222,7 @@ public class Series : BaseModel
                     return false;
 
                 // We ignore all other types except the "normal" type.
-                if ((AniDBEpisodeType)tuple.aniDB.EpisodeType != AniDBEpisodeType.Episode)
+                if (tuple.aniDB.EpisodeType != EpisodeType.Episode)
                     return false;
 
                 // We ignore any unknown air dates and dates in the future.
@@ -285,7 +293,7 @@ public class Series : BaseModel
     }
 
     public static List<Tag> GetTags(
-        SVR_AniDB_Anime anime,
+        AniDB_Anime anime,
         TagFilter.Filter filter,
         bool excludeDescriptions = false,
         bool orderByName = false,
@@ -341,7 +349,7 @@ public class Series : BaseModel
             // Kitsu = false;
         }
 
-        public AutoMatchSettings(SVR_AnimeSeries series)
+        public AutoMatchSettings(AnimeSeries series)
         {
             TMDB = !series.IsTMDBAutoMatchingDisabled;
             // MAL = !series.IsMALAutoMatchingDisabled;
@@ -350,7 +358,7 @@ public class Series : BaseModel
             // Kitsu = !series.IsKitsuAutoMatchingDisabled;
         }
 
-        public AutoMatchSettings MergeWithExisting(SVR_AnimeSeries series)
+        public AutoMatchSettings MergeWithExisting(AnimeSeries series)
         {
             series.IsTMDBAutoMatchingDisabled = !TMDB;
             // series.IsMALAutoMatchingDisabled = !MAL;
@@ -456,6 +464,101 @@ public class Series : BaseModel
 
         public IEnumerable<TmdbShow> Shows { get; init; } = [];
     }
+
+    #region User Data
+
+    /// <summary>
+    ///   The user data for the series.
+    /// </summary>
+    public class SeriesUserData
+    {
+        /// <summary>
+        ///   Indicates that the user has marked the series as favorite.
+        /// </summary>
+        public bool IsFavorite { get; set; }
+
+        /// <summary>
+        ///   The unique tags assigned to the series by the user.
+        /// </summary>
+        public IReadOnlyList<string> UserTags { get; set; }
+
+        private double? _userRating;
+
+        /// <summary>
+        ///   The user rating, on a scale of 1-10 with a maximum of 1 decimal
+        ///   places, or <c>null</c> if unrated.
+        /// </summary>
+        [Range(1, 10)]
+        public double? UserRating
+        {
+            get => _userRating;
+            set
+            {
+                if (value is -1)
+                    value = null;
+                if (value.HasValue)
+                    value = Math.Round(value.Value, 1, MidpointRounding.AwayFromZero);
+                if (value is not null && (value < 1 || value > 10))
+                    throw new ArgumentOutOfRangeException(nameof(UserRating), "User rating must be set between 1 and 10, or set to -1 or null to unset the rating.");
+
+                _userRating = value;
+                if (!_userRating.HasValue)
+                    _userRatingVoteType = null;
+                else if (!_userRatingVoteType.HasValue)
+                    _userRatingVoteType = SeriesVoteType.Temporary;
+            }
+        }
+
+        private SeriesVoteType? _userRatingVoteType;
+
+        /// <summary>
+        ///   Override the user rating vote type.
+        /// </summary>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public SeriesVoteType? UserRatingVoteType
+        {
+            get => _userRatingVoteType;
+            set
+            {
+                _userRatingVoteType = value;
+                if (!_userRatingVoteType.HasValue)
+                    _userRating = null;
+                else if (!UserRating.HasValue)
+                    _userRating = 1;
+            }
+        }
+
+        public SeriesUserData()
+        {
+            IsFavorite = false;
+            UserTags = [];
+            _userRating = null;
+            _userRatingVoteType = null;
+        }
+
+        public SeriesUserData(ISeriesUserData userData)
+        {
+            IsFavorite = userData.IsFavorite;
+            UserTags = userData.UserTags;
+            _userRating = userData.UserRating;
+            _userRatingVoteType = userData.UserRatingVoteType;
+        }
+
+        public SeriesUserData MergeWithExisting(JMMUser user, AnimeSeries series)
+        {
+            var userDataService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
+            var userData = userDataService.SaveSeriesUserData(series, user, new()
+            {
+                IsFavorite = IsFavorite,
+                UserTags = UserTags,
+                UserRating = UserRating,
+                UserRatingVoteType = UserRatingVoteType,
+            }).GetAwaiter().GetResult();
+            return new(userData);
+        }
+    }
+
+    #endregion
 
     #region Inputs
 
@@ -649,7 +752,7 @@ public class Series : BaseModel
         /// </summary>
         public string Match { get; set; } = string.Empty;
 
-        public SearchResult(SeriesSearch.SearchResult<SVR_AnimeSeries> result, int userId = 0, bool randomizeImages = false, HashSet<DataSource>? includeDataFrom = null)
+        public SearchResult(SeriesSearch.SearchResult<AnimeSeries> result, int userId = 0, bool randomizeImages = false, HashSet<DataSourceType>? includeDataFrom = null)
             : base(result.Result, userId, randomizeImages, includeDataFrom)
         {
             ExactMatch = result.ExactMatch;
@@ -670,7 +773,7 @@ public class Series : BaseModel
         /// </summary>
         public int EpisodeCount { get; set; }
 
-        public WithEpisodeCount(int episodeCount, SVR_AnimeSeries ser, int userId = 0, HashSet<DataSource>? includeDataFrom = null)
+        public WithEpisodeCount(int episodeCount, AnimeSeries ser, int userId = 0, HashSet<DataSourceType>? includeDataFrom = null)
             : base(ser, userId, false, includeDataFrom)
         {
             EpisodeCount = episodeCount;

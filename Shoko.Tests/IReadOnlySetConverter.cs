@@ -13,7 +13,7 @@ public class IReadOnlySetConverter : JsonConverter
         if (arguments.Length > 1) return false;
         return typeof(IReadOnlySet<>) == objectType.GetGenericTypeDefinition();
     }
-    
+
     public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
     {
     }

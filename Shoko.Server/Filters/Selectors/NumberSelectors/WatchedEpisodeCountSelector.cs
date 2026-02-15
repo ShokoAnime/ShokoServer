@@ -1,16 +1,15 @@
 using System;
-using Shoko.Server.Filters.Interfaces;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
 public class WatchedEpisodeCountSelector : FilterExpression<double>
 {
-    public override bool TimeDependent => false;
     public override bool UserDependent => true;
     public override string HelpDescription => "This returns the number of episodes in a filterable that have been watched by the current user";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
-    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override double Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         ArgumentNullException.ThrowIfNull(userInfo);
         return userInfo.WatchedEpisodes;

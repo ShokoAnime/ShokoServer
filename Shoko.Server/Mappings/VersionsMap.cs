@@ -1,5 +1,5 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Models;
+using Shoko.Server.Models.Internal;
 
 namespace Shoko.Server.Mappings;
 
@@ -7,6 +7,7 @@ public class VersionsMap : ClassMap<Versions>
 {
     public VersionsMap()
     {
+        Table("Versions");
         Not.LazyLoad();
         Id(x => x.VersionsID);
         Map(x => x.VersionType).Not.Nullable();

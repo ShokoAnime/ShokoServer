@@ -6,11 +6,11 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Converters;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
@@ -80,7 +80,7 @@ public class Group : BaseModel
 
     #region Constructors
 
-    public Group(SVR_AnimeGroup group, int userID = 0, bool randomizeImages = false)
+    public Group(AnimeGroup group, int userID = 0, bool randomizeImages = false)
     {
         var subGroupCount = group.Children.Count;
         var allSeries = group.AllSeries;
@@ -227,7 +227,7 @@ public class Group : BaseModel
 
             public CreateOrUpdateGroupBody() { }
 
-            public CreateOrUpdateGroupBody(SVR_AnimeGroup group)
+            public CreateOrUpdateGroupBody(AnimeGroup group)
             {
                 Name = group.GroupName;
                 ParentGroupID = group.AnimeGroupParentID;
@@ -236,10 +236,10 @@ public class Group : BaseModel
                 GroupIDs = group.Children.Select(group => group.AnimeGroupID).ToList();
             }
 
-            public Group? MergeWithExisting(SVR_AnimeGroup group, int userID, ModelStateDictionary modelState)
+            public Group? MergeWithExisting(AnimeGroup group, int userID, ModelStateDictionary modelState)
             {
                 // Validate if the parent exists if a parent id is set.
-                SVR_AnimeGroup? parent = null;
+                AnimeGroup? parent = null;
                 if (ParentGroupID.HasValue && ParentGroupID.Value != 0)
                 {
                     parent = RepoFactory.AnimeGroup.GetByID(ParentGroupID.Value);
@@ -295,7 +295,7 @@ public class Group : BaseModel
                 }
 
                 // Find the preferred series among the list of series.
-                SVR_AnimeSeries? preferredSeries = null;
+                AnimeSeries? preferredSeries = null;
                 if (PreferredSeriesID.HasValue && PreferredSeriesID.Value != 0)
                 {
                     preferredSeries = allSeriesList
@@ -338,7 +338,7 @@ public class Group : BaseModel
                 // Set the main series and maybe update the group
                 // name/description.
                 if (PreferredSeriesID.HasValue)
-                    groupService.SetMainSeries(group, preferredSeries);
+                    groupService.SetMainSeries(group, preferredSeries!);
 
                 // Check if the names have changed if we omit the value, or if
                 // we set it to true.
@@ -349,8 +349,7 @@ public class Group : BaseModel
                         group.IsManuallyNamed = 1;
 
                     // The group name changed.
-                    var overrideName = !string.IsNullOrWhiteSpace(Name) && !string.Equals(group.GroupName, Name);
-                    if (overrideName)
+                    if (!string.IsNullOrWhiteSpace(Name) && !string.Equals(group.GroupName, Name))
                     {
                         group.IsManuallyNamed = 1;
                         group.GroupName = Name;
@@ -360,7 +359,7 @@ public class Group : BaseModel
                 else
                 {
                     group.IsManuallyNamed = 0;
-                    group.GroupName = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.PreferredTitle ?? group.GroupName;
+                    group.GroupName = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.Title ?? group.GroupName;
                 }
 
                 // Same as above, but for the description.
@@ -370,8 +369,7 @@ public class Group : BaseModel
                         group.OverrideDescription = 1;
 
                     // The description changed.
-                    var overrideDescription = !string.IsNullOrWhiteSpace(Description) && !string.Equals(group.Description, Description);
-                    if (overrideDescription)
+                    if (!string.IsNullOrWhiteSpace(Description) && !string.Equals(group.Description, Description))
                     {
                         group.OverrideDescription = 1;
                         group.Description = Description;
@@ -381,7 +379,7 @@ public class Group : BaseModel
                 else
                 {
                     group.OverrideDescription = 0;
-                    group.Description = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.PreferredOverview ?? group.Description;
+                    group.Description = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.PreferredOverview?.Value ?? group.Description;
                 }
 
                 // Update stats for all groups in the chain

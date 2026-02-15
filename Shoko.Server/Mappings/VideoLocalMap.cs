@@ -1,11 +1,11 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Models.MediaInfo;
 using Shoko.Server.Databases.NHibernate;
-using Shoko.Server.Models;
+using Shoko.Server.MediaInfo;
+using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Mappings;
 
-public class VideoLocalMap : ClassMap<SVR_VideoLocal>
+public class VideoLocalMap : ClassMap<VideoLocal>
 {
     public VideoLocalMap()
     {
@@ -20,9 +20,6 @@ public class VideoLocalMap : ClassMap<SVR_VideoLocal>
 #pragma warning restore CS0618
         Map(x => x.FileSize).Not.Nullable();
         Map(x => x.Hash).Not.Nullable();
-        Map(x => x.CRC32);
-        Map(x => x.MD5);
-        Map(x => x.SHA1);
         Map(x => x.HashSource).Not.Nullable();
         Map(x => x.IsIgnored).Not.Nullable();
         Map(x => x.IsVariation).Not.Nullable();

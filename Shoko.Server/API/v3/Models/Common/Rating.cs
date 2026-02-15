@@ -11,7 +11,7 @@ public class Rating
     /// rating
     /// </summary>
     [Required]
-    public decimal Value { get; set; }
+    public double Value { get; set; }
 
     /// <summary>
     /// out of what? Assuming int, as the max should be

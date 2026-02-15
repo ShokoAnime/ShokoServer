@@ -1,15 +1,14 @@
-using Shoko.Server.Filters.Interfaces;
+using System;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Info;
 
 public class HasMissingEpisodesCollectingExpression : FilterExpression<bool>
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if any of the anime are missing episodes from a release group that is currently in the collection";
     public override string Name => "Has Missing Episodes (Collecting)";
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.MissingEpisodesCollecting > 0;
     }

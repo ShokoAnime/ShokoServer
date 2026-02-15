@@ -30,6 +30,11 @@ public class TmdbRefreshShowBody
     public bool? DownloadAlternateOrdering { get; set; } = null;
 
     /// <summary>
+    /// Also download networks for show. Will respect global option if not set.
+    /// </summary>
+    public bool? DownloadNetworks { get; set; } = null;
+
+    /// <summary>
     /// If true, the refresh will be ran immediately.
     /// </summary>
     public bool Immediate { get; set; } = false;

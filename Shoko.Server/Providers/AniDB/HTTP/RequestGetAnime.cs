@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Models;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
-using Shoko.Server.Settings;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
 
@@ -19,7 +17,7 @@ public class RequestGetAnime : HttpRequest<ResponseGetAnime>
         $"httpapi?client=animeplugin&clientver=1&protover=1&request=anime&aid={AnimeID}";
 
     public RequestGetAnime(IHttpConnectionHandler handler, ILoggerFactory loggerFactory, HttpXmlUtils xmlUtils,
-        HttpAnimeParser parser, ISettingsProvider settingsProvider) : base(handler, loggerFactory)
+        HttpAnimeParser parser) : base(handler, loggerFactory)
     {
         _xmlUtils = xmlUtils;
         _parser = parser;
@@ -49,7 +47,7 @@ public class RequestGetAnime : HttpRequest<ResponseGetAnime>
         var anime = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeId);
         if (anime == null)
         {
-            anime = new AniDB_AnimeUpdate { AnimeID = animeId, UpdatedAt = DateTime.Now };
+            anime = new() { AnimeID = animeId, UpdatedAt = DateTime.Now };
         }
         else
         {

@@ -1,5 +1,6 @@
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Server.Repositories;
 
 #nullable enable
@@ -52,13 +53,13 @@ public abstract class TMDB_Cast : ICast
 
     string IMetadata<string>.ID => TmdbCreditID;
 
-    DataSourceEnum IMetadata.Source => DataSourceEnum.TMDB;
+    DataSource IMetadata.Source => DataSource.TMDB;
 
     #endregion
 
     #region IWithPortraitImage Implementation
 
-    IImageMetadata? IWithPortraitImage.PortraitImage => null;
+    IImage? IWithPortraitImage.PortraitImage => null;
 
     #endregion
 

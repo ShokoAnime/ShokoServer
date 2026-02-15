@@ -8,15 +8,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Plugin.Abstractions.Services;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Services;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Providers.TraktTV.Contracts.Sync;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+using Shoko.Abstractions.Extensions;
 
 #pragma warning disable SYSLIB0014
 #nullable enable
@@ -179,7 +178,7 @@ public class TraktTVHelper
         {
             _logger.LogError(e, "Error in GetFromTrakt");
 
-            var httpResponse = (HttpWebResponse)e.Response;
+            var httpResponse = (HttpWebResponse?)e.Response;
             traktCode = (int?)httpResponse?.StatusCode ?? 0;
 
             return string.Empty;
@@ -401,12 +400,12 @@ public class TraktTVHelper
 
     #region Send Data to Trakt
 
-    public void SendEpisodeWatchState(TraktSyncType syncType, SVR_AnimeEpisode episode, DateTime? date = null)
+    public void SendEpisodeWatchState(TraktSyncType syncType, AnimeEpisode episode, DateTime? date = null)
     {
         try
         {
             _logger.LogInformation("Trakt: Sending watch states for {Anime} - {EpisodeType} {EpisodeNumber}",
-                episode.AnimeSeries?.PreferredTitle, episode.EpisodeTypeEnum, episode.AniDB_Episode?.EpisodeNumber);
+                episode.AnimeSeries?.PreferredTitle, episode.EpisodeType, episode.AniDB_Episode?.EpisodeNumber);
 
             if (episode.TmdbEpisodes.Count == 0 && episode.TmdbMovies.Count == 0)
             {
@@ -572,7 +571,7 @@ public class TraktTVHelper
 
     #endregion
 
-    public void SendWatchStates(SVR_AnimeSeries? watchedSeries = null)
+    public void SendWatchStates(AnimeSeries? watchedSeries = null)
     {
         try
         {
@@ -586,12 +585,12 @@ public class TraktTVHelper
                 return;
             }
 
-            IReadOnlyList<SVR_AnimeSeries> allSeries;
+            IReadOnlyList<AnimeSeries> allSeries;
 
             if (watchedSeries is not null)
             {
                 _logger.LogInformation("Trakt: Sending watch states for series {Anime}", watchedSeries.PreferredTitle);
-                allSeries = new List<SVR_AnimeSeries>
+                allSeries = new List<AnimeSeries>
                 {
                     watchedSeries
                 };
@@ -629,7 +628,7 @@ public class TraktTVHelper
                 foreach (var episode in episodesWithFiles)
                 {
                     _logger.LogTrace("Trakt: Start comparing watch states for {Anime} - {EpisodeType} {Episode}",
-                        series.PreferredTitle, episode.EpisodeTypeEnum, episode.AniDB_Episode?.EpisodeNumber);
+                        series.PreferredTitle, episode.EpisodeType, episode.AniDB_Episode?.EpisodeNumber);
                     var episodeSyncDetailsList = CompareWatchStates(traktEnabledUser, series, episode, watchedShows, watchedMovies);
 
                     var episodeHistoryAdd = new List<TraktSyncHistoryItem>();
@@ -667,7 +666,7 @@ public class TraktTVHelper
                     }
 
                     _logger.LogTrace("Trakt: Compared watch states for {Anime} - {EpisodeType} {Episode}\nWatch states to send: {EpisodeCount} episodes, {MovieCount} movies",
-                        series.PreferredTitle, episode.EpisodeTypeEnum, episode.AniDB_Episode?.EpisodeNumber, episodeHistoryAdd.Count, movieHistoryAdd.Count);
+                        series.PreferredTitle, episode.EpisodeType, episode.AniDB_Episode?.EpisodeNumber, episodeHistoryAdd.Count, movieHistoryAdd.Count);
 
                     syncHistoryAdd.Episodes.AddRange(episodeHistoryAdd);
                     syncHistoryAdd.Movies.AddRange(movieHistoryAdd);
@@ -692,7 +691,7 @@ public class TraktTVHelper
         }
     }
 
-    public void GetWatchStates(SVR_AnimeSeries? series = null)
+    public void GetWatchStates(AnimeSeries? series = null)
     {
         try
         {
@@ -721,7 +720,7 @@ public class TraktTVHelper
         }
     }
 
-    private List<EpisodeSyncDetails> CompareWatchStates(SVR_JMMUser traktEnabledUser, SVR_AnimeSeries series, SVR_AnimeEpisode episode,
+    private List<EpisodeSyncDetails> CompareWatchStates(JMMUser traktEnabledUser, AnimeSeries series, AnimeEpisode episode,
         Dictionary<int, TraktSyncWatchedShowsResult> watchedShows, Dictionary<int, TraktSyncWatchedMoviesResult> watchedMovies)
     {
         try
@@ -729,7 +728,7 @@ public class TraktTVHelper
             if (episode.TmdbEpisodeCrossReferences.Count == 0 && episode.TmdbMovieCrossReferences.Count == 0)
             {
                 _logger.LogTrace("Trakt: No TMDB links found for {Anime} - {EpisodeType} {Episode}",
-                    series.PreferredTitle, episode.EpisodeTypeEnum, episode.AniDB_Episode?.EpisodeNumber);
+                    series.PreferredTitle, episode.EpisodeType, episode.AniDB_Episode?.EpisodeNumber);
                 return [];
             }
 
@@ -737,7 +736,7 @@ public class TraktTVHelper
             var watchedOnShoko = episode.GetUserRecord(traktEnabledUser.JMMUserID)?.WatchedDate is not null;
 
             _logger.LogTrace("Trakt: Comparing watch states for {Anime} - {EpisodeType} - {Episode} - Watched: {Watched}",
-                series.PreferredTitle, episode.EpisodeTypeEnum, episode.AniDB_Episode?.EpisodeNumber, watchedOnShoko);
+                series.PreferredTitle, episode.EpisodeType, episode.AniDB_Episode?.EpisodeNumber, watchedOnShoko);
 
             // As we are currently only sending data for watched episodes
             if (!watchedOnShoko)
@@ -799,11 +798,11 @@ public class TraktTVHelper
         }
     }
 
-    private void StoreWatchStates(SVR_JMMUser traktEnabledUser, Dictionary<int, TraktSyncWatchedShowsResult> watchedShows, Dictionary<int, TraktSyncWatchedMoviesResult> watchedMovies, SVR_AnimeSeries? series = null)
+    private void StoreWatchStates(JMMUser traktEnabledUser, Dictionary<int, TraktSyncWatchedShowsResult> watchedShows, Dictionary<int, TraktSyncWatchedMoviesResult> watchedMovies, AnimeSeries? series = null)
     {
         try
         {
-            List<SVR_AnimeEpisode> episodes;
+            List<AnimeEpisode> episodes;
 
             if (series is not null)
             {
@@ -832,7 +831,7 @@ public class TraktTVHelper
                 if (matchedEpisode is not null)
                 {
                     _logger.LogTrace("Trakt: Episode match found for episode ID {EpisodeID}", episode.AnimeEpisodeID);
-                    _userDataService.SetEpisodeWatchedStatus(traktEnabledUser, episode, true, matchedEpisode.LastWatchedAt, UserDataSaveReason.TraktSync);
+                    _userDataService.ImportEpisodeUserData(episode, traktEnabledUser, new() { LastPlayedAt = matchedEpisode.LastWatchedAt }, "Trakt");
                     // If an episode is watched, we don't need to check movies as well as it's already marked as watched.
                     continue;
                 }
@@ -845,7 +844,7 @@ public class TraktTVHelper
                 if (matchedMovie is not null)
                 {
                     _logger.LogTrace("Trakt: Movie match found for episode ID {EpisodeID}", episode.AnimeEpisodeID);
-                    _userDataService.SetEpisodeWatchedStatus(traktEnabledUser, episode, true, matchedMovie.LastWatchedAt, UserDataSaveReason.TraktSync);
+                    _userDataService.ImportEpisodeUserData(episode, traktEnabledUser, new() { LastPlayedAt = matchedMovie.LastWatchedAt }, "Trakt");
                 }
             }
         }
@@ -858,7 +857,7 @@ public class TraktTVHelper
         }
     }
 
-    private static DateTime GetEpisodeDateForSync(SVR_JMMUser traktEnabledUser, TraktSyncType syncType, SVR_AnimeEpisode episode)
+    private static DateTime GetEpisodeDateForSync(JMMUser traktEnabledUser, TraktSyncType syncType, AnimeEpisode episode)
     {
         if (syncType is not TraktSyncType.HistoryAdd)
             return DateTime.Now;
@@ -886,12 +885,12 @@ public class TraktTVHelper
         return thisDate ?? DateTime.Now;
     }
 
-    private static List<int> GetTmdbEpisodeIdsFromEpisode(SVR_AnimeEpisode episode)
+    private static List<int> GetTmdbEpisodeIdsFromEpisode(AnimeEpisode episode)
     {
         return episode.TmdbEpisodes.Select(x => x.TmdbEpisodeID).ToList();
     }
 
-    private static List<int> GetTmdbMovieIdsFromEpisode(SVR_AnimeEpisode episode)
+    private static List<int> GetTmdbMovieIdsFromEpisode(AnimeEpisode episode)
     {
         return episode.TmdbMovies.Select(x => x.TmdbMovieID).ToList();
     }

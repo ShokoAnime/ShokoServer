@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Plugin.Abstractions.Events;
+using Shoko.Abstractions.Events;
 using Shoko.Server.Utilities;
 
 #nullable enable
@@ -50,7 +50,7 @@ public class AVDumpEventSignalRModel
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public DateTime? EndedAt { get; set; }
 
-    public AVDumpEventSignalRModel(AVDumpEventArgs eventArgs)
+    public AVDumpEventSignalRModel(AvdumpEventArgs eventArgs)
     {
         SessionID = eventArgs.SessionID;
         VideoIDs = eventArgs.VideoIDs;

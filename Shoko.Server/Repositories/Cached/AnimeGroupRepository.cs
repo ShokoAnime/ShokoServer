@@ -5,16 +5,17 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.NHibernate;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
+public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
 {
     private readonly ILogger<AnimeGroupRepository> _logger;
 
-    private PocoIndex<int, SVR_AnimeGroup, int> _parentIDs;
+    private PocoIndex<int, AnimeGroup, int>? _parentIDs;
 
     private readonly ChangeTracker<int> _changes = new();
 
@@ -39,7 +40,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         };
     }
 
-    protected override int SelectKey(SVR_AnimeGroup entity)
+    protected override int SelectKey(AnimeGroup entity)
         => entity.AnimeGroupID;
 
     public override void PopulateIndexes()
@@ -48,10 +49,10 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         _parentIDs = Cache.CreateIndex(a => a.AnimeGroupParentID ?? 0);
     }
 
-    public override void Save(SVR_AnimeGroup obj)
+    public override void Save(AnimeGroup obj)
         => Save(obj, true);
 
-    public void Save(SVR_AnimeGroup group, bool recursive)
+    public void Save(AnimeGroup group, bool recursive)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         Lock(session, s =>
@@ -87,7 +88,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         }
     }
 
-    public async Task InsertBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
+    public async Task InsertBatch(ISessionWrapper session, IReadOnlyCollection<AnimeGroup> groups)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(groups);
@@ -104,7 +105,7 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         _changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
     }
 
-    public async Task UpdateBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeGroup> groups)
+    public async Task UpdateBatch(ISessionWrapper session, IReadOnlyCollection<AnimeGroup> groups)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(groups);
@@ -178,10 +179,10 @@ public class AnimeGroupRepository : BaseCachedRepository<SVR_AnimeGroup, int>
         }
     }
 
-    public List<SVR_AnimeGroup> GetByParentID(int parentID)
-        => ReadLock(() => _parentIDs.GetMultiple(parentID));
+    public List<AnimeGroup> GetByParentID(int parentID)
+        => ReadLock(() => _parentIDs!.GetMultiple(parentID));
 
-    public List<SVR_AnimeGroup> GetAllTopLevelGroups()
+    public List<AnimeGroup> GetAllTopLevelGroups()
         => GetByParentID(0);
 
     public ChangeTracker<int> GetChangeTracker()

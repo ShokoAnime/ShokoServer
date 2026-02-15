@@ -10,7 +10,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using Shoko.Server.Extensions;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Utilities;
 
 #nullable enable

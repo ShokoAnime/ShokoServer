@@ -1,14 +1,14 @@
 using System;
 using System.Text.Json.Serialization;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
-using Shoko.Server.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 [Serializable]
-public class TMDB_ContentRating
+public class TMDB_ContentRating : IContentRating
 {
     /// <summary>
     /// 
@@ -56,4 +56,15 @@ public class TMDB_ContentRating
         return new(countryCode, rating);
     }
 
+    #region IMetadata Implementation
+
+    DataSource IMetadata.Source => DataSource.TMDB;
+
+    #endregion
+
+    #region IContentRating Implementation
+
+    string IContentRating.Value => Rating;
+
+    #endregion
 }

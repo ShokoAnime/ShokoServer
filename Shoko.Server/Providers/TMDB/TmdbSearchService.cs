@@ -6,9 +6,10 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Server.Models.AniDB;
 using TMDbLib.Objects.Search;
 
 #nullable enable
@@ -38,8 +39,8 @@ public partial class TmdbSearchService
         _tmdbService = tmdbService;
     }
 
-    public async Task<IReadOnlyList<TmdbAutoSearchResult>> SearchForAutoMatch(SVR_AniDB_Anime anime)
-        => anime.AbstractAnimeType switch
+    public async Task<IReadOnlyList<TmdbAutoSearchResult>> SearchForAutoMatch(AniDB_Anime anime)
+        => anime.AnimeType switch
         {
             // Music videos are not allowed on TMDB, and the other and unknown types are hard to auto-map, so just don't.
             AnimeType.MusicVideo or AnimeType.Other or AnimeType.Unknown => [],
@@ -85,7 +86,7 @@ public partial class TmdbSearchService
         return (pagedResults, total);
     }
 
-    private async Task<IReadOnlyList<TmdbAutoSearchResult>> AutoSearchForMovies(SVR_AniDB_Anime anime)
+    private async Task<IReadOnlyList<TmdbAutoSearchResult>> AutoSearchForMovies(AniDB_Anime anime)
     {
         // Find the official title in the origin language, to compare it against
         // the original language stored in the offline tmdb search dump.
@@ -109,7 +110,7 @@ public partial class TmdbSearchService
         // Try to establish a link for every movie (episode) in the movie
         // collection (anime).
         var episodes = anime.AniDBEpisodes
-            .Where(episode => episode.EpisodeType == (int)EpisodeType.Episode || episode.EpisodeType == (int)EpisodeType.Special)
+            .Where(episode => episode.EpisodeType is EpisodeType.Episode or EpisodeType.Special or EpisodeType.Other)
             .OrderBy(episode => episode.EpisodeType)
             .ThenBy(episode => episode.EpisodeNumber)
             .ToList();
@@ -158,7 +159,7 @@ public partial class TmdbSearchService
                 ? isGenericTitle ? $"{title} {episode.EpisodeNumber}" : $"{title} {englishSubTitle}" : null;
 
             // ~~Stolen~~ _Borrowed_ from the Shokofin code-base since we don't want to try linking extras to movies.
-            if (episode.AbstractEpisodeType is EpisodeType.Special or EpisodeType.Other && !string.IsNullOrEmpty(englishSubTitle))
+            if (episode.EpisodeType is EpisodeType.Special or EpisodeType.Other && !string.IsNullOrEmpty(englishSubTitle))
             {
                 // Interviews
                 if (englishSubTitle.Contains("interview", StringComparison.InvariantCultureIgnoreCase))
@@ -189,7 +190,7 @@ public partial class TmdbSearchService
         return list;
     }
 
-    private async Task<bool> AutoSearchForMovie(List<TmdbAutoSearchResult> list, SVR_AniDB_Anime anime, SVR_AniDB_Episode episode, string? officialTitle, string? englishTitle, string? mainTitle, int year, bool isRestricted)
+    private async Task<bool> AutoSearchForMovie(List<TmdbAutoSearchResult> list, AniDB_Anime anime, AniDB_Episode episode, string? officialTitle, string? englishTitle, string? mainTitle, int year, bool isRestricted)
     {
         TmdbAutoSearchResult? result = null;
         if (!string.IsNullOrEmpty(officialTitle))
@@ -206,7 +207,7 @@ public partial class TmdbSearchService
         return result is not null;
     }
 
-    private async Task<TmdbAutoSearchResult?> AutoSearchMovieUsingTitle(SVR_AniDB_Anime anime, SVR_AniDB_Episode episode, string query, bool includeRestricted = false, int year = 0)
+    private async Task<TmdbAutoSearchResult?> AutoSearchMovieUsingTitle(AniDB_Anime anime, AniDB_Episode episode, string query, bool includeRestricted = false, int year = 0)
     {
         // Brute force attempt #1: With the original title and earliest known aired year.
         var (results, totalCount) = await SearchMovies(query, includeRestricted: includeRestricted, year: year).ConfigureAwait(false);
@@ -295,7 +296,7 @@ public partial class TmdbSearchService
         return (pagedResults, total);
     }
 
-    private async Task<IReadOnlyList<TmdbAutoSearchResult>> AutoSearchForShow(SVR_AniDB_Anime anime)
+    private async Task<IReadOnlyList<TmdbAutoSearchResult>> AutoSearchForShow(AniDB_Anime anime)
     {
         // TODO: Improve this logic to take tmdb seasons into account, and maybe also take better anidb series relations into account in cases where the tmdb show name and anidb series name are too different.
 
@@ -304,7 +305,7 @@ public partial class TmdbSearchService
         if (!airDate.HasValue)
         {
             airDate = anime.AniDBEpisodes
-                .Where(episode => episode.EpisodeType == (int)EpisodeType.Episode)
+                .Where(episode => episode.EpisodeType is EpisodeType.Episode)
                 .OrderBy(episode => episode.EpisodeType)
                 .ThenBy(episode => episode.EpisodeNumber)
                 .Take(2)
@@ -320,8 +321,9 @@ public partial class TmdbSearchService
         // Find the official title in the origin language, to compare it against
         // the original language stored in the offline tmdb search dump.
         var allTitles = anime.Titles
-            .Where(title => title.TitleType is TitleType.Main or TitleType.Official);
-        var mainTitle = allTitles.FirstOrDefault(x => x.TitleType is TitleType.Main) ?? allTitles.First();
+            .Cast<ITitle>()
+            .Where(title => title.Type is TitleType.Main or TitleType.Official);
+        var mainTitle = allTitles.FirstOrDefault(x => x.Type is TitleType.Main) ?? allTitles.First();
         var language = mainTitle.Language switch
         {
             TitleLanguage.Romaji => TitleLanguage.Japanese,
@@ -332,9 +334,9 @@ public partial class TmdbSearchService
         };
 
         var series = anime as ISeries;
-        var adjustedMainTitle = mainTitle.Title;
+        var adjustedMainTitle = mainTitle.Value;
         var currentDate = airDate.Value;
-        IReadOnlyList<IRelatedMetadata<ISeries>> currentRelations = anime.RelatedAnime;
+        IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> currentRelations = anime.RelatedAnime;
         while (currentRelations.Count > 0)
         {
             foreach (var prequelRelation in currentRelations.Where(relation => relation.RelationType == RelationType.Prequel))
@@ -355,11 +357,11 @@ public partial class TmdbSearchService
 
         // First attempt the official title in the country of origin.
         var originalTitle = language == mainTitle.Language
-            ? mainTitle.Title
+            ? mainTitle.Value
             : (
                 series.ID == anime.AnimeID
-                    ? allTitles.FirstOrDefault(title => title.TitleType == TitleType.Official && title.Language == language)?.Title
-                    : series.Titles.FirstOrDefault(title => title.Type == TitleType.Official && title.Language == language)?.Title
+                    ? allTitles.FirstOrDefault(title => title.Type is TitleType.Official && title.Language == language)?.Value
+                    : series.Titles.FirstOrDefault(title => title.Type is TitleType.Official && title.Language == language)?.Value
             );
         var match = !string.IsNullOrEmpty(originalTitle)
             ? await AutoSearchForShowUsingTitle(anime, originalTitle, airDate.Value, series.Restricted, language == TitleLanguage.Japanese)
@@ -369,18 +371,18 @@ public partial class TmdbSearchService
         if (match is null)
         {
             var englishTitle = series.ID == anime.AnimeID
-                ? allTitles.FirstOrDefault(l => l.TitleType == TitleType.Official && l.Language == TitleLanguage.English)?.Title
-                : series.Titles.FirstOrDefault(l => l.Type == TitleType.Official && l.Language == TitleLanguage.English)?.Title;
+                ? allTitles.FirstOrDefault(l => l is { Type: TitleType.Official, Language: TitleLanguage.English })?.Value
+                : series.Titles.FirstOrDefault(l => l is { Type: TitleType.Official, Language: TitleLanguage.English })?.Value;
             if (!string.IsNullOrEmpty(englishTitle) && (string.IsNullOrEmpty(originalTitle) || !string.Equals(englishTitle, originalTitle, StringComparison.Ordinal)))
                 match = await AutoSearchForShowUsingTitle(anime, englishTitle, airDate.Value, series.Restricted, false);
         }
 
         // And the last ditch attempt will be to use the main title. We won't try other languages.
-        match ??= await AutoSearchForShowUsingTitle(anime, mainTitle.Title, airDate.Value, series.Restricted, false);
+        match ??= await AutoSearchForShowUsingTitle(anime, mainTitle.Value, airDate.Value, series.Restricted, false);
 
         // Also add all locally known matches for the current anime and first prequel anime if available.
         var existingXrefs = anime.TmdbShowCrossReferences.ToList();
-        if (series.ID != anime.AnimeID && series is SVR_AniDB_Anime secondAnime && secondAnime.TmdbShowCrossReferences is { Count: > 0 } seriesXrefs)
+        if (series.ID != anime.AnimeID && series is AniDB_Anime secondAnime && secondAnime.TmdbShowCrossReferences is { Count: > 0 } seriesXrefs)
             existingXrefs.AddRange(seriesXrefs);
         if (existingXrefs is { Count: > 0 })
         {
@@ -424,7 +426,7 @@ public partial class TmdbSearchService
         return match is not null ? [match] : [];
     }
 
-    private async Task<TmdbAutoSearchResult?> AutoSearchForShowUsingTitle(SVR_AniDB_Anime anime, string originalTitle, DateTime airDate, bool restricted, bool isJapanese)
+    private async Task<TmdbAutoSearchResult?> AutoSearchForShowUsingTitle(AniDB_Anime anime, string originalTitle, DateTime airDate, bool restricted, bool isJapanese)
     {
         // Brute force attempt #1: With the original title and earliest known aired year.
         var (results, totalFound) = await SearchShows(originalTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);

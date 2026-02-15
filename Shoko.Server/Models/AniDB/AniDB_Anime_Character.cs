@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Server.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
@@ -21,9 +22,18 @@ public class AniDB_Anime_Character
 
     public CharacterAppearanceType AppearanceType { get; set; }
 
+    public CastRoleType CastRoleType => AppearanceType switch
+    {
+        CharacterAppearanceType.Main_Character => CastRoleType.MainCharacter,
+        CharacterAppearanceType.Minor_Character => CastRoleType.MinorCharacter,
+        CharacterAppearanceType.Background_Character => CastRoleType.BackgroundCharacter,
+        CharacterAppearanceType.Cameo => CastRoleType.Cameo,
+        _ => CastRoleType.None,
+    };
+
     public int Ordering { get; set; }
 
-    public SVR_AniDB_Anime? Anime
+    public AniDB_Anime? Anime
         => RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 
     public IReadOnlyList<AniDB_Anime_Character_Creator> CreatorCrossReferences

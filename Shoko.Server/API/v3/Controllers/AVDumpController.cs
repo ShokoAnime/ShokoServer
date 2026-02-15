@@ -90,7 +90,7 @@ public class AVDumpController : BaseController
                 continue;
             }
 
-            var filePath = file.FirstResolvedPlace?.FullServerPath;
+            var filePath = file.FirstResolvedPlace?.Path;
             if (string.IsNullOrEmpty(filePath))
             {
                 ModelState.AddModelError(nameof(body.FileIDs), $"Unable to find a valid path for file with id {fileID}");
@@ -104,7 +104,7 @@ public class AVDumpController : BaseController
             return ValidationProblem(ModelState);
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<AVDumpFilesJob>(a => a.Videos = fileDictionary);
+        await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = fileDictionary, prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }

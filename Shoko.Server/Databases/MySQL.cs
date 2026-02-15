@@ -1,19 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
-using MessagePack;
 using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using NHibernate;
 using NHibernate.Driver.MySqlConnector;
-using Shoko.Plugin.Abstractions;
 using Shoko.Server.Databases.NHibernate;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models;
-using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -26,7 +20,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 157;
+    public override int RequiredVersion { get; } = 159;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -446,7 +440,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(38, 1, "ALTER TABLE AniDB_Anime_Tag ADD Weight int NULL"),
         new(39, 1, DatabaseFixes.PopulateTagWeight),
         new(40, 1, "ALTER TABLE Trakt_Episode ADD TraktID int NULL"),
-        new(41, 1, DatabaseFixes.FixHashes),
+        new(41, 1, DatabaseFixes.NoOperation),
         new(42, 1, "drop table `LogMessage`;"),
         new(43, 1, "ALTER TABLE AnimeSeries ADD DefaultFolder text character set utf8"),
         new(44, 1, "ALTER TABLE JMMUser ADD PlexUsers text character set utf8"),
@@ -723,7 +717,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(109, 1, "UPDATE VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash SET DateTimeImported = DateTimeCreated;"),
         new(110, 1, "CREATE TABLE `AniDB_FileUpdate` ( `AniDB_FileUpdateID` INT NOT NULL AUTO_INCREMENT, `FileSize` BIGINT NOT NULL, `Hash` varchar(50) NOT NULL, `HasResponse` BIT NOT NULL, `UpdatedAt` datetime NOT NULL, PRIMARY KEY (`AniDB_FileUpdateID`) );"),
         new(110, 2, "ALTER TABLE `AniDB_FileUpdate` ADD INDEX `IX_AniDB_FileUpdate` (`FileSize` ASC, `Hash` ASC) ;"),
-        new(110, 3, DatabaseFixes.MigrateAniDB_FileUpdates),
+        new(110, 3, DatabaseFixes.NoOperation),
         new(111, 1, "ALTER TABLE AniDB_Anime DROP COLUMN DisableExternalLinksFlag;"),
         new(111, 2, "ALTER TABLE AnimeSeries ADD DisableAutoMatchFlags integer NOT NULL DEFAULT 0;"),
         new(111, 3, "ALTER TABLE `AniDB_Anime` ADD ( `VNDBID` INT NULL, `BangumiID` INT NULL, `LianID` INT NULL, `FunimationID` text character set utf8 null, `HiDiveID` text character set utf8 null );"),
@@ -803,9 +797,9 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(129, 34, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'HasTMDbLinkExpression', 'HasTmdbLinkExpression');"),
         new(129, 35, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='TMDB_Movie' AND COLUMN_NAME='EnglishOvervie' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE TMDB_Movie CHANGE COLUMN `EnglishOvervie` `EnglishOverview` TEXT CHARACTER SET UTF8 NOT NULL', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
         new(129, 36, "UPDATE `TMDB_Image` SET `IsEnabled` = 1;"),
-        new(130, 1, MigrateRenamers),
-        new(131, 1, "DELETE FROM RenamerInstance WHERE NAME = 'AAA_WORKINGFILE_TEMP_AAA';"),
-        new(131, 2, DatabaseFixes.CreateDefaultRenamerConfig),
+        new(130, 1, DatabaseFixes.NoOperation),
+        new(131, 1, DatabaseFixes.NoOperation),
+        new(131, 2, DatabaseFixes.NoOperation),
         new(132, 1, "ALTER TABLE `TMDB_Show` ADD COLUMN `TvdbShowID` INT NULL DEFAULT NULL;"),
         new(132, 2, "ALTER TABLE `TMDB_Episode` ADD COLUMN `TvdbEpisodeID` INT NULL DEFAULT NULL;"),
         new(132, 3, "ALTER TABLE `TMDB_Movie` ADD COLUMN `ImdbMovieID` INT NULL DEFAULT NULL;"),
@@ -945,7 +939,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(153, 02, "DROP TABLE IF EXISTS AnimeCharacter;"),
         new(154, 01, "ALTER TABLE `TMDB_Show` MODIFY COLUMN `Keywords` LONGTEXT NULL;"),
         new(154, 02, "ALTER TABLE `TMDB_Movie` MODIFY COLUMN `Keywords` LONGTEXT NULL;"),
-        new(155, 01, "RENAME TABLE `Tmdb_Show_Network` TO `TMDB_Show_Network`;"),
+        new(155, 01, "RENAME TABLE `Tmdb_Show_Network` TO `TMDB_Show_Network_TMP`; RENAME TABLE `TMDB_Show_Network_TMP` TO `TMDB_Show_Network`;"),
         new(156, 01, "ALTER TABLE `CrossRef_AniDB_TMDB_Movie` ADD COLUMN `MatchRating` INT NOT NULL DEFAULT 1;"),
         new(156, 02, "UPDATE `CrossRef_AniDB_TMDB_Movie` SET `MatchRating` = 5 WHERE `Source` = 0;"),
         new(156, 03, "ALTER TABLE `CrossRef_AniDB_TMDB_Movie` DROP COLUMN `Source`;"),
@@ -958,6 +952,35 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(157, 4, "DROP TABLE IF EXISTS Trakt_Show;"),
         new(157, 5, "DROP TABLE IF EXISTS Trakt_Season;"),
         new(157, 6, DatabaseFixes.ClearQuartzQueue),
+        new(158, 01, "CREATE TABLE `StoredReleaseInfo` (`StoredReleaseInfoID` INT NOT NULL AUTO_INCREMENT, `ED2K` VARCHAR(40) NOT NULL, `FileSize` BIGINT NOT NULL, `ID` VARCHAR(128), `ProviderName` VARCHAR(128) NOT NULL, `ReleaseURI` VARCHAR(1024), `Version` INT NOT NULL, `ProvidedFileSize` BIGINT, `Comment` VARCHAR(1024), `OriginalFilename` VARCHAR(1024), `IsCensored` INT, `IsChaptered` INT, `IsCreditless` INT, `IsCorrupted` INT NOT NULL, `Source` INT NOT NULL, `GroupID` VARCHAR(128), `GroupSource` VARCHAR(128), `GroupName` VARCHAR(128), `GroupShortName` VARCHAR(128), `Hashes` TEXT NULL, `AudioLanguages` VARCHAR(128), `SubtitleLanguages` VARCHAR(128), `CrossReferences` VARCHAR(10240) NOT NULL, `Metadata` TEXT NULL, `ReleasedAt` DATE, `LastUpdatedAt` DATETIME NOT NULL, `CreatedAt` DATETIME NOT NULL, PRIMARY KEY (`StoredReleaseInfoID`));"),
+        new(158, 02, "CREATE TABLE `StoredReleaseInfo_MatchAttempt` (`StoredReleaseInfo_MatchAttemptID` INT NOT NULL AUTO_INCREMENT, `AttemptProviderNames` VARCHAR(1024) NOT NULL, `ProviderName` VARCHAR(128), `ProviderID` VARCHAR(40), `ED2K` VARCHAR(40) NOT NULL, `FileSize` BIGINT NOT NULL, `AttemptStartedAt` DATETIME NOT NULL, `AttemptEndedAt` DATETIME NOT NULL, PRIMARY KEY (`StoredReleaseInfo_MatchAttemptID`));"),
+        new(158, 03, "CREATE TABLE `VideoLocal_HashDigest` (`VideoLocal_HashDigestID` INT NOT NULL AUTO_INCREMENT, `VideoLocalID` INT NOT NULL, `Type` VARCHAR(32) NOT NULL, `Value` VARCHAR(10240) NOT NULL, `Metadata` TEXT, PRIMARY KEY (`VideoLocal_HashDigestID`));"),
+        new(158, 04, DatabaseFixes.MoveAnidbFileDataToReleaseInfoFormat),
+        new(158, 05, "ALTER TABLE `ImportFolder` DROP COLUMN `ImportFolderType`;"),
+        new(158, 06, "ALTER TABLE `VideoLocal_Place` DROP COLUMN `ImportFolderType`;"),
+        new(159, 01, "CREATE TABLE `StoredRelocationPipe` (`StoredRelocationPipeID` INT NOT NULL AUTO_INCREMENT, `ProviderID` VARCHAR(40) NOT NULL, `Name` VARCHAR(128) NOT NULL, `Configuration` BLOB, PRIMARY KEY (`StoredRelocationPipeID`));"),
+        new(159, 02, "CREATE INDEX IX_StoredRelocationPipe_ProviderID` ON StoredRelocationPipe(ProviderID);"),
+        new(159, 03, "CREATE INDEX IX_StoredRelocationPipe_Name ON StoredRelocationPipe(Name);"),
+        new(159, 04, DatabaseFixes.MigrateRenamers),
+        new(159, 05, "DROP TABLE IF EXISTS `CrossRef_AniDB_Trakt_Episode`;"),
+        new(159, 06, "DROP TABLE IF EXISTS `AniDB_Recommendation`;"),
+        new(159, 07, "UPDATE CrossRef_AniDB_TMDB_Show SET MatchRating = 0 WHERE MatchRating = 6;"),
+        new(159, 08, "UPDATE CrossRef_AniDB_TMDB_Episode SET MatchRating = 0 WHERE MatchRating = 6;"),
+        new(159, 09, "UPDATE CrossRef_AniDB_TMDB_Movie SET MatchRating = 0 WHERE MatchRating = 6;"),
+        new(159, 10, "ALTER TABLE `AnimeSeries_User` ADD COLUMN `AbsoluteUserRating` INT;"),
+        new(159, 11, "ALTER TABLE `AnimeSeries_User` ADD COLUMN `UserRatingVoteType` INT;"),
+        new(159, 12, "ALTER TABLE `AnimeSeries_User` ADD COLUMN `IsFavorite` INT NOT NULL DEFAULT 0;"),
+        new(159, 14, "ALTER TABLE `AnimeSeries_User` ADD COLUMN `LastVideoUpdate` datetime;"),
+        new(159, 15, "ALTER TABLE `AnimeSeries_User` ADD COLUMN `LastUpdated` datetime NOT NULL DEFAULT '0001-01-01 00:00:00';"),
+        new(159, 16, "ALTER TABLE `AnimeSeries_User` ADD COLUMN `UserTags` NOT NULL DEFAULT '';"),
+        new(159, 17, "ALTER TABLE `AnimeEpisode_User` ADD COLUMN `AbsoluteUserRating` INT;"),
+        new(159, 18, "ALTER TABLE `AnimeEpisode_User` ADD COLUMN `IsFavorite` INT NOT NULL DEFAULT 0;"),
+        new(159, 19, "ALTER TABLE `AnimeEpisode_User` ADD COLUMN `LastUpdated` datetime NOT NULL DEFAULT '0001-01-01 00:00:00';"),
+        new(159, 20, "ALTER TABLE `AnimeEpisode_User` ADD COLUMN `UserTags` NOT NULL DEFAULT '';"),
+        new(159, 21, DatabaseFixes.MigrateAnidbVotes),
+        new(159, 22, DatabaseFixes.RefreshAnimeSeriesUserStats),
+        new(159, 23, "ALTER TABLE `TMDB_Person` ADD COLUMN `LastOrphanedAt` DATETIME;"),
+        new(159, 24, "ALTER TABLE `TMDB_Network` ADD COLUMN `LastOrphanedAt` DATETIME;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");
@@ -1068,128 +1091,6 @@ public class MySQL : BaseDatabase<MySqlConnection>
                 }
             }
         }
-    }
-
-    private static Tuple<bool, string> MigrateRenamers(object connection)
-    {
-        var factory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
-        var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
-        var settingsProvider = Utils.SettingsProvider;
-
-        var sessionFactory = factory.CreateSessionFactory();
-        using var session = sessionFactory.OpenSession();
-        using var transaction = session.BeginTransaction();
-        try
-        {
-            const string createCommand = """
-                                         CREATE TABLE IF NOT EXISTS RenamerInstance (ID INT NOT NULL AUTO_INCREMENT, Name text NOT NULL, Type text NOT NULL, Settings mediumblob, PRIMARY KEY (ID));
-                                         ALTER TABLE RenamerInstance ADD INDEX IX_RenamerInstance_Name (Name(255));
-                                         ALTER TABLE RenamerInstance ADD INDEX IX_RenamerInstance_Type (Type(255));
-                                         """;
-
-            session.CreateSQLQuery(createCommand).ExecuteUpdate();
-
-            const string selectCommand = "SELECT ScriptName, RenamerType, IsEnabledOnImport, Script FROM RenameScript;";
-            var reader = session.CreateSQLQuery(selectCommand)
-                .AddScalar("ScriptName", NHibernateUtil.String)
-                .AddScalar("RenamerType", NHibernateUtil.String)
-                .AddScalar("IsEnabledOnImport", NHibernateUtil.Int32)
-                .AddScalar("Script", NHibernateUtil.String)
-                .List<object[]>();
-            string defaultName = null;
-            var renamerInstances = reader.Select(a =>
-            {
-                try
-                {
-                    var type = ((string)a[1]).Equals("Legacy")
-                        ? typeof(WebAOMRenamer)
-                        : renamerService.RenamersByKey.ContainsKey((string)a[1])
-                            ? renamerService.RenamersByKey[(string)a[1]].GetType()
-                            : Type.GetType((string)a[1]);
-                    if (type == null)
-                    {
-                        if ((string)a[1] == "GroupAwareRenamer")
-                            return (Renamer: new RenamerConfig
-                            {
-                                Name = (string)a[0],
-                                Type = typeof(WebAOMRenamer),
-                                Settings = new WebAOMSettings
-                                {
-                                    Script = (string)a[3], GroupAwareSorting = true
-                                }
-                            }, IsDefault: (int)a[2] == 1);
-
-                        Logger.Warn("A RenameScipt could not be converted to RenamerConfig. Renamer name: " + (string)a[0] + " Renamer type: " + (string)a[1] +
-                                    " Script: " + (string)a[3]);
-                        return default;
-                    }
-
-                    var settingsType = type.GetInterfaces().FirstOrDefault(b => b.IsGenericType && b.GetGenericTypeDefinition() == typeof(IRenamer<>))
-                        ?.GetGenericArguments().FirstOrDefault();
-                    object settings = null;
-                    if (settingsType != null)
-                    {
-                        settings = ActivatorUtilities.CreateInstance(Utils.ServiceContainer, settingsType);
-                        settingsType.GetProperties(BindingFlags.Instance | BindingFlags.Public).FirstOrDefault(b => b.Name == "Script")
-                            ?.SetValue(settings, (string)a[3]);
-                    }
-
-                    return (Renamer: new RenamerConfig
-                    {
-                        Name = (string)a[0], Type = type, Settings = settings
-                    }, IsDefault: (int)a[2] == 1);
-                }
-                catch (Exception ex)
-                {
-                    if (a is { Length: >= 4 })
-                    {
-                        Logger.Warn(ex, "A RenameScipt could not be converted to RenamerConfig. Renamer name: " + a[0] + " Renamer type: " + a[1] +
-                                        " Script: " + a[3]);
-                    }
-                    else
-                    {
-                        Logger.Warn(ex, "A RenameScipt could not be converted to RenamerConfig, but there wasn't enough data to log");
-                    }
-
-                    return default;
-                }
-            }).WhereNotDefault().GroupBy(a => a.Renamer.Name).SelectMany(a => a.Select((b, i) =>
-            {
-                // Names are distinct
-                var renamer = b.Renamer;
-                if (i > 0) renamer.Name = renamer.Name + "_" + (i + 1);
-                if (b.IsDefault) defaultName = renamer.Name;
-                return renamer;
-            }));
-
-            if (defaultName != null)
-            {
-                var settings = settingsProvider.GetSettings();
-                settings.Plugins.Renamer.DefaultRenamer = defaultName;
-                settingsProvider.SaveSettings(settings);
-            }
-
-            const string insertCommand = "INSERT INTO RenamerInstance (Name, Type, Settings) VALUES (:Name, :Type, :Settings);";
-            foreach (var renamer in renamerInstances)
-            {
-                var command = session.CreateSQLQuery(insertCommand);
-                command.SetParameter("Name", renamer.Name);
-                command.SetParameter("Type", renamer.Type.ToString());
-                command.SetParameter("Settings", renamer.Settings == null ? null : MessagePackSerializer.Typeless.Serialize(renamer.Settings));
-                command.ExecuteUpdate();
-            }
-
-            const string dropCommand = "DROP TABLE RenameScript;";
-            session.CreateSQLQuery(dropCommand).ExecuteUpdate();
-            transaction.Commit();
-        }
-        catch (Exception e)
-        {
-            transaction.Rollback();
-            return new Tuple<bool, string>(false, e.ToString());
-        }
-
-        return new Tuple<bool, string>(true, null);
     }
 
     public static void DropMALIndex()
@@ -1362,7 +1263,6 @@ public class MySQL : BaseDatabase<MySqlConnection>
                 .Port(settings.Database.Port)
                 .Username(settings.Database.Username)
                 .Password(settings.Database.Password));
-
 
         return Fluently.Configure()
             .Database(connectionConfig)

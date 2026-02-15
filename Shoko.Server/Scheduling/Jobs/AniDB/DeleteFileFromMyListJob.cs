@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Models.Enums;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
@@ -10,7 +9,8 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Settings;
-using EpisodeType = Shoko.Models.Enums.EpisodeType;
+
+using EpisodeType = Shoko.Abstractions.Enums.EpisodeType;
 using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Void;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
@@ -206,7 +206,7 @@ public class DeleteFileFromMyListJob : BaseJob
             state, AnimeID, EpisodeType, EpisodeNumber);
         request.Send();
     }
-    
+
     public DeleteFileFromMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider)
     {
         _requestFactory = requestFactory;

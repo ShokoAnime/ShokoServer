@@ -148,7 +148,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
                 IsConnected = false;
                 return;
             }
-        
+
             if (_aniDBSocket.Connected)
             {
                 _aniDBSocket.Shutdown(SocketShutdown.Both);
@@ -183,7 +183,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
                 IsConnected = false;
                 return;
             }
-        
+
             if (_aniDBSocket.Connected)
             {
                 _aniDBSocket.Shutdown(SocketShutdown.Both);

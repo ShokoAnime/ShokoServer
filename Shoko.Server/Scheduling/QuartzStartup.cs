@@ -89,7 +89,7 @@ public static class QuartzStartup
     internal static void AddQuartz(this IServiceCollection services)
     {
         // this lets us inject the shoko JobFactory explicitly, instead of only IJobFactory
-        ShokoEventHandler.Instance.Starting += async (_, _) => await ScheduleRecurringJobs(false).ConfigureAwait(false);
+        ShokoEventHandler.Instance.Started += async (_, _) => await ScheduleRecurringJobs(false).ConfigureAwait(false);
         // JobFactory is stateless, but no reason to recreate it multiple times
         services.AddSingleton<JobFactory>();
         // Allow specifically injecting the singleton instance of ThreadPooledJobStore
@@ -123,7 +123,6 @@ public static class QuartzStartup
     private static void AddJobs(this IServiceCollection services)
     {
         services.AddTransient<ScanFolderJob>();
-        services.AddTransient<DeleteImportFolderJob>();
         services.AddTransient<ScanDropFoldersJob>();
         services.AddTransient<RemoveMissingFilesJob>();
         services.AddTransient<MediaInfoAllFilesJob>();
@@ -142,7 +141,7 @@ public static class QuartzStartup
                 throw new ArgumentNullException(nameof(settings.Quartz.ConnectionString), @"The connection string for Quartz was null");
 
             const string DefaultSource = SchedulerBuilder.AdoProviderOptions.DefaultDataSourceName;
-            if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
+            if (settings.Quartz.DatabaseType is Constants.DatabaseType.SQLServer)
             {
                 EnsureQuartzDatabaseExists_SQLServer(settings.Quartz.ConnectionString);
                 options.SetProperty("quartz.jobStore.driverDelegateType", typeof(SqlServerDelegate).AssemblyQualifiedNameWithoutVersion());
@@ -150,7 +149,7 @@ public static class QuartzStartup
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.provider", "SqlServer");
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.connectionString", settings.Quartz.ConnectionString);
             }
-            else if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
+            else if (settings.Quartz.DatabaseType is Constants.DatabaseType.MySQL)
             {
                 EnsureQuartzDatabaseExists_MySQL(settings.Quartz.ConnectionString);
                 options.SetProperty("quartz.jobStore.driverDelegateType", typeof(MySQLDelegate).AssemblyQualifiedNameWithoutVersion());
@@ -158,7 +157,7 @@ public static class QuartzStartup
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.provider", "MySqlConnector");
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.connectionString", settings.Quartz.ConnectionString);
             }
-            else if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
+            else if (settings.Quartz.DatabaseType is Constants.DatabaseType.SQLite)
             {
                 EnsureQuartzDatabaseExists_SQLite(settings.Quartz.ConnectionString);
                 options.SetProperty("quartz.jobStore.driverDelegateType", typeof(SQLiteDelegate).AssemblyQualifiedNameWithoutVersion());
@@ -568,17 +567,24 @@ GO";
         var sqlBatch = string.Empty;
         using var cmd = new SqlCommand(string.Empty, conn);
         cmd.CommandTimeout = 0;
-        try {
-            foreach (var line in Script.Split(new[] { "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries)) {
-                if (line.ToUpperInvariant().Trim() == "GO") {
+        try
+        {
+            foreach (var line in Script.Split(new[] { "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (line.ToUpperInvariant().Trim() == "GO")
+                {
                     cmd.CommandText = sqlBatch;
                     cmd.ExecuteNonQuery();
                     sqlBatch = string.Empty;
-                } else {
+                }
+                else
+                {
                     sqlBatch += line + "\n";
                 }
             }
-        } finally {
+        }
+        finally
+        {
             conn.Close();
         }
     }

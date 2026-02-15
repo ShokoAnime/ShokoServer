@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Info;
@@ -13,8 +14,6 @@ public class HasCharacterExpression : FilterExpression<bool>, IWithStringParamet
     public HasCharacterExpression() { }
 
     public string CharacterID { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if the filterable has a character.";
 
     string IWithStringParameter.Parameter
@@ -23,7 +22,7 @@ public class HasCharacterExpression : FilterExpression<bool>, IWithStringParamet
         set => CharacterID = value;
     }
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.CharacterIDs.Contains(CharacterID);
     }

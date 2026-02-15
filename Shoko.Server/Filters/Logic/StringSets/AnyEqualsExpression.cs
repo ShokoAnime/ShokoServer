@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.StringSets;
@@ -29,10 +30,10 @@ public class AnyEqualsExpression : FilterExpression<bool>, IWithStringSetSelecto
     public override string HelpDescription => "This condition passes if any of the values in the left selector equal either the right selector or the parameter";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        var left = Left.Evaluate(filterable, userInfo);
-        var right = Parameter ?? Right?.Evaluate(filterable, userInfo);
+        var left = Left.Evaluate(filterable, userInfo, time);
+        var right = Parameter ?? Right?.Evaluate(filterable, userInfo, time);
         if (string.IsNullOrEmpty(right)) return !left.Any();
         return left.Any(a => a.Equals(right, StringComparison.InvariantCultureIgnoreCase));
     }

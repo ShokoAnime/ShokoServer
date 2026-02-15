@@ -1,7 +1,6 @@
 using System;
-using System.Linq;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
-using Shoko.Server.Models;
 
 namespace Shoko.Server.Filters.Files;
 
@@ -14,15 +13,12 @@ public class HasSharedAudioLanguageExpression : FilterExpression<bool>, IWithStr
     public HasSharedAudioLanguageExpression() { }
 
     public string Parameter { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if all of the files have the specified audio language";
-    public override string[] HelpPossibleParameters => SVR_AniDB_File.GetPossibleAudioLanguages();
+    public override string[] HelpPossibleParameters => HasAudioLanguageExpression.PossibleAudioLanguages;
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        var paramLang = SVR_AniDB_File.GetLanguage(Parameter);
-        return filterable.SharedAudioLanguages.Any(al => SVR_AniDB_File.GetLanguage(al) == paramLang);
+        return filterable.SharedAudioLanguages.Contains(Parameter);
     }
 
     protected bool Equals(HasSharedAudioLanguageExpression other)

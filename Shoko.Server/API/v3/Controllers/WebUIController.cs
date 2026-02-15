@@ -11,24 +11,25 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
-using Shoko.Plugin.Abstractions;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 
+using FileSummaryGroupByCriteria = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary.FileSummaryGroupByCriteria;
+using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
-using WebUITheme = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUITheme;
 using WebUIGroupExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIGroupExtra;
 using WebUISeriesExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesExtra;
 using WebUISeriesFileSummary = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary;
-using FileSummaryGroupByCriteria = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary.FileSummaryGroupByCriteria;
-using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
+using WebUITheme = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUITheme;
 
 #pragma warning disable CA1822
 #nullable enable
@@ -423,6 +424,20 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
             throw;
         }
 
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Let the server know that a manual update of the web UI has been
+    /// performed by the user to trigger the post-update event.
+    /// </summary>
+    /// <returns></returns>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpPost("Update/ReportManualUpdate")]
+    public ActionResult UpdateWebUIManualRefresh()
+    {
+        updateService.ReactToManualUpdate();
         return NoContent();
     }
 

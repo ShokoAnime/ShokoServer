@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Models.Server;
+using Shoko.Server.Models.Internal;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -32,12 +32,13 @@ public class GetWatchStatesFromTraktJob : BaseJob
         var settings = _settingsProvider.GetSettings();
         if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return Task.CompletedTask;
 
-        var sched = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktGetWatchStates);
-        if (sched == null)
+        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktGetWatchStates);
+        if (schedule == null)
         {
-            sched = new ScheduledUpdate
+            schedule = new ScheduledUpdate
             {
-                UpdateType = (int)ScheduledUpdateType.TraktGetWatchStates, UpdateDetails = string.Empty
+                UpdateType = (int)ScheduledUpdateType.TraktGetWatchStates,
+                UpdateDetails = string.Empty,
             };
         }
         else
@@ -45,12 +46,12 @@ public class GetWatchStatesFromTraktJob : BaseJob
             var freqHours = Utils.GetScheduledHours(settings.TraktTv.SyncFrequency);
 
             // if we have run this in the last xxx hours then exit
-            var tsLastRun = DateTime.Now - sched.LastUpdate;
+            var tsLastRun = DateTime.Now - schedule.LastUpdate;
             if (tsLastRun.TotalHours < freqHours && !ForceRefresh) return Task.CompletedTask;
         }
 
-        sched.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(sched);
+        schedule.LastUpdate = DateTime.Now;
+        RepoFactory.ScheduledUpdate.Save(schedule);
 
         _helper.GetWatchStates();
 

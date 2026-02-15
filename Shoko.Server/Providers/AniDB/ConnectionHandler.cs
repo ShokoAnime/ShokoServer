@@ -1,6 +1,9 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Timers;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Events;
 
 #nullable enable
 namespace Shoko.Server.Providers.AniDB;
@@ -8,21 +11,29 @@ namespace Shoko.Server.Providers.AniDB;
 public abstract class ConnectionHandler
 {
     protected readonly ILoggerFactory _loggerFactory;
+
     protected ILogger Logger { get; set; }
+
     public abstract double BanTimerResetLength { get; }
+
     public abstract string Type { get; }
+
     protected abstract UpdateType BanEnum { get; }
 
     public event EventHandler<AniDBStateUpdate>? AniDBStateUpdate;
+
+    public event EventHandler<AnidbBanOccurredEventArgs>? BanOccurred;
+
+    public event EventHandler<AnidbBanOccurredEventArgs>? BanExpired;
 
     private AniDBStateUpdate? _currentState;
 
     public AniDBStateUpdate State
     {
-        get => _currentState ??= new AniDBStateUpdate { Value = false, UpdateType = BanEnum, UpdateTime = DateTime.Now };
+        get => _currentState ??= new() { Value = false, UpdateTime = DateTime.Now };
         set
         {
-            if (value is not null && value != _currentState)
+            if (value is not null && value != State)
             {
                 _currentState = value;
                 UpdateState(_currentState!);
@@ -31,20 +42,23 @@ public abstract class ConnectionHandler
     }
 
     protected int? BackoffSecs { get; set; }
-    private readonly Timer _backoffTimer;
-    private readonly Timer _banResetTimer;
-    public DateTime? BanTime { get; set; }
-    private bool _isBanned;
 
+    private readonly Timer _backoffTimer;
+
+    private readonly Timer _banResetTimer;
+
+    public DateTime? BanTime { get; set; }
+
+    [MemberNotNullWhen(true, nameof(BanTime))]
     public virtual bool IsBanned
     {
-        get => _isBanned;
+        get => BanTime.HasValue;
         set
         {
-            _isBanned = value;
+            var bannedAt = BanTime;
+            var now = DateTime.Now;
             if (value)
             {
-                BanTime = DateTime.Now;
                 Logger.LogWarning("AniDB {Type} Banned!", Type);
                 if (_banResetTimer.Enabled)
                 {
@@ -53,13 +67,27 @@ public abstract class ConnectionHandler
                 }
 
                 _banResetTimer.Start();
-                State = new AniDBStateUpdate
+                BanTime = now;
+                State = new()
                 {
                     Value = true,
                     UpdateType = BanEnum,
-                    UpdateTime = DateTime.Now,
-                    PauseTimeSecs = (int)TimeSpan.FromHours(BanTimerResetLength).TotalSeconds
+                    UpdateTime = now,
+                    PauseTimeSecs = (int)TimeSpan.FromHours(BanTimerResetLength).TotalSeconds,
                 };
+                try
+                {
+                    BanOccurred?.Invoke(this, new()
+                    {
+                        Type = BanEnum is UpdateType.HTTPBan ? AnidbBanType.HTTP : AnidbBanType.UDP,
+                        OccurredAt = now.ToUniversalTime(),
+                        ExpiresAt = now.AddHours(BanTimerResetLength).ToUniversalTime(),
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "AniDB {Type} ban occurred event failed", Type);
+                }
             }
             else
             {
@@ -69,7 +97,25 @@ public abstract class ConnectionHandler
                     Logger.LogInformation("AniDB {Type} ban timer stopped. Resuming queue if not paused", Type);
                 }
 
-                State = new AniDBStateUpdate { Value = false, UpdateType = BanEnum, UpdateTime = DateTime.Now };
+                BanTime = null;
+                State = new() { Value = false, UpdateType = BanEnum, UpdateTime = now };
+                if (bannedAt is not null)
+                {
+                    Logger.LogInformation("AniDB {Type} Unbanned!", Type);
+                    try
+                    {
+                        BanExpired?.Invoke(this, new()
+                        {
+                            Type = BanEnum is UpdateType.HTTPBan ? AnidbBanType.HTTP : AnidbBanType.UDP,
+                            OccurredAt = bannedAt.Value.ToUniversalTime(),
+                            ExpiresAt = now.ToUniversalTime(),
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "AniDB {Type} ban expired event failed", Type);
+                    }
+                }
             }
         }
     }
@@ -81,7 +127,7 @@ public abstract class ConnectionHandler
         _banResetTimer = new Timer
         {
             AutoReset = false,
-            Interval = TimeSpan.FromHours(BanTimerResetLength).TotalMilliseconds
+            Interval = TimeSpan.FromHours(BanTimerResetLength).TotalMilliseconds,
         };
         _banResetTimer.Elapsed += BanResetTimerElapsed;
         _backoffTimer = new Timer { AutoReset = false };
@@ -106,23 +152,21 @@ public abstract class ConnectionHandler
         BackoffSecs = secsToPause;
         _backoffTimer.Interval = secsToPause * 1000;
         _backoffTimer.Start();
-        AniDBStateUpdate?.Invoke(this,
-            new AniDBStateUpdate
-            {
-                UpdateType = UpdateType.OverloadBackoff,
-                Value = true,
-                UpdateTime = DateTime.Now,
-                PauseTimeSecs = secsToPause,
-                Message = pauseReason
-            });
+        UpdateState(new()
+        {
+            UpdateType = UpdateType.OverloadBackoff,
+            Value = true,
+            UpdateTime = DateTime.Now,
+            PauseTimeSecs = secsToPause,
+            Message = pauseReason
+        });
     }
 
     protected void ResetBackoffTimer(object? sender, ElapsedEventArgs args)
     {
         // This Handles the Waiting Period For When AniDB is under heavy load. Not likely to be used
         BackoffSecs = null;
-        AniDBStateUpdate?.Invoke(this,
-            new AniDBStateUpdate { UpdateType = UpdateType.OverloadBackoff, Value = false, UpdateTime = DateTime.Now });
+        UpdateState(new() { UpdateType = UpdateType.OverloadBackoff, Value = false, UpdateTime = DateTime.Now });
     }
 
     protected void UpdateState(AniDBStateUpdate args)

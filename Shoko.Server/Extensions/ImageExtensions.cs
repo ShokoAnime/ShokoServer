@@ -1,8 +1,7 @@
 using System.IO;
 using System.Linq;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
@@ -17,25 +16,25 @@ public static class ImageExtensions
     private static string ResolveAnidbImageUrl(string relativePath)
         => string.Format(string.Format(Constants.URLS.AniDB_Images, Constants.URLS.AniDB_Images_Domain), relativePath.Split(Path.DirectorySeparatorChar).LastOrDefault());
 
-    public static IImageMetadata? GetImageMetadata(this AniDB_Character character, bool preferred = false)
+    public static IImage? GetImageMetadata(this AniDB_Character character, bool preferred = false)
         => !string.IsNullOrEmpty(character.ImagePath)
-            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Character, character.CharacterID, character.GetFullImagePath(), ResolveAnidbImageUrl(character.ImagePath))
+            ? new Image_Base(DataSource.AniDB, ImageEntityType.Character, character.CharacterID, character.GetFullImagePath(), ResolveAnidbImageUrl(character.ImagePath))
             {
                 IsEnabled = true,
                 IsPreferred = preferred,
             }
             : null;
 
-    public static IImageMetadata GetImageMetadata(this AniDB_Anime anime, bool? preferred = null) =>
+    public static IImage GetImageMetadata(this AniDB_Anime anime, bool? preferred = null) =>
         !string.IsNullOrEmpty(anime.Picname)
-            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Poster, anime.AnimeID, GetFullImagePath(anime), ResolveAnidbImageUrl(anime.Picname))
+            ? new Image_Base(DataSource.AniDB, ImageEntityType.Poster, anime.AnimeID, GetFullImagePath(anime), ResolveAnidbImageUrl(anime.Picname))
             {
                 IsEnabled = anime.ImageEnabled == 1,
                 IsPreferred = preferred ??
                     (RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(anime.AnimeID, ImageEntityType.Poster) is { } preferredImage &&
-                    preferredImage!.ImageSource == Shoko.Models.Enums.DataSourceType.AniDB),
+                    preferredImage.ImageSource is DataSource.AniDB),
             }
-            : new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Poster, anime.AnimeID);
+            : new Image_Base(DataSource.AniDB, ImageEntityType.Poster, anime.AnimeID);
 
     public static string GetFullImagePath(this AniDB_Anime anime)
     {
@@ -53,9 +52,9 @@ public static class ImageExtensions
         return Path.Combine(ImageUtils.GetAniDBCharacterImagePath(character.CharacterID), character.ImagePath);
     }
 
-    public static IImageMetadata? GetImageMetadata(this AniDB_Creator creator, bool preferred = false)
+    public static IImage? GetImageMetadata(this AniDB_Creator creator, bool preferred = false)
         => !string.IsNullOrEmpty(creator.ImagePath)
-            ? new Image_Base(DataSourceEnum.AniDB, ImageEntityType.Person, creator.CreatorID, creator.GetFullImagePath(), ResolveAnidbImageUrl(creator.ImagePath))
+            ? new Image_Base(DataSource.AniDB, ImageEntityType.Creator, creator.CreatorID, creator.GetFullImagePath(), ResolveAnidbImageUrl(creator.ImagePath))
             {
                 IsEnabled = true,
                 IsPreferred = preferred,
@@ -69,7 +68,7 @@ public static class ImageExtensions
 
         return Path.Combine(ImageUtils.GetAniDBCreatorImagePath(creator.CreatorID), creator.ImagePath);
     }
-    
+
     public static bool IsImageValid(string path)
     {
         if (string.IsNullOrEmpty(path)) return false;

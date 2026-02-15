@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Extensions;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Models.AniDB;
@@ -39,24 +42,47 @@ public class AniDB_Character : ICharacter
 
     int IMetadata<int>.ID => CharacterID;
 
-    DataSourceEnum IMetadata.Source => DataSourceEnum.AniDB;
+    DataSource IMetadata.Source => DataSource.AniDB;
 
     #endregion
 
     #region IWithDescriptions Implementation
 
-    string IWithDescriptions.DefaultDescription => Description;
+    IText? IWithDescriptions.DefaultDescription => Description is { Length: > 0 }
+        ? new TextStub()
+        {
+            Language = TitleLanguage.English,
+            LanguageCode = "en",
+            Value = Description,
+            Source = DataSource.AniDB,
+        }
+        : null;
 
-    string IWithDescriptions.PreferredDescription => Description;
+    IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && Utils.SettingsProvider.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
+        ? new TextStub()
+        {
+            Language = TitleLanguage.English,
+            LanguageCode = "en",
+            Value = Description,
+            Source = DataSource.AniDB,
+        }
+        : null;
 
-    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions => string.IsNullOrEmpty(Description)
-        ? [] : [new() { Value = Description, CountryCode = "US", LanguageCode = "en", Source = DataSourceEnum.AniDB }];
+    IReadOnlyList<IText> IWithDescriptions.Descriptions => [
+        new TextStub()
+        {
+            Language = TitleLanguage.English,
+            LanguageCode = "en",
+            Value = Description,
+            Source = DataSource.AniDB,
+        },
+    ];
 
     #endregion
 
     #region IWithPortraitImage Implementation
 
-    IImageMetadata? IWithPortraitImage.PortraitImage => this.GetImageMetadata();
+    IImage? IWithPortraitImage.PortraitImage => this.GetImageMetadata();
 
     #endregion
 

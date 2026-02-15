@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Numbers;
@@ -16,7 +17,7 @@ public class NumberLessThanExpression : FilterExpression<bool>, IWithNumberSelec
         Parameter = parameter;
     }
     public NumberLessThanExpression() { }
-    
+
     public FilterExpression<double> Left { get; set; }
     public FilterExpression<double> Right { get; set; }
     public double Parameter { get; set; }
@@ -25,10 +26,10 @@ public class NumberLessThanExpression : FilterExpression<bool>, IWithNumberSelec
     public override string HelpDescription => "This condition passes if the left selector is less than either the right selector or the parameter";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        var left = Left.Evaluate(filterable, userInfo);
-        var right = Right?.Evaluate(filterable, userInfo) ?? Parameter;
+        var left = Left.Evaluate(filterable, userInfo, time);
+        var right = Right?.Evaluate(filterable, userInfo, time) ?? Parameter;
         return left < right;
     }
 

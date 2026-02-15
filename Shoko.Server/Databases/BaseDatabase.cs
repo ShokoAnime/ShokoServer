@@ -2,15 +2,14 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
+using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
-using Shoko.Models;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions;
+using Shoko.Abstractions.Services;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Internal;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -33,7 +32,7 @@ public abstract class BaseDatabase<T> : IDatabase
             if (_databaseBackupDirectoryPath != null)
                 return _databaseBackupDirectoryPath;
 
-            var dirPath =  Utils.SettingsProvider.GetSettings().Database.DatabaseBackupDirectory;
+            var dirPath = Utils.SettingsProvider.GetSettings().Database.DatabaseBackupDirectory;
             if (string.IsNullOrWhiteSpace(dirPath))
                 return _databaseBackupDirectoryPath = Utils.ApplicationPath;
 
@@ -292,7 +291,7 @@ public abstract class BaseDatabase<T> : IDatabase
         var defaultPassword = settings.Database.DefaultUserPassword == ""
             ? ""
             : Digest.Hash(settings.Database.DefaultUserPassword);
-        var defaultUser = new SVR_JMMUser
+        var defaultUser = new JMMUser
         {
             CanEditServerSettings = 1,
             HideCategories = string.Empty,
@@ -303,44 +302,29 @@ public abstract class BaseDatabase<T> : IDatabase
             Username = settings.Database.DefaultUserUsername
         };
         RepoFactory.JMMUser.Save(defaultUser);
-
-        var familyUser = new SVR_JMMUser
-        {
-            CanEditServerSettings = 1,
-            HideCategories = "ecchi,nudity,sex,sexual abuse,horror,erotic game,incest,18 restricted",
-            IsAdmin = 1,
-            IsAniDBUser = 1,
-            IsTraktUser = 1,
-            Password = string.Empty,
-            Username = "Family Friendly"
-        };
-        RepoFactory.JMMUser.Save(familyUser);
     }
 
     private void CreateInitialRenameScript()
     {
-        if (RepoFactory.RenamerConfig.GetAll().Any())
-        {
+        if (RepoFactory.StoredRelocationPipe.GetAll().Any())
             return;
-        }
 
-        var renamerService = Utils.ServiceContainer.GetRequiredService<RenameFileService>();
-        renamerService.RenamersByKey.TryGetValue("WebAOM", out var renamer);
-        
-        if (renamer == null)
-            return;
-        
-        var defaultSettings = renamer.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRenamer<>))
-            ?.GetProperties(BindingFlags.Public | BindingFlags.Instance).FirstOrDefault(a => a.Name == "DefaultSettings")?.GetMethod?.Invoke(renamer, null);
-        
-        var config = new RenamerConfig
+        var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
+        var relocationService = Utils.ServiceContainer.GetRequiredService<IRelocationService>();
+        var provider = relocationService.GetProviderInfo<WebAOMRenamer>();
+        var configuration = provider.ConfigurationInfo is null ? null : Encoding.UTF8.GetBytes(
+            configurationService.Serialize(
+                configurationService.New(provider.ConfigurationInfo)
+            )
+        );
+        var pipe = new StoredRelocationPipe()
         {
             Name = "Default",
-            Type = typeof(WebAOMRenamer),
-            Settings = defaultSettings,
+            Configuration = configuration,
+            ProviderID = provider.ID,
         };
 
-        RepoFactory.RenamerConfig.Save(config);
+        RepoFactory.StoredRelocationPipe.Save(pipe);
     }
 
     public void CreateInitialCustomTags()
@@ -357,21 +341,24 @@ public abstract class BaseDatabase<T> : IDatabase
             // Dropped
             var tag = new CustomTag
             {
-                TagName = "Dropped", TagDescription = "Started watching this series, but have since dropped it"
+                TagName = "Dropped",
+                TagDescription = "Started watching this series, but have since dropped it"
             };
             RepoFactory.CustomTag.Save(tag);
 
             // Pinned
             tag = new CustomTag
             {
-                TagName = "Pinned", TagDescription = "Pinned this series for whatever reason you like"
+                TagName = "Pinned",
+                TagDescription = "Pinned this series for whatever reason you like"
             };
             RepoFactory.CustomTag.Save(tag);
 
             // Ongoing
             tag = new CustomTag
             {
-                TagName = "Ongoing", TagDescription = "This series does not have an end date"
+                TagName = "Ongoing",
+                TagDescription = "This series does not have an end date"
             };
             RepoFactory.CustomTag.Save(tag);
 

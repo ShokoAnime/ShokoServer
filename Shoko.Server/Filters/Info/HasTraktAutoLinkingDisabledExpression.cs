@@ -1,17 +1,17 @@
-using Shoko.Server.Filters.Interfaces;
+using System;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Info;
 
+// TODO: REMOVE THIS FILTER EXPRESSION SOMETIME IN THE FUTURE AFTER THE LEGACY FILTERS ARE REMOVED!!1!
 public class HasTraktAutoLinkingDisabledExpression : FilterExpression<bool>
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string Name => "Has Trakt Auto Linking Disabled";
     public override string HelpDescription => "This condition passes if any of the anime has Trakt auto-linking disabled";
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return filterable.HasTraktAutoLinkingDisabled;
+        return false;
     }
 
     protected bool Equals(HasTraktAutoLinkingDisabledExpression other)

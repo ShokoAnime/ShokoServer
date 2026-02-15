@@ -3,15 +3,14 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
 
@@ -21,7 +20,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
-public class ImageController : BaseController
+public class ImageController(IImageManager imageManager, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
     private const string ImageNotFound = "The requested resource does not exist.";
 
@@ -36,17 +35,20 @@ public class ImageController : BaseController
     [ResponseCache(Duration = 3600 /* 1 hour in seconds */)]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(404)]
-    public ActionResult GetImage([FromRoute] Image.ImageSource source, [FromRoute] Image.ImageType type,
-        [FromRoute, Range(1, int.MaxValue)] int value)
+    public ActionResult GetImage(
+        [FromRoute] Image.ImageSource source,
+        [FromRoute] Image.ImageType type,
+        [FromRoute, Range(1, int.MaxValue)] int value
+    )
     {
         // Unrecognized combination of source, type and/or value.
         var dataSource = source.ToServer();
         var imageEntityType = type.ToServer();
-        if (dataSource == DataSourceType.None)
+        if (imageEntityType is ImageEntityType.None || dataSource is DataSource.None)
             return NotFound(ImageNotFound);
 
         // User avatars are stored in the database.
-        if (imageEntityType == ImageEntityType.Art && dataSource == DataSourceType.User)
+        if (imageEntityType is ImageEntityType.Art && dataSource is DataSource.User)
         {
             var user = RepoFactory.JMMUser.GetByID(value);
             if (!user.HasAvatarImage)
@@ -55,7 +57,7 @@ public class ImageController : BaseController
             return File(user.AvatarImageBlob, user.AvatarImageMetadata.ContentType);
         }
 
-        var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, value);
+        var metadata = imageManager.GetImage(dataSource, imageEntityType, value);
         if (metadata is null || metadata.GetStream() is not { } stream)
             return NotFound(ImageNotFound);
 
@@ -78,11 +80,11 @@ public class ImageController : BaseController
         // Unrecognized combination of source, type and/or value.
         var dataSource = source.ToServer();
         var imageEntityType = type.ToServer();
-        if (imageEntityType == ImageEntityType.None || dataSource == DataSourceType.None)
+        if (imageEntityType is ImageEntityType.None || dataSource is DataSource.None)
             return NotFound(ImageNotFound);
 
         // User avatars are stored in the database.
-        if (imageEntityType == ImageEntityType.Art && dataSource == DataSourceType.User)
+        if (imageEntityType is ImageEntityType.Art && dataSource is DataSource.User)
         {
             var user = RepoFactory.JMMUser.GetByID(value);
             if (!user.HasAvatarImage)
@@ -91,11 +93,11 @@ public class ImageController : BaseController
             return ValidationProblem($"Unable to enable or disable user avatar with id {value}!");
         }
 
-        var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, value);
+        var metadata = imageManager.GetImage(dataSource, imageEntityType, value);
         if (metadata is null)
             return NotFound(ImageNotFound);
 
-        if (!ImageUtils.SetEnabled(dataSource, imageEntityType, value, body.Enabled))
+        if (!imageManager.SetEnabled(dataSource, imageEntityType, value, body.Enabled))
             return ValidationProblem($"Unable to enable or disable {source} {type} with id {value}!");
 
         return NoContent();
@@ -125,15 +127,15 @@ public class ImageController : BaseController
         var tries = 0;
         do
         {
-            var metadata = ImageUtils.GetRandomImageID(dataSource, imageEntityType);
+            var metadata = imageManager.GetRandomImage(dataSource, imageEntityType);
             if (metadata is null)
                 break;
 
             if (!metadata.IsLocalAvailable)
                 continue;
 
-            var series = ImageUtils.GetFirstSeriesForImage(metadata);
-            if (series == null || (series.AniDB_Anime?.IsRestricted ?? false))
+            var series = imageManager.GetFirstSeriesForImage(metadata);
+            if (series == null || series.AnidbAnime.Restricted)
                 continue;
 
             if (metadata.GetStream() is not { } stream)
@@ -176,7 +178,7 @@ public class ImageController : BaseController
         var tries = 0;
         do
         {
-            var metadata = ImageUtils.GetRandomImageID(dataSource, imageEntityType);
+            var metadata = imageManager.GetRandomImage(dataSource, imageEntityType);
             if (metadata is null)
                 break;
 
@@ -184,29 +186,25 @@ public class ImageController : BaseController
                 continue;
 
             var image = new Image(metadata);
-            var series = ImageUtils.GetFirstSeriesForImage(metadata);
-            if (series?.AniDB_Anime is not { } anime)
+            var series = imageManager.GetFirstSeriesForImage(metadata);
+            if (series?.AnidbAnime is not { } anime)
                 continue;
 
             if (includeRestricted != IncludeOnlyFilter.True)
             {
                 var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
-                if (onlyRestricted != anime.IsRestricted)
+                if (onlyRestricted != anime.Restricted)
                     continue;
             }
 
-            if (seriesType is not null && !seriesType.Contains(anime.AbstractAnimeType.ToV3Dto()))
+            if (seriesType is not null && !seriesType.Contains(anime.Type.ToV3Dto()))
                 continue;
 
-            image.Series = new(series.AnimeSeriesID, series.PreferredTitle);
+            image.Series = new(series.ID, series.Title);
 
             return image;
         } while (tries++ < maxAttempts);
 
         return InternalError("Unable to find a random image to send.");
-    }
-
-    public ImageController(ISettingsProvider settingsProvider) : base(settingsProvider)
-    {
     }
 }

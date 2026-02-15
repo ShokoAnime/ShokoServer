@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Expressions;
@@ -21,9 +22,9 @@ public class OrExpression : FilterExpression<bool>, IWithExpressionParameter, IW
     public FilterExpression<bool> Left { get; set; }
     public FilterExpression<bool> Right { get; set; }
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return Left.Evaluate(filterable, userInfo) || Right.Evaluate(filterable, userInfo);
+        return Left.Evaluate(filterable, userInfo, time) || Right.Evaluate(filterable, userInfo, time);
     }
 
     protected bool Equals(OrExpression other)

@@ -1,11 +1,17 @@
+using System;
 using System.Collections.Generic;
-using Shoko.Plugin.Abstractions.Enums;
+using System.Linq;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Network
+public class TMDB_Network : ITmdbNetwork
 {
     #region Properties
 
@@ -29,6 +35,11 @@ public class TMDB_Network
     /// </summary>
     public string CountryOfOrigin { get; set; } = string.Empty;
 
+    /// <summary>
+    /// When the network was last linked to a show in the local system.
+    /// </summary>
+    public DateTime? LastOrphanedAt { get; set; }
+
     #endregion
 
     #region Constructors
@@ -43,6 +54,39 @@ public class TMDB_Network
 
     public IReadOnlyList<TMDB_Show_Network> GetTmdbNetworkCrossReferences() =>
         RepoFactory.TMDB_Show_Network.GetByTmdbNetworkID(TmdbNetworkID);
+
+    #endregion
+
+    #region IMetadata Implementation
+
+    int IMetadata<int>.ID => TmdbNetworkID;
+
+    DataSource IMetadata.Source => DataSource.TMDB;
+
+    #endregion
+
+    #region IWithImages Implementation
+
+    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType)
+        => GetImages(entityType);
+
+    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
+        => entityType is ImageEntityType.Logo ? GetImages(ImageEntityType.Logo).LastOrDefault() : null;
+
+    #endregion
+
+    #region IWithPortraitImage Implementation
+
+    IImage? IWithPortraitImage.PortraitImage => GetImages(ImageEntityType.Logo).LastOrDefault();
+
+    #endregion
+
+    #region ITmdbNetwork Implementation
+
+    IReadOnlyList<ITmdbShow> ITmdbNetwork.Shows => GetTmdbNetworkCrossReferences()
+        .Select(x => x.GetTmdbShow())
+        .WhereNotNull()
+        .ToList();
 
     #endregion
 }

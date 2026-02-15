@@ -1,5 +1,5 @@
 using System;
-using Shoko.Server.Filters.Interfaces;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.User;
 
@@ -9,7 +9,7 @@ public class MissingPermanentUserVotesExpression : FilterExpression<bool>
     public override bool UserDependent => true;
     public override string HelpDescription => "This condition passes if the filterable is missing a user vote that is of the permanent vote type. This has logic for if the filterable should have a vote";
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         ArgumentNullException.ThrowIfNull(userInfo);
         return userInfo.MissingPermanentVotes;

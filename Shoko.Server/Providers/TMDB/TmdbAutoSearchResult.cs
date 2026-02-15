@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
-using Shoko.Models.Enums;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Enums;
+using Shoko.Server.Models.AniDB;
 using TMDbLib.Objects.Search;
 
 #nullable enable
@@ -29,15 +29,15 @@ public class TmdbAutoSearchResult
     [MemberNotNullWhen(false, nameof(TmdbShow))]
     public bool IsMovie { get; init; }
 
-    public SVR_AniDB_Anime AnidbAnime { get; init; }
+    public AniDB_Anime AnidbAnime { get; init; }
 
-    public SVR_AniDB_Episode? AnidbEpisode { get; init; }
+    public AniDB_Episode? AnidbEpisode { get; init; }
 
     public SearchTv? TmdbShow { get; init; }
 
     public SearchMovie? TmdbMovie { get; init; }
 
-    public TmdbAutoSearchResult(SVR_AniDB_Anime anime, SearchTv show, MatchRating matchRating = MatchRating.FirstAvailable)
+    public TmdbAutoSearchResult(AniDB_Anime anime, SearchTv show, MatchRating matchRating = MatchRating.FirstAvailable)
     {
         IsMovie = false;
         AnidbAnime = anime;
@@ -45,7 +45,7 @@ public class TmdbAutoSearchResult
         MatchRating = matchRating;
     }
 
-    public TmdbAutoSearchResult(SVR_AniDB_Anime anime, SVR_AniDB_Episode episode, SearchMovie movie, MatchRating matchRating = MatchRating.FirstAvailable)
+    public TmdbAutoSearchResult(AniDB_Anime anime, AniDB_Episode episode, SearchMovie movie, MatchRating matchRating = MatchRating.FirstAvailable)
     {
         IsMovie = true;
         AnidbAnime = anime;

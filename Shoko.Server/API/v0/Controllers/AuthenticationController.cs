@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Services;
+using Shoko.Abstractions.User;
 using Shoko.Server.API.v0.Models;
-using Shoko.Server.Extensions;
-using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v0.Controllers;
@@ -15,10 +14,8 @@ namespace Shoko.Server.API.v0.Controllers;
 [Route("/api/auth")]
 [ApiVersionNeutral]
 [AdvertiseApiVersions("2.0", "2.1", "3")]
-public class AuthenticationController : BaseController
+public class AuthenticationController(IUserService userService, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
-    private readonly ILogger<AuthenticationController> _logger;
-
     /// <summary>
     /// Lists all apikeys and the user that they are associated with.
     /// Admins can list all apikeys. Otherwise, the current user's apikeys are listed.
@@ -30,11 +27,16 @@ public class AuthenticationController : BaseController
     {
         // Only admins can list all apikeys, otherwise, just the current user
         if (User.IsAdmin == 0)
-            return RepoFactory.AuthTokens.GetAll().Where(a => a.UserID == User.JMMUserID).Select(a => new ApikeyResult(a.UserID, User.Username, a.DeviceName))
+            return userService.ListRestApiDevicesForUser(User)
+                .Select(deviceName => new ApikeyResult(User.JMMUserID, User.Username, deviceName))
                 .ToList();
 
-        var users = RepoFactory.JMMUser.GetAll().ToDictionary(a => a.JMMUserID, a => a.Username);
-        return RepoFactory.AuthTokens.GetAll().Select(a => new ApikeyResult(a.UserID, users.TryGetValue(a.UserID, out var user) ? user : null, a.DeviceName))
+        return userService.GetUsers()
+            .SelectMany(user => userService.ListRestApiDevicesForUser(user)
+                .Select(deviceName => new ApikeyResult(user.ID, user.Username, deviceName))
+            )
+            .OrderBy(apiKey => apiKey.UserID)
+            .ThenBy(apiKey => apiKey.Device)
             .ToList();
     }
 
@@ -45,10 +47,11 @@ public class AuthenticationController : BaseController
     /// <returns>The new apikey</returns>
     [HttpPost("apikey")]
     [Authorize]
-    public ActionResult<string> GenerateApikey([FromBody] string device)
+    public async Task<ActionResult<string>> GenerateApikey([FromBody] string device)
     {
-        if (string.IsNullOrWhiteSpace(device)) return BadRequest("device cannot be empty");
-        return RepoFactory.AuthTokens.CreateNewApiKey(User, device);
+        if (string.IsNullOrWhiteSpace(device))
+            return BadRequest("device cannot be empty");
+        return await userService.GenerateRestApiTokenForUser(User, device);
     }
 
     /// <summary>
@@ -60,13 +63,15 @@ public class AuthenticationController : BaseController
     [ProducesResponseType(400)]
     [ProducesResponseType(401)]
     [ProducesResponseType(200)]
-    public ActionResult<object> Login(AuthUser auth)
+    public async Task<ActionResult<object>> Login(AuthUser auth)
     {
         if (!ModelState.IsValid || string.IsNullOrEmpty(auth.user?.Trim())) return BadRequest(ModelState);
         auth.pass ??= string.Empty;
 
         //create and save new token for authenticated user or return known one
-        var apiKey = RepoFactory.AuthTokens.ValidateUser(auth.user.Trim(), auth.pass.Trim(), auth.device.Trim());
+        var user = userService.AuthenticateUser(auth.user.Trim(), auth.pass.Trim());
+        if (user == null) return Unauthorized();
+        var apiKey = await userService.GenerateRestApiTokenForUser(user, auth.device.Trim());
 
         if (!string.IsNullOrEmpty(apiKey)) return Ok(new { apikey = apiKey });
         return Unauthorized();
@@ -80,24 +85,16 @@ public class AuthenticationController : BaseController
     /// <returns></returns>
     [HttpPost("ChangePassword")]
     [Authorize]
-    public ActionResult ChangePassword([FromBody] string newPassword, [FromQuery] int? userID = null)
+    public async Task<ActionResult> ChangePassword([FromBody] string newPassword, [FromQuery] int? userID = null)
     {
-        try
-        {
-            var user = User;
-            if (userID != null && User.IsAdmin == 1) user = RepoFactory.JMMUser.GetByID(userID.Value);
-            if (user == null) return BadRequest("Could not get user");
-            user.Password = Digest.Hash(newPassword.Trim());
-            RepoFactory.JMMUser.Save(user);
-            RepoFactory.AuthTokens.DeleteAllWithUserID(user.JMMUserID);
-            return Ok();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, ex.ToString());
-        }
+        var user = (IUser)User;
+        if (userID.HasValue && user.IsAdmin)
+            user = userService.GetUserByID(userID.Value);
+        if (user == null)
+            return BadRequest("Could not get user");
 
-        return InternalError();
+        await userService.ChangeUserPassword(user, newPassword);
+        return Ok();
     }
 
     ///<summary>
@@ -105,18 +102,19 @@ public class AuthenticationController : BaseController
     ///</summary>
     ///<param name="apikey">The Apikey or device to delete.</param>
     [HttpDelete]
-    public ActionResult Delete([FromBody] string apikey)
+    public async Task<ActionResult> Delete([FromBody] string apikey)
     {
-        if (apikey == null) return BadRequest("Must provide an apikey or device name to delete");
-        var token = RepoFactory.AuthTokens.GetAll().FirstOrDefault(a => a.UserID == User?.JMMUserID && apikey.EqualsInvariantIgnoreCase(a.DeviceName));
-        token ??= RepoFactory.AuthTokens.GetByToken(apikey);
-        if (token == null) return BadRequest("Could not find apikey or device name to delete");
-        RepoFactory.AuthTokens.Delete(token);
-        return Ok();
-    }
+        if (apikey is not { Length: > 0 })
+            return BadRequest("Must provide an apikey or device name to delete");
 
-    public AuthenticationController(ISettingsProvider settingsProvider, ILogger<AuthenticationController> logger) : base(settingsProvider)
-    {
-        _logger = logger;
+        // Attempt to invalidate device name for user.
+        if (User is IUser { } user && await userService.InvalidateRestApiDeviceForUser(user, apikey))
+            return Ok();
+
+        // Attempt to invalidate apikey.
+        if (await userService.InvalidateRestApiToken(apikey))
+            return Ok();
+
+        return BadRequest("Could not find apikey or device name to delete");
     }
 }

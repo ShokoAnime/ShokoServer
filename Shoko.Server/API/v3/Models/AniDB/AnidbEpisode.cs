@@ -6,7 +6,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.API.v3.Models.AniDB;
 
@@ -61,26 +61,21 @@ public class AnidbEpisode
     /// </summary>
     public Rating Rating { get; set; }
 
-    public AnidbEpisode(SVR_AniDB_Episode ep)
+    public AnidbEpisode(AniDB_Episode ep)
     {
-        if (!decimal.TryParse(ep.Rating, out var rating))
-            rating = 0;
-        if (!int.TryParse(ep.Votes, out var votes))
-            votes = 0;
-
         var defaultTitle = ep.DefaultTitle;
-        var mainTitle = ep.PreferredTitle;
+        var mainTitle = ep.Title;
         var titles = ep.GetTitles();
         ID = ep.EpisodeID;
         AnimeID = ep.AnimeID;
-        Type = ep.AbstractEpisodeType.ToV3Dto();
+        Type = ep.EpisodeType.ToV3Dto();
         EpisodeNumber = ep.EpisodeNumber;
         AirDate = ep.GetAirDateAsDate()?.ToDateOnly();
         Description = ep.Description;
-        Rating = new Rating { MaxValue = 10, Value = rating, Votes = votes, Source = "AniDB" };
-        Title = mainTitle.Title;
+        Rating = new Rating { MaxValue = 10, Value = ep.RatingDouble, Votes = ep.VotesInt, Source = "AniDB" };
+        Title = mainTitle;
         Titles = titles
-            .Select(a => new Title(a, defaultTitle.Title, mainTitle))
+            .Select(a => new Title(a, defaultTitle.Value, mainTitle))
             .ToList();
     }
 }

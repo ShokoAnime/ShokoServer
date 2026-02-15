@@ -1,18 +1,17 @@
 using System;
-using Shoko.Server.Filters.Interfaces;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Functions;
 
 public class TodayFunction : FilterExpression<DateTime?>
 {
     public override bool TimeDependent => true;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This returns the current date, at midnight (00:00:00.0000)";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Function;
 
-    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override DateTime? Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return DateTime.Today;
+        return time.Value!.Date;
     }
 
     protected bool Equals(TodayFunction other)

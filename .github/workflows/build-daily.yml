@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
           submodules: recursive
@@ -73,14 +73,16 @@ jobs:
       matrix:
         dotnet: [ '8.x' ]
 
-    name: Publish Shoko.Plugin.Abstractions Nuget
+    name: Publish Shoko.Abstractions Nuget
+
+    env:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
-          submodules: recursive
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v3
@@ -88,16 +90,17 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Run dotnet build
-        run: dotnet build -c Release Shoko.Plugin.Abstractions
+        run: dotnet build -c Release Shoko.Abstractions
 
-      - name: Publish Shoko.Plugin.Abstractions Nuget
+      - name: Publish Shoko.Abstractions Nuget
         uses: brandedoutcast/publish-nuget@v2.5.2
+        if: ${{ env.NUGET_API_KEY != '' }}
         with:
-          PROJECT_FILE_PATH: Shoko.Plugin.Abstractions/Shoko.Plugin.Abstractions.csproj
-          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
-          TAG_FORMAT: Shoko.Plugin.Abstractions-v*
+          PROJECT_FILE_PATH: Shoko.Abstractions/Shoko.Abstractions.csproj
+          NUGET_KEY: ${{ env.NUGET_API_KEY }}
+          TAG_FORMAT: Shoko.Abstractions-v*
 
-  cli-daily:
+  cli:
     runs-on: ubuntu-latest
 
     needs:
@@ -118,22 +121,37 @@ jobs:
 
     name: Build CLI — ${{ matrix.build_type }} ${{ matrix.rid }} (Daily)
 
+    env:
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      TMDB_API: ${{ secrets.TMDB_API }}
+      AVD3_URL: ${{ secrets.AVD3_URL }}
+
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
-          submodules: recursive
 
-      - name: Replace Sentry DSN and other keys
+      - name: Replace Sentry DSN
+        if: ${{ env.SENTRY_DSN != '' }}
         shell: pwsh
         run: |
-          ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
-          ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
-          ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
+          ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ env.SENTRY_DSN }}
+
+      - name: Replace TMDB API Key
+        if: ${{ env.TMDB_API != '' }}
+        shell: pwsh
+        run: |
+          ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ env.TMDB_API }}
+
+      - name: Replace AVD3 URL
+        if: ${{ env.AVD3_URL != '' }}
+        shell: pwsh
+        run: |
+          ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ env.AVD3_URL }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
         if: ${{ matrix.rid == 'linux-arm64' }}
@@ -152,7 +170,7 @@ jobs:
           name: Shoko.CLI_${{ matrix.build_type }}_${{ matrix.rid }}
           path: Shoko.Server/bin/Release/net8.0/${{matrix.rid}}/publish/
 
-  tray-service-daily:
+  tray-service:
     runs-on: windows-latest
 
     needs:
@@ -175,19 +193,34 @@ jobs:
 
     name: Build Tray Service — ${{ matrix.build_type }} (Daily)
 
+    env:
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      TMDB_API: ${{ secrets.TMDB_API }}
+      AVD3_URL: ${{ secrets.AVD3_URL }}
+
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
-          submodules: recursive
 
-      - name: Replace Sentry DSN and other keys
+      - name: Replace Sentry DSN
+        if: ${{ env.SENTRY_DSN != '' }}
         shell: pwsh
         run: |
-          .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
-          .\\.github\\workflows\\ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
-          .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
+          .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ env.SENTRY_DSN }}
+
+      - name: Replace TMDB API Key
+        if: ${{ env.TMDB_API != '' }}
+        shell: pwsh
+        run: |
+          .\\.github\\workflows\\ReplaceTmdbApiKey.ps1 -apiKey ${{ env.TMDB_API }}
+
+      - name: Replace AVD3 URL
+        if: ${{ env.AVD3_URL != '' }}
+        shell: pwsh
+        run: |
+          .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ env.AVD3_URL }}
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v3
@@ -216,19 +249,34 @@ jobs:
 
     name: Build Tray Service — Installer (Daily)
 
+    env:
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      TMDB_API: ${{ secrets.TMDB_API }}
+      AVD3_URL: ${{ secrets.AVD3_URL }}
+
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.ref }}"
-          submodules: recursive
 
-      - name: Replace Sentry DSN and other keys
+      - name: Replace Sentry DSN
+        if: ${{ env.SENTRY_DSN != '' }}
         shell: pwsh
         run: |
-          .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
-          .\\.github\\workflows\\ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
-          .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
+          .\\.github\\workflows\\ReplaceSentryDSN.ps1 -dsn ${{ env.SENTRY_DSN }}
+
+      - name: Replace TMDB API Key
+        if: ${{ env.TMDB_API != '' }}
+        shell: pwsh
+        run: |
+          .\\.github\\workflows\\ReplaceTmdbApiKey.ps1 -apiKey ${{ env.TMDB_API }}
+
+      - name: Replace AVD3 URL
+        if: ${{ env.AVD3_URL != '' }}
+        shell: pwsh
+        run: |
+          .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ env.AVD3_URL }}
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v3
@@ -247,7 +295,7 @@ jobs:
           name: Shoko.TrayService_Installer_win-x64
           path: Shoko.Setup.exe
 
-  docker-daily-build:
+  docker-build:
     runs-on: ubuntu-latest
 
     needs:
@@ -305,7 +353,7 @@ jobs:
       # Disabled provenance for now, until it works with docker manifest create.
       # The manifest list produced by the new feature is incompatible with the
       # expected format used in the docker manifest create command.
-      - uses: docker/build-push-action@v4
+      - uses: docker/build-push-action@v6
         name: Build and Push the Docker image
         with:
           context: .
@@ -323,34 +371,34 @@ jobs:
             tag=${{ needs.current_info.outputs.tag }}
           provenance: false
 
-  docker-daily-push_manifest:
+  docker-push-manifest:
     runs-on: ubuntu-latest
 
     name: Push combined tag for both docker images
 
     needs:
-      - docker-daily-build
+      - docker-build
 
     steps:
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into GitHub Container Registry
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into Docker Hub
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Create manifest
+      - name: Create & push manifest (GHCR)
         run: |
           docker manifest create ghcr.io/${{ secrets.DOCKER_REPO }}:daily --amend ghcr.io/${{ secrets.DOCKER_REPO }}:daily-amd64 --amend ghcr.io/${{ secrets.DOCKER_REPO }}:daily-arm64
           docker manifest create ${{ secrets.DOCKER_REPO }}:daily --amend ${{ secrets.DOCKER_REPO }}:daily-amd64 --amend ${{ secrets.DOCKER_REPO }}:daily-arm64
 
-      - name: Push manifest
+      - name: Create & push manifest (Docker Hub)
         run: |
           docker manifest push ghcr.io/${{ secrets.DOCKER_REPO }}:daily
           docker manifest push ${{ secrets.DOCKER_REPO }}:daily
@@ -360,19 +408,18 @@ jobs:
 
     needs:
       - current_info
-      - cli-daily
-      - tray-service-daily
+      - cli
+      - tray-service
       - tray-service-installer
-      - docker-daily-push_manifest
+      - docker-push-manifest
 
     name: Add tag for pre-release
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
-          submodules: recursive
 
       - name: Push pre-release tag
         uses: rickstaa/action-create-tag@v1
@@ -392,10 +439,9 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
-          submodules: recursive
 
       # Only add the release to sentry if the build is successful.
       - name: Push Sentry Release "${{ needs.current_info.outputs.version }}"

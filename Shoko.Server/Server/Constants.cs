@@ -23,11 +23,11 @@ public static class Constants
         public const string RecentlyWatched = "Recently Watched";
     }
 
-    public struct DatabaseType
+    public enum DatabaseType
     {
-        public const string SqlServer = "SQLServer";
-        public const string Sqlite = "SQLite";
-        public const string MySQL = "MySQL";
+        SQLite = 0,
+        SQLServer = 1,
+        MySQL = 2,
     }
 
     // http://wiki.anidb.net/w/WebAOM#Move.2Frename_system

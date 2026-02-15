@@ -15,7 +15,7 @@ public static class StartupExtensions
         var args = tmpArgs.Length > 1 ? new string[tmpArgs.Length - 1] : null;
         if (args is null)
             return configurationBuilder;
-        
+
         Array.Copy(tmpArgs, 1, args, 0, args.Length);
         configurationBuilder.AddCommandLine(args);
         return configurationBuilder;
@@ -52,7 +52,7 @@ public static class StartupExtensions
     private static void ConfigureDefaultServiceProvider(WebHostBuilderContext context, ServiceProviderOptions options)
     {
         var isDevelopment = context.HostingEnvironment.IsDevelopment();
-        options.ValidateScopes  = isDevelopment;
+        options.ValidateScopes = isDevelopment;
         options.ValidateOnBuild = isDevelopment;
     }
 }

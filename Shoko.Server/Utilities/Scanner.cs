@@ -8,52 +8,40 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Quartz;
-using Shoko.Models.Enums;
-using Shoko.Models.Server;
+using Shoko.Abstractions.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.FileHelper;
-using Shoko.Server.Models;
+using Shoko.Server.Hashing;
+using Shoko.Server.Models.Legacy;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Server;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Utilities;
 
-public class Scanner : INotifyPropertyChangedExt
+public class Scanner
 {
     // TODO this needs to be completely rewritten
-    private BackgroundWorker workerIntegrityScanner = new();
-
-    public Scanner()
-    {
-        workerIntegrityScanner.WorkerReportsProgress = true;
-        workerIntegrityScanner.WorkerSupportsCancellation = true;
-        workerIntegrityScanner.DoWork += WorkerIntegrityScanner_DoWork;
-    }
+    private readonly BackgroundWorker _workerIntegrityScanner = new();
 
     public static Scanner Instance { get; set; } = new();
 
-    public event PropertyChangedEventHandler PropertyChanged;
+    public int QueueCount { get; private set; }
 
-    public void NotifyPropertyChanged(string propname)
+    public Scanner()
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propname));
-    }
-
-    private int queueCount = 0;
-
-    public int QueueCount
-    {
-        get => queueCount;
-        set => this.SetField(() => queueCount, value);
+        _workerIntegrityScanner.WorkerReportsProgress = true;
+        _workerIntegrityScanner.WorkerSupportsCancellation = true;
+        _workerIntegrityScanner.DoWork += WorkerIntegrityScanner_DoWork;
     }
 
     public void Init()
     {
         MainThreadDispatch(() => { RepoFactory.Scan.GetAll().ForEach(a => Scans.Add(a)); });
-        var runscan = Scans.FirstOrDefault(a => (ScanStatus)a.Status == ScanStatus.Running);
+        var runscan = Scans.FirstOrDefault(a => a.Status is ScanStatus.Running);
         if (runscan != null)
         {
             ActiveScan = runscan;
@@ -70,7 +58,7 @@ public class Scanner : INotifyPropertyChangedExt
 
         RunScan = ActiveScan;
         cancelIntegrityCheck = false;
-        workerIntegrityScanner.RunWorkerAsync();
+        _workerIntegrityScanner.RunWorkerAsync();
     }
 
     public void ClearScan()
@@ -80,7 +68,7 @@ public class Scanner : INotifyPropertyChangedExt
             return;
         }
 
-        if (workerIntegrityScanner.IsBusy && RunScan == ActiveScan)
+        if (_workerIntegrityScanner.IsBusy && RunScan == ActiveScan)
         {
             CancelScan();
         }
@@ -99,10 +87,10 @@ public class Scanner : INotifyPropertyChangedExt
             return;
         }
 
-        if (workerIntegrityScanner.IsBusy)
+        if (_workerIntegrityScanner.IsBusy)
         {
             cancelIntegrityCheck = true;
-            while (workerIntegrityScanner.IsBusy)
+            while (_workerIntegrityScanner.IsBusy)
             {
                 Thread.Sleep(100);
             }
@@ -111,23 +99,18 @@ public class Scanner : INotifyPropertyChangedExt
         }
     }
 
-    public bool Finished => (ActiveScan != null && (ScanStatus)ActiveScan.Status == ScanStatus.Finish) ||
-                            ActiveScan == null;
+    public bool Finished => (ActiveScan != null && ActiveScan.Status is ScanStatus.Finished) || ActiveScan == null;
 
     public string QueueState => ActiveScan != null
-        ? (ScanStatus)ActiveScan.Status switch
-        {
-            ScanStatus.Finish => "Finished",
-            ScanStatus.Running => "Running",
-            _ => "Standby",
-        }
+        ? ActiveScan.Status.ToString()
         : string.Empty;
-    public bool QueuePaused => ActiveScan != null && (ScanStatus)ActiveScan.Status == ScanStatus.Standby;
-    public bool QueueRunning => ActiveScan != null && (ScanStatus)ActiveScan.Status == ScanStatus.Running;
-    public bool Exists => ActiveScan != null;
-    private SVR_Scan activeScan;
 
-    public SVR_Scan ActiveScan
+    public bool QueuePaused => ActiveScan != null && ActiveScan.Status is ScanStatus.Standby;
+    public bool QueueRunning => ActiveScan != null && ActiveScan.Status is ScanStatus.Running;
+    public bool Exists => ActiveScan != null;
+    private Scan activeScan;
+
+    public Scan ActiveScan
     {
         get => activeScan;
         set
@@ -150,15 +133,13 @@ public class Scanner : INotifyPropertyChangedExt
 
     public void Refresh()
     {
-        this.OnPropertyChanged(() => Exists, () => Finished, () => QueueState, () => QueuePaused,
-            () => QueueRunning);
         if (activeScan != null)
         {
             QueueCount = RepoFactory.ScanFile.GetWaitingCount(activeScan.ScanID);
         }
     }
 
-    public ObservableCollection<SVR_Scan> Scans { get; set; } = new();
+    public ObservableCollection<Scan> Scans { get; set; } = new();
 
     public ObservableCollection<ScanFile> ActiveErrorFiles { get; set; } = new();
 
@@ -184,8 +165,8 @@ public class Scanner : INotifyPropertyChangedExt
 
         var files = ActiveErrorFiles.ToList();
         ActiveErrorFiles.Clear();
-        var seriesToUpdate = new HashSet<SVR_AnimeSeries>();
-        var vlpService = Utils.ServiceContainer.GetRequiredService<VideoLocal_PlaceService>();
+        var seriesToUpdate = new HashSet<AnimeSeries>();
+        var vlpService = (VideoService)Utils.ServiceContainer.GetRequiredService<IVideoService>();
         var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
         var databaseFactory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>();
         using (var session = databaseFactory.SessionFactory.OpenSession())
@@ -203,57 +184,56 @@ public class Scanner : INotifyPropertyChangedExt
     }
 
     private bool cancelIntegrityCheck;
-    internal SVR_Scan RunScan;
 
-    public static int OnHashProgress(string fileName, int percentComplete)
-    {
-        return 1; //continue hashing (return 0 to abort)
-    }
+    internal Scan RunScan;
 
     private void WorkerIntegrityScanner_DoWork(object sender, DoWorkEventArgs e)
     {
-        if (RunScan != null && (ScanStatus)RunScan.Status != ScanStatus.Finish)
+        if (RunScan != null && RunScan.Status != ScanStatus.Finished)
         {
             var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
             scheduler.PauseAll();
             var s = RunScan;
-            s.Status = (int)ScanStatus.Running;
+            s.Status = ScanStatus.Running;
             RepoFactory.Scan.Save(s);
             Refresh();
             var files = RepoFactory.ScanFile.GetWaiting(s.ScanID);
             var cnt = 0;
+            var hashingService = Utils.ServiceContainer.GetRequiredService<IVideoHashingService>();
+            var hasher = hashingService.GetProviderInfo<CoreHashProvider>().Provider;
             foreach (var sf in files)
             {
                 try
                 {
                     if (!File.Exists(sf.FullName))
                     {
-                        sf.Status = (int)ScanFileStatus.ErrorFileNotFound;
+                        sf.Status = ScanFileStatus.ErrorFileNotFound;
                     }
                     else
                     {
                         var f = new FileInfo(sf.FullName);
                         if (sf.FileSize != f.Length)
                         {
-                            sf.Status = (int)ScanFileStatus.ErrorInvalidSize;
+                            sf.Status = ScanFileStatus.ErrorInvalidSize;
                         }
                         else
                         {
-                            var hashes = Hasher.CalculateHashes(sf.FullName, OnHashProgress, false, false, false);
-                            if (string.IsNullOrEmpty(hashes.ED2K))
+                            var hashes = hasher.GetHashesForVideo(new() { File = new(sf.FullName), EnabledHashTypes = new HashSet<string>() { "ED2K" } }).GetAwaiter().GetResult();
+                            var ed2k = hashes.FirstOrDefault(a => a.Type is "ED2K")?.Value;
+                            if (string.IsNullOrEmpty(ed2k))
                             {
-                                sf.Status = (int)ScanFileStatus.ErrorMissingHash;
+                                sf.Status = ScanFileStatus.ErrorMissingHash;
                             }
                             else
                             {
-                                sf.HashResult = hashes.ED2K;
-                                if (!sf.Hash.Equals(sf.HashResult, StringComparison.InvariantCultureIgnoreCase))
+                                sf.HashResult = ed2k;
+                                if (!sf.Hash.Equals(ed2k, StringComparison.InvariantCultureIgnoreCase))
                                 {
-                                    sf.Status = (int)ScanFileStatus.ErrorInvalidHash;
+                                    sf.Status = ScanFileStatus.ErrorInvalidHash;
                                 }
                                 else
                                 {
-                                    sf.Status = (int)ScanFileStatus.ProcessedOK;
+                                    sf.Status = ScanFileStatus.ProcessedOK;
                                 }
                             }
                         }
@@ -261,13 +241,13 @@ public class Scanner : INotifyPropertyChangedExt
                 }
                 catch (Exception)
                 {
-                    sf.Status = (int)ScanFileStatus.ErrorIOError;
+                    sf.Status = ScanFileStatus.ErrorIOError;
                 }
 
                 cnt++;
                 sf.CheckDate = DateTime.Now;
                 RepoFactory.ScanFile.Save(sf);
-                if (sf.Status > (int)ScanFileStatus.ProcessedOK)
+                if (sf.Status > ScanFileStatus.ProcessedOK)
                 {
                     Instance.AddErrorScan(sf);
                 }
@@ -286,7 +266,7 @@ public class Scanner : INotifyPropertyChangedExt
             }
             else
             {
-                s.Status = (int)ScanStatus.Finish;
+                s.Status = ScanStatus.Finished;
             }
 
             RepoFactory.Scan.Save(s);

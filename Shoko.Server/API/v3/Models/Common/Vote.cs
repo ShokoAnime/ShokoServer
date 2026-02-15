@@ -11,9 +11,9 @@ namespace Shoko.Server.API.v3.Models.Common;
 /// </summary>
 public class Vote
 {
-    public Vote(int value, int maxValue = 10) : this((decimal)value, maxValue) { }
+    public Vote(int value, int maxValue = 10) : this((double)value, maxValue) { }
 
-    public Vote(decimal value, int maxValue = 10)
+    public Vote(double value, int maxValue = 10)
     {
         Value = value;
         MaxValue = maxValue;
@@ -26,10 +26,11 @@ public class Vote
     /// </summary>
     /// <param name="maxValue">The max value to use.</param>
     /// <returns></returns>
-    public decimal GetRating(int maxValue = 10)
+    public double GetRating(int maxValue = 10)
     {
-        if (Value < 0) return -1;
-        return Math.Clamp(Math.Clamp(Value, 0, MaxValue) / MaxValue * maxValue, 0, maxValue);
+        if (Value < 0 || maxValue < 0) return -1;
+        var value = maxValue == MaxValue ? Value : Math.Clamp(Value, 0, MaxValue) / MaxValue * maxValue;
+        return Math.Round(Math.Clamp(value, 0, maxValue), 2);
     }
 
     /// <summary>
@@ -37,7 +38,7 @@ public class Vote
     /// </summary>
     [Range(-1, int.MaxValue, ErrorMessage = "Value must be greater than or equal to 0. Or -1 to revoke a previously set rating.")]
     [Required]
-    public decimal Value { get; set; }
+    public double Value { get; set; }
 
     /// <summary>
     /// Max allowed value for the user-submitted rating. Assumes 10 if not set.

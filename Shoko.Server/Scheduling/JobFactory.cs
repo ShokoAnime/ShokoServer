@@ -24,7 +24,7 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
         try
         {
             // NewJob calls InstantiateJob, then applies the JobDataMap
-            var job =  base.NewJob(bundle, scheduler);
+            var job = base.NewJob(bundle, scheduler);
             // After, we check for BaseJob and apply PostInit
             if (job is BaseJob baseJob)
             {

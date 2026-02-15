@@ -1,54 +1,37 @@
 using System;
-using System.Linq;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
-using Shoko.Server.Models;
 
+#nullable enable
 namespace Shoko.Server.Filters.Files;
 
 public class HasAudioLanguageExpression : FilterExpression<bool>, IWithStringParameter
 {
-    public HasAudioLanguageExpression(string parameter)
-    {
-        Parameter = parameter;
-    }
-    public HasAudioLanguageExpression() { }
-
     public string Parameter { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
+
     public override string HelpDescription => "This condition passes if any of the files have the specified audio language";
-    public override string[] HelpPossibleParameters => SVR_AniDB_File.GetPossibleAudioLanguages();
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override string[] HelpPossibleParameters => PossibleAudioLanguages;
+
+    public HasAudioLanguageExpression(string parameter)
+        => Parameter = parameter;
+
+    public HasAudioLanguageExpression()
+        => Parameter = string.Empty;
+
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        var paramLang = SVR_AniDB_File.GetLanguage(Parameter);
-        return filterable.AudioLanguages.Any(al => SVR_AniDB_File.GetLanguage(al) == paramLang);
+        return filterable.AudioLanguages.Contains(Parameter);
     }
 
-    protected bool Equals(HasAudioLanguageExpression other)
-    {
-        return base.Equals(other) && string.Equals(Parameter, other.Parameter, StringComparison.InvariantCultureIgnoreCase);
-    }
+    public bool Equals(HasAudioLanguageExpression? other)
+        => other is not null && (
+            ReferenceEquals(this, other) ||
+            string.Equals(Parameter, other.Parameter, StringComparison.OrdinalIgnoreCase)
+        );
 
-    public override bool Equals(object obj)
-    {
-        if (ReferenceEquals(null, obj))
-        {
-            return false;
-        }
-
-        if (ReferenceEquals(this, obj))
-        {
-            return true;
-        }
-
-        if (obj.GetType() != this.GetType())
-        {
-            return false;
-        }
-
-        return Equals((HasAudioLanguageExpression)obj);
-    }
+    public override bool Equals(object? obj)
+        => obj is not null && Equals(obj as HasAudioLanguageExpression);
 
     public override int GetHashCode()
     {
@@ -67,4 +50,76 @@ public class HasAudioLanguageExpression : FilterExpression<bool>, IWithStringPar
     {
         return !Equals(left, right);
     }
+
+    public static readonly string[] PossibleAudioLanguages =
+    {
+        "afrikaans",
+        "albanian",
+        "arabic",
+        "basque",
+        "bengali",
+        "bosnian",
+        "bulgarian",
+        "burmese",
+        "catalan",
+        "chinese",
+        "croatian",
+        "czech",
+        "danish",
+        "dutch",
+        "english",
+        "esperanto",
+        "estonian",
+        "filipino",
+        "tagalog",
+        "finnish",
+        "french",
+        "galician",
+        "georgian",
+        "german",
+        "greek",
+        "haitian creole",
+        "hebrew",
+        "hindi",
+        "hungarian",
+        "icelandic",
+        "indonesian",
+        "italian",
+        "japanese",
+        "javanese",
+        "korean",
+        "latin",
+        "latvian",
+        "lithuanian",
+        "malay",
+        "mongolian",
+        "nepali",
+        "norwegian",
+        "persian",
+        "polish",
+        "portuguese",
+        "portuguese (brazilian)",
+        "romanian",
+        "russian",
+        "serbian",
+        "sinhala",
+        "slovak",
+        "slovenian",
+        "spanish",
+        "spanish (latin american)",
+        "swedish",
+        "tamil",
+        "tatar",
+        "telugu",
+        "thai",
+        "turkish",
+        "ukrainian",
+        "vietnamese",
+        "cantonese",
+        "mandarin",
+        "taiwanese",
+        "instrumental",
+        "unknown",
+        "other",
+    };
 }

@@ -1,8 +1,9 @@
 ﻿using Newtonsoft.Json;
-using Shoko.Models.Plex;
-using Shoko.Models.Plex.Collection;
-using Shoko.Models.Plex.Libraries;
-using MediaContainer = Shoko.Models.Plex.Collection.MediaContainer;
+using Shoko.Server.Plex.Models;
+using Shoko.Server.Plex.Models.Collection;
+using Shoko.Server.Plex.Models.Libraries;
+
+using MediaContainer = Shoko.Server.Plex.Models.Collection.MediaContainer;
 
 namespace Shoko.Server.Plex.Libraries;
 

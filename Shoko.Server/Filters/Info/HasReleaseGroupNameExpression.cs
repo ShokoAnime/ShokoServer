@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Repositories;
 
@@ -18,9 +19,9 @@ public class HasReleaseGroupNameExpression : FilterExpression<bool>, IWithString
     public override bool TimeDependent => false;
     public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if any of the anime have the files of specified releae group name";
-    public override string[] HelpPossibleParameters => RepoFactory.AniDB_ReleaseGroup.GetAll().Select(a => a?.GroupName).ToArray();
+    public override string[] HelpPossibleParameters => RepoFactory.StoredReleaseInfo.GetUsedReleaseGroups().Select(r => r.Name).ToArray();
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? now)
     {
         return filterable.ReleaseGroupNames.Contains(Parameter);
     }

@@ -1,5 +1,5 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Models.Server;
+using Shoko.Server.Models.CrossReference;
 
 namespace Shoko.Server.Mappings;
 
@@ -11,10 +11,6 @@ public class CrossRef_AniDB_MALMap : ClassMap<CrossRef_AniDB_MAL>
         Id(x => x.CrossRef_AniDB_MALID);
 
         Map(x => x.AnimeID).Not.Nullable();
-        Map(x => x.CrossRefSource).Not.Nullable();
         Map(x => x.MALID).Not.Nullable();
-        Map(x => x.MALTitle);
-        Map(x => x.StartEpisodeType).Not.Nullable();
-        Map(x => x.StartEpisodeNumber).Not.Nullable();
     }
 }

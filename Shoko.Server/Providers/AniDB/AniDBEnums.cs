@@ -1,5 +1,4 @@
 using System;
-using Shoko.Models.Enums;
 
 namespace Shoko.Server.Providers.AniDB;
 
@@ -16,7 +15,7 @@ public enum GetFile_State
     IsV5 = 32, // file is version 5
     Uncensored = 64, // file is uncensored
     Censored = 128, // file is censored
-    Chaptered = 4096 // file is chaptered, 0 means both not set and false
+    Chaptered = 4096, // file is chaptered, 0 means both not set and false
 }
 
 public enum GetFile_Quality
@@ -28,7 +27,7 @@ public enum GetFile_Quality
     Low,
     VeryLow,
     Corrupted,
-    EyeCancer
+    EyeCancer,
 }
 
 public enum GetFile_Source
@@ -46,7 +45,7 @@ public enum GetFile_Source
     Camcorder,
     VCD,
     SVCD,
-    LaserDisc
+    LaserDisc,
 }
 
 public enum UpdateType
@@ -56,7 +55,7 @@ public enum UpdateType
     HTTPBan = 2,
     InvalidSession = 3,
     OverloadBackoff = 4,
-    WaitingOnResponse = 5
+    WaitingOnResponse = 5,
 }
 
 public enum MyList_State
@@ -65,7 +64,7 @@ public enum MyList_State
     HDD = 1,
     Disk = 2,
     Deleted = 3,
-    Remote = 4
+    Remote = 4,
 }
 
 public enum MyList_FileState
@@ -79,7 +78,7 @@ public enum MyList_FileState
     OnTV = 13,
     InTheaters = 14,
     Streamed = 15,
-    Other = 100
+    Other = 100,
 }
 
 public enum UDPReturnCode
@@ -241,7 +240,7 @@ public enum VoteType
     AnimePermanent = 1,
     AnimeTemporary = 2,
     Group = 3,
-    Episode = 4
+    Episode = 4,
 }
 
 public enum EpisodeType
@@ -251,7 +250,7 @@ public enum EpisodeType
     Special = 3,
     Trailer = 4,
     Parody = 5,
-    Other = 6
+    Other = 6,
 }
 
 public enum AnimeType
@@ -338,7 +337,7 @@ public enum RelationType
     /// <summary>
     /// The related entry summarizes the events of the story in the main entry.
     /// </summary>
-    Summary = 42
+    Summary = 42,
 }
 
 public enum Group_CompletionStatus
@@ -348,20 +347,36 @@ public enum Group_CompletionStatus
     Complete = 3,
     Dropped = 4,
     Finished = 5,
-    SpecialsOnly = 6
+    SpecialsOnly = 6,
 }
 
-public static class EnumExtensions
+public enum ResourceLinkType
 {
-    public static MyList_State GetMyList_State(this AniDBFile_State a)
-    {
-        return a switch
-        {
-            AniDBFile_State.Deleted => MyList_State.Deleted,
-            AniDBFile_State.Disk => MyList_State.Disk,
-            AniDBFile_State.Remote => MyList_State.Remote,
-            AniDBFile_State.HDD => MyList_State.HDD,
-            _ => MyList_State.Unknown
-        };
-    }
+    ANN = 1,
+    MAL = 2, // MAL ID, there may be more than one
+    AnimeNFO = 3, // Dead site.
+    Site_JP = 4, // Official Japanese Site
+    Site_EN = 5, // Official English Site
+    Wiki_EN = 6, // wikipedia.com
+    Wiki_JP = 7, // wikipedia.jp
+    Syoboi = 8, // Airing Schedule (Japanese site)
+    ALLCinema = 9,
+    Anison = 10,
+    DotLain = 11, // .lain (JP VA and anime site)
+    VNDB = 14, // The Visual Novel Database, for related VN game, if any.
+    Crunchyroll = 28, // Series page, not episodes
+    Amazon = 32, // amazon.com
+    Funimation = 34, // See Crunchyroll comment ☝
+    Bangumi = 38, // Japanese site
+    HiDive = 42, // Streaming service, series page.
+}
+
+public enum AniDBFileDeleteType
+{
+    Delete = 0,
+    DeleteLocalOnly = 1,
+    MarkDeleted = 2,
+    MarkExternalStorage = 3,
+    MarkUnknown = 4,
+    MarkDisk = 5
 }

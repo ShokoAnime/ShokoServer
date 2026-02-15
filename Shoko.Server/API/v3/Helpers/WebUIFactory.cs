@@ -1,18 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Enums;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.API.v3.Helpers;
 
 public class WebUIFactory
 {
-    public Models.Shoko.WebUI.WebUISeriesExtra GetWebUISeriesExtra(SVR_AnimeSeries series)
+    public WebUI.WebUISeriesExtra GetWebUISeriesExtra(AnimeSeries series)
     {
         var anime = series.AniDB_Anime;
         var animeEpisodes = anime.AniDBEpisodes;
@@ -20,7 +21,7 @@ public class WebUIFactory
         var cast = Series.GetCast(anime.AnimeID, [CreatorRoleType.Studio, CreatorRoleType.Producer]);
         var season = GetFirstAiringSeason(anime);
 
-        var result = new Models.Shoko.WebUI.WebUISeriesExtra
+        var result = new WebUI.WebUISeriesExtra
         {
             RuntimeLength = runtimeLength,
             FirstAirSeason = season,
@@ -31,17 +32,16 @@ public class WebUIFactory
         return result;
     }
 
-    private static string GetFirstAiringSeason(SVR_AniDB_Anime anime)
+    private static string GetFirstAiringSeason(AniDB_Anime anime)
     {
-        var type = (AnimeType)anime.AnimeType;
-        if (type != AnimeType.TVSeries && type != AnimeType.Web)
+        if (anime.AnimeType is not AnimeType.TVSeries and not AnimeType.Web)
             return null;
 
-        var (year, season) = anime.Seasons.FirstOrDefault();
+        var (year, season) = anime.YearlySeasons.FirstOrDefault();
         return year == 0 ? null : $"{season} {year}";
     }
 
-    private static TimeSpan? GuessCorrectRuntimeLength(IReadOnlyList<SVR_AniDB_Episode> episodes)
+    private static TimeSpan? GuessCorrectRuntimeLength(IReadOnlyList<AniDB_Episode> episodes)
     {
         // Return early if empty.
         if (episodes == null || episodes.Count == 0)
@@ -49,7 +49,7 @@ public class WebUIFactory
 
         // Filter the list and return if empty.
         episodes = episodes
-            .Where(episode => episode.EpisodeTypeEnum == Shoko.Models.Enums.EpisodeType.Episode)
+            .Where(episode => episode.EpisodeType is EpisodeType.Episode)
             .ToList();
         if (episodes.Count == 0)
             return null;
@@ -63,13 +63,13 @@ public class WebUIFactory
         return TimeSpan.FromSeconds(episodes[index].LengthSeconds);
     }
 
-    public Models.Shoko.WebUI.WebUIGroupExtra GetWebUIGroupExtra(SVR_AnimeGroup group, SVR_AniDB_Anime anime,
+    public WebUI.WebUIGroupExtra GetWebUIGroupExtra(AnimeGroup group, AniDB_Anime anime,
         TagFilter.Filter filter = TagFilter.Filter.None, bool orderByName = false, int tagLimit = 30)
     {
-        var result = new Models.Shoko.WebUI.WebUIGroupExtra
+        var result = new WebUI.WebUIGroupExtra
         {
             ID = group.AnimeGroupID,
-            Type = anime.AbstractAnimeType.ToV3Dto(),
+            Type = anime.AnimeType.ToV3Dto(),
             Rating = new Rating { Source = "AniDB", Value = anime.Rating, MaxValue = 1000, Votes = anime.VoteCount }
         };
         if (anime.AirDate is { } airDate && airDate != DateTime.MinValue)

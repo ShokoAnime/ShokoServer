@@ -7,58 +7,18 @@ namespace Shoko.Server.API.v3.Models.Common;
 /// Available data sources to chose from.
 /// </summary>
 /// <remarks>
-/// Should be in sync with <see cref="global::Shoko.Models.Enums.DataSourceType"/>.
+/// Should be in sync with <see cref="global::Shoko.Abstractions.Enums.DataSource"/>.
 /// </remarks>
 [JsonConverter(typeof(StringEnumConverter))]
-public enum DataSource
+public enum DataSourceType
 {
-    /// <summary>
-    /// No source.
-    /// </summary>
-    None = 0,
-
     /// <summary>
     /// AniDB.
     /// </summary>
-    AniDB = 1,
+    AniDB = 0,
 
     /// <summary>
-    /// The Tv Database (TvDB).
+    /// The Movie DataBase (TMDB).
     /// </summary>
-    TvDB = 2,
-
-    /// <summary>
-    /// The Movie Database (TMDB).
-    /// </summary>
-    TMDB = 4,
-
-    /// <summary>
-    /// Trakt.
-    /// </summary>
-    Trakt = 8,
-
-    /// <summary>
-    /// My Anime List (MAL).
-    /// </summary>
-    MAL = 16,
-
-    /// <summary>
-    /// AniList (AL).
-    /// </summary>
-    AniList = 32,
-
-    /// <summary>
-    /// Animeshon.
-    /// </summary>
-    Animeshon = 64,
-
-    /// <summary>
-    /// Kitsu.
-    /// </summary>
-    Kitsu = 128,
-
-    /// <summary>
-    /// Shoko.
-    /// </summary>
-    Shoko = 1024,
+    TMDB = 1,
 }

@@ -1,5 +1,5 @@
 using System;
-using Shoko.Server.Extensions;
+using Shoko.Abstractions.Extensions;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;

@@ -10,10 +10,10 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using SharpCompress.Common;
 using SharpCompress.Readers;
+using Shoko.Abstractions.Plugin;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
-using IApplicationPaths = Shoko.Plugin.Abstractions.IApplicationPaths;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 #nullable enable
@@ -115,6 +115,11 @@ public partial class WebUIUpdateService
             throw new Exception("404 Not found");
 
         DownloadAndInstallUpdate(url, version);
+    }
+
+    public void ReactToManualUpdate()
+    {
+        Task.Run(() => UpdateInstalled?.Invoke(this, EventArgs.Empty));
     }
 
     /// <summary>
@@ -493,7 +498,7 @@ public partial class WebUIUpdateService
     public static WebUIVersionInfo? LoadIncludedWebUIVersionInfo(IApplicationPaths? applicationPaths = null)
     {
         applicationPaths ??= ApplicationPaths.Instance;
-        var webUIFileInfo = new FileInfo(Path.Join(applicationPaths.ExecutableDirectoryPath, "webui/version.json"));
+        var webUIFileInfo = new FileInfo(Path.Join(applicationPaths.ApplicationPath, "webui/version.json"));
         if (webUIFileInfo.Exists)
             return JsonConvert.DeserializeObject<WebUIVersionInfo>(File.ReadAllText(webUIFileInfo.FullName));
         return null;

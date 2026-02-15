@@ -1,14 +1,13 @@
-using Shoko.Server.Filters.Interfaces;
+using System;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.SortingSelectors;
 
 public class AddedDateSortingSelector : SortingExpression
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This sorts by the date that a filterable was created";
 
-    public override object Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override object Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.AddedDate;
     }

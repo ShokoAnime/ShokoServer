@@ -6,7 +6,6 @@ using Shoko.Server.Filters.Functions;
 using Shoko.Server.Filters.Info;
 using Shoko.Server.Filters.Logic.DateTimes;
 using Shoko.Server.Filters.Logic.Expressions;
-using Shoko.Server.Filters.Selectors;
 using Shoko.Server.Filters.Selectors.DateSelectors;
 using Shoko.Server.Filters.User;
 using Xunit;
@@ -28,15 +27,15 @@ public class FilterTests
 
     #endregion
 
-    public static readonly IEnumerable<object[]> GroupFilterable = new[] { new[] { JsonConvert.DeserializeObject<TestFilterable>(GroupFilterableString, new IReadOnlySetConverter()) }};
-    public static readonly IEnumerable<object[]> GroupUserFilterable = new[] { new object[] { JsonConvert.DeserializeObject<TestFilterable>(GroupFilterableString, new IReadOnlySetConverter()), JsonConvert.DeserializeObject<TestFilterableUserInfo>(GroupUserFilterableString, new IReadOnlySetConverter()) }};
-    public static readonly IEnumerable<object[]> SeriesFilterable = new[] { new[] { JsonConvert.DeserializeObject<TestFilterable>(SeriesFilterableString, new IReadOnlySetConverter()) }};
-    public static readonly IEnumerable<object[]> SeriesUserFilterable = new[] { new object[] { JsonConvert.DeserializeObject<TestFilterable>(SeriesFilterableString, new IReadOnlySetConverter()), JsonConvert.DeserializeObject<TestFilterableUserInfo>(SeriesUserFilterableString, new IReadOnlySetConverter()) }};
+    public static readonly IEnumerable<object[]> GroupFilterable = new[] { new[] { JsonConvert.DeserializeObject<TestFilterable>(GroupFilterableString, new IReadOnlySetConverter()) } };
+    public static readonly IEnumerable<object[]> GroupUserFilterable = new[] { new object[] { JsonConvert.DeserializeObject<TestFilterable>(GroupFilterableString, new IReadOnlySetConverter()), JsonConvert.DeserializeObject<TestFilterableUserInfo>(GroupUserFilterableString, new IReadOnlySetConverter()) } };
+    public static readonly IEnumerable<object[]> SeriesFilterable = new[] { new[] { JsonConvert.DeserializeObject<TestFilterable>(SeriesFilterableString, new IReadOnlySetConverter()) } };
+    public static readonly IEnumerable<object[]> SeriesUserFilterable = new[] { new object[] { JsonConvert.DeserializeObject<TestFilterable>(SeriesFilterableString, new IReadOnlySetConverter()), JsonConvert.DeserializeObject<TestFilterableUserInfo>(SeriesUserFilterableString, new IReadOnlySetConverter()) } };
 
     [Theory, MemberData(nameof(GroupFilterable))]
     public void GroupFilterable_WithUserFilter_ExpectsException(TestFilterable group)
     {
-        var top = new AndExpression(new AndExpression(new HasTagExpression("comedy"), 
+        var top = new AndExpression(new AndExpression(new HasTagExpression("comedy"),
                 new NotExpression(new HasTagExpression("18 restricted"))),
             new HasWatchedEpisodesExpression());
 
@@ -53,7 +52,7 @@ public class FilterTests
         Assert.False(top.UserDependent);
         Assert.True(top.Evaluate(group, null));
     }
-    
+
     [Theory, MemberData(nameof(GroupFilterable))]
     public void GroupFilterable_WithDateFunctionFilter_ExpectsFalse(TestFilterable group)
     {
@@ -64,7 +63,7 @@ public class FilterTests
         Assert.False(top.UserDependent);
         Assert.False(top.Evaluate(group, null));
     }
-    
+
     [Theory, MemberData(nameof(GroupFilterable))]
     public void GroupFilterable_WithDateFunctionFilter_ExpectsTrue(TestFilterable group)
     {

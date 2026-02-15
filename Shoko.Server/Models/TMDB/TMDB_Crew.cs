@@ -1,5 +1,5 @@
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Repositories;
 
 #nullable enable
@@ -52,7 +52,7 @@ public abstract class TMDB_Crew : ICrew
 
     string IMetadata<string>.ID => TmdbCreditID;
 
-    DataSourceEnum IMetadata.Source => DataSourceEnum.TMDB;
+    DataSource IMetadata.Source => DataSource.TMDB;
 
     #endregion
 

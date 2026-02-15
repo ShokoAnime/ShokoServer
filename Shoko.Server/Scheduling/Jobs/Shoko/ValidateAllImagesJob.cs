@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -27,7 +27,9 @@ public class ValidateAllImagesJob : BaseJob
 
     private readonly ISchedulerFactory _schedulerFactory;
 
-    private readonly IServerSettings _settings;
+    private readonly ISettingsProvider _settingsProvider;
+
+    private IServerSettings _settings => _settingsProvider.GetSettings();
 
     public override string TypeName => "Validate All Images";
 
@@ -41,7 +43,7 @@ public class ValidateAllImagesJob : BaseJob
         List<(ImageEntityType, bool)> tmdbTypes = [
             (ImageEntityType.Poster, _settings.TMDB.AutoDownloadPosters),
             (ImageEntityType.Backdrop, _settings.TMDB.AutoDownloadBackdrops),
-            (ImageEntityType.Person, _settings.TMDB.AutoDownloadStaffImages),
+            (ImageEntityType.Creator, _settings.TMDB.AutoDownloadStaffImages),
             (ImageEntityType.Logo, _settings.TMDB.AutoDownloadLogos),
             (ImageEntityType.Art, _settings.TMDB.AutoDownloadStudioImages),
             (ImageEntityType.Thumbnail, _settings.TMDB.AutoDownloadThumbnails),
@@ -49,7 +51,7 @@ public class ValidateAllImagesJob : BaseJob
         foreach (var (imageType, enabled) in tmdbTypes)
         {
             if (!enabled) continue;
-            var pluralUpper = $"TMDB {(imageType is ImageEntityType.Person ? "People" : imageType.ToString())}";
+            var pluralUpper = $"TMDB {(imageType is ImageEntityType.Creator ? "People" : imageType.ToString())}";
             var pluralLower = $"TMDB {pluralUpper[5..].ToLowerInvariant()}";
             var singularLower = $"TMDB {imageType.ToString().ToLowerInvariant()}";
             count = 0;
@@ -120,7 +122,7 @@ public class ValidateAllImagesJob : BaseJob
             foreach (var creator in creators)
             {
                 _logger.LogTrace(CorruptImageFound, creator.GetFullImagePath());
-                await RemoveImageAndQueueDownload<DownloadAniDBImageJob>(ImageEntityType.Person, creator.CreatorID);
+                await RemoveImageAndQueueDownload<DownloadAniDBImageJob>(ImageEntityType.Creator, creator.CreatorID);
                 if (++count % 10 != 0) continue;
                 _logger.LogInformation(ReQueueingForDownload, count, creators.Count);
                 UpdateProgress($" - AniDB Creators - {count}/{creators.Count}");
@@ -157,7 +159,7 @@ public class ValidateAllImagesJob : BaseJob
     public ValidateAllImagesJob(ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
     {
         _schedulerFactory = schedulerFactory;
-        _settings = settingsProvider.GetSettings();
+        _settingsProvider = settingsProvider;
     }
 
     protected ValidateAllImagesJob() { }

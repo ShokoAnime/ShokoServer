@@ -5,13 +5,13 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Server.API.v1.Services;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Models.common;
@@ -57,22 +57,21 @@ public class Episode : BaseDirectory
         return ep;
     }
 
-    internal static Episode GenerateFromAnimeEpisode(HttpContext ctx, SVR_AnimeEpisode aep, int uid, int level,
+    internal static Episode GenerateFromAnimeEpisode(HttpContext ctx, AnimeEpisode aep, int uid, int level,
         int pic = 1)
     {
         var ep = new Episode { id = aep.AnimeEpisodeID, art = new ArtCollection() };
 
         if (aep.AniDB_Episode is { } anidbEpisode)
         {
-            ep.eptype = anidbEpisode.EpisodeTypeEnum.ToString();
+            ep.eptype = anidbEpisode.EpisodeType.ToString();
             ep.aid = anidbEpisode.AnimeID;
             ep.eid = anidbEpisode.EpisodeID;
         }
 
-        var userRating = aep.UserRating;
-        if (userRating > 0)
+        if (RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(uid, aep.AnimeEpisodeID) is { HasUserRating: true } userData)
         {
-            ep.userrating = userRating.ToString(CultureInfo.InvariantCulture);
+            ep.userrating = userData.UserRating.Value.ToString(CultureInfo.InvariantCulture);
         }
 
         if (double.TryParse(ep.rating, out var rating))
@@ -84,7 +83,7 @@ public class Episode : BaseDirectory
             }
         }
 
-        var epService = Utils.ServiceContainer.GetRequiredService<AnimeEpisodeService>();
+        var epService = Utils.ServiceContainer.GetRequiredService<ShokoServiceImplementationService>();
         if (epService.GetV1Contract(aep, uid) is { } cae)
         {
             ep.name = cae.AniDB_EnglishName;

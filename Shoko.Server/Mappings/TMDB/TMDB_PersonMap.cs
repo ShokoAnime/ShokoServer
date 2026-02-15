@@ -25,5 +25,6 @@ public class TMDB_PersonMap : ClassMap<TMDB_Person>
         Map(x => x.PlaceOfBirth);
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();
+        Map(x => x.LastOrphanedAt);
     }
 }

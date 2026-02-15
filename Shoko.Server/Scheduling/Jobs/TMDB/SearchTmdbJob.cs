@@ -31,7 +31,7 @@ public partial class SearchTmdbJob : BaseJob
 
     public override void PostInit()
     {
-        _animeTitle = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
+        _animeTitle = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.Title ?? AnimeID.ToString();
     }
 
     public override string TypeName => "Search for TMDB Match";
@@ -59,7 +59,7 @@ public partial class SearchTmdbJob : BaseJob
         {
             if (result.IsMovie)
             {
-                _logger.LogInformation("Linking anime {AnimeName} ({AnimeID}), episode {EpisodeName} ({EpisodeID}) to movie {MovieName} ({MovieID})", result.AnidbAnime.PreferredTitle, result.AnidbAnime.AnimeID, result.AnidbEpisode.PreferredTitle, result.AnidbEpisode.EpisodeID, result.TmdbMovie.OriginalTitle, result.TmdbMovie.Id);
+                _logger.LogInformation("Linking anime {AnimeName} ({AnimeID}), episode {EpisodeName} ({EpisodeID}) to movie {MovieName} ({MovieID})", result.AnidbAnime.PreferredTitle, result.AnidbAnime.AnimeID, result.AnidbEpisode.Title, result.AnidbEpisode.EpisodeID, result.TmdbMovie.OriginalTitle, result.TmdbMovie.Id);
                 await _tmdbLinkingService.AddMovieLinkForEpisode(result.AnidbEpisode.EpisodeID, result.TmdbMovie.Id, additiveLink: true, matchRating: result.MatchRating).ConfigureAwait(false);
                 await _tmdbMetadataService.ScheduleUpdateOfMovie(result.TmdbMovie.Id, forceRefresh: ForceRefresh, downloadImages: true).ConfigureAwait(false);
             }

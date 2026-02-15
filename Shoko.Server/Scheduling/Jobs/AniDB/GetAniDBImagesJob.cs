@@ -4,9 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -19,7 +19,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class GetAniDBImagesJob : BaseJob
 {
-    private SVR_AniDB_Anime _anime;
+    private AniDB_Anime _anime;
     private string _title;
     private readonly AniDBTitleHelper _titleHelper;
     private readonly ISettingsProvider _settingsProvider;
@@ -49,12 +49,12 @@ public class GetAniDBImagesJob : BaseJob
     public override void PostInit()
     {
         _anime = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID);
-        _title = _anime?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle;
+        _title = _anime?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title;
     }
 
     public override async Task Process()
     {
-        _logger.LogInformation("Processing {Job} for {Anime}", nameof(GetAniDBImagesJob), _anime?.PreferredTitle ?? AnimeID.ToString());
+        _logger.LogInformation("Processing {Job} for {Anime}", nameof(GetAniDBImagesJob), _anime?.Title ?? AnimeID.ToString());
         if (_anime == null)
         {
             _logger.LogWarning("{Anime} was null for {AnimeID}", nameof(_anime), AnimeID);
@@ -66,12 +66,10 @@ public class GetAniDBImagesJob : BaseJob
         // cover
         var scheduler = await _schedulerFactory.GetScheduler();
         if (ForceDownload || !_anime.GetImageMetadata().IsLocalAvailable)
-            await scheduler.StartJobNow<DownloadAniDBImageJob>(a =>
-            {
-                a.ImageID = _anime.AnimeID;
-                a.ImageType = ImageEntityType.Poster;
-                a.ForceDownload = ForceDownload;
-            });
+            await scheduler.StartJob<DownloadAniDBImageJob>(
+                a => (a.ImageID, a.ImageType, a.ForceDownload) = (_anime.AnimeID, ImageEntityType.Poster, ForceDownload),
+                prioritize: true
+            );
 
         if (OnlyPosters) return;
         var requests = new List<Action<DownloadAniDBImageJob>>();
@@ -95,7 +93,7 @@ public class GetAniDBImagesJob : BaseJob
                         a.ForceDownload = ForceDownload;
                     })));
             else
-                _logger.LogWarning("No AniDB characters were found for {Anime}", _anime.PreferredTitle ?? AnimeID.ToString());
+                _logger.LogWarning("No AniDB characters were found for {Anime}", _anime.Title ?? AnimeID.ToString());
         }
 
         // creators
@@ -121,11 +119,11 @@ public class GetAniDBImagesJob : BaseJob
                 {
                     a.ParentName = _title;
                     a.ImageID = va.CreatorID;
-                    a.ImageType = ImageEntityType.Person;
+                    a.ImageType = ImageEntityType.Creator;
                     a.ForceDownload = ForceDownload;
                 })));
             else
-                _logger.LogWarning("No AniDB creators were found for {Anime}", _anime.PreferredTitle ?? AnimeID.ToString());
+                _logger.LogWarning("No AniDB creators were found for {Anime}", _anime.Title ?? AnimeID.ToString());
         }
 
         foreach (var action in requests)

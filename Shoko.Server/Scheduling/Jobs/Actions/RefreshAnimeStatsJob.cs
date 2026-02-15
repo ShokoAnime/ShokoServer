@@ -35,7 +35,7 @@ public class RefreshAnimeStatsJob : BaseJob
 
     public override void PostInit()
     {
-        _anime = _animeRepo.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
+        _anime = _animeRepo.GetByAnimeID(AnimeID)?.Title ?? AnimeID.ToString();
     }
 
     public override Task Process()

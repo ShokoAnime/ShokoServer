@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
@@ -12,7 +12,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class DownloadAniDBImageJob : DownloadImageBaseJob
 {
-    public override DataSourceEnum Source => DataSourceEnum.AniDB;
+    public override DataSource Source => DataSource.AniDB;
 
     public override Dictionary<string, object> Details => ImageType switch
     {

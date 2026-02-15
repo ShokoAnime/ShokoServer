@@ -1,0 +1,10 @@
+﻿
+namespace Shoko.Server.Models.Trakt;
+
+public class Trakt_Season
+{
+    public int Trakt_SeasonID { get; set; }
+    public int Trakt_ShowID { get; set; }
+    public int Season { get; set; }
+    public string URL { get; set; }
+}

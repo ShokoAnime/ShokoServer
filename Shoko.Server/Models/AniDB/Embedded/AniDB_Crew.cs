@@ -1,8 +1,7 @@
 using System;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Models.AniDB;
@@ -28,16 +27,7 @@ public class AniDB_Crew : ICrew
 
     public int Ordering => _xref.Ordering;
 
-    public CrewRoleType RoleType => _xref.RoleType switch
-    {
-        CreatorRoleType.Producer => CrewRoleType.Producer,
-        CreatorRoleType.Director => CrewRoleType.Director,
-        CreatorRoleType.SeriesComposer => CrewRoleType.SeriesComposer,
-        CreatorRoleType.CharacterDesign => CrewRoleType.CharacterDesign,
-        CreatorRoleType.Music => CrewRoleType.Music,
-        CreatorRoleType.SourceWork => CrewRoleType.SourceWork,
-        _ => CrewRoleType.None,
-    };
+    public CrewRoleType RoleType => _xref.CrewRoleType;
 
     public IMetadata<int>? Parent => _getParent();
 
@@ -57,7 +47,7 @@ public class AniDB_Crew : ICrew
 
     #region IMetadata Implementation
 
-    DataSourceEnum IMetadata.Source => DataSourceEnum.AniDB;
+    DataSource IMetadata.Source => DataSource.AniDB;
 
     #endregion
 

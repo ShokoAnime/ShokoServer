@@ -4,9 +4,9 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Plugin.Abstractions.Events;
-using Shoko.Plugin.Abstractions.Services;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Services;
 
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 

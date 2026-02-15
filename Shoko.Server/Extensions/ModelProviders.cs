@@ -1,8 +1,8 @@
 ﻿using System;
-using Shoko.Models.Enums;
-using Shoko.Models.Metro;
-using Shoko.Server.Models;
+using Shoko.Server.API.v1.Models;
+using Shoko.Server.API.v1.Models.Metro;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.Trakt;
 using Shoko.Server.Providers.TraktTV.Contracts;
 
@@ -36,32 +36,32 @@ public static class ModelProviders
         return contract;
     }
 
-    public static void Populate(this SVR_AnimeGroup group, SVR_AnimeSeries series)
+    public static void Populate(this AnimeGroup group, AnimeSeries series)
     {
         group.Populate(series, DateTime.Now);
     }
 
-    public static void Populate(this SVR_AnimeGroup group, SVR_AnimeSeries series, DateTime now)
+    public static void Populate(this AnimeGroup group, AnimeSeries series, DateTime now)
     {
-        group.Description = series.PreferredOverview;
-        var name = series.PreferredTitle;
+        group.Description = series.PreferredOverview?.Value ?? string.Empty;
+        var name = series.Title;
         group.GroupName = name;
         group.MainAniDBAnimeID = series.AniDB_ID;
         group.DateTimeUpdated = now;
         group.DateTimeCreated = now;
     }
 
-    public static void Populate(this SVR_AnimeGroup group, SVR_AniDB_Anime anime, DateTime now)
+    public static void Populate(this AnimeGroup group, AniDB_Anime anime, DateTime now)
     {
         group.Description = anime.Description;
-        var name = anime.PreferredTitle;
+        var name = anime.Title;
         group.GroupName = name;
         group.MainAniDBAnimeID = anime.AnimeID;
         group.DateTimeUpdated = now;
         group.DateTimeCreated = now;
     }
 
-    public static void Populate(this SVR_AnimeEpisode episode, SVR_AniDB_Episode anidbEpisode)
+    public static void Populate(this AnimeEpisode episode, AniDB_Episode anidbEpisode)
     {
         episode.AniDB_EpisodeID = anidbEpisode.EpisodeID;
         episode.DateTimeUpdated = DateTime.Now;

@@ -1,23 +1,43 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using Shoko.Models;
-using Shoko.Models.Enums;
-using Shoko.Models.MediaInfo;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Video.Media;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.MediaInfo;
+using Shoko.Server.Models.Release;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities;
 
 public static class FileQualityFilter
 {
+    public enum FileQualityFilterOperationType
+    {
+        EQUALS,
+        LESS_EQ,
+        GREATER_EQ,
+        IN,
+        NOTIN
+    }
+
+    public enum FileQualityFilterType
+    {
+        RESOLUTION,
+        SOURCE,
+        VERSION,
+        AUDIOSTREAMCOUNT,
+        VIDEOCODEC,
+        AUDIOCODEC,
+        CHAPTER,
+        SUBGROUP,
+        SUBSTREAMCOUNT
+    }
     /*
     Types (This is to determine the order of these types to use)
         List
 
-    Quality -- AniDB_File.File_Source
+    Quality -- DatabaseReleaseInfo.LegacySource / DatabaseReleaseInfo.Source
         can be Array, but will prolly use List
     - BD
     - DVD
@@ -54,10 +74,10 @@ public static class FileQualityFilter
 
     #region Checks
 
-    public static bool CheckFileKeep(SVR_VideoLocal video)
+    public static bool CheckFileKeep(VideoLocal video)
     {
         // Don't delete files with missing info. If it's not getting updated, then do it manually
-        var anidbFile = video.AniDBFile;
+        var anidbFile = video.ReleaseInfo;
         var allowUnknown = Utils.SettingsProvider.GetSettings().FileQualityPreferences.AllowDeletingFilesWithMissingInfo;
         if (IsNullOrUnknown(anidbFile) && !allowUnknown) return true;
 
@@ -132,14 +152,14 @@ public static class FileQualityFilter
         };
     }
 
-    private static bool CheckChaptered(AniDB_File anidbFile, IMediaInfo media)
+    private static bool CheckChaptered(StoredReleaseInfo anidbFile, IMediaInfo media)
     {
         return anidbFile?.IsChaptered ?? media?.Chapters.Any() ?? false;
     }
 
-    private static bool CheckDeprecated(AniDB_File aniFile)
+    private static bool CheckDeprecated(StoredReleaseInfo aniFile)
     {
-        return !(aniFile?.IsDeprecated ?? false);
+        return !(aniFile?.IsCorrupted ?? false);
     }
 
     private static bool CheckResolution(IMediaInfo media)
@@ -147,21 +167,21 @@ public static class FileQualityFilter
         if (media?.VideoStream is not { } videoStream || videoStream.Width == 0 || videoStream.Height == 0)
             return true;
 
-        var resolution = MediaInfoUtils.GetStandardResolution(new(videoStream.Width, videoStream.Height));
+        var resolution = MediaInfoUtility.GetStandardResolution(new(videoStream.Width, videoStream.Height));
         var resolutionArea = videoStream.Width * videoStream.Height;
         return Settings.RequiredResolutions.Operator switch
         {
             FileQualityFilterOperationType.EQUALS =>
                 resolution.Equals(Settings.RequiredResolutions.Value.FirstOrDefault()),
             FileQualityFilterOperationType.GREATER_EQ =>
-                MediaInfoUtils.ResolutionArea169
-                    .Concat(MediaInfoUtils.ResolutionArea43)
+                MediaInfoUtility.ResolutionArea169
+                    .Concat(MediaInfoUtility.ResolutionArea43)
                     .Where(pair => resolutionArea >= pair.Key)
                     .Select(pair => pair.Value)
                     .FindInEnumerable(Settings.RequiredResolutions.Value),
             FileQualityFilterOperationType.LESS_EQ =>
-                MediaInfoUtils.ResolutionArea169
-                    .Concat(MediaInfoUtils.ResolutionArea43)
+                MediaInfoUtility.ResolutionArea169
+                    .Concat(MediaInfoUtility.ResolutionArea43)
                     .Where(pair => resolutionArea <= pair.Key)
                     .Select(pair => pair.Value)
                     .FindInEnumerable(Settings.RequiredResolutions.Value),
@@ -173,7 +193,7 @@ public static class FileQualityFilter
         };
     }
 
-    private static bool CheckSource(SVR_AniDB_File aniFile)
+    private static bool CheckSource(StoredReleaseInfo aniFile)
     {
         if (IsNullOrUnknown(aniFile))
         {
@@ -181,7 +201,7 @@ public static class FileQualityFilter
         }
 
         var operationType = Settings.RequiredSources.Operator;
-        var source = aniFile.File_Source.ToLowerInvariant();
+        var source = aniFile.LegacySource.ToLowerInvariant();
         if (FileQualityPreferences.SimplifiedSources.TryGetValue(source, out var simplifiedSource))
         {
             source = simplifiedSource;
@@ -195,7 +215,7 @@ public static class FileQualityFilter
         };
     }
 
-    private static bool CheckSubGroup(SVR_AniDB_File aniFile)
+    private static bool CheckSubGroup(StoredReleaseInfo aniFile)
     {
         if (IsNullOrUnknown(aniFile))
         {
@@ -205,15 +225,15 @@ public static class FileQualityFilter
         var operationType = Settings.RequiredSubGroups.Operator;
         return operationType switch
         {
-            FileQualityFilterOperationType.IN => Settings.RequiredSubGroups.Value.Contains(aniFile.Anime_GroupName.ToLowerInvariant()) ||
-                                                 Settings.RequiredSubGroups.Value.Contains(aniFile.Anime_GroupNameShort.ToLowerInvariant()),
-            FileQualityFilterOperationType.NOTIN => !Settings.RequiredSubGroups.Value.Contains(aniFile.Anime_GroupName.ToLowerInvariant()) &&
-                                                    !Settings.RequiredSubGroups.Value.Contains(aniFile.Anime_GroupNameShort.ToLowerInvariant()),
+            FileQualityFilterOperationType.IN => Settings.RequiredSubGroups.Value.Contains(aniFile.GroupName.ToLowerInvariant()) ||
+                                                 Settings.RequiredSubGroups.Value.Contains(aniFile.GroupShortName.ToLowerInvariant()),
+            FileQualityFilterOperationType.NOTIN => !Settings.RequiredSubGroups.Value.Contains(aniFile.GroupName.ToLowerInvariant()) &&
+                                                    !Settings.RequiredSubGroups.Value.Contains(aniFile.GroupShortName.ToLowerInvariant()),
             _ => true
         };
     }
 
-    private static bool CheckSubStreamCount(SVR_VideoLocal file)
+    private static bool CheckSubStreamCount(VideoLocal file)
     {
         var streamCount = file?.MediaInfo?.TextStreams.Count ?? -1;
         if (streamCount == -1)
@@ -256,7 +276,7 @@ public static class FileQualityFilter
     #region Comparisons
 
     // -1 if oldFile is to be deleted, 0 if they are comparatively equal, 1 if the oldFile is better
-    public static int CompareTo(SVR_VideoLocal newVideo, SVR_VideoLocal oldVideo)
+    public static int CompareTo(VideoLocal newVideo, VideoLocal oldVideo)
     {
         if (newVideo == null && oldVideo == null)
             return 0;
@@ -266,9 +286,9 @@ public static class FileQualityFilter
             return -1;
 
         var newMedia = newVideo.MediaInfo;
-        var newAnidbFile = newVideo.AniDBFile;
+        var newAnidbFile = newVideo.ReleaseInfo;
         var oldMedia = oldVideo.MediaInfo;
-        var oldAnidbFile = oldVideo.AniDBFile;
+        var oldAnidbFile = oldVideo.ReleaseInfo;
         foreach (var type in Settings.PreferredTypes)
         {
             var result = (type) switch
@@ -342,7 +362,7 @@ public static class FileQualityFilter
         return oldStreamCount.CompareTo(newStreamCount);
     }
 
-    private static int CompareChapterTo(IMediaInfo newMedia, SVR_AniDB_File newFile, IMediaInfo oldMedia, SVR_AniDB_File oldFile)
+    private static int CompareChapterTo(IMediaInfo newMedia, StoredReleaseInfo newFile, IMediaInfo oldMedia, StoredReleaseInfo oldFile)
     {
         var newIsChaptered = newFile?.IsChaptered ?? newMedia?.Chapters.Any() ?? false;
         var oldIsChaptered = oldFile?.IsChaptered ?? oldMedia?.Chapters.Any() ?? false;
@@ -372,7 +392,7 @@ public static class FileQualityFilter
         return newIndex.CompareTo(oldIndex);
     }
 
-    private static int CompareSourceTo(SVR_AniDB_File newFile, SVR_AniDB_File oldFile)
+    private static int CompareSourceTo(StoredReleaseInfo newFile, StoredReleaseInfo oldFile)
     {
         var newAnidbFileIsNullOrUnknown = IsNullOrUnknown(newFile);
         var oldAnidbFileIsNullOrUnknown = IsNullOrUnknown(oldFile);
@@ -383,11 +403,11 @@ public static class FileQualityFilter
         if (oldAnidbFileIsNullOrUnknown)
             return -1;
 
-        var newSource = newFile!.File_Source.ToLowerInvariant();
+        var newSource = newFile!.LegacySource.ToLowerInvariant();
         if (FileQualityPreferences.SimplifiedSources.TryGetValue(newSource, out var value))
             newSource = value;
 
-        var oldSource = oldFile!.File_Source.ToLowerInvariant();
+        var oldSource = oldFile!.LegacySource.ToLowerInvariant();
         if (FileQualityPreferences.SimplifiedSources.TryGetValue(oldSource, out value))
             oldSource = value;
 
@@ -402,7 +422,7 @@ public static class FileQualityFilter
         return newIndex.CompareTo(oldIndex);
     }
 
-    private static int CompareSubGroupTo(SVR_AniDB_File newFile, SVR_AniDB_File oldFile)
+    private static int CompareSubGroupTo(StoredReleaseInfo newFile, StoredReleaseInfo oldFile)
     {
         var newAnidbFileIsNullOrUnknown = IsNullOrUnknown(newFile);
         var oldAnidbFileIsNullOrUnknown = IsNullOrUnknown(oldFile);
@@ -414,18 +434,16 @@ public static class FileQualityFilter
             return -1;
 
         var newIndex = -1;
-        var newGroup = newFile!.ReleaseGroup;
-        if (!string.IsNullOrEmpty(newGroup.GroupName))
-            newIndex = Settings.PreferredSubGroups.IndexOf(newGroup.GroupName);
-        if (newIndex == -1 && !string.IsNullOrEmpty(newGroup.GroupNameShort))
-            newIndex = Settings.PreferredSubGroups.IndexOf(newGroup.GroupNameShort);
+        if (!string.IsNullOrEmpty(newFile.GroupName))
+            newIndex = Settings.PreferredSubGroups.IndexOf(newFile.GroupName);
+        if (newIndex == -1 && !string.IsNullOrEmpty(newFile.GroupShortName))
+            newIndex = Settings.PreferredSubGroups.IndexOf(newFile.GroupShortName);
 
         var oldIndex = -1;
-        var oldGroup = oldFile!.ReleaseGroup;
-        if (!string.IsNullOrEmpty(oldGroup.GroupName))
-            oldIndex = Settings.PreferredSubGroups.IndexOf(oldGroup.GroupName);
-        if (oldIndex == -1 && !string.IsNullOrEmpty(oldGroup.GroupNameShort))
-            oldIndex = Settings.PreferredSubGroups.IndexOf(oldGroup.GroupNameShort);
+        if (!string.IsNullOrEmpty(oldFile.GroupName))
+            oldIndex = Settings.PreferredSubGroups.IndexOf(oldFile.GroupName);
+        if (oldIndex == -1 && !string.IsNullOrEmpty(oldFile.GroupShortName))
+            oldIndex = Settings.PreferredSubGroups.IndexOf(oldFile.GroupShortName);
 
         if (newIndex == -1 && oldIndex == -1)
             return 0;
@@ -443,7 +461,7 @@ public static class FileQualityFilter
         return oldStreamCount.CompareTo(newStreamCount);
     }
 
-    private static int CompareVersionTo(SVR_AniDB_File newFile, SVR_AniDB_File oldFile, IMediaInfo newMedia, IMediaInfo oldMedia)
+    private static int CompareVersionTo(StoredReleaseInfo newFile, StoredReleaseInfo oldFile, IMediaInfo newMedia, IMediaInfo oldMedia)
     {
         var newAnidbFileIsNullOrUnknown = IsNullOrUnknown(newFile);
         var oldAnidbFileIsNullOrUnknown = IsNullOrUnknown(oldFile);
@@ -467,7 +485,7 @@ public static class FileQualityFilter
         if (!string.Equals(newSimpleCodec, oldSimpleCodec))
             return 0;
 
-        return oldFile.FileVersion.CompareTo(newFile.FileVersion);
+        return oldFile.Version.CompareTo(newFile.Version);
     }
 
     private static int CompareVideoCodecTo(IMediaInfo newMedia, IMediaInfo oldMedia)
@@ -521,25 +539,24 @@ public static class FileQualityFilter
 
     #region Information from Models (Operations that aren't simple)
 
-    private static bool IsNullOrUnknown([NotNullWhen(false)][MaybeNullWhen(true)] SVR_AniDB_File file)
+    private static bool IsNullOrUnknown([NotNullWhen(false)][MaybeNullWhen(true)] StoredReleaseInfo file)
     {
         // Check file.
         if (file is null ||
-            string.IsNullOrWhiteSpace(file.File_Source) ||
-            string.Equals(file.File_Source, "unknown", StringComparison.InvariantCultureIgnoreCase) ||
-            string.Equals(file.File_Source, "raw", StringComparison.InvariantCultureIgnoreCase))
+            string.IsNullOrWhiteSpace(file.LegacySource) ||
+            string.Equals(file.LegacySource, "unknown", StringComparison.InvariantCultureIgnoreCase) ||
+            string.Equals(file.LegacySource, "raw", StringComparison.InvariantCultureIgnoreCase))
             return true;
 
         // Check release group.
-        var releaseGroup = file.ReleaseGroup;
-        if (string.IsNullOrWhiteSpace(releaseGroup.GroupName) ||
-            string.Equals(releaseGroup.GroupName, "unknown", StringComparison.InvariantCultureIgnoreCase) ||
-            string.Equals(releaseGroup.GroupName, "raw", StringComparison.InvariantCultureIgnoreCase))
+        if (string.IsNullOrWhiteSpace(file.GroupName) ||
+            string.Equals(file.GroupName, "unknown", StringComparison.InvariantCultureIgnoreCase) ||
+            string.Equals(file.GroupName, "raw", StringComparison.InvariantCultureIgnoreCase))
             return true;
 
-        if (string.IsNullOrWhiteSpace(releaseGroup.GroupNameShort) ||
-            string.Equals(releaseGroup.GroupNameShort, "unknown", StringComparison.InvariantCultureIgnoreCase) ||
-            string.Equals(releaseGroup.GroupNameShort, "raw", StringComparison.InvariantCultureIgnoreCase))
+        if (string.IsNullOrWhiteSpace(file.GroupShortName) ||
+            string.Equals(file.GroupShortName, "unknown", StringComparison.InvariantCultureIgnoreCase) ||
+            string.Equals(file.GroupShortName, "raw", StringComparison.InvariantCultureIgnoreCase))
             return true;
 
         return false;

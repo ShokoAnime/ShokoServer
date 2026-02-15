@@ -121,9 +121,8 @@ public static class SentryInit
 
             if (ex is GenericADOException or JobPersistenceException)
             {
-                var innerException = ex.InnerException;
                 // Error codes: https://www.sqlite.org/rescode.html
-                if (innerException is SqliteException
+                if (ex.InnerException is SqliteException
                     {
                         SqliteErrorCode:
                             4 /* aborted by app */ or
@@ -134,7 +133,7 @@ public static class SentryInit
                             14 /* cannot open file */ or
                             22 /* no LFS support */
                     }) return false;
-                if (innerException is MySqlException { Number: (int)MySqlErrorCode.UnableToConnectToHost }) return false;
+                if (ex.InnerException is MySqlException { Number: (int)MySqlErrorCode.UnableToConnectToHost }) return false;
             }
 
             if (_includedEvents.Contains(type)) return true;

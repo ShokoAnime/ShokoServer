@@ -1,9 +1,9 @@
-#nullable enable
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_CreatorRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Creator, int>(databaseFactory)
@@ -15,7 +15,7 @@ public class AniDB_CreatorRepository(DatabaseFactory databaseFactory) : BaseCach
 
     public override void PopulateIndexes()
     {
-        _creatorIDs = new PocoIndex<int, AniDB_Creator, int>(Cache, a => a.CreatorID);
+        _creatorIDs = Cache.CreateIndex(a => a.CreatorID);
     }
 
     public AniDB_Creator? GetByCreatorID(int creatorID)

@@ -1,4 +1,4 @@
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Repositories;
 
 #nullable enable

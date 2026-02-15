@@ -19,7 +19,7 @@ public class AniDB_Anime_Character_Creator
 
     #endregion
 
-    public SVR_AniDB_Anime? Anime
+    public AniDB_Anime? Anime
         => RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 
     public AniDB_Creator? Creator

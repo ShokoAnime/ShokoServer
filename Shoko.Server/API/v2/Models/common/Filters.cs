@@ -3,12 +3,12 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Models;
-using Shoko.Models.Enums;
+using Shoko.Abstractions.Filtering.Services;
+using Shoko.Server.API.v1.Models;
 using Shoko.Server.Extensions;
-using Shoko.Server.Filters;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.API.v2.Models.common;
 
@@ -28,7 +28,7 @@ public class Filters : BaseDirectory
 
     internal static Filters GenerateFromGroupFilter(HttpContext ctx, FilterPreset gf, int uid, bool nocast,
         bool notag, int level,
-        bool all, bool allpic, int pic, TagFilter.Filter tagfilter, IDictionary<FilterPreset, IEnumerable<IGrouping<int, int>>> evaluatedResults = null)
+        bool all, bool allpic, int pic, TagFilter.Filter tagfilter, IReadOnlyDictionary<FilterPreset, IReadOnlyList<IGrouping<int, int>>> evaluatedResults = null)
     {
         var f = new Filters { id = gf.FilterPresetID, name = gf.Name };
         var hideCategories = ctx.GetUser().GetHideCategories();
@@ -39,7 +39,7 @@ public class Filters : BaseDirectory
             {
                 if (a.Hidden) return false;
                 // return true if it's not a tag
-                if ((a.FilterType & GroupFilterType.Tag) == 0) return true;
+                if (!a.FilterType.HasFlag(FilterPresetType.Tag)) return true;
                 if (hideCategories.Contains(a.Name)) return false;
                 return !TagFilter.IsTagBlackListed(a.Name, tagfilter);
             })
@@ -47,8 +47,8 @@ public class Filters : BaseDirectory
 
         if (evaluatedResults == null)
         {
-            var evaluator = ctx.RequestServices.GetRequiredService<FilterEvaluator>();
-            evaluatedResults = evaluator.BatchEvaluateFilters(gfs, ctx.GetUser().JMMUserID);
+            var evaluator = ctx.RequestServices.GetRequiredService<IFilterEvaluator>();
+            evaluatedResults = evaluator.BatchPrepareFilters(gfs, ctx.GetUser());
             gfs = gfs.Where(a => evaluatedResults[a].Any()).ToList();
         }
 
@@ -57,8 +57,8 @@ public class Filters : BaseDirectory
             var filters = gfs.Select(cgf =>
                 Filter.GenerateFromGroupFilter(ctx, cgf, uid, nocast, notag, level - 1, all, allpic, pic, tagfilter, evaluatedResults[cgf].ToList())).ToList();
 
-            f.filters = gf.FilterType == (GroupFilterType.Season | GroupFilterType.Directory)
-                ? filters.OrderBy(a => a.name, new SeasonComparator()).Cast<Filters>().ToList()
+            f.filters = gf.FilterType == (FilterPresetType.Season | FilterPresetType.Directory)
+                ? filters.OrderBy(a => a.name, new CL_SeasonComparator()).Cast<Filters>().ToList()
                 : filters.OrderByNatural(a => a.name).Cast<Filters>().ToList();
 
             f.size = filters.Count;

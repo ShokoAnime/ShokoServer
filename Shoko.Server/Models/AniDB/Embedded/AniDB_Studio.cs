@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
@@ -24,7 +26,7 @@ public class AniDB_Studio : IStudio<ISeries>
 
     #region Constructor
 
-    public AniDB_Studio(AniDB_Anime_Staff xref, AniDB_Creator creator, SVR_AniDB_Anime parent)
+    public AniDB_Studio(AniDB_Anime_Staff xref, AniDB_Creator creator, AniDB_Anime parent)
     {
         _xref = xref;
         _creator = creator;
@@ -38,7 +40,7 @@ public class AniDB_Studio : IStudio<ISeries>
 
     #region Methods
 
-    IEnumerable<SVR_AniDB_Anime> GetAnime() =>
+    IEnumerable<AniDB_Anime> GetAnime() =>
         RepoFactory.AniDB_Anime_Character_Creator.GetByCreatorID(ID)
         .Select(xref => xref.Anime)
         .WhereNotNull();
@@ -47,13 +49,13 @@ public class AniDB_Studio : IStudio<ISeries>
 
     #region IMetadata Implementation
 
-    DataSourceEnum IMetadata.Source => DataSourceEnum.AniDB;
+    DataSource IMetadata.Source => DataSource.AniDB;
 
     #endregion
 
     #region IWithPortraitImage Implementation
 
-    IImageMetadata? IWithPortraitImage.PortraitImage => _creator.GetImageMetadata();
+    IImage? IWithPortraitImage.PortraitImage => _creator.GetImageMetadata();
 
     #endregion
 

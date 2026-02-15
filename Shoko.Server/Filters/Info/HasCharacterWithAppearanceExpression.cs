@@ -1,12 +1,13 @@
 using System;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.Filters.Info;
 
 public class HasCharacterWithAppearanceExpression : FilterExpression<bool>, IWithStringParameter, IWithSecondStringParameter
 {
-    public HasCharacterWithAppearanceExpression(string characterID, CharacterAppearanceType appearance)
+    public HasCharacterWithAppearanceExpression(string characterID, CastRoleType appearance)
     {
         CharacterID = characterID;
         Appearance = appearance;
@@ -15,9 +16,9 @@ public class HasCharacterWithAppearanceExpression : FilterExpression<bool>, IWit
     public HasCharacterWithAppearanceExpression() { }
 
     public string CharacterID { get; set; }
-    public CharacterAppearanceType Appearance { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
+
+    public CastRoleType Appearance { get; set; }
+
     public override string HelpDescription => "This condition passes if the filterable has a character with the specified appearance.";
 
     string IWithStringParameter.Parameter
@@ -29,10 +30,10 @@ public class HasCharacterWithAppearanceExpression : FilterExpression<bool>, IWit
     string IWithSecondStringParameter.SecondParameter
     {
         get => Appearance.ToString();
-        set => Appearance = Enum.Parse<CharacterAppearanceType>(value);
+        set => Appearance = Enum.Parse<CastRoleType>(value, ignoreCase: true);
     }
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.CharacterAppearances.TryGetValue(Appearance, out var appearances) && appearances.Contains(CharacterID);
     }

@@ -2,10 +2,10 @@
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
@@ -13,7 +13,7 @@ namespace Shoko.Server.API;
 
 public static class APIHelper
 {
-    public static string ConstructImageLinkFromTypeAndId(HttpContext ctx, ImageEntityType imageType, DataSourceEnum dataType, int id, bool short_url = true)
+    public static string ConstructImageLinkFromTypeAndId(HttpContext ctx, ImageEntityType imageType, DataSource dataType, int id, bool short_url = true)
          => ProperURL(ctx, $"/api/v3/Image/{dataType.ToV3Dto()}/{imageType.ToV3Dto()}/{id}", short_url);
 
     public static string ProperURL(HttpContext ctx, string path, bool short_url = false)
@@ -31,9 +31,9 @@ public static class APIHelper
     // Only get the user once from the db for the same request, and let the GC
     // automagically clean up the user object reference mapping when the request
     // is disposed.
-    private static readonly ConditionalWeakTable<ClaimsPrincipal, SVR_JMMUser> _userTable = [];
+    private static readonly ConditionalWeakTable<ClaimsPrincipal, JMMUser> _userTable = [];
 
-    public static SVR_JMMUser GetUser(this ClaimsPrincipal identity)
+    public static JMMUser GetUser(this ClaimsPrincipal identity)
     {
         if (!ServerState.Instance.ServerOnline) return InitUser.Instance;
 
@@ -50,8 +50,18 @@ public static class APIHelper
         return user;
     }
 
-    public static SVR_JMMUser GetUser(this HttpContext ctx)
+    public static JMMUser GetUser(this HttpContext ctx)
     {
         return ctx.User.GetUser();
+    }
+
+    public static (string, string) GetToken(this HttpContext ctx)
+    {
+        var token = ctx.User.Claims.FirstOrDefault(c => c.Type == "apikey")?.Value;
+        var device = ctx.User.Claims.FirstOrDefault(c => c.Type == "apikey.device")?.Value;
+        if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(device))
+            return (token, device);
+
+        return (null, null);
     }
 }

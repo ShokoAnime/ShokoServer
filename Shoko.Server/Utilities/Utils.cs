@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
 using NLog;
 using NLog.Config;
@@ -11,15 +10,14 @@ using NLog.Filters;
 using NLog.Targets;
 using NLog.Targets.Wrappers;
 using Quartz.Logging;
-using Shoko.Models.Enums;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.API.SignalR.NLog;
-using Shoko.Server.Extensions;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities;
 
-public static class Utils
+public static partial class Utils
 {
     public static ShokoServer ShokoServer { get; set; }
 
@@ -40,7 +38,7 @@ public static class Utils
             if (!string.IsNullOrWhiteSpace(shokoHome))
                 return _applicationPath = Path.GetFullPath(shokoHome);
 
-            if (IsLinux)
+            if (!PlatformUtility.IsWindows)
                 return _applicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".shoko",
                     DefaultInstance);
 
@@ -244,28 +242,7 @@ public static class Utils
     }
 
     public static bool IsVideo(string fileName)
-    {
-        var videoExtensions = SettingsProvider.GetSettings().Import.VideoExtensions
-            .Select(ext => ext.Trim().ToUpper())
-            .WhereNotDefault()
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-
-        return videoExtensions.Contains(Path.GetExtension(fileName).Replace(".", string.Empty).Trim());
-    }
-
-    public static bool IsLinux
-    {
-        get
-        {
-            var p = (int)Environment.OSVersion.Platform;
-            return p == 4 || p == 6 || p == 128;
-        }
-    }
-
-    public static bool IsRunningOnLinuxOrMac()
-    {
-        return !RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-    }
+        => SettingsProvider.GetSettings().Import.VideoExtensions.Any(extName => fileName.EndsWith(extName, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Determines an encoded string's encoding by analyzing its byte order mark (BOM).

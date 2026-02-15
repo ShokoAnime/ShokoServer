@@ -1,4 +1,5 @@
-using Shoko.Server.Filters.Interfaces;
+using System;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Info;
 
@@ -7,13 +8,11 @@ namespace Shoko.Server.Filters.Info;
 /// </summary>
 public class MissingTraktLinkExpression : FilterExpression<bool>
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if any of the anime should have a Trakt link but does not have one";
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return !filterable.HasTraktLink;
+        return false;
     }
 
     protected bool Equals(MissingTraktLinkExpression other)

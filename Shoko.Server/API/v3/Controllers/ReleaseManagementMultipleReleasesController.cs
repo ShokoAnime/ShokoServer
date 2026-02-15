@@ -23,7 +23,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
     /// <summary>
     /// Get episodes with multiple files attached.
     /// </summary>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <param name="includeFiles">Include files with the episodes.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
@@ -34,7 +34,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
     /// <returns></returns>
     [HttpGet("Episodes")]
     public ActionResult<ListResult<Episode>> GetEpisodes(
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
         [FromQuery] bool includeFiles = true,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeAbsolutePaths = false,
@@ -79,7 +79,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
     /// <summary>
     /// Get series with multiple releases.
     /// </summary>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <param name="ignoreVariations">Ignore manually toggled variations in the results.</param>
     /// <param name="onlyFinishedSeries">Only show finished series.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
@@ -87,7 +87,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
     /// <returns></returns>
     [HttpGet("Series")]
     public ActionResult<ListResult<Series.WithEpisodeCount>> GetSeriesWithMultipleReleases(
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
         [FromQuery] bool ignoreVariations = true,
         [FromQuery] bool onlyFinishedSeries = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
@@ -107,7 +107,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
     /// Get episodes with multiple files attached.
     /// </summary>
     /// <param name="seriesID">Shoko Series ID</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <param name="includeFiles">Include files with the episodes.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
@@ -119,7 +119,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
     [HttpGet("Series/{seriesID}/Episodes")]
     public ActionResult<ListResult<Episode>> GetEpisodesForSeries(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
         [FromQuery] bool includeFiles = true,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeAbsolutePaths = false,

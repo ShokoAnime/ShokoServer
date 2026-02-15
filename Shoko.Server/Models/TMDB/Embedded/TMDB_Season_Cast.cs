@@ -1,6 +1,6 @@
 
 #nullable enable
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models.TMDB;

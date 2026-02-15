@@ -1,16 +1,14 @@
 using System;
-using Shoko.Server.Filters.Interfaces;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Selectors.DateSelectors;
 
 public class AirDateSelector : FilterExpression<DateTime?>
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This returns the first date that a filterable aired";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
-    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override DateTime? Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.AirDate;
     }

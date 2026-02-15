@@ -5,12 +5,12 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Plugin.Abstractions.Extensions;
-using Shoko.Plugin.Abstractions.Services;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -19,7 +19,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
@@ -53,7 +52,7 @@ public class EpisodeController : BaseController
 
     private readonly AnimeGroupService _groupService;
 
-    private readonly AnimeEpisodeService _episodeService;
+    private readonly IImageManager _imageManager;
 
     private readonly IUserDataService _userDataService;
 
@@ -65,7 +64,7 @@ public class EpisodeController : BaseController
         ISettingsProvider settingsProvider,
         AnimeSeriesService seriesService,
         AnimeGroupService groupService,
-        AnimeEpisodeService episodeService,
+        IImageManager imageManager,
         IUserDataService userDataService,
         TmdbLinkingService tmdbLinkingService,
         TmdbMetadataService tmdbMetadataService
@@ -73,7 +72,7 @@ public class EpisodeController : BaseController
     {
         _seriesService = seriesService;
         _groupService = groupService;
-        _episodeService = episodeService;
+        _imageManager = imageManager;
         _userDataService = userDataService;
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbMetadataService = tmdbMetadataService;
@@ -91,13 +90,14 @@ public class EpisodeController : BaseController
     /// <param name="includeUnaired">Include unaired episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeVoted">Include voted episodes in the list.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
     /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
     /// <param name="includeFiles">Include files with the episodes.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
+    /// <param name="includeReleaseInfo">Include release info data.</param>
     /// <param name="search">An optional search query to filter episodes based on their titles.</param>
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns>A list of episodes based on the specified filters.</returns>
@@ -109,13 +109,14 @@ public class EpisodeController : BaseController
         [FromQuery] IncludeOnlyFilter includeUnaired = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeVoted = IncludeOnlyFilter.True,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
         [FromQuery] bool includeFiles = false,
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
+        [FromQuery] bool includeReleaseInfo = false,
         [FromQuery] string search = null, [FromQuery] bool fuzzy = true)
     {
         var user = User;
@@ -153,7 +154,7 @@ public class EpisodeController : BaseController
                 // Filter by episode type, if specified
                 if (type != null && type.Count > 0)
                 {
-                    var mappedType = anidb.AbstractEpisodeType.ToV3Dto();
+                    var mappedType = anidb.EpisodeType.ToV3Dto();
                     if (!type.Contains(mappedType))
                         return false;
                 }
@@ -195,7 +196,7 @@ public class EpisodeController : BaseController
                     // If we should hide voted episodes and the episode is voted, then hide it.
                     // Or if we should only show voted episodes and the the episode is not voted, then hide it.
                     var shouldHideVoted = includeVoted == IncludeOnlyFilter.False;
-                    var isVoted = RepoFactory.AniDB_Vote.GetByEntityAndType(shoko.AniDB_EpisodeID, Shoko.Models.Enums.AniDBVoteType.Episode) is { VoteValue: >= 0 };
+                    var isVoted = RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(user.JMMUserID, shoko.AniDB_EpisodeID) is { HasUserRating: true };
                     if (shouldHideVoted == isVoted)
                         return false;
                 }
@@ -207,20 +208,20 @@ public class EpisodeController : BaseController
             var languages = SettingsProvider.GetSettings()
                 .Language.EpisodeTitleLanguageOrder
                 .Select(lang => lang.GetTitleLanguage())
-                .Concat(new TitleLanguage[] { TitleLanguage.English, TitleLanguage.Romaji })
+                .Concat([TitleLanguage.English, TitleLanguage.Romaji])
                 .ToHashSet();
             return episodes
                 .Search(
                     search,
-                    ep => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(ep.AniDB.EpisodeID)
+                    ep => ep.AniDB.GetTitles()
                         .Where(title => title != null && languages.Contains(title.Language))
                         .Select(title => title.Title)
-                        .Append(ep.Shoko.PreferredTitle)
+                        .Append(ep.Shoko.Title)
                         .Distinct()
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
+                .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo), page, pageSize);
         }
 
         // Order the episodes since we're not using the search ordering.
@@ -228,7 +229,7 @@ public class EpisodeController : BaseController
             .OrderBy(episode => episode.Shoko.AnimeSeriesID)
             .ThenBy(episode => episode.AniDB.EpisodeType)
             .ThenBy(episode => episode.AniDB.EpisodeNumber)
-            .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
+            .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo), page, pageSize);
     }
 
     /// <summary>
@@ -267,7 +268,7 @@ public class EpisodeController : BaseController
                 // Filter by episode type, if specified
                 if (type != null && type.Count > 0)
                 {
-                    var mappedType = episode.AbstractEpisodeType.ToV3Dto();
+                    var mappedType = episode.EpisodeType.ToV3Dto();
                     if (!type.Contains(mappedType))
                         return false;
                 }
@@ -290,7 +291,8 @@ public class EpisodeController : BaseController
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeReleaseInfo">Include release info data.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("{episodeID}")]
     public ActionResult<Episode> GetEpisodeByEpisodeID(
@@ -299,7 +301,8 @@ public class EpisodeController : BaseController
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery] bool includeReleaseInfo = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -312,7 +315,7 @@ public class EpisodeController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs);
+        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo);
     }
 
     /// <summary>
@@ -435,7 +438,8 @@ public class EpisodeController : BaseController
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeReleaseInfo">Include release info data.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbEpisodeID}/Episode")]
     public ActionResult<Episode> GetEpisode(
@@ -444,7 +448,8 @@ public class EpisodeController : BaseController
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery] bool includeReleaseInfo = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
         var anidb = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID);
         if (anidb == null)
@@ -454,7 +459,7 @@ public class EpisodeController : BaseController
         if (episode == null)
             return NotFound(EpisodeNotFoundForAnidbEpisodeID);
 
-        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs);
+        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo);
     }
 
     /// <summary>
@@ -480,7 +485,7 @@ public class EpisodeController : BaseController
         if (vote.Value > vote.MaxValue)
             return ValidationProblem($"Value must be less than or equal to the set max value ({vote.MaxValue}).", nameof(vote.Value));
 
-        await _episodeService.AddEpisodeVote(episode, vote.GetRating());
+        await _userDataService.RateEpisode(episode, User, vote.GetRating(10));
 
         return NoContent();
     }
@@ -805,7 +810,7 @@ public class EpisodeController : BaseController
         // Check if the id is valid for the given type and source.
         var dataSource = body.Source.ToServer();
         var imageEntityType = imageType.ToServer();
-        var image = ImageUtils.GetImageMetadata(dataSource, imageEntityType, body.ID);
+        var image = _imageManager.GetImage(dataSource, imageEntityType, body.ID);
         if (image is null)
             return ValidationProblem(InvalidIDForSource);
         if (!image.IsEnabled)
@@ -870,7 +875,72 @@ public class EpisodeController : BaseController
 
     #endregion
 
-    #region Watch Status
+
+    #region User Data
+
+    /// <summary>
+    /// Return the user stats for the episode with the given <paramref name="episodeID"/>.
+    /// </summary>
+    /// <param name="episodeID">Shoko episode ID</param>
+    /// <returns>The user stats if found.</returns>
+    [HttpGet("{episodeID}/UserData")]
+    public ActionResult<Episode.EpisodeUserData> GetEpisodeUserData([FromRoute, Range(1, int.MaxValue)] int episodeID)
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var user = HttpContext.GetUser();
+        var userData = _userDataService.GetEpisodeUserData(episode, user);
+        return new Episode.EpisodeUserData(userData);
+    }
+
+    /// <summary>
+    /// Put a <see cref="Episode.EpisodeUserData"/> object down for the <see cref="Episode"/> with the given <paramref name="episodeID"/>.
+    /// </summary>
+    /// <param name="episodeID">Shoko episode ID</param>
+    /// <param name="episodeUserStats">The new and/or update episode stats to put for the episode.</param>
+    /// <returns>The new and/or updated user stats.</returns>
+    [HttpPut("{episodeID}/UserData")]
+    public ActionResult<Episode.EpisodeUserData> PutEpisodeUserData([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromBody] Episode.EpisodeUserData episodeUserStats)
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        // Get the user data.
+        var user = HttpContext.GetUser();
+
+        // Merge with the existing entry and return an updated version of the stats.
+        return episodeUserStats.MergeWithExisting(user, episode);
+    }
+
+    /// <summary>
+    /// Patch a <see cref="Episode.EpisodeUserData"/> object down for the <see cref="Episode"/> with the given <paramref name="episodeID"/>.
+    /// </summary>
+    /// <param name="episodeID">Shoko episode ID</param>
+    /// <param name="patchDocument">The JSON patch document to apply to the existing <see cref="Episode.EpisodeUserData"/>.</param>
+    /// <returns>The new and/or updated user stats.</returns>
+    [HttpPatch("{episodeID}/UserData")]
+    public ActionResult<Episode.EpisodeUserData> PatchEpisodeUserData([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromBody] JsonPatchDocument<Episode.EpisodeUserData> patchDocument)
+    {
+        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        // Get the user data.
+        var user = HttpContext.GetUser();
+        var userData = _userDataService.GetEpisodeUserData(episode, user);
+
+        // Patch the body with the existing model.
+        var body = new Episode.EpisodeUserData(userData);
+        patchDocument.ApplyTo(body, ModelState);
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Merge with the existing entry and return an updated version of the stats.
+        return body.MergeWithExisting(user, episode);
+    }
 
     /// <summary>
     /// Set the watched status on an episode
@@ -893,42 +963,10 @@ public class EpisodeController : BaseController
         if (!user.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        await _userDataService.SetEpisodeWatchedStatus(user, episode, watched);
+        await _userDataService.SetEpisodeWatchedStatus(episode, user, watched);
 
         return Ok();
     }
 
     #endregion
-
-    /// <summary>
-    /// Get all episodes with no files.
-    /// </summary>
-    /// <param name="includeSpecials">Include specials in the list.</param>
-    /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
-    /// <param name="onlyAiredEpisodes">Only show episodes which has aired.</param>
-    /// <param name="onlyFinishedSeries">Only show episodes for completed series.</param>
-    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
-    /// <param name="page">Page number.</param>
-    /// <returns></returns>
-    [HttpGet("WithNoFiles")]
-    public ActionResult<ListResult<Episode>> GetMissingEpisodes(
-        [FromQuery] bool includeSpecials = false,
-        [FromQuery] bool includeXRefs = false,
-        [FromQuery] bool onlyAiredEpisodes = false,
-        [FromQuery] bool onlyFinishedSeries = false,
-        [FromQuery, Range(0, 1000)] int pageSize = 100,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1)
-    {
-        IEnumerable<SVR_AnimeEpisode> enumerable = RepoFactory.AnimeEpisode.GetEpisodesWithNoFiles(includeSpecials, onlyAiredEpisodes);
-        if (onlyFinishedSeries)
-        {
-            var dictSeriesFinishedAiring = RepoFactory.AnimeSeries.GetAll()
-                .ToDictionary(a => a.AnimeSeriesID, a => a.AniDB_Anime.GetFinishedAiring());
-            enumerable = enumerable.Where(episode =>
-                dictSeriesFinishedAiring.TryGetValue(episode.AnimeSeriesID, out var finishedAiring) && finishedAiring);
-        }
-
-        return enumerable
-            .ToListResult(episode => new Episode(HttpContext, episode, withXRefs: includeXRefs), page, pageSize);
-    }
 }

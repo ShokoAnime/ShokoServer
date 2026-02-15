@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -131,7 +131,7 @@ public class GroupController : BaseController
     [HttpPost]
     public ActionResult<Group> CreateGroup([FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
-        var animeGroup = new SVR_AnimeGroup
+        var animeGroup = new AnimeGroup
         {
             GroupName = string.Empty,
             Description = string.Empty,

@@ -60,7 +60,7 @@ jobs:
       matrix:
         dotnet: [ '8.x' ]
 
-    name: Publish Shoko.Plugin.Abstractions Nuget
+    name: Publish Shoko.Abstractions Nuget
 
     steps:
       - name: Checkout "${{ github.ref }}"
@@ -75,14 +75,14 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Run dotnet build
-        run: dotnet build -c Release Shoko.Plugin.Abstractions
+        run: dotnet build -c Release Shoko.Abstractions
 
-      - name: Publish Shoko.Plugin.Abstractions Nuget
+      - name: Publish Shoko.Abstractions Nuget
         uses: brandedoutcast/publish-nuget@v2.5.2
         with:
-          PROJECT_FILE_PATH: Shoko.Plugin.Abstractions/Shoko.Plugin.Abstractions.csproj
+          PROJECT_FILE_PATH: Shoko.Abstractions/Shoko.Abstractions.csproj
           NUGET_KEY: ${{secrets.NUGET_API_KEY}}
-          TAG_FORMAT: Shoko.Plugin.Abstractions-v*
+          TAG_FORMAT: Shoko.Abstractions-v*
 
   cli-release:
     runs-on: ubuntu-latest
@@ -257,6 +257,10 @@ jobs:
 
       - name: Install SSH key
         uses: shimataro/ssh-key-action@d4fffb50872869abe2d9a9098a6d9c5aa7d16be4
+        if: ${{ env.SSH_USERNAME != '' && env.SSH_SERVER != '' }}
+        env:
+          SSH_USERNAME: ${{ secrets.FILES_USERNAME }}
+          SSH_SERVER: ${{ secrets.FILES_SERVER }}
         with:
           key: ${{ secrets.FILES_SSH_KEY }}
           name: files_id_rsa
@@ -264,6 +268,7 @@ jobs:
 
       - name: Upload Installer to site
         shell: pwsh
+        if: ${{ env.SSH_USERNAME != '' && env.SSH_SERVER != '' }}
         env:
           SSH_USERNAME: ${{ secrets.FILES_USERNAME }}
           SSH_SERVER: ${{ secrets.FILES_SERVER }}

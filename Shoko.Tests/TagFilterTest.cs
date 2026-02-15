@@ -83,7 +83,7 @@ namespace Shoko.Tests
                 "alternative past",
                 "past",
             };
-            
+
             _console.WriteLine("Expected: [{0}]", string.Join(", ", expected));
             _console.WriteLine("Actual: [{0}]", string.Join(", ", actual));
             Assert.Equal(expected, actual);
@@ -114,7 +114,7 @@ namespace Shoko.Tests
             _console.WriteLine("Actual: [{0}]", string.Join(", ", actual));
             Assert.Equal(expected, actual);
         }
-        
+
         [Fact(DisplayName = "Full Test w/o Source")]
         public void TestFullListNoSource()
         {
@@ -137,7 +137,7 @@ namespace Shoko.Tests
             _console.WriteLine("Actual: [{0}]", string.Join(", ", actual));
             Assert.Equal(expected, actual);
         }
-        
+
         [Fact(DisplayName = "Full Test Inverted")]
         public void TestFullListInverted()
         {
@@ -197,7 +197,7 @@ namespace Shoko.Tests
             _console.WriteLine("Actual: [{0}]", string.Join(", ", actual));
             Assert.Equal(expected, actual);
         }
-        
+
         [Fact(DisplayName = "Source Exclusion with Full List w/o Source")]
         public void TestSourceFullListNoSource()
         {

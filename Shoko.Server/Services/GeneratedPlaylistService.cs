@@ -7,12 +7,12 @@ using System.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.DataModels.Shoko;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.Video;
 using Shoko.Server.API;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Utilities;
 
@@ -309,7 +309,7 @@ public class GeneratedPlaylistService
         options.IncludeMissing = false;
         options.IncludeUnaired = false;
         var user = _context.GetUser();
-        var episodes = _animeSeriesService.GetNextUpEpisodes((series as SVR_AnimeSeries)!, user.JMMUserID, options);
+        var episodes = _animeSeriesService.GetNextUpEpisodes((series as AnimeSeries)!, user.JMMUserID, options);
 
         // Make sure the release group is in the list, otherwise pick the most used group.
         var xrefs = FileCrossReference.From(series.CrossReferences).FirstOrDefault(seriesXRef => seriesXRef.SeriesID.ID == series.ID)?.EpisodeIDs ?? [];
@@ -365,7 +365,6 @@ public class GeneratedPlaylistService
         }
 
         var seriesOrder = crossReferences
-            .OrderBy(xref => xref.Order)
             .Select(xref => xref.AnidbAnimeID)
             .Distinct()
             .ToArray();
@@ -440,9 +439,9 @@ public class GeneratedPlaylistService
             queryString.Add("posterUrl", poster.RemoteURL);
         queryString.Add("appId", "07a58b50-5109-5aa3-abbc-782fed0df04f"); // plugin id
         queryString.Add("animeId", series.AnidbAnimeID.ToString());
-        queryString.Add("animeName", series.PreferredTitle);
+        queryString.Add("animeName", series.Title);
         queryString.Add("epId", episode.AnidbEpisodeID.ToString());
-        queryString.Add("episodeName", episode.PreferredTitle);
+        queryString.Add("episodeName", episode.Title);
         queryString.Add("epNo", episodeNumber);
         queryString.Add("epNoRange", episodeRange.ToString());
         queryString.Add("epCount", series.EpisodeCounts.Episodes.ToString());
@@ -455,6 +454,6 @@ public class GeneratedPlaylistService
 
         uri.Path = $"{(uri.Path.Length > 1 ? uri.Path + "/" : "/")}api/v3/File/{video.ID}/Stream";
         uri.Query = queryString.ToString();
-        return $"#EXTINF:-1,{series.PreferredTitle} - {episodeNumber}{episodePartNumber} - {episode.PreferredTitle}{parts}\n{uri.Uri}\n";
+        return $"#EXTINF:-1,{series.Title} - {episodeNumber}{episodePartNumber} - {episode.Title}{parts}\n{uri.Uri}\n";
     }
 }

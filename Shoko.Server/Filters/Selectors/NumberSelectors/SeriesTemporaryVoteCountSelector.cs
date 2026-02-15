@@ -1,17 +1,17 @@
-using Shoko.Server.Filters.Interfaces;
+using System;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
 public class SeriesTemporaryVoteCountSelector : FilterExpression<double>
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
+    public override bool UserDependent => true;
     public override string HelpDescription => "This returns the number of series with a temporary vote set in a filterable";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
-    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override double Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return filterable.SeriesTemporaryVoteCount;
+        return userInfo.SeriesTemporaryVoteCount;
     }
 
     protected bool Equals(SeriesTemporaryVoteCountSelector other)

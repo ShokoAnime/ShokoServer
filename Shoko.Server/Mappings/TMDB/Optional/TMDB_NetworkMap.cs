@@ -15,5 +15,6 @@ public class TMDB_NetworkMap : ClassMap<TMDB_Network>
         Map(x => x.TmdbNetworkID).Not.Nullable();
         Map(x => x.Name).Not.Nullable();
         Map(x => x.CountryOfOrigin).Not.Nullable();
+        Map(x => x.LastOrphanedAt);
     }
 }

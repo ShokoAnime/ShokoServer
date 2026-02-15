@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.ActionConstraints;
-using Shoko.Server.API.Annotations;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v0.Controllers;

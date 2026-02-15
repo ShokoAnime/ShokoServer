@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Models.TMDB;
 
 #nullable enable
@@ -44,7 +44,7 @@ public class Studio
     /// The source of which the studio metadata belongs to.
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
-    public DataSource Source { get; init; }
+    public DataSourceType Source { get; init; }
 
     public Studio(TMDB_Company company)
     {
@@ -55,6 +55,6 @@ public class Studio
         Logos = company.GetImages(ImageEntityType.Logo)
             .Select(image => new Image(image))
             .ToList();
-        Source = DataSource.TMDB;
+        Source = DataSourceType.TMDB;
     }
 }

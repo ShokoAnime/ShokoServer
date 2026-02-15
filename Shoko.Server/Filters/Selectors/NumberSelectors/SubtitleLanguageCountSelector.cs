@@ -1,15 +1,15 @@
-using Shoko.Server.Filters.Interfaces;
+using System;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
 public class SubtitleLanguageCountSelector : FilterExpression<double>
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
+
     public override string HelpDescription => "This returns how many distinct subtitle languages are present in all of the files in a filterable";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
-    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override double Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.SubtitleLanguages.Count;
     }

@@ -1,13 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 
-using AbstractCreatorType = Shoko.Plugin.Abstractions.Enums.CreatorType;
-using DataSourceEnum = Shoko.Plugin.Abstractions.Enums.DataSourceEnum;
+using AbstractCreatorType = Shoko.Abstractions.Enums.CreatorType;
+using DataSource = Shoko.Abstractions.Enums.DataSource;
 
 #nullable enable
 namespace Shoko.Server.Models.AniDB;
@@ -73,6 +75,15 @@ public class AniDB_Creator : ICreator
 
     #endregion
 
+    public AbstractCreatorType AbstractType => Type switch
+    {
+        CreatorType.Person => AbstractCreatorType.Person,
+        CreatorType.Company => AbstractCreatorType.Company,
+        CreatorType.Collaboration => AbstractCreatorType.Collaboration,
+        CreatorType.Other => AbstractCreatorType.Other,
+        _ => AbstractCreatorType.Unknown,
+    };
+
     public IReadOnlyList<AniDB_Anime_Character_Creator> Characters
         => RepoFactory.AniDB_Anime_Character_Creator.GetByCreatorID(CreatorID);
 
@@ -83,36 +94,29 @@ public class AniDB_Creator : ICreator
 
     int IMetadata<int>.ID => CreatorID;
 
-    DataSourceEnum IMetadata.Source => DataSourceEnum.AniDB;
+    DataSource IMetadata.Source => DataSource.AniDB;
 
     #endregion
 
     #region IWithDescriptions Implementation
 
-    string IWithDescriptions.DefaultDescription => string.Empty;
+    IText? IWithDescriptions.DefaultDescription => null;
 
-    string IWithDescriptions.PreferredDescription => string.Empty;
+    IText? IWithDescriptions.PreferredDescription => null;
 
-    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions => [];
+    IReadOnlyList<IText> IWithDescriptions.Descriptions => [];
 
     #endregion
 
     #region IWithPortraitImage Implementation
 
-    IImageMetadata? IWithPortraitImage.PortraitImage => this.GetImageMetadata();
+    IImage? IWithPortraitImage.PortraitImage => this.GetImageMetadata();
 
     #endregion
 
     #region ICreator Implementation
 
-    AbstractCreatorType ICreator.Type => Type switch
-    {
-        CreatorType.Person => AbstractCreatorType.Person,
-        CreatorType.Company => AbstractCreatorType.Company,
-        CreatorType.Collaboration => AbstractCreatorType.Collaboration,
-        CreatorType.Other => AbstractCreatorType.Other,
-        _ => AbstractCreatorType.Unknown,
-    };
+    AbstractCreatorType ICreator.Type => AbstractType;
 
     IEnumerable<ICast<IEpisode>> ICreator.EpisodeCastRoles =>
         RepoFactory.AniDB_Anime_Character_Creator.GetByCreatorID(CreatorID)

@@ -109,7 +109,8 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
         {
             throw new AniDBBannedException
             {
-                BanType = UpdateType.UDPBan, BanExpires = Handler.BanTime?.AddHours(Handler.BanTimerResetLength)
+                BanType = UpdateType.UDPBan,
+                BanExpires = Handler.BanTime?.AddHours(Handler.BanTimerResetLength)
             };
         }
 
@@ -128,12 +129,12 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
             case UDPReturnCode.ANIDB_OUT_OF_SERVICE:
             case UDPReturnCode.SERVER_BUSY:
             case UDPReturnCode.TIMEOUT_DELAY_AND_RESUBMIT:
-                {
-                    var errorMessage = $"{(int)status} {status}";
-                    Logger.LogTrace("Waiting. AniDB returned {StatusCode} {Status}", (int)status, status);
-                    Handler.StartBackoffTimer(300, errorMessage);
-                    break;
-                }
+            {
+                var errorMessage = $"{(int)status} {status}";
+                Logger.LogTrace("Waiting. AniDB returned {StatusCode} {Status}", (int)status, status);
+                Handler.StartBackoffTimer(300, errorMessage);
+                break;
+            }
             // 506 INVALID SESSION
             // 598 UNKNOWN COMMAND
             case UDPReturnCode.INVALID_SESSION:

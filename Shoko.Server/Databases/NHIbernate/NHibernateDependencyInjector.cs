@@ -22,7 +22,7 @@ public class NHibernateDependencyInjector : EmptyInterceptor
 
     public override void SetSession(ISession session)
     {
-        _session = session;            
+        _session = session;
     }
 
     /// <summary>
@@ -65,7 +65,7 @@ public class NHibernateDependencyInjector : EmptyInterceptor
             if (value(entity, propertyNames.Zip(state).ToArray())) return true;
             return false;
         }
-        
+
         return base.OnLoad(entity, id, state, propertyNames, types);
     }
 }

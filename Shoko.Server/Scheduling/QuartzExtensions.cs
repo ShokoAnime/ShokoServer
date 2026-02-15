@@ -1,15 +1,17 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Nito.AsyncEx;
 using NLog;
 using Quartz;
-using Shoko.Server.Extensions;
 using Shoko.Server.Scheduling.GenericJobBuilder;
+using Shoko.Server.Utilities;
 
+#nullable enable
 namespace Shoko.Server.Scheduling;
 
 public static class QuartzExtensions
@@ -18,97 +20,195 @@ public static class QuartzExtensions
 
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
+    private static readonly ConcurrentQueue<(IJobDetail job, int priority, DateTimeOffset? startTime)[]> _jobQueue = new();
+
+    private static ConcurrentBag<(IJobDetail job, int priority, DateTimeOffset? startTime)> _pendingJobs = [];
+
+    private static System.Timers.Timer? _jobTimer;
+
+    private static bool _isRunning = false;
+
+    private static readonly object _flushLock = new();
+
+    private static readonly object _queueLock = new();
+
     /// <summary>
     /// Queue a job of type T with the data map setter and generated identity
     /// </summary>
     /// <param name="scheduler"></param>
     /// <param name="data">Job Data Constructor</param>
+    /// <param name="prioritize">
+    ///   If true, the job will be prioritized in the queue.
+    /// </param>
+    /// <param name="startTime">
+    ///   When to start the job.
+    /// </param>
     /// <typeparam name="T">Job Type</typeparam>
     /// <returns></returns>
-    public static async Task<DateTimeOffset> StartJob<T>(this IScheduler scheduler, Action<T> data = null) where T : class, IJob
+    public static Task StartJob<T>(this IScheduler scheduler, Action<T>? data = null, bool prioritize = false, DateTimeOffset? startTime = null) where T : class, IJob
     {
-        if (data == null)
-            return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build());
-        return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build());
+        var settings = Utils.SettingsProvider.GetSettings();
+        var job = data != null
+            ? JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build()
+            : JobBuilder<T>.Create().WithGeneratedIdentity().Build();
+        if (settings.Quartz.BatchMaxInsertSize == 1 || settings.Quartz.BatchInsertTimeoutInMS == 0)
+            return scheduler.StartJobs([(job, prioritize ? 10 : 0, startTime)]);
+
+        _pendingJobs.Add((job, prioritize ? 10 : 0, startTime));
+        PerhapsFlush();
+        return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Force a job of type T with the data map setter and generated identity to run asap
-    /// </summary>
-    /// <param name="scheduler"></param>
-    /// <param name="data">Job Data Constructor</param>
-    /// <typeparam name="T">Job Type</typeparam>
-    /// <returns></returns>
-    public static async Task<DateTimeOffset> StartJobNow<T>(this IScheduler scheduler, Action<T> data = null) where T : class, IJob
+    private static void Flush(object? sender, System.Timers.ElapsedEventArgs e)
+        => PerhapsFlush(force: true);
+
+    private static void PerhapsFlush(bool force = false)
     {
-        if (data == null)
-            return await scheduler.StartJob(JobBuilder<T>.Create().WithGeneratedIdentity().Build(), priority:10);
-        return await scheduler.StartJob(JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build(), priority:10);
+        (IJobDetail job, int priority, DateTimeOffset? startTime)[]? jobs = null;
+        var settings = Utils.SettingsProvider.GetSettings();
+        if (!force && (_jobTimer?.Enabled ?? false) && _pendingJobs.Count < settings.Quartz.BatchMaxInsertSize) return;
+        lock (_flushLock)
+        {
+            if (!force && (_jobTimer?.Enabled ?? false) && _pendingJobs.Count < settings.Quartz.BatchMaxInsertSize) return;
+            if (force || _pendingJobs.Count >= settings.Quartz.BatchMaxInsertSize)
+            {
+                var pendingJobs = _pendingJobs;
+                _pendingJobs = [];
+                jobs = pendingJobs.ToArray().Reverse().ToArray();
+                pendingJobs.Clear();
+            }
+
+            if (_jobTimer is null)
+            {
+                _jobTimer = new(settings.Quartz.BatchInsertTimeoutInMS)
+                {
+                    AutoReset = false,
+                    Enabled = true,
+                };
+                _jobTimer.Elapsed += Flush;
+            }
+            _jobTimer.Enabled = false;
+            if (_jobTimer.Interval != settings.Quartz.BatchInsertTimeoutInMS)
+                _jobTimer.Interval = settings.Quartz.BatchInsertTimeoutInMS;
+            if (!_pendingJobs.IsEmpty)
+                _jobTimer.Enabled = true;
+        }
+
+        if (jobs is not null && jobs.Length > 0)
+        {
+            _jobQueue.Enqueue(jobs);
+            if (!_isRunning)
+            {
+                lock (_queueLock)
+                {
+                    if (!_isRunning)
+                    {
+                        _isRunning = true;
+                        Task.Factory.StartNew(ProcessJobs, TaskCreationOptions.LongRunning);
+                    }
+                }
+            }
+        }
+    }
+
+    private static async Task ProcessJobs()
+    {
+        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+        var scheduleBuilder = SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires();
+        while (_jobQueue.TryDequeue(out var jobs))
+        {
+            try
+            {
+                await StartJobs(scheduler, jobs, scheduleBuilder);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Error processing jobs");
+            }
+        }
+
+        lock (_queueLock)
+        {
+            _isRunning = false;
+        }
     }
 
     /// <summary>
     /// Start a job with TriggerBuilder.<see cref="TriggerBuilder.StartNow()"/> on the given scheduler
     /// </summary>
     /// <param name="scheduler">The scheduler to schedule the job with</param>
-    /// <param name="job">The job to schedule</param>
+    /// <param name="jobs">The jobs to schedule</param>
     /// <param name="scheduleBuilder"></param>
-    /// <param name="priority">It will go in order by start time, then choose the higher priority. <seealso cref="TriggerBuilder.WithPriority(int)"/></param>
-    /// <param name="replaceExisting">Replace the queued trigger if it's still waiting to execute. Default false</param>
-    /// <param name="token">The cancellation token</param>
     /// <returns></returns>
-    private static async Task<DateTimeOffset> StartJob(this IScheduler scheduler, IJobDetail job, IScheduleBuilder scheduleBuilder = null, int priority = 0,
-        bool replaceExisting = false, CancellationToken token = default)
+    private static async Task StartJobs(this IScheduler scheduler, (IJobDetail job, int priority, DateTimeOffset? startTime)[] jobs, IScheduleBuilder? scheduleBuilder = null)
     {
         // if it's running, then ignore
-        var currentJobs = await scheduler.GetCurrentlyExecutingJobs(token);
-        if (currentJobs.Any(a => Equals(a.JobDetail.Key, job.Key)))
+        var currentJobs = await scheduler.GetCurrentlyExecutingJobs();
+        var jobKeys = jobs.Select(tuple => tuple.job.Key).ToHashSet();
+        if (currentJobs.Select(executing => executing.JobDetail.Key).Where(jobKeys.Contains).ToHashSet() is { Count: > 0 } runningJobs)
         {
-            _logger.Trace("Skipped scheduling {JobName} because it is running.", job.Key);
-            return DateTimeOffset.Now;
+            foreach (var job in runningJobs)
+                _logger.Trace("Skipped scheduling {JobName} because it is running.", job);
+            jobs = jobs.DistinctBy(tuple => tuple.job.Key).ExceptBy(runningJobs, job => job.job.Key).ToArray();
+        }
+        else
+        {
+            jobs = jobs.DistinctBy(tuple => tuple.job.Key).ToArray();
         }
 
-        var triggerBuilder = TriggerBuilder.Create().StartNow().WithIdentity(job.Key.Name, job.Key.Group);
-        if (priority != 0) triggerBuilder = triggerBuilder.WithPriority(priority);
+        if (jobs.Length == 0) return;
 
-
-        bool exists;
-        using (var _ = await SchedulerLock.ReaderLockAsync(token))
+        scheduleBuilder ??= SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires();
+        var collection = new Dictionary<IJobDetail, IReadOnlyCollection<ITrigger>>();
+        var triggersToRemove = new List<TriggerKey>();
+        var time = DateTimeOffset.UtcNow;
+        using (var _ = await SchedulerLock.ReaderLockAsync())
         {
-            exists = await scheduler.CheckExists(job.Key, token);
-        }
-
-        if (!exists)
-        {
-            using var _ = await SchedulerLock.WriterLockAsync(token);
-            _logger.Trace("Scheduling {JobName} to run.", job.Key);
-            return await scheduler.ScheduleJob(job,
-                triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(),
-                token).ConfigureAwait(true);
-        }
-
-        // get waiting triggers
-        if (!replaceExisting)
-        {
-            using var _ = await SchedulerLock.ReaderLockAsync(token);
-            var nextFire = (await scheduler.GetTriggersOfJob(job.Key, token).ConfigureAwait(true)).Select(a => a.GetNextFireTimeUtc())
-                .WhereNotNull().DefaultIfEmpty().Min();
-
-            // we are not set to replace the job, then return the first scheduled time
-            if (nextFire != default)
+            foreach (var (job, priority, startTime) in jobs)
             {
-                _logger.Trace("Skipped scheduling {JobName} because it is already scheduled.", job.Key);
-                return nextFire;
+                if (await scheduler.CheckExists(job.Key))
+                {
+                    if (!startTime.HasValue || startTime <= time)
+                    {
+                        _logger.Trace("Skipped scheduling {JobName} because it is already scheduled.", job.Key);
+                        continue;
+                    }
+
+                    var triggerKeys = (await scheduler.GetTriggersOfJob(job.Key)).Select(t => t.Key).ToList();
+                    _logger.Trace("Removing {Count} triggers for {JobName} because the time to run changed.", triggerKeys.Count, job.Key);
+                    triggersToRemove.AddRange(triggerKeys);
+                }
+
+                var triggerBuilder = TriggerBuilder.Create()
+                    .StartNow()
+                    .WithIdentity(job.Key.Name, job.Key.Group);
+                if (priority != 0)
+                    triggerBuilder = triggerBuilder.WithPriority(priority);
+
+                if (startTime.HasValue && startTime > time)
+                {
+                    _logger.Trace("Scheduling {JobName} to run at {StartTime}. (Priority: {Priority})", job.Key, startTime.Value, priority);
+                    triggerBuilder = triggerBuilder.StartAt(startTime.Value);
+                }
+                else
+                {
+                    _logger.Trace("Scheduling {JobName}. (Priority: {Priority})", job.Key, priority);
+                }
+
+                var trigger = triggerBuilder.WithSchedule(scheduleBuilder).Build();
+                collection[job] = [trigger];
             }
         }
 
-        using var _lock = await SchedulerLock.WriterLockAsync(token);
-        // since we are replacing it, it will remove the triggers, as well
-        await scheduler.DeleteJob(job.Key, token);
-
-        _logger.Trace("Scheduling {JobName} (after removing previous job)", job.Key);
-        return await scheduler.ScheduleJob(job,
-            triggerBuilder.WithSchedule(scheduleBuilder ?? SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires()).Build(),
-            token).ConfigureAwait(true);
+        if (collection.Count == 0) return;
+        time = DateTimeOffset.UtcNow;
+        _logger.Trace("Scheduling {Count} jobs and unscheduling {Count} triggers.", collection.Count, triggersToRemove.Count);
+        using var __ = await SchedulerLock.WriterLockAsync();
+        if (triggersToRemove.Count > 0)
+            await scheduler.UnscheduleJobs(triggersToRemove);
+        _logger.Trace("Unscheduled {Count} triggers.", triggersToRemove.Count);
+        await scheduler.ScheduleJobs(collection, false);
+        _logger.Trace("Scheduled {Count} jobs in {Time}.", collection.Count, DateTimeOffset.UtcNow - time);
     }
 
     /// <summary>
@@ -149,7 +249,6 @@ public static class QuartzExtensions
     {
         var triggerKey = context.Trigger.Key;
         var newKey = new TriggerKey(triggerKey.Name + "_Retry", triggerKey.Group);
-        
         if (await context.Scheduler.GetTrigger(newKey) != null) return;
 
         var newTrigger = context.Trigger.GetTriggerBuilder();

@@ -1,12 +1,13 @@
 using System;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.Filters.Info;
 
 public class HasCreatorWithRoleExpression : FilterExpression<bool>, IWithStringParameter, IWithSecondStringParameter
 {
-    public HasCreatorWithRoleExpression(string creatorID, CreatorRoleType role)
+    public HasCreatorWithRoleExpression(string creatorID, CrewRoleType role)
     {
         CreatorID = creatorID;
         Role = role;
@@ -15,9 +16,7 @@ public class HasCreatorWithRoleExpression : FilterExpression<bool>, IWithStringP
     public HasCreatorWithRoleExpression() { }
 
     public string CreatorID { get; set; }
-    public CreatorRoleType Role { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
+    public CrewRoleType Role { get; set; }
     public override string HelpDescription => "This condition passes if the filterable has a creator with the specified role.";
 
     string IWithStringParameter.Parameter
@@ -29,10 +28,10 @@ public class HasCreatorWithRoleExpression : FilterExpression<bool>, IWithStringP
     string IWithSecondStringParameter.SecondParameter
     {
         get => Role.ToString();
-        set => Role = Enum.Parse<CreatorRoleType>(value);
+        set => Role = Enum.Parse<CrewRoleType>(value, ignoreCase: true);
     }
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.CreatorRoles.TryGetValue(Role, out var roles) && roles.Contains(CreatorID);
     }

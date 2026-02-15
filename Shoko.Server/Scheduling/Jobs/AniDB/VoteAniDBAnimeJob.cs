@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Models.Enums;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.AniDB.UDP.User;
@@ -23,12 +23,12 @@ public class VoteAniDBAnimeJob : BaseJob
     private string _animeName;
 
     public int AnimeID { get; set; }
-    public AniDBVoteType VoteType { get; set; }
+    public VoteType VoteType { get; set; }
     public double VoteValue { get; set; }
 
     public override void PostInit()
     {
-        _animeName = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.PreferredTitle ?? _titleHelper.SearchAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
+        _animeName = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title ?? AnimeID.ToString();
     }
 
     public override string TypeName => "Send AniDB Anime Rating";
@@ -48,7 +48,7 @@ public class VoteAniDBAnimeJob : BaseJob
         var vote = _requestFactory.Create<RequestVoteAnime>(
             r =>
             {
-                r.Temporary = VoteType == AniDBVoteType.AnimeTemp;
+                r.Temporary = VoteType == VoteType.AnimeTemporary;
                 r.Value = VoteValue;
                 r.AnimeID = AnimeID;
             }
@@ -56,7 +56,7 @@ public class VoteAniDBAnimeJob : BaseJob
         vote.Send();
         return Task.CompletedTask;
     }
-    
+
     public VoteAniDBAnimeJob(IRequestFactory requestFactory, AniDBTitleHelper titleHelper)
     {
         _requestFactory = requestFactory;
