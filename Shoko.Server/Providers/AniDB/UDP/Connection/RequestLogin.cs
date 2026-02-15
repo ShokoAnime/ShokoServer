@@ -27,17 +27,18 @@ public class RequestLogin : UDPRequest<ResponseLogin>
         }
 
         // after response code, before "LOGIN"
-        var sessionID = receivedData.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Skip(1)
+        var sessionID = receivedData.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1)
             .FirstOrDefault();
         if (string.IsNullOrWhiteSpace(sessionID))
         {
             throw new UnexpectedUDPResponseException(code, receivedData, Command);
         }
 
-        var imageServer = receivedData.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+        var imageServer = receivedData.Split('\n', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
         return new UDPResponse<ResponseLogin>
         {
-            Response = new ResponseLogin { SessionID = sessionID, ImageServer = imageServer }, Code = code
+            Response = new ResponseLogin { SessionID = sessionID, ImageServer = imageServer },
+            Code = code
         };
     }
 
@@ -50,7 +51,7 @@ public class RequestLogin : UDPRequest<ResponseLogin>
     {
         Command = BaseCommand;
         // LOGIN commands have special needs, so we want to handle this differently
-        var rawResponse = Handler.SendDirectly(Command, UseUnicode).Result;
+        var rawResponse = Handler.SendDirectly(Command, UseUnicode);
         var response = ParseResponse(rawResponse, true);
         var parsedResponse = ParseResponse(response);
         return parsedResponse;

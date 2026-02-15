@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Client;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Models.TMDB;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
@@ -58,24 +55,6 @@ public static class TmdbExtensions
             .SelectMany(genre => genre.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
             .OrderBy(genre => genre)
             .ToList();
-    }
-
-    public static CL_MovieDBMovieSearch_Response ToContract(this SearchMovie movie)
-        => new()
-        {
-            MovieID = movie.Id,
-            MovieName = movie.Title,
-            OriginalName = movie.OriginalTitle,
-            Overview = movie.Overview,
-        };
-
-    public static DateOnly? GetAirDateAsDateOnly(this AniDB_Episode episode)
-    {
-        var dateTime = episode.GetAirDateAsDate();
-        if (!dateTime.HasValue)
-            return null;
-
-        return DateOnly.FromDateTime(dateTime.Value);
     }
 
     public static DateTime ToDateTime(this DateOnly date)

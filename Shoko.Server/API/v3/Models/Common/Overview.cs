@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
-using Shoko.Server.Models.TMDB;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Server.API.v3.Models.Common;
 
@@ -40,7 +40,7 @@ public class Overview
     [Required]
     public string Source { get; init; }
 
-    public Overview(TMDB_Overview overview, string mainDescription = null, TMDB_Overview preferredDescription = null)
+    public Overview(IText overview, string mainDescription = null, IText preferredDescription = null)
     {
         Value = overview.Value;
         Language = overview.Language.GetString();

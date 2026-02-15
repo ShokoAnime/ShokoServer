@@ -1,26 +1,26 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct;
 
-public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Anime_Relation, int>
+public class AniDB_Anime_RelationRepository : BaseDirectRepository<AniDB_Anime_Relation, int>
 {
-    public SVR_AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
+    public AniDB_Anime_Relation GetByAnimeIDAndRelationID(int animeid, int relatedanimeid)
     {
         return Lock(() =>
         {
             using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
             var cr = session
-                .Query<SVR_AniDB_Anime_Relation>()
+                .Query<AniDB_Anime_Relation>()
                 .FirstOrDefault(a => a.AnimeID == animeid && a.RelatedAnimeID == relatedanimeid);
             return cr;
         });
     }
 
-    public List<SVR_AniDB_Anime_Relation> GetByAnimeID(int id)
+    public List<AniDB_Anime_Relation> GetByAnimeID(int id)
     {
         return Lock(() =>
         {
@@ -29,22 +29,50 @@ public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Ani
         });
     }
 
-    public List<SVR_AniDB_Anime_Relation> GetByAnimeID(IEnumerable<int> ids)
+    public List<AniDB_Anime_Relation> GetByAnimeID(IEnumerable<int> ids)
     {
         var aids = ids.ToArray();
         return Lock(() =>
         {
             using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
-            return session.Query<SVR_AniDB_Anime_Relation>()
+            return session.Query<AniDB_Anime_Relation>()
                 .Where(a => aids.Contains(a.AnimeID))
                 .ToList();
         });
     }
 
-    public List<SVR_AniDB_Anime_Relation> GetByAnimeID(ISessionWrapper session, int id)
+    public List<AniDB_Anime_Relation> GetByAnimeID(ISessionWrapper session, int id)
     {
-        return Lock(() => session.Query<SVR_AniDB_Anime_Relation>()
+        return Lock(() => session.Query<AniDB_Anime_Relation>()
             .Where(a => a.AnimeID == id)
+            .ToList());
+    }
+
+    public List<AniDB_Anime_Relation> GetByRelatedAnimeID(int id)
+    {
+        return Lock(() =>
+        {
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
+            return GetByRelatedAnimeID(session.Wrap(), id);
+        });
+    }
+
+    public List<AniDB_Anime_Relation> GetByRelatedAnimeID(IEnumerable<int> ids)
+    {
+        var aids = ids.ToArray();
+        return Lock(() =>
+        {
+            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
+            return session.Query<AniDB_Anime_Relation>()
+                .Where(a => aids.Contains(a.RelatedAnimeID))
+                .ToList();
+        });
+    }
+
+    public List<AniDB_Anime_Relation> GetByRelatedAnimeID(ISessionWrapper session, int id)
+    {
+        return Lock(() => session.Query<AniDB_Anime_Relation>()
+            .Where(a => a.RelatedAnimeID == id)
             .ToList());
     }
 
@@ -95,11 +123,11 @@ public class AniDB_Anime_RelationRepository : BaseDirectRepository<SVR_AniDB_Ani
 
     private static HashSet<int> GetLinearRelationsUnsafe(ISessionWrapper session, int id)
     {
-        var cats = session.Query<SVR_AniDB_Anime_Relation>()
+        var cats = session.Query<AniDB_Anime_Relation>()
             .Where(relation => (relation.AnimeID == id || relation.RelatedAnimeID == id) &&
                                (relation.RelationType == "Prequel" || relation.RelationType == "Sequel"))
             .Select(relation => relation.AnimeID).ToList();
-        var cats2 = session.Query<SVR_AniDB_Anime_Relation>()
+        var cats2 = session.Query<AniDB_Anime_Relation>()
             .Where(relation => (relation.AnimeID == id || relation.RelatedAnimeID == id) &&
                                (relation.RelationType == "Prequel" || relation.RelationType == "Sequel"))
             .Select(relation => relation.RelatedAnimeID).ToList();

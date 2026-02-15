@@ -2,15 +2,20 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Text;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
-using Shoko.Server.API.v3.Helpers;
-using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Exceptions;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Services;
+using Shoko.Abstractions.User;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -36,7 +41,7 @@ public class User
     /// This is a list of services that the user is set to use. AniDB, Trakt, and Plex, for example
     /// </summary>
     [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
-    public List<CommunitySites> CommunitySites { get; set; }
+    public List<CommunitySite> CommunitySites { get; set; }
 
     /// <summary>
     /// Restricted tags. Any group/series containing any of these tags will be
@@ -55,34 +60,26 @@ public class User
     /// </summary>
     public string PlexUsernames { get; set; }
 
-    public User(SVR_JMMUser user)
+    public User(IUser user) : this((JMMUser)user) { }
+
+    public User(JMMUser user)
     {
         ID = user.JMMUserID;
         Username = user.Username;
         IsAdmin = user.IsAdmin == 1;
-        CommunitySites = new List<CommunitySites>();
+        CommunitySites = [];
         if (user.IsAniDBUser == 1)
-        {
-            CommunitySites.Add(global::Shoko.Models.Enums.CommunitySites.AniDB);
-        }
-
+            CommunitySites.Add(CommunitySite.AniDB);
         if (user.IsTraktUser == 1)
-        {
-            CommunitySites.Add(global::Shoko.Models.Enums.CommunitySites.Trakt);
-        }
-
+            CommunitySites.Add(CommunitySite.Trakt);
         if (!string.IsNullOrEmpty(user.PlexToken))
-        {
-            CommunitySites.Add(global::Shoko.Models.Enums.CommunitySites.Plex);
-        }
+            CommunitySites.Add(CommunitySite.Plex);
 
-        RestrictedTags = user.GetHideCategories()
-            .Select(name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault()!)
-            .Where(tag => tag != null)
+        RestrictedTags = user.GetHideTags()
             .Select(tag => tag.TagID)
             .ToList();
 
-        Avatar = user.HasAvatarImage ? ModelHelper.ToDataURL(user.AvatarImageBlob, user.AvatarImageMetadata.ContentType) ?? string.Empty : string.Empty;
+        Avatar = user.GetAvatarImageAsDataURL();
 
         PlexUsernames = user.PlexUsers ?? string.Empty;
     }
@@ -107,11 +104,85 @@ public class User
 
             public User? Save(ModelStateDictionary modelState, bool isAdmin = false)
             {
-                var user = new SVR_JMMUser()
+                if (RestrictedTags is not null && !isAdmin)
+                    modelState.AddModelError(nameof(RestrictedTags), "Only admins are allowed to change the restricted tags for users.");
+
+                if (CommunitySites is not null && !isAdmin)
+                    modelState.AddModelError(nameof(CommunitySites), "Only admins are allowed to change the community sites for users.");
+
+                if (IsAdmin.HasValue && !isAdmin)
+                    modelState.AddModelError(nameof(IsAdmin), "Only admins are allowed to change the admin status of users.");
+
+                if (!modelState.IsValid)
+                    return null;
+
+                try
                 {
-                    Password = string.IsNullOrEmpty(Password) ? string.Empty : Digest.Hash(Password),
-                };
-                return MergeWithExisting(user, modelState, isAdmin);
+                    var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+                    var initialData = new UserUpdateData();
+                    if (Username is not null)
+                        initialData.Username = Username;
+                    if (Password is not null)
+                        initialData.Password = Password;
+                    if (IsAdmin.HasValue)
+                        initialData.IsAdmin = IsAdmin.Value;
+                    if (CommunitySites is not null)
+                        initialData.IsAnidbUser = CommunitySites.Contains(CommunitySite.AniDB);
+                    if (RestrictedTags is not null)
+                        initialData.RestrictedTags = RestrictedTags
+                            .Select(RepoFactory.AniDB_Tag.GetByTagID)
+                            .WhereNotNull()
+                            .Cast<IAnidbTag>()
+                            .ToList();
+                    if (Avatar is not null)
+                        initialData.AvatarImage = Avatar is "" ? null : Encoding.UTF8.GetBytes(Avatar);
+
+                    // This will throw a validation error of something is invalid.
+                    var user = (JMMUser)service.CreateUser(initialData)
+                        .ConfigureAwait(false)
+                        .GetAwaiter()
+                        .GetResult();
+
+                    // Extra handling for things not exposed to the plugin API
+                    // and probably never will.
+                    var saved = false;
+                    if (CommunitySites is not null)
+                    {
+                        var oldTraktUser = user.IsTraktUser == 1;
+                        var newTraktUser = CommunitySites.Contains(CommunitySite.Trakt);
+                        if (oldTraktUser != newTraktUser)
+                        {
+                            saved = true;
+                            user.IsTraktUser = CommunitySites.Contains(CommunitySite.Trakt) ? 1 : 0;
+                        }
+                    }
+
+                    if (PlexUsernames is not null)
+                    {
+                        var oldPlexUsernames = user.PlexUsers;
+                        var newPlexUsernames = string.IsNullOrWhiteSpace(PlexUsernames) ? null : PlexUsernames;
+                        if (oldPlexUsernames != newPlexUsernames)
+                        {
+                            saved = true;
+                            user.PlexUsers = string.IsNullOrWhiteSpace(PlexUsernames) ? null : PlexUsernames;
+                        }
+                    }
+
+                    if (!saved)
+                    {
+                        RepoFactory.JMMUser.Save(user);
+                    }
+
+                    return new User(user);
+                }
+                catch (GenericValidationException ex)
+                {
+                    foreach (var (key, errors) in ex.ValidationErrors)
+                        foreach (var value in errors)
+                            modelState.AddModelError(key, value);
+
+                    return null;
+                }
             }
         }
 
@@ -132,7 +203,7 @@ public class User
             /// The updated list of services that the user can use. The viewer
             /// must have admin access to change these.
             /// </summary>
-            public List<CommunitySites>? CommunitySites { get; set; }
+            public List<CommunitySite>? CommunitySites { get; set; }
 
             /// <summary>
             /// The updated restricted tags for the user. The viewer must have
@@ -153,21 +224,16 @@ public class User
 
             public CreateOrUpdateUserBody() { }
 
-            private const long MaxFileSize = 8 * 1024 * 1024; // 8MiB in bytes
+            public virtual User? MergeWithExisting(IUser user, ModelStateDictionary modelState, bool isAdmin = false)
+                => MergeWithExisting((JMMUser)user, modelState, isAdmin);
 
-            public virtual User? MergeWithExisting(SVR_JMMUser user, ModelStateDictionary modelState, bool isAdmin = false)
+            public virtual User? MergeWithExisting(JMMUser user, ModelStateDictionary modelState, bool isAdmin = false)
             {
-                if (Username != null && string.IsNullOrWhiteSpace(Username))
-                    modelState.AddModelError(nameof(Username), "Username cannot be empty or only white-spaces.");
+                if (RestrictedTags is not null && !isAdmin)
+                    modelState.AddModelError(nameof(RestrictedTags), "Only admins are allowed to change the restricted tags for users.");
 
-                if ((user.JMMUserID == 0 || string.IsNullOrEmpty(user.Username)) && string.IsNullOrWhiteSpace(Username))
-                    modelState.AddModelError(nameof(Username), "A new user must have a username set.");
-
-                {
-                    var existingUser = RepoFactory.JMMUser.GetByUsername(Username);
-                    if (existingUser != null && existingUser.JMMUserID != user.JMMUserID)
-                        modelState.AddModelError(nameof(Username), "The username is unavailable.");
-                }
+                if (CommunitySites is not null && !isAdmin)
+                    modelState.AddModelError(nameof(CommunitySites), "Only admins are allowed to change the community sites for users.");
 
                 if (IsAdmin.HasValue && user.IsAdminUser() != IsAdmin.Value)
                 {
@@ -184,73 +250,74 @@ public class User
                     }
                 }
 
-                if (RestrictedTags != null && !isAdmin)
-                    modelState.AddModelError(nameof(RestrictedTags), "Only admins are allowed to change the restricted tags for users.");
-
-                if (CommunitySites != null && !isAdmin)
-                    modelState.AddModelError(nameof(CommunitySites), "Only admins are allowed to change the community sites for users.");
-
-                var (byteArray, contentType) = string.IsNullOrWhiteSpace(Avatar) ? (null, null) : ModelHelper.FromDataURL(Avatar, nameof(Avatar), modelState);
-                if (!string.IsNullOrEmpty(contentType) && byteArray != null && byteArray.Length > MaxFileSize)
-                    modelState.AddModelError(nameof(Avatar), "Avatar image file size cannot exceed 8MiB (after deserializing).");
-
-                // Return early if the model state was invalidated.
                 if (!modelState.IsValid)
                     return null;
 
-                // Try to update the avatar for the user.
-                if (Avatar != null)
+                try
                 {
-                    if (contentType == null || byteArray == null)
+                    var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+                    var updateData = new UserUpdateData();
+                    if (Username is not null)
+                        updateData.Username = Username;
+                    if (IsAdmin.HasValue)
+                        updateData.IsAdmin = IsAdmin.Value;
+                    if (CommunitySites is not null)
+                        updateData.IsAnidbUser = CommunitySites.Contains(CommunitySite.AniDB);
+                    if (RestrictedTags is not null)
+                        updateData.RestrictedTags = RestrictedTags
+                            .Select(RepoFactory.AniDB_Tag.GetByTagID)
+                            .WhereNotNull()
+                            .Cast<IAnidbTag>()
+                            .ToList();
+                    if (Avatar is not null)
+                        updateData.AvatarImage = Avatar is "" ? null : Encoding.UTF8.GetBytes(Avatar);
+
+                    // This will throw a validation error of something is invalid.
+                    user = (JMMUser)service.UpdateUser(user, updateData)
+                        .ConfigureAwait(false)
+                        .GetAwaiter()
+                        .GetResult();
+
+                    // Extra handling for things not exposed to the plugin API
+                    // and probably never will.
+                    var saved = false;
+                    if (CommunitySites is not null)
                     {
-                        user.RemoveAvatarImage(skipSave: true);
+                        var oldTraktUser = user.IsTraktUser == 1;
+                        var newTraktUser = CommunitySites.Contains(CommunitySite.Trakt);
+                        if (oldTraktUser != newTraktUser)
+                        {
+                            saved = true;
+                            user.IsTraktUser = CommunitySites.Contains(CommunitySite.Trakt) ? 1 : 0;
+                        }
                     }
-                    else
+
+                    if (PlexUsernames is not null)
                     {
-                        user.SetAvatarImage(byteArray, contentType, "Avatar", modelState, skipSave: true);
-                        // Return now if the model state was invalidated.
-                        if (!modelState.IsValid)
-                            return null;
+                        var oldPlexUsernames = user.PlexUsers;
+                        var newPlexUsernames = string.IsNullOrWhiteSpace(PlexUsernames) ? null : PlexUsernames;
+                        if (oldPlexUsernames != newPlexUsernames)
+                        {
+                            saved = true;
+                            user.PlexUsers = string.IsNullOrWhiteSpace(PlexUsernames) ? null : PlexUsernames;
+                        }
                     }
+
+                    if (!saved)
+                    {
+                        RepoFactory.JMMUser.Save(user);
+                    }
+
+                    return new User(user);
                 }
-
-                // Update the username for the user.
-                if (!string.IsNullOrEmpty(Username))
-                    user.Username = Username.Trim();
-
-                // Update the admin status for the user.
-                if (IsAdmin.HasValue)
+                catch (GenericValidationException ex)
                 {
-                    user.IsAdmin = IsAdmin.Value ? 1 : 0;
-                    user.CanEditServerSettings = IsAdmin.Value ? 1 : 0;
+                    foreach (var (key, errors) in ex.ValidationErrors)
+                        foreach (var value in errors)
+                            modelState.AddModelError(key, value);
+
+                    return null;
                 }
-
-                // Update restricted tags for the user.
-                if (RestrictedTags != null)
-                {
-                    var tags = RestrictedTags
-                        .Select(tagID => RepoFactory.AniDB_Tag.GetByTagID(tagID))
-                        .Where(tag => tag != null)
-                        .Select(tag => tag.TagName);
-                    user.HideCategories = string.Join(',', tags);
-                }
-
-                // Update the community sites for the user.
-                if (CommunitySites != null)
-                {
-                    user.IsTraktUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.Trakt) ? 1 : 0;
-                    user.IsAniDBUser = CommunitySites.Contains(global::Shoko.Models.Enums.CommunitySites.AniDB) ? 1 : 0;
-                }
-
-                if (PlexUsernames != null)
-                {
-                    user.PlexUsers = string.IsNullOrWhiteSpace(PlexUsernames) ? null : PlexUsernames;
-                }
-
-                // Save the model now.
-                RepoFactory.JMMUser.Save(user);
-
-                return new User(user);
             }
         }
 

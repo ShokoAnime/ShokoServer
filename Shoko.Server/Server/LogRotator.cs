@@ -39,7 +39,7 @@ public class LogRotator
 
         _worker.RunWorkerAsync();
     }
-    
+
     private void WorkerDoWork(object sender, DoWorkEventArgs e)
     {
         Delete_Logs();

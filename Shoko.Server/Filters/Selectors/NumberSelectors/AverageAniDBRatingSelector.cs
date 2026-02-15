@@ -1,18 +1,17 @@
 using System;
-using Shoko.Server.Filters.Interfaces;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Selectors.NumberSelectors;
 
 public class AverageAniDBRatingSelector : FilterExpression<double>
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
+
     public override string HelpDescription => "This returns the average AniDB rating in a filterable";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
-    public override double Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override double Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return Convert.ToDouble(filterable.AverageAniDBRating);
+        return filterable.AverageAniDBRating;
     }
 
     protected bool Equals(AverageAniDBRatingSelector other)

@@ -2,34 +2,37 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Services;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
-using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS8618
+#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Import)]
 public class RenameMoveFileJob : BaseJob
 {
-    private readonly VideoLocal_PlaceService _vlPlaceService;
+    private readonly IRelocationService _relocationService;
 
-    private SVR_VideoLocal _vlocal;
-    private string _fileName;
+    private VideoLocal? _vlocal;
+    private string? _fileName;
 
     public int VideoLocalID { get; set; }
 
-    public override string TypeName => "Rename/Move File";
-    public override string Title => "Renaming/Moving File";
+    public override string TypeName => "Rename/Move Video";
+
+    public override string Title => "Renaming/Moving Video";
 
     public override void PostInit()
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = Utils.GetDistinctPath(_vlocal?.FirstValidPlace?.FullServerPath);
+        _fileName = Utils.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
 
     public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };
@@ -47,18 +50,31 @@ public class RenameMoveFileJob : BaseJob
                 return;
         }
 
-        var places = _vlocal.Places;
-        foreach (var place in places)
+        foreach (var location in _vlocal.Places)
         {
-            var result = await _vlPlaceService.AutoRelocateFile(place);
+            var locationPath = location.Path;
+            var folder = location.ManagedFolder;
+            if (string.IsNullOrEmpty(locationPath) || folder is null)
+            {
+                _logger.LogTrace("Invalid path or managed folder, skipping {FileName}. (Video={VideoID},Location={LocationID})", locationPath, _vlocal.VideoLocalID, location.ID);
+                continue;
+            }
+
+            if (!folder.IsDropDestination && !folder.IsDropSource)
+            {
+                _logger.LogTrace("Not in a drop destination or source, skipping {FileName}. (Video={VideoID},Location={LocationID})", locationPath, _vlocal.VideoLocalID, location.ID);
+                continue;
+            }
+
+            var result = await _relocationService.AutoRelocateFile(location);
             if (!result.Success)
-                _logger.LogTrace(result.Exception, "Unable to move/rename file; {ErrorMessage}", result.ErrorMessage);
+                _logger.LogTrace(result.Error.Exception, "Unable to move/rename file; {ErrorMessage} (Video={VideoID},Location={LocationID})", result.Error.Message, _vlocal.VideoLocalID, location.ID);
         }
     }
 
-    public RenameMoveFileJob(VideoLocal_PlaceService vlPlaceService)
+    public RenameMoveFileJob(IRelocationService relocationService)
     {
-        _vlPlaceService = vlPlaceService;
+        _relocationService = relocationService;
     }
 
     protected RenameMoveFileJob() { }

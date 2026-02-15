@@ -50,7 +50,7 @@ public class RequestCalendar : UDPRequest<ResponseCalendar>
             }
 
             var flags = (ResponseCalendar.CalendarFlags)flagInt;
-            var date = Commons.Utils.AniDB.GetAniDBDateAsDate(epochElapsed);
+            var date = AniDBExtensions.GetAniDBDateAsDate(epochElapsed);
             var entry = new ResponseCalendar.CalendarEntry { AnimeID = animeID, ReleaseDate = date, DateFlags = flags };
             var known = !flags.HasFlag(ResponseCalendar.CalendarFlags.StartUnknown) &&
                         !flags.HasFlag(ResponseCalendar.CalendarFlags.StartDayUnknown) &&

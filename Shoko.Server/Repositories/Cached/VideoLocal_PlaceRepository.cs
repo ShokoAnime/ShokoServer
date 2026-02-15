@@ -1,85 +1,95 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Extensions;
-using Shoko.Commons.Properties;
-using Shoko.Models.Server;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
-using Shoko.Server.Models;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Server;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class VideoLocal_PlaceRepository : BaseCachedRepository<SVR_VideoLocal_Place, int>
+public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place, int>
 {
-    private PocoIndex<int, SVR_VideoLocal_Place, int> VideoLocals;
-    private PocoIndex<int, SVR_VideoLocal_Place, int> ImportFolders;
-    private PocoIndex<int, SVR_VideoLocal_Place, string> Paths;
+    private PocoIndex<int, VideoLocal_Place, int>? _videoLocalIDs;
+
+    private PocoIndex<int, VideoLocal_Place, int>? _managedFolderIDs;
+
+    private PocoIndex<int, VideoLocal_Place, string>? _paths;
 
     public VideoLocal_PlaceRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
-        // ReSharper disable once ParameterOnlyUsedForPreconditionCheck.Local
         BeginSaveCallback = place =>
         {
-            if (place.VideoLocalID == 0) throw new InvalidStateException("Attempting to save a VideoLocal_Place with a VideoLocalID of 0");
+            if (place.VideoID == 0)
+                throw new InvalidStateException("Attempting to save a VideoLocal_Place with a VideoLocalID of 0");
+            if (string.IsNullOrEmpty(place.RelativePath))
+                throw new InvalidStateException("Attempting to save a VideoLocal_Place with a null or empty FilePath");
+            if (place.ID is 0 && GetByRelativePathAndManagedFolderID(place.RelativePath, place.ManagedFolderID) is { } secondPlace)
+                throw new InvalidStateException("Attempting to save a VideoLocal_Place with a FilePath and ManagedFolderID that already exists in the database");
         };
     }
 
-    protected override int SelectKey(SVR_VideoLocal_Place entity)
-    {
-        return entity.VideoLocal_Place_ID;
-    }
+    protected override int SelectKey(VideoLocal_Place entity)
+        => entity.ID;
 
     public override void PopulateIndexes()
     {
-        VideoLocals = new PocoIndex<int, SVR_VideoLocal_Place, int>(Cache, a => a.VideoLocalID);
-        ImportFolders = new PocoIndex<int, SVR_VideoLocal_Place, int>(Cache, a => a.ImportFolderID);
-        Paths = new PocoIndex<int, SVR_VideoLocal_Place, string>(Cache, a => a.FilePath);
+        _videoLocalIDs = Cache.CreateIndex(a => a.VideoID);
+        _managedFolderIDs = Cache.CreateIndex(a => a.ManagedFolderID);
+        _paths = Cache.CreateIndex(a => a.RelativePath);
     }
 
     public override void RegenerateDb()
     {
-        ServerState.Instance.ServerStartingStatus = string.Format(
-            Resources.Database_Validating, nameof(VideoLocal_Place), " Removing orphaned VideoLocal_Places");
-        var count = 0;
-        int max;
-
-        var list = Cache.Values.Where(a => a is { VideoLocalID: 0 }).ToList();
-        max = list.Count;
-
+        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal_Place)} Removing orphaned VideoLocal_Places...";
+        var entries = Cache.Values.Where(a => a is { VideoID: 0 } or { ManagedFolderID: 0 } or { RelativePath: null or "" }).ToList();
+        var total = entries.Count;
+        var current = 0;
         using var session = _databaseFactory.SessionFactory.OpenSession();
-        foreach (var batch in list.Batch(50))
+        foreach (var batch in entries.Batch(50))
         {
             using var transaction = session.BeginTransaction();
-            foreach (var a in batch)
+            foreach (var entry in batch)
             {
-                DeleteWithOpenTransaction(session, a);
-                count++;
-                ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(VideoLocal_Place),
-                    " Removing Orphaned VideoLocal_Places - " + count + "/" + max);
+                DeleteWithOpenTransaction(session, entry);
+                current++;
+                ServerState.Instance.ServerStartingStatus =
+                    $"Database - Validating - {nameof(VideoLocal_Place)} Removing Orphaned VideoLocal_Places - {current}/{total}...";
             }
 
             transaction.Commit();
         }
     }
 
-    public List<SVR_VideoLocal_Place> GetByImportFolder(int importFolderID)
-    {
-        if (importFolderID == 0) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by an ImportFolderID of 0");
-        return ReadLock(() => ImportFolders.GetMultiple(importFolderID));
-    }
+    /// <summary>
+    /// Gets the <see cref="VideoLocal_Place"/> associated with the given file path, but only if it is unique across all managed folders.
+    /// </summary>
+    /// <param name="relativePath">The file path to search for.</param>
+    /// <returns>The associated <see cref="VideoLocal_Place"/>, or null if not found.</returns>
+    /// <exception cref="InvalidStateException">When the given file path is null or empty.</exception>
+    public VideoLocal_Place? GetByRelativePath(string relativePath)
+        => !string.IsNullOrEmpty(relativePath)
+            ? ReadLock(() => _paths!.GetMultiple(PlatformUtility.NormalizePath(relativePath, stripLeadingSlash: true)) is { Count: 1 } list ? list[0] : null)
+            : null;
 
-    public SVR_VideoLocal_Place GetByFilePathAndImportFolderID(string filePath, int importFolderID)
-    {
-        if (string.IsNullOrEmpty(filePath)) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by an empty File Path");
-        if (importFolderID == 0) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by an ImportFolderID of 0");
-        return ReadLock(() => Paths.GetMultiple(filePath).FirstOrDefault(a => a.ImportFolderID == importFolderID));
-    }
+    public IReadOnlyList<VideoLocal_Place> GetByManagedFolderID(int managedFolderID)
+        => ReadLock(() => _managedFolderIDs!.GetMultiple(managedFolderID));
 
-    public List<SVR_VideoLocal_Place> GetByVideoLocal(int videoLocalID)
-    {
-        if (videoLocalID == 0) throw new InvalidStateException("Trying to lookup a VideoLocal_Place by a VideoLocalID of 0");
-        return ReadLock(() => VideoLocals.GetMultiple(videoLocalID));
-    }
+    /// <summary>
+    /// Gets the <see cref="VideoLocal_Place"/> associated with the given file path and managed folder ID.
+    /// </summary>
+    /// <param name="relativePath">The file path to search for.</param>
+    /// <param name="managedFolderID">The managed folder ID to search within.</param>
+    /// <returns>The associated <see cref="VideoLocal_Place"/>, or null if not found.</returns>
+    /// <exception cref="InvalidStateException">When the given file path is null or empty, or the given managed folder ID is 0.</exception>
+    public VideoLocal_Place? GetByRelativePathAndManagedFolderID(string relativePath, int managedFolderID)
+        => !string.IsNullOrEmpty(relativePath) && managedFolderID > 0
+            ? ReadLock(() => _paths!.GetMultiple(PlatformUtility.NormalizePath(relativePath, stripLeadingSlash: true)).FirstOrDefault(a => a.ManagedFolderID == managedFolderID))
+            : null;
+
+    public IReadOnlyList<VideoLocal_Place> GetByVideoLocal(int videoLocalID)
+        => ReadLock(() => _videoLocalIDs!.GetMultiple(videoLocalID));
 }

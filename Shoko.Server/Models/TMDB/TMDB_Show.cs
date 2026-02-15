@@ -1,11 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Commons.Extensions;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.DataModels.Shoko;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Abstractions.Metadata.Tmdb;
+using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
+using Shoko.Abstractions.Metadata.Tmdb.Enums;
+using Shoko.Abstractions.Video;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Providers.TMDB;
@@ -20,7 +26,7 @@ namespace Shoko.Server.Models.TMDB;
 /// <summary>
 /// The Movie DataBase (TMDB) Show Database Model.
 /// </summary>
-public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
+public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, ITmdbShowOrderingInformation
 {
     #region Properties
 
@@ -103,14 +109,29 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     public List<string> Genres { get; set; } = [];
 
     /// <summary>
+    /// Keywords / Tags.
+    /// </summary>
+    public List<string> Keywords { get; set; } = [];
+
+    /// <summary>
     /// Content ratings for different countries for this show.
     /// </summary>
     public List<TMDB_ContentRating> ContentRatings { get; set; } = [];
 
     /// <summary>
+    /// Production countries.
+    /// </summary>
+    public List<TMDB_ProductionCountry> ProductionCountries { get; set; } = [];
+
+    /// <summary>
     /// Number of episodes using the default ordering.
     /// </summary>
     public int EpisodeCount { get; set; }
+
+    /// <summary>
+    /// Number of hidden episodes using the default ordering.
+    /// </summary>
+    public int HiddenEpisodeCount { get; set; }
 
     /// <summary>
     /// Number of seasons using the default ordering.
@@ -209,6 +230,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
             UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : show.Overview, v => EnglishOverview = v),
             UpdateProperty(IsRestricted, show.Adult, v => IsRestricted = v),
             UpdateProperty(Genres, show.GetGenres(), v => Genres = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
+            UpdateProperty(Keywords, show.Keywords.Results.Select(k => k.Name).ToList(), v => Keywords = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
             UpdateProperty(
                 ContentRatings,
                 show.ContentRatings.Results
@@ -219,13 +241,21 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
                 v => ContentRatings = v,
                 (a, b) => string.Equals(string.Join(",", a.Select(a1 => a1.ToString())), string.Join(",", b.Select(b1 => b1.ToString())))
             ),
-            UpdateProperty(EpisodeCount, show.NumberOfEpisodes, v => EpisodeCount = v),
+            UpdateProperty(
+                ProductionCountries,
+                show.ProductionCountries
+                    .Select(country => new TMDB_ProductionCountry(country.Iso_3166_1, country.Name))
+                    .OrderBy(c => c.CountryCode)
+                    .ToList(),
+                v => ProductionCountries = v,
+                (a, b) => string.Equals(string.Join(",", a.Select(a1 => a1.ToString())), string.Join(",", b.Select(b1 => b1.ToString())))
+            ),
             UpdateProperty(SeasonCount, show.NumberOfSeasons, v => SeasonCount = v),
             UpdateProperty(AlternateOrderingCount, show.EpisodeGroups?.Results.Count ?? AlternateOrderingCount, v => AlternateOrderingCount = v),
             UpdateProperty(UserRating, show.VoteAverage, v => UserRating = v),
             UpdateProperty(UserVotes, show.VoteCount, v => UserVotes = v),
-            UpdateProperty(FirstAiredAt, show.FirstAirDate.HasValue ? DateOnly.FromDateTime(show.FirstAirDate.Value) : null, v => FirstAiredAt = v),
-            UpdateProperty(LastAiredAt, !string.IsNullOrEmpty(show.Status) && show.Status.Equals("Ended", StringComparison.InvariantCultureIgnoreCase) && show.LastAirDate.HasValue ? DateOnly.FromDateTime(show.LastAirDate.Value) : null, v => LastAiredAt = v),
+            UpdateProperty(FirstAiredAt, show.FirstAirDate?.ToDateOnly(), v => FirstAiredAt = v),
+            UpdateProperty(LastAiredAt, !string.IsNullOrEmpty(show.Status) && show.Status.Equals("Ended", StringComparison.InvariantCultureIgnoreCase) && show.LastAirDate.HasValue ? show.LastAirDate?.ToDateOnly(): null, v => LastAiredAt = v),
         };
 
         return updates.Any(updated => updated);
@@ -318,9 +348,9 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
         ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Show, TmdbShowID)
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Show, TmdbShowID);
 
-    public TMDB_Image? DefaultPoster => RepoFactory.TMDB_Image.GetByRemoteFileNameAndType(PosterPath, ImageEntityType.Poster);
+    public TMDB_Image? DefaultPoster => RepoFactory.TMDB_Image.GetByRemoteFileName(PosterPath)?.GetImageMetadata(true, ImageEntityType.Poster);
 
-    public TMDB_Image? DefaultBackdrop => RepoFactory.TMDB_Image.GetByRemoteFileNameAndType(BackdropPath, ImageEntityType.Backdrop);
+    public TMDB_Image? DefaultBackdrop => RepoFactory.TMDB_Image.GetByRemoteFileName(BackdropPath)?.GetImageMetadata(true, ImageEntityType.Backdrop);
 
     /// <summary>
     /// Get all images for the show, or all images for the given
@@ -343,7 +373,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     /// <param name="preferredImages">The preferred images.</param>
     /// <returns>A read-only list of images that are linked to the show.
     /// </returns>
-    public IReadOnlyList<IImageMetadata> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImageMetadata> preferredImages) =>
+    public IReadOnlyList<IImage> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImage> preferredImages) =>
         GetImages(entityType)
             .GroupBy(i => i.ImageType)
             .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)
@@ -363,6 +393,16 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
     public IReadOnlyList<TMDB_Company> TmdbCompanies =>
         TmdbCompanyCrossReferences
             .Select(xref => xref.GetTmdbCompany())
+            .WhereNotNull()
+            .ToList();
+
+    /// <summary>
+    /// Get all TMDB studios linked to the show.
+    /// </summary>
+    /// <returns>All TMDB studios linked to the show.</returns>
+    public IReadOnlyList<TMDB_Studio<TMDB_Show>> TmdbStudios =>
+        TmdbCompanyCrossReferences
+            .Select(xref => xref.GetTmdbCompany() is { } company ? new TMDB_Studio<TMDB_Show>(company, this) : null)
             .WhereNotNull()
             .ToList();
 
@@ -406,7 +446,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
                 };
             })
             .OrderBy(crew => crew.Ordering)
-            .OrderBy(crew => crew.TmdbPersonID)
+            .ThenBy(crew => crew.TmdbPersonID)
             .ToList();
 
     /// <summary>
@@ -432,9 +472,15 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
                 };
             })
             .OrderBy(crew => crew.Department)
-            .OrderBy(crew => crew.Job)
-            .OrderBy(crew => crew.TmdbPersonID)
+            .ThenBy(crew => crew.Job)
+            .ThenBy(crew => crew.TmdbPersonID)
             .ToList();
+
+    /// <summary>
+    /// Get all yearly seasons the show was released in.
+    /// </summary>
+    public IReadOnlyList<(int Year, YearlySeason Season)> YearlySeasons
+        => [.. FirstAiredAt.GetYearlySeasons(LastAiredAt)];
 
     /// <summary>
     /// Get the preferred alternate ordering scheme associated with the show in
@@ -484,6 +530,17 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
         RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(TmdbShowID);
 
     /// <summary>
+    /// Get AniDB/TMDB season cross-references for the show.
+    /// </summary>
+    /// <returns>The season cross-references.</returns>
+    public IReadOnlyList<CrossRef_AniDB_TMDB_Season> SeasonCrossReferences =>
+        EpisodeCrossReferences
+            .Select(xref => xref.TmdbSeasonCrossReference)
+            .WhereNotNull()
+            .DistinctBy(xref => xref.TmdbSeasonID)
+            .ToList();
+
+    /// <summary>
     /// Get AniDB/TMDB episode cross-references for the show.
     /// </summary>
     /// <returns>The episode cross-references.</returns>
@@ -492,11 +549,11 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
 
     #endregion
 
-    #region IEntityMetadata
+    #region IEntityMetadata Implementation
 
     ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Show;
 
-    DataSourceEnum IEntityMetadata.DataSource => DataSourceEnum.TMDB;
+    DataSource IEntityMetadata.DataSource => DataSource.TMDB;
 
     TitleLanguage? IEntityMetadata.OriginalLanguage => OriginalLanguage;
 
@@ -504,61 +561,91 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
 
     #endregion
 
-    #region IMetadata
+    #region IMetadata Implementation
 
-    DataSourceEnum IMetadata.Source => DataSourceEnum.TMDB;
+    DataSource IMetadata.Source => DataSource.TMDB;
 
     int IMetadata<int>.ID => Id;
 
     #endregion
 
-    #region IWithTitles
+    #region IWithTitles Implementation
 
-    string IWithTitles.DefaultTitle => EnglishTitle;
+    string IWithTitles.Title => GetPreferredTitle()?.Value ?? EnglishTitle;
 
-    string IWithTitles.PreferredTitle => GetPreferredTitle()!.Value;
+    ITitle IWithTitles.DefaultTitle => new TitleStub()
+    {
+        Language = TitleLanguage.EnglishAmerican,
+        CountryCode = "US",
+        LanguageCode = "en",
+        Value = EnglishTitle,
+        Source = DataSource.TMDB,
+    };
 
-    IReadOnlyList<AnimeTitle> IWithTitles.Titles => GetAllTitles()
-        .Select(title => new AnimeTitle()
-        {
-            Language = title.Language,
-            LanguageCode = title.LanguageCode,
-            Source = DataSourceEnum.TMDB,
-            Title = title.Value,
-            Type = TitleType.Official,
-        })
-        .ToList();
+    ITitle? IWithTitles.PreferredTitle => GetPreferredTitle();
 
-    #endregion
-
-    #region IWithDescriptions
-
-    string IWithDescriptions.DefaultDescription => EnglishOverview;
-
-    string IWithDescriptions.PreferredDescription => GetPreferredOverview()!.Value;
-
-    IReadOnlyList<TextDescription> IWithDescriptions.Descriptions => GetAllOverviews()
-        .Select(overview => new TextDescription()
-        {
-            CountryCode = overview.CountryCode,
-            Language = overview.Language,
-            LanguageCode = overview.LanguageCode,
-            Source = DataSourceEnum.TMDB,
-            Value = overview.Value,
-        })
-        .ToList();
+    IReadOnlyList<ITitle> IWithTitles.Titles => GetAllTitles();
 
     #endregion
 
-    #region IWithImages
+    #region IWithDescriptions Implementation
 
-    IImageMetadata? IWithImages.GetPreferredImageForType(ImageEntityType entityType) => null;
+    IText? IWithDescriptions.DefaultDescription => new TextStub()
+    {
+        Language = TitleLanguage.EnglishAmerican,
+        CountryCode = "US",
+        LanguageCode = "en",
+        Value = EnglishOverview,
+        Source = DataSource.TMDB,
+    };
 
-    IReadOnlyList<IImageMetadata> IWithImages.GetImages(ImageEntityType? entityType) => GetImages(entityType);
+    IText? IWithDescriptions.PreferredDescription => GetPreferredOverview();
+
+    IReadOnlyList<IText> IWithDescriptions.Descriptions => GetAllOverviews();
 
     #endregion
 
-    #region ISeries
+    #region IWithCreationDate Implementation
+
+    DateTime IWithCreationDate.CreatedAt => CreatedAt.ToUniversalTime();
+
+    #endregion
+
+    #region IWithUpdateDate Implementation
+
+    DateTime IWithUpdateDate.LastUpdatedAt => LastUpdatedAt.ToUniversalTime();
+
+    #endregion
+
+    #region IWithImages Implementation
+
+    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType) => null;
+
+    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType) => GetImages(entityType);
+
+    #endregion
+
+    #region IWithCastAndCrew Implementation
+
+    IReadOnlyList<ICast> IWithCastAndCrew.Cast => Cast;
+
+    IReadOnlyList<ICrew> IWithCastAndCrew.Crew => Crew;
+
+    #endregion
+
+    #region IWithStudios Implementation
+
+    IReadOnlyList<IStudio> IWithStudios.Studios => TmdbStudios;
+
+    #endregion
+
+    #region IWithContentRatings Implementation
+
+    IReadOnlyList<IContentRating> IWithContentRatings.ContentRatings => ContentRatings;
+
+    #endregion
+
+    #region ISeries Implementation
 
     IReadOnlyList<int> ISeries.ShokoSeriesIDs => CrossReferences.Select(xref => xref.AnimeSeries?.AnimeSeriesID).WhereNotNull().Distinct().ToList();
 
@@ -570,23 +657,27 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
 
     double ISeries.Rating => UserRating;
 
+    int ISeries.RatingVotes => UserVotes;
+
     bool ISeries.Restricted => IsRestricted;
 
-    IImageMetadata? ISeries.DefaultPoster => DefaultPoster;
+    IImage? ISeries.DefaultPoster => DefaultPoster;
 
     IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => CrossReferences
         .Select(xref => xref.AnimeSeries)
         .WhereNotNull()
         .ToList();
 
-    IReadOnlyList<IRelatedMetadata<ISeries>> ISeries.RelatedSeries => [];
+    IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> ISeries.RelatedSeries => [];
 
-    IReadOnlyList<IRelatedMetadata<IMovie>> ISeries.RelatedMovies => [];
+    IReadOnlyList<IRelatedMetadata<ISeries, IMovie>> ISeries.RelatedMovies => [];
 
     IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences => CrossReferences
         .DistinctBy(xref => xref.AnidbAnimeID)
         .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByAnimeID(xref.AnidbAnimeID))
         .ToList();
+
+    IReadOnlyList<ISeason> ISeries.Seasons => TmdbSeasons;
 
     IReadOnlyList<IEpisode> ISeries.Episodes => TmdbEpisodes;
 
@@ -602,6 +693,58 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries
         .Select(xref => xref.VideoLocal)
         .WhereNotNull()
         .ToList();
+
+    #endregion
+
+    #region ITmdbShow Implementation
+
+    IReadOnlyList<string> ITmdbShow.ProductionCountries => ProductionCountries
+        .Select(country => country.CountryCode)
+        .Order()
+        .ToList();
+
+    IReadOnlyList<string> ITmdbShow.Keywords => Keywords;
+
+    IReadOnlyList<string> ITmdbShow.Genres => Genres;
+
+    IReadOnlyList<ITmdbSeason> ITmdbShow.Seasons => TmdbSeasons;
+
+    IReadOnlyList<ITmdbEpisode> ITmdbShow.Episodes => TmdbEpisodes;
+
+    ITmdbShowOrderingInformation ITmdbShow.PreferredOrdering =>
+        string.IsNullOrEmpty(PreferredAlternateOrderingID) || PreferredAlternateOrderingID == TmdbShowID.ToString()
+            ? this
+            : (ITmdbShowOrderingInformation?)RepoFactory.TMDB_AlternateOrdering.GetByEpisodeGroupCollectionAndShowIDs(PreferredAlternateOrderingID, TmdbShowID) ?? this;
+
+    IReadOnlyList<ITmdbShowOrderingInformation> ITmdbShow.AllOrderings => [this, .. TmdbAlternateOrdering];
+
+    IReadOnlyList<ITmdbShowCrossReference> ITmdbShow.TmdbShowCrossReferences => CrossReferences;
+
+    IReadOnlyList<ITmdbSeasonCrossReference> ITmdbShow.TmdbSeasonCrossReferences => SeasonCrossReferences;
+
+    IReadOnlyList<ITmdbEpisodeCrossReference> ITmdbShow.TmdbEpisodeCrossReferences => EpisodeCrossReferences;
+
+    #endregion
+
+    #region ITmdbShowOrderingInformation Implementation
+
+    int ITmdbShowOrderingInformation.SeriesID => TmdbShowID;
+
+    string ITmdbShowOrderingInformation.OrderingID => TmdbShowID.ToString();
+
+    TmdbAlternateOrderingType ITmdbShowOrderingInformation.OrderingType => TmdbAlternateOrderingType.Default;
+
+    string ITmdbShowOrderingInformation.OrderingName => "Seasons";
+
+    string ITmdbShowOrderingInformation.Description => "Default ordering for the show.";
+
+    bool ITmdbShowOrderingInformation.IsPreferred => string.IsNullOrEmpty(PreferredAlternateOrderingID) || string.Equals(TmdbShowID.ToString(), PreferredAlternateOrderingID);
+
+    ITmdbShow? ITmdbShowOrderingInformation.Series => this;
+
+    IReadOnlyList<ITmdbSeason> ITmdbShowOrderingInformation.Seasons => TmdbSeasons;
+
+    IReadOnlyList<ITmdbEpisode> ITmdbShowOrderingInformation.Episodes => TmdbEpisodes;
 
     #endregion
 }

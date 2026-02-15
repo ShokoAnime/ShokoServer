@@ -1,0 +1,59 @@
+using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Services;
+using Shoko.Abstractions.User;
+
+namespace Shoko.Abstractions.UserData.Enums;
+
+/// <summary>
+/// The reason the user data for the video and user is being saved.
+/// </summary>
+public enum VideoUserDataSaveReason
+{
+    /// <summary>
+    /// The user data is being saved for no specific reason.
+    /// </summary>
+    None = 0,
+
+    /// <summary>
+    /// The user data is being saved because of user interaction.
+    /// </summary>
+    UserInteraction,
+
+    /// <summary>
+    /// The user data is being saved when playback of a video started.
+    /// </summary>
+    PlaybackStart,
+
+    /// <summary>
+    /// The user data is being saved when playback of a video was paused.
+    /// </summary>
+    PlaybackPause,
+
+    /// <summary>
+    /// The user data is being saved when playback of a video was resumed.
+    /// </summary>
+    PlaybackResume,
+
+    /// <summary>
+    /// The user data is being saved when playback of a video progressed.
+    /// </summary>
+    PlaybackProgress,
+
+    /// <summary>
+    /// The user data is being saved when playback of a video ended.
+    /// </summary>
+    PlaybackEnd,
+
+    /// <summary>
+    /// The user data is being imported from another source.
+    /// </summary>
+    /// <remarks>
+    /// Should not be used directly in
+    /// <see cref="IUserDataService.SaveVideoUserData(IVideo, IUser, VideoUserDataUpdate, VideoUserDataSaveReason, bool)"/>,
+    /// as it should only be used in
+    /// <see cref="IUserDataService.ImportVideoUserData(IVideo, IUser, VideoUserDataUpdate, string, bool)"/>.
+    /// Using it in the first method will result in the reason being turned into
+    /// <see cref="None"/>.
+    /// </remarks>
+    Import,
+}

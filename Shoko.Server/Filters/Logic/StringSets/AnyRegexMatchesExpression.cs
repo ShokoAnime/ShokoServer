@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.StringSets;
@@ -23,9 +24,9 @@ public class AnyRegexMatchesExpression : FilterExpression<bool>, IWithStringSetS
     public override string HelpDescription => "This condition passes if any of the values in the left selector matches the regex provided in the parameter";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        var left = Left.Evaluate(filterable, userInfo);
+        var left = Left.Evaluate(filterable, userInfo, time);
         if (string.IsNullOrEmpty(Parameter)) return !left.Any();
         var regex = new Regex(Parameter, RegexOptions.Compiled | RegexOptions.IgnoreCase);
         return left.Any(a => regex.IsMatch(a));

@@ -1,16 +1,14 @@
 using System;
-using Shoko.Server.Filters.Interfaces;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Selectors.DateSelectors;
 
 public class AddedDateSelector : FilterExpression<DateTime?>
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This returns the date that a filterable was created";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
-    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override DateTime? Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.AddedDate;
     }

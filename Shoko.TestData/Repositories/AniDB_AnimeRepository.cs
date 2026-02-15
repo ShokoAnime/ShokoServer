@@ -1,6 +1,6 @@
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.TestData.Repositories;
@@ -8,7 +8,7 @@ namespace Shoko.TestData.Repositories;
 /// <summary>
 /// Mock AniDB_Anime Repository. Many methods will error, such as write operations
 /// </summary>
-public class AniDB_AnimeRepository : Server.Repositories.Cached.AniDB_AnimeRepository
+public class AniDB_AnimeRepository : Server.Repositories.Cached.AniDB.AniDB_AnimeRepository
 {
     public override void RegenerateDb()
     {
@@ -17,7 +17,7 @@ public class AniDB_AnimeRepository : Server.Repositories.Cached.AniDB_AnimeRepos
 
     public override void Populate(ISessionWrapper session, bool displayname = true)
     {
-        Cache = new PocoCache<int, SVR_AniDB_Anime>(TestData.AniDB_Anime.Value, SelectKey);
+        Cache = new PocoCache<int, AniDB_Anime>(TestData.AniDB_Anime.Value, SelectKey);
         PopulateIndexes();
     }
 

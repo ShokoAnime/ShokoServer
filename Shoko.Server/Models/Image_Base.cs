@@ -10,16 +10,16 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
-using Shoko.Commons.Utils;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Server.Extensions;
 using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Models;
 
-public class Image_Base : IImageMetadata
+public class Image_Base : IImage
 {
     #region Static Fields
 
@@ -96,12 +96,12 @@ public class Image_Base : IImageMetadata
             if (!string.IsNullOrEmpty(LocalPath))
                 return _contentType = MimeMapping.MimeUtility.GetMimeMapping(LocalPath);
 
-            return _contentType = MimeMapping.MimeUtility.UnknownMimeType;
+            return MimeMapping.MimeUtility.UnknownMimeType;
         }
     }
 
     /// <inheritdoc/>
-    public DataSourceEnum Source { get; }
+    public DataSource Source { get; }
 
     /// <inheritdoc/>
     public ImageEntityType ImageType { get; set; }
@@ -115,16 +115,10 @@ public class Image_Base : IImageMetadata
     /// <inheritdoc/>
     public virtual bool IsLocked => true;
 
-    /// <inheritdoc/>
-    public bool IsAvailable
-    {
-        get => IsLocalAvailable || IsRemoteAvailable;
-    }
-
     [MemberNotNullWhen(true, nameof(LocalPath))]
     public bool IsLocalAvailable
     {
-        get => !string.IsNullOrEmpty(LocalPath) && File.Exists(LocalPath) && Misc.IsImageValid(LocalPath);
+        get => !string.IsNullOrEmpty(LocalPath) && File.Exists(LocalPath) && ImageExtensions.IsImageValid(LocalPath);
     }
 
     private bool? _urlExists = null;
@@ -163,7 +157,7 @@ public class Image_Base : IImageMetadata
             var bytes = new byte[12];
             stream.Read(bytes, 0, 12);
             stream.Close();
-            _urlExists = Misc.IsImageValid(bytes);
+            _urlExists = ImageExtensions.IsImageValid(bytes);
             return _urlExists.Value;
         }
         catch (Exception ex)
@@ -253,7 +247,7 @@ public class Image_Base : IImageMetadata
         }
     }
 
-    public Image_Base(DataSourceEnum source, ImageEntityType type, int id, string? localPath = null, string? remoteURL = null)
+    public Image_Base(DataSource source, ImageEntityType type, int id, string? localPath = null, string? remoteURL = null)
     {
         InternalID = id;
         ImageType = type;
@@ -284,8 +278,8 @@ public class Image_Base : IImageMetadata
                 return;
             }
 
-            _width = info.Width;
-            _height = info.Height;
+            _width = (int)info.Width;
+            _height = (int)info.Height;
         }
         catch
         {
@@ -295,12 +289,9 @@ public class Image_Base : IImageMetadata
         }
     }
 
-    public Stream? GetStream(bool allowLocal = true, bool allowRemote = true)
+    public Stream? GetStream()
     {
-        if (allowLocal && IsLocalAvailable)
-            return new FileStream(LocalPath, FileMode.Open, FileAccess.Read);
-
-        if (allowRemote && DownloadImage().ConfigureAwait(false).GetAwaiter().GetResult() && IsLocalAvailable)
+        if (IsLocalAvailable)
             return new FileStream(LocalPath, FileMode.Open, FileAccess.Read);
 
         return null;
@@ -315,7 +306,7 @@ public class Image_Base : IImageMetadata
             return true;
 
         var binary = await _retryPolicy.ExecuteAsync(async () => await Client.GetByteArrayAsync(RemoteURL));
-        if (!Misc.IsImageValid(binary))
+        if (!ImageExtensions.IsImageValid(binary))
             throw new HttpRequestException($"Invalid image data format at remote resource: {RemoteURL}", null, HttpStatusCode.ExpectationFailed);
 
         // Ensure directory structure exists.
@@ -341,12 +332,12 @@ public class Image_Base : IImageMetadata
 
     public override bool Equals(object? other)
     {
-        if (other is null || other is not IImageMetadata imageMetadata)
+        if (other is null || other is not IImage imageMetadata)
             return false;
         return Equals(imageMetadata);
     }
 
-    public bool Equals(IImageMetadata? other)
+    public bool Equals(IImage? other)
     {
         if (other is null)
             return false;

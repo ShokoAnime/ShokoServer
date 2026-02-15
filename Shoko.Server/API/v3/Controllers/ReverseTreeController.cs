@@ -37,9 +37,11 @@ public class ReverseTreeController : BaseController
     /// </remarks>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="topLevel">Always get the top-level <see cref="Filter"/></param>
+    /// <param name="withConditions">Include conditions and sort criteria in the response.</param>
+    /// <param name="includeEmptyGroups">Include empty groups for size calculations.</param>
     /// <returns></returns>
     [HttpGet("Filter/{filterID}/Parent")]
-    public ActionResult<Filter> GetParentFromFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool topLevel = false)
+    public ActionResult<Filter> GetParentFromFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool topLevel = false, [FromQuery] bool withConditions = false, [FromQuery] bool includeEmptyGroups = false)
     {
         var filter = RepoFactory.FilterPreset.GetByID(filterID);
         if (filter == null)
@@ -58,7 +60,7 @@ public class ReverseTreeController : BaseController
             return InternalError("No parent Filter entry for the given filterID");
         }
 
-        return _filterFactory.GetFilter(parentGroup);
+        return _filterFactory.GetFilter(parentGroup, withConditions, includeEmptyGroups);
     }
 
     /// <summary>
@@ -141,11 +143,11 @@ public class ReverseTreeController : BaseController
     /// </summary>
     /// <param name="episodeID"><see cref="Episode"/> ID</param>
     /// <param name="randomImages">Randomize images shown for the <see cref="Series"/>.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/Series")]
     public ActionResult<Series> GetSeriesFromEpisode([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -175,7 +177,7 @@ public class ReverseTreeController : BaseController
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("File/{fileID}/Episode")]
     public ActionResult<List<Episode>> GetEpisodeFromFile(
@@ -184,7 +186,7 @@ public class ReverseTreeController : BaseController
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)

@@ -5,13 +5,12 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
-using Shoko.Models.PlexAndKodi;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Filtering.Services;
 using Shoko.Server.Extensions;
-using Shoko.Server.Filters;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common;
@@ -33,7 +32,7 @@ public class Group : BaseDirectory
         roles = [];
     }
 
-    public static Group GenerateFromAnimeGroup(HttpContext ctx, SVR_AnimeGroup ag, int uid, bool noCast, bool noTag, int level,
+    public static Group GenerateFromAnimeGroup(HttpContext ctx, AnimeGroup ag, int uid, bool noCast, bool noTag, int level,
         bool all, int filterID, bool allPic, int pic, TagFilter.Filter tagFilter, List<int> evaluatedSeriesIDs = null)
     {
         var g = new Group
@@ -47,15 +46,16 @@ public class Group : BaseDirectory
         if (filterID > 0 && evaluatedSeriesIDs == null)
         {
             var filter = RepoFactory.FilterPreset.GetByID(filterID);
-            var evaluator = ctx.RequestServices.GetRequiredService<FilterEvaluator>();
-            evaluatedSeriesIDs = evaluator.EvaluateFilter(filter, ctx.GetUser().JMMUserID).FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList();
+            var evaluator = ctx.RequestServices.GetRequiredService<IFilterEvaluator>();
+            evaluatedSeriesIDs = evaluator.EvaluateFilter(filter, ctx.GetUser()).FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList();
         }
 
         var allAnime = evaluatedSeriesIDs is not null
             ? evaluatedSeriesIDs
                 .Select(RepoFactory.AnimeSeries.GetByID)
                 .WhereNotNull()
-                .Select(ser => ser.AniDB_Anime).WhereNotNull()
+                .Select(ser => ser.AniDB_Anime)
+                .WhereNotNull()
                 .OrderBy(a => a.BeginYear)
                 .ThenBy(a => a.AirDate ?? DateTime.MaxValue)
                 .ToList()
@@ -68,11 +68,16 @@ public class Group : BaseDirectory
 
         PopulateArtFromAniDBAnime(ctx, allAnime, g, allPic, pic);
 
-        List<SVR_AnimeEpisode> ael;
+        List<AnimeEpisode> ael;
         if (evaluatedSeriesIDs is not null)
         {
-            var series = evaluatedSeriesIDs.Select(id => RepoFactory.AnimeSeries.GetByID(id)).ToList();
-            ael = series.SelectMany(ser => ser?.AnimeEpisodes).WhereNotNull().ToList();
+            var series = evaluatedSeriesIDs
+                .Select(id => RepoFactory.AnimeSeries.GetByID(id))
+                .ToList();
+            ael = series
+                .SelectMany(ser => ser?.AnimeEpisodes)
+                .WhereNotNull()
+                .ToList();
             g.size = series.Count;
         }
         else
@@ -104,25 +109,26 @@ public class Group : BaseDirectory
 
         if (!noCast)
         {
-            var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID, StaffRoleType.Seiyuu);
+            var xrefAnimeStaff = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(anime.AnimeID);
             foreach (var xref in xrefAnimeStaff)
             {
-                if (xref.RoleID == null) continue;
-
-                var character = RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value);
+                var character = RepoFactory.AniDB_Character.GetByID(xref.CharacterID);
                 if (character == null) continue;
 
-                var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
+                var staff = RepoFactory.AniDB_Creator.GetByID(xref.CreatorID);
                 if (staff == null) continue;
+
+                var xref2 = xref.CharacterCrossReference;
+                if (xref2 == null) continue;
 
                 var role = new Role
                 {
                     character = character.Name,
-                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Character, DataSourceEnum.Shoko, xref.RoleID.Value),
+                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Character, DataSource.Shoko, xref.CharacterID),
                     staff = staff.Name,
-                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Person, DataSourceEnum.Shoko, xref.StaffID),
-                    role = xref.Role,
-                    type = ((StaffRoleType)xref.RoleType).ToString()
+                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Creator, DataSource.Shoko, xref.CreatorID),
+                    role = xref2.AppearanceType.ToString().Replace("_", " "),
+                    type = "Seiyuu",
                 };
                 g.roles ??= [];
 
@@ -148,7 +154,7 @@ public class Group : BaseDirectory
         return source.OrderBy(item => rnd.Next());
     }
 
-    public static void PopulateArtFromAniDBAnime(HttpContext ctx, IEnumerable<SVR_AniDB_Anime> allAnime, Group group, bool allPictures, int maxPictures)
+    public static void PopulateArtFromAniDBAnime(HttpContext ctx, IEnumerable<AniDB_Anime> allAnime, Group group, bool allPictures, int maxPictures)
     {
         var rand = new Random();
         foreach (var anime in Randomize(allAnime))
@@ -208,7 +214,7 @@ public class Group : BaseDirectory
                     {
                         group.art.fanart.Add(new Art
                         {
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBackdrop.ImageType, preferredBackdrop.ImageSource.ToDataSourceEnum(), preferredBackdrop.ImageID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBackdrop.ImageType, preferredBackdrop.ImageSource, preferredBackdrop.ImageID),
                             index = 0
                         });
                     }
@@ -230,7 +236,7 @@ public class Group : BaseDirectory
                         group.art.banner.Add(new Art
                         {
                             index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBanner.ImageType, preferredBanner.ImageSource.ToDataSourceEnum(), preferredBanner.ImageID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBanner.ImageType, preferredBanner.ImageSource, preferredBanner.ImageID),
                         });
                     }
                     else
@@ -248,7 +254,7 @@ public class Group : BaseDirectory
         }
     }
 
-    private static void GenerateSizes(Group grp, List<SVR_AnimeEpisode> ael, int uid)
+    private static void GenerateSizes(Group grp, List<AnimeEpisode> ael, int uid)
     {
         var eps = 0;
         var credits = 0;
@@ -280,98 +286,98 @@ public class Group : BaseDirectory
             }
 
             var local = ep.VideoLocals.Count != 0;
-            switch (ep.EpisodeTypeEnum)
+            switch (ep.EpisodeType)
             {
                 case EpisodeType.Episode:
+                {
+                    eps++;
+                    if (local)
                     {
-                        eps++;
-                        if (local)
-                        {
-                            local_eps++;
-                        }
-
-                        if (ep.GetUserRecord(uid)?.WatchedDate is not null)
-                        {
-                            watched_eps++;
-                        }
-
-                        break;
+                        local_eps++;
                     }
+
+                    if (ep.GetUserRecord(uid)?.WatchedDate is not null)
+                    {
+                        watched_eps++;
+                    }
+
+                    break;
+                }
                 case EpisodeType.Credits:
+                {
+                    credits++;
+                    if (local)
                     {
-                        credits++;
-                        if (local)
-                        {
-                            local_credits++;
-                        }
-
-                        if (ep.GetUserRecord(uid)?.WatchedDate is not null)
-                        {
-                            watched_credits++;
-                        }
-
-                        break;
+                        local_credits++;
                     }
+
+                    if (ep.GetUserRecord(uid)?.WatchedDate is not null)
+                    {
+                        watched_credits++;
+                    }
+
+                    break;
+                }
                 case EpisodeType.Special:
+                {
+                    specials++;
+                    if (local)
                     {
-                        specials++;
-                        if (local)
-                        {
-                            local_specials++;
-                        }
-
-                        if (ep.GetUserRecord(uid)?.WatchedDate is not null)
-                        {
-                            watched_specials++;
-                        }
-
-                        break;
+                        local_specials++;
                     }
+
+                    if (ep.GetUserRecord(uid)?.WatchedDate is not null)
+                    {
+                        watched_specials++;
+                    }
+
+                    break;
+                }
                 case EpisodeType.Trailer:
+                {
+                    trailers++;
+                    if (local)
                     {
-                        trailers++;
-                        if (local)
-                        {
-                            local_trailers++;
-                        }
-
-                        if (ep.GetUserRecord(uid)?.WatchedDate is not null)
-                        {
-                            watched_trailers++;
-                        }
-
-                        break;
+                        local_trailers++;
                     }
+
+                    if (ep.GetUserRecord(uid)?.WatchedDate is not null)
+                    {
+                        watched_trailers++;
+                    }
+
+                    break;
+                }
                 case EpisodeType.Parody:
+                {
+                    parodies++;
+                    if (local)
                     {
-                        parodies++;
-                        if (local)
-                        {
-                            local_parodies++;
-                        }
-
-                        if (ep.GetUserRecord(uid)?.WatchedDate is not null)
-                        {
-                            watched_parodies++;
-                        }
-
-                        break;
+                        local_parodies++;
                     }
+
+                    if (ep.GetUserRecord(uid)?.WatchedDate is not null)
+                    {
+                        watched_parodies++;
+                    }
+
+                    break;
+                }
                 case EpisodeType.Other:
+                {
+                    others++;
+                    if (local)
                     {
-                        others++;
-                        if (local)
-                        {
-                            local_others++;
-                        }
-
-                        if (ep.GetUserRecord(uid)?.WatchedDate is not null)
-                        {
-                            watched_others++;
-                        }
-
-                        break;
+                        local_others++;
                     }
+
+                    if (ep.GetUserRecord(uid)?.WatchedDate is not null)
+                    {
+                        watched_others++;
+                    }
+
+                    break;
+                }
             }
         }
 

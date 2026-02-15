@@ -2,19 +2,19 @@
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 using NLog;
 using Quartz;
-using Shoko.Models.Client;
-using Shoko.Models.Server;
+using Shoko.Abstractions.Services;
+using Shoko.Server.API.v1.Implementations;
+using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.Extensions;
-using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
@@ -27,24 +27,33 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v2.Modules;
 
-[Authorize]
+[Authorize("admin")]
 [ApiController] // As this module requireAuthentication all request need to have apikey in header.
 [Route("/api")]
 [ApiVersion("2.0")]
 public class Core : BaseController
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
     private readonly ShokoServiceImplementation _service;
-    private readonly IServerSettings _settings;
+
     private readonly ISchedulerFactory _schedulerFactory;
+
+    private readonly IAnidbService _anidbService;
+
     private readonly ActionService _actionService;
 
-    public Core(ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, ActionService actionService, ShokoServiceImplementation service) : base(settingsProvider)
+    private readonly ISettingsProvider _settingsProvider;
+
+    private IServerSettings _settings => _settingsProvider.GetSettings();
+
+    public Core(ShokoServiceImplementation service, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IAnidbService anidbService, ActionService actionService) : base(settingsProvider)
     {
-        _schedulerFactory = schedulerFactory;
-        _actionService = actionService;
         _service = service;
-        _settings = settingsProvider.GetSettings();
+        _settingsProvider = settingsProvider;
+        _schedulerFactory = schedulerFactory;
+        _anidbService = anidbService;
+        _actionService = actionService;
     }
 
     #region 01.Settings
@@ -56,7 +65,7 @@ public class Core : BaseController
     [HttpPost("config/port/set")]
     public object SetPort(ushort port)
     {
-        _settings.ServerPort = port;
+        _settings.Web.Port = port;
         return APIStatus.OK();
     }
 
@@ -68,7 +77,7 @@ public class Core : BaseController
     public object GetPort()
     {
         dynamic x = new ExpandoObject();
-        x.port = _settings.ServerPort;
+        x.port = _settings.Web.Port;
         return x;
     }
 
@@ -146,13 +155,11 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("config/get")]
-    public ActionResult<Setting> GetSetting(Setting setting)
-    {
-        return new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
-    }
+    public ActionResult GetSetting([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken setting)
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     /// <summary>
-    /// 
+    ///
     /// </summary>
     /// <param name="jsonSettings"></param>
     /// <returns></returns>
@@ -167,7 +174,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("config/setmultiple")]
-    public ActionResult SetSetting(List<Setting> settings)
+    public ActionResult SetSetting([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken settings)
     {
         return new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's JsonPatch implementation'");
     }
@@ -203,17 +210,17 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("anidb/test")]
-    public async Task<ActionResult> TestAniDB()
+    public ActionResult TestAniDB()
     {
         var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
         handler.ForceLogout();
-        await handler.CloseConnections();
+        handler.CloseConnections();
 
-        await handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
+        handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
             _settings.AniDb.UDPServerAddress,
             _settings.AniDb.UDPServerPort, _settings.AniDb.ClientPort);
 
-        if (await handler.Login())
+        if (handler.Login())
         {
             handler.ForceLogout();
             return APIStatus.OK();
@@ -244,8 +251,11 @@ public class Core : BaseController
     [HttpGet("anidb/votes/sync")]
     public async Task<ActionResult> SyncAniDBVotes()
     {
+        if (User.IsAniDBUser != 1)
+            return BadRequest("User is not an AniDB user. Nothing to do.");
+
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBVotesJob>();
+        await scheduler.StartJob<SyncAniDBVotesJob>(c => c.UserID = User.JMMUserID);
         return APIStatus.OK();
     }
 
@@ -274,50 +284,8 @@ public class Core : BaseController
 
     [Obsolete]
     [HttpGet("anidb/updatemissingcache")]
-    public async Task<ActionResult> UpdateMissingAniDBXML()
-    {
-        try
-        {
-            var scheduler = await _schedulerFactory.GetScheduler();
-            var allAnime = RepoFactory.AniDB_Anime.GetAll().Select(a => a.AnimeID).OrderBy(a => a).ToList();
-            logger.Info($"Starting the check for {allAnime.Count} anime XML files");
-            var updatedAnime = 0;
-            for (var i = 0; i < allAnime.Count; i++)
-            {
-                var animeID = allAnime[i];
-                if (i % 10 == 1)
-                {
-                    logger.Info($"Checking anime {i + 1}/{allAnime.Count} for XML file");
-                }
-
-                var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
-                var rawXml = await xmlUtils.LoadAnimeHTTPFromFile(animeID);
-
-                if (rawXml != null)
-                {
-                    continue;
-                }
-
-                await scheduler.StartJob<GetAniDBAnimeJob>(
-                    c =>
-                    {
-                        c.AnimeID = animeID;
-                        c.ForceRefresh = true;
-                    }
-                );
-                updatedAnime++;
-            }
-
-            logger.Info($"Updating {updatedAnime} anime");
-        }
-        catch (Exception e)
-        {
-            logger.Error($"Error checking and queuing AniDB XML Updates: {e}");
-            return APIStatus.InternalError(e.Message);
-        }
-
-        return APIStatus.OK();
-    }
+    public ActionResult UpdateMissingAniDBXML()
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     #endregion
 
@@ -366,29 +334,11 @@ public class Core : BaseController
         if (_settings.TraktTv.Enabled && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken))
         {
             var scheduler = await _schedulerFactory.GetScheduler();
-            await scheduler.StartJob<SyncTraktCollectionJob>(c => c.ForceRefresh = true);
+            await scheduler.StartJob<SendWatchStatesToTraktJob>(c => c.ForceRefresh = true);
             return APIStatus.OK();
         }
 
         return new APIMessage(204, "Trakt is not enabled or you are missing the authtoken");
-    }
-
-    /// <summary>
-    /// Scan Trakt
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("trakt/scan")]
-    public ActionResult ScanTrakt()
-    {
-        _actionService.RunImport_ScanTrakt();
-        return APIStatus.OK();
-    }
-
-    [HttpPost("trakt/set")]
-    [HttpGet("trakt/create")]
-    public ActionResult TraktNotImplemented()
-    {
-        return APIStatus.NotImplemented();
     }
 
     #endregion
@@ -507,9 +457,8 @@ public class Core : BaseController
     /// Create user from Contract_JMMUser
     /// </summary>
     /// <returns></returns>
-    [Authorize("admin")]
     [HttpPost("user/create")]
-    public ActionResult CreateUser(JMMUser user)
+    public ActionResult CreateUser(CL_JMMUser user)
     {
         user.Password = Digest.Hash(user.Password);
         user.HideCategories = string.Empty;
@@ -524,7 +473,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/password")]
-    public ActionResult ChangePassword(JMMUser user)
+    public ActionResult ChangePassword(CL_JMMUser user)
     {
         return _service.ChangePassword(user.JMMUserID, user.Password) == string.Empty
             ? APIStatus.OK()
@@ -536,8 +485,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/password/{uid}")]
-    [Authorize("admin")]
-    public ActionResult ChangePassword(int uid, JMMUser user)
+    public ActionResult ChangePassword(int uid, CL_JMMUser user)
     {
         return _service.ChangePassword(uid, user.Password) == string.Empty
             ? APIStatus.OK()
@@ -549,8 +497,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/delete")]
-    [Authorize("admin")]
-    public ActionResult DeleteUser(JMMUser user)
+    public ActionResult DeleteUser(CL_JMMUser user)
     {
         return _service.DeleteUser(user.JMMUserID) == string.Empty
             ? APIStatus.OK()
@@ -566,21 +513,8 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("os/folder/base")]
-    public OSFolder GetOSBaseFolder()
-    {
-        var dir = new OSFolder { full_path = Environment.CurrentDirectory };
-        var dir_info = new DirectoryInfo(dir.full_path);
-        dir.dir = dir_info.Name;
-        dir.subdir = new List<OSFolder>();
-
-        foreach (var info in dir_info.GetDirectories())
-        {
-            var subdir = new OSFolder { full_path = info.FullName, dir = info.Name };
-            dir.subdir.Add(subdir);
-        }
-
-        return dir;
-    }
+    public ActionResult GetOSBaseFolder()
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     /// <summary>
     /// Return OSFolder object of directory that was given via
@@ -589,43 +523,16 @@ public class Core : BaseController
     /// <param name="dir"></param>
     /// <returns></returns>
     [HttpPost("/os/folder")]
-    public ActionResult<OSFolder> GetOSFolder([FromQuery] string folder, OSFolder dir)
-    {
-        if (!string.IsNullOrEmpty(dir.full_path))
-        {
-            var dir_info = new DirectoryInfo(dir.full_path);
-            dir.dir = dir_info.Name;
-            dir.subdir = new List<OSFolder>();
-
-            foreach (var info in dir_info.GetDirectories())
-            {
-                var subdir = new OSFolder { full_path = info.FullName, dir = info.Name };
-                dir.subdir.Add(subdir);
-            }
-
-            return dir;
-        }
-
-        return new APIMessage(400, "full_path missing");
-    }
+    public ActionResult GetOSFolder([FromQuery] string folder, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken dir)
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     /// <summary>
     /// Return OSFolder with subdirs as every driver on local system
     /// </summary>
     /// <returns></returns>
     [HttpGet("os/drives")]
-    public OSFolder GetOSDrives()
-    {
-        var drives = Directory.GetLogicalDrives();
-        var dir = new OSFolder { dir = "/", full_path = "/", subdir = new List<OSFolder>() };
-        foreach (var str in drives)
-        {
-            var driver = new OSFolder { dir = str, full_path = str };
-            dir.subdir.Add(driver);
-        }
-
-        return dir;
-    }
+    public ActionResult GetOSDrives()
+        => new APIMessage(HttpStatusCode.NotImplemented, "Use APIv3's implementation'");
 
     #endregion
 
@@ -648,7 +555,6 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("log/rotate")]
-    [Authorize("admin")]
     public ActionResult SetRotateLogs(Logs rotator)
     {
         _settings.LogRotator.Enabled = rotator.rotate;

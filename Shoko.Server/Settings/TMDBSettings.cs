@@ -1,10 +1,13 @@
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Config.Attributes;
+using Shoko.Abstractions.Config.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 
 #nullable enable
 namespace Shoko.Server.Settings;
@@ -14,14 +17,25 @@ public class TMDBSettings
     /// <summary>
     /// Automagically link AniDB anime to TMDB shows and movies.
     /// </summary>
-    public bool AutoLink { get; set; } = false;
+    public bool AutoLink { get; set; } = true;
 
     /// <summary>
     /// Automagically link restricted AniDB anime to TMDB shows and movies.
     /// <see cref="AutoLink"/> also needs to be set for this setting to take
     /// effect.
     /// </summary>
-    public bool AutoLinkRestricted { get; set; } = false;
+    public bool AutoLinkRestricted { get; set; } = true;
+
+    /// <summary>
+    /// Determines whether to consider existing cross-reference links to other
+    /// AniDB anime when linking an AniDB anime to a TMDB show.
+    /// </summary>
+    /// <remarks>
+    /// This setting also applies to the auto-matching process and can be
+    /// overridden on a per request basis for the API when previewing or
+    /// linking.
+    /// </remarks>
+    public bool ConsiderExistingOtherLinks { get; set; } = false;
 
     /// <summary>
     /// Indicates that all titles should be stored locally for the TMDB entity,
@@ -52,6 +66,7 @@ public class TMDBSettings
     /// <summary>
     /// Image language preference order, in text form for storage.
     /// </summary>
+    [Display(Name = "Image Language Order")]
     [JsonProperty(nameof(ImageLanguageOrder))]
     [UsedImplicitly]
     public List<string> InternalImageLanguageOrder
@@ -91,6 +106,11 @@ public class TMDBSettings
     public bool AutoDownloadAlternateOrdering { get; set; } = false;
 
     /// <summary>
+    /// Automagically download networks for tv shows in the local collection.
+    /// </summary>
+    public bool AutoDownloadNetworks { get; set; } = false;
+
+    /// <summary>
     /// Automagically download backdrops for TMDB entities that supports
     /// backdrops up to <seealso cref="MaxAutoBackdrops"/> images per entity.
     /// </summary>
@@ -104,6 +124,11 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
+    [Visibility(
+        Size = DisplayElementSize.Small,
+        DisableWhenMemberIsSet = nameof(AutoDownloadBackdrops),
+        DisableWhenSetTo = false
+    )]
     public int MaxAutoBackdrops { get; set; } = 10;
 
     /// <summary>
@@ -120,6 +145,11 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
+    [Visibility(
+        Size = DisplayElementSize.Small,
+        DisableWhenMemberIsSet = nameof(AutoDownloadPosters),
+        DisableWhenSetTo = false
+    )]
     public int MaxAutoPosters { get; set; } = 10;
 
     /// <summary>
@@ -136,6 +166,11 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
+    [Visibility(
+        Size = DisplayElementSize.Small,
+        DisableWhenMemberIsSet = nameof(AutoDownloadLogos),
+        DisableWhenSetTo = false
+    )]
     public int MaxAutoLogos { get; set; } = 10;
 
     /// <summary>
@@ -152,6 +187,11 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
+    [Visibility(
+        Size = DisplayElementSize.Small,
+        DisableWhenMemberIsSet = nameof(AutoDownloadThumbnails),
+        DisableWhenSetTo = false
+    )]
     public int MaxAutoThumbnails { get; set; } = 1;
 
     /// <summary>
@@ -167,6 +207,11 @@ public class TMDBSettings
     /// Set to <code>0</code> to disable the limit.
     /// </remarks>
     [Range(0, 30)]
+    [Visibility(
+        Size = DisplayElementSize.Small,
+        DisableWhenMemberIsSet = nameof(AutoDownloadStaffImages),
+        DisableWhenSetTo = false
+    )]
     public int MaxAutoStaffImages { get; set; } = 10;
 
     /// <summary>
@@ -177,5 +222,10 @@ public class TMDBSettings
     /// <summary>
     /// Optional. User provided TMDB API key to use.
     /// </summary>
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
+    [EnvironmentVariable("TMDB_API_KEY")]
+    [RequiresRestart]
+    [PasswordPropertyText]
     public string? UserApiKey { get; set; } = null;
 }

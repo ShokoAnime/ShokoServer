@@ -8,7 +8,7 @@ namespace Shoko.Server.Utilities;
 public static class LinuxFS
 {
     private static UnixUserInfo RealUser;
-    
+
     private static bool CanRun()
     {
         return Environment.OSVersion.Platform == PlatformID.MacOSX || Environment.OSVersion.Platform == PlatformID.Unix;

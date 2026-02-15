@@ -10,23 +10,8 @@ public static class TraktConstants
 
 public enum TraktSyncType
 {
-    CollectionAdd = 1,
-    CollectionRemove = 2,
-    HistoryAdd = 3,
-    HistoryRemove = 4
-}
-
-public enum ScrobblePlayingStatus
-{
-    Start = 1,
-    Pause = 2,
-    Stop = 3
-}
-
-public enum ScrobblePlayingType
-{
-    movie = 1,
-    episode = 2
+    HistoryAdd = 1,
+    HistoryRemove = 2
 }
 
 public static class TraktStatusCodes
@@ -49,7 +34,10 @@ public static class TraktStatusCodes
     public const int Conflict = 409;
 
     public const int Precondition_Failed = 412;
+    public const int Account_Limit_Exceeded = 420;
+    public const int Account_Locked = 423;
     public const int Unprocessable_Entity = 422;
+    public const int VIP_Only = 426;
     public const int Rate_Limit_Exceeded = 429;
 
     public const int Server_Error = 500;

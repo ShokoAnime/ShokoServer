@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NHibernate.Linq;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
@@ -10,7 +10,8 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatus, int>
 {
-    private readonly JobFactory _jobFactory; 
+    private readonly JobFactory _jobFactory;
+
     public List<AniDB_GroupStatus> GetByAnimeID(int id)
     {
         return Lock(() =>

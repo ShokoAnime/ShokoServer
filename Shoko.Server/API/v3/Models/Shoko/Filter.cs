@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Filters;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -128,6 +127,7 @@ public class Filter : BaseModel
         /// The group that this filter expression belongs to. This can help with filtering the expression types
         /// </summary>
         [Required]
+        [JsonConverter(typeof(StringEnumConverter))]
         public FilterExpressionGroup Group { get; init; }
 
         /// <summary>
@@ -213,11 +213,21 @@ public class Filter : BaseModel
             return PossibleParameterPairs?.Length > 0;
         }
 
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum FilterExpressionGroup
+        {
+            Info,
+            Logic,
+            Function,
+            Selector
+        }
+
         /// <summary>
         /// The type of the parameter. Expressions return a boolean, Selectors return the type of their name, and the rest are values from the user.<br/>
         /// Dates are in yyyy-MM-dd format<br/>
         /// TimeSpans are in d:HH:mm:ss.ffff format (f is milliseconds)
         /// </summary>
+        [JsonConverter(typeof(StringEnumConverter))]
         public enum FilterExpressionParameterType
         {
             Expression,
@@ -230,6 +240,7 @@ public class Filter : BaseModel
             String,
             TimeSpan,
             Bool,
+            StringSet,
         }
     }
 

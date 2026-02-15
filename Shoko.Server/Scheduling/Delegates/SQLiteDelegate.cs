@@ -572,7 +572,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         var map = ConvertFromProperty(properties);
         return map;
     }
-    
+
     private static string GetString(IDataReader reader, string columnName)
     {
         var columnValue = reader[columnName];
@@ -580,7 +580,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
         {
             return null;
         }
-        return (string) columnValue;
+        return (string)columnValue;
     }
 
     /// <summary>

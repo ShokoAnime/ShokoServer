@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -17,6 +18,7 @@ using Shoko.Server.Scheduling.GenericJobBuilder;
 using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
@@ -31,54 +33,63 @@ public static class QuartzStartup
         // StartJobNow gives a priority of 10. We'll give it 20 to be even higher priority
         await ScheduleRecurringJob<CheckNetworkAvailabilityJob>(
             triggerConfig: t => t.WithPriority(20).WithSimpleSchedule(tr => tr.WithIntervalInMinutes(30).RepeatForever()).StartNow(), replace: true, keepSchedule: false);
+        await ScheduleRecurringJob<CheckTraktTokenJob>(
+            triggerConfig: t => t.WithPriority(20).WithSimpleSchedule(tr => tr.WithIntervalInMinutes(60).RepeatForever()).StartNow(), replace: true, keepSchedule: false);
 
         // TODO the other schedule-based jobs that are on timers
     }
 
-    private static async Task ScheduleRecurringJob<T>(Action<T> jobConfig = null, Func<TriggerBuilder, TriggerBuilder> triggerConfig = null, bool replace = false, bool keepSchedule = true) where T : class, IJob
+    private static async Task ScheduleRecurringJob<T>(Action<T> jobConfig = null, Func<TriggerBuilder, TriggerBuilder> triggerConfig = null,
+        bool replace = false, bool keepSchedule = true) where T : class, IJob
     {
-        jobConfig ??= _ => {};
+        jobConfig ??= _ => { };
         triggerConfig ??= t => t;
         var groupName = typeof(T).GetCustomAttribute<JobKeyGroupAttribute>()?.GroupName;
         var jobKey = JobKeyBuilder<T>.Create().WithGroup(groupName).UsingJobData(jobConfig).Build();
 
         // this is called when clearing the queue, so the lock is needed to prevent conflicts with StartJob and StartJobNow
-        await QuartzExtensions.SchedulerLock.WaitAsync();
-        try
-        {
-            var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
-            var exists = await scheduler.CheckExists(jobKey);
-            var existingTriggers = await scheduler.GetTriggersOfJob(jobKey);
-            if (!exists && !existingTriggers.Any())
-            {
-                await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
-                    triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
-            }
-            else if (replace)
-            {
-                var trigger = triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group));
-                if (keepSchedule)
-                {
-                    var nextFireTime = (await scheduler.GetTriggersOfJob(jobKey)).Select(a => a.GetNextFireTimeUtc() ?? DateTimeOffset.MaxValue)
-                        .Where(a => a != DateTimeOffset.MaxValue).DefaultIfEmpty().Min();
-                    if (nextFireTime != default) trigger = trigger.StartAt(nextFireTime);
-                }
 
+        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+
+        bool exists;
+        IReadOnlyCollection<ITrigger> existingTriggers;
+
+        using (var _ = await QuartzExtensions.SchedulerLock.ReaderLockAsync())
+        {
+            exists = await scheduler.CheckExists(jobKey);
+            existingTriggers = await scheduler.GetTriggersOfJob(jobKey);
+        }
+
+        if (!exists && !existingTriggers.Any())
+        {
+            using var _ = await QuartzExtensions.SchedulerLock.WriterLockAsync();
+            await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithGeneratedIdentity().Build(),
+                triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group)).Build());
+        }
+        else if (replace)
+        {
+            var trigger = triggerConfig(TriggerBuilder.Create().WithIdentity(jobKey.Name, jobKey.Group));
+            if (keepSchedule)
+            {
+                using var _ = await QuartzExtensions.SchedulerLock.ReaderLockAsync();
+                var nextFireTime = (await scheduler.GetTriggersOfJob(jobKey)).Select(a => a.GetNextFireTimeUtc() ?? DateTimeOffset.MaxValue)
+                    .Where(a => a != DateTimeOffset.MaxValue).DefaultIfEmpty().Min();
+                if (nextFireTime != default) trigger = trigger.StartAt(nextFireTime);
+            }
+
+            using (var _ = await QuartzExtensions.SchedulerLock.WriterLockAsync())
+            {
                 // also nukes triggers
                 await scheduler.DeleteJob(jobKey);
                 await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithIdentity(jobKey).Build(), trigger.Build());
             }
-        }
-        finally
-        {
-            QuartzExtensions.SchedulerLock.Release();
         }
     }
 
     internal static void AddQuartz(this IServiceCollection services)
     {
         // this lets us inject the shoko JobFactory explicitly, instead of only IJobFactory
-        ShokoEventHandler.Instance.Starting += async (_, _) => await ScheduleRecurringJobs(false).ConfigureAwait(false);
+        ShokoEventHandler.Instance.Started += async (_, _) => await ScheduleRecurringJobs(false).ConfigureAwait(false);
         // JobFactory is stateless, but no reason to recreate it multiple times
         services.AddSingleton<JobFactory>();
         // Allow specifically injecting the singleton instance of ThreadPooledJobStore
@@ -112,7 +123,6 @@ public static class QuartzStartup
     private static void AddJobs(this IServiceCollection services)
     {
         services.AddTransient<ScanFolderJob>();
-        services.AddTransient<DeleteImportFolderJob>();
         services.AddTransient<ScanDropFoldersJob>();
         services.AddTransient<RemoveMissingFilesJob>();
         services.AddTransient<MediaInfoAllFilesJob>();
@@ -131,7 +141,7 @@ public static class QuartzStartup
                 throw new ArgumentNullException(nameof(settings.Quartz.ConnectionString), @"The connection string for Quartz was null");
 
             const string DefaultSource = SchedulerBuilder.AdoProviderOptions.DefaultDataSourceName;
-            if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
+            if (settings.Quartz.DatabaseType is Constants.DatabaseType.SQLServer)
             {
                 EnsureQuartzDatabaseExists_SQLServer(settings.Quartz.ConnectionString);
                 options.SetProperty("quartz.jobStore.driverDelegateType", typeof(SqlServerDelegate).AssemblyQualifiedNameWithoutVersion());
@@ -139,7 +149,7 @@ public static class QuartzStartup
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.provider", "SqlServer");
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.connectionString", settings.Quartz.ConnectionString);
             }
-            else if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
+            else if (settings.Quartz.DatabaseType is Constants.DatabaseType.MySQL)
             {
                 EnsureQuartzDatabaseExists_MySQL(settings.Quartz.ConnectionString);
                 options.SetProperty("quartz.jobStore.driverDelegateType", typeof(MySQLDelegate).AssemblyQualifiedNameWithoutVersion());
@@ -147,7 +157,7 @@ public static class QuartzStartup
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.provider", "MySqlConnector");
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.connectionString", settings.Quartz.ConnectionString);
             }
-            else if (settings.Quartz.DatabaseType.Trim().Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
+            else if (settings.Quartz.DatabaseType is Constants.DatabaseType.SQLite)
             {
                 EnsureQuartzDatabaseExists_SQLite(settings.Quartz.ConnectionString);
                 options.SetProperty("quartz.jobStore.driverDelegateType", typeof(SQLiteDelegate).AssemblyQualifiedNameWithoutVersion());
@@ -557,17 +567,24 @@ GO";
         var sqlBatch = string.Empty;
         using var cmd = new SqlCommand(string.Empty, conn);
         cmd.CommandTimeout = 0;
-        try {
-            foreach (var line in Script.Split(new[] { "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries)) {
-                if (line.ToUpperInvariant().Trim() == "GO") {
+        try
+        {
+            foreach (var line in Script.Split(new[] { "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (line.ToUpperInvariant().Trim() == "GO")
+                {
                     cmd.CommandText = sqlBatch;
                     cmd.ExecuteNonQuery();
                     sqlBatch = string.Empty;
-                } else {
+                }
+                else
+                {
                     sqlBatch += line + "\n";
                 }
             }
-        } finally {
+        }
+        finally
+        {
             conn.Close();
         }
     }

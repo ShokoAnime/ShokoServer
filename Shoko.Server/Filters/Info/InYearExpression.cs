@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Repositories;
 
@@ -14,8 +15,8 @@ public class InYearExpression : FilterExpression<bool>, IWithNumberParameter
     public InYearExpression() { }
 
     public int Parameter { get; set; }
+
     public override bool TimeDependent => true;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if any of the anime aired in the specified year";
     public override string[] HelpPossibleParameters => RepoFactory.AnimeSeries.GetAllYears().Select(a => a.ToString()).ToArray();
 
@@ -25,7 +26,7 @@ public class InYearExpression : FilterExpression<bool>, IWithNumberParameter
         set => Parameter = (int)value;
     }
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.Years.Contains(Parameter);
     }

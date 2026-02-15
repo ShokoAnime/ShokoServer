@@ -1,9 +1,9 @@
+#nullable enable
 using System.Linq;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.TMDB;
 
-#nullable enable
-namespace Shoko.Server.Repositories.Direct;
+namespace Shoko.Server.Repositories.Direct.TMDB.Optional;
 
 public class TMDB_NetworkRepository : BaseDirectRepository<TMDB_Network, int>
 {

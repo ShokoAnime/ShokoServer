@@ -1,19 +1,18 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Mappings;
 
-public class VideoLocal_PlaceMap : ClassMap<SVR_VideoLocal_Place>
+public class VideoLocal_PlaceMap : ClassMap<VideoLocal_Place>
 {
     public VideoLocal_PlaceMap()
     {
         Table("VideoLocal_Place");
-
         Not.LazyLoad();
-        Id(x => x.VideoLocal_Place_ID);
-        Map(x => x.VideoLocalID).Not.Nullable();
-        Map(x => x.FilePath).Not.Nullable();
-        Map(x => x.ImportFolderID).Not.Nullable();
-        Map(x => x.ImportFolderType).Not.Nullable();
+        Id(x => x.ID).Column("VideoLocal_Place_ID");
+
+        Map(x => x.VideoID).Column("VideoLocalID").Not.Nullable();
+        Map(x => x.ManagedFolderID).Column("ImportFolderID").Not.Nullable();
+        Map(x => x.RelativePath).Column("FilePath").Not.Nullable();
     }
 }

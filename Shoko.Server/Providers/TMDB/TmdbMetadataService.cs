@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,13 +12,15 @@ using Polly.Bulkhead;
 using Polly.RateLimit;
 using Polly.Retry;
 using Quartz;
-using Shoko.Commons.Extensions;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Repositories.Cached.TMDB;
+using Shoko.Server.Repositories.Direct.TMDB;
+using Shoko.Server.Repositories.Direct.TMDB.Optional;
+using Shoko.Server.Repositories.Direct.TMDB.Text;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
@@ -33,7 +34,7 @@ using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.People;
 using TMDbLib.Objects.TvShows;
 
-using TitleLanguage = Shoko.Plugin.Abstractions.DataModels.TitleLanguage;
+using TitleLanguage = Shoko.Abstractions.Enums.TitleLanguage;
 using MovieCredits = TMDbLib.Objects.Movies.Credits;
 
 // Suggestions we don't need in this file.
@@ -70,7 +71,9 @@ public class TmdbMetadataService
 
     private static string? _imageServerUrl = null;
 
-    public static string? ImageServerUrl
+    private static readonly object _imageServerUrlLockObj = new();
+
+    public static string ImageServerUrl
     {
         get
         {
@@ -78,20 +81,37 @@ public class TmdbMetadataService
             if (_imageServerUrl is not null)
                 return _imageServerUrl;
 
-            // In case the server url is attempted to be accessed before the lazily initialized instance has been created, create it now if the service container is available.
-            var instance = Instance;
-            if (instance is null)
-                return null;
+            // Lock before getting the config, in case multiple threads are trying to get the image server url at the same time.
+            lock (_imageServerUrlLockObj)
+            {
+                // Try one more time, in case it has been initialized while we were waiting.
+                if (_imageServerUrl is not null)
+                    return _imageServerUrl;
 
-            try
-            {
-                var config = instance.UseClient(c => c.GetAPIConfiguration(), "Get API configuration").Result;
-                return _imageServerUrl = config.Images.SecureBaseUrl;
-            }
-            catch (Exception ex)
-            {
-                instance._logger.LogError(ex, "Encountered an exception while trying to find the image server url to use; {ErrorMessage}", ex.Message);
-                throw;
+                // In case the server url is attempted to be accessed before the lazily initialized instance has been created, create it now if the service container is available, otherwise abort.
+                var instance = Instance;
+                if (instance is null)
+                    throw new InvalidOperationException("TmdbMetadataService not initialized yet.");
+
+                try
+                {
+                    var config = instance.UseClient(c => c.GetAPIConfiguration(), "Get API configuration").Result ??
+                        throw new HttpRequestException(HttpRequestError.ConnectionError, "Failed to get API configuration");
+                    return _imageServerUrl = config.Images.SecureBaseUrl;
+                }
+                catch (Exception ex)
+                {
+                    // If the API key is unavailable or if we can't establish a connection to the api server, then use the default image server url if we ever need to resolve the image URLs for whatever reason.
+                    if (ex is TmdbApiKeyUnavailableException || (ex is HttpRequestException httpEx && httpEx.HttpRequestError is HttpRequestError.NameResolutionError or HttpRequestError.ConnectionError or HttpRequestError.SecureConnectionError))
+                    {
+                        // If you can't be arsed to look it up yourself on their site, then here, waste more time than it's worth by decoding and reversing this string. No matter how you do it, it will be more effort compared to looking it up on their dev
+                        // site. And while you're there, go get yourself a personal API key to use. ;)
+                        char[] url = ['\x2f', '\x70', '\x2f', '\x74', '\x2f', '\x67', '\x72', '\x6f', '\x2e', '\x64', '\x62', '\x6d', '\x74', '\x2e', '\x65', '\x67', '\x61', '\x6d', '\x69', '\x2f', '\x2f', '\x3a', '\x73', '\x70', '\x74', '\x74', '\x68'];
+                        return _imageServerUrl = new string(url.Reverse().ToArray());
+                    }
+                    instance._logger.LogError(ex, "Encountered an exception while trying to find the image server url to use; {ErrorMessage}", ex.Message);
+                    throw;
+                }
             }
         }
     }
@@ -124,7 +144,7 @@ public class TmdbMetadataService
 
     private readonly TMDB_Episode_CrewRepository _tmdbEpisodeCrew;
 
-    private readonly TMDB_ImageRepository _tmdbImages;
+    private readonly TMDB_Image_EntityRepository _tmdbImageEntities;
 
     private readonly TMDB_MovieRepository _tmdbMovies;
 
@@ -160,7 +180,7 @@ public class TmdbMetadataService
     private TMDbClient CachedClient => _rawClient ??= new(_settingsProvider.GetSettings().TMDB.UserApiKey ?? (
         Constants.TMDB.ApiKey != "TMDB_API_KEY_GOES_HERE"
             ? Constants.TMDB.ApiKey
-            : throw new Exception("You need to provide an api key before using the TMDB provider!")
+            : throw new TmdbApiKeyUnavailableException()
     ));
 
     // This policy will ensure only 10 requests can be in-flight at the same time.
@@ -182,7 +202,7 @@ public class TmdbMetadataService
     /// <param name="func">The function to execute with the TMDb client.</param>
     /// <param name="displayName">The name of the function to display in the logs.</param>
     /// <returns>A task that will complete with the result of the function, after applying the rate limiting and retry policies.</returns>
-    public async Task<T> UseClient<T>(Func<TMDbClient, Task<T>> func, string? displayName)
+    public async Task<T?> UseClient<T>(Func<TMDbClient, Task<T>> func, string? displayName)
     {
         displayName ??= func.Method.Name;
         var now = DateTime.Now;
@@ -232,7 +252,7 @@ public class TmdbMetadataService
         TMDB_EpisodeRepository tmdbEpisodes,
         TMDB_Episode_CastRepository tmdbEpisodeCast,
         TMDB_Episode_CrewRepository tmdbEpisodeCrew,
-        TMDB_ImageRepository tmdbImages,
+        TMDB_Image_EntityRepository tmdbImageEntities,
         TMDB_MovieRepository tmdbMovies,
         TMDB_Movie_CastRepository tmdbMovieCast,
         TMDB_Movie_CrewRepository tmdbMovieCrew,
@@ -263,7 +283,7 @@ public class TmdbMetadataService
         _tmdbEpisodes = tmdbEpisodes;
         _tmdbEpisodeCast = tmdbEpisodeCast;
         _tmdbEpisodeCrew = tmdbEpisodeCrew;
-        _tmdbImages = tmdbImages;
+        _tmdbImageEntities = tmdbImageEntities;
         _tmdbMovies = tmdbMovies;
         _tmdbMovieCast = tmdbMovieCast;
         _tmdbMovieCrew = tmdbMovieCrew;
@@ -284,6 +304,7 @@ public class TmdbMetadataService
         _retryPolicy = Policy
             .Handle<RateLimitRejectedException>()
             .Or<HttpRequestException>()
+            .Or<GeneralHttpException>()
             .Or<RequestLimitExceededException>()
             .WaitAndRetryAsync(int.MaxValue, (_, _) => TimeSpan.Zero, async (ex, ts, retryCount, ctx) =>
             {
@@ -315,6 +336,11 @@ public class TmdbMetadataService
                         ctx["timeoutRetryCount"] = timeoutRetryCount + 1;
                         break;
                     }
+                    case GeneralHttpException ghEx:
+                    {
+                        _logger.LogWarning(ghEx, "Got a general HTTP exception while processing TMDb request: {StatusCode}", (int)ghEx.HttpStatusCode);
+                        goto default;
+                    }
                     default:
                         throw ex;
                 }
@@ -343,8 +369,7 @@ public class TmdbMetadataService
             if (ser.IsTMDBAutoMatchingDisabled)
                 continue;
 
-            var anime = ser.AniDB_Anime;
-            if (anime == null)
+            if (ser.AniDB_Anime is not { } anime)
                 continue;
 
             if (anime.IsRestricted && !settings.TMDB.AutoLinkRestricted)
@@ -379,6 +404,9 @@ public class TmdbMetadataService
                 return _movieGenres;
 
             var genres = await UseClient(c => c.GetMovieGenresAsync(), "Get Movie Genres").ConfigureAwait(false);
+            if (genres is null)
+                return new Dictionary<int, string>();
+
             _movieGenres = genres.ToDictionary(x => x.Id, x => x.Name);
             return _movieGenres;
         }
@@ -391,12 +419,31 @@ public class TmdbMetadataService
     public bool IsMovieUpdating(int movieId)
         => IsEntityLocked(ForeignEntityType.Movie, movieId, "metadata");
 
+    public bool WaitForMovieUpdate(int movieId)
+        => WaitIfEntityLocked(ForeignEntityType.Movie, movieId, "metadata");
+
+    public Task<bool> WaitForMovieUpdateAsync(int movieId)
+        => WaitIfEntityLockedAsync(ForeignEntityType.Movie, movieId, "metadata");
+
+    public bool IsMovieCollectionUpdating(int collectionId)
+        => IsEntityLocked(ForeignEntityType.Collection, collectionId, "metadata");
+
+    public bool WaitForMovieCollectionUpdate(int collectionId)
+        => WaitIfEntityLocked(ForeignEntityType.Collection, collectionId, "metadata");
+
+    public Task<bool> WaitForMovieCollectionUpdateAsync(int collectionId)
+        => WaitIfEntityLockedAsync(ForeignEntityType.Collection, collectionId, "metadata");
+
     public async Task UpdateAllMovies(bool force, bool saveImages)
     {
         var allXRefs = _xrefAnidbTmdbMovies.GetAll();
         _logger.LogInformation("Scheduling {Count} movies to be updated.", allXRefs.Count);
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var xref in allXRefs)
+        {
+            if (xref.AnimeSeries is null)
+                continue;
+
             await scheduler.StartJob<UpdateTmdbMovieJob>(
                 c =>
                 {
@@ -405,6 +452,7 @@ public class TmdbMetadataService
                     c.DownloadImages = saveImages;
                 }
             ).ConfigureAwait(false);
+        }
     }
 
     public async Task ScheduleUpdateOfMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadCollections = null)
@@ -434,11 +482,11 @@ public class TmdbMetadataService
             }
 
             // Abort if we couldn't find the movie by id.
-            var methods = MovieMethods.Translations | MovieMethods.ReleaseDates | MovieMethods.ExternalIds;
+            var methods = MovieMethods.Translations | MovieMethods.ReleaseDates | MovieMethods.ExternalIds | MovieMethods.Keywords;
             if (downloadCrewAndCast)
                 methods |= MovieMethods.Credits;
             var movie = await UseClient(c => c.GetMovieAsync(movieId, "en-US", null, methods), $"Get movie {movieId}").ConfigureAwait(false);
-            if (movie == null)
+            if (movie is null)
                 return false;
 
             var settings = _settingsProvider.GetSettings();
@@ -520,9 +568,10 @@ public class TmdbMetadataService
                 roleUpdated = true;
             }
 
-            if (role.CharacterName != cast.Character)
+            var characterName = cast.Character.Replace(" (voice)", "");
+            if (role.CharacterName != characterName)
             {
-                role.CharacterName = cast.Character;
+                role.CharacterName = characterName;
                 roleUpdated = true;
             }
 
@@ -615,7 +664,7 @@ public class TmdbMetadataService
             .ToHashSet();
         foreach (var personId in peopleToKeep)
         {
-            var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages);
+            var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentMovieId: tmdbMovie.Id);
             if (added)
                 peopleAdded++;
             if (updated)
@@ -648,60 +697,64 @@ public class TmdbMetadataService
     {
         if (movie.BelongsToCollection?.Id is not { } collectionId)
         {
-            CleanupMovieCollection(movie.Id);
+            await CleanupMovieCollection(movie.Id);
             return;
         }
 
-        var movieXRefs = _xrefTmdbCollectionMovies.GetByTmdbCollectionID(collectionId);
-        var tmdbCollection = _tmdbCollections.GetByTmdbCollectionID(collectionId) ?? new(collectionId);
         var collection = await UseClient(c => c.GetCollectionAsync(collectionId, CollectionMethods.Images | CollectionMethods.Translations), $"Get movie collection {collectionId} for movie {movie.Id} \"{movie.Title}\"").ConfigureAwait(false);
-        if (collection == null)
+        if (collection is null)
         {
-            PurgeMovieCollection(collectionId);
+            await PurgeMovieCollection(collectionId);
             return;
         }
 
-        var settings = _settingsProvider.GetSettings();
-        var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
-        var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
-
-        var updated = tmdbCollection.Populate(collection);
-        updated = UpdateTitlesAndOverviews(tmdbCollection, collection.Translations, preferredTitleLanguages, preferredOverviewLanguages) || updated;
-
-        var xrefsToAdd = 0;
-        var xrefsToSave = new List<TMDB_Collection_Movie>();
-        var xrefsToRemove = movieXRefs.Where(xref => !collection.Parts.Any(part => xref.TmdbMovieID == part.Id)).ToList();
-        var movieXref = movieXRefs.FirstOrDefault(xref => xref.TmdbMovieID == movie.Id);
-        var index = collection.Parts.FindIndex(part => part.Id == movie.Id);
-        if (index == -1)
-            index = collection.Parts.Count;
-        if (movieXref == null)
+        using (await GetLockForEntity(ForeignEntityType.Collection, collection.Id, "metadata", "Update").ConfigureAwait(false))
         {
-            xrefsToAdd++;
-            xrefsToSave.Add(new(collectionId, movie.Id, index + 1));
-        }
-        else if (movieXref.Ordering != index + 1)
-        {
-            movieXref.Ordering = index + 1;
-            xrefsToSave.Add(movieXref);
+            var settings = _settingsProvider.GetSettings();
+            var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
+            var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+
+            var tmdbCollection = _tmdbCollections.GetByTmdbCollectionID(collectionId) ?? new(collectionId);
+            var updated = tmdbCollection.Populate(collection);
+            updated = UpdateTitlesAndOverviews(tmdbCollection, collection.Translations, preferredTitleLanguages, preferredOverviewLanguages) || updated;
+
+            var xrefsToAdd = 0;
+            var xrefsToSave = new List<TMDB_Collection_Movie>();
+            var movieXRefs = _xrefTmdbCollectionMovies.GetByTmdbCollectionID(collectionId);
+            var xrefsToRemove = movieXRefs.Where(xref => !collection.Parts.Any(part => xref.TmdbMovieID == part.Id)).ToList();
+            var movieXref = movieXRefs.FirstOrDefault(xref => xref.TmdbMovieID == movie.Id);
+            var index = collection.Parts.FindIndex(part => part.Id == movie.Id);
+            if (index == -1)
+                index = collection.Parts.Count;
+            if (movieXref is null)
+            {
+                xrefsToAdd++;
+                xrefsToSave.Add(new(collectionId, movie.Id, index + 1));
+            }
+            else if (movieXref.Ordering != index + 1)
+            {
+                movieXref.Ordering = index + 1;
+                xrefsToSave.Add(movieXref);
+            }
+
+            _logger.LogDebug(
+                "Added/updated/removed/skipped {ta}/{tu}/{tr}/{ts} movie cross-references for movie collection {CollectionTitle} (Id={CollectionId})",
+                xrefsToAdd,
+                xrefsToSave.Count - xrefsToAdd,
+                xrefsToRemove.Count,
+                movieXRefs.Count + xrefsToAdd - xrefsToRemove.Count - xrefsToSave.Count,
+                tmdbCollection.EnglishTitle,
+                tmdbCollection.Id);
+            _xrefTmdbCollectionMovies.Save(xrefsToSave);
+            _xrefTmdbCollectionMovies.Delete(xrefsToRemove);
+
+            if (updated || xrefsToSave.Count > 0 || xrefsToRemove.Count > 0)
+            {
+                tmdbCollection.LastUpdatedAt = DateTime.Now;
+                _tmdbCollections.Save(tmdbCollection);
+            }
         }
 
-        _logger.LogDebug(
-            "Added/updated/removed/skipped {ta}/{tu}/{tr}/{ts} movie cross-references for movie collection {CollectionTitle} (Id={CollectionId})",
-            xrefsToAdd,
-            xrefsToSave.Count - xrefsToAdd,
-            xrefsToRemove.Count,
-            movieXRefs.Count + xrefsToAdd - xrefsToRemove.Count - xrefsToSave.Count,
-            tmdbCollection.EnglishTitle,
-            tmdbCollection.Id);
-        _xrefTmdbCollectionMovies.Save(xrefsToSave);
-        _xrefTmdbCollectionMovies.Delete(xrefsToRemove);
-
-        if (updated || xrefsToSave.Count > 0 || xrefsToRemove.Count > 0)
-        {
-            tmdbCollection.LastUpdatedAt = DateTime.Now;
-            _tmdbCollections.Save(tmdbCollection);
-        }
     }
 
     public async Task ScheduleDownloadAllMovieImages(int movieId, bool forceDownload = false)
@@ -732,14 +785,22 @@ public class TmdbMetadataService
         if (!settings.TMDB.AutoDownloadPosters && !settings.TMDB.AutoDownloadLogos && !settings.TMDB.AutoDownloadBackdrops)
             return;
 
+        if (_tmdbMovies.GetByTmdbMovieID(movieId) is not { } movie)
+            return;
+
+        _logger.LogTrace("Downloading images for movie {MovieName} (Movie={MovieID})", movie.OriginalTitle, movie.Id);
+
         var images = await UseClient(c => c.GetMovieImagesAsync(movieId), $"Get images for movie {movieId}").ConfigureAwait(false);
+        if (images is null)
+            return;
+
         var languages = GetLanguages(mainLanguage);
         if (settings.TMDB.AutoDownloadPosters)
-            await _imageService.DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoPosters, languages, forceDownload);
+            await _imageService.DownloadImagesByType(movie.PosterPath, movie.ReleasedAt, images.Posters, ImageEntityType.Poster, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoPosters, languages, forceDownload);
         if (settings.TMDB.AutoDownloadLogos)
-            await _imageService.DownloadImagesByType(images.Logos, ImageEntityType.Logo, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoLogos, languages, forceDownload);
+            await _imageService.DownloadImagesByType(null, movie.ReleasedAt, images.Logos, ImageEntityType.Logo, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoLogos, languages, forceDownload);
         if (settings.TMDB.AutoDownloadBackdrops)
-            await _imageService.DownloadImagesByType(images.Backdrops, ImageEntityType.Backdrop, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
+            await _imageService.DownloadImagesByType(movie.BackdropPath, movie.ReleasedAt, images.Backdrops, ImageEntityType.Backdrop, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
 
     #endregion
@@ -749,7 +810,7 @@ public class TmdbMetadataService
     public async Task PurgeAllUnusedMovies()
     {
         var allMovies = _tmdbMovies.GetAll().Select(movie => movie.TmdbMovieID)
-            .Concat(_tmdbImages.GetAll().Where(image => image.TmdbMovieID.HasValue).Select(image => image.TmdbMovieID!.Value))
+            .Concat(_tmdbImageEntities.GetByForeignType(ForeignEntityType.Movie).Select(image => image.TmdbEntityID))
             .Concat(_xrefAnidbTmdbMovies.GetAll().Select(xref => xref.TmdbMovieID))
             .Concat(_xrefTmdbCompanyEntity.GetAll().Where(x => x.TmdbEntityType == ForeignEntityType.Movie).Select(x => x.TmdbEntityID))
             .Concat(_tmdbMovieCast.GetAll().Select(x => x.TmdbMovieID))
@@ -770,12 +831,11 @@ public class TmdbMetadataService
             await scheduler.StartJob<PurgeTmdbMovieJob>(c => c.TmdbMovieID = movieID);
     }
 
-    public async Task SchedulePurgeOfMovie(int movieId, bool removeImageFiles = true)
+    public async Task SchedulePurgeOfMovie(int movieId)
     {
         await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<PurgeTmdbMovieJob>(c =>
         {
             c.TmdbMovieID = movieId;
-            c.RemoveImageFiles = removeImageFiles;
         });
     }
 
@@ -783,33 +843,32 @@ public class TmdbMetadataService
     /// Purge a TMDB movie from the local database.
     /// </summary>
     /// <param name="movieId">TMDB Movie ID.</param>
-    /// <param name="removeImageFiles">Remove image files.</param>
-    public async Task PurgeMovie(int movieId, bool removeImageFiles = true)
+    public async Task PurgeMovie(int movieId)
     {
         using (await GetLockForEntity(ForeignEntityType.Movie, movieId, "metadata", "Purge").ConfigureAwait(false))
         {
             await _linkingService.RemoveAllMovieLinksForMovie(movieId);
 
-            _imageService.PurgeImages(ForeignEntityType.Movie, movieId, removeImageFiles);
+            _imageService.PurgeImages(ForeignEntityType.Movie, movieId);
 
             var movie = _tmdbMovies.GetByTmdbMovieID(movieId);
-            if (movie != null)
+            if (movie is not null)
             {
                 _logger.LogTrace("Removing movie {MovieName} (Movie={MovieID})", movie.OriginalTitle, movie.Id);
                 _tmdbMovies.Delete(movie);
             }
 
-            PurgeMovieCompanies(movieId, removeImageFiles);
+            PurgeMovieCompanies(movieId);
 
-            PurgeMovieCastAndCrew(movieId, removeImageFiles);
+            await PurgeMovieCastAndCrew(movieId);
 
-            CleanupMovieCollection(movieId);
+            await CleanupMovieCollection(movieId);
 
             PurgeTitlesAndOverviews(ForeignEntityType.Movie, movieId);
         }
     }
 
-    private void PurgeMovieCompanies(int movieId, bool removeImageFiles = true)
+    private void PurgeMovieCompanies(int movieId)
     {
         var xrefsToRemove = _xrefTmdbCompanyEntity.GetByTmdbEntityTypeAndID(ForeignEntityType.Movie, movieId);
         foreach (var xref in xrefsToRemove)
@@ -819,11 +878,11 @@ public class TmdbMetadataService
             if (xrefs.Count > 1)
                 _xrefTmdbCompanyEntity.Delete(xref);
             else
-                PurgeCompany(xref.TmdbCompanyID, removeImageFiles);
+                PurgeCompany(xref.TmdbCompanyID);
         }
     }
 
-    private async void PurgeMovieCastAndCrew(int movieId, bool removeImageFiles = true)
+    private async Task PurgeMovieCastAndCrew(int movieId)
     {
         var castMembers = _tmdbMovieCast.GetByTmdbMovieID(movieId);
         var crewMembers = _tmdbMovieCrew.GetByTmdbMovieID(movieId);
@@ -836,49 +895,67 @@ public class TmdbMetadataService
             .Distinct()
             .ToHashSet();
         foreach (var personId in allPeopleSet)
-            await PurgePerson(personId, removeImageFiles);
+            await PurgePerson(personId);
     }
 
-    private void CleanupMovieCollection(int movieId, bool removeImageFiles = true)
+    private async Task CleanupMovieCollection(int movieId)
     {
         var xref = _xrefTmdbCollectionMovies.GetByTmdbMovieID(movieId);
-        if (xref == null)
+        if (xref is null)
             return;
 
         var allXRefs = _xrefTmdbCollectionMovies.GetByTmdbCollectionID(xref.TmdbCollectionID);
         if (allXRefs.Count > 1)
             _xrefTmdbCollectionMovies.Delete(xref);
         else
-            PurgeMovieCollection(xref.TmdbCollectionID, removeImageFiles);
+            await PurgeMovieCollection(xref.TmdbCollectionID);
     }
 
-    private void PurgeMovieCollection(int collectionId, bool removeImageFiles = true)
+    private async Task PurgeMovieCollection(int collectionId)
     {
-        var collection = _tmdbCollections.GetByTmdbCollectionID(collectionId);
-        var collectionXRefs = _xrefTmdbCollectionMovies.GetByTmdbCollectionID(collectionId);
-        if (collectionXRefs.Count > 0)
+        using (await GetLockForEntity(ForeignEntityType.Collection, collectionId, "metadata", "Update").ConfigureAwait(false))
         {
-            _logger.LogTrace(
-                "Removing {Count} cross-references for movie collection {CollectionName} (Collection={CollectionID})",
-                collectionXRefs.Count, collection?.EnglishTitle ?? string.Empty,
-                collectionId
-            );
-            _xrefTmdbCollectionMovies.Delete(collectionXRefs);
+            var collection = _tmdbCollections.GetByTmdbCollectionID(collectionId);
+            var collectionXRefs = _xrefTmdbCollectionMovies.GetByTmdbCollectionID(collectionId);
+            if (collectionXRefs.Count > 0)
+            {
+                _logger.LogTrace(
+                    "Removing {Count} cross-references for movie collection {CollectionName} (Collection={CollectionID})",
+                    collectionXRefs.Count, collection?.EnglishTitle ?? string.Empty,
+                    collectionId
+                );
+                _xrefTmdbCollectionMovies.Delete(collectionXRefs);
+            }
+
+            _imageService.PurgeImages(ForeignEntityType.Collection, collectionId);
+
+            PurgeTitlesAndOverviews(ForeignEntityType.Collection, collectionId);
+
+            if (collection is not null)
+            {
+                _logger.LogTrace(
+                    "Removing movie collection {CollectionName} (Collection={CollectionID})",
+                    collection.EnglishTitle,
+                    collectionId
+                );
+                _tmdbCollections.Delete(collection);
+            }
         }
+    }
 
-        _imageService.PurgeImages(ForeignEntityType.Collection, collectionId, removeImageFiles);
+    public async Task PurgeAllMovieCollections()
+    {
+        var collections = _tmdbCollections.GetAll();
+        var collectionXRefs = _xrefTmdbCollectionMovies.GetAll();
+        var collectionIDs = new HashSet<int>([
+            ..collections.Select(x => x.TmdbCollectionID),
+            ..collectionXRefs.Select(x => x.TmdbCollectionID),
+        ]);
 
-        PurgeTitlesAndOverviews(ForeignEntityType.Collection, collectionId);
+        _logger.LogInformation("Removing {Count} movie collections to be purged.", collectionIDs.Count);
 
-        if (collection != null)
-        {
-            _logger.LogTrace(
-                "Removing movie collection {CollectionName} (Collection={CollectionID})",
-                collection.EnglishTitle,
-                collectionId
-            );
-            _tmdbCollections.Delete(collection);
-        }
+        foreach (var collectionID in collectionIDs)
+            await PurgeMovieCollection(collectionID);
     }
 
     #endregion
@@ -902,6 +979,9 @@ public class TmdbMetadataService
                 return _tvShowGenres;
 
             var genres = await UseClient(c => c.GetTvGenresAsync(), "Get TV Show Genres").ConfigureAwait(false);
+            if (genres is null)
+                return new Dictionary<int, string>();
+
             _tvShowGenres = genres.ToDictionary(x => x.Id, x => x.Name);
             return _tvShowGenres;
         }
@@ -918,6 +998,12 @@ public class TmdbMetadataService
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var xref in allXRefs)
         {
+            if (xref.TmdbShowID is 0)
+                continue;
+
+            if (xref.AnimeSeries is null)
+                continue;
+
             await scheduler.StartJob<UpdateTmdbShowJob>(
                 c =>
                 {
@@ -932,8 +1018,17 @@ public class TmdbMetadataService
     public bool IsShowUpdating(int showId)
         => IsEntityLocked(ForeignEntityType.Show, showId, "metadata");
 
-    public async Task ScheduleUpdateOfShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadAlternateOrdering = null)
+    public bool WaitForShowUpdate(int showId)
+        => WaitIfEntityLocked(ForeignEntityType.Show, showId, "metadata");
+
+    public Task<bool> WaitForShowUpdateAsync(int showId)
+        => WaitIfEntityLockedAsync(ForeignEntityType.Show, showId, "metadata");
+
+    public async Task ScheduleUpdateOfShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadAlternateOrdering = null, bool? downloadNetworks = null)
     {
+        if (showId is 0)
+            return;
+
         // Schedule the show info to be downloaded or updated.
         await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<UpdateTmdbShowJob>(c =>
         {
@@ -942,11 +1037,15 @@ public class TmdbMetadataService
             c.DownloadImages = downloadImages;
             c.DownloadCrewAndCast = downloadCrewAndCast;
             c.DownloadAlternateOrdering = downloadAlternateOrdering;
+            c.DownloadNetworks = downloadNetworks;
         }).ConfigureAwait(false);
     }
 
-    public async Task<bool> UpdateShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadAlternateOrdering = false, bool quickRefresh = false)
+    public async Task<bool> UpdateShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadAlternateOrdering = false, bool downloadNetworks = false, bool quickRefresh = false)
     {
+        if (showId is 0)
+            return false;
+
         using (await GetLockForEntity(ForeignEntityType.Show, showId, "metadata", "Update").ConfigureAwait(false))
         {
             // Abort if we're within a certain time frame as to not try and get us rate-limited.
@@ -965,11 +1064,11 @@ public class TmdbMetadataService
                 return false;
             }
 
-            var methods = TvShowMethods.ContentRatings | TvShowMethods.Translations | TvShowMethods.ExternalIds;
+            var methods = TvShowMethods.ContentRatings | TvShowMethods.Translations | TvShowMethods.ExternalIds | TvShowMethods.Keywords;
             if (downloadAlternateOrdering && !quickRefresh)
                 methods |= TvShowMethods.EpisodeGroups;
             var show = await UseClient(c => c.GetTvShowAsync(showId, methods, "en-US"), $"Get Show {showId}").ConfigureAwait(false);
-            if (show == null)
+            if (show is null)
                 return false;
 
             var settings = _settingsProvider.GetSettings();
@@ -987,10 +1086,22 @@ public class TmdbMetadataService
             updated = titlesUpdated || overviewsUpdated || updated;
             updated = UpdateShowExternalIDs(tmdbShow, show.ExternalIds) || updated;
             updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies) || updated;
-            var (episodesOrSeasonsUpdated, updatedEpisodes) = await UpdateShowSeasonsAndEpisodes(show, downloadCrewAndCast, forceRefresh, downloadImages, quickRefresh, shouldFireEvents);
+            var (episodesOrSeasonsUpdated, updatedSeasons, updatedEpisodes, episodeCount, hiddenEpisodeCount) = await UpdateShowSeasonsAndEpisodes(show, downloadCrewAndCast, forceRefresh, downloadImages, quickRefresh, shouldFireEvents);
             updated = episodesOrSeasonsUpdated || updated;
+            if (tmdbShow.EpisodeCount != episodeCount)
+            {
+                tmdbShow.EpisodeCount = episodeCount;
+                updated = true;
+            }
+            if (tmdbShow.HiddenEpisodeCount != hiddenEpisodeCount)
+            {
+                tmdbShow.HiddenEpisodeCount = hiddenEpisodeCount;
+                updated = true;
+            }
             if (downloadAlternateOrdering && !quickRefresh)
-                updated = await UpdateShowAlternateOrdering(show) || updated;
+                updated = await UpdateShowAlternateOrdering(tmdbShow, show) || updated;
+            if (downloadNetworks && !quickRefresh)
+                updated = await UpdateShowNetworks(tmdbShow, show) || updated;
             if (newlyAdded || updated)
             {
                 if (shouldFireEvents)
@@ -1021,13 +1132,18 @@ public class TmdbMetadataService
                 await ScheduleDownloadAllShowImages(showId, false);
 
             if (shouldFireEvents && (newlyAdded || updated || updatedEpisodes.Count > 0))
-                ShokoEventHandler.Instance.OnSeriesUpdated(tmdbShow, newlyAdded ? UpdateReason.Added : UpdateReason.Updated, updatedEpisodes);
+                ShokoEventHandler.Instance.OnSeriesUpdated(
+                    tmdbShow,
+                    newlyAdded ? UpdateReason.Added : UpdateReason.Updated,
+                    updatedSeasons,
+                    updatedEpisodes
+                );
 
             return updated;
         }
     }
 
-    private async Task<(bool episodesOrSeasonsUpdated, Dictionary<TMDB_Episode, UpdateReason> updatedEpisodes)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadCrewAndCast = false, bool forceRefresh = false, bool downloadImages = false, bool quickRefresh = false, bool shouldFireEvents = false)
+    private async Task<(bool episodesOrSeasonsUpdated, Dictionary<TMDB_Season, UpdateReason> updatedSeasons, Dictionary<TMDB_Episode, UpdateReason> updatedEpisodes, int episodeCount, int hiddenEpisodeCount)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadCrewAndCast = false, bool forceRefresh = false, bool downloadImages = false, bool quickRefresh = false, bool shouldFireEvents = false)
     {
         var settings = _settingsProvider.GetSettings();
         var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language).ToHashSet();
@@ -1038,16 +1154,19 @@ public class TmdbMetadataService
         var seasonsToAdd = 0;
         var seasonsToSkip = new HashSet<int>();
         var seasonsToSave = new List<TMDB_Season>();
+        var seasonEventsToEmit = new ConcurrentDictionary<TMDB_Season, UpdateReason>();
 
+        var totalEpisodeCount = 0;
+        var totalHiddenEpisodeCount = 0;
         var existingEpisodes = new ConcurrentDictionary<int, TMDB_Episode>();
         foreach (var episode in _tmdbEpisodes.GetByTmdbShowID(show.Id))
             existingEpisodes.TryAdd(episode.Id, episode);
         var episodesToAdd = 0;
         var episodesToSkip = new ConcurrentBag<int>();
         var episodesToSave = new ConcurrentBag<TMDB_Episode>();
-        var episodeEventsToEmit = new Dictionary<TMDB_Episode, UpdateReason>();
-        var allPeopleToCheck = new ConcurrentBag<int>();
-        var allPeopleToRemove = new ConcurrentBag<int>();
+        var episodeEventsToEmit = new ConcurrentDictionary<TMDB_Episode, UpdateReason>();
+        var allPeopleToAddOrKeep = new ConcurrentBag<int>();
+        var allPeopleToPotentiallyRemove = new ConcurrentBag<int>();
         foreach (var reducedSeason in show.Seasons)
         {
             _logger.LogDebug("Checking season {SeasonNumber} for show {ShowTitle} (Show={ShowId})", reducedSeason.SeasonNumber, show.Name, show.Id);
@@ -1058,17 +1177,23 @@ public class TmdbMetadataService
                 seasonsToAdd++;
                 tmdbSeason = new(reducedSeason.Id);
             }
+            var newlyAddedSeason = tmdbSeason.CreatedAt == tmdbSeason.LastUpdatedAt;
 
             var seasonUpdated = tmdbSeason.Populate(show, season);
             seasonUpdated = UpdateTitlesAndOverviews(tmdbSeason, season.Translations, preferredTitleLanguages, preferredOverviewLanguages) || seasonUpdated;
-            if (seasonUpdated)
+
+            if ((newlyAddedSeason && shouldFireEvents) || seasonUpdated)
             {
-                tmdbSeason.LastUpdatedAt = DateTime.Now;
+                seasonEventsToEmit.TryAdd(tmdbSeason, newlyAddedSeason ? UpdateReason.Added : UpdateReason.Updated);
+                if (shouldFireEvents)
+                    tmdbSeason.LastUpdatedAt = DateTime.Now;
                 seasonsToSave.Add(tmdbSeason);
             }
 
             seasonsToSkip.Add(tmdbSeason.Id);
 
+            var episodeBag = new ConcurrentBag<TMDB_Episode>();
+            var hiddenEpisodeBag = new ConcurrentBag<TMDB_Episode>();
             await ProcessWithConcurrencyAsync(_maxConcurrency, season.Episodes, async (reducedEpisode) =>
             {
                 _logger.LogDebug("Checking episode {EpisodeNumber} in season {SeasonNumber} for show {ShowTitle} (Show={ShowId})", reducedEpisode.EpisodeNumber, reducedSeason.SeasonNumber, show.Name, show.Id);
@@ -1104,25 +1229,52 @@ public class TmdbMetadataService
                     // Update crew & cast.
                     if (downloadCrewAndCast)
                     {
-                        var (castOrCrewUpdated, peopleToCheck, peopleToRemove) = UpdateEpisodeCastAndCrew(tmdbEpisode, episode.Credits);
+                        var (castOrCrewUpdated, peopleToAddOrKeep, peopleToPotentiallyRemove) = UpdateEpisodeCastAndCrew(tmdbEpisode, episode.Credits);
                         episodeUpdated |= castOrCrewUpdated;
-                        foreach (var personId in peopleToCheck)
-                            allPeopleToCheck.Add(personId);
-                        foreach (var personId in peopleToRemove)
-                            allPeopleToRemove.Add(personId);
+                        foreach (var personId in peopleToAddOrKeep)
+                            allPeopleToAddOrKeep.Add(personId);
+                        foreach (var personId in peopleToPotentiallyRemove)
+                            allPeopleToPotentiallyRemove.Add(personId);
                     }
                 }
 
                 if ((newlyAddedEpisode && shouldFireEvents) || episodeUpdated)
                 {
-                    episodeEventsToEmit.Add(tmdbEpisode, newlyAddedEpisode ? UpdateReason.Added : UpdateReason.Updated);
+                    episodeEventsToEmit.TryAdd(tmdbEpisode, newlyAddedEpisode ? UpdateReason.Added : UpdateReason.Updated);
                     if (shouldFireEvents)
                         tmdbEpisode.LastUpdatedAt = DateTime.Now;
                     episodesToSave.Add(tmdbEpisode);
                 }
 
                 episodesToSkip.Add(tmdbEpisode.Id);
+                if (tmdbEpisode.IsHidden)
+                    hiddenEpisodeBag.Add(tmdbEpisode);
+                else
+                    episodeBag.Add(tmdbEpisode);
             });
+
+            var episodeCount = episodeBag.Count;
+            var hiddenEpisodeCount = hiddenEpisodeBag.Count;
+            if (tmdbSeason.EpisodeCount != episodeCount)
+            {
+                tmdbSeason.EpisodeCount = episodeCount;
+                seasonUpdated = true;
+            }
+            if (tmdbSeason.HiddenEpisodeCount != hiddenEpisodeCount)
+            {
+                tmdbSeason.HiddenEpisodeCount = hiddenEpisodeCount;
+                seasonUpdated = true;
+            }
+            if (seasonUpdated)
+            {
+                tmdbSeason.LastUpdatedAt = DateTime.Now;
+                if (!seasonsToSave.Contains(tmdbSeason))
+                    seasonsToSave.Add(tmdbSeason);
+            }
+            totalEpisodeCount += episodeCount;
+            totalHiddenEpisodeCount += hiddenEpisodeCount;
+            episodeBag.Clear();
+            hiddenEpisodeBag.Clear();
         }
 
         var seasonsToRemove = existingSeasons.Values
@@ -1143,7 +1295,10 @@ public class TmdbMetadataService
         _tmdbSeasons.Save(seasonsToSave);
 
         foreach (var season in seasonsToRemove)
+        {
             PurgeShowSeason(season);
+            seasonEventsToEmit.TryAdd(season, UpdateReason.Removed);
+        }
 
         _tmdbSeasons.Delete(seasonsToRemove);
 
@@ -1160,7 +1315,7 @@ public class TmdbMetadataService
         foreach (var episode in episodesToRemove)
         {
             PurgeShowEpisode(episode);
-            episodeEventsToEmit.Add(episode, UpdateReason.Removed);
+            episodeEventsToEmit.TryAdd(episode, UpdateReason.Removed);
         }
 
         _tmdbEpisodes.Delete(episodesToRemove);
@@ -1168,18 +1323,21 @@ public class TmdbMetadataService
         if (quickRefresh)
             return (
                 seasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || episodesToSave.IsEmpty || episodesToRemove.Count > 0,
-                episodeEventsToEmit
+                seasonEventsToEmit.ToDictionary(),
+                episodeEventsToEmit.ToDictionary(),
+                totalEpisodeCount,
+                totalHiddenEpisodeCount
             );
 
         // Only add/remove staff if we're not doing a quick refresh.
         var peopleAdded = 0;
         var peopleUpdated = 0;
         var peoplePurged = 0;
-        var peopleToCheck = allPeopleToCheck.ToArray().Distinct().ToList();
-        var peopleToPurge = allPeopleToRemove.ToArray().Distinct().Except(peopleToCheck).ToList();
+        var peopleToCheck = allPeopleToAddOrKeep.ToArray().Distinct().ToList();
+        var peopleToPurge = allPeopleToPotentiallyRemove.ToArray().Distinct().Except(peopleToCheck).ToList();
         foreach (var personId in peopleToCheck)
         {
-            var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages);
+            var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentShowId: show.Id);
             if (added)
                 peopleAdded++;
             if (updated)
@@ -1202,11 +1360,14 @@ public class TmdbMetadataService
 
         return (
             seasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || episodesToSave.IsEmpty || episodesToRemove.Count > 0 || peopleAdded > 0 || peoplePurged > 0,
-            episodeEventsToEmit
+            seasonEventsToEmit.ToDictionary(),
+            episodeEventsToEmit.ToDictionary(),
+            totalEpisodeCount,
+            totalHiddenEpisodeCount
         );
     }
 
-    private async Task<bool> UpdateShowAlternateOrdering(TvShow show)
+    private async Task<bool> UpdateShowAlternateOrdering(TMDB_Show tmdbShow, TvShow show)
     {
         _logger.LogDebug(
             "Checking {count} episode group collections to create alternate orderings for show {ShowTitle} (Show={ShowId})",
@@ -1214,6 +1375,10 @@ public class TmdbMetadataService
             show.Name,
             show.Id);
 
+        var hiddenEpisodes = _tmdbEpisodes.GetByTmdbShowID(show.Id)
+            .Where(episode => episode.IsHidden)
+            .Select(episode => episode.Id)
+            .ToHashSet();
         var existingOrdering = _tmdbAlternateOrdering.GetByTmdbShowID(show.Id)
             .ToDictionary(ordering => ordering.Id);
         var orderingToAdd = 0;
@@ -1247,12 +1412,9 @@ public class TmdbMetadataService
             }
 
             var orderingUpdated = tmdbOrdering.Populate(collection, show.Id);
-            if (orderingUpdated)
-            {
-                tmdbOrdering.LastUpdatedAt = DateTime.Now;
-                orderingToSave.Add(tmdbOrdering);
-            }
 
+            var totalEpisodeCount = 0;
+            var totalHiddenEpisodeCount = 0;
             foreach (var episodeGroup in collection.Groups)
             {
                 if (!existingSeasons.TryGetValue(episodeGroup.Id, out var tmdbSeason))
@@ -1262,12 +1424,9 @@ public class TmdbMetadataService
                 }
 
                 var seasonUpdated = tmdbSeason.Populate(episodeGroup, collection.Id, show.Id, episodeGroup.Order);
-                if (seasonUpdated)
-                {
-                    tmdbSeason.LastUpdatedAt = DateTime.Now;
-                    seasonsToSave.Add(tmdbSeason);
-                }
 
+                var episodeCount = 0;
+                var hiddenEpisodeCount = 0;
                 var episodeNumberCount = 1;
                 foreach (var episode in episodeGroup.Episodes)
                 {
@@ -1276,6 +1435,10 @@ public class TmdbMetadataService
 
                     var episodeNumber = episodeNumberCount++;
                     var episodeId = episode.Id.Value;
+                    if (hiddenEpisodes.Contains(episodeId))
+                        hiddenEpisodeCount++;
+                    else
+                        episodeCount++;
 
                     if (!existingEpisodes.TryGetValue($"{episodeGroup.Id}:{episodeId}", out var tmdbEpisode))
                     {
@@ -1293,7 +1456,43 @@ public class TmdbMetadataService
                     episodesToSkip.Add(tmdbEpisode.Id);
                 }
 
+                if (tmdbSeason.EpisodeCount != episodeCount)
+                {
+                    tmdbSeason.EpisodeCount = episodeCount;
+                    seasonUpdated = true;
+                }
+                if (tmdbSeason.HiddenEpisodeCount != hiddenEpisodeCount)
+                {
+                    tmdbSeason.HiddenEpisodeCount = hiddenEpisodeCount;
+                    seasonUpdated = true;
+                }
+
+                if (seasonUpdated)
+                {
+                    tmdbSeason.LastUpdatedAt = DateTime.Now;
+                    seasonsToSave.Add(tmdbSeason);
+                }
+
+                totalEpisodeCount += episodeCount;
+                totalHiddenEpisodeCount += hiddenEpisodeCount;
                 seasonsToSkip.Add(tmdbSeason.Id);
+            }
+
+            if (tmdbOrdering.EpisodeCount != totalEpisodeCount)
+            {
+                tmdbOrdering.EpisodeCount = totalEpisodeCount;
+                orderingUpdated = true;
+            }
+            if (tmdbOrdering.HiddenEpisodeCount != totalHiddenEpisodeCount)
+            {
+                tmdbOrdering.HiddenEpisodeCount = totalHiddenEpisodeCount;
+                orderingUpdated = true;
+            }
+
+            if (orderingUpdated)
+            {
+                tmdbOrdering.LastUpdatedAt = DateTime.Now;
+                orderingToSave.Add(tmdbOrdering);
             }
 
             orderingToSkip.Add(tmdbOrdering.Id);
@@ -1334,19 +1533,29 @@ public class TmdbMetadataService
         _tmdbAlternateOrderingEpisodes.Save(episodesToSave);
         _tmdbAlternateOrderingEpisodes.Delete(episodesToRemove);
 
+        var preferredOrderingUpdated = false;
+        if (tmdbShow.PreferredAlternateOrderingID is not null)
+        {
+            var allOrderings = show.EpisodeGroups.Results.Select(ordering => ordering.Id).ToHashSet();
+            if (!allOrderings.Contains(tmdbShow.PreferredAlternateOrderingID))
+            {
+                tmdbShow.PreferredAlternateOrderingID = null;
+                preferredOrderingUpdated = true;
+            }
+        }
+
         return orderingToSave.Count > 0 ||
             orderingToRemove.Count > 0 ||
             seasonsToSave.Count > 0 ||
             seasonsToRemove.Count > 0 ||
             episodesToSave.Count > 0 ||
-            episodesToRemove.Count > 0;
+            episodesToRemove.Count > 0 ||
+            preferredOrderingUpdated;
     }
 
     private (bool, IEnumerable<int>, IEnumerable<int>) UpdateEpisodeCastAndCrew(TMDB_Episode tmdbEpisode, CreditsWithGuestStars credits)
     {
-        var peopleToAdd = new HashSet<int>();
-        var knownPeopleDict = new Dictionary<int, TMDB_Person>();
-
+        var peopleToAddOrKeep = new HashSet<int>();
         var counter = 0;
         var castToAdd = 0;
         var castToKeep = new HashSet<string>();
@@ -1359,7 +1568,7 @@ public class TmdbMetadataService
             var ordering = counter++;
             var isGuestRole = ordering >= guestOffset;
             castToKeep.Add(cast.CreditId);
-            peopleToAdd.Add(cast.Id);
+            peopleToAddOrKeep.Add(cast.Id);
 
             var roleUpdated = false;
             if (!existingCastDict.TryGetValue(cast.CreditId, out var role))
@@ -1378,9 +1587,10 @@ public class TmdbMetadataService
                 roleUpdated = true;
             }
 
-            if (role.CharacterName != cast.Character)
+            var characterName = cast.Character.Replace(" (voice)", "");
+            if (role.CharacterName != characterName)
             {
-                role.CharacterName = cast.Character;
+                role.CharacterName = characterName;
                 roleUpdated = true;
             }
 
@@ -1409,7 +1619,7 @@ public class TmdbMetadataService
             .ToDictionary(crew => crew.TmdbCreditID);
         foreach (var crew in credits.Crew)
         {
-            peopleToAdd.Add(crew.Id);
+            peopleToAddOrKeep.Add(crew.Id);
             crewToKeep.Add(crew.CreditId);
             var roleUpdated = false;
             if (!existingCrewDict.TryGetValue(crew.CreditId, out var role))
@@ -1456,11 +1666,10 @@ public class TmdbMetadataService
         _tmdbEpisodeCast.Delete(castToRemove);
         _tmdbEpisodeCrew.Delete(crewToRemove);
 
-        var peopleToCheck = existingCastDict.Values
-            .Select(cast => cast.TmdbPersonID)
-            .Concat(existingCrewDict.Values.Select(crew => crew.TmdbPersonID))
-            .Except(knownPeopleDict.Keys)
-            .ToHashSet();
+        var peopleToPotentiallyRemove = new HashSet<int>([
+            ..existingCastDict.Values.Select(cast => cast.TmdbPersonID),
+            ..existingCrewDict.Values.Select(crew => crew.TmdbPersonID),
+        ]);
 
         _logger.LogDebug(
             "Added/updated/removed/skipped {aa}/{au}/{ar}/{as} cast and {ra}/{ru}/{rr}/{rs} crew for episode {EpisodeTitle} (Show={ShowId},Season={SeasonId},Episode={EpisodeId})",
@@ -1482,9 +1691,93 @@ public class TmdbMetadataService
             castToRemove.Count > 0 ||
             crewToSave.Count > 0 ||
             crewToRemove.Count > 0,
-            peopleToAdd,
-            peopleToCheck
+            peopleToAddOrKeep,
+            peopleToPotentiallyRemove
         );
+    }
+
+    private async Task<bool> UpdateShowNetworks(TMDB_Show tmdbShow, TvShow show)
+    {
+        var index = 0;
+        var xrefsToSkip = new HashSet<int>();
+        var xrefsToSave = new List<TMDB_Show_Network>();
+        var existingNetworks = tmdbShow.TmdbNetworkCrossReferences
+            .ToDictionary(network => network.TmdbNetworkID);
+        var existingXref = _xrefTmdbShowNetwork.GetByTmdbShowID(tmdbShow.Id)
+            .ToDictionary(xref => xref.TmdbNetworkID);
+        foreach (var network in show.Networks)
+        {
+            var ordering = index++;
+            if (existingXref.TryGetValue(network.Id, out var xref))
+            {
+                xrefsToSkip.Add(xref.TMDB_Show_NetworkID);
+                if (xref.Ordering != ordering)
+                {
+                    xref.Ordering = ordering;
+                    xrefsToSave.Add(xref);
+                }
+            }
+            else
+            {
+                xref = new()
+                {
+                    Ordering = ordering,
+                    TmdbNetworkID = network.Id,
+                    TmdbShowID = tmdbShow.Id,
+                };
+                xrefsToSave.Add(xref);
+            }
+        }
+
+        var networksToPurge = new HashSet<int>();
+        var xrefsToRemove = existingNetworks.Values.ExceptBy(xrefsToSkip, network => network.TMDB_Show_NetworkID).ToList();
+        foreach (var xref in xrefsToRemove)
+        {
+            if (_xrefTmdbShowNetwork.GetByTmdbNetworkID(xref.TmdbNetworkID).Count <= 1)
+                networksToPurge.Add(xref.TmdbNetworkID);
+        }
+
+        _xrefTmdbShowNetwork.Save(xrefsToSave);
+        _xrefTmdbShowNetwork.Delete(xrefsToRemove);
+
+        foreach (var network in show.Networks)
+            await CreateOrUpdateNetwork(network);
+        foreach (var networkId in networksToPurge)
+            await PurgeShowNetwork(networkId);
+
+        return true;
+    }
+
+    private async Task CreateOrUpdateNetwork(NetworkWithLogo network)
+    {
+        using (await GetLockForEntity(ForeignEntityType.Network, network.Id, "metadata & images", "Update").ConfigureAwait(false))
+        {
+            var tmdbNetwork = _tmdbNetwork.GetByTmdbNetworkID(network.Id) ??
+                new() { TmdbNetworkID = network.Id };
+            var updated = tmdbNetwork.TMDB_NetworkID is 0;
+            if (!string.Equals(tmdbNetwork.Name, network.Name))
+            {
+                tmdbNetwork.Name = network.Name;
+                updated = true;
+            }
+            if (!string.Equals(tmdbNetwork.CountryOfOrigin, network.OriginCountry))
+            {
+                tmdbNetwork.CountryOfOrigin = network.OriginCountry;
+                updated = true;
+            }
+            if (_xrefTmdbShowNetwork.GetByTmdbNetworkID(network.Id).Count == 0 && tmdbNetwork.LastOrphanedAt.HasValue)
+            {
+                tmdbNetwork.LastOrphanedAt = null;
+                updated = true;
+            }
+            if (updated)
+            {
+                _tmdbNetwork.Save(tmdbNetwork);
+                _logger.LogDebug("Updated TMDB Network (Network={NetworkId})", network.Id);
+            }
+            if (!string.IsNullOrEmpty(network.LogoPath))
+                await _imageService.DownloadImageByType(network.LogoPath, ImageEntityType.Logo, ForeignEntityType.Network, network.Id);
+        }
     }
 
     public async Task ScheduleDownloadAllShowImages(int showId, bool forceDownload = false)
@@ -1527,16 +1820,22 @@ public class TmdbMetadataService
         if (!settings.TMDB.AutoDownloadPosters && !settings.TMDB.AutoDownloadLogos && !settings.TMDB.AutoDownloadBackdrops)
             return;
 
+        if (_tmdbShows.GetByTmdbShowID(showId) is not { } show)
+            return;
+
         _logger.LogDebug("Downloading images for show. (Show={ShowId})", showId);
 
         var images = await UseClient(c => c.GetTvShowImagesAsync(showId), $"Get images for show {showId}").ConfigureAwait(false);
+        if (images is null)
+            return;
+
         var languages = GetLanguages(mainLanguage);
         if (settings.TMDB.AutoDownloadPosters)
-            await _imageService.DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
+            await _imageService.DownloadImagesByType(show.PosterPath, show.FirstAiredAt, images.Posters, ImageEntityType.Poster, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoPosters, languages, forceDownload);
         if (settings.TMDB.AutoDownloadLogos)
-            await _imageService.DownloadImagesByType(images.Logos, ImageEntityType.Logo, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
+            await _imageService.DownloadImagesByType(null, show.FirstAiredAt, images.Logos, ImageEntityType.Logo, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoLogos, languages, forceDownload);
         if (settings.TMDB.AutoDownloadBackdrops)
-            await _imageService.DownloadImagesByType(images.Backdrops, ImageEntityType.Backdrop, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
+            await _imageService.DownloadImagesByType(show.BackdropPath, show.FirstAiredAt, images.Backdrops, ImageEntityType.Backdrop, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
 
     private async Task DownloadSeasonImages(int seasonId, int showId, int seasonNumber, TitleLanguage? mainLanguage = null, bool forceDownload = false)
@@ -1545,11 +1844,22 @@ public class TmdbMetadataService
         if (!settings.TMDB.AutoDownloadPosters)
             return;
 
+        if (_tmdbSeasons.GetByTmdbSeasonID(seasonId) is not { } season)
+            return;
+
         _logger.LogDebug("Downloading images for season {SeasonNumber}. (Show={ShowId}, Season={SeasonId})", seasonNumber, showId, seasonId);
 
         var images = await UseClient(c => c.GetTvSeasonImagesAsync(showId, seasonNumber), $"Get images for season {seasonNumber} in show {showId}").ConfigureAwait(false);
+        if (images is null)
+            return;
+
         var languages = GetLanguages(mainLanguage);
-        await _imageService.DownloadImagesByType(images.Posters, ImageEntityType.Poster, ForeignEntityType.Season, seasonId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
+        var releasedAt = _tmdbEpisodes.GetByTmdbSeasonID(seasonId)
+            .Select(o => o.AiredAt)
+            .WhereNotNull()
+            .Order()
+            .FirstOrDefault();
+        await _imageService.DownloadImagesByType(season.PosterPath, releasedAt, images.Posters, ImageEntityType.Poster, ForeignEntityType.Season, seasonId, settings.TMDB.MaxAutoPosters, languages, forceDownload);
     }
 
     private async Task DownloadEpisodeImages(int episodeId, int showId, int seasonNumber, int episodeNumber, TitleLanguage mainLanguage, bool forceDownload = false)
@@ -1558,11 +1868,17 @@ public class TmdbMetadataService
         if (!settings.TMDB.AutoDownloadThumbnails)
             return;
 
+        if (_tmdbEpisodes.GetByTmdbEpisodeID(episodeId) is not { } episode)
+            return;
+
         _logger.LogDebug("Downloading images for episode {EpisodeNumber} in season {SeasonNumber}. (Show={ShowId}, Episode={EpisodeId})", episodeNumber, seasonNumber, showId, episodeId);
 
         var images = await UseClient(c => c.GetTvEpisodeImagesAsync(showId, seasonNumber, episodeNumber), $"Get images for episode {episodeNumber} in season {seasonNumber} in show {showId}").ConfigureAwait(false);
+        if (images is null)
+            return;
+
         var languages = GetLanguages(mainLanguage);
-        await _imageService.DownloadImagesByType(images.Stills, ImageEntityType.Thumbnail, ForeignEntityType.Episode, episodeId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
+        await _imageService.DownloadImagesByType(episode.ThumbnailPath, episode.AiredAt, images.Stills, ImageEntityType.Thumbnail, ForeignEntityType.Episode, episodeId, settings.TMDB.MaxAutoThumbnails, languages, forceDownload);
     }
 
     private List<TitleLanguage> GetLanguages(TitleLanguage? mainLanguage = null) => _settingsProvider.GetSettings().TMDB.ImageLanguageOrder
@@ -1578,7 +1894,7 @@ public class TmdbMetadataService
     public async Task PurgeAllUnusedShows()
     {
         var allShows = _tmdbShows.GetAll().Select(show => show.TmdbShowID)
-            .Concat(_tmdbImages.GetAll().Where(image => image.TmdbShowID.HasValue).Select(image => image.TmdbShowID!.Value))
+            .Concat(_tmdbImageEntities.GetByForeignType(ForeignEntityType.Show).Select(image => image.TmdbEntityID))
             .Concat(_xrefAnidbTmdbShows.GetAll().Select(xref => xref.TmdbShowID))
             .Concat(_xrefTmdbCompanyEntity.GetAll().Where(x => x.TmdbEntityType == ForeignEntityType.Show).Select(x => x.TmdbEntityID))
             .Concat(_xrefTmdbShowNetwork.GetAll().Select(x => x.TmdbShowID))
@@ -1601,16 +1917,15 @@ public class TmdbMetadataService
             await scheduler.StartJob<PurgeTmdbShowJob>(c => c.TmdbShowID = showID);
     }
 
-    public async Task SchedulePurgeOfShow(int showId, bool removeImageFiles = true)
+    public async Task SchedulePurgeOfShow(int showId)
     {
         await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<PurgeTmdbShowJob>(c =>
         {
             c.TmdbShowID = showId;
-            c.RemoveImageFiles = removeImageFiles;
         });
     }
 
-    public async Task PurgeShow(int showId, bool removeImageFiles = true)
+    public async Task PurgeShow(int showId)
     {
         using (await GetLockForEntity(ForeignEntityType.Show, showId, "metadata", "Purge").ConfigureAwait(false))
         {
@@ -1618,9 +1933,9 @@ public class TmdbMetadataService
 
             await _linkingService.RemoveAllShowLinksForShow(showId);
 
-            _imageService.PurgeImages(ForeignEntityType.Show, showId, removeImageFiles);
+            _imageService.PurgeImages(ForeignEntityType.Show, showId);
 
-            if (show != null)
+            if (show is not null)
             {
                 _logger.LogTrace(
                     "Removing show {ShowName} (Show={ShowId})",
@@ -1632,21 +1947,21 @@ public class TmdbMetadataService
 
             PurgeTitlesAndOverviews(ForeignEntityType.Show, showId);
 
-            PurgeShowCompanies(showId, removeImageFiles);
+            PurgeShowCompanies(showId);
 
-            PurgeShowNetworks(showId, removeImageFiles);
+            await PurgeShowNetworks(showId);
 
-            PurgeShowEpisodes(showId, removeImageFiles);
+            PurgeShowEpisodes(showId);
 
-            PurgeShowSeasons(showId, removeImageFiles);
+            PurgeShowSeasons(showId);
 
-            await PurgeShowCastAndCrew(showId, removeImageFiles);
+            await PurgeShowCastAndCrew(showId);
 
             PurgeShowEpisodeGroups(showId);
         }
     }
 
-    private void PurgeShowCompanies(int showId, bool removeImageFiles = true)
+    private void PurgeShowCompanies(int showId)
     {
         var xrefsToRemove = _xrefTmdbCompanyEntity.GetByTmdbEntityTypeAndID(ForeignEntityType.Show, showId);
         foreach (var xref in xrefsToRemove)
@@ -1656,11 +1971,11 @@ public class TmdbMetadataService
             if (xrefs.Count > 1)
                 _xrefTmdbCompanyEntity.Delete(xref);
             else
-                PurgeCompany(xref.TmdbCompanyID, removeImageFiles);
+                PurgeCompany(xref.TmdbCompanyID);
         }
     }
 
-    private void PurgeShowNetworks(int showId, bool removeImageFiles = true)
+    private async Task PurgeShowNetworks(int showId)
     {
         var xrefsToRemove = _xrefTmdbShowNetwork.GetByTmdbShowID(showId);
         foreach (var xref in xrefsToRemove)
@@ -1670,33 +1985,54 @@ public class TmdbMetadataService
             if (xrefs.Count > 1)
                 _xrefTmdbShowNetwork.Delete(xref);
             else
-                PurgeShowNetwork(xref.TmdbNetworkID, removeImageFiles);
+                await PurgeShowNetwork(xref.TmdbNetworkID);
         }
     }
 
-    private void PurgeShowNetwork(int networkId, bool removeImageFiles = true)
+    public async Task PurgeUnlinkedShowNetworks()
     {
-        var tmdbNetwork = _tmdbNetwork.GetByTmdbNetworkID(networkId);
-        if (tmdbNetwork != null)
-        {
-            _logger.LogDebug("Removing TMDB Network (Network={NetworkId})", networkId);
-            _tmdbNetwork.Delete(tmdbNetwork);
-        }
+        var networks = _tmdbNetwork.GetAll().Where(p => _xrefTmdbShowNetwork.GetByTmdbNetworkID(p.TmdbNetworkID).Count == 0).ToList();
+        _logger.LogDebug("Checking {count} orphaned staff members if they should be purged.", networks.Count);
+        foreach (var network in networks)
+            await PurgeShowNetwork(network.TmdbNetworkID);
+    }
 
-        var images = _tmdbImages.GetByTmdbCompanyID(networkId);
-        if (images.Count > 0)
-            foreach (var image in images)
-                _imageService.PurgeImage(image, ForeignEntityType.Company, removeImageFiles);
-
-        var xrefs = _xrefTmdbShowNetwork.GetByTmdbNetworkID(networkId);
-        if (xrefs.Count > 0)
+    private async Task PurgeShowNetwork(int networkId)
+    {
+        using (await GetLockForEntity(ForeignEntityType.Network, networkId, "metadata & images", "Purge").ConfigureAwait(false))
         {
-            _logger.LogDebug("Removing {count} cross-references for TMDB Network (Network={NetworkId})", xrefs.Count, networkId);
-            _xrefTmdbShowNetwork.Delete(xrefs);
+            var tmdbNetwork = _tmdbNetwork.GetByTmdbNetworkID(networkId);
+            if (tmdbNetwork is not null)
+            {
+                if (!tmdbNetwork.LastOrphanedAt.HasValue)
+                {
+                    tmdbNetwork.LastOrphanedAt = DateTime.UtcNow;
+                    _tmdbNetwork.Save(tmdbNetwork);
+                    _logger.LogDebug("Marked TMDB Network as orphaned. (Network={NetworkId})", networkId);
+                    return;
+                }
+                if (tmdbNetwork.LastOrphanedAt.Value.AddDays(7) > DateTime.UtcNow)
+                {
+                    _logger.LogDebug("TMDB Network has not been orphaned for 7 days yet. Skipping. (Network={NetworkId})", networkId);
+                    return;
+                }
+
+                _logger.LogDebug("Removing TMDB Network. (Network={NetworkId})", networkId);
+                _tmdbNetwork.Delete(tmdbNetwork);
+            }
+
+            _imageService.PurgeImages(ForeignEntityType.Network, networkId);
+
+            var xrefs = _xrefTmdbShowNetwork.GetByTmdbNetworkID(networkId);
+            if (xrefs.Count > 0)
+            {
+                _logger.LogDebug("Removing {count} cross-references for TMDB Network (Network={NetworkId})", xrefs.Count, networkId);
+                _xrefTmdbShowNetwork.Delete(xrefs);
+            }
         }
     }
 
-    private void PurgeShowEpisodes(int showId, bool removeImageFiles = true)
+    private void PurgeShowEpisodes(int showId)
     {
         var episodesToRemove = _tmdbEpisodes.GetByTmdbShowID(showId);
 
@@ -1706,19 +2042,19 @@ public class TmdbMetadataService
             showId
         );
         foreach (var episode in episodesToRemove)
-            PurgeShowEpisode(episode, removeImageFiles);
+            PurgeShowEpisode(episode);
 
         _tmdbEpisodes.Delete(episodesToRemove);
     }
 
-    private void PurgeShowEpisode(TMDB_Episode episode, bool removeImageFiles = true)
+    private void PurgeShowEpisode(TMDB_Episode episode)
     {
-        _imageService.PurgeImages(ForeignEntityType.Episode, episode.Id, removeImageFiles);
+        _imageService.PurgeImages(ForeignEntityType.Episode, episode.Id);
 
         PurgeTitlesAndOverviews(ForeignEntityType.Episode, episode.Id);
     }
 
-    private void PurgeShowSeasons(int showId, bool removeImageFiles = true)
+    private void PurgeShowSeasons(int showId)
     {
         var seasonsToRemove = _tmdbSeasons.GetByTmdbShowID(showId);
 
@@ -1728,19 +2064,19 @@ public class TmdbMetadataService
             showId
         );
         foreach (var season in seasonsToRemove)
-            PurgeShowSeason(season, removeImageFiles);
+            PurgeShowSeason(season);
 
         _tmdbSeasons.Delete(seasonsToRemove);
     }
 
-    private void PurgeShowSeason(TMDB_Season season, bool removeImageFiles = true)
+    private void PurgeShowSeason(TMDB_Season season)
     {
-        _imageService.PurgeImages(ForeignEntityType.Season, season.Id, removeImageFiles);
+        _imageService.PurgeImages(ForeignEntityType.Season, season.Id);
 
         PurgeTitlesAndOverviews(ForeignEntityType.Season, season.Id);
     }
 
-    private async Task PurgeShowCastAndCrew(int showId, bool removeImageFiles = true)
+    private async Task PurgeShowCastAndCrew(int showId)
     {
         var castMembers = _tmdbEpisodeCast.GetByTmdbShowID(showId);
         var crewMembers = _tmdbEpisodeCrew.GetByTmdbShowID(showId);
@@ -1753,7 +2089,7 @@ public class TmdbMetadataService
             .Distinct()
             .ToHashSet();
         foreach (var personId in allPeopleSet)
-            await PurgePerson(personId, removeImageFiles);
+            await PurgePerson(personId);
     }
 
     private void PurgeShowEpisodeGroups(int showId)
@@ -1763,6 +2099,25 @@ public class TmdbMetadataService
         var orderings = _tmdbAlternateOrdering.GetByTmdbShowID(showId);
 
         _logger.LogDebug("Removing {EpisodeCount} episodes and {SeasonCount} seasons across {OrderingCount} alternate orderings for show. (Show={ShowId})", episodes.Count, seasons.Count, orderings.Count, showId);
+        _tmdbAlternateOrderingEpisodes.Delete(episodes);
+        _tmdbAlternateOrderingSeasons.Delete(seasons);
+        _tmdbAlternateOrdering.Delete(orderings);
+    }
+
+    public void PurgeAllShowEpisodeGroups()
+    {
+        _logger.LogInformation("Purging all show episode groups.");
+
+        var episodes = _tmdbAlternateOrderingEpisodes.GetAll();
+        var seasons = _tmdbAlternateOrderingSeasons.GetAll();
+        var orderings = _tmdbAlternateOrdering.GetAll();
+        var shows = new HashSet<int>([
+            ..episodes.Select(e => e.TmdbShowID),
+            ..seasons.Select(s => s.TmdbShowID),
+            ..orderings.Select(o => o.TmdbShowID),
+        ]);
+
+        _logger.LogDebug("Removing {EpisodeCount} episodes and {SeasonCount} seasons across {OrderingCount} alternate orderings for {ShowCount} shows.", episodes.Count, seasons.Count, orderings.Count, shows.Count);
         _tmdbAlternateOrderingEpisodes.Delete(episodes);
         _tmdbAlternateOrderingSeasons.Delete(seasons);
         _tmdbAlternateOrdering.Delete(orderings);
@@ -1828,7 +2183,7 @@ public class TmdbMetadataService
                 alwaysInclude = true;
             }
 
-            var shouldInclude = alwaysInclude || preferredTitleLanguages is null || preferredTitleLanguages.Contains(languageCode.GetTitleLanguage());
+            var shouldInclude = alwaysInclude || preferredTitleLanguages is null || preferredTitleLanguages.Contains(languageCode.GetTitleLanguage()) || preferredTitleLanguages.Contains(languageCode.GetTitleLanguage(countryCode));
             var existingTitle = existingTitles.FirstOrDefault(title => title.LanguageCode == languageCode && title.CountryCode == countryCode);
             if (shouldInclude && !string.IsNullOrEmpty(currentTitle) && !(
                 // Make sure the "translation" is not just the English Title or
@@ -1837,7 +2192,7 @@ public class TmdbMetadataService
                 (!string.IsNullOrEmpty(tmdbEntity.OriginalLanguageCode) && languageCode != tmdbEntity.OriginalLanguageCode && !string.IsNullOrEmpty(tmdbEntity.OriginalTitle) && string.Equals(tmdbEntity.OriginalTitle, currentTitle, StringComparison.InvariantCultureIgnoreCase))
             ))
             {
-                if (existingTitle == null)
+                if (existingTitle is null)
                 {
                     titlesToAdd++;
                     titlesToSave.Add(new(tmdbEntity.Type, tmdbEntity.Id, currentTitle, languageCode, countryCode));
@@ -1861,11 +2216,11 @@ public class TmdbMetadataService
                 currentOverview = tmdbEntity.EnglishOverview ?? translation.Data.Overview ?? string.Empty;
             }
 
-            shouldInclude = alwaysInclude || preferredOverviewLanguages is null || preferredOverviewLanguages.Contains(languageCode.GetTitleLanguage());
+            shouldInclude = alwaysInclude || preferredOverviewLanguages is null || preferredOverviewLanguages.Contains(languageCode.GetTitleLanguage()) || preferredOverviewLanguages.Contains(languageCode.GetTitleLanguage(countryCode));
             var existingOverview = existingOverviews.FirstOrDefault(overview => overview.LanguageCode == languageCode && overview.CountryCode == countryCode);
             if (shouldInclude && !string.IsNullOrEmpty(currentOverview))
             {
-                if (existingOverview == null)
+                if (existingOverview is null)
                 {
                     overviewsToAdd++;
                     overviewsToSave.Add(new(tmdbEntity.Type, tmdbEntity.Id, currentOverview, languageCode, countryCode));
@@ -2002,22 +2357,19 @@ public class TmdbMetadataService
 
         var settings = _settingsProvider.GetSettings();
         if (!string.IsNullOrEmpty(company.LogoPath) && settings.TMDB.AutoDownloadStudioImages)
-            await _imageService.DownloadImageByType(company.LogoPath, ImageEntityType.Logo, ForeignEntityType.Company, company.Id);
+            await _imageService.DownloadImageByType(company.LogoPath, ImageEntityType.Art, ForeignEntityType.Company, company.Id);
     }
 
-    private void PurgeCompany(int companyId, bool removeImageFiles = true)
+    private void PurgeCompany(int companyId)
     {
         var tmdbCompany = _tmdbCompany.GetByTmdbCompanyID(companyId);
-        if (tmdbCompany != null)
+        if (tmdbCompany is not null)
         {
             _logger.LogDebug("Removing studio. (Company={CompanyId})", companyId);
             _tmdbCompany.Delete(tmdbCompany);
         }
 
-        var images = _tmdbImages.GetByTmdbCompanyID(companyId);
-        if (images.Count > 0)
-            foreach (var image in images)
-                _imageService.PurgeImage(image, ForeignEntityType.Company, removeImageFiles);
+        _imageService.PurgeImages(ForeignEntityType.Company, companyId);
 
         var xrefs = _xrefTmdbCompanyEntity.GetByTmdbCompanyID(companyId);
         if (xrefs.Count > 0)
@@ -2031,24 +2383,67 @@ public class TmdbMetadataService
 
     #region People
 
-    public async Task<(bool added, bool updated)> UpdatePerson(int personId, bool forceRefresh = false, bool downloadImages = false)
+    public async Task RepairMissingPeople()
+    {
+        var missingIds = new HashSet<int>();
+        var updateCount = 0;
+        var skippedCount = 0;
+        var peopleIds = _tmdbPeople.GetAll().Select(person => person.TmdbPersonID).ToHashSet();
+        foreach (var person in _tmdbEpisodeCast.GetAll())
+            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
+        foreach (var person in _tmdbEpisodeCrew.GetAll())
+            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
+
+        foreach (var person in _tmdbMovieCast.GetAll())
+            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
+        foreach (var person in _tmdbMovieCrew.GetAll())
+            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
+
+        _logger.LogDebug("Found {Count} unique missing TMDB People for Episode & Movie staff", missingIds.Count);
+        foreach (var personId in missingIds)
+        {
+            var (_, updated) = await UpdatePerson(personId, forceRefresh: true);
+            if (updated)
+                updateCount++;
+            else
+                skippedCount++;
+        }
+
+        _logger.LogInformation("Updated missing TMDB People: Found/Updated/Skipped {Found}/{Updated}/{Skipped}",
+            missingIds.Count, updateCount, skippedCount);
+    }
+
+    public async Task<(bool added, bool updated)> UpdatePerson(int personId, bool forceRefresh = false, bool downloadImages = false, int? currentShowId = null, int? currentMovieId = null)
     {
         using (await GetLockForEntity(ForeignEntityType.Person, personId, "metadata & images", "Update").ConfigureAwait(false))
         {
             var tmdbPerson = _tmdbPeople.GetByTmdbPersonID(personId) ?? new(personId);
-            if (!forceRefresh && tmdbPerson.LastUpdatedAt > DateTime.UtcNow.AddMinutes(-15))
+            if (!forceRefresh && tmdbPerson.TMDB_PersonID is not 0 && tmdbPerson.LastUpdatedAt > DateTime.Now.AddHours(-1))
             {
-                _logger.LogDebug("Skipping update for staff. (Person={PersonId})", personId);
+                _logger.LogDebug("Skipping update for staff member. (Person={PersonId})", personId);
                 return (false, false);
             }
 
-            _logger.LogDebug("Updating staff. (Person={PersonId})", personId);
+            _logger.LogDebug("Updating staff member. (Person={PersonId})", personId);
             var methods = PersonMethods.Translations;
             if (downloadImages)
                 methods |= PersonMethods.Images;
             var newlyAdded = tmdbPerson.TMDB_PersonID is 0;
             var person = await UseClient(c => c.GetPersonAsync(personId, methods), $"Get person {personId}");
+            if (person is null)
+            {
+                _logger.LogWarning("Failed to find staff member at remote. Purging local records and scheduling shows/movies to-be forcefully updated. (Person={PersonId})", personId);
+                await PurgePersonInternal(personId, currentShowId: currentShowId, currentMovieId: currentMovieId);
+                return (false, !newlyAdded);
+            }
+
             var updated = tmdbPerson.Populate(person);
+            if (IsPersonLinkedToOtherEntities(personId) && tmdbPerson.LastOrphanedAt.HasValue)
+            {
+                tmdbPerson.LastOrphanedAt = null;
+                updated = true;
+            }
+
             if (updated)
             {
                 tmdbPerson.LastUpdatedAt = DateTime.Now;
@@ -2068,58 +2463,112 @@ public class TmdbMetadataService
         if (!settings.TMDB.AutoDownloadStaffImages)
             return;
 
-        _logger.LogDebug("Downloading images for staff. (Person={personId})", personId);
-        await _imageService.DownloadImagesByType(images.Profiles, ImageEntityType.Person, ForeignEntityType.Person, personId, settings.TMDB.MaxAutoStaffImages, [], forceDownload);
+        _logger.LogDebug("Downloading images for staff member. (Person={personId})", personId);
+        var birthedAt = _tmdbPeople.GetByTmdbPersonID(personId)?.BirthDay;
+        await _imageService.DownloadImagesByType(null, birthedAt, images.Profiles, ImageEntityType.Creator, ForeignEntityType.Person, personId, settings.TMDB.MaxAutoStaffImages, [], forceDownload);
     }
 
-    public async Task<bool> PurgePerson(int personId, bool removeImageFiles = true)
+    public async Task PurgeUnlinkedPeople()
+    {
+        var people = _tmdbPeople.GetAll().Where(p => !IsPersonLinkedToOtherEntities(p.TmdbPersonID)).ToList();
+        _logger.LogDebug("Checking {count} orphaned staff members if they should be purged.", people.Count);
+        foreach (var person in people)
+            await PurgePerson(person.TmdbPersonID, force: true);
+    }
+
+    public async Task<bool> PurgePerson(int personId, bool force = false)
     {
         using (await GetLockForEntity(ForeignEntityType.Person, personId, "metadata & images", "Purge"))
         {
-            if (IsPersonLinkedToOtherEntities(personId))
+            if (!force && IsPersonLinkedToOtherEntities(personId))
                 return false;
 
-            var person = _tmdbPeople.GetByTmdbPersonID(personId);
-            if (person != null)
+            if (_tmdbPeople.GetByTmdbPersonID(personId) is { } person)
             {
-                _logger.LogDebug("Removing staff. (Person={PersonId})", personId);
-                _tmdbPeople.Delete(person);
+                if (!person.LastOrphanedAt.HasValue)
+                {
+                    person.LastOrphanedAt = DateTime.Now;
+                    _tmdbPeople.Save(person);
+                    _logger.LogDebug("Marked staff member as orphaned. (Person={PersonId})", personId);
+                    return false;
+                }
+                // Keep orphaned people for 7 days before purging.
+                if (person.LastOrphanedAt.Value.AddDays(7) > DateTime.Now)
+                {
+                    _logger.LogDebug("Staff member has not been orphaned for 7 days yet. Skipping. (Person={PersonId})", personId);
+                    return false;
+                }
             }
 
-            var images = _tmdbImages.GetByTmdbPersonID(personId);
-            if (images.Count > 0)
-                foreach (var image in images)
-                    _imageService.PurgeImage(image, ForeignEntityType.Person, removeImageFiles);
-
-            var movieCast = _tmdbMovieCast.GetByTmdbPersonID(personId);
-            if (movieCast.Count > 0)
-            {
-                _logger.LogDebug("Removing {count} movie cast roles for staff. (Person={PersonId})", movieCast.Count, personId);
-                _tmdbMovieCast.Delete(movieCast);
-            }
-
-            var movieCrew = _tmdbMovieCrew.GetByTmdbPersonID(personId);
-            if (movieCrew.Count > 0)
-            {
-                _logger.LogDebug("Removing {count} movie crew roles for staff. (Person={PersonId})", movieCrew.Count, personId);
-                _tmdbMovieCrew.Delete(movieCrew);
-            }
-
-            var episodeCast = _tmdbEpisodeCast.GetByTmdbPersonID(personId);
-            if (episodeCast.Count > 0)
-            {
-                _logger.LogDebug("Removing {count} show cast roles for staff. (Person={PersonId})", episodeCast.Count, personId);
-                _tmdbEpisodeCast.Delete(episodeCast);
-            }
-
-            var episodeCrew = _tmdbEpisodeCrew.GetByTmdbPersonID(personId);
-            if (episodeCrew.Count > 0)
-            {
-                _logger.LogDebug("Removing {count} show crew roles for staff. (Person={PersonId})", episodeCrew.Count, personId);
-                _tmdbEpisodeCrew.Delete(episodeCrew);
-            }
+            await PurgePersonInternal(personId).ConfigureAwait(false);
 
             return true;
+        }
+    }
+
+    internal async Task PurgePersonInternal(int personId, int? currentShowId = null, int? currentMovieId = null)
+    {
+        var person = _tmdbPeople.GetByTmdbPersonID(personId);
+        if (person is not null)
+        {
+            _logger.LogDebug("Removing staff member. (Person={PersonId})", personId);
+            _tmdbPeople.Delete(person);
+        }
+
+        _imageService.PurgeImages(ForeignEntityType.Person, personId);
+
+        var movieCast = _tmdbMovieCast.GetByTmdbPersonID(personId);
+        if (movieCast.Count > 0)
+        {
+            _logger.LogDebug("Removing {count} movie cast roles for staff member. (Person={PersonId})", movieCast.Count, personId);
+            _tmdbMovieCast.Delete(movieCast);
+        }
+
+        var movieCrew = _tmdbMovieCrew.GetByTmdbPersonID(personId);
+        if (movieCrew.Count > 0)
+        {
+            _logger.LogDebug("Removing {count} movie crew roles for staff member. (Person={PersonId})", movieCrew.Count, personId);
+            _tmdbMovieCrew.Delete(movieCrew);
+        }
+
+        var episodeCast = _tmdbEpisodeCast.GetByTmdbPersonID(personId);
+        if (episodeCast.Count > 0)
+        {
+            _logger.LogDebug("Removing {count} show cast roles for staff member. (Person={PersonId})", episodeCast.Count, personId);
+            _tmdbEpisodeCast.Delete(episodeCast);
+        }
+
+        var episodeCrew = _tmdbEpisodeCrew.GetByTmdbPersonID(personId);
+        if (episodeCrew.Count > 0)
+        {
+            _logger.LogDebug("Removing {count} show crew roles for staff member. (Person={PersonId})", episodeCrew.Count, personId);
+            _tmdbEpisodeCrew.Delete(episodeCrew);
+        }
+
+        var showIds = new HashSet<int>([
+            ..episodeCast.Select(x => x.TmdbShowID),
+            ..episodeCrew.Select(x => x.TmdbShowID),
+        ]);
+        if (currentShowId.HasValue)
+            showIds.Remove(currentShowId.Value);
+        if (showIds.Count > 0)
+        {
+            _logger.LogDebug("Scheduling {count} shows to be updated. (Person={PersonId})", showIds.Count, personId);
+            foreach (var showId in showIds)
+                await ScheduleUpdateOfShow(showId, downloadCrewAndCast: true);
+        }
+
+        var movieIds = new HashSet<int>([
+            ..movieCast.Select(x => x.TmdbMovieID),
+            ..movieCrew.Select(x => x.TmdbMovieID),
+        ]);
+        if (currentMovieId.HasValue)
+            movieIds.Remove(currentMovieId.Value);
+        if (movieIds.Count > 0)
+        {
+            _logger.LogDebug("Scheduling {count} movies to be updated. (Person={PersonId})", movieIds.Count, personId);
+            foreach (var movieId in movieIds)
+                await ScheduleUpdateOfMovie(movieId, downloadCrewAndCast: true);
         }
     }
 
@@ -2203,6 +2652,12 @@ public class TmdbMetadataService
                 continue;
             }
         }
+
+        cancellationTokenSource.Dispose();
+        semaphore.Dispose();
+
+        if (exceptions.Count > 0)
+            throw new AggregateException(exceptions);
     }
 
     #endregion
@@ -2275,6 +2730,33 @@ public class TmdbMetadataService
     #endregion
 
     #region Locking
+
+
+    private bool WaitIfEntityLocked(ForeignEntityType entityType, int id, string metadataKey)
+    {
+        var key = $"{entityType.ToString().ToLowerInvariant()}-{metadataKey}:{id}";
+        if (!_concurrencyGuards.TryGetValue(key, out var semaphore) || semaphore.CurrentCount != 0)
+            return false;
+
+        semaphore.Wait();
+        semaphore.Release();
+
+        return true;
+    }
+
+    private Task<bool> WaitIfEntityLockedAsync(ForeignEntityType entityType, int id, string metadataKey)
+    {
+        var startedAt = DateTime.Now;
+        var key = $"{entityType.ToString().ToLowerInvariant()}-{metadataKey}:{id}";
+        if (!_concurrencyGuards.TryGetValue(key, out var semaphore) || semaphore.CurrentCount != 0)
+            return Task.FromResult(false);
+
+        return semaphore.WaitAsync().ContinueWith(t =>
+        {
+            semaphore.Release();
+            return true;
+        });
+    }
 
     private bool IsEntityLocked(ForeignEntityType entityType, int id, string metadataKey)
     {

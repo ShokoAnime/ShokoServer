@@ -1,9 +1,9 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Mappings;
 
-public class JMMUserMap : ClassMap<SVR_JMMUser>
+public class JMMUserMap : ClassMap<JMMUser>
 {
     public JMMUserMap()
     {

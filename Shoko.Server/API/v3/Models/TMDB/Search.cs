@@ -3,9 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Server.Extensions;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
@@ -17,6 +15,9 @@ using RemoteShow = TMDbLib.Objects.TvShows.TvShow;
 #nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
 
+/// <summary>
+/// APIv3 The Movie DataBase (TMDB) Search Data Transfer Objects (DTOs).
+/// </summary>
 public static class Search
 {
     /// <summary>
@@ -113,8 +114,7 @@ public static class Search
         /// <summary>
         /// Original language the movie was shot in.
         /// </summary>
-        [JsonConverter(typeof(StringEnumConverter))]
-        public TitleLanguage OriginalLanguage { get; init; }
+        public string OriginalLanguage { get; init; }
 
         /// <summary>
         /// Preferred overview based upon description preference.
@@ -175,20 +175,18 @@ public static class Search
             ID = movie.Id;
             Title = movie.EnglishTitle;
             OriginalTitle = movie.OriginalTitle;
-            OriginalLanguage = movie.OriginalLanguage;
+            OriginalLanguage = movie.OriginalLanguageCode;
             Overview = movie.EnglishOverview ?? string.Empty;
             IsRestricted = movie.IsRestricted;
             IsVideo = movie.IsVideo;
             ReleasedAt = movie.ReleasedAt;
-            Poster = !string.IsNullOrEmpty(movie.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
+            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
                 : null;
-            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
+            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
                 : null;
             UserRating = new Rating()
             {
-                Value = (decimal)movie.UserRating,
+                Value = movie.UserRating,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
@@ -202,20 +200,18 @@ public static class Search
             ID = movie.Id;
             Title = movie.Title;
             OriginalTitle = movie.OriginalTitle;
-            OriginalLanguage = movie.OriginalLanguage.GetTitleLanguage();
+            OriginalLanguage = movie.OriginalLanguage;
             Overview = movie.Overview ?? string.Empty;
             IsRestricted = movie.Adult;
             IsVideo = movie.Video;
-            ReleasedAt = movie.ReleaseDate.HasValue ? DateOnly.FromDateTime(movie.ReleaseDate.Value) : null;
-            Poster = !string.IsNullOrEmpty(movie.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
+            ReleasedAt = movie.ReleaseDate?.ToDateOnly();
+            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
                 : null;
-            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
+            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
                 : null;
             UserRating = new Rating()
             {
-                Value = (decimal)movie.VoteAverage,
+                Value = movie.VoteAverage,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
@@ -229,20 +225,18 @@ public static class Search
             ID = movie.Id;
             Title = movie.Title;
             OriginalTitle = movie.OriginalTitle;
-            OriginalLanguage = movie.OriginalLanguage.GetTitleLanguage();
+            OriginalLanguage = movie.OriginalLanguage;
             Overview = movie.Overview ?? string.Empty;
             IsRestricted = movie.Adult;
             IsVideo = movie.Video;
-            ReleasedAt = movie.ReleaseDate.HasValue ? DateOnly.FromDateTime(movie.ReleaseDate.Value) : null;
-            Poster = !string.IsNullOrEmpty(movie.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
+            ReleasedAt = movie.ReleaseDate?.ToDateOnly();
+            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
                 : null;
-            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
+            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
                 : null;
             UserRating = new Rating()
             {
-                Value = (decimal)movie.VoteAverage,
+                Value = movie.VoteAverage,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
@@ -275,8 +269,7 @@ public static class Search
         /// <summary>
         /// Original language the show was shot in.
         /// </summary>
-        [JsonConverter(typeof(StringEnumConverter))]
-        public TitleLanguage OriginalLanguage { get; init; }
+        public string OriginalLanguage { get; init; }
 
         /// <summary>
         /// Preferred overview based upon description preference.
@@ -313,18 +306,18 @@ public static class Search
             ID = show.Id;
             Title = show.EnglishTitle;
             OriginalTitle = show.OriginalTitle;
-            OriginalLanguage = show.OriginalLanguage;
+            OriginalLanguage = show.OriginalLanguageCode;
             Overview = show.EnglishOverview ?? string.Empty;
             FirstAiredAt = show.FirstAiredAt;
-            Poster = !string.IsNullOrEmpty(show.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+            Poster = !string.IsNullOrEmpty(show.PosterPath)
                 ? $"{TmdbMetadataService.ImageServerUrl}original{show.PosterPath}"
                 : null;
-            Backdrop = !string.IsNullOrEmpty(show.BackdropPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+            Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
                 ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
                 : null;
             UserRating = new Rating()
             {
-                Value = (decimal)show.UserRating,
+                Value = show.UserRating,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
@@ -338,18 +331,18 @@ public static class Search
             ID = show.Id;
             Title = show.Name;
             OriginalTitle = show.OriginalName;
-            OriginalLanguage = show.OriginalLanguage.GetTitleLanguage();
+            OriginalLanguage = show.OriginalLanguage;
             Overview = show.Overview ?? string.Empty;
-            FirstAiredAt = show.FirstAirDate.HasValue ? DateOnly.FromDateTime(show.FirstAirDate.Value) : null;
-            Poster = !string.IsNullOrEmpty(show.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+            FirstAiredAt = show.FirstAirDate?.ToDateOnly();
+            Poster = !string.IsNullOrEmpty(show.PosterPath)
                 ? $"{TmdbMetadataService.ImageServerUrl}original{show.PosterPath}"
                 : null;
-            Backdrop = !string.IsNullOrEmpty(show.BackdropPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+            Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
                 ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
                 : null;
             UserRating = new Rating()
             {
-                Value = (decimal)show.VoteAverage,
+                Value = show.VoteAverage,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
@@ -363,18 +356,18 @@ public static class Search
             ID = show.Id;
             Title = show.Name;
             OriginalTitle = show.OriginalName;
-            OriginalLanguage = show.OriginalLanguage.GetTitleLanguage();
+            OriginalLanguage = show.OriginalLanguage;
             Overview = show.Overview ?? string.Empty;
-            FirstAiredAt = show.FirstAirDate.HasValue ? DateOnly.FromDateTime(show.FirstAirDate.Value) : null;
-            Poster = !string.IsNullOrEmpty(show.PosterPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+            FirstAiredAt = show.FirstAirDate?.ToDateOnly();
+            Poster = !string.IsNullOrEmpty(show.PosterPath)
                 ? $"{TmdbMetadataService.ImageServerUrl}original{show.PosterPath}"
                 : null;
-            Backdrop = !string.IsNullOrEmpty(show.BackdropPath) && !string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl)
+            Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
                 ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
                 : null;
             UserRating = new Rating()
             {
-                Value = (decimal)show.VoteAverage,
+                Value = show.VoteAverage,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",

@@ -1,17 +1,14 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Abstractions.Services;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
@@ -25,6 +22,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -37,22 +35,35 @@ public class ActionController : BaseController
     private readonly AnimeGroupCreator _groupCreator;
     private readonly ActionService _actionService;
     private readonly AnimeGroupService _groupService;
-    private readonly TraktTVHelper _traktHelper;
-    private readonly TmdbMetadataService _tmdbService;
+    private readonly TmdbMetadataService _tmdbMetadataService;
+    private readonly TmdbLinkingService _tmdbLinkingService;
+    private readonly TmdbImageService _tmdbImageService;
+    private readonly IVideoService _videoService;
+    private readonly IVideoReleaseService _videoReleaseService;
     private readonly ISchedulerFactory _schedulerFactory;
-    private readonly IRequestFactory _requestFactory;
-    private readonly AnimeSeriesService _seriesService;
 
-    public ActionController(ILogger<ActionController> logger, TraktTVHelper traktHelper, TmdbMetadataService tmdbService, ISchedulerFactory schedulerFactory,
-        IRequestFactory requestFactory, ISettingsProvider settingsProvider, ActionService actionService, AnimeSeriesService seriesService, AnimeGroupCreator groupCreator, AnimeGroupService groupService) : base(settingsProvider)
+    public ActionController(
+        ILogger<ActionController> logger,
+        TmdbMetadataService tmdbMetadataService,
+        TmdbLinkingService tmdbLinkingService,
+        TmdbImageService tmdbImageService,
+        ISchedulerFactory schedulerFactory,
+        IVideoService videoService,
+        IVideoReleaseService videoReleaseService,
+        ISettingsProvider settingsProvider,
+        ActionService actionService,
+        AnimeGroupCreator groupCreator,
+        AnimeGroupService groupService
+    ) : base(settingsProvider)
     {
         _logger = logger;
-        _traktHelper = traktHelper;
-        _tmdbService = tmdbService;
+        _tmdbMetadataService = tmdbMetadataService;
+        _tmdbLinkingService = tmdbLinkingService;
+        _tmdbImageService = tmdbImageService;
+        _videoService = videoService;
+        _videoReleaseService = videoReleaseService;
         _schedulerFactory = schedulerFactory;
-        _requestFactory = requestFactory;
         _actionService = actionService;
-        _seriesService = seriesService;
         _groupCreator = groupCreator;
         _groupService = groupService;
     }
@@ -72,13 +83,13 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Queues a task to import only new files found in the import folder
+    /// Queues a task to import only new files found in the managed folders
     /// </summary>
     /// <returns></returns>
     [HttpGet("ImportNewFiles")]
     public async Task<ActionResult> ImportNewFiles()
     {
-        await _actionService.RunImport_NewFiles();
+        await _videoService.ScheduleScanForManagedFolders(onlyNewFiles: true);
         return Ok();
     }
 
@@ -97,29 +108,53 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("SyncVotes")]
-    public async Task<ActionResult> SyncVotes()
+    public async Task<ActionResult> SyncVotes([FromQuery] bool export = false, [FromQuery] bool import = false)
     {
+        if (User.IsAniDBUser != 1)
+            return BadRequest("User is not an AniDB user. Nothing to do.");
+
+        if (export && import)
+            return BadRequest("Cannot export and import at the same time.");
+
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBVotesJob>();
+        await scheduler.StartJob<SyncAniDBVotesJob>(c => (c.UserID, c.Export) = (User.JMMUserID, export));
         return Ok();
     }
 
     /// <summary>
-    /// Sync Trakt states. Requires Trakt to be set up, obviously
+    /// Send local watch states to Trakt for the whole collection
     /// </summary>
     /// <returns></returns>
-    [HttpGet("SyncTrakt")]
-    public async Task<ActionResult> SyncTrakt()
+    [HttpGet("SendWatchStatesToTrakt")]
+    public async Task<ActionResult> SendWatchStatesToTrakt()
     {
         var settings = SettingsProvider.GetSettings().TraktTv;
-        if (!settings.Enabled ||
-            string.IsNullOrEmpty(settings.AuthToken))
+        if (!settings.Enabled || string.IsNullOrEmpty(settings.AuthToken))
         {
-            return BadRequest();
+            return BadRequest("Trakt account is not linked!");
         }
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<SyncTraktCollectionJob>(c => c.ForceRefresh = true);
+        await scheduler.StartJob<SendWatchStatesToTraktJob>(c => c.ForceRefresh = true, prioritize: true);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Get remote watch states from Trakt for the whole collection
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("GetWatchStatesFromTrakt")]
+    public async Task<ActionResult> GetWatchStatesFromTrakt()
+    {
+        var settings = SettingsProvider.GetSettings().TraktTv;
+        if (!settings.Enabled || string.IsNullOrEmpty(settings.AuthToken))
+        {
+            return BadRequest("Trakt account is not linked!");
+        }
+
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<GetWatchStatesFromTraktJob>(c => c.ForceRefresh = true, prioritize: true);
 
         return Ok();
     }
@@ -146,16 +181,14 @@ public class ActionController : BaseController
         return Ok();
     }
 
-
     /// <summary>
-    /// Updates All TMDB Movie Info.
+    /// Scan for TMDB matches for all unlinked AniDB anime.
     /// </summary>
     /// <returns></returns>
-    [Obsolete("Use 'UpdateAllTMDBMovieInfo' instead.")]
-    [HttpGet("UpdateAllMovieDBInfo")]
-    public ActionResult UpdateAllMovieDBInfo()
+    [HttpGet("SearchForTmdbMatches")]
+    public ActionResult SearchForTmdbMatches()
     {
-        Task.Factory.StartNew(() => _tmdbService.UpdateAllMovies(true, true));
+        Task.Factory.StartNew(() => _tmdbMetadataService.ScanForMatches());
         return Ok();
     }
 
@@ -166,7 +199,7 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllTmdbMovies")]
     public ActionResult UpdateAllTmdbMovies()
     {
-        Task.Factory.StartNew(() => _tmdbService.UpdateAllMovies(true, true));
+        Task.Factory.StartNew(() => _tmdbMetadataService.UpdateAllMovies(true, true));
         return Ok();
     }
 
@@ -174,10 +207,23 @@ public class ActionController : BaseController
     /// Purge all unused TMDB Movies that are not linked to any AniDB anime.
     /// </summary>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpGet("PurgeAllUnusedTmdbMovies")]
     public ActionResult PurgeAllUnusedTmdbMovies()
     {
-        Task.Factory.StartNew(() => _tmdbService.PurgeAllUnusedMovies());
+        Task.Factory.StartNew(() => _tmdbMetadataService.PurgeAllUnusedMovies());
+        return Ok();
+    }
+
+    /// <summary>
+    /// Purge all TMDB Movie Collections.
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("PurgeAllTmdbMovieCollections")]
+    public ActionResult PurgeAllTmdbMovieCollections()
+    {
+        Task.Factory.StartNew(() => _tmdbMetadataService.PurgeAllMovieCollections());
         return Ok();
     }
 
@@ -188,7 +234,29 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllTmdbShows")]
     public ActionResult UpdateAllTmdbShows()
     {
-        Task.Factory.StartNew(() => _tmdbService.UpdateAllShows(true, true));
+        Task.Factory.StartNew(() => _tmdbMetadataService.UpdateAllShows(true, true));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Download any missing TMDB People.
+    /// </summary>
+    [HttpGet("DownloadMissingTmdbPeople")]
+    public ActionResult DownloadMissingTmdbPeople()
+    {
+        Task.Factory.StartNew(() => _tmdbMetadataService.RepairMissingPeople());
+        return Ok();
+    }
+
+    /// <summary>
+    /// Purge all unused TMDB Images that are not linked to anything.
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("PurgeAllUnusedTmdbImages")]
+    public ActionResult PurgeAllUnusedTmdbImages()
+    {
+        Task.Factory.StartNew(_tmdbImageService.PurgeAllUnusedImages);
         return Ok();
     }
 
@@ -196,28 +264,86 @@ public class ActionController : BaseController
     /// Purge all unused TMDB Shows that are not linked to any AniDB anime.
     /// </summary>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpGet("PurgeAllUnusedTmdbShows")]
     public ActionResult PurgeAllUnusedTmdbShows()
     {
-        Task.Factory.StartNew(() => _tmdbService.PurgeAllUnusedShows());
+        Task.Factory.StartNew(() => _tmdbMetadataService.PurgeAllUnusedShows());
         return Ok();
     }
 
     /// <summary>
-    /// Update all Trakt info. Right now, that's not much.
+    /// Purge all TMDB Show Alternate Orderings.
     /// </summary>
     /// <returns></returns>
-    [HttpGet("UpdateAllTraktInfo")]
-    public ActionResult UpdateTraktInfo()
+    [Authorize("admin")]
+    [HttpGet("PurgeAllTmdbShowAlternateOrderings")]
+    public ActionResult PurgeAllTmdbShowAlternateOrderings()
     {
-        var settings = SettingsProvider.GetSettings().TraktTv;
-        if (!settings.Enabled ||
-            string.IsNullOrEmpty(settings.AuthToken))
-        {
-            return BadRequest();
-        }
+        Task.Factory.StartNew(_tmdbMetadataService.PurgeAllShowEpisodeGroups);
+        return Ok();
+    }
 
-        _traktHelper.UpdateAllInfo();
+    /// <summary>
+    /// Purge all AniDB-TMDB links, optionally removing the links and resetting the auto-linking state.
+    /// </summary>
+    /// <param name="removeShowLinks">Whether to remove show links.</param>
+    /// <param name="removeMovieLinks">Whether to remove movie links.</param>
+    /// <param name="resetAutoLinkingState">Whether to reset the auto-linking state.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("PurgeAllTmdbLinks")]
+    public ActionResult PurgeAllTmdbLinks([FromQuery] bool removeShowLinks = true, [FromQuery] bool removeMovieLinks = true, [FromQuery] bool? resetAutoLinkingState = null)
+    {
+        Task.Run(() =>
+        {
+            if (removeShowLinks || removeMovieLinks)
+                _tmdbLinkingService.RemoveAllLinks(removeShowLinks, removeMovieLinks);
+            if (resetAutoLinkingState.HasValue)
+                _tmdbLinkingService.ResetAutoLinkingState(resetAutoLinkingState.Value);
+        });
+        return Ok();
+    }
+
+    /// <summary>
+    /// Clears the current release for all known videos.
+    /// </summary>
+    /// <param name="removeFromMylist">
+    ///   Set to <c>false</c> to not remove the release from the user's MyList.
+    /// </param>
+    /// <param name="providerNames">
+    ///   The names of the providers to clear. If null, all providers will be cleared.
+    /// </param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("PurgeAllUsedReleases")]
+    public ActionResult PurgeAllUsedReleases(
+        [FromQuery] bool removeFromMylist = true,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<string>? providerNames = null
+    )
+    {
+        Task.Run(() => _videoReleaseService.PurgeUsedReleases(providerNames, removeFromMylist));
+        return Ok();
+    }
+
+    /// <summary>
+    /// Purges all unused releases not linked to any videos from the database.
+    /// </summary>
+    /// <param name="removeFromMylist">
+    ///   Set to <c>false</c> to not remove the release from the user's MyList.
+    /// </param>
+    /// <param name="providerNames">
+    ///   The names of the providers to clear. If null, all providers will be cleared.
+    /// </param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("PurgeAllUnusedReleases")]
+    public ActionResult PurgeAllUnusedReleases(
+        [FromQuery] bool removeFromMylist = true,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<string>? providerNames = null
+    )
+    {
+        Task.Run(() => _videoReleaseService.PurgeUnusedReleases(providerNames, removeFromMylist));
         return Ok();
     }
 
@@ -229,28 +355,13 @@ public class ActionController : BaseController
     public async Task<ActionResult> ValidateAllImages()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<ValidateAllImagesJob>();
+        await scheduler.StartJob<ValidateAllImagesJob>(prioritize: true);
         return Ok();
     }
 
     #endregion
 
     #region Admin Actions
-
-    /// <summary>
-    /// Purges all TVDB data, including images and episode/series links.
-    /// This is a one-time action and will be blocked if ran again.
-    /// <br/>
-    /// This action is only accessible to admins.
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("PurgeAllOfTvDB")]
-    [HttpPost("PurgeAllOfTvDB")]
-    public ActionResult PurgeAllTvdbData()
-    {
-        return Ok();
-    }
 
     /// <summary>
     /// Gets files whose data does not match AniDB
@@ -266,9 +377,9 @@ public class ActionController : BaseController
 
         var mismatchedFiles = RepoFactory.VideoLocal.GetAll()
             .Where(file => !file.IsEmpty() && file.MediaInfo != null)
-            .Select(file => (Video: file, AniDB: file.AniDBFile))
-            .Where(tuple => tuple.AniDB is { IsDeprecated: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
-            .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.FullServerPath, tuple.Video))
+            .Select(file => (Video: file, AniDB: file.ReleaseInfo))
+            .Where(tuple => tuple.AniDB is { ProviderName: "AniDB", IsCorrupted: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
+            .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.Path, tuple.Video))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
             .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);
         var scheduler = await _schedulerFactory.GetScheduler();
@@ -289,98 +400,11 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("DownloadMissingAniDBAnimeData")]
-    public async Task<ActionResult> UpdateMissingAnidbXml()
+    public ActionResult UpdateMissingAnidbXml()
     {
-        // Check existing anime.
-        var index = 0;
-        var queuedAnimeSet = new HashSet<int>();
-        var localAnimeSet = RepoFactory.AniDB_Anime.GetAll()
-            .Select(a => a.AnimeID)
-            .OrderBy(a => a)
-            .ToHashSet();
-        _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files…", localAnimeSet.Count);
-        foreach (var animeID in localAnimeSet)
-        {
-            if (++index % 10 == 1)
-                _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files — {CurrentCount}/{AllAnimeCount}", localAnimeSet.Count, index + 1, localAnimeSet.Count);
+        Task.Run(_actionService.DownloadMissingAnidbAnimeXmls);
+        Task.Run(_actionService.ScheduleMissingAnidbAnimeForFiles);
 
-            var xmlUtils = HttpContext.RequestServices.GetRequiredService<HttpXmlUtils>();
-            var rawXml = await xmlUtils.LoadAnimeHTTPFromFile(animeID);
-
-            if (rawXml != null)
-                continue;
-
-            await _seriesService.QueueAniDBRefresh(animeID, true, false, false);
-            queuedAnimeSet.Add(animeID);
-        }
-
-        // Attempt to fix cross-references with incomplete data.
-        index = 0;
-        var videos = RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData();
-        var unknownEpisodeDict = videos
-            .SelectMany(file => file.EpisodeCrossRefs)
-            .Where(xref => xref.AnimeID is 0)
-            .GroupBy(xref => xref.EpisodeID)
-            .ToDictionary(groupBy => groupBy.Key, groupBy => groupBy.ToList());
-        _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime…", unknownEpisodeDict.Count);
-        foreach (var (episodeId, xrefs) in unknownEpisodeDict)
-        {
-            if (++index % 10 == 1)
-                _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime — {CurrentCount}/{MissingAnimeCount}", unknownEpisodeDict.Count, index + 1, unknownEpisodeDict.Count);
-
-            var episode = RepoFactory.AniDB_Episode.GetByEpisodeID(episodeId);
-            if (episode is not null)
-            {
-                foreach (var xref in xrefs)
-                {
-                    xref.AnimeID = episode.AnimeID;
-                }
-                RepoFactory.CrossRef_File_Episode.Save(xrefs);
-                continue;
-            }
-            int? epAnimeID = null;
-            var epRequest = _requestFactory.Create<RequestGetEpisode>(r => r.EpisodeID = episodeId);
-            try
-            {
-                var epResponse = epRequest.Send();
-                epAnimeID = epResponse.Response?.AnimeID;
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Could not get Episode Info for {EpisodeID}", episode.EpisodeID);
-            }
-
-            if (epAnimeID is not null)
-            {
-                foreach (var xref in xrefs)
-                {
-                    xref.AnimeID = epAnimeID.Value;
-                }
-                RepoFactory.CrossRef_File_Episode.Save(xrefs);
-            }
-        }
-
-        // Queue missing anime needed by existing files.
-        index = 0;
-        var localEpisodeSet = RepoFactory.AniDB_Episode.GetAll()
-            .Select(episode => episode.EpisodeID)
-            .ToHashSet();
-        var missingAnimeSet = videos
-            .SelectMany(file => file.EpisodeCrossRefs)
-            .Where(xref => xref.AnimeID > 0 && !queuedAnimeSet.Contains(xref.AnimeID) && (!localAnimeSet.Contains(xref.AnimeID) || !localEpisodeSet.Contains(xref.EpisodeID)))
-            .Select(xref => xref.AnimeID)
-            .ToHashSet();
-        _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update…", missingAnimeSet.Count);
-        foreach (var animeID in missingAnimeSet)
-        {
-            if (++index % 10 == 1)
-                _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
-
-            await _seriesService.QueueAniDBRefresh(animeID, false, true, true);
-            queuedAnimeSet.Add(animeID);
-        }
-
-        _logger.LogInformation("Queued {QueuedAnimeCount} anime for an online refresh", queuedAnimeSet.Count);
         return Ok();
     }
 
@@ -409,7 +433,7 @@ public class ActionController : BaseController
     public async Task<ActionResult> SyncMyList()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBMyListJob>();
+        await scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = true);
         return Ok();
     }
 
@@ -450,17 +474,15 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Update AniDB Files with missing file info, including with missing release
-    /// groups and/or with out-of-date internal data versions.
+    /// Update AniDB Releases with missing group info, including with missing release
+    /// groups.
     /// </summary>
-    /// <param name="missingInfo">Update files with missing release group info</param>
-    /// <param name="outOfDate">Update files with and out-of-date internal version.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("UpdateMissingAniDBFileInfo")]
-    public async Task<ActionResult> UpdateMissingAniDBFileInfo([FromQuery] bool missingInfo = true, [FromQuery] bool outOfDate = false)
+    public async Task<ActionResult> UpdateMissingAniDBFileInfo()
     {
-        await _actionService.UpdateAniDBFileData(missingInfo, outOfDate, false);
+        await _actionService.UpdateAnidbReleaseInfo();
         return Ok();
     }
 
@@ -503,7 +525,21 @@ public class ActionController : BaseController
     [HttpGet("RenameAllGroups")]
     public ActionResult RenameAllGroups()
     {
-        Task.Factory.StartNew(_groupService.RenameAllGroups).ConfigureAwait(false);
+        Task.Factory.StartNew(_groupService.RenameAllGroups, TaskCreationOptions.LongRunning).ConfigureAwait(false);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Add all series that have data and files, but no series. This helps if you've deleted a series, and it's stuck in limbo.
+    /// </summary>
+    /// <remarks>
+    /// This action requires an admin account because it affects the collection.
+    /// </remarks>
+    [Authorize("admin")]
+    [HttpGet("CreateMissingSeries")]
+    public async Task<ActionResult> CreateMissingSeries()
+    {
+        await _actionService.CreateMissingSeries();
         return Ok();
     }
 

@@ -2,7 +2,8 @@ using System;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Server;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
 #nullable enable
@@ -17,26 +18,28 @@ public class Tag
         Source = "Shoko";
     }
 
-    public Tag(CustomTag tag, bool excludeDescriptions = false)
+    public Tag(CustomTag tag, bool excludeDescription = false, int? size = null)
     {
         ID = tag.CustomTagID;
         Name = tag.TagName;
-        if (!excludeDescriptions)
+        if (!excludeDescription)
             Description = tag.TagDescription;
         Source = "User";
         IsSpoiler = false;
+        Size = size;
     }
 
-    public Tag(AniDB_Tag tag, bool excludeDescriptions = false)
+    public Tag(AniDB_Tag tag, bool excludeDescription = false, int? size = null)
     {
         ID = tag.TagID;
         ParentID = tag.ParentTagID;
         Name = tag.TagName;
-        if (!excludeDescriptions)
+        if (!excludeDescription)
             Description = tag.TagDescription;
         Source = "AniDB";
         IsVerified = tag.Verified;
         IsSpoiler = tag.GlobalSpoiler;
+        Size = size;
         LastUpdated = tag.LastUpdated.ToUniversalTime();
     }
 
@@ -92,6 +95,12 @@ public class Tag
     public int? Weight { get; set; }
 
     /// <summary>
+    /// Number of series the tag appears on.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public int? Size { get; set; }
+
+    /// <summary>
     /// When the tag info was last updated.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -123,7 +132,7 @@ public class Tag
             /// </summary>
             public string? Description { get; set; } = null;
 
-            public Tag? MergeWithExisting(CustomTag tag, ModelStateDictionary modelState)
+            public Tag? MergeWithExisting(CustomTag tag, ModelStateDictionary modelState, int? size = null)
             {
                 if (!string.IsNullOrEmpty(Name?.Trim()))
                 {
@@ -151,7 +160,7 @@ public class Tag
                 if (updated)
                     RepoFactory.CustomTag.Save(tag);
 
-                return new(tag);
+                return new(tag, excludeDescription: false, size);
             }
         }
     }

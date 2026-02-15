@@ -1,15 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Extensions;
-using Shoko.Server.Repositories;
+using Shoko.Server.API.v3.Models.Release;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
 
 #pragma warning disable CA1822
@@ -20,10 +21,28 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class AniDBController : BaseController
+public class AniDBController(
+    ISettingsProvider settingsProvider,
+    IAnidbService anidbService,
+    StoredReleaseInfoRepository storedReleaseInfos,
+    AniDB_CreatorRepository anidbCreators
+) : BaseController(settingsProvider)
 {
-    public AniDBController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    /// <summary>
+    /// Get the AniDB ban status for the UDP and HTTP connections.
+    /// </summary>
+    /// <returns>
+    /// A dictionary with two entries, one for the UDP connection and one for the HTTP connection,
+    /// where the key is the name of the connection and the value is the current ban status.
+    /// </returns>
+    [HttpGet("BanStatus")]
+    public Dictionary<string, AnidbBannedStatus> GetBanStatus()
     {
+        return new Dictionary<string, AnidbBannedStatus>
+        {
+            { "UDP", new AnidbBannedStatus(anidbService.LastUdpBanEventArgs) },
+            { "HTTP", new AnidbBannedStatus(anidbService.LastHttpBanEventArgs) },
+        };
     }
 
     /// <summary>
@@ -41,11 +60,11 @@ public class AniDBController : BaseController
     {
         return includeMissing switch
         {
-            IncludeOnlyFilter.False => RepoFactory.AniDB_ReleaseGroup.GetUsedReleaseGroups()
+            IncludeOnlyFilter.False => storedReleaseInfos.GetUsedReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
-            IncludeOnlyFilter.Only => RepoFactory.AniDB_ReleaseGroup.GetUnusedReleaseGroups()
+            IncludeOnlyFilter.Only => storedReleaseInfos.GetUnusedReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
-            _ => RepoFactory.AniDB_ReleaseGroup.GetAll()
+            _ => storedReleaseInfos.GetReleaseGroups()
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
         };
     }
@@ -58,10 +77,10 @@ public class AniDBController : BaseController
     [HttpGet("ReleaseGroup/{id}")]
     public ActionResult<ReleaseGroup> GetReleaseGroup(int id)
     {
-        var group = RepoFactory.AniDB_ReleaseGroup.GetByGroupID(id);
-        if (group == null)
+        if (storedReleaseInfos.GetByGroupAndProviderIDs(id.ToString(), "AniDB") is not Shoko.Abstractions.Release.IReleaseInfo { Group.Source: "AniDB" } releaseInfo)
             return NotFound();
-        return new ReleaseGroup(group);
+
+        return new ReleaseGroup(releaseInfo.Group);
     }
 
     /// <summary>
@@ -71,11 +90,11 @@ public class AniDBController : BaseController
     /// <param name="page">The page index.</param>
     /// <returns></returns>
     [HttpGet("Creator")]
-    public ActionResult<ListResult<Creator>> GetCreators([FromQuery, Range(0, 1000)] int pageSize = 20,
+    public ActionResult<ListResult<AnidbCreator>> GetCreators([FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        return RepoFactory.AniDB_Creator.GetAll()
-            .ToListResult(c => new Creator(c), page, pageSize);
+        return anidbCreators.GetAll()
+            .ToListResult(c => new AnidbCreator(c), page, pageSize);
     }
 
     /// <summary>
@@ -84,13 +103,13 @@ public class AniDBController : BaseController
     /// <param name="id">The creator id.</param>
     /// <returns></returns>
     [HttpGet("Creator/{id}")]
-    public ActionResult<Creator> GetCreator(int id)
+    public ActionResult<AnidbCreator> GetCreator(int id)
     {
-        var creator = RepoFactory.AniDB_Creator.GetByCreatorID(id);
+        var creator = anidbCreators.GetByCreatorID(id);
         if (creator == null)
             return NotFound();
 
-        return new Creator(creator);
+        return new AnidbCreator(creator);
     }
 
     /// <summary>
@@ -99,12 +118,12 @@ public class AniDBController : BaseController
     /// <param name="name">The creator name.</param>
     /// <returns></returns>
     [HttpGet("Creator/Name/{name}")]
-    public ActionResult<Creator> GetCreator(string name)
+    public ActionResult<AnidbCreator> GetCreator(string name)
     {
-        var creator = RepoFactory.AniDB_Creator.GetByName(name);
+        var creator = anidbCreators.GetByName(name);
         if (creator == null)
             return NotFound();
 
-        return new Creator(creator);
+        return new AnidbCreator(creator);
     }
 }

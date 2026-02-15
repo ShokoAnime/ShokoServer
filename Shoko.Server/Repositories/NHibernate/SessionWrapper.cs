@@ -71,7 +71,7 @@ internal class SessionWrapper : ISessionWrapper
     {
         return _session.SaveAsync(entity);
     }
-    
+
     public void Update(object entity)
     {
         _session.Update(entity);

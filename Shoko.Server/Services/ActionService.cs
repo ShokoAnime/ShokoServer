@@ -2,81 +2,61 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using FluentNHibernate.Utils;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.FileHelper;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.TMDB;
-using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+
 using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server.Services;
 
-public class ActionService
+public class ActionService(
+    ILogger<ActionService> _logger,
+    ISchedulerFactory _schedulerFactory,
+    IRequestFactory _requestFactory,
+    ISettingsProvider _settingsProvider,
+    IVideoReleaseService _videoReleaseService,
+    IAnidbService _anidbService,
+    IVideoService _videoService,
+    TmdbMetadataService _tmdbService,
+    DatabaseFactory _databaseFactory,
+    HttpXmlUtils _xmlUtils
+)
 {
-    private readonly ILogger<ActionService> _logger;
-    private readonly ISchedulerFactory _schedulerFactory;
-    private readonly ISettingsProvider _settingsProvider;
-    private readonly VideoLocal_PlaceService _placeService;
-    private readonly TmdbMetadataService _tmdbService;
-    private readonly TraktTVHelper _traktHelper;
-    private readonly ImportFolderRepository _importFolders;
-    private readonly DatabaseFactory _databaseFactory;
-
-    public ActionService(
-        ILogger<ActionService> logger,
-        ISchedulerFactory schedulerFactory,
-        ISettingsProvider settingsProvider,
-        VideoLocal_PlaceService placeService,
-        TraktTVHelper traktHelper,
-        TmdbMetadataService tmdbService,
-        ImportFolderRepository importFolders,
-        DatabaseFactory databaseFactory
-    )
-    {
-        _logger = logger;
-        _schedulerFactory = schedulerFactory;
-        _settingsProvider = settingsProvider;
-        _placeService = placeService;
-        _traktHelper = traktHelper;
-        _tmdbService = tmdbService;
-        _importFolders = importFolders;
-        _databaseFactory = databaseFactory;
-    }
-
     public async Task RunImport_IntegrityCheck()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
         // files which have not been hashed yet
         // or files which do not have a VideoInfo record
         var filesToHash = RepoFactory.VideoLocal.GetVideosWithoutHash();
-        var dictFilesToHash = new Dictionary<int, SVR_VideoLocal>();
+        var dictFilesToHash = new Dictionary<int, VideoLocal>();
         foreach (var vl in filesToHash)
         {
             dictFilesToHash[vl.VideoLocalID] = vl;
             var p = vl.FirstResolvedPlace;
             if (p == null) continue;
 
-            await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);
+            await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path);
         }
 
         foreach (var vl in filesToHash)
@@ -89,13 +69,16 @@ public class ActionService
                 var p = vl.FirstResolvedPlace;
                 if (p == null) continue;
 
-                await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.FullServerPath);
+                await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path);
             }
             catch (Exception ex)
             {
                 _logger.LogInformation("Error RunImport_IntegrityCheck XREF: {Detailed} - {Ex}", vl.ToStringDetailed(), ex.ToString());
             }
         }
+
+        if (!_videoReleaseService.AutoMatchEnabled)
+            return;
 
         // files which have been hashed, but don't have an associated episode
         var settings = _settingsProvider.GetSettings();
@@ -104,236 +87,13 @@ public class ActionService
         {
             if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
             {
-                var matchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vl.FileSize, vl.Hash).Count;
+                var matchAttempts = RepoFactory.StoredReleaseInfo_MatchAttempt.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
                 if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
                     continue;
             }
 
-            await scheduler.StartJob<ProcessFileJob>(
-                c =>
-                {
-                    c.VideoLocalID = vl.VideoLocalID;
-                    c.ForceAniDB = true;
-                }
-            );
+            await _videoReleaseService.ScheduleFindReleaseForVideo(vl);
         }
-
-
-        // check that all the episode data is populated
-        foreach (var vl in RepoFactory.VideoLocal.GetAll().Where(a => !string.IsNullOrEmpty(a.Hash)))
-        {
-            // queue scan for files that are automatically linked but missing AniDB_File data
-            var aniFile = RepoFactory.AniDB_File.GetByHash(vl.Hash);
-            if (aniFile == null && vl.EpisodeCrossRefs.Any(a => a.CrossRefSource == (int)CrossRefSource.AniDB))
-                await scheduler.StartJob<ProcessFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
-
-            if (aniFile == null) continue;
-
-            // the cross ref is created before the actually episode data is downloaded
-            // so lets check for that
-            var missingEpisodes = aniFile.EpisodeCrossRefs.Any(a => RepoFactory.AniDB_Episode.GetByEpisodeID(a.EpisodeID) == null);
-
-            // this will then download the anime etc
-            if (missingEpisodes) await scheduler.StartJob<ProcessFileJob>(c => c.VideoLocalID = vl.VideoLocalID);
-        }
-    }
-
-    public async Task RunImport_ScanFolder(int importFolderID, bool skipMyList = false)
-    {
-        var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
-
-        // get a complete list of files
-        var fileList = new List<string>();
-        var filesFound = 0;
-        var videosFound = 0;
-        var i = 0;
-
-        try
-        {
-            var folder = RepoFactory.ImportFolder.GetByID(importFolderID);
-            if (folder == null) return;
-
-            // first build a list of files that we already know about, as we don't want to process them again
-            var filesAll = RepoFactory.VideoLocalPlace.GetByImportFolder(folder.ImportFolderID);
-            var dictFilesExisting = new Dictionary<string, SVR_VideoLocal_Place>();
-            foreach (var vl in filesAll.Where(a => a.FullServerPath != null))
-            {
-                dictFilesExisting[vl.FullServerPath] = vl;
-            }
-
-            Utils.GetFilesForImportFolder(folder.BaseDirectory, ref fileList);
-
-            // Get Ignored Files and remove them from the scan listing
-            var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
-                .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a)).ToList();
-            fileList = fileList.Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase).ToList();
-
-            // get a list of all files in the share
-            foreach (var fileName in fileList)
-            {
-                i++;
-
-                if (dictFilesExisting.TryGetValue(fileName, out var value) && folder.IsDropSource == 1)
-                    await _placeService.AutoRelocateFile(value);
-
-                if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
-                {
-                    _logger.LogTrace("Import exclusion, skipping --- {Filename}", fileName);
-                    continue;
-                }
-
-                filesFound++;
-                _logger.LogTrace("Processing File {Count}/{Total} --- {Filename}", i, fileList.Count, fileName);
-
-                if (!FileHashHelper.IsVideo(fileName)) continue;
-
-                videosFound++;
-
-                await scheduler.StartJob<DiscoverFileJob>(a =>
-                {
-                    a.FilePath = fileName;
-                    a.SkipMyList = skipMyList;
-                });
-            }
-
-            _logger.LogDebug("Found {Count} new files", filesFound);
-            _logger.LogDebug("Found {Count} videos", videosFound);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-        }
-    }
-
-    public async Task RunImport_DropFolders()
-    {
-        var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
-        // get a complete list of files
-        var fileList = new List<string>();
-        foreach (var share in RepoFactory.ImportFolder.GetAll())
-        {
-            if (!share.FolderIsDropSource) continue;
-            Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
-        }
-
-        // Get Ignored Files and remove them from the scan listing
-        var ignoredFiles = RepoFactory.VideoLocal.GetIgnoredVideos().SelectMany(a => a.Places)
-            .Select(a => a.FullServerPath).Where(a => !string.IsNullOrEmpty(a)).ToList();
-        fileList = fileList.Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase).ToList();
-
-        // get a list of all the shares we are looking at
-        int filesFound = 0, videosFound = 0;
-        var i = 0;
-
-        // get a list of all files in the share
-        foreach (var fileName in fileList)
-        {
-            i++;
-
-            if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
-            {
-                _logger.LogTrace("Import exclusion, skipping --- {Name}", fileName);
-                continue;
-            }
-
-            filesFound++;
-            _logger.LogTrace("Processing File {Count}/{Total} --- {Name}", i, fileList.Count, fileName);
-
-            if (!FileHashHelper.IsVideo(fileName)) continue;
-            videosFound++;
-
-            await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = fileName);
-        }
-
-        _logger.LogDebug("Found {Count} files", filesFound);
-        _logger.LogDebug("Found {Count} videos", videosFound);
-    }
-
-    public async Task RunImport_NewFiles()
-    {
-        var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
-        // first build a list of files that we already know about, as we don't want to process them again
-        var filesAll = RepoFactory.VideoLocalPlace.GetAll();
-        var dictFilesExisting = new Dictionary<string, SVR_VideoLocal_Place>();
-        foreach (var vl in filesAll)
-        {
-            try
-            {
-                if (vl.FullServerPath == null)
-                {
-                    _logger.LogInformation("Invalid File Path found. Removing: {ID}", vl.VideoLocal_Place_ID);
-                    await _placeService.RemoveRecord(vl);
-                    continue;
-                }
-
-                dictFilesExisting[vl.FullServerPath] = vl;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Error RunImport_NewFiles XREF: {Path} - {Ex}", (vl.FullServerPath ?? vl.FilePath) ?? vl.VideoLocal_Place_ID.ToString(),
-                    ex.ToString());
-            }
-        }
-
-
-        // Steps for processing a file
-        // 1. Check if it is a video file
-        // 2. Check if we have a VideoLocal record for that file
-        // .........
-
-        // get a complete list of files
-        var fileList = new List<string>();
-        foreach (var share in RepoFactory.ImportFolder.GetAll())
-        {
-            try
-            {
-                Utils.GetFilesForImportFolder(share.BaseDirectory, ref fileList);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "{ex}", ex.ToString());
-            }
-        }
-
-        // get a list fo files that we haven't processed before
-        var fileListNew = new List<string>();
-        foreach (var fileName in fileList)
-        {
-            if (settings.Import.Exclude.Any(s => Regex.IsMatch(fileName, s)))
-            {
-                _logger.LogTrace("Import exclusion, skipping --- {Name}", fileName);
-                continue;
-            }
-
-            if (!dictFilesExisting.ContainsKey(fileName)) fileListNew.Add(fileName);
-        }
-
-        // get a list of all the shares we are looking at
-        var filesFound = 0;
-        var videosFound = 0;
-        var i = 0;
-
-        // get a list of all files in the share
-        foreach (var fileName in fileListNew)
-        {
-            i++;
-            filesFound++;
-            _logger.LogTrace("Processing File {Count}/{Total} --- {Name}", i, fileList.Count, fileName);
-
-            if (!FileHashHelper.IsVideo(fileName)) continue;
-            videosFound++;
-
-            var (folder, relativePath) = _importFolders.GetFromFullPath(fileName);
-            ShokoEventHandler.Instance.OnFileDetected(folder, new FileInfo(fileName));
-
-            await scheduler.StartJob<DiscoverFileJob>(a => a.FilePath = fileName);
-        }
-
-        _logger.LogDebug("Found {Count} files", filesFound);
-        _logger.LogDebug("Found {Count} videos", videosFound);
     }
 
     public async Task RunImport_GetImages()
@@ -373,7 +133,7 @@ public class ActionService
         if (settings.TMDB.AutoDownloadBackdrops)
             await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Backdrop, settings.TMDB.MaxAutoBackdrops);
         if (settings.TMDB.AutoDownloadStaffImages)
-            await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Person, settings.TMDB.MaxAutoStaffImages);
+            await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Creator, settings.TMDB.MaxAutoStaffImages);
         if (settings.TMDB.AutoDownloadThumbnails)
             await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Thumbnail, settings.TMDB.MaxAutoThumbnails);
     }
@@ -399,46 +159,61 @@ public class ActionService
             if (!File.Exists(path))
                 continue;
 
-            if (image.TmdbMovieID.HasValue)
-                if (countsForMovies.ContainsKey(image.TmdbMovieID.Value))
-                    countsForMovies[image.TmdbMovieID.Value] += 1;
-                else
-                    countsForMovies[image.TmdbMovieID.Value] = 1;
-            if (image.TmdbEpisodeID.HasValue)
-                if (countForEpisodes.ContainsKey(image.TmdbEpisodeID.Value))
-                    countForEpisodes[image.TmdbEpisodeID.Value] += 1;
-                else
-                    countForEpisodes[image.TmdbEpisodeID.Value] = 1;
-            if (image.TmdbSeasonID.HasValue)
-                if (countForSeasons.ContainsKey(image.TmdbSeasonID.Value))
-                    countForSeasons[image.TmdbSeasonID.Value] += 1;
-                else
-                    countForSeasons[image.TmdbSeasonID.Value] = 1;
-            if (image.TmdbShowID.HasValue)
-                if (countForShows.ContainsKey(image.TmdbShowID.Value))
-                    countForShows[image.TmdbShowID.Value] += 1;
-                else
-                    countForShows[image.TmdbShowID.Value] = 1;
-            if (image.TmdbCollectionID.HasValue)
-                if (countForCollections.ContainsKey(image.TmdbCollectionID.Value))
-                    countForCollections[image.TmdbCollectionID.Value] += 1;
-                else
-                    countForCollections[image.TmdbCollectionID.Value] = 1;
-            if (image.TmdbNetworkID.HasValue)
-                if (countForNetworks.ContainsKey(image.TmdbNetworkID.Value))
-                    countForNetworks[image.TmdbNetworkID.Value] += 1;
-                else
-                    countForNetworks[image.TmdbNetworkID.Value] = 1;
-            if (image.TmdbCompanyID.HasValue)
-                if (countForCompanies.ContainsKey(image.TmdbCompanyID.Value))
-                    countForCompanies[image.TmdbCompanyID.Value] += 1;
-                else
-                    countForCompanies[image.TmdbCompanyID.Value] = 1;
-            if (image.TmdbPersonID.HasValue)
-                if (countForPersons.ContainsKey(image.TmdbPersonID.Value))
-                    countForPersons[image.TmdbPersonID.Value] += 1;
-                else
-                    countForPersons[image.TmdbPersonID.Value] = 1;
+            var entities = RepoFactory.TMDB_Image_Entity.GetByRemoteFileName(image.RemoteFileName)
+                .Where(x => x.ImageType == type)
+                .ToList();
+            foreach (var entity in entities)
+                switch (entity.TmdbEntityType)
+                {
+                    case ForeignEntityType.Movie:
+                        if (countsForMovies.ContainsKey(entity.TmdbEntityID))
+                            countsForMovies[entity.TmdbEntityID] += 1;
+                        else
+                            countsForMovies[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Episode:
+                        if (countForEpisodes.ContainsKey(entity.TmdbEntityID))
+                            countForEpisodes[entity.TmdbEntityID] += 1;
+                        else
+                            countForEpisodes[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Season:
+                        if (countForSeasons.ContainsKey(entity.TmdbEntityID))
+                            countForSeasons[entity.TmdbEntityID] += 1;
+                        else
+                            countForSeasons[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Show:
+                        if (countForShows.ContainsKey(entity.TmdbEntityID))
+                            countForShows[entity.TmdbEntityID] += 1;
+                        else
+                            countForShows[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Collection:
+                        if (countForCollections.ContainsKey(entity.TmdbEntityID))
+                            countForCollections[entity.TmdbEntityID] += 1;
+                        else
+                            countForCollections[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Network:
+                        if (countForNetworks.ContainsKey(entity.TmdbEntityID))
+                            countForNetworks[entity.TmdbEntityID] += 1;
+                        else
+                            countForNetworks[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Company:
+                        if (countForCompanies.ContainsKey(entity.TmdbEntityID))
+                            countForCompanies[entity.TmdbEntityID] += 1;
+                        else
+                            countForCompanies[entity.TmdbEntityID] = 1;
+                        break;
+                    case ForeignEntityType.Person:
+                        if (countForPersons.ContainsKey(entity.TmdbEntityID))
+                            countForPersons[entity.TmdbEntityID] += 1;
+                        else
+                            countForPersons[entity.TmdbEntityID] = 1;
+                        break;
+                }
         }
 
         var scheduler = await schedulerFactory.GetScheduler();
@@ -450,26 +225,47 @@ public class ActionService
 
             // Check if we should download the image or not.
             var limitEnabled = maxCount > 0;
-            var shouldDownload = !limitEnabled;
-            if (limitEnabled)
-            {
-                if (countsForMovies.TryGetValue(image.TmdbMovieID ?? 0, out var count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForEpisodes.TryGetValue(image.TmdbEpisodeID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForSeasons.TryGetValue(image.TmdbSeasonID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForShows.TryGetValue(image.TmdbShowID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForCollections.TryGetValue(image.TmdbCollectionID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForNetworks.TryGetValue(image.TmdbNetworkID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForCompanies.TryGetValue(image.TmdbCompanyID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-                if (countForPersons.TryGetValue(image.TmdbPersonID ?? 0, out count) && count < maxCount)
-                    shouldDownload = true;
-            }
+            var entities = RepoFactory.TMDB_Image_Entity.GetByRemoteFileName(image.RemoteFileName)
+                .Where(x => x.ImageType == type)
+                .ToList();
+            var shouldDownload = !limitEnabled && entities.Count > 0;
+            if (limitEnabled && entities.Count > 0)
+                foreach (var entity in entities)
+                    switch (entity.TmdbEntityType)
+                    {
+                        case ForeignEntityType.Movie:
+                            if (countsForMovies.ContainsKey(entity.TmdbEntityID) && countsForMovies[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Episode:
+                            if (countForEpisodes.ContainsKey(entity.TmdbEntityID) && countForEpisodes[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Season:
+                            if (countForSeasons.ContainsKey(entity.TmdbEntityID) && countForSeasons[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Show:
+                            if (countForShows.ContainsKey(entity.TmdbEntityID) && countForShows[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Collection:
+                            if (countForCollections.ContainsKey(entity.TmdbEntityID) && countForCollections[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Network:
+                            if (countForNetworks.ContainsKey(entity.TmdbEntityID) && countForNetworks[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Company:
+                            if (countForCompanies.ContainsKey(entity.TmdbEntityID) && countForCompanies[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                        case ForeignEntityType.Person:
+                            if (countForPersons.ContainsKey(entity.TmdbEntityID) && countForPersons[entity.TmdbEntityID] < maxCount)
+                                shouldDownload = true;
+                            break;
+                    }
 
             if (shouldDownload)
             {
@@ -479,112 +275,129 @@ public class ActionService
                     c.ImageType = image.ImageType;
                 });
 
-                if (image.TmdbMovieID.HasValue)
-                    if (countsForMovies.ContainsKey(image.TmdbMovieID.Value))
-                        countsForMovies[image.TmdbMovieID.Value] += 1;
-                    else
-                        countsForMovies[image.TmdbMovieID.Value] = 1;
-                if (image.TmdbSeasonID.HasValue)
-                    if (countForSeasons.ContainsKey(image.TmdbSeasonID.Value))
-                        countForSeasons[image.TmdbSeasonID.Value] += 1;
-                    else
-                        countForSeasons[image.TmdbSeasonID.Value] = 1;
-                if (image.TmdbShowID.HasValue)
-                    if (countForShows.ContainsKey(image.TmdbShowID.Value))
-                        countForShows[image.TmdbShowID.Value] += 1;
-                    else
-                        countForShows[image.TmdbShowID.Value] = 1;
-                if (image.TmdbCollectionID.HasValue)
-                    if (countForCollections.ContainsKey(image.TmdbCollectionID.Value))
-                        countForCollections[image.TmdbCollectionID.Value] += 1;
-                    else
-                        countForCollections[image.TmdbCollectionID.Value] = 1;
+                foreach (var entity in entities)
+                    switch (entity.TmdbEntityType)
+                    {
+                        case ForeignEntityType.Movie:
+                            if (countsForMovies.ContainsKey(entity.TmdbEntityID))
+                                countsForMovies[entity.TmdbEntityID] += 1;
+                            else
+                                countsForMovies[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Episode:
+                            if (countForEpisodes.ContainsKey(entity.TmdbEntityID))
+                                countForEpisodes[entity.TmdbEntityID] += 1;
+                            else
+                                countForEpisodes[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Season:
+                            if (countForSeasons.ContainsKey(entity.TmdbEntityID))
+                                countForSeasons[entity.TmdbEntityID] += 1;
+                            else
+                                countForSeasons[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Show:
+                            if (countForShows.ContainsKey(entity.TmdbEntityID))
+                                countForShows[entity.TmdbEntityID] += 1;
+                            else
+                                countForShows[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Collection:
+                            if (countForCollections.ContainsKey(entity.TmdbEntityID))
+                                countForCollections[entity.TmdbEntityID] += 1;
+                            else
+                                countForCollections[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Network:
+                            if (countForNetworks.ContainsKey(entity.TmdbEntityID))
+                                countForNetworks[entity.TmdbEntityID] += 1;
+                            else
+                                countForNetworks[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Company:
+                            if (countForCompanies.ContainsKey(entity.TmdbEntityID))
+                                countForCompanies[entity.TmdbEntityID] += 1;
+                            else
+                                countForCompanies[entity.TmdbEntityID] = 1;
+                            break;
+                        case ForeignEntityType.Person:
+                            if (countForPersons.ContainsKey(entity.TmdbEntityID))
+                                countForPersons[entity.TmdbEntityID] += 1;
+                            else
+                                countForPersons[entity.TmdbEntityID] = 1;
+                            break;
+                    }
             }
         }
     }
 
-    private static bool ShouldUpdateAniDBCreatorImages(IServerSettings settings, SVR_AniDB_Anime anime)
+    private static bool ShouldUpdateAniDBCreatorImages(IServerSettings settings, AniDB_Anime anime)
     {
         if (!settings.AniDb.DownloadCreators) return false;
 
-        foreach (var seiyuu in RepoFactory.AniDB_Character.GetCharactersForAnime(anime.AnimeID)
-                    .SelectMany(a => RepoFactory.AniDB_Character_Creator.GetByCharacterID(a.CharID))
-                    .Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull())
+        foreach (var creator in RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(anime.AnimeID).Select(a => a.Creator).WhereNotNull())
         {
-            if (string.IsNullOrEmpty(seiyuu.ImagePath)) continue;
-            if (!File.Exists(seiyuu.GetFullImagePath())) return true;
+            if (string.IsNullOrEmpty(creator.ImagePath)) continue;
+            if (!ImageExtensions.IsImageValid(creator.GetFullImagePath())) return true;
         }
 
-        foreach (var seiyuu in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID)
-                    .Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull())
+        foreach (var creator in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID).Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull())
         {
-            if (string.IsNullOrEmpty(seiyuu.ImagePath)) continue;
-            if (!File.Exists(seiyuu.GetFullImagePath())) return true;
+            if (string.IsNullOrEmpty(creator.ImagePath)) continue;
+            if (!ImageExtensions.IsImageValid(creator.GetFullImagePath())) return true;
         }
 
         return false;
     }
 
-    private static bool ShouldUpdateAniDBCharacterImages(IServerSettings settings, SVR_AniDB_Anime anime)
+    private static bool ShouldUpdateAniDBCharacterImages(IServerSettings settings, AniDB_Anime anime)
     {
         if (!settings.AniDb.DownloadCharacters) return false;
 
         foreach (var chr in RepoFactory.AniDB_Character.GetCharactersForAnime(anime.AnimeID))
         {
-            if (string.IsNullOrEmpty(chr.PicName)) continue;
-            if (!File.Exists(chr.GetFullImagePath())) return true;
+            if (string.IsNullOrEmpty(chr.ImagePath)) continue;
+            if (!ImageExtensions.IsImageValid(chr.GetFullImagePath())) return true;
         }
 
         return false;
     }
 
-    public void RunImport_ScanTrakt()
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.AuthToken)) return;
-        _traktHelper.ScanForMatches();
-    }
+    public Task RunImport_ScanTMDB()
+        => _tmdbService.ScanForMatches();
 
-    public async Task RunImport_ScanTMDB()
-    {
-        await _tmdbService.ScanForMatches();
-    }
+    public Task RunImport_PurgeUnlinkedTmdbPeople()
+        => _tmdbService.PurgeUnlinkedPeople();
+
+    public Task RunImport_PurgeUnlinkedTmdbShowNetworks()
+        => _tmdbService.PurgeUnlinkedShowNetworks();
 
     public async Task RunImport_UpdateAllAniDB()
     {
-        var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
+        var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate;
         foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
-        {
-            await scheduler.StartJob<GetAniDBAnimeJob>(c =>
-            {
-                c.AnimeID = anime.AnimeID;
-                c.ForceRefresh = true;
-                c.CacheOnly = false;
-                c.DownloadRelations = settings.AniDb.DownloadRelatedAnime;
-            });
-        }
+            await _anidbService.ScheduleRefresh(anime, refreshMethod).ConfigureAwait(false);
     }
 
     public async Task RemoveRecordsWithoutPhysicalFiles(bool removeMyList = true)
     {
         var scheduler = await _schedulerFactory.GetScheduler();
         _logger.LogInformation("Remove Missing Files: Start");
-        var seriesToUpdate = new HashSet<SVR_AnimeSeries>();
+        var seriesToUpdate = new HashSet<AnimeSeries>();
         using var session = _databaseFactory.SessionFactory.OpenSession();
 
-        // remove missing files in valid import folders
+        // remove missing files in valid managed folders
         var filesAll = RepoFactory.VideoLocalPlace.GetAll()
-            .Where(a => a.ImportFolder != null)
-            .GroupBy(a => a.ImportFolder)
+            .Where(a => a.ManagedFolder != null)
+            .GroupBy(a => a.ManagedFolder)
             .ToDictionary(a => a.Key, a => a.ToList());
         foreach (var vl in filesAll.Keys.SelectMany(a => filesAll[a]))
         {
-            if (File.Exists(vl.FullServerPath)) continue;
+            if (File.Exists(vl.Path)) continue;
 
             // delete video local record
-            _logger.LogInformation("Removing Missing File: {ID}", vl.VideoLocalID);
-            await _placeService.RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate, removeMyList);
+            _logger.LogInformation("Removing Missing File: {ID}", vl.VideoID);
+            await ((VideoService)_videoService).RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate, removeMyList);
         }
 
         var videoLocalsAll = RepoFactory.VideoLocal.GetAll().ToList();
@@ -601,7 +414,7 @@ public class ActionService
             .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
             .GroupBy(a => a.Hash)
             .ToDictionary(g => g.Key, g => g.ToList());
-        var toRemove = new List<SVR_VideoLocal>();
+        var toRemove = new List<VideoLocal>();
         var comparer = new VideoLocalComparer();
 
         foreach (var hash in locals.Keys)
@@ -617,7 +430,7 @@ public class ActionService
                     using var transaction = s.BeginTransaction();
                     foreach (var place in ps)
                     {
-                        place.VideoLocalID = to.VideoLocalID;
+                        place.VideoID = to.VideoLocalID;
                         RepoFactory.VideoLocalPlace.SaveWithOpenTransaction(s, place);
                     }
 
@@ -639,7 +452,7 @@ public class ActionService
             transaction.Commit();
         });
 
-        // Remove files in invalid import folders
+        // Remove files in invalid managed folders
         foreach (var v in videoLocalsAll)
         {
             var places = v.Places;
@@ -648,10 +461,10 @@ public class ActionService
                 BaseRepository.Lock(session, places, (s, ps) =>
                 {
                     using var transaction = s.BeginTransaction();
-                    foreach (var place in ps.Where(place => string.IsNullOrWhiteSpace(place?.FullServerPath)))
+                    foreach (var place in ps.Where(place => string.IsNullOrWhiteSpace(place?.Path)))
                     {
 #pragma warning disable CS0618
-                        _logger.LogInformation("RemoveRecordsWithOrphanedImportFolder : {Filename}", v.FileName);
+                        _logger.LogInformation("Remove Records With Orphaned Managed Folder: {Filename}", v.FileName);
 #pragma warning restore CS0618
                         seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
                             .DistinctBy(a => a.AnimeSeriesID));
@@ -668,7 +481,7 @@ public class ActionService
 
             if (places?.Count > 0)
             {
-                places = places.DistinctBy(a => a.FullServerPath).ToList();
+                places = places.DistinctBy(a => a.Path).ToList();
                 places = v.Places?.Except(places).ToList() ?? [];
                 foreach (var place in places)
                 {
@@ -691,39 +504,7 @@ public class ActionService
                 .DistinctBy(a => a.AnimeSeriesID));
 
             if (removeMyList)
-            {
-                if (RepoFactory.AniDB_File.GetByHash(v.Hash) == null)
-                {
-                    var xrefs = RepoFactory.CrossRef_File_Episode.GetByHash(v.Hash);
-                    foreach (var xref in xrefs)
-                    {
-                        if (xref.AnimeID is 0)
-                            continue;
-
-                        var ep = RepoFactory.AniDB_Episode.GetByEpisodeID(xref.EpisodeID);
-                        if (ep == null)
-                        {
-                            continue;
-                        }
-
-                        await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                        {
-                            c.AnimeID = xref.AnimeID;
-                            c.EpisodeType = ep.GetEpisodeTypeEnum();
-                            c.EpisodeNumber = ep.EpisodeNumber;
-                        });
-                    }
-                }
-                else
-                {
-                    await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                        {
-                            c.Hash = v.Hash;
-                            c.FileSize = v.FileSize;
-                        }
-                    );
-                }
-            }
+                await ((VideoService)_videoService).ScheduleRemovalFromMyList(v);
 
             BaseRepository.Lock(session, v, (s, vl) =>
             {
@@ -735,7 +516,7 @@ public class ActionService
 
         // Clean up failed imports
         var list = RepoFactory.VideoLocal.GetAll()
-            .SelectMany(a => RepoFactory.CrossRef_File_Episode.GetByHash(a.Hash))
+            .SelectMany(a => a.EpisodeCrossReferences)
             .Where(a => a.AniDBAnime == null || a.AniDBEpisode == null)
             .ToArray();
         BaseRepository.Lock(session, s =>
@@ -764,38 +545,12 @@ public class ActionService
             transaction.Commit();
         });
 
+        // NOTE: use 'purge unused releases' if you want to remove the cross-references too.
+
         // update everything we modified
         await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
 
         _logger.LogInformation("Remove Missing Files: Finished");
-    }
-
-    public async Task<string> DeleteImportFolder(int importFolderID, bool removeFromMyList = true)
-    {
-        try
-        {
-            var affectedSeries = new HashSet<SVR_AnimeSeries>();
-            var vids = RepoFactory.VideoLocalPlace.GetByImportFolder(importFolderID);
-            _logger.LogInformation("Deleting {VidsCount} video local records", vids.Count);
-            using var session = _databaseFactory.SessionFactory.OpenSession();
-            foreach (var vid in vids)
-            {
-                await _placeService.RemoveRecordWithOpenTransaction(session, vid, affectedSeries, removeFromMyList);
-            }
-
-            // delete the import folder
-            RepoFactory.ImportFolder.Delete(importFolderID);
-
-            var scheduler = await _schedulerFactory.GetScheduler();
-            await Task.WhenAll(affectedSeries.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return ex.Message;
-        }
     }
 
     public async Task UpdateAllStats()
@@ -804,57 +559,40 @@ public class ActionService
         await Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
-    public async Task<int> UpdateAniDBFileData(bool missingInfo, bool outOfDate, bool dryRun)
+    public async Task<int> UpdateAnidbReleaseInfo(bool countOnly = false)
     {
         _logger.LogInformation("Updating Missing AniDB_File Info");
-        var scheduler = await _schedulerFactory.GetScheduler();
-        var vidsToUpdate = new HashSet<int>();
-        var groupsToUpdate = new HashSet<int>();
-        if (outOfDate)
+        var missingFiles = !_videoReleaseService.AutoMatchEnabled ? [] : RepoFactory.StoredReleaseInfo.GetAll()
+            .Where(r => r.ProviderName is "AniDB" && (string.IsNullOrEmpty(r.GroupID) || r.GroupSource is not "AniDB"))
+            .Select(a => RepoFactory.VideoLocal.GetByEd2kAndSize(a.ED2K, a.FileSize))
+            .WhereNotNull()
+            .Select(a => a)
+            .ToList();
+        if (!countOnly)
         {
-            var files = RepoFactory.VideoLocal.GetByInternalVersion(1);
+            _logger.LogInformation("Queuing {Count} GetFile commands", missingFiles.Count);
+            foreach (var id in missingFiles)
+                await _videoReleaseService.ScheduleFindReleaseForVideo(id, force: true);
 
-            foreach (var file in files)
-            {
-                vidsToUpdate.Add(file.VideoLocalID);
-            }
-        }
-
-        if (missingInfo)
-        {
-            var anidbReleaseGroupIDs = RepoFactory.AniDB_ReleaseGroup.GetAll().Select(group => group.GroupID).ToHashSet();
-            var missingGroups = RepoFactory.AniDB_File.GetAll().Select(a => a.GroupID).Where(a => a != 0 && !anidbReleaseGroupIDs.Contains(a)).ToList();
-            groupsToUpdate.UnionWith(missingGroups);
-
-            var missingFiles = RepoFactory.AniDB_File.GetAll()
-                .Where(a => a.GroupID == 0)
-                .Select(a => RepoFactory.VideoLocal.GetByHash(a.Hash))
-                .Where(f => f != null)
-                .Select(a => a.VideoLocalID)
-                .ToList();
-            vidsToUpdate.UnionWith(missingFiles);
-        }
-
-        if (!dryRun)
-        {
-            _logger.LogInformation("Queuing {Count} GetFile commands", vidsToUpdate.Count);
-            foreach (var id in vidsToUpdate)
-            {
-                await scheduler.StartJob<GetAniDBFileJob>(c =>
-                {
-                    c.VideoLocalID = id;
-                    c.ForceAniDB = true;
-                });
-            }
-
-            _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", groupsToUpdate.Count);
-            foreach (var a in groupsToUpdate)
-            {
+            var incorrectGroups = RepoFactory.StoredReleaseInfo.GetAll()
+                .Where(r =>
+                    !string.IsNullOrEmpty(r.GroupID) &&
+                    r.GroupSource is "AniDB" &&
+                    int.TryParse(r.GroupID, out var groupID) && (
+                        string.IsNullOrEmpty(r.GroupName) ||
+                        string.IsNullOrEmpty(r.GroupShortName)
+                    )
+                )
+                .DistinctBy(a => a.GroupID)
+                .Select(a => int.Parse(a.GroupID))
+                .ToHashSet();
+            _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", incorrectGroups.Count);
+            var scheduler = await _schedulerFactory.GetScheduler();
+            foreach (var a in incorrectGroups)
                 await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = a);
-            }
         }
 
-        return vidsToUpdate.Count;
+        return missingFiles.Count;
     }
 
     public async Task CheckForUnreadNotifications(bool ignoreSchedule)
@@ -977,95 +715,14 @@ public class ActionService
         await scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = forceRefresh);
     }
 
-    public async Task CheckForTraktAllSeriesUpdate(bool forceRefresh)
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (!settings.TraktTv.Enabled) return;
-        if (settings.TraktTv.UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-
-        // update the calendar every xxx hours
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktUpdate);
-        if (schedule == null)
-        {
-            schedule = new ScheduledUpdate
-            {
-                UpdateType = (int)ScheduledUpdateType.TraktUpdate,
-                UpdateDetails = string.Empty
-            };
-        }
-        else
-        {
-            var freqHours = Utils.GetScheduledHours(settings.TraktTv.UpdateFrequency);
-
-            // if we have run this in the last xxx hours then exit
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
-        }
-
-        schedule.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(schedule);
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-
-        // update all info
-        var allCrossRefs = RepoFactory.CrossRef_AniDB_TraktV2.GetAll();
-        foreach (var xref in allCrossRefs)
-        {
-            scheduler.StartJob<GetTraktSeriesJob>(c => c.TraktID = xref.TraktID).GetAwaiter().GetResult();
-        }
-
-        // scan for new matches
-        _traktHelper.ScanForMatches();
-    }
-
-    public void CheckForTraktTokenUpdate(bool forceRefresh)
-    {
-        try
-        {
-            var settings = _settingsProvider.GetSettings();
-            if (!settings.TraktTv.Enabled || string.IsNullOrEmpty(settings.TraktTv.TokenExpirationDate)) return;
-
-            // Convert the Unix timestamp to DateTime directly
-            var expirationDate = DateTimeOffset.FromUnixTimeSeconds(long.Parse(settings.TraktTv.TokenExpirationDate)).DateTime;
-
-            // Check if force refresh is requested or the token is expired
-            if (forceRefresh || DateTime.Now.Add(TimeSpan.FromDays(45)) >= expirationDate)
-            {
-                _traktHelper.RefreshAuthToken();
-
-                // Update the last token refresh timestamp
-                var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.TraktToken)
-                            ?? new ScheduledUpdate { UpdateType = (int)ScheduledUpdateType.TraktToken, UpdateDetails = string.Empty };
-
-                schedule.LastUpdate = DateTime.Now;
-                RepoFactory.ScheduledUpdate.Save(schedule);
-
-                _logger.LogInformation("Trakt token refreshed successfully. Expiry date: {Date}", expirationDate);
-            }
-            else
-            {
-                _logger.LogInformation("Trakt token is still valid. Expiry date: {Date}", expirationDate);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in CheckForTraktTokenUpdate: {Ex}", ex);
-        }
-    }
-
     public async Task CheckForAniDBFileUpdate(bool forceRefresh)
     {
         var settings = _settingsProvider.GetSettings();
         if (settings.AniDb.File_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
-        {
             return;
-        }
-
-        var freqHours = Utils.GetScheduledHours(settings.AniDb.File_UpdateFrequency);
-        var scheduler = await _schedulerFactory.GetScheduler();
 
         // check for any updated anime info every 12 hours
-
+        var freqHours = Utils.GetScheduledHours(settings.AniDb.File_UpdateFrequency);
         var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
         if (schedule != null)
         {
@@ -1075,28 +732,23 @@ public class ActionService
         }
 
         // files which have been hashed, but don't have an associated episode
-        var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
-        foreach (var vl in filesWithoutEpisode)
+        if (_videoReleaseService.AutoMatchEnabled)
         {
-            if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
+            var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            foreach (var vl in filesWithoutEpisode)
             {
-                var matchAttempts = RepoFactory.AniDB_FileUpdate.GetByFileSizeAndHash(vl.FileSize, vl.Hash).Count;
-                if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
-                    continue;
-            }
-
-            await scheduler.StartJob<ProcessFileJob>(c =>
+                if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
                 {
-                    c.VideoLocalID = vl.VideoLocalID;
-                    c.ForceAniDB = true;
+                    var matchAttempts = RepoFactory.StoredReleaseInfo_MatchAttempt.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
+                    if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
+                        continue;
                 }
-            );
+
+                await _videoReleaseService.ScheduleFindReleaseForVideo(vl);
+            }
         }
 
-        // now check for any files which have been manually linked and are less than 30 days old
-
-
-        schedule ??= new ScheduledUpdate
+        schedule ??= new()
         {
             UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates,
             UpdateDetails = string.Empty
@@ -1111,7 +763,7 @@ public class ActionService
         try
         {
             var filesAll = RepoFactory.VideoLocal.GetAll();
-            IReadOnlyList<SVR_VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
+            IReadOnlyList<VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
 
             foreach (var vl in filesAll)
             {
@@ -1135,27 +787,151 @@ public class ActionService
         }
     }
 
+    public async Task DownloadMissingAnidbAnimeXmls()
+    {
+        // Check existing anime.
+        var index = 0;
+        var queuedAnimeSet = new HashSet<int>();
+        var localAnimeSet = RepoFactory.AniDB_Anime.GetAll()
+            .Select(a => a.AnimeID)
+            .OrderBy(a => a)
+            .ToHashSet();
+        _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files…", localAnimeSet.Count);
+        foreach (var animeID in localAnimeSet)
+        {
+            if (++index % 10 == 1 || index == localAnimeSet.Count)
+                _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files — {CurrentCount}/{AllAnimeCount}", localAnimeSet.Count, index + 1, localAnimeSet.Count);
+
+            var rawXml = await _xmlUtils.LoadAnimeHTTPFromFile(animeID);
+            if (rawXml != null)
+                continue;
+
+            _logger.LogDebug("Found anime {AnimeID} with missing XML", animeID);
+            await QueueAniDBRefresh(animeID, true, false, false, skipTmdbUpdate: true);
+            queuedAnimeSet.Add(animeID);
+        }
+    }
+
+    public async Task<bool> QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
+        bool cacheOnly = false, bool skipTmdbUpdate = false)
+    {
+        if (animeID == 0)
+            return false;
+
+        var refreshMethod = AnidbRefreshMethod.None;
+        if (!cacheOnly)
+            refreshMethod |= AnidbRefreshMethod.Remote;
+        if (!force)
+            refreshMethod |= AnidbRefreshMethod.Cache;
+        if (downloadRelations)
+            refreshMethod |= AnidbRefreshMethod.DownloadRelations;
+        if (createSeriesEntry)
+            refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
+        if (force || !cacheOnly)
+            refreshMethod |= AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
+        if (skipTmdbUpdate)
+            refreshMethod |= AnidbRefreshMethod.SkipTmdbUpdate;
+        if (immediate)
+        {
+            try
+            {
+                return await _anidbService.RefreshByID(animeID, refreshMethod).ConfigureAwait(false) is not null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        await _anidbService.ScheduleRefreshByID(animeID, refreshMethod).ConfigureAwait(false);
+        return false;
+    }
+
+    public async Task ScheduleMissingAnidbAnimeForFiles()
+    {
+        // Attempt to fix cross-references with incomplete data.
+        var index = 0;
+        var videos = RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData();
+        var unknownEpisodeDict = videos
+            .SelectMany(file => file.EpisodeCrossReferences)
+            .Where(xref => xref.AnimeID is 0)
+            .GroupBy(xref => xref.EpisodeID)
+            .ToDictionary(groupBy => groupBy.Key, groupBy => groupBy.ToList());
+        _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime…", unknownEpisodeDict.Count);
+        foreach (var (episodeId, xrefs) in unknownEpisodeDict)
+        {
+            if (++index % 10 == 1)
+                _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime — {CurrentCount}/{MissingAnimeCount}", unknownEpisodeDict.Count, index + 1, unknownEpisodeDict.Count);
+
+            var episode = RepoFactory.AniDB_Episode.GetByEpisodeID(episodeId);
+            if (episode is not null)
+            {
+                foreach (var xref in xrefs)
+                    xref.AnimeID = episode.AnimeID;
+                RepoFactory.CrossRef_File_Episode.Save(xrefs);
+                continue;
+            }
+
+            int? epAnimeID = null;
+            var epRequest = _requestFactory.Create<RequestGetEpisode>(r => r.EpisodeID = episodeId);
+            try
+            {
+                var epResponse = epRequest.Send();
+                epAnimeID = epResponse.Response?.AnimeID;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Could not get Episode Info for {EpisodeID}", episode.EpisodeID);
+            }
+
+            if (epAnimeID is not null)
+            {
+                foreach (var xref in xrefs)
+                    xref.AnimeID = epAnimeID.Value;
+                RepoFactory.CrossRef_File_Episode.Save(xrefs);
+            }
+        }
+
+        // Queue missing anime needed by existing files.
+        index = 0;
+        var localAnimeSet = RepoFactory.AnimeSeries.GetAll()
+            .Select(a => a.AniDB_ID)
+            .ToHashSet();
+        var localEpisodeSet = RepoFactory.AnimeEpisode.GetAll()
+            .Select(episode => episode.AniDB_EpisodeID)
+            .ToHashSet();
+        var missingAnimeSet = videos
+            .SelectMany(file => file.EpisodeCrossReferences)
+            .Where(xref => xref.AnimeID > 0 && (!localAnimeSet.Contains(xref.AnimeID) || !localEpisodeSet.Contains(xref.EpisodeID)))
+            .Select(xref => xref.AnimeID)
+            .ToHashSet();
+        var settings = _settingsProvider.GetSettings();
+        _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update…", missingAnimeSet.Count);
+        var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate | AnidbRefreshMethod.CreateShokoSeries;
+        if (settings.AutoGroupSeries || settings.AniDb.DownloadRelatedAnime)
+            refreshMethod |= AnidbRefreshMethod.DownloadRelations;
+        foreach (var animeID in missingAnimeSet)
+        {
+            if (++index % 10 == 1 || index == missingAnimeSet.Count)
+                _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
+
+            await _anidbService.ScheduleRefreshByID(animeID, refreshMethod);
+        }
+    }
+
     public async Task ScheduleMissingAnidbCreators()
     {
         if (!_settingsProvider.GetSettings().AniDb.DownloadCreators) return;
 
         var allCreators = RepoFactory.AniDB_Creator.GetAll();
-        var allMissingCreators = RepoFactory.AnimeStaff.GetAll()
-            .Select(s => s.AniDBID)
-            .Distinct()
-            .Except(allCreators.Select(a => a.CreatorID))
-            .ToList();
-        var missingCount = allMissingCreators.Count;
-        allMissingCreators.AddRange(
-            allCreators
+        var allMissingCreators = allCreators
                 .Where(creator => creator.Type is Providers.AniDB.CreatorType.Unknown)
                 .Select(creator => creator.CreatorID)
                 .Distinct()
-        );
-        var partiallyMissingCount = allMissingCreators.Count - missingCount;
+                .ToList();
 
         var startedAt = DateTime.Now;
-        _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh. (Missing={MissingCount},PartiallyMissing={PartiallyMissingCount},Total={Total})", allMissingCreators.Count, missingCount, partiallyMissingCount, allMissingCreators.Count);
+        _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh.", allMissingCreators.Count);
         var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
         var progressCount = 0;
         foreach (var creatorID in allMissingCreators)
@@ -1167,5 +943,24 @@ public class ActionService
         }
 
         _logger.LogInformation("Scheduled {Count} AniDB Creators in {TimeSpan}", allMissingCreators.Count, DateTime.Now - startedAt);
+    }
+
+    public async Task CreateMissingSeries()
+    {
+        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+        var missingSeries = RepoFactory.VideoLocal.GetAll().SelectMany(vid =>
+        {
+            var xrefs = RepoFactory.CrossRef_File_Episode.GetByEd2k(vid.Hash);
+            var aniDBAnime = xrefs.Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID)).WhereNotNull();
+            return aniDBAnime.Where(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) == null);
+        }).ToList();
+
+        _logger.LogInformation("Creating {Count} Series that are missing.", missingSeries.Count);
+
+        var methods = AnidbRefreshMethod.Cache | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.CreateShokoSeries;
+        foreach (var aniDBAnime in missingSeries)
+            await _anidbService.ScheduleRefresh(aniDBAnime, methods, prioritize: false);
+
+        _logger.LogInformation("Queued Creation of {Count} Series that were missing.", missingSeries.Count);
     }
 }

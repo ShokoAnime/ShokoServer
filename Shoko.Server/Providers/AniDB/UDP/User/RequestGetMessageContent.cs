@@ -31,75 +31,75 @@ public class RequestGetMessageContent : UDPRequest<ResponseMessageContent>
         switch (code)
         {
             case UDPReturnCode.NOTIFYGET_MESSAGE:
+            {
+                // {int4 id}|{int4 from_user_id}|{str from_user_name}|{int4 date}|{int4 type}|{str title}|{str body}
+                /*
+                    id is the message identifier
+                    from_user_id and from_user_name are the id and name of the user who sent the message
+                    date is the time the message was sent
+                    type is the type of message (0=normal msg, 1=annonymous, 2=system msg, 3=mod msg)
+                    title and body are the message title and body
+                */
+                var parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
+                if (parts.Length != 7)
                 {
-                    // {int4 id}|{int4 from_user_id}|{str from_user_name}|{int4 date}|{int4 type}|{str title}|{str body}
-                    /*
-                        id is the message identifier
-                        from_user_id and from_user_name are the id and name of the user who sent the message
-                        date is the time the message was sent
-                        type is the type of message (0=normal msg, 1=annonymous, 2=system msg, 3=mod msg)
-                        title and body are the message title and body
-                    */
-                    var parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
-                    if (parts.Length != 7)
-                    {
-                        throw new UnexpectedUDPResponseException("Incorrect Number of Parts Returned", code, receivedData, Command);
-                    }
-
-                    if (!int.TryParse(parts[0], out var msgID))
-                    {
-                        throw new UnexpectedUDPResponseException("Message ID was not an int", code, receivedData, Command);
-                    }
-
-                    if (!int.TryParse(parts[1], out var senderID))
-                    {
-                        throw new UnexpectedUDPResponseException("Sender ID was not an int", code, receivedData, Command);
-                    }
-                    var senderName = parts[2];
-
-                    if (!int.TryParse(parts[3], out var sentTime))
-                    {
-                        throw new UnexpectedUDPResponseException("Date was not an int", code, receivedData, Command);
-                    }
-                    var sentDateTime = DateTime.UnixEpoch.AddSeconds(sentTime).ToLocalTime();
-
-                    if (!int.TryParse(parts[4], out var msgTypeI))
-                    {
-                        throw new UnexpectedUDPResponseException("Type was not an int", code, receivedData, Command);
-                    }
-
-                    if (msgTypeI < 0 || msgTypeI > 3)
-                    {
-                        throw new UnexpectedUDPResponseException("Type was not in 0-3 range", code, receivedData, Command);
-                    }
-                    var msgType = (AniDBMessageType)msgTypeI;
-
-                    var msgTitle = parts[5].Trim();
-                    var msgBody = BreakRegex.Replace(parts[6], "\n").Trim();
-
-                    return new UDPResponse<ResponseMessageContent>
-                    {
-                        Code = code,
-                        Response = new ResponseMessageContent
-                        {
-                            ID = msgID,
-                            SenderID = senderID,
-                            SenderName = senderName,
-                            SentTime = sentDateTime,
-                            Type = msgType,
-                            Title = msgTitle,
-                            Body = msgBody
-                        }
-                    };
+                    throw new UnexpectedUDPResponseException("Incorrect Number of Parts Returned", code, receivedData, Command);
                 }
+
+                if (!int.TryParse(parts[0], out var msgID))
+                {
+                    throw new UnexpectedUDPResponseException("Message ID was not an int", code, receivedData, Command);
+                }
+
+                if (!int.TryParse(parts[1], out var senderID))
+                {
+                    throw new UnexpectedUDPResponseException("Sender ID was not an int", code, receivedData, Command);
+                }
+                var senderName = parts[2];
+
+                if (!int.TryParse(parts[3], out var sentTime))
+                {
+                    throw new UnexpectedUDPResponseException("Date was not an int", code, receivedData, Command);
+                }
+                var sentDateTime = DateTime.UnixEpoch.AddSeconds(sentTime).ToLocalTime();
+
+                if (!int.TryParse(parts[4], out var msgTypeI))
+                {
+                    throw new UnexpectedUDPResponseException("Type was not an int", code, receivedData, Command);
+                }
+
+                if (msgTypeI < 0 || msgTypeI > 3)
+                {
+                    throw new UnexpectedUDPResponseException("Type was not in 0-3 range", code, receivedData, Command);
+                }
+                var msgType = (AniDBMessageType)msgTypeI;
+
+                var msgTitle = parts[5].Trim();
+                var msgBody = BreakRegex.Replace(parts[6], "\n").Trim();
+
+                return new UDPResponse<ResponseMessageContent>
+                {
+                    Code = code,
+                    Response = new ResponseMessageContent
+                    {
+                        ID = msgID,
+                        SenderID = senderID,
+                        SenderName = senderName,
+                        SentTime = sentDateTime,
+                        Type = msgType,
+                        Title = msgTitle,
+                        Body = msgBody
+                    }
+                };
+            }
             case UDPReturnCode.NO_SUCH_MESSAGE:
-                {
-                    return new UDPResponse<ResponseMessageContent> { Code = code, Response = null };
-                }
+            {
+                return new UDPResponse<ResponseMessageContent> { Code = code, Response = null };
+            }
             default:
-                {
-                    throw new UnexpectedUDPResponseException(code, receivedData, Command);
-                }
+            {
+                throw new UnexpectedUDPResponseException(code, receivedData, Command);
+            }
         }
     }
 

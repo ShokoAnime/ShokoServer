@@ -1,5 +1,8 @@
 
 #nullable enable
+using Shoko.Abstractions.Metadata;
+using Shoko.Server.Repositories;
+
 namespace Shoko.Server.Models.TMDB;
 
 /// <summary>
@@ -19,6 +22,9 @@ public class TMDB_Season_Cast : TMDB_Cast
     /// </summary>
     public int TmdbSeasonID { get; set; }
 
+    /// <inheritdoc/>
+    public override int TmdbParentID => TmdbSeasonID;
+
     /// <summary>
     /// Indicates the role is not a recurring role within the season.
     /// </summary>
@@ -32,6 +38,12 @@ public class TMDB_Season_Cast : TMDB_Cast
     #endregion
 
     #region Methods
+
+    public TMDB_Season? GetTmdbSeason() =>
+        RepoFactory.TMDB_Season.GetByTmdbSeasonID(TmdbSeasonID);
+
+    public override IMetadata<int>? GetTmdbParent() =>
+        GetTmdbSeason();
 
     #endregion
 }

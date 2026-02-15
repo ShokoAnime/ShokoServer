@@ -3,7 +3,8 @@ namespace Shoko.Server.Server;
 public static class Constants
 {
     public const string SentryDsn = "SENTRY_DSN_KEY_GOES_HERE";
-    public static readonly string AniDBTitlesURL = @"http://anidb.net/api/anime-titles.xml.gz";
+
+    public static readonly string AniDBTitlesURL = @"https://anidb.net/api/anime-titles.xml.gz";
 
     public const string DatabaseTypeKey = "Database";
 
@@ -20,17 +21,14 @@ public static class Constants
         public const string MissingVotes = "Missing Votes";
         public const string MissingLinks = "Missing Links";
         public const string RecentlyWatched = "Recently Watched";
-        public const string Tags = "Tags";
-        public const string Seasons = "Seasons";
-        public const string Years = "Years";
     }
 
-    public struct DatabaseType
+    public enum DatabaseType
     {
-        public const string SqlServer = "SQLServer";
-        public const string Sqlite = "SQLite";
-        public const string MySQL = "MySQL";
-        public const string PostgreSQL = "PostgreSQL";
+        SQLite = 0,
+        SQLServer = 1,
+        MySQL = 2,
+        PostgreSQL = 3,
     }
 
     // http://wiki.anidb.net/w/WebAOM#Move.2Frename_system
@@ -39,8 +37,8 @@ public static class Constants
         public static readonly string AnimeNameMain = "%ann";
         public static readonly string AnimeNameKanji = "%kan";
         public static readonly string AnimeNameEnglish = "%eng";
-        public static readonly string EpisodeNameRomaji = "%epn";
-        public static readonly string EpisodeNameEnglish = "%epr";
+        public static readonly string EpisodeNameRomaji = "%epr";
+        public static readonly string EpisodeNameEnglish = "%epn";
         public static readonly string EpisodeNumber = "%enr";
         public static readonly string GroupShortName = "%grp";
         public static readonly string GroupLongName = "%grl";
@@ -92,6 +90,7 @@ public static class Constants
     public struct URLS
     {
         public const string MAL_Series = @"https://myanimelist.net/anime/{0}";
+
         public const string AniDB_Series = @"https://anidb.net/perl-bin/animedb.pl?show=anime&aid={0}";
 
         public const string AniDB_SeriesDiscussion =
@@ -103,13 +102,6 @@ public static class Constants
         public const string AniDB_Images_Domain = @"cdn.anidb.net";
 
         public const string Trakt_Series = @"https://trakt.tv/show/{0}";
-
-
-        public const string TMDB_Movie = @"https://www.themoviedb.org/movie/{0}";
-
-        public const string TMDB_Images = @"https://image.tmdb.org/t/p/original{0}";
-
-        public const string TMDB_Export = @"https://files.tmdb.org/p/exports/{0}_ids_{1}_{2}_{3}.json.gz";
     }
 
     public struct TMDB

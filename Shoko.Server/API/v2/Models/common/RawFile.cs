@@ -6,18 +6,16 @@ using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using NLog;
-using Shoko.Models.PlexAndKodi;
-using Shoko.Models.Server;
-using Shoko.Server.Models;
+using Shoko.Server.API.v1.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Stream = Shoko.Models.PlexAndKodi.Stream;
 
 namespace Shoko.Server.API.v2.Models.common;
 
 [DataContract]
 public class RawFile : BaseDirectory
 {
-    private Logger logger = LogManager.GetCurrentClassLogger();
+    private readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     public override string type => "file";
 
@@ -103,7 +101,7 @@ public class RawFile : BaseDirectory
 
         public RecentFile() { }
 
-        public RecentFile(HttpContext ctx, SVR_VideoLocal vl, int level, int uid, AnimeEpisode e = null) : base(ctx,
+        public RecentFile(HttpContext ctx, VideoLocal vl, int level, int uid, AnimeEpisode e = null) : base(ctx,
             vl, level, uid, e)
         {
         }
@@ -113,7 +111,7 @@ public class RawFile : BaseDirectory
     {
     }
 
-    public RawFile(HttpContext ctx, SVR_VideoLocal vl, int level, int uid, AnimeEpisode e = null)
+    public RawFile(HttpContext ctx, VideoLocal vl, int level, int uid, AnimeEpisode e = null)
     {
         if (vl == null)
         {
@@ -131,12 +129,11 @@ public class RawFile : BaseDirectory
         updated = vl.DateTimeUpdated;
         duration = vl.Duration;
 
-        var releaseGroup = vl.ReleaseGroup;
-        if (releaseGroup != null)
+        if (vl.ReleaseGroup is { Source: "AniDB " } releaseGroup)
         {
-            group_full = releaseGroup.GroupName;
-            group_short = releaseGroup.GroupNameShort;
-            group_id = releaseGroup.AniDB_ReleaseGroupID;
+            group_full = releaseGroup.Name;
+            group_short = releaseGroup.ShortName;
+            group_id = int.Parse(releaseGroup.ID);
         }
 
         size = vl.FileSize;
@@ -144,22 +141,22 @@ public class RawFile : BaseDirectory
         hash_source = vl.HashSource;
 
         is_ignored = vl.IsIgnored ? 1 : 0;
-        var vl_user = RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(uid, vl.VideoLocalID);
+        var vl_user = RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(uid, vl.VideoLocalID);
         offset = vl_user?.ResumePosition ?? 0;
 
         var place = vl.FirstValidPlace;
         if (place != null)
         {
-            filename = place.FilePath;
-            server_path = place.FullServerPath;
-            videolocal_place_id = place.VideoLocal_Place_ID;
-            import_folder_id = place.ImportFolderID;
+            filename = place.RelativePath;
+            server_path = place.Path;
+            videolocal_place_id = place.ID;
+            import_folder_id = place.ManagedFolderID;
         }
 
         url = APIV2Helper.ConstructVideoLocalStream(ctx, uid, vl.VideoLocalID.ToString(),
             "file" + Path.GetExtension(filename), false);
 
-        recognized = e != null || vl.EpisodeCrossRefs.Count != 0;
+        recognized = e != null || vl.EpisodeCrossReferences.Count != 0;
 
         if (vl.MediaInfo?.GeneralStream == null || level < 0)
         {
@@ -170,7 +167,7 @@ public class RawFile : BaseDirectory
 
         try
         {
-            var legacy = new Media(vl.VideoLocalID, vl.MediaInfo);
+            var legacy = new CL_Media(vl.VideoLocalID, vl.MediaInfo);
 
             new_media.AddGeneral(MediaInfo.General.format, legacy.Container);
             new_media.AddGeneral(MediaInfo.General.duration, legacy.Duration);
@@ -208,7 +205,7 @@ public class RawFile : BaseDirectory
         }
         catch (Exception ex)
         {
-            logger.Error(ex);
+            _logger.Error(ex);
         }
 
         media = new_media;
@@ -225,15 +222,15 @@ public class RawFile : BaseDirectory
 
         //public Dictionary<int, Dictionary<Audio, string>> audios { get; private set; }
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
-        public Dictionary<int, Stream> audios { get; private set; }
+        public Dictionary<int, CL_MediaStream> audios { get; private set; }
 
         //public Dictionary<int, Dictionary<Video, string>> videos { get; private set; }
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
-        public Dictionary<int, Stream> videos { get; private set; }
+        public Dictionary<int, CL_MediaStream> videos { get; private set; }
 
         //public Dictionary<int, Dictionary<Subtitle, string>> subtitles { get; private set; }
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
-        public Dictionary<int, Stream> subtitles { get; private set; }
+        public Dictionary<int, CL_MediaStream> subtitles { get; private set; }
 
         [DataMember(IsRequired = false, EmitDefaultValue = false)]
         public Dictionary<int, Dictionary<string, string>> menus { get; private set; }
@@ -241,9 +238,9 @@ public class RawFile : BaseDirectory
         public MediaInfo()
         {
             general = new Dictionary<General, object>();
-            audios = new Dictionary<int, Stream>();
-            videos = new Dictionary<int, Stream>();
-            subtitles = new Dictionary<int, Stream>();
+            audios = new Dictionary<int, CL_MediaStream>();
+            videos = new Dictionary<int, CL_MediaStream>();
+            subtitles = new Dictionary<int, CL_MediaStream>();
             menus = new Dictionary<int, Dictionary<string, string>>();
         }
 
@@ -252,19 +249,19 @@ public class RawFile : BaseDirectory
             general.Add(param, value);
         }
 
-        public void AddAudio(Stream dict)
+        public void AddAudio(CL_MediaStream dict)
         {
-            audios.Add(audios.Count + 1, (Stream)dict.Clone());
+            audios.Add(audios.Count + 1, dict);
         }
 
-        public void AddVideo(Stream dict)
+        public void AddVideo(CL_MediaStream dict)
         {
-            videos.Add(videos.Count + 1, (Stream)dict.Clone());
+            videos.Add(videos.Count + 1, dict);
         }
 
-        public void AddSubtitle(Stream dict)
+        public void AddSubtitle(CL_MediaStream dict)
         {
-            subtitles.Add(subtitles.Count + 1, (Stream)dict.Clone());
+            subtitles.Add(subtitles.Count + 1, dict);
         }
 
         public void AddMenu(Dictionary<string, string> dict)

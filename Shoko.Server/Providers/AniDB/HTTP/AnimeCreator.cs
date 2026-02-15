@@ -9,21 +9,25 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Models.Enums;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Services;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.Release;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+
+using AbstractAnimeType = Shoko.Abstractions.Enums.AnimeType;
+using AbstractEpisodeType = Shoko.Abstractions.Enums.EpisodeType;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
 
@@ -32,28 +36,30 @@ public class AnimeCreator
     private readonly ILogger<AnimeCreator> _logger;
     private readonly ISettingsProvider _settingsProvider;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IVideoReleaseService _videoReleaseService;
     private readonly ConcurrentDictionary<int, object> _updatingIDs = [];
 
-    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings, ISchedulerFactory schedulerFactory)
+    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings, ISchedulerFactory schedulerFactory, IVideoReleaseService videoReleaseService)
     {
         _logger = logger;
         _settingsProvider = settings;
         _schedulerFactory = schedulerFactory;
+        _videoReleaseService = videoReleaseService;
     }
 
 
 #pragma warning disable CS0618
-    public async Task<(bool animeUpdated, bool titlesUpdated, bool descriptionUpdated, Dictionary<SVR_AniDB_Episode, UpdateReason> episodeChanges)> CreateAnime(ResponseGetAnime response, SVR_AniDB_Anime anime, int relDepth)
+    public async Task<(bool animeUpdated, bool titlesUpdated, bool descriptionUpdated, bool shouldUpdateFiles, Dictionary<AniDB_Episode, UpdateReason> episodeChanges)> CreateAnime(ResponseGetAnime response, AniDB_Anime anime, int relDepth)
     {
         _logger.LogTrace("Updating anime {AnimeID}", response?.Anime?.AnimeID);
-        if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, false, false, []);
+        if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, false, false, false, []);
         var lockObj = _updatingIDs.GetOrAdd(response.Anime.AnimeID, new object());
         Monitor.Enter(lockObj);
         try
         {
             // check if we updated in a lock
             var existingAnime = RepoFactory.AniDB_Anime.GetByAnimeID(response.Anime.AnimeID);
-            if (existingAnime != null && DateTime.Now - existingAnime.DateTimeUpdated < TimeSpan.FromSeconds(2)) return (false, false, false, []);
+            if (existingAnime != null && DateTime.Now - existingAnime.DateTimeUpdated < TimeSpan.FromSeconds(2)) return (false, false, false, false, []);
 
             var settings = _settingsProvider.GetSettings();
             _logger.LogTrace("------------------------------------------------");
@@ -69,12 +75,12 @@ public class AnimeCreator
                 _logger.LogError("AniDB_Anime was unable to populate as it received invalid info. " +
                                  "This is not an error on our end. It is AniDB's issue, " +
                                  "as they did not return either an ID or a title for the anime");
-                return (false, false, false, []);
+                return (false, false, false, false, []);
             }
 
             var taskTimer = Stopwatch.StartNew();
             var totalTimer = Stopwatch.StartNew();
-            var (updated, descriptionUpdated) = PopulateAnime(response.Anime, anime);
+            var (updated, descriptionUpdated, shouldUpdateFiles) = PopulateAnime(response.Anime, anime);
             RepoFactory.AniDB_Anime.Save(anime);
 
             taskTimer.Stop();
@@ -92,6 +98,7 @@ public class AnimeCreator
 
             var titlesUpdated = CreateTitles(response.Titles, anime);
             updated = updated || titlesUpdated;
+            shouldUpdateFiles = shouldUpdateFiles || titlesUpdated;
             taskTimer.Stop();
             _logger.LogTrace("CreateTitles in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
@@ -116,12 +123,12 @@ public class AnimeCreator
             _logger.LogTrace("CreateResources in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
-            CreateRelations(response.Relations);
+            CreateRelations(response.Relations, anime.AnimeID);
             taskTimer.Stop();
             _logger.LogTrace("CreateRelations in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
-            CreateSimilarAnime(response.Similar);
+            CreateSimilarAnime(response.Similar, anime.AnimeID);
             taskTimer.Stop();
             _logger.LogTrace("CreateSimilarAnime in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
@@ -139,7 +146,7 @@ public class AnimeCreator
             _logger.LogTrace("TOTAL TIME in : {Time}", totalTimer.Elapsed);
             _logger.LogTrace("------------------------------------------------");
 
-            return (updated, titlesUpdated, descriptionUpdated, updatedEpisodes);
+            return (updated, titlesUpdated, descriptionUpdated, shouldUpdateFiles, updatedEpisodes);
         }
         catch (Exception ex)
         {
@@ -154,10 +161,11 @@ public class AnimeCreator
     }
 #pragma warning restore CS0618
 
-    private static (bool animeUpdated, bool descriptionUpdated) PopulateAnime(ResponseAnime animeInfo, SVR_AniDB_Anime anime)
+    private static (bool animeUpdated, bool descriptionUpdated, bool shouldUpdateFiles) PopulateAnime(ResponseAnime animeInfo, AniDB_Anime anime)
     {
         var isUpdated = false;
         var descriptionUpdated = false;
+        var shouldUpdateFiles = false;
         var isNew = anime.AnimeID == 0 || anime.AniDB_AnimeID == 0;
         var description = animeInfo.Description ?? string.Empty;
         var episodeCountSpecial = animeInfo.EpisodeCount - animeInfo.EpisodeCountNormal;
@@ -165,6 +173,7 @@ public class AnimeCreator
         {
             anime.AirDate = animeInfo.AirDate;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.AllCinemaID != animeInfo.AllCinemaID)
@@ -177,12 +186,14 @@ public class AnimeCreator
         {
             anime.AnimeID = animeInfo.AnimeID;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
-        if (anime.AnimeType != (int)animeInfo.AnimeType)
+        if (anime.AnimeType != (AbstractAnimeType)animeInfo.AnimeType)
         {
-            anime.AnimeType = (int)animeInfo.AnimeType;
+            anime.AnimeType = (AbstractAnimeType)animeInfo.AnimeType;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.ANNID != animeInfo.ANNID)
@@ -201,6 +212,7 @@ public class AnimeCreator
         {
             anime.BeginYear = animeInfo.BeginYear;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.Description != description)
@@ -208,24 +220,28 @@ public class AnimeCreator
             anime.Description = description;
             isUpdated = true;
             descriptionUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.EndDate != animeInfo.EndDate)
         {
             anime.EndDate = animeInfo.EndDate;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.EndYear != animeInfo.EndYear)
         {
             anime.EndYear = animeInfo.EndYear;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.MainTitle != animeInfo.MainTitle)
         {
             anime.MainTitle = animeInfo.MainTitle;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.EpisodeCount != animeInfo.EpisodeCount)
@@ -250,6 +266,7 @@ public class AnimeCreator
         {
             anime.Picname = animeInfo.Picname;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.Rating != animeInfo.Rating)
@@ -262,6 +279,7 @@ public class AnimeCreator
         {
             anime.IsRestricted = animeInfo.IsRestricted;
             isUpdated = true;
+            shouldUpdateFiles = true;
         }
 
         if (anime.ReviewCount != animeInfo.ReviewCount)
@@ -301,17 +319,10 @@ public class AnimeCreator
             anime.ImageEnabled = 1;
         }
 
-        if (isNew || isUpdated)
-        {
-#pragma warning disable CS0618
-            anime.DateTimeUpdated = anime.DateTimeDescUpdated = DateTime.Now;
-#pragma warning restore CS0618
-        }
-
-        return (isUpdated, descriptionUpdated);
+        return (isUpdated, descriptionUpdated, shouldUpdateFiles);
     }
 
-    private async Task<(bool, Dictionary<SVR_AniDB_Episode, UpdateReason>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, SVR_AniDB_Anime anime)
+    private async Task<(bool, Dictionary<AniDB_Episode, UpdateReason>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, AniDB_Anime anime)
     {
         if (rawEpisodeList == null)
             return (false, []);
@@ -326,7 +337,7 @@ public class AnimeCreator
         var epsBelongingToOtherAnime = epIDs
             .Where(id => !epsBelongingToThisAnime.ContainsKey(id))
             .Select(id => RepoFactory.AniDB_Episode.GetByEpisodeID(id))
-            .Where(episode => episode != null)
+            .WhereNotNull()
             .ToList();
         var currentAniDBEpisodes = epsBelongingToThisAnime.Values
             .Concat(epsBelongingToOtherAnime)
@@ -336,10 +347,10 @@ public class AnimeCreator
         var epsToRemove = currentAniDBEpisodes.Values
             .Where(a => !epIDs.Contains(a.EpisodeID))
             .ToList();
-        var epsToSave = new List<SVR_AniDB_Episode>();
-        var titlesToRemove = new List<SVR_AniDB_Episode_Title>();
-        var titlesToSave = new List<SVR_AniDB_Episode_Title>();
-        var episodeEventsToEmit = new Dictionary<SVR_AniDB_Episode, UpdateReason>();
+        var epsToSave = new List<AniDB_Episode>();
+        var titlesToRemove = new List<AniDB_Episode_Title>();
+        var titlesToSave = new List<AniDB_Episode_Title>();
+        var episodeEventsToEmit = new Dictionary<AniDB_Episode, UpdateReason>();
 
         foreach (var rawEpisode in rawEpisodeList)
         {
@@ -360,7 +371,7 @@ public class AnimeCreator
                 if (episode.DateTimeUpdated >= rawEpisode.LastUpdated && episode.AnimeID != rawEpisode.AnimeID)
                     continue;
 
-                var airDate = Commons.Utils.AniDB.GetAniDBDateAsSeconds(rawEpisode.AirDate);
+                var airDate = AniDBExtensions.GetAniDBDateAsSeconds(rawEpisode.AirDate);
                 var rating = rawEpisode.Rating.ToString(CultureInfo.InvariantCulture);
                 var votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture);
                 var description = rawEpisode.Description ?? string.Empty;
@@ -382,9 +393,9 @@ public class AnimeCreator
                     isUpdated = true;
                 }
 
-                if (episode.EpisodeType != (int)rawEpisode.EpisodeType)
+                if (episode.EpisodeType != (AbstractEpisodeType)rawEpisode.EpisodeType)
                 {
-                    episode.EpisodeType = (int)rawEpisode.EpisodeType;
+                    episode.EpisodeType = (AbstractEpisodeType)rawEpisode.EpisodeType;
                     isUpdated = true;
                 }
 
@@ -418,12 +429,12 @@ public class AnimeCreator
                 isNew = true;
                 episode = new()
                 {
-                    AirDate = Commons.Utils.AniDB.GetAniDBDateAsSeconds(rawEpisode.AirDate),
+                    AirDate = AniDBExtensions.GetAniDBDateAsSeconds(rawEpisode.AirDate),
                     AnimeID = rawEpisode.AnimeID,
                     DateTimeUpdated = rawEpisode.LastUpdated,
                     EpisodeID = rawEpisode.EpisodeID,
                     EpisodeNumber = rawEpisode.EpisodeNumber,
-                    EpisodeType = (int)rawEpisode.EpisodeType,
+                    EpisodeType = (AbstractEpisodeType)rawEpisode.EpisodeType,
                     LengthSeconds = rawEpisode.LengthSeconds,
                     Rating = rawEpisode.Rating.ToString(CultureInfo.InvariantCulture),
                     Votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture),
@@ -433,7 +444,7 @@ public class AnimeCreator
 
             // Convert the raw titles to their equivalent database model.
             var newTitles = rawEpisode.Titles
-                .Select(rawtitle => new SVR_AniDB_Episode_Title
+                .Select(rawtitle => new AniDB_Episode_Title
                 {
                     AniDB_EpisodeID = rawEpisode.EpisodeID,
                     Language = rawtitle.Language,
@@ -490,12 +501,12 @@ public class AnimeCreator
 
         // Validate existing shoko episodes.
         var correctSeries = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
-        var shokoEpisodesToRemove = new List<SVR_AnimeEpisode>();
-        var shokoEpisodesToSave = new List<SVR_AnimeEpisode>();
-        var shokoSeriesDict = new Dictionary<int, SVR_AnimeSeries>();
-        var anidbFilesToRemove = new List<SVR_AniDB_File>();
-        var xrefsToRemove = new List<SVR_CrossRef_File_Episode>();
-        var videosToRefetch = new List<SVR_VideoLocal>();
+        var shokoEpisodesToRemove = new List<AnimeEpisode>();
+        var shokoEpisodesToSave = new List<AnimeEpisode>();
+        var shokoSeriesDict = new Dictionary<int, AnimeSeries>();
+        var storedReleasesToRemove = new List<StoredReleaseInfo>();
+        var xrefsToRemove = new List<CrossRef_File_Episode>();
+        var videosToRefetch = new List<VideoLocal>();
         var tmdbXRefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
         if (correctSeries != null)
             shokoSeriesDict.Add(correctSeries.AnimeSeriesID, correctSeries);
@@ -527,18 +538,14 @@ public class AnimeCreator
             shokoEpisodesToRemove.Add(shokoEpisode);
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID);
             var videos = xrefs
-                .Select(xref => RepoFactory.VideoLocal.GetByHashAndSize(xref.Hash, xref.FileSize))
-                .Where(video => video != null)
+                .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
+                .WhereNotNull()
                 .ToList();
-            var anidbFiles = xrefs
-                .Where(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                .Select(xref => RepoFactory.AniDB_File.GetByHashAndFileSize(xref.Hash, xref.FileSize))
-                .Where(anidbFile => anidbFile != null)
-                .ToList();
+            var storedReleases = RepoFactory.StoredReleaseInfo.GetByAnidbEpisodeID(episode.EpisodeID);
             var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
-            anidbFilesToRemove.AddRange(anidbFiles);
+            storedReleasesToRemove.AddRange(storedReleases);
             tmdbXRefsToRemove.AddRange(tmdbXRefs);
         }
         shokoSeriesDict.Clear();
@@ -553,22 +560,18 @@ public class AnimeCreator
                 shokoEpisodesToRemove.Add(shokoEpisode);
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.EpisodeID);
             var videos = xrefs
-                .Select(xref => RepoFactory.VideoLocal.GetByHashAndSize(xref.Hash, xref.FileSize))
-                .Where(video => video != null)
+                .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
+                .WhereNotNull()
                 .ToList();
-            var anidbFiles = xrefs
-                .Where(xref => xref.CrossRefSource == (int)CrossRefSource.AniDB)
-                .Select(xref => RepoFactory.AniDB_File.GetByHashAndFileSize(xref.Hash, xref.FileSize))
-                .Where(anidbFile => anidbFile != null)
-                .ToList();
+            var databaseReleases = RepoFactory.StoredReleaseInfo.GetByAnidbEpisodeID(episode.EpisodeID);
             var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
-            anidbFilesToRemove.AddRange(anidbFiles);
+            storedReleasesToRemove.AddRange(databaseReleases);
             tmdbXRefsToRemove.AddRange(tmdbXRefs);
         }
 
-        RepoFactory.AniDB_File.Delete(anidbFilesToRemove);
+        RepoFactory.StoredReleaseInfo.Delete(storedReleasesToRemove.DistinctBy(a => a.StoredReleaseInfoID).ToList());
         RepoFactory.AniDB_Episode.Save(epsToSave);
         RepoFactory.AniDB_Episode.Delete(epsToRemove);
         RepoFactory.AniDB_Episode_Title.Save(titlesToSave);
@@ -581,15 +584,12 @@ public class AnimeCreator
         // Schedule a refetch of any video files affected by the removal of the
         // episodes. They were likely moved to another episode entry so let's
         // try and fetch that.
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var video in videosToRefetch)
         {
-            await scheduler.StartJobNow<ProcessFileJob>(c =>
-            {
-                c.VideoLocalID = video.VideoLocalID;
-                c.SkipMyList = true;
-                c.ForceAniDB = true;
-            });
+            // If auto-match is not available then clear the release so the video is
+            // not referencing no longer existing episodes.
+            await _videoReleaseService.ClearReleaseForVideo(video);
+            await _videoReleaseService.ScheduleFindReleaseForVideo(video, prioritize: true);
         }
 
         var episodeCount = episodeCountSpecial + episodeCountNormal;
@@ -607,7 +607,7 @@ public class AnimeCreator
         );
     }
 
-    private static bool CreateTitles(List<ResponseTitle> titles, SVR_AniDB_Anime anime)
+    private static bool CreateTitles(List<ResponseTitle> titles, AniDB_Anime anime)
     {
         // after this runs once, it should clean up the dupes from before
         if (titles == null)
@@ -615,10 +615,10 @@ public class AnimeCreator
 
         var allTitles = string.Empty;
         var existingTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(anime.AnimeID);
-        var keySelector = new Func<SVR_AniDB_Anime_Title, string>(t => $"{t.TitleType},{t.LanguageCode},{t.Title}");
+        var keySelector = new Func<AniDB_Anime_Title, string>(t => $"{t.TitleType},{t.Language},{t.Title}");
         var existingTitleDict = existingTitles.DistinctBy(keySelector).ToDictionary(keySelector);
         var titlesToKeep = new HashSet<int>();
-        var titlesToSave = new Dictionary<string, SVR_AniDB_Anime_Title>();
+        var titlesToSave = new Dictionary<string, AniDB_Anime_Title>();
 
         foreach (var rawtitle in titles)
         {
@@ -628,6 +628,9 @@ public class AnimeCreator
             if (existingTitleDict.TryGetValue(key, out var title))
             {
                 titlesToKeep.Add(title.AniDB_Anime_TitleID);
+                if (allTitles.Length > 0)
+                    allTitles += "|";
+                allTitles += rawtitle.Title;
                 continue;
             }
 
@@ -730,7 +733,7 @@ public class AnimeCreator
         return tag;
     }
 
-    public static bool CreateTags(List<ResponseTag> tags, SVR_AniDB_Anime anime)
+    public static bool CreateTags(List<ResponseTag> tags, AniDB_Anime anime)
     {
         if (tags == null)
             return false;
@@ -747,8 +750,10 @@ public class AnimeCreator
                 continue;
 
             var tag = FindOrCreateTag(rawtag);
+            if (!newTagIDs.Add(tag.TagID))
+                continue;
+
             tagsToSave.Add(tag);
-            newTagIDs.Add(tag.TagID);
 
             var xref = RepoFactory.AniDB_Anime_Tag.GetByAnimeIDAndTagID(rawtag.AnimeID, tag.TagID) ?? new();
             xref.AnimeID = rawtag.AnimeID;
@@ -777,341 +782,416 @@ public class AnimeCreator
         return xrefsToSave.Count > 0 || xrefsToDelete.Count > 0;
     }
 
-    private void CreateCharacters(List<ResponseCharacter> chars, SVR_AniDB_Anime anime)
+    public void CreateCharacters(List<ResponseCharacter> chars, AniDB_Anime anime, bool skipCreatorScheduling = false)
     {
         if (chars == null) return;
 
-        // delete all the existing cross-references just in case one has been removed
-        var animeChars = RepoFactory.AniDB_Anime_Character.GetByAnimeID(anime.AnimeID);
+        var charBasePath = ImageUtils.BaseAniDBCharacterImagesPath + Path.DirectorySeparatorChar;
+        var creatorBasePath = ImageUtils.BaseAniDBCreatorImagesPath + Path.DirectorySeparatorChar;
+        var settings = _settingsProvider.GetSettings();
 
-        try
-        {
-            RepoFactory.AniDB_Anime_Character.Delete(animeChars);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unable to Remove Characters for {MainTitle}", anime.MainTitle);
-        }
+        var existingCreators = new Dictionary<int, AniDB_Creator>();
+        var existingXrefs = RepoFactory.AniDB_Anime_Character.GetByAnimeID(anime.AnimeID)
+            .ToLookup(a => a.CharacterID);
+        var existingCreatorXrefs = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(anime.AnimeID)
+            .ToLookup(a => (a.CharacterID, a.CreatorID));
 
-        // delete existing relationships to seiyuu's
-        var charSeiyuusToDelete = chars.SelectMany(rawchar => RepoFactory.AniDB_Character_Creator.GetByCharacterID(rawchar.CharacterID)).ToList();
-
-        try
-        {
-            RepoFactory.AniDB_Character_Creator.Delete(charSeiyuusToDelete);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unable to Remove Seiyuus for {MainTitle}", anime.MainTitle);
-        }
-
-        var chrsToSave = new List<AniDB_Character>();
-        var xrefsToSave = new List<AniDB_Anime_Character>();
-
-        var creatorsToSchedule = new HashSet<int>();
-        var creatorsToSave = new Dictionary<int, AniDB_Creator>();
-        var creatorXrefToSave = new List<AniDB_Character_Creator>();
-
-        var charBasePath = ImageUtils.GetBaseAniDBCharacterImagesPath() + Path.DirectorySeparatorChar;
-        var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
-        var charLookup = chars.ToLookup(a => a.CharacterID);
-
-        foreach (var groupings in charLookup.Where(a => a.Count() > 1))
-        {
-            _logger.LogWarning("Anime had a duplicate character listing for CharacterID: {CharID}", groupings.Key);
-        }
-
-        foreach (var grouping in charLookup)
-        {
-            try
-            {
-                var rawchar = grouping.FirstOrDefault();
-                var chr = RepoFactory.AniDB_Character.GetByCharID(rawchar.CharacterID) ?? new AniDB_Character();
-
-                if (chr.CharID != 0)
-                {
-                    // only update the fields that come from HTTP API
-                    if (string.IsNullOrEmpty(rawchar?.CharacterName)) continue;
-
-                    chr.CharDescription = rawchar.CharacterDescription ?? string.Empty;
-                    chr.CharName = rawchar.CharacterName;
-                    chr.PicName = rawchar.PicName ?? string.Empty;
-                }
-                else
-                {
-                    if (rawchar == null) continue;
-                    if (rawchar.CharacterID <= 0 || string.IsNullOrEmpty(rawchar.CharacterName)) continue;
-
-                    chr.CharID = rawchar.CharacterID;
-                    chr.CharDescription = rawchar.CharacterDescription ?? string.Empty;
-                    chr.CharKanjiName = rawchar.CharacterKanjiName ?? string.Empty;
-                    chr.CharName = rawchar.CharacterName;
-                    chr.PicName = rawchar.PicName ?? string.Empty;
-                }
-
-                chrsToSave.Add(chr);
-
-                var character = RepoFactory.AnimeCharacter.GetByAniDBID(chr.CharID);
-                if (character == null)
-                {
-                    character = new AnimeCharacter
-                    {
-                        AniDBID = chr.CharID,
-                        Name = chr.CharName,
-                        AlternateName = rawchar.CharacterKanjiName,
-                        Description = chr.CharDescription,
-                        ImagePath = chr.GetFullImagePath()?.Replace(charBasePath, "")
-                    };
-                    // we need an ID for xref
-                    RepoFactory.AnimeCharacter.Save(character);
-                }
-
-                // create cross ref's between anime and character, but don't actually download anything
-                var animeChar = new AniDB_Anime_Character();
-                if (rawchar.AnimeID <= 0 || rawchar.CharacterID <= 0 || string.IsNullOrEmpty(rawchar.CharacterType)) continue;
-
-                animeChar.CharID = rawchar.CharacterID;
-                animeChar.AnimeID = rawchar.AnimeID;
-                animeChar.CharType = rawchar.CharacterType;
-                xrefsToSave.Add(animeChar);
-
-                var seiyuuLookup = rawchar.Seiyuus.ToLookup(a => (rawchar.CharacterID, a.SeiyuuID));
-                if (seiyuuLookup.Any(a => a.Count() > 1))
-                {
-                    foreach (var groupings in seiyuuLookup.Where(a => a.Count() > 1))
-                    {
-                        _logger.LogWarning("Anime had a duplicate seiyuu listing for SeiyuuID: {SeiyuuID} and CharacterID: {CharID}", groupings.Key.SeiyuuID, groupings.Key.CharacterID);
-                    }
-                }
-
-                var settings = _settingsProvider.GetSettings();
-                foreach (var seiyuuGrouping in seiyuuLookup)
-                {
-                    try
-                    {
-                        var rawSeiyuu = seiyuuGrouping.FirstOrDefault();
-                        // save the link between character and seiyuu
-                        // this should always be null
-                        creatorXrefToSave.Add(new() { CharacterID = chr.CharID, CreatorID = rawSeiyuu.SeiyuuID });
-
-                        // save the seiyuu
-                        var creator = RepoFactory.AniDB_Creator.GetByCreatorID(rawSeiyuu.SeiyuuID) ?? new()
-                        {
-                            CreatorID = rawSeiyuu.SeiyuuID,
-                            Name = rawSeiyuu.SeiyuuName,
-                            Type = CreatorType.Unknown,
-                            ImagePath = rawSeiyuu.PicName,
-                        };
-                        if (string.IsNullOrEmpty(creator.Name) && !string.IsNullOrEmpty(rawSeiyuu.SeiyuuName))
-                            creator.Name = rawSeiyuu.SeiyuuName;
-
-                        creatorsToSave[creator.CreatorID] = creator;
-                        if (settings.AniDb.DownloadCreators && creator.Type is CreatorType.Unknown)
-                            creatorsToSchedule.Add(creator.CreatorID);
-
-                        var staff = RepoFactory.AnimeStaff.GetByAniDBID(creator.CreatorID);
-                        if (staff == null)
-                        {
-                            staff = new AnimeStaff
-                            {
-                                // Unfortunately, most of the info is not provided
-                                AniDBID = creator.CreatorID,
-                                Name = rawSeiyuu.SeiyuuName,
-                                ImagePath = creator.GetFullImagePath()?.Replace(creatorBasePath, "")
-                            };
-                            // we need an ID for xref
-                            RepoFactory.AnimeStaff.Save(staff);
-                        }
-                        else if (string.IsNullOrEmpty(staff.Name) && !string.IsNullOrEmpty(rawSeiyuu.SeiyuuName))
-                        {
-                            staff.Name = rawSeiyuu.SeiyuuName;
-                            RepoFactory.AnimeStaff.Save(staff);
-                        }
-
-                        var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByParts(anime.AnimeID,
-                            character.CharacterID,
-                            staff.StaffID, StaffRoleType.Seiyuu);
-                        if (xrefAnimeStaff != null)
-                        {
-                            continue;
-                        }
-
-                        var role = rawchar.CharacterType;
-                        if (CrossRef_Anime_StaffRepository.Roles.TryGetValue(role, out var role1))
-                        {
-                            role = role1.ToString().Replace("_", " ");
-                        }
-
-                        xrefAnimeStaff = new CrossRef_Anime_Staff
-                        {
-                            AniDB_AnimeID = anime.AnimeID,
-                            Language = "Japanese",
-                            RoleType = (int)StaffRoleType.Seiyuu,
-                            Role = role,
-                            RoleID = character.CharacterID,
-                            StaffID = staff.StaffID
-                        };
-                        RepoFactory.CrossRef_Anime_Staff.Save(xrefAnimeStaff);
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError(e, "Unable to Populate and Save Seiyuus for {MainTitle}", anime.AnimeID);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unable to Populate and Save Characters for {MainTitle}", anime.AnimeID);
-            }
-        }
-
-        try
-        {
-            RepoFactory.AniDB_Character.Save(chrsToSave);
-            RepoFactory.AniDB_Anime_Character.Save(xrefsToSave);
-            RepoFactory.AniDB_Creator.Save(creatorsToSave.Values.ToList());
-            RepoFactory.AniDB_Character_Creator.Save(creatorXrefToSave);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unable to Save Characters and Seiyuus for {MainTitle}", anime.MainTitle);
-        }
-
-        ScheduleCreators(creatorsToSchedule, anime.MainTitle);
-    }
-
-    private void CreateStaff(List<ResponseStaff> staffList, SVR_AniDB_Anime anime)
-    {
-        if (staffList == null) return;
-
-        // delete all the existing cross-references just in case one has been removed
-        var animeStaff = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID);
-
-        try
-        {
-            RepoFactory.AniDB_Anime_Staff.Delete(animeStaff);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unable to Remove Staff for {MainTitle}", anime.MainTitle);
-        }
+        var charactersToKeep = new HashSet<int>();
+        var charactersToSave = new List<AniDB_Character>();
+        var characterXrefsToKeep = new HashSet<int>();
+        var characterXrefsToSave = new List<AniDB_Anime_Character>();
 
         var creatorsToSchedule = new HashSet<int>();
         var creatorsToSave = new List<AniDB_Creator>();
-        var animeStaffToSave = new List<AniDB_Anime_Staff>();
-        var xRefToSave = new List<CrossRef_Anime_Staff>();
-
-        var staffLookup = staffList.ToLookup(a => (a.AnimeID, a.CreatorID, a.CreatorType));
-        if (staffLookup.Any(a => a.Count() > 1))
-        {
-            foreach (var groupings in staffLookup.Where(a => a.Count() > 1))
-            {
-                _logger.LogWarning("Anime had a duplicate staff listing for CreatorID: {CreatorID} and CreatorType: {CreatorType}", groupings.Key.CreatorID, groupings.Key.CreatorType);
-            }
-        }
-
-        var settings = _settingsProvider.GetSettings();
-        foreach (var grouping in staffLookup)
-        {
-            try
-            {
-                var rawStaff = grouping.FirstOrDefault();
-                animeStaffToSave.Add(new AniDB_Anime_Staff
-                {
-                    AnimeID = rawStaff.AnimeID,
-                    CreatorID = rawStaff.CreatorID,
-                    CreatorType = rawStaff.CreatorType
-                });
-
-                var creator = RepoFactory.AniDB_Creator.GetByCreatorID(rawStaff.CreatorID);
-                if (creator is null)
-                {
-                    creator = new()
-                    {
-                        CreatorID = rawStaff.CreatorID,
-                        Name = rawStaff.CreatorName,
-                        Type = CreatorType.Unknown,
-                    };
-                    creatorsToSave.Add(creator);
-                }
-                else if (string.IsNullOrEmpty(creator.Name) && !string.IsNullOrEmpty(rawStaff.CreatorName))
-                {
-                    creator.Name = rawStaff.CreatorName;
-                    creatorsToSave.Add(creator);
-                }
-                if (settings.AniDb.DownloadCreators && creator.Type is CreatorType.Unknown)
-                    creatorsToSchedule.Add(rawStaff.CreatorID);
-
-                var staff = RepoFactory.AnimeStaff.GetByAniDBID(rawStaff.CreatorID);
-                if (staff == null)
-                {
-                    staff = new AnimeStaff
-                    {
-                        AniDBID = rawStaff.CreatorID,
-                        Name = rawStaff.CreatorName,
-                    };
-                    // we need an ID for xref
-                    RepoFactory.AnimeStaff.Save(staff);
-                }
-                else if (string.IsNullOrEmpty(staff.Name) && !string.IsNullOrEmpty(rawStaff.CreatorName))
-                {
-                    staff.Name = rawStaff.CreatorName;
-                    RepoFactory.AnimeStaff.Save(staff);
-                }
-
-                var roleType = rawStaff.CreatorType switch
-                {
-                    "Animation Work" => StaffRoleType.Studio,
-                    "Work" => StaffRoleType.Studio,
-                    "Original Work" => StaffRoleType.SourceWork,
-                    "Music" => StaffRoleType.Music,
-                    "Character Design" => StaffRoleType.CharacterDesign,
-                    "Direction" => StaffRoleType.Director,
-                    "Series Composition" => StaffRoleType.SeriesComposer,
-                    "Chief Animation Direction" => StaffRoleType.Producer,
-                    _ => StaffRoleType.Staff
-                };
-
-                var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByParts(anime.AnimeID, null, staff.StaffID, roleType);
-                if (xrefAnimeStaff != null)
-                {
-                    continue;
-                }
-
-                var role = rawStaff.CreatorType;
-                if (CrossRef_Anime_StaffRepository.Roles.TryGetValue(role, out var role1))
-                {
-                    role = role1.ToString().Replace("_", " ");
-                }
-
-                xrefAnimeStaff = new CrossRef_Anime_Staff
-                {
-                    AniDB_AnimeID = anime.AnimeID,
-                    Language = "Japanese",
-                    RoleType = (int)roleType,
-                    Role = role,
-                    RoleID = null,
-                    StaffID = staff.StaffID
-                };
-                xRefToSave.Add(xrefAnimeStaff);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unable to Populate and Save Staff for {MainTitle}", anime.MainTitle);
-            }
-        }
+        var creatorXrefsToKeep = new HashSet<int>();
+        var creatorXrefsToSave = new List<AniDB_Anime_Character_Creator>();
 
         try
         {
-            RepoFactory.AniDB_Anime_Staff.Save(animeStaffToSave);
-            RepoFactory.CrossRef_Anime_Staff.Save(xRefToSave);
+            var charLookup = chars.ToLookup(a => a.CharacterID);
+            foreach (var groupings in charLookup.Where(a => a.Count() > 1))
+                _logger.LogWarning("Anime had a duplicate character listing for CharacterID: {CharID}", groupings.Key);
+
+            var characterOrdering = 0;
+            foreach (var (rawCharacter, _) in charLookup)
+            {
+                var characterIndex = characterOrdering++;
+                if (rawCharacter.AnimeID != anime.AnimeID || rawCharacter.CharacterID <= 0 || string.IsNullOrEmpty(rawCharacter.CharacterAppearanceType))
+                    continue;
+
+                var gender = rawCharacter.Gender switch
+                {
+                    null => PersonGender.Unknown,
+                    _ => Enum.TryParse<PersonGender>(rawCharacter.Gender, true, out var result) ? result : PersonGender.Unknown
+                };
+                var characterType = rawCharacter.CharacterType switch
+                {
+                    null => CharacterType.Unknown,
+                    _ => Enum.TryParse<CharacterType>(rawCharacter.CharacterType, true, out var result) ? result : CharacterType.Unknown
+                };
+                var character = RepoFactory.AniDB_Character.GetByCharacterID(rawCharacter.CharacterID) ?? new()
+                {
+                    CharacterID = rawCharacter.CharacterID,
+                };
+                if (character.AniDB_CharacterID is 0)
+                {
+                    if (rawCharacter == null) continue;
+                    if (rawCharacter.CharacterID <= 0 || string.IsNullOrEmpty(rawCharacter.CharacterName)) continue;
+
+                    character.Description = rawCharacter.CharacterDescription ?? string.Empty;
+                    character.OriginalName = rawCharacter.CharacterKanjiName ?? string.Empty;
+                    character.Name = rawCharacter.CharacterName;
+                    character.ImagePath = rawCharacter.PicName ?? string.Empty;
+                    character.Gender = gender;
+                    character.Type = characterType;
+                    charactersToSave.Add(character);
+                }
+                else if (rawCharacter.LastUpdated >= character.LastUpdated)
+                {
+                    if (string.IsNullOrEmpty(rawCharacter?.CharacterName)) continue;
+
+                    var updated = false;
+                    if (character.Description != (rawCharacter.CharacterDescription ?? string.Empty))
+                    {
+                        character.Description = rawCharacter.CharacterDescription ?? string.Empty;
+                        updated = true;
+                    }
+                    if (character.Name != rawCharacter.CharacterName)
+                    {
+                        character.Name = rawCharacter.CharacterName;
+                        updated = true;
+                    }
+                    if (character.OriginalName != (rawCharacter.CharacterKanjiName ?? string.Empty))
+                    {
+                        character.OriginalName = rawCharacter.CharacterKanjiName ?? string.Empty;
+                        updated = true;
+                    }
+                    if (character.ImagePath != (rawCharacter.PicName ?? string.Empty))
+                    {
+                        character.ImagePath = rawCharacter.PicName ?? string.Empty;
+                        updated = true;
+                    }
+                    if (character.Gender != gender)
+                    {
+                        character.Gender = gender;
+                        updated = true;
+                    }
+                    if (character.Type != characterType)
+                    {
+                        character.Type = characterType;
+                        updated = true;
+                    }
+                    if (character.LastUpdated != rawCharacter.LastUpdated)
+                    {
+                        character.LastUpdated = rawCharacter.LastUpdated;
+                        updated = true;
+                    }
+                    if (updated)
+                        charactersToSave.Add(character);
+                    charactersToKeep.Add(character.AniDB_CharacterID);
+                }
+                else
+                {
+                    charactersToKeep.Add(character.AniDB_CharacterID);
+                }
+
+                var appearance = rawCharacter.CharacterAppearanceType;
+                var appearanceType = appearance switch
+                {
+                    "main character in" => CharacterAppearanceType.Main_Character,
+                    "secondary cast in" => CharacterAppearanceType.Minor_Character,
+                    "appears in" => CharacterAppearanceType.Background_Character,
+                    "cameo appearance in" => CharacterAppearanceType.Cameo,
+                    _ => CharacterAppearanceType.Unknown,
+                };
+                var xref = existingXrefs.Contains(rawCharacter.CharacterID)
+                    ? existingXrefs[rawCharacter.CharacterID].First()
+                    : new AniDB_Anime_Character()
+                    {
+                        AnimeID = anime.AnimeID,
+                        CharacterID = rawCharacter.CharacterID,
+                    };
+                if (xref.AniDB_Anime_CharacterID == 0)
+                {
+                    xref.Ordering = characterIndex;
+                    xref.Appearance = appearance;
+                    xref.AppearanceType = appearanceType;
+                    characterXrefsToSave.Add(xref);
+                }
+                else
+                {
+                    var updated = false;
+                    if (xref.Ordering != characterIndex)
+                    {
+                        xref.Ordering = characterIndex;
+                        updated = true;
+                    }
+                    if (xref.Appearance != appearance)
+                    {
+                        xref.Appearance = appearance;
+                        updated = true;
+                    }
+                    if (xref.AppearanceType != appearanceType)
+                    {
+                        xref.AppearanceType = appearanceType;
+                        updated = true;
+                    }
+                    if (updated)
+                        characterXrefsToSave.Add(xref);
+                    characterXrefsToKeep.Add(xref.AniDB_Anime_CharacterID);
+                }
+
+                var creatorLookup = rawCharacter.Seiyuus.ToLookup(a => a.SeiyuuID);
+                foreach (var groupings in creatorLookup.Where(a => a.Count() > 1))
+                    _logger.LogWarning("Anime had a duplicate voice actor listing for SeiyuuID: {SeiyuuID} and CharacterID: {CharID}", groupings.Key, rawCharacter.CharacterID);
+
+                var actorOrdering = 0;
+                foreach (var (rawSeiyuu, _) in creatorLookup)
+                {
+                    var actorIndex = actorOrdering++;
+                    if (!existingCreators.TryGetValue(rawSeiyuu.SeiyuuID, out var creator))
+                    {
+                        creator = RepoFactory.AniDB_Creator.GetByCreatorID(rawSeiyuu.SeiyuuID) ?? new()
+                        {
+                            CreatorID = rawSeiyuu.SeiyuuID,
+                            Type = CreatorType.Unknown,
+                        };
+                        if (creator.AniDB_CreatorID == 0)
+                        {
+                            creator.Name = rawSeiyuu.SeiyuuName;
+                            creator.ImagePath = rawSeiyuu.PicName;
+                            creatorsToSave.Add(creator);
+                        }
+                        else
+                        {
+                            var updated = false;
+                            if (string.IsNullOrEmpty(creator.Name) && !string.IsNullOrEmpty(rawSeiyuu.SeiyuuName))
+                            {
+                                creator.Name = rawSeiyuu.SeiyuuName;
+                                updated = true;
+                            }
+                            if (string.IsNullOrEmpty(creator.ImagePath) && !string.IsNullOrEmpty(rawSeiyuu.PicName))
+                            {
+                                creator.ImagePath = rawSeiyuu.PicName;
+                                updated = true;
+                            }
+                            if (updated)
+                                creatorsToSave.Add(creator);
+                        }
+
+                        if (settings.AniDb.DownloadCreators && creator.Type is CreatorType.Unknown)
+                            creatorsToSchedule.Add(creator.CreatorID);
+                        existingCreators[rawSeiyuu.SeiyuuID] = creator;
+                    }
+
+                    var creatorXref = existingCreatorXrefs.Contains((rawCharacter.CharacterID, rawSeiyuu.SeiyuuID))
+                        ? existingCreatorXrefs[(rawCharacter.CharacterID, rawSeiyuu.SeiyuuID)].First()
+                        : new AniDB_Anime_Character_Creator()
+                        {
+                            AnimeID = anime.AnimeID,
+                            CharacterID = rawCharacter.CharacterID,
+                            CreatorID = rawSeiyuu.SeiyuuID,
+                        };
+                    if (creatorXref.AniDB_Anime_Character_CreatorID == 0)
+                    {
+                        creatorXref.Ordering = actorIndex;
+                        creatorXrefsToSave.Add(creatorXref);
+                    }
+                    else
+                    {
+                        var updated = false;
+                        if (creatorXref.Ordering != actorIndex)
+                        {
+                            creatorXref.Ordering = actorIndex;
+                            updated = true;
+                        }
+                        if (updated)
+                            creatorXrefsToSave.Add(creatorXref);
+                        creatorXrefsToKeep.Add(creatorXref.AniDB_Anime_Character_CreatorID);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unable to Populate and Save Characters for {MainTitle} (Anime={AnimeID})", anime.MainTitle, anime.AnimeID);
+            // If we continue we may be doing potential damage to otherwise existing entries, so abort for now.
+            return;
+        }
+
+        var xrefsToDelete = existingXrefs
+            .SelectMany(x => x)
+            .ExceptBy(characterXrefsToKeep, x => x.AniDB_Anime_CharacterID)
+            .ToList();
+        var xrefsCreatorToDelete = existingCreatorXrefs
+            .SelectMany(x => x)
+            .ExceptBy(creatorXrefsToKeep, x => x.AniDB_Anime_Character_CreatorID)
+            .ToList();
+        var charactersToRemove = xrefsToDelete
+            .Select(x => x.Character)
+            .WhereNotNull()
+            .Where(x => !x.GetRoles().Concat(characterXrefsToSave.Where(y => y.CharacterID == x.CharacterID)).ExceptBy(xrefsToDelete.Select(y => y.AniDB_Anime_CharacterID), y => y.AniDB_Anime_CharacterID).Any())
+            .ToList();
+        var creatorsToRemove = xrefsCreatorToDelete
+            .Select(x => x.Creator)
+            .WhereNotNull()
+            .Where(x => x.Staff.Count == 0 && !x.Characters.Concat(creatorXrefsToSave.Where(y => y.CreatorID == x.CreatorID)).ExceptBy(xrefsCreatorToDelete.Select(y => y.AniDB_Anime_Character_CreatorID), y => y.AniDB_Anime_Character_CreatorID).Any())
+            .ToList();
+
+        try
+        {
+            RepoFactory.AniDB_Creator.Save(creatorsToSave);
+            RepoFactory.AniDB_Creator.Delete(creatorsToRemove);
+
+            RepoFactory.AniDB_Character.Save(charactersToSave);
+            RepoFactory.AniDB_Character.Delete(charactersToRemove);
+
+            RepoFactory.AniDB_Anime_Character.Save(characterXrefsToSave);
+            RepoFactory.AniDB_Anime_Character.Delete(xrefsToDelete);
+
+            RepoFactory.AniDB_Anime_Character_Creator.Save(creatorXrefsToSave);
+            RepoFactory.AniDB_Anime_Character_Creator.Delete(xrefsCreatorToDelete);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unable to save characters and creators for {MainTitle}", anime.MainTitle);
+        }
+
+        if (!skipCreatorScheduling)
+            ScheduleCreators(creatorsToSchedule, anime.MainTitle);
+    }
+
+    public void CreateStaff(List<ResponseStaff> staffList, AniDB_Anime anime, bool skipCreatorScheduling = false)
+    {
+        if (staffList == null) return;
+
+        var settings = _settingsProvider.GetSettings();
+        var creatorBasePath = ImageUtils.BaseAniDBCreatorImagesPath + Path.DirectorySeparatorChar;
+
+        var existingCreators = new Dictionary<int, AniDB_Creator>();
+        var existingXrefs = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID)
+            .ToLookup(x => (x.AnimeID, x.CreatorID, x.Role));
+
+        var creatorsToSchedule = new HashSet<int>();
+        var creatorsToSave = new List<AniDB_Creator>();
+        var creatorXrefsToKeep = new HashSet<int>();
+        var creatorXrefsToSave = new List<AniDB_Anime_Staff>();
+        try
+        {
+            var staffLookup = staffList.ToLookup(a => (a.AnimeID, a.CreatorID, a.CreatorType));
+            foreach (var groupings in staffLookup.Where(a => a.Count() > 1))
+                _logger.LogWarning("Anime had a duplicate staff listing for CreatorID: {CreatorID} and CreatorType: {CreatorType}", groupings.Key.CreatorID, groupings.Key.CreatorType);
+
+            var staffOrdering = 0;
+            foreach (var (rawStaff, _) in staffLookup)
+            {
+                var staffIndex = staffOrdering++;
+                if (!existingCreators.TryGetValue(rawStaff.CreatorID, out var creator))
+                {
+                    creator = RepoFactory.AniDB_Creator.GetByCreatorID(rawStaff.CreatorID) ?? new()
+                    {
+                        CreatorID = rawStaff.CreatorID,
+                        Type = CreatorType.Unknown,
+                    };
+                    if (creator.AniDB_CreatorID == 0)
+                    {
+                        creator.Name = rawStaff.CreatorName;
+                        creatorsToSave.Add(creator);
+                    }
+                    else
+                    {
+                        var updated = false;
+                        if (string.IsNullOrEmpty(creator.Name) && !string.IsNullOrEmpty(rawStaff.CreatorName))
+                        {
+                            creator.Name = rawStaff.CreatorName;
+                            updated = true;
+                        }
+                        if (updated)
+                            creatorsToSave.Add(creator);
+                    }
+
+                    if (settings.AniDb.DownloadCreators && creator.Type is CreatorType.Unknown)
+                        creatorsToSchedule.Add(creator.CreatorID);
+                    existingCreators[rawStaff.CreatorID] = creator;
+                }
+
+                var role = rawStaff.CreatorType;
+                var roleType = role switch
+                {
+                    "Animation Work" when creator.Type is CreatorType.Company => CreatorRoleType.Studio,
+                    "Work" when creator.Type is CreatorType.Company => CreatorRoleType.Studio,
+                    "Original Work" => CreatorRoleType.SourceWork,
+                    "Music" => CreatorRoleType.Music,
+                    "Character Design" => CreatorRoleType.CharacterDesign,
+                    "Direction" => CreatorRoleType.Director,
+                    "Series Composition" => CreatorRoleType.SeriesComposer,
+                    "Chief Animation Direction" => CreatorRoleType.Producer,
+                    _ => CreatorRoleType.Staff
+                };
+                var staff = existingXrefs.Contains((anime.AnimeID, rawStaff.CreatorID, role))
+                    ? existingXrefs[(anime.AnimeID, rawStaff.CreatorID, role)].First()
+                    : new AniDB_Anime_Staff()
+                    {
+                        AnimeID = anime.AnimeID,
+                        CreatorID = rawStaff.CreatorID,
+                        Role = role,
+                    };
+                if (staff.AniDB_Anime_StaffID == 0)
+                {
+                    staff.Ordering = staffIndex;
+                    staff.RoleType = roleType;
+                    creatorXrefsToSave.Add(staff);
+                }
+                else
+                {
+                    var updated = false;
+                    if (staff.Ordering != staffIndex)
+                    {
+                        staff.Ordering = staffIndex;
+                        updated = true;
+                    }
+                    if (staff.RoleType != roleType)
+                    {
+                        staff.RoleType = roleType;
+                        updated = true;
+                    }
+                    if (updated)
+                        creatorXrefsToSave.Add(staff);
+                    creatorXrefsToKeep.Add(staff.AniDB_Anime_StaffID);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unable to Populate and Save Staff for {MainTitle}", anime.MainTitle);
+            // If we continue we may be doing potential damage to otherwise existing entries, so abort for now.
+            return;
+        }
+        var xrefsCreatorToDelete = existingXrefs
+            .SelectMany(x => x)
+            .ExceptBy(creatorXrefsToKeep, x => x.AniDB_Anime_StaffID)
+            .ToList();
+        var creatorsToRemove = xrefsCreatorToDelete
+            .Select(x => x.Creator)
+            .WhereNotNull()
+            .Where(x => x.Characters.Count == 0 && !x.Staff.Concat(creatorXrefsToSave.Where(y => y.CreatorID == x.CreatorID)).ExceptBy(xrefsCreatorToDelete.Select(y => y.AniDB_Anime_StaffID), y => y.AniDB_Anime_StaffID).Any())
+            .ToList();
+
+        try
+        {
+            RepoFactory.AniDB_Creator.Save(creatorsToSave);
+            RepoFactory.AniDB_Creator.Delete(creatorsToRemove);
+
+            RepoFactory.AniDB_Anime_Staff.Save(creatorXrefsToSave);
+            RepoFactory.AniDB_Anime_Staff.Delete(xrefsCreatorToDelete);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unable to Save Staff for {MainTitle}", anime.MainTitle);
         }
 
-        ScheduleCreators(creatorsToSchedule, anime.MainTitle);
+        if (!skipCreatorScheduling)
+            ScheduleCreators(creatorsToSchedule, anime.MainTitle);
     }
 
     private async void ScheduleCreators(IEnumerable<int> creatorIDs, string mainTitle)
@@ -1131,7 +1211,7 @@ public class AnimeCreator
         }
     }
 
-    private static void CreateResources(List<ResponseResource> resources, SVR_AniDB_Anime anime)
+    private static void CreateResources(List<ResponseResource> resources, AniDB_Anime anime)
     {
         if (resources == null)
         {
@@ -1144,215 +1224,212 @@ public class AnimeCreator
             int id;
             switch (resource.ResourceType)
             {
-                case AniDB_ResourceLinkType.ANN:
+                case ResourceLinkType.ANN:
+                {
+                    if (!int.TryParse(resource.ResourceID, out id))
                     {
-                        if (!int.TryParse(resource.ResourceID, out id))
-                        {
-                            break;
-                        }
-
-                        if (id == 0)
-                        {
-                            break;
-                        }
-
-                        anime.ANNID = id;
                         break;
                     }
-                case AniDB_ResourceLinkType.ALLCinema:
+
+                    if (id == 0)
                     {
-                        if (!int.TryParse(resource.ResourceID, out id))
-                        {
-                            break;
-                        }
-
-                        if (id == 0)
-                        {
-                            break;
-                        }
-
-                        anime.AllCinemaID = id;
                         break;
                     }
-                case AniDB_ResourceLinkType.VNDB:
+
+                    anime.ANNID = id;
+                    break;
+                }
+                case ResourceLinkType.ALLCinema:
+                {
+                    if (!int.TryParse(resource.ResourceID, out id))
                     {
-                        if (!int.TryParse(resource.ResourceID, out id))
-                        {
-                            break;
-                        }
-
-                        if (id == 0)
-                        {
-                            break;
-                        }
-
-                        anime.VNDBID = id;
                         break;
                     }
-                case AniDB_ResourceLinkType.Bangumi:
+
+                    if (id == 0)
                     {
-                        if (!int.TryParse(resource.ResourceID, out id))
-                        {
-                            break;
-                        }
-
-                        if (id == 0)
-                        {
-                            break;
-                        }
-
-                        anime.BangumiID = id;
                         break;
                     }
-                case AniDB_ResourceLinkType.DotLain:
+
+                    anime.AllCinemaID = id;
+                    break;
+                }
+                case ResourceLinkType.VNDB:
+                {
+                    if (!int.TryParse(resource.ResourceID, out id))
                     {
-                        if (!int.TryParse(resource.ResourceID, out id))
-                        {
-                            break;
-                        }
-
-                        if (id == 0)
-                        {
-                            break;
-                        }
-
-                        anime.LainID = id;
                         break;
                     }
-                case AniDB_ResourceLinkType.Site_JP:
+
+                    if (id == 0)
                     {
-                        if (string.IsNullOrEmpty(anime.Site_JP))
-                            anime.Site_JP = resource.ResourceID;
-                        else
-                            anime.Site_JP = string.Join("|", anime.Site_JP.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Append(resource.ResourceID).Distinct());
                         break;
                     }
-                case AniDB_ResourceLinkType.Site_EN:
+
+                    anime.VNDBID = id;
+                    break;
+                }
+                case ResourceLinkType.Bangumi:
+                {
+                    if (!int.TryParse(resource.ResourceID, out id))
                     {
-                        if (string.IsNullOrEmpty(anime.Site_EN))
-                            anime.Site_EN = resource.ResourceID;
-                        else
-                            anime.Site_EN = string.Join("|", anime.Site_EN.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Append(resource.ResourceID).Distinct());
                         break;
                     }
-                case AniDB_ResourceLinkType.Wiki_EN:
+
+                    if (id == 0)
                     {
-                        anime.Wikipedia_ID = resource.ResourceID;
                         break;
                     }
-                case AniDB_ResourceLinkType.Wiki_JP:
+
+                    anime.BangumiID = id;
+                    break;
+                }
+                case ResourceLinkType.DotLain:
+                {
+                    if (!int.TryParse(resource.ResourceID, out id))
                     {
-                        if (!int.TryParse(resource.ResourceID, out id))
-                        {
-                            break;
-                        }
-
-                        if (id == 0)
-                        {
-                            break;
-                        }
-
-                        anime.WikipediaJP_ID = resource.ResourceID;
                         break;
                     }
-                case AniDB_ResourceLinkType.Syoboi:
+
+                    if (id == 0)
                     {
-                        if (!int.TryParse(resource.ResourceID, out id))
-                        {
-                            break;
-                        }
-
-                        if (id == 0)
-                        {
-                            break;
-                        }
-
-                        anime.SyoboiID = id;
                         break;
                     }
-                case AniDB_ResourceLinkType.Anison:
+
+                    anime.LainID = id;
+                    break;
+                }
+                case ResourceLinkType.Site_JP:
+                {
+                    if (string.IsNullOrEmpty(anime.Site_JP))
+                        anime.Site_JP = resource.ResourceID;
+                    else
+                        anime.Site_JP = string.Join("|", anime.Site_JP.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Append(resource.ResourceID).Distinct());
+                    break;
+                }
+                case ResourceLinkType.Site_EN:
+                {
+                    if (string.IsNullOrEmpty(anime.Site_EN))
+                        anime.Site_EN = resource.ResourceID;
+                    else
+                        anime.Site_EN = string.Join("|", anime.Site_EN.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Append(resource.ResourceID).Distinct());
+                    break;
+                }
+                case ResourceLinkType.Wiki_EN:
+                {
+                    anime.Wikipedia_ID = resource.ResourceID;
+                    break;
+                }
+                case ResourceLinkType.Wiki_JP:
+                {
+                    if (!int.TryParse(resource.ResourceID, out id))
                     {
-                        if (!int.TryParse(resource.ResourceID, out id))
-                        {
-                            break;
-                        }
-
-                        if (id == 0)
-                        {
-                            break;
-                        }
-
-                        anime.AnisonID = id;
                         break;
                     }
-                case AniDB_ResourceLinkType.Crunchyroll:
+
+                    if (id == 0)
                     {
-                        anime.CrunchyrollID = resource.ResourceID;
                         break;
                     }
-                case AniDB_ResourceLinkType.Funimation:
+
+                    anime.WikipediaJP_ID = resource.ResourceID;
+                    break;
+                }
+                case ResourceLinkType.Syoboi:
+                {
+                    if (!int.TryParse(resource.ResourceID, out id))
                     {
-                        anime.FunimationID = resource.ResourceID;
                         break;
                     }
-                case AniDB_ResourceLinkType.HiDive:
+
+                    if (id == 0)
                     {
-                        anime.HiDiveID = resource.ResourceID;
                         break;
                     }
-                case AniDB_ResourceLinkType.MAL:
+
+                    anime.SyoboiID = id;
+                    break;
+                }
+                case ResourceLinkType.Anison:
+                {
+                    if (!int.TryParse(resource.ResourceID, out id))
                     {
-                        if (!int.TryParse(resource.ResourceID, out id))
-                        {
-                            break;
-                        }
-
-                        if (id == 0)
-                        {
-                            break;
-                        }
-
-                        if (RepoFactory.CrossRef_AniDB_MAL.GetByMALID(id).Any(a => a.AnimeID == anime.AnimeID))
-                        {
-                            continue;
-                        }
-
-                        var xref = new CrossRef_AniDB_MAL
-                        {
-                            AnimeID = anime.AnimeID,
-                            CrossRefSource = (int)CrossRefSource.AniDB,
-                            MALID = id,
-                            StartEpisodeNumber = 1,
-                            StartEpisodeType = 1
-                        };
-
-                        malLinks.Add(xref);
                         break;
                     }
+
+                    if (id == 0)
+                    {
+                        break;
+                    }
+
+                    anime.AnisonID = id;
+                    break;
+                }
+                case ResourceLinkType.Crunchyroll:
+                {
+                    anime.CrunchyrollID = resource.ResourceID;
+                    break;
+                }
+                case ResourceLinkType.Funimation:
+                {
+                    anime.FunimationID = resource.ResourceID;
+                    break;
+                }
+                case ResourceLinkType.HiDive:
+                {
+                    anime.HiDiveID = resource.ResourceID;
+                    break;
+                }
+                case ResourceLinkType.MAL:
+                {
+                    if (!int.TryParse(resource.ResourceID, out id))
+                    {
+                        break;
+                    }
+
+                    if (id == 0)
+                    {
+                        break;
+                    }
+
+                    if (RepoFactory.CrossRef_AniDB_MAL.GetByMALID(id).Any(a => a.AnimeID == anime.AnimeID))
+                    {
+                        continue;
+                    }
+
+                    var xref = new CrossRef_AniDB_MAL
+                    {
+                        AnimeID = anime.AnimeID,
+                        MALID = id,
+                    };
+
+                    malLinks.Add(xref);
+                    break;
+                }
             }
         }
 
         RepoFactory.CrossRef_AniDB_MAL.Save(malLinks);
     }
 
-    private static void CreateRelations(List<ResponseRelation> rels)
+    private static void CreateRelations(List<ResponseRelation> relations, int animeID)
     {
-        if (rels == null) return;
-
-        var relsToSave = new List<SVR_AniDB_Anime_Relation>();
-        foreach (var rawrel in rels)
+        var existingRelations = RepoFactory.AniDB_Anime_Relation.GetByAnimeID(animeID)
+            .ToLookup(a => a.RelatedAnimeID);
+        var toSkip = new HashSet<int>();
+        var toSave = new List<AniDB_Anime_Relation>();
+        foreach (var raw in relations ?? [])
         {
-            if ((rawrel?.AnimeID ?? 0) <= 0 || rawrel.RelatedAnimeID <= 0)
-            {
+            if (raw.AnimeID != animeID || raw.RelatedAnimeID <= 0)
                 continue;
-            }
 
-            var animeRel =
-                RepoFactory.AniDB_Anime_Relation.GetByAnimeIDAndRelationID(rawrel.AnimeID,
-                    rawrel.RelatedAnimeID) ?? new SVR_AniDB_Anime_Relation();
-            animeRel.AnimeID = rawrel.AnimeID;
-            animeRel.RelatedAnimeID = rawrel.RelatedAnimeID;
-            animeRel.RelationType = rawrel.RelationType switch
+            var relation = existingRelations.Contains(raw.RelatedAnimeID) ? existingRelations[raw.RelatedAnimeID].FirstOrDefault() : new();
+            if (relation.AniDB_Anime_RelationID is not 0)
+                toSkip.Add(relation.AniDB_Anime_RelationID);
+
+            relation.AnimeID = raw.AnimeID;
+            relation.RelatedAnimeID = raw.RelatedAnimeID;
+            relation.RelationType = raw.RelationType switch
             {
                 RelationType.Prequel => "prequel",
                 RelationType.Sequel => "sequel",
@@ -1367,36 +1444,46 @@ public class AnimeCreator
                 RelationType.SharedCharacters => "character",
                 _ => "other"
             };
-            relsToSave.Add(animeRel);
+            toSave.Add(relation);
         }
 
-        RepoFactory.AniDB_Anime_Relation.Save(relsToSave);
+        var toRemove = existingRelations
+            .SelectMany(l => l)
+            .ExceptBy(toSkip, r => r.AniDB_Anime_RelationID)
+            .ToList();
+        RepoFactory.AniDB_Anime_Relation.Delete(toRemove);
+        RepoFactory.AniDB_Anime_Relation.Save(toSave);
     }
 
-    private static void CreateSimilarAnime(List<ResponseSimilar> sims)
+    private static void CreateSimilarAnime(List<ResponseSimilar> similarList, int animeID)
     {
-        if (sims == null) return;
+        if (similarList == null) return;
 
-        var recsToSave = new List<AniDB_Anime_Similar>();
-
-        foreach (var rawsim in sims)
+        var existingSimilar = RepoFactory.AniDB_Anime_Similar.GetByAnimeID(animeID)
+            .ToLookup(a => a.SimilarAnimeID);
+        var toKeep = new HashSet<int>();
+        var toSave = new List<AniDB_Anime_Similar>();
+        foreach (var raw in similarList)
         {
-            var animeSim =
-                RepoFactory.AniDB_Anime_Similar.GetByAnimeIDAndSimilarID(rawsim.AnimeID, rawsim.SimilarAnimeID) ??
-                new AniDB_Anime_Similar();
-
-            if (rawsim.AnimeID <= 0 || rawsim.Approval < 0 || rawsim.SimilarAnimeID <= 0 || rawsim.Total < 0)
-            {
+            if (raw.AnimeID != animeID || raw.Approval < 0 || raw.SimilarAnimeID <= 0 || raw.Total < 0)
                 continue;
-            }
 
-            animeSim.AnimeID = rawsim.AnimeID;
-            animeSim.Approval = rawsim.Approval;
-            animeSim.Total = rawsim.Total;
-            animeSim.SimilarAnimeID = rawsim.SimilarAnimeID;
-            recsToSave.Add(animeSim);
+            var similar = existingSimilar.Contains(raw.SimilarAnimeID) ? existingSimilar[raw.SimilarAnimeID].FirstOrDefault() : new();
+            if (similar.AniDB_Anime_SimilarID is not 0)
+                toKeep.Add(similar.AniDB_Anime_SimilarID);
+
+            similar.AnimeID = raw.AnimeID;
+            similar.Approval = raw.Approval;
+            similar.Total = raw.Total;
+            similar.SimilarAnimeID = raw.SimilarAnimeID;
+            toSave.Add(similar);
         }
 
-        RepoFactory.AniDB_Anime_Similar.Save(recsToSave);
+        var toRemove = existingSimilar
+            .SelectMany(l => l)
+            .ExceptBy(toKeep, s => s.AniDB_Anime_SimilarID)
+            .ToList();
+        RepoFactory.AniDB_Anime_Similar.Delete(toRemove);
+        RepoFactory.AniDB_Anime_Similar.Save(toSave);
     }
 }

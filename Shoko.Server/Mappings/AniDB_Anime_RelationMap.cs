@@ -1,9 +1,9 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Mappings;
 
-public class AniDB_Anime_RelationMap : ClassMap<SVR_AniDB_Anime_Relation>
+public class AniDB_Anime_RelationMap : ClassMap<AniDB_Anime_Relation>
 {
     public AniDB_Anime_RelationMap()
     {

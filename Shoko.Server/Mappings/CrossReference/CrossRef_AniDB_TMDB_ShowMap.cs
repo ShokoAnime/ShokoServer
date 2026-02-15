@@ -1,5 +1,5 @@
 using FluentNHibernate.Mapping;
-using Shoko.Models.Enums;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Models.CrossReference;
 
 namespace Shoko.Server.Mappings;
@@ -15,6 +15,6 @@ public class CrossRef_AniDB_TMDB_ShowMap : ClassMap<CrossRef_AniDB_TMDB_Show>
 
         Map(x => x.AnidbAnimeID).Not.Nullable();
         Map(x => x.TmdbShowID).Not.Nullable();
-        Map(x => x.Source).CustomType<CrossRefSource>().Not.Nullable();
+        Map(x => x.MatchRating).CustomType<MatchRating>().Not.Nullable();
     }
 }

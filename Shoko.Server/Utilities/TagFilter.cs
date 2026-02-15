@@ -666,8 +666,13 @@ public class TagFilter<T> where T : class
         // Add the _original work_ tag if no source tags are present and we either want to only include the source tags or want to not exclude the source tags.
         // evaluates like an xor because of how invert works
         var includeSource = flags.HasFlag(TagFilter.Filter.Source) == flags.HasFlag(TagFilter.Filter.Invert);
-        var addOriginal = includeSource && !tags.Select(GetTagName).Any(tag => TagFilter.TagBlackListSource.Contains(tag));
-        if (addOriginal) tags.Add(GetTag("original work"));
+        var addOriginal = includeSource && !tags.Select(GetTagName).Any(TagFilter.TagBlackListSource.Contains);
+        if (addOriginal)
+        {
+            tags.Add(GetTag("original work"));
+            var includeHelpers = flags.HasFlag(TagFilter.Filter.AnidbInternal) == flags.HasFlag(TagFilter.Filter.Invert);
+            if (includeHelpers && !tags.Select(GetTagName).Contains("source material")) tags.Add(GetTag("source material"));
+        }
     }
 
     private void MarkTagsForRemoval(T sourceTag, TagFilter.Filter flags, ConcurrentBag<T> toRemove)

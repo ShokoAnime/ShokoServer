@@ -1,0 +1,71 @@
+name: Major Bug Report
+description: For reporting issues you've encountered that cause Shoko to stop operating.
+labels: [Bug - Major]
+body:
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: 'Before submitting your issue, please verify the following.'
+      options:
+        - label: You're using the latest **Stable** or **Daily** version of Shoko Server.
+          required: true
+        - label: You're using the latest and correct (Stable:Stable, Daily:Daily) Web UI for the version of Shoko you're using.
+          required: true
+        - label: You've searched this repository (top of the page) for the issue you are reporting.
+          required: true
+  - type: input
+    id: shoko-version
+    attributes:
+      label: Shoko Version
+      description: Please input the version of Shoko you are running.
+      placeholder: '4.2.2'
+    validations:
+      required: true
+  - type: input
+    id: shoko-version-commit
+    attributes:
+      label: Shoko Version - Daily Commit
+      description: If running a daily build, please input the Daily Commit for the version of Shoko you are running. This is the seven digit number shown after the version number.
+      placeholder: '96995ef'
+    validations:
+      required: false
+  - type: input
+    id: install-type
+    attributes:
+      label: Install Type
+      description:  Please specify the OS and install type.
+      placeholder: 'e.g. "Windows", "Linux - Docker/Synology", etc.'
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the problem you've encountered. What caused the issue, and what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Being as detailed as possible, please list all steps need to reproduce the issue, if we can't reproduce it then we can't fix it.
+    validations:
+      required: true
+  - type: textarea
+    id: log-file
+    attributes:
+      label: Log File
+      description: Paste the relevant log info here or attach the entire log.
+      value: |
+        ```
+        PLACE LOG HERE
+        ```
+    validations:
+      required: false
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: You can drop screenshots here or paste the URL.
+    validations:
+      required: false

@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using NHibernate;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Properties;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Repositories.NHibernate;
@@ -38,9 +37,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     {
         if (displayname)
         {
-            ServerState.Instance.ServerStartingStatus = string.Format(
-                Resources.Database_Cache, typeof(T).Name.Replace("SVR_", string.Empty),
-                string.Empty);
+            ServerState.Instance.ServerStartingStatus = $"Database Cache - Caching  - {typeof(T).Name}...";
         }
 
         // This is only called from main thread, so we don't need to lock
@@ -63,7 +60,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     // ReSharper disable once InconsistentNaming
     public virtual T GetByID(S id)
     {
-        if (Equals(default(S), id)) throw new InvalidStateException($"Trying to lookup a {typeof(T).Name.Replace("SVR_", string.Empty)} by an ID of 0");
+        if (Equals(default(S), id)) throw new InvalidStateException($"Trying to lookup a {typeof(T).Name} by an ID of 0");
         return ReadLock(() => GetByIDUnsafe(id));
     }
 
@@ -181,12 +178,9 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     }
 
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
-    public void DeleteWithOpenTransaction(ISession session, List<T> objs)
+    public void DeleteWithOpenTransaction(ISession session, IReadOnlyList<T> objs)
     {
-        if (objs.Count == 0)
-        {
-            return;
-        }
+        if (objs.Count == 0) return;
 
         foreach (var cr in objs)
         {
@@ -194,10 +188,14 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             Lock(() => session.Delete(cr));
         }
 
-        WriteLock(() => objs.ForEach(DeleteFromCacheUnsafe));
+        WriteLock(() =>
+        {
+            foreach (var obj in objs)
+                DeleteFromCacheUnsafe(obj);
+        });
     }
-    
-    public async Task DeleteWithOpenTransactionAsync(ISession session, List<T> objs)
+
+    public async Task DeleteWithOpenTransactionAsync(ISession session, IReadOnlyList<T> objs)
     {
         if (objs.Count == 0) return;
 
@@ -207,7 +205,11 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             await Lock(async () => await session.DeleteAsync(cr));
         }
 
-        WriteLock(() => objs.ForEach(DeleteFromCacheUnsafe));
+        WriteLock(() =>
+        {
+            foreach (var obj in objs)
+                DeleteFromCacheUnsafe(obj);
+        });
     }
 
     public virtual void Save(T obj)
@@ -331,8 +333,8 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             WriteLock(() => UpdateCacheUnsafe(obj));
         }
     }
-    
-    public async Task SaveWithOpenTransactionAsync(ISession session, List<T> objs)
+
+    public async Task SaveWithOpenTransactionAsync(ISession session, IReadOnlyList<T> objs)
     {
         if (objs.Count == 0) return;
 
@@ -453,12 +455,11 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
     #region abstract
 
-    public abstract void PopulateIndexes();
-    public abstract void RegenerateDb();
+    public virtual void PopulateIndexes() { }
 
-    public virtual void PostProcess()
-    {
-    }
+    public virtual void RegenerateDb() { }
+
+    public virtual void PostProcess() { }
 
     protected abstract S SelectKey(T entity);
 

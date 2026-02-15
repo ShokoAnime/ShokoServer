@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Expressions;
@@ -29,10 +30,10 @@ public class EqualsExpression : FilterExpression<bool>, IWithExpressionParameter
 
     public bool Parameter { get; set; }
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        var left = Left.Evaluate(filterable, userInfo);
-        var right = Right?.Evaluate(filterable, userInfo) ?? Parameter;
+        var left = Left.Evaluate(filterable, userInfo, time);
+        var right = Right?.Evaluate(filterable, userInfo, time) ?? Parameter;
         return left == right;
     }
 

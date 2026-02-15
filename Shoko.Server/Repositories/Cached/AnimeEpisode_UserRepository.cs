@@ -1,99 +1,77 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Properties;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Server;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class AnimeEpisode_UserRepository : BaseCachedRepository<SVR_AnimeEpisode_User, int>
+public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AnimeEpisode_User, int>(databaseFactory)
 {
-    private PocoIndex<int, SVR_AnimeEpisode_User, (int UserID, int EpisodeID)> UsersEpisodes;
-    private PocoIndex<int, SVR_AnimeEpisode_User, int> Users;
-    private PocoIndex<int, SVR_AnimeEpisode_User, int> Episodes;
-    private PocoIndex<int, SVR_AnimeEpisode_User, (int UserID, int SeriesID)> UsersSeries;
+    private PocoIndex<int, AnimeEpisode_User, int>? _userIDs;
 
-    protected override int SelectKey(SVR_AnimeEpisode_User entity)
-    {
-        return entity.AnimeEpisode_UserID;
-    }
+    private PocoIndex<int, AnimeEpisode_User, int>? _episodeIDs;
+
+    private PocoIndex<int, AnimeEpisode_User, (int UserID, int EpisodeID)>? _userEpisodeIDs;
+
+    private PocoIndex<int, AnimeEpisode_User, (int UserID, int SeriesID)>? _userSeriesIDs;
+
+    protected override int SelectKey(AnimeEpisode_User entity)
+        => entity.AnimeEpisode_UserID;
 
     public override void PopulateIndexes()
     {
-        UsersEpisodes = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeEpisodeID));
-        Users = Cache.CreateIndex(a => a.JMMUserID);
-        Episodes = Cache.CreateIndex(a => a.AnimeEpisodeID);
-        UsersSeries = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeSeriesID));
+        _userIDs = Cache.CreateIndex(a => a.JMMUserID);
+        _episodeIDs = Cache.CreateIndex(a => a.AnimeEpisodeID);
+        _userEpisodeIDs = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeEpisodeID));
+        _userSeriesIDs = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeSeriesID));
     }
 
     public override void RegenerateDb()
     {
-        var cnt = 0;
-        var sers =
-            Cache.Values.Where(a => a.AnimeEpisode_UserID == 0)
-                .ToList();
-        var max = sers.Count;
-        ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
-            typeof(AnimeEpisode_User).Name, " DbRegen");
-        if (max <= 0)
-        {
+        var current = 0;
+        var records = Cache.Values.Where(a => a.AnimeEpisode_UserID == 0).ToList();
+        var total = records.Count;
+        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(AnimeEpisode_User)} Database Regeneration...";
+        if (total is 0)
             return;
-        }
 
-        foreach (var g in sers)
+        foreach (var record in records)
         {
-            Save(g);
-            cnt++;
-            if (cnt % 10 == 0)
-            {
-                ServerState.Instance.ServerStartingStatus = string.Format(
-                    Resources.Database_Validating, typeof(AnimeEpisode_User).Name,
-                    " DbRegen - " + cnt + "/" + max);
-            }
+            Save(record);
+            current++;
+            if (current % 10 == 0)
+                ServerState.Instance.ServerStartingStatus =
+                    $"Database - Validating - {nameof(AnimeEpisode_User)} Database Regeneration - {current}/{total}...";
         }
 
-        ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating,
-            typeof(AnimeEpisode_User).Name,
-            " DbRegen - " + max + "/" + max);
+        ServerState.Instance.ServerStartingStatus =
+            $"Database - Validating - {nameof(AnimeEpisode_User)} Database Regeneration - {total}/{total}...";
     }
 
-    public SVR_AnimeEpisode_User GetByUserIDAndEpisodeID(int userid, int epid)
-    {
-        return ReadLock(() => UsersEpisodes.GetOne((userid, epid)));
-    }
+    public AnimeEpisode_User? GetByUserAndEpisodeID(int userID, int episodeID)
+        => ReadLock(() => _userEpisodeIDs!.GetOne((userID, episodeID)));
 
+    public IReadOnlyList<AnimeEpisode_User> GetByUserID(int userid)
+        => ReadLock(() => _userIDs!.GetMultiple(userid));
 
-    public List<SVR_AnimeEpisode_User> GetByUserID(int userid)
-    {
-        return ReadLock(() => Users.GetMultiple(userid));
-    }
+    public IReadOnlyList<AnimeEpisode_User> GetMostRecentlyWatched(int userid, int limit = 100)
+        => GetByUserID(userid).Where(a => a.WatchedCount > 0)
+            .OrderByDescending(a => a.WatchedDate)
+            .Take(limit)
+            .ToList();
 
-    public List<SVR_AnimeEpisode_User> GetMostRecentlyWatched(int userid, int maxresults = 100)
-    {
-        return GetByUserID(userid).Where(a => a.WatchedCount > 0).OrderByDescending(a => a.WatchedDate)
-            .Take(maxresults).ToList();
-    }
+    public AnimeEpisode_User? GetLastWatchedEpisodeForSeries(int seriesID, int userID)
+        => GetByUserIDAndSeriesID(userID, seriesID)
+            .Where(a => a.WatchedCount > 0)
+            .OrderByDescending(a => a.WatchedDate)
+            .FirstOrDefault();
 
-    public SVR_AnimeEpisode_User GetLastWatchedEpisodeForSeries(int seriesid, int userid)
-    {
-        return GetByUserIDAndSeriesID(userid, seriesid).Where(a => a.WatchedCount > 0)
-            .OrderByDescending(a => a.WatchedDate).FirstOrDefault();
-    }
+    public IReadOnlyList<AnimeEpisode_User> GetByEpisodeID(int episodeID)
+        => ReadLock(() => _episodeIDs!.GetMultiple(episodeID));
 
-    public List<SVR_AnimeEpisode_User> GetByEpisodeID(int epid)
-    {
-        return ReadLock(() => Episodes.GetMultiple(epid));
-    }
-
-    public List<SVR_AnimeEpisode_User> GetByUserIDAndSeriesID(int userid, int seriesid)
-    {
-        return ReadLock(() => UsersSeries.GetMultiple((userid, seriesid)));
-    }
-
-    public AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
+    public IReadOnlyList<AnimeEpisode_User> GetByUserIDAndSeriesID(int userID, int seriesID)
+        => ReadLock(() => _userSeriesIDs!.GetMultiple((userID, seriesID)));
 }

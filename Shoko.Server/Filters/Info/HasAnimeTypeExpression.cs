@@ -1,5 +1,7 @@
 using System;
-using Shoko.Plugin.Abstractions.DataModels;
+using System.Linq;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Info;
@@ -13,22 +15,18 @@ public class HasAnimeTypeExpression : FilterExpression<bool>, IWithStringParamet
     public HasAnimeTypeExpression() { }
 
     public string Parameter { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
-    public override string HelpDescription => "This condition passes if any of the anime are of the specified type";
-    public override string[] HelpPossibleParameters => new[]
-    {
-        AnimeType.TVSeries.ToString(),
-        AnimeType.Movie.ToString(),
-        AnimeType.OVA.ToString(),
-        AnimeType.Web.ToString(),
-        AnimeType.TVSpecial.ToString(),
-        AnimeType.Other.ToString(),
-    };
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public AnimeType AnimeType => Enum.TryParse<AnimeType>(Parameter, true, out var animeType) ? animeType : AnimeType.Unknown;
+
+    public override string HelpDescription => "This condition passes if any of the anime are of the specified type";
+
+    private static string[] HelpParameters => Enum.GetValues<AnimeType>().Select(x => x.ToString()).ToArray();
+
+    public override string[] HelpPossibleParameters => HelpParameters;
+
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return filterable.AnimeTypes.Contains(Parameter);
+        return filterable.AnimeTypes.Contains(AnimeType);
     }
 
     protected bool Equals(HasAnimeTypeExpression other)

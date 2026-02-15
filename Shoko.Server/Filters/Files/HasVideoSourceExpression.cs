@@ -1,6 +1,6 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
-using Shoko.Server.Providers.AniDB;
 
 namespace Shoko.Server.Filters.Files;
 
@@ -13,21 +13,21 @@ public class HasVideoSourceExpression : FilterExpression<bool>, IWithStringParam
     public HasVideoSourceExpression() { }
 
     public string Parameter { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if any of the files have the specified video source";
     public override string[] HelpPossibleParameters => new[]
     {
-        GetFile_Source.BluRay.ToString(), GetFile_Source.DVD.ToString(),
-        GetFile_Source.Web.ToString(), GetFile_Source.TV.ToString(),
-        GetFile_Source.HDTV.ToString(), GetFile_Source.Unknown.ToString(),
-        GetFile_Source.Camcorder.ToString(), GetFile_Source.DTV.ToString(),
-        GetFile_Source.VCD.ToString(), GetFile_Source.VHS.ToString(),
-        GetFile_Source.SVCD.ToString(), GetFile_Source.HDDVD.ToString(),
-        GetFile_Source.HKDVD.ToString(), GetFile_Source.LaserDisc.ToString()
+        "tv",
+        "www",
+        "dvd",
+        "bluray",
+        "vhs",
+        "camcorder",
+        "vcd",
+        "ld",
+        "unk",
     };
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.VideoSources.Contains(Parameter);
     }

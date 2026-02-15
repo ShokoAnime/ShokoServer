@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
@@ -13,7 +13,7 @@ namespace Shoko.Server.Scheduling.Jobs.TMDB;
 [JobKeyGroup(JobKeyGroup.TMDB)]
 public class DownloadTmdbImageJob : DownloadImageBaseJob
 {
-    public override DataSourceEnum Source => DataSourceEnum.TMDB;
+    public override DataSource Source => DataSource.TMDB;
 
     public override Dictionary<string, object> Details => new()
     {

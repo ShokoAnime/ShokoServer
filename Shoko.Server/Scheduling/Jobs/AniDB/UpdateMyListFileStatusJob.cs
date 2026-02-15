@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -49,7 +51,7 @@ public class UpdateMyListFileStatusJob : BaseJob
         { "Hash", Hash },
         { "Watched", Watched },
         { "Date", WatchedDate }
-    } ;
+    };
 
     public override async Task Process()
     {
@@ -57,16 +59,16 @@ public class UpdateMyListFileStatusJob : BaseJob
 
         var settings = _settingsProvider.GetSettings();
         // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
-        var vid = RepoFactory.VideoLocal.GetByHash(Hash);
+        var vid = RepoFactory.VideoLocal.GetByEd2k(Hash);
         if (vid == null) return;
 
-        if (vid.AniDBFile != null)
+        if (vid.ReleaseInfo is { } releaseInfo && (releaseInfo.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false))
         {
             _logger.LogInformation("Updating File MyList Status: {Hash}|{Size}", vid.Hash, vid.FileSize);
             var request = _requestFactory.Create<RequestUpdateFile>(
                 r =>
                 {
-                    r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
+                    r.State = settings.AniDb.MyList_StorageState;
                     r.Hash = vid.Hash;
                     r.Size = vid.FileSize;
                     r.IsWatched = Watched;
@@ -79,15 +81,15 @@ public class UpdateMyListFileStatusJob : BaseJob
         else
         {
             // we have a manual link, so get the xrefs and add the episodes instead as generic files
-            var xrefs = vid.EpisodeCrossRefs;
-            foreach (var episode in xrefs.Select(xref => xref.AniDBEpisode).Where(episode => episode != null))
+            var xrefs = vid.EpisodeCrossReferences;
+            foreach (var episode in xrefs.Select(xref => xref.AniDBEpisode).WhereNotNull())
             {
                 _logger.LogInformation("Updating Episode MyList Status: AnimeID: {AnimeID}, Episode Type: {Type}, Episode No: {EP}", episode.AnimeID,
-                    episode.EpisodeTypeEnum, episode.EpisodeNumber);
+                    episode.EpisodeType, episode.EpisodeNumber);
                 var request = _requestFactory.Create<RequestUpdateEpisode>(
                     r =>
                     {
-                        r.State = settings.AniDb.MyList_StorageState.GetMyList_State();
+                        r.State = settings.AniDb.MyList_StorageState;
                         r.AnimeID = episode.AnimeID;
                         r.EpisodeNumber = episode.EpisodeNumber;
                         r.EpisodeType = (EpisodeType)episode.EpisodeType;
@@ -106,7 +108,7 @@ public class UpdateMyListFileStatusJob : BaseJob
         var eps = RepoFactory.AnimeEpisode.GetByHash(vid.Hash);
         if (eps.Count > 0) await Task.WhenAll(eps.DistinctBy(a => a.AnimeSeriesID).Select(a => _seriesService.QueueUpdateStats(a.AnimeSeries)));
     }
-    
+
     public UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService)
     {
         _requestFactory = requestFactory;

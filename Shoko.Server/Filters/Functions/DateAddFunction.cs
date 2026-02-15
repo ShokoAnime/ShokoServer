@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Functions;
@@ -22,9 +23,9 @@ public class DateAddFunction : FilterExpression<DateTime?>, IWithDateSelectorPar
     public override bool UserDependent => Left.UserDependent;
     public override string HelpDescription => "This adds a timespan to a date selector";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Function;
-    public override DateTime? Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override DateTime? Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return Left.Evaluate(filterable, userInfo) + Parameter;
+        return Left.Evaluate(filterable, userInfo, time) + Parameter;
     }
 
     protected bool Equals(DateAddFunction other)

@@ -1,21 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Models;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Models.TMDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
 using File = Shoko.Server.API.v3.Models.Shoko.File;
-using FileSource = Shoko.Server.API.v3.Models.Shoko.FileSource;
 using GroupSizes = Shoko.Server.API.v3.Models.Shoko.GroupSizes;
 using SeriesSizes = Shoko.Server.API.v3.Models.Shoko.SeriesSizes;
-using AniDBAnimeType = Shoko.Models.Enums.AnimeType;
-using SeriesType = Shoko.Server.API.v3.Models.Shoko.SeriesType;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Helpers;
@@ -147,7 +142,7 @@ public static class ModelHelper
         var anidbXrefs = episodeList
             .Select(xref => (xref, anidb: anidbEpisodeDictionary.GetValueOrDefault(xref.AnidbEpisodeID)))
             .Where(tuple => tuple.anidb is not null)
-            .OrderBy(tuple => tuple.anidb!.EpisodeTypeEnum)
+            .OrderBy(tuple => tuple.anidb!.EpisodeType)
             .ThenBy(tuple => tuple.anidb!.EpisodeNumber)
             .ThenBy(tuple => tuple.xref.Ordering)
             .Select(tuple => tuple.xref)
@@ -166,7 +161,7 @@ public static class ModelHelper
             .Where(tuple => tuple.tmdb is not null)
             .OrderBy(tuple => tuple.tmdb!.SeasonNumber)
             .ThenBy(tuple => tuple.tmdb!.EpisodeNumber)
-            .ThenBy(tuple => tuple.anidb.EpisodeTypeEnum)
+            .ThenBy(tuple => tuple.anidb.EpisodeType)
             .ThenBy(tuple => tuple.anidb.EpisodeNumber)
             .Select(tuple => tuple.xref)
             .GroupBy(tuple => tuple.TmdbEpisodeID)
@@ -188,28 +183,13 @@ public static class ModelHelper
             });
         var allXrefs = anidbXrefs.Concat(tmdbXrefs)
             .Select(xref => (xref, anidb: anidbEpisodeDictionary[xref[0].AnidbEpisodeID]!))
-            .OrderBy(tuple => tuple.anidb.EpisodeTypeEnum)
+            .OrderBy(tuple => tuple.anidb.EpisodeType)
             .ThenBy(tuple => tuple.anidb.EpisodeNumber)
             .ThenBy(tuple => tuple.xref[0].Ordering)
             .Select(tuple => tuple.xref)
             .ToList();
         return allXrefs;
     }
-
-    public static SeriesType ToAniDBSeriesType(this int animeType)
-        => ToAniDBSeriesType((AniDBAnimeType)animeType);
-
-    public static SeriesType ToAniDBSeriesType(this AniDBAnimeType animeType)
-        => animeType switch
-        {
-            AniDBAnimeType.TVSeries => SeriesType.TV,
-            AniDBAnimeType.Movie => SeriesType.Movie,
-            AniDBAnimeType.OVA => SeriesType.OVA,
-            AniDBAnimeType.TVSpecial => SeriesType.TVSpecial,
-            AniDBAnimeType.Web => SeriesType.Web,
-            AniDBAnimeType.Other => SeriesType.Other,
-            _ => SeriesType.Unknown,
-        };
 
     public static (int, EpisodeType?, string?) GetEpisodeNumberAndTypeFromInput(string input)
     {
@@ -242,63 +222,14 @@ public static class ModelHelper
         return (episodeNumber, episodeType, null);
     }
 
-    public static int GetTotalEpisodesForType(IEnumerable<SVR_AnimeEpisode> episodeList, EpisodeType episodeType)
+    public static int GetTotalEpisodesForType(IEnumerable<AnimeEpisode> episodeList, EpisodeType episodeType)
     {
         return episodeList
             .Select(episode => episode.AniDB_Episode)
             .Count(anidbEpisode => anidbEpisode != null && (EpisodeType)anidbEpisode.EpisodeType == episodeType);
     }
 
-    public static string? ToDataURL(byte[] byteArray, string contentType, string fieldName = "ByteArrayToDataUrl", ModelStateDictionary? modelState = null)
-    {
-        if (byteArray == null || string.IsNullOrEmpty(contentType))
-        {
-            modelState?.AddModelError(fieldName, $"Invalid byte array or content type for field '{fieldName}'.");
-            return null;
-        }
-
-        try
-        {
-            var base64 = Convert.ToBase64String(byteArray);
-            return $"data:{contentType};base64,{base64}";
-        }
-        catch (Exception)
-        {
-            modelState?.AddModelError(fieldName, $"Unexpected error when converting byte array to data URL for field '{fieldName}'.");
-            return null;
-        }
-    }
-
-    private static readonly string[] _dataUrlSeparators = [":", ";", ","];
-
-
-    public static (byte[]? byteArray, string? contentType) FromDataURL(string dataUrl, string fieldName = "DataUrlToByteArray", ModelStateDictionary? modelState = null)
-    {
-        var parts = dataUrl.Split(_dataUrlSeparators, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length != 4 || parts[0] != "data")
-        {
-            modelState?.AddModelError(fieldName, $"Invalid data URL format for field '{fieldName}'.");
-            return (null, null);
-        }
-
-        try
-        {
-            var byteArray = Convert.FromBase64String(parts[3]);
-            return (byteArray, parts[1]);
-        }
-        catch (FormatException)
-        {
-            modelState?.AddModelError(fieldName, $"Base64 data is not in a correct format for field '{fieldName}'.");
-            return (null, null);
-        }
-        catch (Exception)
-        {
-            modelState?.AddModelError(fieldName, $"Unexpected error when converting data URL to byte array for field '{fieldName}'.");
-            return (null, null);
-        }
-    }
-
-    public static SeriesSizes GenerateSeriesSizes(IEnumerable<SVR_AnimeEpisode> episodeList, int userID)
+    public static SeriesSizes GenerateSeriesSizes(IEnumerable<AnimeEpisode> episodeList, int userID)
     {
         var sizes = new SeriesSizes();
         var fileSet = new HashSet<int>();
@@ -314,43 +245,43 @@ public static class ModelHelper
                 if (!fileSet.Add(file.VideoLocalID))
                     continue;
 
-                var anidbFile = file.AniDBFile;
+                var anidbFile = file.ReleaseInfo;
                 if (anidbFile == null)
                 {
                     sizes.FileSources.Unknown++;
                     continue;
                 }
 
-                switch (File.ParseFileSource(anidbFile.File_Source))
+                switch (anidbFile.Source)
                 {
-                    case FileSource.Unknown:
+                    case ReleaseSource.Unknown:
                         sizes.FileSources.Unknown++;
                         break;
-                    case FileSource.Other:
+                    case ReleaseSource.Other:
                         sizes.FileSources.Other++;
                         break;
-                    case FileSource.TV:
+                    case ReleaseSource.TV:
                         sizes.FileSources.TV++;
                         break;
-                    case FileSource.DVD:
+                    case ReleaseSource.DVD:
                         sizes.FileSources.DVD++;
                         break;
-                    case FileSource.BluRay:
+                    case ReleaseSource.BluRay:
                         sizes.FileSources.BluRay++;
                         break;
-                    case FileSource.Web:
+                    case ReleaseSource.Web:
                         sizes.FileSources.Web++;
                         break;
-                    case FileSource.VHS:
+                    case ReleaseSource.VHS:
                         sizes.FileSources.VHS++;
                         break;
-                    case FileSource.VCD:
+                    case ReleaseSource.VCD:
                         sizes.FileSources.VCD++;
                         break;
-                    case FileSource.LaserDisc:
+                    case ReleaseSource.LaserDisc:
                         sizes.FileSources.LaserDisc++;
                         break;
-                    case FileSource.Camera:
+                    case ReleaseSource.Camera:
                         sizes.FileSources.Camera++;
                         break;
                 }
@@ -472,35 +403,38 @@ public static class ModelHelper
         return sizes;
     }
 
-    public static GroupSizes GenerateGroupSizes(IEnumerable<SVR_AnimeSeries> seriesList, IEnumerable<SVR_AnimeEpisode> episodeList,
+    public static GroupSizes GenerateGroupSizes(IEnumerable<AnimeSeries> seriesList, IEnumerable<AnimeEpisode> episodeList,
         int subGroups, int userID)
     {
         var sizes = new GroupSizes(GenerateSeriesSizes(episodeList, userID));
         foreach (var series in seriesList)
         {
             var anime = series.AniDB_Anime;
-            switch (anime?.AnimeType.ToAniDBSeriesType())
+            switch (anime?.AnimeType)
             {
-                case SeriesType.Unknown:
-                    sizes.SeriesTypes.Unknown++;
-                    break;
-                case SeriesType.Other:
+                case AnimeType.Other:
                     sizes.SeriesTypes.Other++;
                     break;
-                case SeriesType.TV:
+                case AnimeType.TVSeries:
                     sizes.SeriesTypes.TV++;
                     break;
-                case SeriesType.TVSpecial:
+                case AnimeType.TVSpecial:
                     sizes.SeriesTypes.TVSpecial++;
                     break;
-                case SeriesType.Web:
+                case AnimeType.Web:
                     sizes.SeriesTypes.Web++;
                     break;
-                case SeriesType.Movie:
+                case AnimeType.Movie:
                     sizes.SeriesTypes.Movie++;
                     break;
-                case SeriesType.OVA:
+                case AnimeType.OVA:
                     sizes.SeriesTypes.OVA++;
+                    break;
+                case AnimeType.MusicVideo:
+                    sizes.SeriesTypes.MusicVideo++;
+                    break;
+                default:
+                    sizes.SeriesTypes.Unknown++;
                     break;
             }
         }
@@ -509,8 +443,8 @@ public static class ModelHelper
         return sizes;
     }
 
-    public static ListResult<File> FilterFiles(IEnumerable<SVR_VideoLocal> input, SVR_JMMUser user, int pageSize, int page, FileNonDefaultIncludeType[]? include,
-        FileExcludeTypes[]? exclude, FileIncludeOnlyType[]? include_only, List<string>? sortOrder, HashSet<DataSource>? includeDataFrom, bool skipSort = false)
+    public static ListResult<File> FilterFiles(IEnumerable<VideoLocal> input, JMMUser user, int pageSize, int page, FileNonDefaultIncludeType[]? include,
+        FileExcludeTypes[]? exclude, FileIncludeOnlyType[]? include_only, List<string>? sortOrder, bool skipSort = false)
     {
         include ??= [];
         exclude ??= [];
@@ -526,12 +460,12 @@ public static class ModelHelper
                 Video: video,
                 BestLocation: video.FirstValidPlace,
                 Locations: includeLocations ? video.Places : null,
-                UserRecord: includeUserRecord ? RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(user.JMMUserID, video.VideoLocalID) : null
+                UserRecord: includeUserRecord ? RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(user.JMMUserID, video.VideoLocalID) : null
             ))
             .Where(tuple =>
             {
                 var (video, _, locations, userRecord) = tuple;
-                var xrefs = video.EpisodeCrossRefs;
+                var xrefs = video.EpisodeCrossReferences;
                 var isAnimeAllowed = xrefs
                     .DistinctBy(xref => xref.AnimeID)
                     .Select(xref => xref.AniDBAnime)
@@ -555,9 +489,9 @@ public static class ModelHelper
                 if (include_only.Contains(FileIncludeOnlyType.ImportLimbo) && !(xrefs.Count > 0 && xrefs.Any(x => x.AniDBAnime is null || x.AniDBEpisode is null))) return false;
 
                 if (exclude.Contains(FileExcludeTypes.ManualLinks) && xrefs.Count > 0 &&
-                    xrefs.All(xref => xref.CrossRefSource == (int)CrossRefSource.User)) return false;
+                    xrefs.All(xref => xref.IsManuallyLinked)) return false;
                 if (include_only.Contains(FileIncludeOnlyType.ManualLinks) &&
-                    (xrefs.Count == 0 || xrefs.All(xref => xref.CrossRefSource != (int)CrossRefSource.User))) return false;
+                    (xrefs.Count == 0 || xrefs.All(xref => !xref.IsManuallyLinked))) return false;
 
                 if (exclude.Contains(FileExcludeTypes.Watched) && userRecord?.WatchedDate != null) return false;
                 if (include_only.Contains(FileIncludeOnlyType.Watched) && userRecord?.WatchedDate == null) return false;
@@ -571,15 +505,24 @@ public static class ModelHelper
         else if (!skipSort)
             enumerable = File.OrderBy(enumerable, new()
             {
-                // First sort by import folder from A-Z.
-                File.FileSortCriteria.ImportFolderName.ToString(),
-                // Then by the relative path inside the import folder, from A-Z.
+                // First sort by managed folder from A-Z.
+                File.FileSortCriteria.ManagedFolderName.ToString(),
+                // Then by the relative path inside the managed folder, from A-Z.
                 File.FileSortCriteria.RelativePath.ToString(),
             });
 
         // Skip and limit.
         return enumerable.ToListResult(
-            tuple => new File(tuple.UserRecord, tuple.Video, include.Contains(FileNonDefaultIncludeType.XRefs), includeDataFrom,
-                include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)), page, pageSize);
+            tuple => new File(
+                tuple.UserRecord,
+                tuple.Video,
+                include.Contains(FileNonDefaultIncludeType.XRefs),
+                include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+                include.Contains(FileNonDefaultIncludeType.MediaInfo),
+                include.Contains(FileNonDefaultIncludeType.AbsolutePaths)
+            ),
+            page,
+            pageSize
+        );
     }
 }

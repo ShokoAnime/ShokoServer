@@ -21,10 +21,10 @@ public class RequestUpdateFile : UDPRequest<Void>
             {
                 case true:
                     var date = WatchedDate ?? DateTime.Now;
-                    command += $"&viewed=1&viewdate={Commons.Utils.AniDB.GetAniDBDateAsSeconds(date)}";    
+                    command += $"&viewed=1&viewdate={AniDBExtensions.GetAniDBDateAsSeconds(date)}";
                     break;
                 case false:
-                    command += "&viewed=0";    
+                    command += "&viewed=0";
                     break;
             }
 

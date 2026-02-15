@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Server.Models;
+using Shoko.Server.Databases.NHibernate;
+using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Mappings;
 
-public class AnimeEpisode_UserMap : ClassMap<SVR_AnimeEpisode_User>
+public class AnimeEpisode_UserMap : ClassMap<AnimeEpisode_User>
 {
     public AnimeEpisode_UserMap()
     {
@@ -18,5 +19,9 @@ public class AnimeEpisode_UserMap : ClassMap<SVR_AnimeEpisode_User>
         Map(x => x.StoppedCount).Not.Nullable();
         Map(x => x.WatchedCount).Not.Nullable();
         Map(x => x.WatchedDate);
+        Map(x => x.IsFavorite).Not.Nullable();
+        Map(x => x.AbsoluteUserRating);
+        Map(x => x.UserTags).Not.Nullable().CustomType<StringListConverter>();
+        Map(x => x.LastUpdated).Not.Nullable();
     }
 }

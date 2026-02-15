@@ -1,21 +1,26 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Services;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.ModelBinders;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
+using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
+
+#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
-public class ImageController : BaseController
+public class ImageController(IImageManager imageManager, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
     private const string ImageNotFound = "The requested resource does not exist.";
 
@@ -30,17 +35,20 @@ public class ImageController : BaseController
     [ResponseCache(Duration = 3600 /* 1 hour in seconds */)]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(404)]
-    public ActionResult GetImage([FromRoute] Image.ImageSource source, [FromRoute] Image.ImageType type,
-        [FromRoute, Range(1, int.MaxValue)] int value)
+    public ActionResult GetImage(
+        [FromRoute] Image.ImageSource source,
+        [FromRoute] Image.ImageType type,
+        [FromRoute, Range(1, int.MaxValue)] int value
+    )
     {
         // Unrecognized combination of source, type and/or value.
         var dataSource = source.ToServer();
         var imageEntityType = type.ToServer();
-        if (imageEntityType == ImageEntityType.None || dataSource == DataSourceType.None)
+        if (imageEntityType is ImageEntityType.None || dataSource is DataSource.None)
             return NotFound(ImageNotFound);
 
         // User avatars are stored in the database.
-        if (imageEntityType == ImageEntityType.Art && dataSource == DataSourceType.User)
+        if (imageEntityType is ImageEntityType.Art && dataSource is DataSource.User)
         {
             var user = RepoFactory.JMMUser.GetByID(value);
             if (!user.HasAvatarImage)
@@ -49,7 +57,7 @@ public class ImageController : BaseController
             return File(user.AvatarImageBlob, user.AvatarImageMetadata.ContentType);
         }
 
-        var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, value);
+        var metadata = imageManager.GetImage(dataSource, imageEntityType, value);
         if (metadata is null || metadata.GetStream() is not { } stream)
             return NotFound(ImageNotFound);
 
@@ -72,11 +80,11 @@ public class ImageController : BaseController
         // Unrecognized combination of source, type and/or value.
         var dataSource = source.ToServer();
         var imageEntityType = type.ToServer();
-        if (imageEntityType == ImageEntityType.None || dataSource == DataSourceType.None)
+        if (imageEntityType is ImageEntityType.None || dataSource is DataSource.None)
             return NotFound(ImageNotFound);
 
         // User avatars are stored in the database.
-        if (imageEntityType == ImageEntityType.Art && dataSource == DataSourceType.User)
+        if (imageEntityType is ImageEntityType.Art && dataSource is DataSource.User)
         {
             var user = RepoFactory.JMMUser.GetByID(value);
             if (!user.HasAvatarImage)
@@ -85,11 +93,11 @@ public class ImageController : BaseController
             return ValidationProblem($"Unable to enable or disable user avatar with id {value}!");
         }
 
-        var metadata = ImageUtils.GetImageMetadata(dataSource, imageEntityType, value);
+        var metadata = imageManager.GetImage(dataSource, imageEntityType, value);
         if (metadata is null)
             return NotFound(ImageNotFound);
 
-        if (!ImageUtils.SetEnabled(dataSource, imageEntityType, value, body.Enabled))
+        if (!imageManager.SetEnabled(dataSource, imageEntityType, value, body.Enabled))
             return ValidationProblem($"Unable to enable or disable {source} {type} with id {value}!");
 
         return NoContent();
@@ -119,18 +127,18 @@ public class ImageController : BaseController
         var tries = 0;
         do
         {
-            var metadata = ImageUtils.GetRandomImageID(dataSource, imageEntityType);
+            var metadata = imageManager.GetRandomImage(dataSource, imageEntityType);
             if (metadata is null)
                 break;
 
             if (!metadata.IsLocalAvailable)
                 continue;
 
-            var series = ImageUtils.GetFirstSeriesForImage(metadata);
-            if (series == null || (series.AniDB_Anime?.IsRestricted ?? false))
+            var series = imageManager.GetFirstSeriesForImage(metadata);
+            if (series == null || series.AnidbAnime.Restricted)
                 continue;
 
-            if (metadata.GetStream(allowRemote: false) is not { } stream)
+            if (metadata.GetStream() is not { } stream)
                 continue;
 
             return File(stream, metadata.ContentType);
@@ -143,12 +151,20 @@ public class ImageController : BaseController
     /// Returns the metadata for a random image for the <paramref name="imageType"/>.
     /// </summary>
     /// <param name="imageType">Poster, Backdrop, Banner, Thumb</param>
+    /// <param name="includeRestricted">Include or exclude restricted images</param>
+    /// <param name="seriesType">Series types to include in the search</param>
+    /// <param name="maxAttempts">Maximum number of attempts to find a valid image</param>
     /// <returns>200 on found, 400 if the type or source are invalid</returns>
     [HttpGet("Random/{imageType}/Metadata")]
     [ProducesResponseType(typeof(Image), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
-    public ActionResult<Image> GetRandomImageMetadataForType([FromRoute] Image.ImageType imageType)
+    public ActionResult<Image> GetRandomImageMetadataForType(
+        [FromRoute] Image.ImageType imageType,
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? seriesType = null,
+        [FromQuery, Range(0, 100)] int maxAttempts = 5
+    )
     {
         if (imageType == Image.ImageType.Avatar)
             return ValidationProblem("Unsupported image type for random image.", "imageType");
@@ -162,7 +178,7 @@ public class ImageController : BaseController
         var tries = 0;
         do
         {
-            var metadata = ImageUtils.GetRandomImageID(dataSource, imageEntityType);
+            var metadata = imageManager.GetRandomImage(dataSource, imageEntityType);
             if (metadata is null)
                 break;
 
@@ -170,19 +186,25 @@ public class ImageController : BaseController
                 continue;
 
             var image = new Image(metadata);
-            var series = ImageUtils.GetFirstSeriesForImage(metadata);
-            if (series == null || (series.AniDB_Anime?.IsRestricted ?? false))
+            var series = imageManager.GetFirstSeriesForImage(metadata);
+            if (series?.AnidbAnime is not { } anime)
                 continue;
 
-            image.Series = new(series.AnimeSeriesID, series.PreferredTitle);
+            if (includeRestricted != IncludeOnlyFilter.True)
+            {
+                var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
+                if (onlyRestricted != anime.Restricted)
+                    continue;
+            }
+
+            if (seriesType is not null && !seriesType.Contains(anime.Type.ToV3Dto()))
+                continue;
+
+            image.Series = new(series.ID, series.Title);
 
             return image;
-        } while (tries++ < 5);
+        } while (tries++ < maxAttempts);
 
         return InternalError("Unable to find a random image to send.");
-    }
-
-    public ImageController(ISettingsProvider settingsProvider) : base(settingsProvider)
-    {
     }
 }

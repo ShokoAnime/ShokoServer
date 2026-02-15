@@ -1,17 +1,22 @@
 using System;
-using Shoko.Server.Filters.Interfaces;
+using System.Collections.Generic;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters;
 
 public class FilterableUserInfo : IFilterableUserInfo
 {
-    private readonly Lazy<bool> _hasPermanentVotes;
     private readonly Lazy<bool> _hasVotes;
-    private readonly Lazy<decimal> _highestUserRating;
-    private readonly Lazy<bool> _isFavorite;
-    private readonly Lazy<DateTime?> _lastWatchedDate;
-    private readonly Lazy<decimal> _lowestUserRating;
+    private readonly Lazy<bool> _hasPermanentVotes;
     private readonly Lazy<bool> _missingPermanentVotes;
+    private readonly Lazy<int> _seriesVoteCount;
+    private readonly Lazy<int> _seriesTemporaryVoteCount;
+    private readonly Lazy<int> _seriesPermanentVoteCount;
+    private readonly Lazy<double> _highestUserRating;
+    private readonly Lazy<bool> _isFavorite;
+    private readonly Lazy<IReadOnlySet<string>> _userTags;
+    private readonly Lazy<DateTime?> _lastWatchedDate;
+    private readonly Lazy<double> _lowestUserRating;
     private readonly Lazy<int> _unwatchedEpisodes;
     private readonly Lazy<DateTime?> _watchedDate;
     private readonly Lazy<int> _watchedEpisodes;
@@ -21,6 +26,13 @@ public class FilterableUserInfo : IFilterableUserInfo
     public Func<bool> IsFavoriteDelegate
     {
         init => _isFavorite = new Lazy<bool>(value);
+    }
+
+    public IReadOnlySet<string> UserTags => _userTags.Value;
+
+    public Func<IReadOnlySet<string>> UserTagsDelegate
+    {
+        init => _userTags = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public int WatchedEpisodes => _watchedEpisodes.Value;
@@ -58,6 +70,27 @@ public class FilterableUserInfo : IFilterableUserInfo
         init => _missingPermanentVotes = new Lazy<bool>(value);
     }
 
+    public int SeriesVoteCount => _seriesVoteCount.Value;
+
+    public required Func<int> SeriesVoteCountDelegate
+    {
+        init => _seriesVoteCount = new Lazy<int>(value);
+    }
+
+    public int SeriesTemporaryVoteCount => _seriesTemporaryVoteCount.Value;
+
+    public required Func<int> SeriesTemporaryVoteCountDelegate
+    {
+        init => _seriesTemporaryVoteCount = new Lazy<int>(value);
+    }
+
+    public int SeriesPermanentVoteCount => _seriesPermanentVoteCount.Value;
+
+    public required Func<int> SeriesPermanentVoteCountDelegate
+    {
+        init => _seriesPermanentVoteCount = new Lazy<int>(value);
+    }
+
     public DateTime? WatchedDate => _watchedDate.Value;
 
     public Func<DateTime?> WatchedDateDelegate
@@ -72,17 +105,17 @@ public class FilterableUserInfo : IFilterableUserInfo
         init => _lastWatchedDate = new Lazy<DateTime?>(value);
     }
 
-    public decimal LowestUserRating => _lowestUserRating.Value;
+    public double LowestUserRating => _lowestUserRating.Value;
 
-    public Func<decimal> LowestUserRatingDelegate
+    public Func<double> LowestUserRatingDelegate
     {
-        init => _lowestUserRating = new Lazy<decimal>(value);
+        init => _lowestUserRating = new Lazy<double>(value);
     }
 
-    public decimal HighestUserRating => _highestUserRating.Value;
+    public double HighestUserRating => _highestUserRating.Value;
 
-    public Func<decimal> HighestUserRatingDelegate
+    public Func<double> HighestUserRatingDelegate
     {
-        init => _highestUserRating = new Lazy<decimal>(value);
+        init => _highestUserRating = new Lazy<double>(value);
     }
 }

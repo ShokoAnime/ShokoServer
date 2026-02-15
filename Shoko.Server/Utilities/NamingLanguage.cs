@@ -1,5 +1,5 @@
-﻿using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
+﻿using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 
 namespace Shoko.Server.Utilities;
 

@@ -14,42 +14,41 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Sentry;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Plugin;
 using Shoko.Server.API.ActionFilters;
 using Shoko.Server.API.Authentication;
+using Shoko.Server.API.FileProviders;
 using Shoko.Server.API.SignalR;
 using Shoko.Server.API.SignalR.Aggregate;
-using Shoko.Server.API.SignalR.Legacy;
 using Shoko.Server.API.Swagger;
 using Shoko.Server.API.v3.Helpers;
-using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.API.WebUI;
-using Shoko.Server.Plugin;
+using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
+using Swashbuckle.AspNetCore.SwaggerGen;
+
 using File = System.IO.File;
-using AniDBEmitter = Shoko.Server.API.SignalR.Aggregate.AniDBEmitter;
-using ShokoEventEmitter = Shoko.Server.API.SignalR.Aggregate.ShokoEventEmitter;
-using QueueEmitter = Shoko.Server.API.SignalR.Aggregate.QueueEmitter;
-using AVDumpEmitter = Shoko.Server.API.SignalR.Aggregate.AVDumpEmitter;
-using NetworkEmitter = Shoko.Server.API.SignalR.Aggregate.NetworkEmitter;
-using LegacyAniDBEmitter = Shoko.Server.API.SignalR.Legacy.AniDBEmitter;
-using LegacyShokoEventEmitter = Shoko.Server.API.SignalR.Legacy.ShokoEventEmitter;
 
 namespace Shoko.Server.API;
 
 public static class APIExtensions
 {
-    public static IServiceCollection AddAPI(this IServiceCollection services)
+    public static IServiceCollection AddAPI(this IServiceCollection services, IPluginManager pluginManager)
     {
         services.AddSingleton<LoggingEmitter>();
-        services.AddSingleton<LegacyAniDBEmitter>();
-        services.AddSingleton<LegacyShokoEventEmitter>();
-        services.AddSingleton<AniDBEmitter>();
-        services.AddSingleton<ShokoEventEmitter>();
-        services.AddSingleton<AVDumpEmitter>();
-        services.AddSingleton<NetworkEmitter>();
-        services.AddSingleton<QueueEmitter>();
+        services.AddSingleton<IEventEmitter, AniDBEventEmitter>();
+        services.AddSingleton<IEventEmitter, AVDumpEventEmitter>();
+        services.AddSingleton<IEventEmitter, ConfigurationEventEmitter>();
+        services.AddSingleton<IEventEmitter, FileEventEmitter>();
+        services.AddSingleton<IEventEmitter, ManagedFolderEventEmitter>();
+        services.AddSingleton<IEventEmitter, MetadataEventEmitter>();
+        services.AddSingleton<IEventEmitter, NetworkEventEmitter>();
+        services.AddSingleton<IEventEmitter, QueueEventEmitter>();
+        services.AddSingleton<IEventEmitter, ReleaseEventEmitter>();
+        services.AddSingleton<IEventEmitter, UserDataEventEmitter>();
+        services.AddSingleton<IEventEmitter, UserEventEmitter>();
         services.AddScoped<GeneratedPlaylistService>();
         services.AddScoped<FilterFactory>();
         services.AddScoped<WebUIFactory>();
@@ -119,18 +118,41 @@ public static class APIExtensions
                     options.IncludeXmlComments(xmlPath);
                 }
 
-                options.AddPlugins();
+                options.AddPlugins(pluginManager);
 
-                options.SchemaFilter<EnumSchemaFilter<EpisodeType>>();
-                options.SchemaFilter<EnumSchemaFilter<SeriesType>>();
-                options.SchemaFilter<EnumSchemaFilter<RenamerSettingType>>();
-                options.SchemaFilter<EnumSchemaFilter<CodeLanguage>>();
-                options.SchemaFilter<EnumSchemaFilter<Filter.FilterExpressionHelp.FilterExpressionParameterType>>();
+                var v3Enums = typeof(APIExtensions).Assembly.GetTypes()
+                    .Concat(typeof(TitleLanguage).Assembly.GetTypes())
+                    .Where(a => a.IsEnum)
+                    .Where(a =>
+                        (a.FullName?.StartsWith("Shoko.Server.API.v3.", StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+                        (a.FullName?.StartsWith("Shoko.Abstractions.", StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+                        (a.FullName?.StartsWith("Shoko.Server.Providers.", StringComparison.InvariantCultureIgnoreCase) ?? false)
+                    )
+                    .Concat([
+                        typeof(DayOfWeek),
+                        typeof(DriveType),
+                        typeof(ReleaseChannel),
+                        typeof(CreatorRoleType),
+                    ])
+                    .ToList();
+                foreach (var type in v3Enums)
+                {
+                    var descriptorType = typeof(EnumSchemaFilter<>).MakeGenericType(type);
+                    options.SchemaFilterDescriptors.Add(new FilterDescriptor
+                    {
+                        Type = descriptorType,
+                        Arguments = []
+                    });
+                }
 
                 options.CustomSchemaIds(GetTypeName);
             });
         services.AddSwaggerGenNewtonsoftSupport();
-        services.AddSignalR(o => { o.EnableDetailedErrors = true; })
+        services.AddSignalR(options =>
+            {
+                options.EnableDetailedErrors = true;
+                options.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // default timeout is 30 seconds
+            })
             .AddNewtonsoftJsonProtocol(o => o.PayloadSerializerSettings.ContractResolver = new DefaultContractResolver());
 
         // allow CORS calls from other both local and non-local hosts
@@ -169,7 +191,7 @@ public static class APIExtensions
                 json.SerializerSettings.DefaultValueHandling = DefaultValueHandling.Populate;
                 // json.SerializerSettings.DateFormatString = "yyyy-MM-dd";
             })
-            .AddPluginControllers()
+            .AddPluginControllers(pluginManager)
             .AddControllersAsServices();
 
         services.AddApiVersioning(o =>
@@ -196,17 +218,123 @@ public static class APIExtensions
         return services;
     }
 
-    private static string GetTypeName(Type type)
+    public static IMvcBuilder AddPluginControllers(this IMvcBuilder mvc, IPluginManager pluginManager)
     {
-        if (type.IsGenericType)
-            return GetGenericTypeName(type);
+        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
+        {
+            var assembly = pluginInfo.PluginType!.Assembly;
+            if (assembly == Assembly.GetCallingAssembly())
+            {
+                continue; //Skip the current assembly, this is implicitly added by ASP.
+            }
 
-        return string.Join(".", type.FullName.Replace("+", ".").Replace("`1", "").Split(".").TakeLast(2));
+            mvc.AddApplicationPart(assembly);
+        }
+
+        return mvc;
     }
 
-    private static string GetGenericTypeName(Type genericType)
+    public static SwaggerGenOptions AddPlugins(this SwaggerGenOptions options, IPluginManager pluginManager)
     {
-        return genericType.Name.Replace("+", ".").Replace("`1", "") + "[" + string.Join(",", genericType.GetGenericArguments().Select(GetTypeName)) + "]";
+        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
+        {
+            var assembly = pluginInfo.PluginType!.Assembly;
+            var location = assembly.Location;
+            var xml = Path.ChangeExtension(location, "xml");
+            if (File.Exists(xml))
+            {
+                options.IncludeXmlComments(xml, true); //Include the XML comments if it exists.
+            }
+        }
+
+        return options;
+    }
+
+    private static string GetTypeName(Type type) =>
+        GetTypeName(type.ToString()!.Replace("+", "."));
+
+    private static string GetTypeName(string fullName)
+    {
+        if (!fullName.Contains('`'))
+            return ConvertTypeName(fullName);
+
+        var firstPart = fullName[..fullName.IndexOf('`')];
+        var secondPart = fullName[(fullName.IndexOf('`') + 3)..^1];
+        return ConvertTypeName(firstPart) + "_" + GetTypeName(secondPart) + "_";
+    }
+
+    private static string ConvertTypeName(string fullName)
+    {
+        string title;
+        if (fullName.StartsWith("System.Collections.Generic."))
+            title = fullName.Split('.').Skip(3).Join('.');
+        else if (fullName.StartsWith("System.") || fullName.StartsWith("Microsoft."))
+            title = fullName.Split('.').Skip(1).Join('.');
+
+        // APIv0 (API independent plugin abstraction) schemas
+        else if (fullName.StartsWith("Shoko.Abstractions."))
+            title = fullName
+                .Replace("Shoko.Abstractions.", "APIv0.Abstraction.")
+                .Replace("TitleLanguage", "LanguageName")
+                .Replace("DataModels.", "")
+                .Replace("Enums.", "");
+
+        // APIv0 (API independent plex webhook) schemas
+        else if (fullName.StartsWith("Shoko.Server.Plex."))
+            title = fullName.Replace("Shoko.Server.Plex.", "APIv0.Plex.");
+
+        // APIv0 (API independent settings) schemas
+        else if (fullName.StartsWith("Shoko.Server.Settings."))
+            title = fullName
+                .Replace("Shoko.Server.Settings.", "APIv0.Settings.");
+
+        // APIv0 (API independent) schemas
+        else if (fullName is "Shoko.Server.TagFilter.Filter")
+            title = "APIv0.Shared.TagFilter";
+        else if (fullName.StartsWith("Shoko.Server.Server."))
+            title = fullName
+                .Replace("Shoko.Server.Server.", "APIv0.Shared.")
+                .Replace("Enums.", "");
+        else if (fullName.StartsWith("Shoko.Common."))
+            title = fullName
+                .Replace("Shoko.Common.", "APIv0.Shared.")
+                .Replace("Enums.", "");
+        else if (fullName.StartsWith("Shoko.Server.Providers."))
+            title = fullName
+                .Replace("Shoko.Server.Providers.", "APIv0.")
+                .Replace("AniDB", "Anidb")
+                .Replace("TMDB", "Tmdb")
+                .Replace("Anidb.Anidb", "Anidb.")
+                .Replace("Tmdb.Tmdb", "Tmdb.");
+        else if (fullName.StartsWith("Shoko.Server.API.v0.Controllers."))
+            title = fullName
+                .Replace("Shoko.Server.API.v0.Controllers.", "APIv0.")
+                .Replace("Controller", "");
+        else if (fullName.StartsWith("Shoko.Server.API.v0.Models."))
+            title = fullName
+                .Replace("Shoko.Server.API.v0.Models.", "APIv0.");
+
+        // APIv3 schemas
+        else if (fullName.StartsWith("Shoko.Server.API.v3.Controllers."))
+            title = fullName
+                .Replace("Shoko.Server.API.v3.Controllers.", "APIv3.")
+                .Replace("Controller", "");
+        else if (fullName.StartsWith("Shoko.Server.API.v3.Models."))
+            title = fullName
+                .Replace("Shoko.Server.API.v3.Models.", "APIv3.")
+                .Replace("Common.", "")
+                .Replace("Input.", "")
+                .Replace("AniDB", "Anidb")
+                .Replace("TMDB", "Tmdb")
+                .Replace("Anidb.Anidb", "Anidb.")
+                .Replace("Tmdb.Tmdb", "Tmdb.")
+                .Replace("Image.Image", "Image");
+
+        // All else exposed in APIv3 (mostly from the settings object), in addition to anything in APIv1 & APIv2.
+        else
+            title = string.Join(".", fullName.Replace("+", ".").Replace("`1", "").Split(".").TakeLast(2));
+
+        return title;
     }
 
     private static OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)
@@ -226,111 +354,145 @@ public static class APIExtensions
         return info;
     }
 
-    public static IApplicationBuilder UseAPI(this IApplicationBuilder app)
+    public static IApplicationBuilder UseAPI(this IApplicationBuilder app, IPluginManager pluginManager)
     {
-        app.Use(async (context, next) =>
+        var settings = Utils.SettingsProvider.GetSettings();
+        var webSettings = settings.Web;
+        if (!settings.SentryOptOut)
         {
-            try
-            {
-                await next.Invoke(context);
-            }
-            catch (Exception e)
+            app.Use(async (context, next) =>
             {
                 try
                 {
-                    SentrySdk.CaptureException(e);
+                    await next.Invoke(context);
                 }
-                catch
+                catch (Exception e)
                 {
-                    // ignore
+                    try
+                    {
+                        SentrySdk.CaptureException(e);
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+                    throw;
                 }
-                throw;
-            }
-        });
+            });
+        }
 
 #if DEBUG
         app.UseDeveloperExceptionPage();
+#else
+        if (webSettings.AlwaysUseDeveloperExceptions)
+            app.UseDeveloperExceptionPage();
 #endif
-        // Create web ui directory and add the bootstrapper.
-        var webUIDir = new DirectoryInfo(Path.Combine(Utils.ApplicationPath, "webui"));
+
+        // Create web ui directory and add the boot-strapper.
+        var webUIDir = new DirectoryInfo(ApplicationPaths.Instance.WebPath);
+        var backupDir = new DirectoryInfo(Path.Combine(ApplicationPaths.Instance.ApplicationPath, "webui"));
         if (!webUIDir.Exists)
         {
-            webUIDir.Create();
-
-            var backupDir = new DirectoryInfo(Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
-                "webui"));
             if (backupDir.Exists)
-            {
                 CopyFilesRecursively(backupDir, webUIDir);
-            }
+            else
+                webUIDir.Create();
+        }
+        else if (
+            backupDir.Exists &&
+            webSettings.AutoReplaceWebUIWithIncluded &&
+            WebUIUpdateService.LoadIncludedWebUIVersionInfo() is { } includedVersion &&
+            (
+                WebUIUpdateService.LoadWebUIVersionInfo() is not { } currentVersion ||
+                (
+                    includedVersion.VersionAsVersion > currentVersion.VersionAsVersion &&
+                    (
+                        (includedVersion.Channel is not ReleaseChannel.Debug && currentVersion.Channel is not ReleaseChannel.Debug) ||
+                        (includedVersion.Channel is ReleaseChannel.Debug && currentVersion.Channel is ReleaseChannel.Debug)
+                    )
+                )
+            )
+        )
+        {
+            CopyFilesRecursively(backupDir, webUIDir);
         }
 
-        app.UseStaticFiles(new StaticFileOptions
+        if (webSettings.EnableSwaggerUI)
         {
-            FileProvider = new WebUiFileProvider(webUIDir.FullName),
-            RequestPath = "/webui",
-            ServeUnknownFileTypes = true,
-            DefaultContentType = "text/html",
-            OnPrepareResponse = ctx =>
+            app.UseSwagger(c =>
             {
-                var requestPath = ctx.File.PhysicalPath;
-                // We set the cache headers only for index.html file because it doesn't have a different hash when changed
-                if (requestPath?.EndsWith("index.html", StringComparison.OrdinalIgnoreCase) ?? false)
+                c.PreSerializeFilters.Add((swaggerDoc, _) =>
                 {
-                    ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
-                    ctx.Context.Response.Headers.Append("Expires", "0");
-                }
-            }
-        });
+                    var version = double.Parse(swaggerDoc.Info.Version);
+                    swaggerDoc.Servers.Add(new() { Url = $"/api/v{version:0}/" });
 
-        app.UseSwagger(c =>
-        {
-            c.PreSerializeFilters.Add((swaggerDoc, _) => {
-                var version = double.Parse(swaggerDoc.Info.Version);
-                swaggerDoc.Servers.Add(new OpenApiServer{Url = $"/api/v{version:0}/"});
-
-                var basepathInt = $"/api/v{version:0}/";
-                var basepathDecimal = $"/api/v{version:0.0}/";
-                var paths = new OpenApiPaths();
-                foreach (var path in swaggerDoc.Paths)
-                {
-                    if (!path.Key.Contains(basepathInt) && !path.Key.Contains(basepathDecimal))
+                    var basepathInt = $"/api/v{version:0}/";
+                    var basepathDecimal = $"/api/v{version:0.0}/";
+                    var paths = new OpenApiPaths();
+                    foreach (var path in swaggerDoc.Paths)
                     {
-                        path.Value.Servers.Clear();
-                        path.Value.Servers.Add(new OpenApiServer
+                        if (!path.Key.Contains(basepathInt) && !path.Key.Contains(basepathDecimal))
                         {
-                            Url = "/"
-                        });
-                    }
+                            path.Value.Servers.Clear();
+                            path.Value.Servers.Add(new() { Url = "/" });
+                        }
 
-                    paths.Add(path.Key.Replace(basepathInt, "/").Replace(basepathDecimal, "/"), path.Value);
-                }
-                swaggerDoc.Paths = paths;
+                        paths.Add(path.Key.Replace(basepathInt, "/").Replace(basepathDecimal, "/"), path.Value);
+                    }
+                    swaggerDoc.Paths = paths;
+                });
             });
-        });
-        app.UseSwaggerUI(
-            options =>
-            {
-                // build a swagger endpoint for each discovered API version
-                var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
-                foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
+            app.UseSwaggerUI(
+                options =>
                 {
-                    options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
-                        description.GroupName.ToUpperInvariant());
+                    options.RoutePrefix = webSettings.SwaggerUIPrefix;
+                    // build a swagger endpoint for each discovered API version
+                    var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
+                    foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
+                    {
+                        options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
+                            description.GroupName.ToUpperInvariant());
+                    }
+                    options.EnablePersistAuthorization();
+                });
+        }
+
+        if (webSettings.EnableWebUI)
+        {
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new WebUiFileProvider(app.ApplicationServices.GetRequiredService<WebUIUpdateService>(), webSettings.WebUIPublicPath, webUIDir.FullName),
+                RequestPath = webSettings.WebUIPublicPath,
+                ServeUnknownFileTypes = true,
+                DefaultContentType = "text/html",
+                OnPrepareResponse = ctx =>
+                {
+                    var requestPath = ctx.File.PhysicalPath;
+                    // We set the cache headers only for index.html file because it doesn't have a different hash when changed
+                    if (requestPath?.EndsWith("index.html", StringComparison.OrdinalIgnoreCase) ?? false)
+                    {
+                        ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+                        ctx.Context.Response.Headers.Append("Expires", "0");
+                    }
                 }
-                options.EnablePersistAuthorization();
             });
-        // Important for first run at least
-        app.UseAuthentication();
+        }
 
         app.UseRouting();
+
+        // Important for first run at least
+        app.UseAuthentication();
+        app.UseAuthorization();
+
         app.UseEndpoints(conf =>
         {
-            conf.MapHub<AniDBHub>("/signalr/anidb");
-            conf.MapHub<LoggingHub>("/signalr/logging");
-            conf.MapHub<ShokoEventHub>("/signalr/shoko");
-            conf.MapHub<AggregateHub>("/signalr/aggregate");
+            conf.MapHub<LoggingHub>("/signalr/logging").RequireAuthorization();
+            conf.MapHub<AggregateHub>("/signalr/aggregate").RequireAuthorization();
         });
+
+        var appRegistrations = pluginManager.GetExports<IPluginApplicationRegistration>().ToList();
+        foreach (var appRegistration in appRegistrations)
+            appRegistration.RegisterServices(app, ApplicationPaths.Instance);
 
         app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
@@ -341,6 +503,10 @@ public static class APIExtensions
 
     private static void CopyFilesRecursively(DirectoryInfo source, DirectoryInfo target)
     {
+        if (target.Exists)
+            target.Delete(recursive: true);
+
+        target.Create();
         foreach (var dir in source.GetDirectories())
         {
             CopyFilesRecursively(dir, target.CreateSubdirectory(dir.Name));

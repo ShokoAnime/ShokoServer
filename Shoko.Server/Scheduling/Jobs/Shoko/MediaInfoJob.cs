@@ -2,7 +2,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Services;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
@@ -15,9 +16,9 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [JobKeyGroup(JobKeyGroup.Import)]
 public class MediaInfoJob : BaseJob
 {
-    private readonly VideoLocal_PlaceService _vlPlaceService;
+    private readonly VideoService _videoService;
 
-    private SVR_VideoLocal _vlocal;
+    private VideoLocal _vlocal;
     private string _fileName;
 
     public int VideoLocalID { get; set; }
@@ -29,7 +30,7 @@ public class MediaInfoJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = Utils.GetDistinctPath(_vlocal.FirstValidPlace?.FullServerPath);
+        _fileName = Utils.GetDistinctPath(_vlocal.FirstValidPlace?.Path);
     }
 
     public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };
@@ -45,7 +46,7 @@ public class MediaInfoJob : BaseJob
             return Task.CompletedTask;
         }
 
-        if (_vlPlaceService.RefreshMediaInfo(place))
+        if (_videoService.RefreshMediaInfo(place, _vlocal))
         {
             RepoFactory.VideoLocal.Save(place.VideoLocal, true);
         }
@@ -53,9 +54,9 @@ public class MediaInfoJob : BaseJob
         return Task.CompletedTask;
     }
 
-    public MediaInfoJob(VideoLocal_PlaceService vlPlaceService)
+    public MediaInfoJob(IVideoService videoService)
     {
-        _vlPlaceService = vlPlaceService;
+        _videoService = (VideoService)videoService;
     }
 
     protected MediaInfoJob() { }

@@ -1,11 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
-using Shoko.Server.Models;
-using Shoko.Server.Models.TMDB;
-using Shoko.Server.Providers.AniDB.Titles;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
@@ -50,37 +48,17 @@ public class Title
     [Required]
     public string Source { get; init; }
 
-    public Title(SVR_AniDB_Anime_Title title, string? mainTitle = null, string? preferredTitle = null)
+    public Title(ITitle title, string? mainTitle = null, string? preferredTitle = null)
     {
-        Name = title.Title;
+        Name = title.Value;
         Language = title.LanguageCode;
-        Type = title.TitleType;
-        Default = !string.IsNullOrEmpty(mainTitle) && string.Equals(title.Title, mainTitle);
-        Preferred = !string.IsNullOrEmpty(preferredTitle) && string.Equals(title.Title, preferredTitle);
+        Type = title.Type;
+        Default = !string.IsNullOrEmpty(mainTitle) && string.Equals(title.Value, mainTitle);
+        Preferred = !string.IsNullOrEmpty(preferredTitle) && string.Equals(title.Value, preferredTitle);
         Source = "AniDB";
     }
 
-    public Title(ResponseAniDBTitles.Anime.AnimeTitle title, string? mainTitle = null, string? preferredTitle = null)
-    {
-        Name = title.Title;
-        Language = title.LanguageCode;
-        Type = title.TitleType;
-        Default = !string.IsNullOrEmpty(mainTitle) && string.Equals(title.Title, mainTitle);
-        Preferred = !string.IsNullOrEmpty(preferredTitle) && string.Equals(title.Title, preferredTitle);
-        Source = "AniDB";
-    }
-
-    public Title(SVR_AniDB_Episode_Title title, string? mainTitle = null, SVR_AniDB_Episode_Title? preferredTitle = null)
-    {
-        Name = title.Title;
-        Language = title.LanguageCode;
-        Type = TitleType.None;
-        Default = title.Language == TitleLanguage.English && !string.IsNullOrEmpty(mainTitle) && string.Equals(title.Title, mainTitle);
-        Preferred = preferredTitle is not null && title.AniDB_Episode_TitleID == preferredTitle.AniDB_Episode_TitleID;
-        Source = "AniDB";
-    }
-
-    public Title(TMDB_Title title, string? mainTitle = null, TMDB_Title? preferredTitle = null)
+    public Title(ITitle title, string? mainTitle = null, ITitle? preferredTitle = null)
     {
         Name = title.Value;
         Language = title.Language.GetString();

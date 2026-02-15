@@ -32,10 +32,10 @@ public class AniDBStateUpdate : EventArgs
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
         if (obj.GetType() != this.GetType()) return false;
-        return Equals((AniDBStateUpdate) obj);
+        return Equals((AniDBStateUpdate)obj);
     }
 
-    public override int GetHashCode() => HashCode.Combine(Value, Message, (int) UpdateType, UpdateTime, PauseTimeSecs);
+    public override int GetHashCode() => HashCode.Combine(Value, Message, (int)UpdateType, UpdateTime, PauseTimeSecs);
 
     public static bool operator ==(AniDBStateUpdate left, AniDBStateUpdate right) => Equals(left, right);
 

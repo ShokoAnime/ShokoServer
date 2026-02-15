@@ -5,31 +5,31 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using Shoko.Commons.Extensions;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.API.WebUI;
 using Shoko.Server.Repositories;
-using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
+using Shoko.Server.Server;
+using Shoko.Server.Services;
 
-using WebUITheme = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUITheme;
+using FileSummaryGroupByCriteria = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary.FileSummaryGroupByCriteria;
+using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
+using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 using WebUIGroupExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUIGroupExtra;
 using WebUISeriesExtra = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesExtra;
 using WebUISeriesFileSummary = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary;
-using FileSummaryGroupByCriteria = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary.FileSummaryGroupByCriteria;
-using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
+using WebUITheme = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUITheme;
 
 #pragma warning disable CA1822
 #nullable enable
@@ -43,19 +43,8 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
-public partial class WebUIController : BaseController
+public partial class WebUIController(ISettingsProvider settingsProvider, IApplicationPaths applicationPaths, WebUIUpdateService updateService, CssThemeService themeService, WebUIFactory webUIFactory, ILogger<WebUIController> logger) : BaseController(settingsProvider)
 {
-    private static readonly IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions()
-    {
-        ExpirationScanFrequency = TimeSpan.FromMinutes(50),
-    });
-
-    private static readonly TimeSpan _cacheTTL = TimeSpan.FromHours(1);
-
-    private readonly ILogger<WebUIController> _logger;
-
-    private readonly WebUIFactory _webUIFactory;
-
     /// <summary>
     /// Retrieves the list of available themes.
     /// </summary>
@@ -67,7 +56,7 @@ public partial class WebUIController : BaseController
     [HttpGet("Theme")]
     public ActionResult<List<WebUITheme>> GetThemes([FromQuery] bool forceRefresh = false)
     {
-        return WebUIThemeProvider.GetThemes(forceRefresh).Select(definition => new WebUITheme(definition)).ToList();
+        return themeService.GetThemes(forceRefresh).Select(definition => new WebUITheme(definition)).ToList();
     }
 
     /// <summary>
@@ -82,7 +71,7 @@ public partial class WebUIController : BaseController
     [HttpGet("Theme.css")]
     public ActionResult<string> GetThemesCSS([FromQuery] bool forceRefresh = false)
     {
-        return Content(WebUIThemeProvider.GetThemes(forceRefresh).ToCSS(), "text/css");
+        return Content(themeService.GetThemes(forceRefresh).Select(theme => theme.ToCSS()).Join(""), "text/css");
     }
 
     /// <summary>
@@ -96,7 +85,7 @@ public partial class WebUIController : BaseController
     {
         try
         {
-            var theme = await WebUIThemeProvider.InstallThemeFromUrl(body.URL, body.Preview);
+            var theme = await themeService.InstallThemeFromUrl(body.URL, body.Preview);
             return new WebUITheme(theme, true);
         }
         catch (ValidationException valEx)
@@ -132,14 +121,14 @@ public partial class WebUIController : BaseController
                 {
                     using var fileReader = new StreamReader(file.OpenReadStream());
                     var content = await fileReader.ReadToEndAsync();
-                    var theme = await WebUIThemeProvider.CreateOrUpdateThemeFromCss(content, Path.GetFileNameWithoutExtension(fileName), preview);
+                    var theme = await themeService.CreateOrUpdateThemeFromCss(content, Path.GetFileNameWithoutExtension(fileName), preview);
                     return new WebUITheme(theme, true);
                 }
                 case ".json":
                 {
                     using var fileReader = new StreamReader(file.OpenReadStream());
                     var content = await fileReader.ReadToEndAsync();
-                    var theme = await WebUIThemeProvider.InstallOrUpdateThemeFromJson(content, Path.GetFileNameWithoutExtension(fileName), preview);
+                    var theme = await themeService.InstallOrUpdateThemeFromJson(content, Path.GetFileNameWithoutExtension(fileName), preview);
                     return new WebUITheme(theme, true);
                 }
                 default:
@@ -168,7 +157,7 @@ public partial class WebUIController : BaseController
     [HttpGet("Theme/{themeID}")]
     public ActionResult<WebUITheme> GetTheme([FromRoute] string themeID, [FromQuery] bool forceRefresh = false)
     {
-        var theme = WebUIThemeProvider.GetTheme(themeID, forceRefresh);
+        var theme = themeService.GetTheme(themeID, forceRefresh);
         if (theme is null)
             return NotFound("A theme with the given id was not found.");
 
@@ -188,7 +177,7 @@ public partial class WebUIController : BaseController
     [HttpGet("Theme/{themeID}.css")]
     public ActionResult<string> GetThemeCSS([FromRoute] string themeID, [FromQuery] bool forceRefresh = false)
     {
-        var theme = WebUIThemeProvider.GetTheme(themeID, forceRefresh);
+        var theme = themeService.GetTheme(themeID, forceRefresh);
         if (theme is null)
             return NotFound("A theme with the given id was not found.");
 
@@ -204,8 +193,8 @@ public partial class WebUIController : BaseController
     [HttpDelete("Theme/{themeID}")]
     public ActionResult RemoveTheme([FromRoute] string themeID)
     {
-        var theme = WebUIThemeProvider.GetTheme(themeID, true);
-        if (theme is null || !WebUIThemeProvider.RemoveTheme(theme))
+        var theme = themeService.GetTheme(themeID, true);
+        if (theme is null || !themeService.RemoveTheme(theme))
             return NotFound("A theme with the given id was not found.");
 
         return NoContent();
@@ -219,13 +208,13 @@ public partial class WebUIController : BaseController
     [HttpGet("Theme/{themeID}/Update")]
     public async Task<ActionResult<WebUITheme>> PreviewUpdatedTheme([FromRoute] string themeID)
     {
-        var theme = WebUIThemeProvider.GetTheme(themeID, true);
+        var theme = themeService.GetTheme(themeID, true);
         if (theme is null)
             return NotFound("A theme with the given id was not found.");
 
         try
         {
-            theme = await WebUIThemeProvider.UpdateThemeOnline(theme, true);
+            theme = await themeService.UpdateThemeOnline(theme, true);
             return new WebUITheme(theme, true);
         }
         catch (ValidationException valEx)
@@ -247,13 +236,13 @@ public partial class WebUIController : BaseController
     [HttpPost("Theme/{themeID}/Update")]
     public async Task<ActionResult<WebUITheme>> UpdateTheme([FromRoute] string themeID)
     {
-        var theme = WebUIThemeProvider.GetTheme(themeID, true);
+        var theme = themeService.GetTheme(themeID, true);
         if (theme is null)
             return NotFound("A theme with the given id was not found.");
 
         try
         {
-            theme = await WebUIThemeProvider.UpdateThemeOnline(theme);
+            theme = await themeService.UpdateThemeOnline(theme);
             return new WebUITheme(theme, true);
         }
         catch (ValidationException valEx)
@@ -293,7 +282,7 @@ public partial class WebUIController : BaseController
                     return null;
                 }
 
-                return _webUIFactory.GetWebUIGroupExtra(group, anime, body.TagFilter, body.OrderByName,
+                return webUIFactory.GetWebUIGroupExtra(group, anime, body.TagFilter, body.OrderByName,
                     body.TagLimit);
             })
             .WhereNotNull()
@@ -320,7 +309,7 @@ public partial class WebUIController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        return _webUIFactory.GetWebUISeriesExtra(series);
+        return webUIFactory.GetWebUISeriesExtra(series);
     }
 
     /// <summary>
@@ -330,6 +319,7 @@ public partial class WebUIController : BaseController
     /// <param name="type">Filter the view to only the specified <see cref="EpisodeType"/>s.</param>
     /// <param name="groupBy">Group the episodes in view into smaller groups based on <see cref="FileSummaryGroupByCriteria"/>s.</param>
     /// <param name="includeEpisodeDetails">Include episode details for each range.</param>
+    /// <param name="includeLocationDetails">Include location details for each range.</param>
     /// <param name="includeMissingUnknownEpisodes">Include missing episodes that does not have an air date set.</param>
     /// <param name="includeMissingFutureEpisodes">Include missing episodes that will air in the future.</param>
     /// <returns>A <c>WebUISeriesFileSummary</c> object containing a summary of file information for the series.</returns>
@@ -339,6 +329,7 @@ public partial class WebUIController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<FileSummaryGroupByCriteria>? groupBy = null,
         [FromQuery] bool includeEpisodeDetails = false,
+        [FromQuery] bool includeLocationDetails = false,
         [FromQuery] bool includeMissingUnknownEpisodes = false,
         [FromQuery] bool includeMissingFutureEpisodes = false)
     {
@@ -354,7 +345,7 @@ public partial class WebUIController : BaseController
             return Forbid(SeriesController.SeriesForbiddenForUser);
         }
 
-        return new WebUISeriesFileSummary(series, type, includeEpisodeDetails, includeMissingFutureEpisodes, includeMissingUnknownEpisodes, groupBy);
+        return new WebUISeriesFileSummary(series, type, includeEpisodeDetails, includeLocationDetails, includeMissingFutureEpisodes, includeMissingUnknownEpisodes, groupBy);
     }
 
     /// <summary>
@@ -365,38 +356,32 @@ public partial class WebUIController : BaseController
     /// You don't need to be authenticated to use this endpoint.
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
+    /// <param name="allowIncompatible">Allow downloading an incompatible version.</param>
     /// <returns></returns>
     [AllowAnonymous]
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpPost("Install")]
-    public ActionResult InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
+    public ActionResult InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
     {
-        var indexLocation = Path.Combine(Utils.ApplicationPath, "webui", "index.html");
+        var indexLocation = Path.Join(applicationPaths.WebPath, "index.html");
         if (System.IO.File.Exists(indexLocation))
         {
             var index = System.IO.File.ReadAllText(indexLocation);
             var token = "install-web-ui";
             if (!index.Contains(token))
-                return BadRequest("Unable to install web UI when a web UI is already installed.");
+                return ValidationProblem("Unable to install web UI when a web UI is already installed.", "Request");
         }
-
-        var result = LatestWebUIVersion(channel);
-        if (result.Value is null)
-            return result.Result!;
-
-        if (result.Value.Tag is null)
-            return BadRequest("Unable to install web UI because a GitHub release was not found.");
 
         try
         {
-            WebUIHelper.GetUrlAndUpdate(result.Value.Tag);
+            updateService.InstallUpdateForChannel(channel, allowIncompatible);
         }
         catch (WebException ex)
         {
             if (ex.Status != WebExceptionStatus.Success)
             {
-                _logger.LogError(ex, "An error occurred while trying to install the Web UI.");
+                logger.LogError(ex, "An error occurred while trying to install the Web UI.");
                 return Problem("Unable to use the GitHub API to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect to GitHub.");
             }
             throw;
@@ -410,38 +395,30 @@ public partial class WebUIController : BaseController
     [InitFriendly]
     [HttpGet("Install")]
     [Obsolete("Post is correct, but we want legacy versions of the webui boot-strapper to be able to install. We can remove this later™.")]
-    public ActionResult UpdateWebUILegacy([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
-        => InstallWebUI(channel);
+    public ActionResult UpdateWebUILegacy([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
+        => InstallWebUI(channel, allowIncompatible);
 
     /// <summary>
     /// Update an existing version of the web ui to the latest for the selected
     /// <paramref name="channel"/>.
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
+    /// <param name="allowIncompatible">Allow downloading an incompatible version.</param>
     /// <returns></returns>
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpPost("Update")]
-    public ActionResult UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
+    public ActionResult UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
     {
-        if (channel == ReleaseChannel.Auto)
-            channel = GetCurrentWebUIReleaseChannel();
-        var result = LatestWebUIVersion(channel);
-        if (result.Value is null)
-            return result.Result!;
-
-        if (result.Value.Tag is null)
-            return BadRequest("Unable to update web UI because a GitHub release was not found.");
-
         try
         {
-            WebUIHelper.GetUrlAndUpdate(result.Value.Tag);
+            updateService.InstallUpdateForChannel(channel, allowIncompatible);
         }
         catch (WebException ex)
         {
             if (ex.Status != WebExceptionStatus.Success)
             {
-                _logger.LogError(ex, "An error occurred while trying to update the Web UI.");
+                logger.LogError(ex, "An error occurred while trying to update the Web UI.");
                 return Problem("Unable to use the GitHub API to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect to GitHub.");
             }
             throw;
@@ -450,13 +427,27 @@ public partial class WebUIController : BaseController
         return NoContent();
     }
 
+    /// <summary>
+    /// Let the server know that a manual update of the web UI has been
+    /// performed by the user to trigger the post-update event.
+    /// </summary>
+    /// <returns></returns>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpPost("Update/ReportManualUpdate")]
+    public ActionResult UpdateWebUIManualRefresh()
+    {
+        updateService.ReactToManualUpdate();
+        return NoContent();
+    }
+
     /// <inheritdoc cref="UpdateWebUI"/>
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("Update")]
     [Obsolete("Post is correct, but we want old versions of the webui to be able to update. We can remove this later™.")]
-    public ActionResult UpdateWebUIOld([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto)
-        => UpdateWebUI(channel);
+    public ActionResult UpdateWebUIOld([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
+        => UpdateWebUI(channel, allowIncompatible);
 
     /// <summary>
     /// Check for latest version for the selected <paramref name="channel"/> and
@@ -465,79 +456,16 @@ public partial class WebUIController : BaseController
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
     /// <param name="force">Bypass the cache and search for a new version online.</param>
-    /// /// <returns></returns>
+    /// <param name="allowIncompatible">Allow downloading an incompatible version.</param>
+    /// <returns></returns>
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("LatestVersion")]
-    public ActionResult<ComponentVersion> LatestWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool force = false)
+    public ActionResult<ComponentVersion> LatestWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool force = false, [FromQuery] bool allowIncompatible = false)
     {
         try
         {
-            if (channel == ReleaseChannel.Auto)
-                channel = GetCurrentWebUIReleaseChannel();
-            var key = $"webui:{channel}";
-            if (!force && _cache.TryGetValue<ComponentVersion>(key, out var componentVersion))
-                return componentVersion!;
-            switch (channel)
-            {
-                // Check for dev channel updates.
-                case ReleaseChannel.Dev:
-                {
-                    var releases = WebUIHelper.DownloadApiResponse("releases?per_page=10&page=1");
-                    foreach (var release in releases)
-                    {
-                        string tagName = release.tag_name;
-                        var version = tagName[0] == 'v' ? tagName[1..] : tagName;
-                        foreach (var asset in release.assets)
-                        {
-                            // We don't care what the zip is named, only that it is attached.
-                            string fileName = asset.name;
-                            if (Path.GetExtension(fileName) is ".zip")
-                            {
-                                var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}");
-                                string commit = tag["object"].sha;
-                                DateTime releaseDate = release.published_at;
-                                releaseDate = releaseDate.ToUniversalTime();
-                                string description = release.body;
-                                return _cache.Set(key, new ComponentVersion
-                                {
-                                    Version = version,
-                                    Commit = commit[..7],
-                                    ReleaseChannel = ReleaseChannel.Dev,
-                                    ReleaseDate = releaseDate,
-                                    Tag = tagName,
-                                    Description = description.Trim(),
-                                }, _cacheTTL);
-                            }
-                        }
-                    }
-
-                    // Fallback to stable.
-                    goto default;
-                }
-
-                // Check for stable channel updates.
-                default:
-                {
-                    var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest");
-                    string tagName = latestRelease.tag_name;
-                    var version = tagName[0] == 'v' ? tagName[1..] : tagName;
-                    var tag = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}");
-                    string commit = tag["object"].sha;
-                    DateTime releaseDate = latestRelease.published_at;
-                    releaseDate = releaseDate.ToUniversalTime();
-                    string description = latestRelease.body;
-                    return _cache.Set(key, new ComponentVersion
-                    {
-                        Version = version,
-                        Commit = commit[0..7],
-                        ReleaseChannel = ReleaseChannel.Stable,
-                        ReleaseDate = releaseDate,
-                        Tag = tagName,
-                        Description = description.Trim(),
-                    }, _cacheTTL);
-                }
-            }
+            return updateService.GetLatestVersion(channel, force, allowIncompatible).ToDto();
         }
         catch (WebException ex)
         {
@@ -546,9 +474,6 @@ public partial class WebUIController : BaseController
             throw;
         }
     }
-
-    [GeneratedRegex(@"^[Vv]?(?<version>(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+))(?:-dev.(?<buildNumber>\d+))?$", RegexOptions.Compiled, "en-US")]
-    private static partial Regex ServerReleaseVersionRegex();
 
     /// <summary>
     /// Check for latest version for the selected <paramref name="channel"/> and
@@ -565,118 +490,10 @@ public partial class WebUIController : BaseController
     {
         try
         {
-            if (channel == ReleaseChannel.Auto)
-                channel = GetCurrentServerReleaseChannel();
-            var key = $"server:{channel}";
-            if (!force && _cache.TryGetValue<ComponentVersion>(key, out var componentVersion))
-                return componentVersion!;
-            switch (channel)
-            {
-                // Check for dev channel updates.
-                case ReleaseChannel.Dev:
-                {
-                    var latestTags = WebUIHelper.DownloadApiResponse($"tags?per_page=100&page=1", WebUIHelper.ServerRepoName);
-                    var version = string.Empty;
-                    var tagName = string.Empty;
-                    var commitSha = string.Empty;
-                    var regex = ServerReleaseVersionRegex();
-                    foreach (var tagInfo in latestTags)
-                    {
-                        string localTagName = tagInfo.name;
-                        if (regex.Match(localTagName) is { Success: true } regexResult)
-                        {
-                            tagName = localTagName;
-                            commitSha = tagInfo.commit.sha;
-                            version = regexResult.Groups["version"].Value;
-                            if (regexResult.Groups["buildNumber"].Success)
-                                version += "." + regexResult.Groups["buildNumber"].Value;
-                            else
-                                version += ".0";
-                            break;
-                        }
-                    }
-
-                    if (string.IsNullOrEmpty(commitSha))
-                    {
-                        return BadRequest("Unable to locate the latest release to use.");
-                    }
-
-                    var latestCommit = WebUIHelper.DownloadApiResponse($"commits/{commitSha}", WebUIHelper.ServerRepoName);
-                    DateTime releaseDate = latestCommit.commit.author.date;
-                    releaseDate = releaseDate.ToUniversalTime();
-                    string description;
-                    // We're on a local build.
-                    if (!Utils.GetApplicationExtraVersion().TryGetValue("commit", out var currentCommit))
-                    {
-                        description = "Local build detected. Unable to determine the relativeness of the latest daily release.";
-                    }
-                    // We're not on the latest daily release.
-                    else if (!string.Equals(currentCommit, commitSha))
-                    {
-                        var diff = WebUIHelper.DownloadApiResponse($"compare/{commitSha}...{currentCommit}", WebUIHelper.ServerRepoName);
-                        var aheadBy = (int)diff.ahead_by;
-                        var behindBy = (int)diff.behind_by;
-                        description = $"You are currently {aheadBy} commits ahead and {behindBy} commits behind the latest daily release.";
-                    }
-                    // We're on the latest daily release.
-                    else
-                    {
-                        description = "All caught up! You are running the latest daily release.";
-                    }
-                    return _cache.Set(key, new ComponentVersion
-                    {
-                        Version = version,
-                        Commit = commitSha,
-                        ReleaseChannel = ReleaseChannel.Dev,
-                        ReleaseDate = releaseDate,
-                        Tag = tagName,
-                        Description = description,
-                    }, _cacheTTL);
-                }
-
-#if DEBUG
-                // Spoof update if debugging and requesting the latest debug version.
-                case ReleaseChannel.Debug:
-                {
-                    componentVersion = new ComponentVersion() { Version = Utils.GetApplicationVersion(), Description = "Local debug version." };
-                    var extraVersionDict = Utils.GetApplicationExtraVersion();
-                    if (extraVersionDict.TryGetValue("tag", out var tag))
-                        componentVersion.Tag = tag;
-                    if (extraVersionDict.TryGetValue("commit", out var commit))
-                        componentVersion.Commit = commit;
-                    if (extraVersionDict.TryGetValue("channel", out var rawChannel))
-                        if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var parsedChannel))
-                            componentVersion.ReleaseChannel = parsedChannel;
-                        else
-                            componentVersion.ReleaseChannel = ReleaseChannel.Debug;
-                    if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
-                        componentVersion.ReleaseDate = releaseDate.ToUniversalTime();
-                    return _cache.Set<ComponentVersion>(key, componentVersion, _cacheTTL);
-                }
-#endif
-
-                // Check for stable channel updates.
-                default:
-                {
-                    var latestRelease = WebUIHelper.DownloadApiResponse("releases/latest", WebUIHelper.ServerRepoName);
-                    string tagName = latestRelease.tag_name;
-                    var tagResponse = WebUIHelper.DownloadApiResponse($"git/ref/tags/{tagName}", WebUIHelper.ServerRepoName);
-                    var version = tagName[1..] + ".0";
-                    string commit = tagResponse["object"].sha;
-                    DateTime releaseDate = latestRelease.published_at;
-                    releaseDate = releaseDate.ToUniversalTime();
-                    string description = latestRelease.body;
-                    return _cache.Set(key, new ComponentVersion
-                    {
-                        Version = version,
-                        Commit = commit,
-                        ReleaseChannel = ReleaseChannel.Stable,
-                        ReleaseDate = releaseDate,
-                        Tag = tagName,
-                        Description = description.Trim(),
-                    }, _cacheTTL);
-                }
-            }
+            var version = updateService.GetLatestServerVersion(channel, force);
+            if (version is null)
+                return BadRequest("Unable to locate the latest release to use.");
+            return version.ToDto();
         }
         catch (WebException ex)
         {
@@ -684,28 +501,5 @@ public partial class WebUIController : BaseController
                 return StatusCode((int)HttpStatusCode.BadGateway, "Unable to use the GitHub API to check for an update. Check your connection.");
             throw;
         }
-    }
-
-    private static ReleaseChannel GetCurrentWebUIReleaseChannel()
-    {
-        var webuiVersion = WebUIHelper.LoadWebUIVersionInfo();
-        if (webuiVersion != null)
-            return webuiVersion.Debug ? ReleaseChannel.Debug : webuiVersion.Package.Contains("-dev") ? ReleaseChannel.Dev : ReleaseChannel.Stable;
-        return GetCurrentServerReleaseChannel();
-    }
-
-    private static ReleaseChannel GetCurrentServerReleaseChannel()
-    {
-        var extraVersionDict = Utils.GetApplicationExtraVersion();
-        if (extraVersionDict.TryGetValue("channel", out var rawChannel) && Enum.TryParse<ReleaseChannel>(rawChannel, true, out var channel))
-            return channel;
-        return ReleaseChannel.Stable;
-    }
-
-
-    public WebUIController(ISettingsProvider settingsProvider, WebUIFactory webUIFactory, ILogger<WebUIController> logger) : base(settingsProvider)
-    {
-        _logger = logger;
-        _webUIFactory = webUIFactory;
     }
 }

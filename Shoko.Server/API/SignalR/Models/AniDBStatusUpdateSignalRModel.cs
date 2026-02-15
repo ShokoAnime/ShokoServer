@@ -31,15 +31,6 @@ public class AniDBStatusUpdateSignalRModel
     /// </summary>
     public int PauseTimeSecs { get; set; }
 
-    public AniDBStatusUpdateSignalRModel(UpdateType updateType, bool value, DateTime updateTime, int pauseTimeSecs, string message = "")
-    {
-        Value = value;
-        Message = message;
-        UpdateType = updateType;
-        UpdateTime = updateTime.ToUniversalTime();
-        PauseTimeSecs = pauseTimeSecs;
-    }
-
     public AniDBStatusUpdateSignalRModel(AniDBStateUpdate update)
     {
         Value = update.Value;

@@ -6,11 +6,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -130,7 +131,7 @@ public class GroupController : BaseController
     [HttpPost]
     public ActionResult<Group> CreateGroup([FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
-        var animeGroup = new SVR_AnimeGroup
+        var animeGroup = new AnimeGroup
         {
             GroupName = string.Empty,
             Description = string.Empty,
@@ -285,12 +286,15 @@ public class GroupController : BaseController
             .ToHashSet();
 
         // TODO: Replace with a more generic implementation capable of supplying relations from more than just AniDB.
-        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(animeIds)
-            .Select(relation =>
-                (relation, relatedSeries: RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID)))
+        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(animeIds).OfType<IRelatedMetadata>()
+            .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(animeIds).OfType<IRelatedMetadata>().Select(a => a.Reversed))
+            .Distinct()
+            .Select(relation => (relation, relatedSeries: RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedID)))
             .Where(tuple => tuple.relatedSeries != null && animeIds.Contains(tuple.relatedSeries.AniDB_ID))
-            .Select(tuple => new SeriesRelation(HttpContext, tuple.relation, seriesDict[tuple.relation.AnimeID],
-                tuple.relatedSeries))
+            .OrderBy(tuple => tuple.relation.BaseID)
+            .ThenBy(tuple => tuple.relation.RelatedID)
+            .ThenBy(tuple => tuple.relation.RelationType)
+            .Select(tuple => new SeriesRelation(tuple.relation, seriesDict[tuple.relation.BaseID], tuple.relatedSeries))
             .ToList();
     }
 
@@ -354,23 +358,6 @@ public class GroupController : BaseController
 
         await _groupCreator.RecalculateStatsContractsForGroup(group);
         return Ok();
-    }
-
-    #endregion
-
-    #region Obsolete
-
-    /// <summary>
-    /// Recreate all groups from scratch. Use <see cref="ActionController.RecreateAllGroups"/> instead.
-    /// </summary>
-    /// <returns></returns>
-    [Authorize("admin")]
-    [HttpGet("RecreateAllGroups")]
-    [Obsolete("Use the actions endpoint instead.")]
-    public ActionResult RecreateAllGroups()
-    {
-        Task.Run(async () => await _groupCreator.RecreateAllGroups());
-        return Ok("Check the server status via init/status or SignalR's Events hub");
     }
 
     #endregion

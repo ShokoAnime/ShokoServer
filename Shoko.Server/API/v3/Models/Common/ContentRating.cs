@@ -25,7 +25,7 @@ public class ContentRating
     /// </summary>
     public string Source { get; init; }
 
-    public ContentRating(string rating, string countryCode, string languageCode, DataSource source)
+    public ContentRating(string rating, string countryCode, string languageCode, DataSourceType source)
     {
         Rating = rating;
         Country = countryCode;
@@ -34,6 +34,6 @@ public class ContentRating
     }
 
     public ContentRating(TMDB_ContentRating contentRating) :
-        this(contentRating.Rating, contentRating.CountryCode, contentRating.LanguageCode, DataSource.TMDB)
+        this(contentRating.Rating, contentRating.CountryCode, contentRating.LanguageCode, DataSourceType.TMDB)
     { }
 }

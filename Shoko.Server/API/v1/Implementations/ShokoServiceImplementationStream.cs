@@ -9,21 +9,20 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
-using Shoko.Models.Interfaces;
+using Shoko.Abstractions.Services;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 using Mime = MimeMapping.MimeUtility;
 
-namespace Shoko.Server;
+namespace Shoko.Server.API.v1.Implementations;
 
 [ApiInUse]
 [ApiController]
 [Route("/Stream")]
 [ApiVersion("1.0", Deprecated = true)]
-public class ShokoServiceImplementationStream : Controller, IShokoServerStream, IHttpContextAccessor
+public class ShokoServiceImplementationStream : Controller, IHttpContextAccessor
 {
     public new HttpContext HttpContext { get; set; }
 
@@ -151,8 +150,8 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
                     {
                         Task.Factory.StartNew(async () =>
                             {
-                                var watchedService = Utils.ServiceContainer.GetRequiredService<WatchedStatusService>();
-                                await watchedService.SetWatchedStatus(r.VideoLocal, true, r.User.JMMUserID);
+                                var userDataService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
+                                await userDataService.SetVideoWatchedStatus(r.VideoLocal, r.User);
                             },
                             new CancellationToken(),
                             TaskCreationOptions.LongRunning, TaskScheduler.Default);
@@ -207,8 +206,8 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
     private class InfoResult
     {
         public FileInfo File { get; set; }
-        public SVR_VideoLocal VideoLocal { get; set; }
-        public SVR_JMMUser User { get; set; }
+        public VideoLocal VideoLocal { get; set; }
+        public JMMUser User { get; set; }
         public HttpStatusCode Status { get; set; }
         public string StatusDescription { get; set; }
         public string Mime { get; set; }
@@ -226,7 +225,7 @@ public class ShokoServiceImplementationStream : Controller, IShokoServerStream, 
         }
 
         r.VideoLocal = loc;
-        r.File = loc.FirstResolvedPlace?.GetFile();
+        r.File = loc.FirstResolvedPlace?.FileInfo;
         return FinishResolve(r, userId, autoWatch);
     }
 

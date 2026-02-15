@@ -10,7 +10,7 @@ public class NLogInterceptor : EmptyInterceptor
     public override SqlString OnPrepareStatement(SqlString sql)
     {
         _logger.Trace($"Executing Query: {sql}");
- 
+
         return base.OnPrepareStatement(sql);
     }
 }

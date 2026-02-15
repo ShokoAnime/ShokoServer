@@ -1,3 +1,5 @@
+using Shoko.Abstractions.Metadata;
+using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
@@ -5,7 +7,7 @@ namespace Shoko.Server.Models.TMDB;
 /// <summary>
 /// Crew member for a movie.
 /// </summary>
-public class TMDB_Movie_Crew : TMDB_Crew
+public class TMDB_Movie_Crew : TMDB_Crew, ICrew<IMovie>
 {
     #region Properties
 
@@ -19,9 +21,24 @@ public class TMDB_Movie_Crew : TMDB_Crew
     /// </summary>
     public int TmdbMovieID { get; set; }
 
+    /// <inheritdoc />
+    public override int TmdbParentID => TmdbMovieID;
+
     #endregion
 
     #region Methods
+
+    public TMDB_Movie? GetTmdbMovie() =>
+        RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbMovieID);
+
+    public override IMetadata<int>? GetTmdbParent() =>
+        GetTmdbMovie();
+
+    #endregion
+
+    #region ICrew Implementation
+
+    IMovie? ICrew<IMovie>.ParentOfType => GetTmdbMovie();
 
     #endregion
 }

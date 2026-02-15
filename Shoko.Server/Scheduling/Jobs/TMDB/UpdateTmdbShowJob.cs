@@ -30,6 +30,8 @@ public class UpdateTmdbShowJob : BaseJob
 
     public virtual bool? DownloadAlternateOrdering { get; set; }
 
+    public virtual bool? DownloadNetworks { get; set; }
+
     public virtual bool ForceRefresh { get; set; }
 
     public virtual string? ShowTitle { get; set; }
@@ -62,7 +64,15 @@ public class UpdateTmdbShowJob : BaseJob
     {
         _logger.LogInformation("Processing UpdateTmdbShowJob: {TmdbShowId}", TmdbShowID);
         var settings = _settingsProvider.GetSettings();
-        await _tmdbService.UpdateShow(TmdbShowID, ForceRefresh, DownloadImages, DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering).ConfigureAwait(false);
+        await _tmdbService.UpdateShow(
+            showId: TmdbShowID,
+            forceRefresh: ForceRefresh,
+            downloadImages: DownloadImages,
+            downloadCrewAndCast: DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast,
+            downloadAlternateOrdering: DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering,
+            downloadNetworks: DownloadNetworks ?? settings.TMDB.AutoDownloadNetworks,
+            quickRefresh: false
+        ).ConfigureAwait(false);
     }
 
     public UpdateTmdbShowJob(TmdbMetadataService tmdbService, ISettingsProvider settingsProvider)

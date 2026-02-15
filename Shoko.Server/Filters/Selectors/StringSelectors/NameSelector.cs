@@ -1,15 +1,14 @@
-using Shoko.Server.Filters.Interfaces;
+using System;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Selectors.StringSelectors;
 
 public class NameSelector : FilterExpression<string>
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This returns the name of a filterable";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
-    public override string Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override string Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.Name;
     }

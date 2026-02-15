@@ -6,15 +6,14 @@ using System.Net;
 using System.Web;
 using System.Xml;
 using Microsoft.Extensions.Logging;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
 
 public class HttpAnimeParser
 {
+    private static readonly TimeZoneInfo _japanTime = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
     private readonly ILogger<HttpAnimeParser> _logger;
 
     public HttpAnimeParser(ILogger<HttpAnimeParser> logger)
@@ -30,13 +29,13 @@ public class HttpAnimeParser
             return null;
         }
 
-        var anime = ParseAnime(animeId, xml);
+        var titles = ParseTitles(xml["anime"]?["titles"]?.GetElementsByTagName("title"));
+        var anime = ParseAnime(animeId, titles, xml);
         if (anime == null)
         {
             return null;
         }
 
-        var titles = ParseTitles(xml);
         var episodes = ParseEpisodes(animeId, xml);
         var tags = ParseTags(animeId, xml);
         var staff = ParseStaffs(animeId, xml);
@@ -69,7 +68,7 @@ public class HttpAnimeParser
 
     #region Parse Anime Details
 
-    private ResponseAnime ParseAnime(int animeID, XmlNode docAnime)
+    private ResponseAnime ParseAnime(int animeID, List<ResponseTitle> titles, XmlDocument docAnime)
     {
         // most of the general anime data will be overwritten by the UDP command
         var anime = new ResponseAnime { AnimeID = animeID };
@@ -90,7 +89,9 @@ public class HttpAnimeParser
             "tv series" => AnimeType.TVSeries,
             "tv special" => AnimeType.TVSpecial,
             "web" => AnimeType.Web,
-            _ => AnimeType.Other
+            "music video" => AnimeType.MusicVideo,
+            "other" => AnimeType.Other,
+            _ => AnimeType.Unknown,
         };
 
         var episodeCount = TryGetProperty(docAnime, "anime", "episodecount");
@@ -113,7 +114,13 @@ public class HttpAnimeParser
         anime.URL = TryGetProperty(docAnime, "anime", "url");
         anime.Picname = TryGetProperty(docAnime, "anime", "picture");
 
-        ParseMainTitle(docAnime, anime);
+        anime.MainTitle = titles.FirstOrDefault(t => t.TitleType == TitleType.Main)?.Title;
+        if (string.IsNullOrWhiteSpace(anime.MainTitle))
+        {
+            _logger.LogWarning("AniDB ProcessAnimeDetails - Could not find a main title");
+            return null;
+        }
+
         ParseRatings(docAnime, anime);
 
         return anime;
@@ -127,24 +134,31 @@ public class HttpAnimeParser
         {
             if (DateTime.TryParseExact(
                     dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal, out var date
-                ) && date != DateTime.UnixEpoch)
+                    DateTimeStyles.None, out var date
+                ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
             {
                 anime.AirDate = date;
             }
             else if (DateTime.TryParseExact(
                          dateString, "yyyy-MM", CultureInfo.InvariantCulture,
-                         DateTimeStyles.AssumeUniversal, out date
-                     ) && date != DateTime.UnixEpoch)
+                         DateTimeStyles.None, out date
+                     ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
             {
                 anime.AirDate = date;
             }
             else if (DateTime.TryParseExact(
                          dateString, "yyyy", CultureInfo.InvariantCulture,
-                         DateTimeStyles.AssumeUniversal, out date
-                     ) && date != DateTime.UnixEpoch)
+                         DateTimeStyles.None, out date
+                     ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
             {
                 anime.AirDate = date;
+            }
+
+            if (anime.AirDate != null)
+            {
+                // define datetimeoffset to make anime.AirDate timezone aware
+                var dto = new DateTimeOffset(anime.AirDate.Value, _japanTime.GetUtcOffset(anime.AirDate.Value));
+                anime.AirDate = TimeZoneInfo.ConvertTimeFromUtc(dto.UtcDateTime, _japanTime);
             }
         }
 
@@ -154,24 +168,31 @@ public class HttpAnimeParser
         {
             if (DateTime.TryParseExact(
                     dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal, out var date
-                ) && date != DateTime.UnixEpoch)
+                    DateTimeStyles.None, out var date
+                ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
             {
                 anime.EndDate = date;
             }
             else if (DateTime.TryParseExact(
                          dateString, "yyyy-MM", CultureInfo.InvariantCulture,
-                         DateTimeStyles.AssumeUniversal, out date
-                     ) && date != DateTime.UnixEpoch)
+                         DateTimeStyles.None, out date
+                     ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
             {
                 anime.EndDate = date;
             }
             else if (DateTime.TryParseExact(
                          dateString, "yyyy", CultureInfo.InvariantCulture,
-                         DateTimeStyles.AssumeUniversal, out date
-                     ) && date != DateTime.UnixEpoch)
+                         DateTimeStyles.None, out date
+                     ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
             {
                 anime.EndDate = date;
+            }
+
+            if (anime.EndDate != null)
+            {
+                // define datetimeoffset to make anime.EndDate timezone aware
+                var dto = new DateTimeOffset(anime.EndDate.Value, _japanTime.GetUtcOffset(anime.EndDate.Value));
+                anime.EndDate = TimeZoneInfo.ConvertTimeFromUtc(dto.UtcDateTime, _japanTime);
             }
 
             if (anime.EndDate != null && anime.AirDate != null && anime.EndDate < anime.AirDate) anime.EndDate = anime.AirDate;
@@ -238,52 +259,20 @@ public class HttpAnimeParser
         }
     }
 
-    private static void ParseMainTitle(XmlNode docAnime, ResponseAnime anime)
-    {
-        var titleItems = docAnime["anime"]["titles"]?.GetElementsByTagName("title");
-        if (titleItems == null)
-        {
-            return;
-        }
-
-        foreach (XmlNode node in titleItems)
-        {
-            if (string.IsNullOrEmpty(node?.Attributes?["xml:lang"]?.Value.Trim().ToLower()))
-            {
-                continue;
-            }
-
-            var titleValue = UnescapeXml(node.InnerText.Trim());
-            if (string.IsNullOrEmpty(titleValue))
-            {
-                continue;
-            }
-
-            var titleType = node.Attributes?["type"]?.Value.Trim().ToLower();
-            if (!"main".Equals(titleType))
-            {
-                continue;
-            }
-
-            anime.MainTitle = titleValue.Replace('`', '\'');
-        }
-    }
-
     #endregion
 
     #region Parse Titles
 
-    private List<ResponseTitle> ParseTitles(XmlDocument docAnime)
+    private List<ResponseTitle> ParseTitles(XmlNodeList titleElements)
     {
         var titles = new List<ResponseTitle>();
 
-        var titleItems = docAnime?["anime"]?["titles"]?.GetElementsByTagName("title");
-        if (titleItems == null)
+        if (titleElements == null)
         {
             return titles;
         }
 
-        foreach (XmlNode node in titleItems)
+        foreach (var node in titleElements.OfType<XmlElement>())
         {
             try
             {
@@ -299,19 +288,91 @@ public class HttpAnimeParser
         return titles;
     }
 
-    private static ResponseTitle ParseTitle(XmlNode node)
+    private static ResponseTitle ParseTitle(XmlElement node)
     {
         var titleType = TryGetAttribute(node, "type");
-        if (!Enum.TryParse(titleType, true, out TitleType type))
-        {
-            return null;
-        }
+        Enum.TryParse(titleType, true, out TitleType type);
 
         var language = TryGetAttribute(node, "xml:lang");
-        var langEnum = language.GetTitleLanguage();
+        var langEnum = GetLanguageFromXmlAttribute(language);
         var title = UnescapeXml(node.InnerText.Trim()).Replace('`', '\'');
         return new ResponseTitle { Title = title, TitleType = type, Language = langEnum };
     }
+
+
+    private static TitleLanguage GetLanguageFromXmlAttribute(string lang) =>
+        lang.ToLowerInvariant() switch
+        {
+            "ja" => TitleLanguage.Japanese,
+            "x-jat" => TitleLanguage.Romaji,
+            "en" => TitleLanguage.English,
+            "af" => TitleLanguage.Afrikaans,
+            "al" => TitleLanguage.Albanian,
+            "ar" => TitleLanguage.Arabic,
+            "es-pv" => TitleLanguage.Basque,
+            "bd" => TitleLanguage.Bengali,
+            "bg" => TitleLanguage.Bulgarian,
+            "bs" => TitleLanguage.Bosnian,
+            "bur" => TitleLanguage.MyanmarBurmese,
+            "es-ca" => TitleLanguage.Catalan,
+            "x-zht" => TitleLanguage.Pinyin,
+            "zh" or "zh-yue" or "zh-cmn" or "zh-nan" => TitleLanguage.Chinese,
+            "zh-hant" => TitleLanguage.ChineseTraditional,
+            "zh-hans" => TitleLanguage.ChineseSimplified,
+            "hr" => TitleLanguage.Croatian,
+            "cs" => TitleLanguage.Czech,
+            "da" => TitleLanguage.Danish,
+            "nl" => TitleLanguage.Dutch,
+            "eo" => TitleLanguage.Esperanto,
+            "et" => TitleLanguage.Estonian,
+            "tl" => TitleLanguage.Filipino,
+            "fi" => TitleLanguage.Finnish,
+            "fr" => TitleLanguage.French,
+            "es-ga" => TitleLanguage.Galician,
+            "ka" => TitleLanguage.Georgian,
+            "de" => TitleLanguage.German,
+            "el" or "grc" => TitleLanguage.Greek,
+            "ht" => TitleLanguage.HaitianCreole,
+            "he" => TitleLanguage.Hebrew,
+            "hi" => TitleLanguage.Hindi,
+            "hu" => TitleLanguage.Hungarian,
+            "is" => TitleLanguage.Icelandic,
+            "id" => TitleLanguage.Indonesian,
+            "x-in" => TitleLanguage.Unknown,
+            "it" => TitleLanguage.Italian,
+            "jv" => TitleLanguage.Javanese,
+            "ko" => TitleLanguage.Korean,
+            "x-kot" => TitleLanguage.KoreanTranscription,
+            "la" => TitleLanguage.Latin,
+            "lv" => TitleLanguage.Latvian,
+            "lt" => TitleLanguage.Lithuanian,
+            "my" => TitleLanguage.Malaysian,
+            "mn" => TitleLanguage.Mongolian,
+            "ne" => TitleLanguage.Nepali,
+            "no" => TitleLanguage.Norwegian,
+            "fa" => TitleLanguage.Persian,
+            "pl" => TitleLanguage.Polish,
+            "pt" => TitleLanguage.Portuguese,
+            "pt-br" => TitleLanguage.BrazilianPortuguese,
+            "ro" => TitleLanguage.Romanian,
+            "ru" => TitleLanguage.Russian,
+            "sr" => TitleLanguage.Serbian,
+            "si" => TitleLanguage.Sinhala,
+            "sk" => TitleLanguage.Slovak,
+            "sl" => TitleLanguage.Slovenian,
+            "es" or "es-419" => TitleLanguage.Spanish,
+            "sv" => TitleLanguage.Swedish,
+            "ta" => TitleLanguage.Tamil,
+            "tt" => TitleLanguage.Tatar,
+            "te" => TitleLanguage.Telugu,
+            "th" => TitleLanguage.Thai,
+            "x-tht" => TitleLanguage.ThaiTranscription,
+            "tr" => TitleLanguage.Turkish,
+            "uk" => TitleLanguage.Ukrainian,
+            "ur" => TitleLanguage.Urdu,
+            "vi" => TitleLanguage.Vietnamese,
+            "x-unk" or "x-other" or _ => TitleLanguage.Unknown,
+        };
 
     #endregion
 
@@ -326,7 +387,7 @@ public class HttpAnimeParser
             return episodes;
         }
 
-        foreach (XmlNode node in episodeItems)
+        foreach (XmlElement node in episodeItems)
         {
             try
             {
@@ -343,9 +404,9 @@ public class HttpAnimeParser
         return episodes;
     }
 
-    private static ResponseEpisode ParseEpisode(int animeID, XmlNode node)
+    private ResponseEpisode ParseEpisode(int animeID, XmlElement node)
     {
-        if (!int.TryParse(node?.Attributes?["id"]?.Value, out var id))
+        if (!int.TryParse(node?.Attributes["id"]?.Value, out var id))
         {
             throw new UnexpectedHttpResponseException("Could not get episode ID from XML", HttpStatusCode.OK,
                 node?.ToString());
@@ -368,14 +429,7 @@ public class HttpAnimeParser
         if (!DateTime.TryParse(TryGetAttribute(node, "update"), out var lastUpdated))
             lastUpdated = DateTime.UnixEpoch;
 
-        var titles = node.ChildNodes.Cast<XmlNode>()
-            .Where(nodeChild => Equals("title", nodeChild?.Name))
-            .Select(nodeChild => new ResponseTitle
-            {
-                Language = nodeChild?.Attributes?["xml:lang"]?.Value.GetTitleLanguage() ?? TitleLanguage.Unknown,
-                Title = UnescapeXml(nodeChild?.InnerText.Trim())?.Replace('`', '\''),
-                TitleType = TitleType.None,
-            })
+        var titles = ParseTitles(node.GetElementsByTagName("title"))
             .Where(episodeTitle => !string.IsNullOrEmpty(episodeTitle.Title) && episodeTitle.Language != TitleLanguage.Unknown)
             .ToList();
 
@@ -558,7 +612,10 @@ public class HttpAnimeParser
         var creatorName = UnescapeXml(node.InnerText).Replace('`', '\'');
         return new ResponseStaff
         {
-            AnimeID = animeID, CreatorID = creatorID, CreatorName = creatorName, CreatorType = creatorType
+            AnimeID = animeID,
+            CreatorID = creatorID,
+            CreatorName = creatorName,
+            CreatorType = creatorType
         };
     }
 
@@ -599,10 +656,14 @@ public class HttpAnimeParser
             return null;
         }
 
-        var charType = TryGetAttribute(node, "type");
+        var characterType = TryGetProperty(node, "charactertype") ?? "Character";
+        var characterAppearanceType = TryGetAttribute(node, "type");
         var charName = TryGetProperty(node, "name")?.Replace('`', '\'');
+        var charGender = TryGetProperty(node, "gender")?.Replace('`', '\'');
         var charDescription = TryGetProperty(node, "description")?.Replace('`', '\'');
         var picName = TryGetProperty(node, "picture");
+        if (!DateTime.TryParse(TryGetAttribute(node, "update"), out var lastUpdated))
+            lastUpdated = DateTime.UnixEpoch;
 
         // parse seiyuus
         var seiyuus = new List<ResponseSeiyuu>();
@@ -627,11 +688,14 @@ public class HttpAnimeParser
         {
             AnimeID = animeID,
             CharacterID = charID,
-            CharacterType = charType,
+            CharacterAppearanceType = characterAppearanceType,
+            CharacterType = characterType,
             CharacterName = charName,
             CharacterDescription = charDescription,
             PicName = picName,
-            Seiyuus = seiyuus
+            Gender = charGender,
+            Seiyuus = seiyuus,
+            LastUpdated = lastUpdated,
         };
     }
 
@@ -663,7 +727,9 @@ public class HttpAnimeParser
 
                     var resource = new ResponseResource
                     {
-                        AnimeID = animeID, ResourceID = resourceID, ResourceType = (AniDB_ResourceLinkType)typeInt
+                        AnimeID = animeID,
+                        ResourceID = resourceID,
+                        ResourceType = (ResourceLinkType)typeInt
                     };
                     result.Add(resource);
                 }

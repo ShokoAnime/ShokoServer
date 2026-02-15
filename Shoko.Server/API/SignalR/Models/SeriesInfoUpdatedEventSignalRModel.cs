@@ -2,9 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Plugin.Abstractions;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Plugin.Abstractions.Events;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Events;
 
 #nullable enable
 namespace Shoko.Server.API.SignalR.Models;
@@ -24,7 +23,7 @@ public class SeriesInfoUpdatedEventSignalRModel
     /// The provider metadata source.
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
-    public DataSourceEnum Source { get; }
+    public DataSource Source { get; }
 
     /// <summary>
     /// The update reason.

@@ -1,6 +1,5 @@
 ﻿using System;
 using Quartz;
-using Quartz.Impl;
 
 #nullable enable
 namespace Shoko.Server.Scheduling.GenericJobBuilder;

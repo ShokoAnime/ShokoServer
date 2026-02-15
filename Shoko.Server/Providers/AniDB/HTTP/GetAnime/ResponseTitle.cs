@@ -1,4 +1,4 @@
-﻿using Shoko.Plugin.Abstractions.DataModels;
+﻿using Shoko.Abstractions.Enums;
 
 namespace Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 

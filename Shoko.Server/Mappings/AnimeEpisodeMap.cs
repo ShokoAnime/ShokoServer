@@ -1,10 +1,10 @@
 using FluentNHibernate.Mapping;
 using Shoko.Server.Databases.NHIbernate;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Mappings;
 
-public class AnimeEpisodeMap : ClassMap<SVR_AnimeEpisode>
+public class AnimeEpisodeMap : ClassMap<AnimeEpisode>
 {
     public AnimeEpisodeMap()
     {

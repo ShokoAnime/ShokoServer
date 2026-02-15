@@ -5,11 +5,15 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
+using MySqlConnector;
 using NHibernate.Exceptions;
 using Quartz;
 using Sentry;
 using Sentry.AspNetCore;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
+using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using Constants = Shoko.Server.Server.Constants;
 
@@ -19,6 +23,19 @@ namespace Shoko.Server.Services.ErrorHandling;
 
 public static class SentryInit
 {
+    public static IServiceCollection AddSentryConfig(this IServiceCollection services)
+    {
+        var settings = Utils.SettingsProvider.GetSettings();
+
+        // Only try to set up Sentry if the user DID NOT OPT __OUT__.
+        if (settings.SentryOptOut || !Constants.SentryDsn.StartsWith("https://"))
+            return services;
+
+        services.AddSentry();
+
+        return services;
+    }
+
     public static IWebHostBuilder UseSentryConfig(this IWebHostBuilder webHost)
     {
         var settings = Utils.SettingsProvider.GetSettings();
@@ -32,9 +49,9 @@ public static class SentryInit
 
         // Only initialize the SDK if we're not on a debug build.
         //
-        // If the release channel is not set or if it's set to "debug" then
+        // If the release channel is not set or if it's set to "stable" or "dev" then
         // it's considered to be a debug build.
-        if (!extraInfo.TryGetValue("channel", out var environment) || environment == "debug")
+        if (!extraInfo.TryGetValue("channel", out var environment) || !Enum.TryParse<ReleaseChannel>(environment, true, out var channel) || channel is not ReleaseChannel.Stable and not ReleaseChannel.Dev)
             return webHost;
 
         return webHost.UseSentry(Action);
@@ -60,10 +77,12 @@ public static class SentryInit
     }
 
     private static readonly HashSet<Type> _ignoredEvents = new() {
+        typeof (ObjectAlreadyExistsException),
         typeof(FileNotFoundException),
         typeof(DirectoryNotFoundException),
         typeof(UnauthorizedAccessException),
-        typeof(HttpRequestException)
+        typeof(HttpRequestException),
+        typeof(ObjectAlreadyExistsException)
     };
 
     private static readonly HashSet<Type> _includedEvents = new()
@@ -95,9 +114,27 @@ public static class SentryInit
             if (ex is null) return false;
 
             var type = ex.GetType();
-            if (_ignoredEvents.Contains(type)) return false;
+            var innerType = ex.InnerException?.GetType();
+            if (_ignoredEvents.Contains(type) || (innerType is not null && _ignoredEvents.Contains(innerType))) return false;
 
             if (type.GetCustomAttribute<SentryIgnoreAttribute>() is not null) return false;
+
+            if (ex is GenericADOException or JobPersistenceException)
+            {
+                // Error codes: https://www.sqlite.org/rescode.html
+                if (ex.InnerException is SqliteException
+                    {
+                        SqliteErrorCode:
+                            4 /* aborted by app */ or
+                            8 /* readonly db */ or
+                            10 /* disk I/O error */ or
+                            11 /* corrupt db */ or
+                            13 /* db or fs is full */ or
+                            14 /* cannot open file */ or
+                            22 /* no LFS support */
+                    }) return false;
+                if (ex.InnerException is MySqlException { Number: (int)MySqlErrorCode.UnableToConnectToHost }) return false;
+            }
 
             if (_includedEvents.Contains(type)) return true;
             if (type.GetCustomAttribute<SentryIncludeAttribute>() is not null) return true;

@@ -4,14 +4,14 @@ using System.Globalization;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Filtering.Services;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Filters.Interfaces;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.API.v3.Helpers;
 
@@ -20,9 +20,9 @@ public class FilterFactory
     private readonly Dictionary<string, Type> _expressionTypes;
     private readonly Dictionary<string, Type> _sortingTypes;
     private readonly HttpContext _context;
-    private readonly FilterEvaluator _evaluator;
+    private readonly IFilterEvaluator _evaluator;
 
-    public FilterFactory(IHttpContextAccessor context, FilterEvaluator evaluator)
+    public FilterFactory(IHttpContextAccessor context, IFilterEvaluator evaluator)
     {
         _context = context.HttpContext;
         _evaluator = evaluator;
@@ -36,18 +36,19 @@ public class FilterFactory
             .ToDictionary(a => a.Name.TrimEnd("SortingSelector"));
     }
 
-    public Filter GetFilter(FilterPreset groupFilter, bool fullModel = false)
+    public Filter GetFilter(FilterPreset groupFilter, bool fullModel = false, bool includeEmpty = false)
     {
         var user = _context.GetUser();
         var filter = new Filter
         {
             IDs = new Filter.FilterIDs
             {
-                ID = groupFilter.FilterPresetID, ParentFilter = groupFilter.ParentFilterPresetID
+                ID = groupFilter.FilterPresetID,
+                ParentFilter = groupFilter.ParentFilterPresetID
             },
             Name = groupFilter.Name,
             IsLocked = groupFilter.Locked,
-            IsDirectory = groupFilter.IsDirectory(),
+            IsDirectory = groupFilter.IsDirectory,
             IsHidden = groupFilter.Hidden,
             ApplyAtSeriesLevel = groupFilter.ApplyAtSeriesLevel,
         };
@@ -60,26 +61,33 @@ public class FilterFactory
 
         filter.Size = filter.IsDirectory
             ? RepoFactory.FilterPreset.GetByParentID(groupFilter.FilterPresetID).Count
-            : _evaluator.EvaluateFilter(groupFilter, user?.JMMUserID).Count();
+            // Only count top level groups
+            : _evaluator.EvaluateFilter(groupFilter, user).Count(a =>
+            {
+                var group = RepoFactory.AnimeGroup.GetByID(a.Key);
+                return group is { AnimeGroupParentID: null } && (includeEmpty || group.AllSeries
+                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)));
+            });
         return filter;
     }
 
     public IEnumerable<Filter> GetFilters(List<FilterPreset> groupFilters, bool fullModel = false)
     {
         var user = _context.GetUser();
-        var evaluate = groupFilters.Any(a => !a.IsDirectory());
-        var results = evaluate ? _evaluator.BatchEvaluateFilters(groupFilters, user.JMMUserID, true) : null;
+        var evaluate = groupFilters.Any(a => !a.IsDirectory);
+        var results = evaluate ? _evaluator.BatchPrepareFilters(groupFilters, user, skipSorting: true) : null;
         var filters = groupFilters.Select(groupFilter =>
         {
             var filter = new Filter
             {
                 IDs = new Filter.FilterIDs
                 {
-                    ID = groupFilter.FilterPresetID, ParentFilter = groupFilter.ParentFilterPresetID
+                    ID = groupFilter.FilterPresetID,
+                    ParentFilter = groupFilter.ParentFilterPresetID
                 },
                 Name = groupFilter.Name,
                 IsLocked = groupFilter.Locked,
-                IsDirectory = groupFilter.IsDirectory(),
+                IsDirectory = groupFilter.IsDirectory,
                 IsHidden = groupFilter.Hidden,
                 ApplyAtSeriesLevel = groupFilter.ApplyAtSeriesLevel,
             };
@@ -90,7 +98,7 @@ public class FilterFactory
                 filter.Sorting = GetSortingCriteria(groupFilter.SortingExpression);
             }
 
-            filter.Size = filter.IsDirectory ? RepoFactory.FilterPreset.GetByParentID(groupFilter.FilterPresetID).Count : results?[groupFilter].Count() ?? 0;
+            filter.Size = filter.IsDirectory ? RepoFactory.FilterPreset.GetByParentID(groupFilter.FilterPresetID).Count : results?[groupFilter].Count ?? 0;
             return filter;
         });
 
@@ -280,7 +288,7 @@ public class FilterFactory
         {
             Name = groupFilter.Name,
             ParentID = groupFilter.ParentFilterPresetID,
-            IsDirectory = groupFilter.IsDirectory(),
+            IsDirectory = groupFilter.IsDirectory,
             IsHidden = groupFilter.Hidden,
             ApplyAtSeriesLevel = groupFilter.ApplyAtSeriesLevel
         };
@@ -317,7 +325,7 @@ public class FilterFactory
                 if (parentFilter.Locked)
                     modelState?.AddModelError(nameof(filter.ParentID), $"Unable to add a sub-filter to a filter that is locked.");
 
-                if (!parentFilter.IsDirectory())
+                if (!parentFilter.IsDirectory)
                     modelState?.AddModelError(nameof(filter.ParentID), $"Unable to add a sub-filter to a filter that is not a directorty filter.");
             }
         }
@@ -332,7 +340,7 @@ public class FilterFactory
         }
         else
         {
-            var subFilters = existing.FilterPresetID != 0 ? RepoFactory.FilterPreset.GetByParentID(existing.FilterPresetID) : new();
+            var subFilters = existing.FilterPresetID != 0 ? RepoFactory.FilterPreset.GetByParentID(existing.FilterPresetID) : [];
             if (subFilters.Count > 0)
                 modelState?.AddModelError(nameof(filter.IsDirectory), "Cannot turn a directory filter with sub-filters into a normal filter without first removing the sub-filters");
         }
@@ -342,7 +350,7 @@ public class FilterFactory
             return null;
 
         existing.ParentFilterPresetID = filter.ParentID;
-        existing.FilterType = filter.IsDirectory ? GroupFilterType.UserDefined | GroupFilterType.Directory : GroupFilterType.UserDefined;
+        existing.FilterType = filter.IsDirectory ? FilterPresetType.UserDefined | FilterPresetType.Directory : FilterPresetType.UserDefined;
         existing.Name = filter.Name ?? string.Empty;
         existing.Hidden = filter.IsHidden;
         existing.ApplyAtSeriesLevel = filter.ApplyAtSeriesLevel;

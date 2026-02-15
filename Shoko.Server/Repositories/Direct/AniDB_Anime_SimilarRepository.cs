@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Repositories.Direct;
 

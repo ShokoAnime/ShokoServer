@@ -1,15 +1,20 @@
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.Metadata.Tmdb;
+using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.CrossReference;
 
-public class CrossRef_AniDB_TMDB_Episode
+public class CrossRef_AniDB_TMDB_Episode : ITmdbEpisodeCrossReference
 {
     #region Database Columns
 
@@ -45,16 +50,16 @@ public class CrossRef_AniDB_TMDB_Episode
     #endregion
     #region Methods
 
-    public SVR_AniDB_Episode? AnidbEpisode =>
+    public AniDB_Episode? AnidbEpisode =>
         RepoFactory.AniDB_Episode.GetByEpisodeID(AnidbEpisodeID);
 
-    public SVR_AniDB_Anime? AnidbAnime =>
+    public AniDB_Anime? AnidbAnime =>
         RepoFactory.AniDB_Anime.GetByAnimeID(AnidbAnimeID);
 
-    public SVR_AnimeEpisode? AnimeEpisode =>
+    public AnimeEpisode? AnimeEpisode =>
         RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(AnidbEpisodeID);
 
-    public SVR_AnimeSeries? AnimeSeries =>
+    public AnimeSeries? AnimeSeries =>
         RepoFactory.AnimeSeries.GetByAnimeID(AnidbAnimeID);
 
     public TMDB_Episode? TmdbEpisode =>
@@ -92,11 +97,33 @@ public class CrossRef_AniDB_TMDB_Episode
     /// <param name="preferredImages">The preferred images.</param>
     /// <returns>A read-only list of images that are linked to the episode.
     /// </returns>
-    public IReadOnlyList<IImageMetadata> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImageMetadata> preferredImages) =>
+    public IReadOnlyList<IImage> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImage> preferredImages) =>
         GetImages(entityType)
             .GroupBy(i => i.ImageType)
             .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)
             .ToList();
+
+    #endregion
+
+    #region IWithImages Implementation
+
+    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
+        => null;
+
+    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType)
+        => GetImages(entityType);
+
+    #endregion
+
+    #region ITmdbEpisodeCrossReference Implementation
+
+    IShokoSeries? ITmdbEpisodeCrossReference.ShokoSeries => AnimeSeries;
+
+    IShokoEpisode? ITmdbEpisodeCrossReference.ShokoEpisode => AnimeEpisode;
+
+    ITmdbShow? ITmdbEpisodeCrossReference.TmdbShow => TmdbShow;
+
+    ITmdbEpisode? ITmdbEpisodeCrossReference.TmdbEpisode => TmdbEpisode;
 
     #endregion
 }

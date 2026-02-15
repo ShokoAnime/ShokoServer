@@ -4,13 +4,11 @@ using System.IO;
 using System.Linq;
 using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;
-using Shoko.Commons.Extensions;
-using Shoko.Commons.Utils;
-using Shoko.Models.Enums;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Utilities;
@@ -189,11 +187,11 @@ public static class SeriesSearch
     /// <returns>
     ///     <see cref="List{SearchResult}" />
     /// </returns>
-    public static List<SearchResult<SVR_AnimeSeries>> SearchSeries(SVR_JMMUser user, string query, int limit, SearchFlags flags,
+    public static List<SearchResult<AnimeSeries>> SearchSeries(JMMUser user, string query, int limit, SearchFlags flags,
             TagFilter.Filter tagFilter = TagFilter.Filter.None, bool searchById = false)
     {
         if (string.IsNullOrWhiteSpace(query) || user == null || limit <= 0)
-            return new List<SearchResult<SVR_AnimeSeries>>();
+            return new List<SearchResult<AnimeSeries>>();
 
         query = query.ToLowerInvariant();
         var forbiddenTags = user.GetHideCategories();
@@ -205,7 +203,7 @@ public static class SeriesSearch
             var anime = series?.AniDB_Anime;
             var tags = anime?.GetAllTags();
             if (anime != null && !tags.FindInEnumerable(forbiddenTags))
-                return new List<SearchResult<SVR_AnimeSeries>>
+                return new List<SearchResult<AnimeSeries>>
                 {
                     new()
                     {
@@ -237,15 +235,15 @@ public static class SeriesSearch
             SearchFlags.Fuzzy | SearchFlags.Tags => SearchTagsFuzzy(query, limit, forbiddenTags, allTags),
             SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTags(query, limit, forbiddenTags, allSeries, allTags),
             SearchFlags.Fuzzy | SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTagsFuzzy(query, limit, forbiddenTags, allSeries, allTags),
-            _ => new List<SearchResult<SVR_AnimeSeries>>(),
+            _ => new List<SearchResult<AnimeSeries>>(),
         };
     }
 
-    private static List<SearchResult<SVR_AnimeSeries>> SearchTitleAndTags(
+    private static List<SearchResult<AnimeSeries>> SearchTitleAndTags(
         string query,
         int limit,
         HashSet<string> forbiddenTags,
-        ParallelQuery<SVR_AnimeSeries> allSeries,
+        ParallelQuery<AnimeSeries> allSeries,
         ParallelQuery<AniDB_Tag> allTags)
     {
         var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), false, limit)
@@ -256,11 +254,11 @@ public static class SeriesSearch
         return titleResult;
     }
 
-    private static List<SearchResult<SVR_AnimeSeries>> SearchTitleAndTagsFuzzy(
+    private static List<SearchResult<AnimeSeries>> SearchTitleAndTagsFuzzy(
         string query,
         int limit,
         HashSet<string> forbiddenTags,
-        ParallelQuery<SVR_AnimeSeries> allSeries,
+        ParallelQuery<AnimeSeries> allSeries,
         ParallelQuery<AniDB_Tag> allTags)
     {
         var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), true, limit)
@@ -271,32 +269,29 @@ public static class SeriesSearch
         return titleResult;
     }
 
-    private static List<SearchResult<SVR_AnimeSeries>> SearchTagsExact(string query, int limit,
+    private static List<SearchResult<AnimeSeries>> SearchTagsExact(string query, int limit,
         HashSet<string> forbiddenTags, ParallelQuery<AniDB_Tag> allTags)
     {
-        var seriesList = new List<SearchResult<SVR_AnimeSeries>>();
+        var seriesList = new List<SearchResult<AnimeSeries>>();
         seriesList.AddRange(RepoFactory.CustomTag.GetAll()
             .Where(tag => tag.TagName.Equals(query, StringComparison.InvariantCultureIgnoreCase))
             .SelectMany(tag => RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID)
                 .Select(xref =>
                 {
-                    if (xref.CrossRefType != (int)CustomTagCrossRefType.Anime)
-                        return null;
-
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
                     var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
                     if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
-                    return new SearchResult<SVR_AnimeSeries>
+                    return new SearchResult<AnimeSeries>
                     {
                         ExactMatch = true,
                         Match = tag.TagName,
                         Result = series,
                     };
                 })
-                .Where(a => a != null)
+                .WhereNotNull()
             )
             .OrderBy(a => a.Result.PreferredTitle)
             .Take(limit)
@@ -315,7 +310,7 @@ public static class SeriesSearch
                     if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
-                    return new SearchResult<SVR_AnimeSeries>
+                    return new SearchResult<AnimeSeries>
                     {
                         ExactMatch = true,
                         Distance = (600 - xref.Weight) / 600D,
@@ -323,7 +318,7 @@ public static class SeriesSearch
                         Result = series,
                     };
                 })
-                .Where(a => a != null)
+                .WhereNotNull()
             )
             .OrderBy(a => a)
             .ThenBy(a => a.Result.PreferredTitle)
@@ -332,10 +327,10 @@ public static class SeriesSearch
         return seriesList;
     }
 
-    private static List<SearchResult<SVR_AnimeSeries>> SearchTagsFuzzy(string query, int limit,
+    private static List<SearchResult<AnimeSeries>> SearchTagsFuzzy(string query, int limit,
         HashSet<string> forbiddenTags, ParallelQuery<AniDB_Tag> allTags)
     {
-        var seriesList = new List<SearchResult<SVR_AnimeSeries>>();
+        var seriesList = new List<SearchResult<AnimeSeries>>();
         var customTags = RepoFactory.CustomTag.GetAll()
             .AsParallel()
             .Select(tag =>
@@ -349,21 +344,18 @@ public static class SeriesSearch
 
                 return result;
             })
-            .Where(a => a != null);
+            .WhereNotNull();
         seriesList.AddRange(customTags
             .SelectMany(tag => RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.Result.CustomTagID)
                 .Select(xref =>
                 {
-                    if (xref.CrossRefType != (int)CustomTagCrossRefType.Anime)
-                        return null;
-
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
                     var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
                     if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
-                    return new SearchResult<SVR_AnimeSeries>
+                    return new SearchResult<AnimeSeries>
                     {
                         ExactMatch = tag.ExactMatch,
                         Index = tag.Index,
@@ -373,7 +365,7 @@ public static class SeriesSearch
                         Result = series,
                     };
                 })
-                .Where(b => b != null)
+                .WhereNotNull()
             )
             .OrderBy(a => a)
             .ThenBy(b => b.Result.PreferredTitle)
@@ -390,7 +382,7 @@ public static class SeriesSearch
 
                 return result;
             })
-            .Where(a => a != null);
+            .WhereNotNull();
         seriesList.AddRange(tags
             .SelectMany(tag => RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.Result.TagID)
                 .Select(xref =>
@@ -401,7 +393,7 @@ public static class SeriesSearch
                     if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
-                    return new SearchResult<SVR_AnimeSeries>
+                    return new SearchResult<AnimeSeries>
                     {
                         ExactMatch = tag.ExactMatch,
                         Index = tag.Index,
@@ -411,7 +403,7 @@ public static class SeriesSearch
                         Result = series,
                     };
                 })
-                .Where(a => a != null)
+                .WhereNotNull()
             )
             .OrderBy(a => a)
             .ThenBy(a => a.Result.PreferredTitle)
@@ -420,15 +412,15 @@ public static class SeriesSearch
         return seriesList;
     }
 
-    private static Func<SVR_AnimeSeries, IEnumerable<string>> CreateSeriesTitleDelegate()
+    private static Func<AnimeSeries, IEnumerable<string>> CreateSeriesTitleDelegate()
     {
         var settings = Utils.SettingsProvider.GetSettings();
         var languages = new HashSet<string> { "en", "x-jat" };
         languages.UnionWith(settings.Language.SeriesTitleLanguageOrder);
         return series => RepoFactory.AniDB_Anime_Title.GetByAnimeID(series.AniDB_ID)
-            .Where(title => title.TitleType == TitleType.Main || languages.Contains(title.LanguageCode))
+            .Where(title => title.TitleType is TitleType.Main || languages.Contains(title.LanguageCode))
             .Select(title => title.Title)
-            .Append(series.PreferredTitle)
+            .Append(series.Title)
             .Distinct();
     }
 

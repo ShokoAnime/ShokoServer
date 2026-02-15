@@ -17,6 +17,7 @@ public class TMDB_AlternateOrdering_SeasonMap : ClassMap<TMDB_AlternateOrdering_
         Map(x => x.TmdbEpisodeGroupID).Not.Nullable();
         Map(x => x.EnglishTitle).Not.Nullable();
         Map(x => x.EpisodeCount).Not.Nullable();
+        Map(x => x.HiddenEpisodeCount).Not.Nullable();
         Map(x => x.SeasonNumber).Not.Nullable();
         Map(x => x.IsLocked).Not.Nullable();
         Map(x => x.CreatedAt).Not.Nullable();

@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Info;
@@ -12,11 +13,9 @@ public class HasNameExpression : FilterExpression<bool>, IWithStringParameter
     public HasNameExpression() { }
 
     public string Parameter { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if the name of the series or group equals the name specified. This exists for legacy compatibility and should not be used.";
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.Name.Equals(Parameter, StringComparison.InvariantCultureIgnoreCase);
     }

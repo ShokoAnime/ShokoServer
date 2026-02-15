@@ -17,10 +17,12 @@ public class TMDB_EpisodeMap : ClassMap<TMDB_Episode>
         Map(x => x.TmdbSeasonID).Not.Nullable();
         Map(x => x.TmdbEpisodeID).Not.Nullable();
         Map(x => x.TvdbEpisodeID).Nullable();
+        Map(x => x.ThumbnailPath).Nullable();
         Map(x => x.EnglishTitle).Not.Nullable();
         Map(x => x.EnglishOverview).Not.Nullable();
-        Map(x => x.EpisodeNumber).Not.Nullable();
+        Map(x => x.IsHidden).Not.Nullable();
         Map(x => x.SeasonNumber).Not.Nullable();
+        Map(x => x.EpisodeNumber).Not.Nullable();
         Map(x => x.RuntimeMinutes).Column("Runtime");
         Map(x => x.UserRating).Not.Nullable();
         Map(x => x.UserVotes).Not.Nullable();

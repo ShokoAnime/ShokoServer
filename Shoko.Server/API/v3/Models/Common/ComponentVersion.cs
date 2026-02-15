@@ -1,6 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Server.Server;
 
 # nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
@@ -11,6 +12,12 @@ public class ComponentVersion
     /// Version number.
     /// </summary>
     public string? Version { get; set; }
+
+    /// <summary>
+    /// Minimum Shoko Server version compatible with the Web UI.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public Version? MinimumServerVersion { get; set; }
 
     /// <summary>
     /// Commit SHA.
@@ -42,14 +49,4 @@ public class ComponentVersion
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string? Description { get; set; }
-}
-
-
-[JsonConverter(typeof(StringEnumConverter))]
-public enum ReleaseChannel
-{
-    Auto = 0,
-    Stable = 1,
-    Dev = 2,
-    Debug = 3,
 }

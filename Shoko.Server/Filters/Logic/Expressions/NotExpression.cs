@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Expressions;
@@ -18,9 +19,9 @@ public class NotExpression : FilterExpression<bool>, IWithExpressionParameter
 
     public FilterExpression<bool> Left { get; set; }
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return !Left.Evaluate(filterable, userInfo);
+        return !Left.Evaluate(filterable, userInfo, time);
     }
 
     protected bool Equals(NotExpression other)

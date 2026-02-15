@@ -6,8 +6,8 @@ using NHibernate;
 using NHibernate.Engine;
 using NHibernate.SqlTypes;
 using NHibernate.UserTypes;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 
 namespace Shoko.Server.Databases.NHibernate;
 
@@ -18,7 +18,7 @@ public class TitleTypeConverter : TypeConverter, IUserType
         // any integer type is accepted. No fractional types like float/double.
         return sourceType.FullName switch
         {
-            "Shoko.Plugin.Abstractions.DataModels.TitleType" => true,
+            "Shoko.Abstractions.Enums.TitleType" => true,
             _ => false
         };
     }

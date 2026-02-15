@@ -1,0 +1,35 @@
+name: Enhancement - Feature Improvement
+description: For requesting a new feature added to Shoko.
+labels: [Enhancement - Feature Improvement]
+body:
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: 'Before submitting your feature request, please verify the following.'
+      options:
+        - label: You've searched this repository (top of the page) for the feature you are requesting.
+          required: true
+        - label: This change to the feature is not related to allowing Shoko to download anime episodes or rip them from streaming sites.
+          required: true
+  - type: textarea
+    id: current-feature
+    attributes:
+      label: Current Feature
+      description: What is the current feature you're making the request for?
+    validations:
+      required: true
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Changes
+      description: Describe the changes you'd like to see made and explain why they would beneficial.
+    validations:
+      required: true
+  - type: textarea
+    id: feature-examples
+    attributes:
+      label: Feature Examples
+      description: If applicable, provide screenshots, links or mockups of what this feature looks like.
+    validations:
+      required: false
+

@@ -17,11 +17,11 @@ public class RequestVoteEpisode : UDPRequest<ResponseVote>
     public int EpisodeID { get; set; }
 
     /// <summary>
-    /// Between 0 exclusive and 10 inclusive, will be rounded to nearest tenth
+    /// Between 1 exclusive and 10 inclusive, will be rounded to nearest tenth
     /// </summary>
     public double Value { get; set; }
 
-    private int AniDBValue => (int)(Math.Round(Value, 1, MidpointRounding.AwayFromZero) * 100D);
+    private int AniDBValue => Value < 1 || Value > 10 ? -1 : (int)(Math.Round(Value, 1, MidpointRounding.AwayFromZero) * 100D);
 
     /// <summary>
     /// https://anidb.net/forum/thread/99114
@@ -58,8 +58,11 @@ public class RequestVoteEpisode : UDPRequest<ResponseVote>
             Code = code,
             Response = new ResponseVote
             {
-                EntityName = parts[0], Value = value, Type = (VoteType)type, EntityID = id
-            }
+                EntityName = parts[0],
+                Value = value,
+                Type = (VoteType)type,
+                EntityID = id,
+            },
         };
     }
 

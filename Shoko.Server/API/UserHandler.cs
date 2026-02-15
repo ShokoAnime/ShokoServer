@@ -1,15 +1,15 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.API;
 
 public class UserHandler : AuthorizationHandler<UserHandler>, IAuthorizationRequirement
 {
-    private readonly Func<SVR_JMMUser, bool> validationAction;
+    private readonly Func<JMMUser, bool> validationAction;
 
-    public UserHandler(Func<SVR_JMMUser, bool> validationAction)
+    public UserHandler(Func<JMMUser, bool> validationAction)
     {
         this.validationAction = validationAction;
     }

@@ -11,7 +11,7 @@ public class UnexpectedUDPResponseException : Exception
     public string Response { get; set; }
     public UDPReturnCode ReturnCode { get; set; }
 
-    public UnexpectedUDPResponseException(string response, string request) : this(UDPReturnCode.UNKNOWN_COMMAND, response, request) {}
+    public UnexpectedUDPResponseException(string response, string request) : this(UDPReturnCode.UNKNOWN_COMMAND, response, request) { }
     public UnexpectedUDPResponseException(UDPReturnCode code, string response, string request) : base(
         $"Unexpected AniDB Response: {code} | {response} | {RemoveUserInfo(request)}")
     {

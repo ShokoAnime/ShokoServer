@@ -1,0 +1,28 @@
+name: Enhancement - New Feature
+description: For requesting a new feature added to Shoko.
+labels: [Enhancement - New Feature]
+body:
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: 'Before submitting your feature request, please verify the following.'
+      options:
+        - label: You've searched this repository (top of the page) for the feature you are requesting.
+          required: true
+        - label: This feature is not related to allowing Shoko to download anime episodes or rip them from streaming sites.
+          required: true
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: Describe the feature you'd like to see added.
+    validations:
+      required: true
+  - type: textarea
+    id: feature-examples
+    attributes:
+      label: Feature Examples
+      description: Provide screenshots, links or mockups of what this feature looks like.
+    validations:
+      required: false
+

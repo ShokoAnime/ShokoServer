@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Strings;
@@ -27,10 +28,10 @@ public class StringEndsWithExpression : FilterExpression<bool>, IWithStringSelec
     public override string HelpDescription => "This condition passes if the left selector ends with either the right selector or the parameter";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        var left = Left.Evaluate(filterable, userInfo);
-        var right = Parameter ?? Right?.Evaluate(filterable, userInfo);
+        var left = Left.Evaluate(filterable, userInfo, time);
+        var right = Parameter ?? Right?.Evaluate(filterable, userInfo, time);
         if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right))
         {
             return false;

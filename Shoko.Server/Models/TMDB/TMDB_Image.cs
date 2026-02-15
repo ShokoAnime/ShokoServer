@@ -1,15 +1,17 @@
+using System;
 using System.IO;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using System.Security.Cryptography;
+using System.Text;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.General;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Image : Image_Base, IImageMetadata
+public class TMDB_Image : Image_Base, IImage
 {
     #region Properties
 
@@ -30,91 +32,46 @@ public class TMDB_Image : Image_Base, IImageMetadata
     /// </summary>
     public int TMDB_ImageID { get; set; }
 
-    /// <summary>
-    /// Related TMDB Movie entity id, if applicable.
-    /// </summary>
-    /// <remarks>
-    /// An image can be linked to multiple entries at once.
-    /// </remarks>
-    public int? TmdbMovieID { get; set; }
-
-    /// <summary>
-    /// Related TMDB Episode entity id, if applicable.
-    /// </summary>
-    /// <remarks>
-    /// An image can be linked to multiple entries at once.
-    /// </remarks>
-    public int? TmdbEpisodeID { get; set; }
-
-    /// <summary>
-    /// Related TMDB Season entity id, if applicable.
-    /// </summary>
-    /// <remarks>
-    /// An image can be linked to multiple entries at once.
-    /// </remarks>
-    public int? TmdbSeasonID { get; set; }
-
-    /// <summary>
-    /// Related TMDB Show entity id, if applicable.
-    /// </summary>
-    /// <remarks>
-    /// An image can be linked to multiple entries at once.
-    /// </remarks>
-    public int? TmdbShowID { get; set; }
-
-    /// <summary>
-    /// Related TMDB Collection entity id, if applicable.
-    /// </summary>
-    /// <remarks>
-    /// An image can be linked to multiple entries at once.
-    /// </remarks>
-    public int? TmdbCollectionID { get; set; }
-
-    /// <summary>
-    /// Related TMDB Network entity id, if applicable.
-    /// </summary>
-    /// <remarks>
-    /// An image can be linked to multiple entries at once.
-    /// </remarks>
-    public int? TmdbNetworkID { get; set; }
-
-    /// <summary>
-    /// Related TMDB Company entity id, if applicable.
-    /// </summary>
-    /// <remarks>
-    /// An image can be linked to multiple entries at once.
-    /// </remarks>
-    public int? TmdbCompanyID { get; set; }
-
-    /// <summary>
-    /// Related TMDB Person entity id, if applicable.
-    /// </summary>
-    /// <remarks>
-    /// An image can be linked to multiple entries at once.
-    /// </remarks>
-    public int? TmdbPersonID { get; set; }
-
-    /// <summary>
-    /// Foreign type. Determines if the data is for movies or tv shows, and if
-    /// the tmdb id is for a show or movie.
-    /// </summary>
-    public ForeignEntityType ForeignType { get; set; }
+    private string _remoteFileName = string.Empty;
 
     /// <inheritdoc/>
-    public string RemoteFileName { get; set; } = string.Empty;
+    public string RemoteFileName
+    {
+        get => _remoteFileName;
+        set
+        {
+            _remoteFileName = value;
+            _relativePath = null;
+        }
+    }
+
+    private string RemoteImageName => _remoteFileName.EndsWith(".svg") ? _remoteFileName[..^4] + ".png" : _remoteFileName;
 
     /// <inheritdoc/>
-    public override string? RemoteURL
-        => string.IsNullOrEmpty(RemoteFileName) || string.IsNullOrEmpty(TmdbMetadataService.ImageServerUrl) ? null : $"{TmdbMetadataService.ImageServerUrl}original{RemoteFileName}";
+    public override string RemoteURL
+        => $"{TmdbMetadataService.ImageServerUrl}original{RemoteImageName}";
+
+    private string? _relativePath = null;
 
     /// <summary>
     /// Relative path to the image stored locally.
     /// </summary>
-    public string? RelativePath
-        => string.IsNullOrEmpty(RemoteFileName) ? null : Path.Join("TMDB", ImageType.ToString(), RemoteFileName);
+    public string RelativePath
+    {
+        get
+        {
+            if (_relativePath is not null)
+                return _relativePath;
+
+            var fileExt = Path.GetExtension(RemoteImageName);
+            var fileName = Path.GetFileNameWithoutExtension(_remoteFileName);
+            var hashedFileName = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(fileName))).ToLower();
+            return _relativePath = Path.Combine("TMDB", hashedFileName[..2], hashedFileName + fileExt);
+        }
+    }
 
     /// <inheritdoc/>
-    public override string? LocalPath
+    public override string LocalPath
         => ImageUtils.ResolvePath(RelativePath);
 
     /// <summary>
@@ -137,13 +94,14 @@ public class TMDB_Image : Image_Base, IImageMetadata
 
     #region Constructors
 
-    public TMDB_Image() : base(DataSourceEnum.TMDB, ImageEntityType.None, 0) { }
+    public TMDB_Image() : base(DataSource.TMDB, ImageEntityType.None, 0) { }
 
-    public TMDB_Image(string filePath, ImageEntityType type) : base(DataSourceEnum.TMDB, type, 0)
+    public TMDB_Image(string filePath, ImageEntityType type = ImageEntityType.None) : base(DataSource.TMDB, type, 0)
     {
-        RemoteFileName = filePath?.Trim() ?? string.Empty;
-        if (RemoteFileName.EndsWith(".svg"))
-            RemoteFileName = RemoteFileName[..^4] + ".png";
+        _remoteFileName = filePath;
+        if (!string.IsNullOrEmpty(_remoteFileName) && _remoteFileName[0] != '/')
+            _remoteFileName = '/' + _remoteFileName;
+
         IsEnabled = true;
     }
 
@@ -151,119 +109,8 @@ public class TMDB_Image : Image_Base, IImageMetadata
 
     #region Methods
 
-    public bool Populate(ImageData data, ForeignEntityType foreignType, int foreignId)
-    {
-        var updated = Populate(data);
-        updated |= Populate(foreignType, foreignId);
-        return updated;
-    }
 
-    public bool Populate(ForeignEntityType foreignType, int foreignId)
-    {
-        var updated = false;
-        switch (foreignType)
-        {
-            case ForeignEntityType.Movie:
-                if (TmdbMovieID != foreignId)
-                {
-                    TmdbMovieID = foreignId;
-                    updated = true;
-                }
-                if (!ForeignType.HasFlag(foreignType))
-                {
-                    ForeignType |= foreignType;
-                    updated = true;
-                }
-                break;
-            case ForeignEntityType.Episode:
-                if (TmdbEpisodeID != foreignId)
-                {
-                    TmdbEpisodeID = foreignId;
-                    updated = true;
-                }
-                if (!ForeignType.HasFlag(foreignType))
-                {
-                    ForeignType |= foreignType;
-                    updated = true;
-                }
-                break;
-            case ForeignEntityType.Season:
-                if (TmdbSeasonID != foreignId)
-                {
-                    TmdbSeasonID = foreignId;
-                    updated = true;
-                }
-                if (!ForeignType.HasFlag(foreignType))
-                {
-                    ForeignType |= foreignType;
-                    updated = true;
-                }
-                break;
-            case ForeignEntityType.Show:
-                if (TmdbShowID != foreignId)
-                {
-                    TmdbShowID = foreignId;
-                    updated = true;
-                }
-                if (!ForeignType.HasFlag(foreignType))
-                {
-                    ForeignType |= foreignType;
-                    updated = true;
-                }
-                break;
-            case ForeignEntityType.Collection:
-                if (TmdbCollectionID != foreignId)
-                {
-                    TmdbCollectionID = foreignId;
-                    updated = true;
-                }
-                if (!ForeignType.HasFlag(foreignType))
-                {
-                    ForeignType |= foreignType;
-                    updated = true;
-                }
-                break;
-            case ForeignEntityType.Network:
-                if (TmdbNetworkID != foreignId)
-                {
-                    TmdbNetworkID = foreignId;
-                    updated = true;
-                }
-                if (!ForeignType.HasFlag(foreignType))
-                {
-                    ForeignType |= foreignType;
-                    updated = true;
-                }
-                break;
-            case ForeignEntityType.Company:
-                if (TmdbCompanyID != foreignId)
-                {
-                    TmdbCompanyID = foreignId;
-                    updated = true;
-                }
-                if (!ForeignType.HasFlag(foreignType))
-                {
-                    ForeignType |= foreignType;
-                    updated = true;
-                }
-                break;
-            case ForeignEntityType.Person:
-                if (TmdbPersonID != foreignId)
-                {
-                    TmdbPersonID = foreignId;
-                    updated = true;
-                }
-                if (!ForeignType.HasFlag(foreignType))
-                {
-                    ForeignType |= foreignType;
-                    updated = true;
-                }
-                break;
-        }
-        return updated;
-    }
-
-    private bool Populate(ImageData data)
+    public bool Populate(ImageData data)
     {
         var updated = false;
         if (Width != data.Width)
@@ -276,7 +123,7 @@ public class TMDB_Image : Image_Base, IImageMetadata
             Height = data.Height;
             updated = true;
         }
-        var languageCode = string.IsNullOrEmpty(data.Iso_639_1) ? null : data.Iso_639_1;
+        var languageCode = data.GetLanguageCode();
         if (LanguageCode != languageCode)
         {
             LanguageCode = languageCode;
@@ -295,28 +142,47 @@ public class TMDB_Image : Image_Base, IImageMetadata
         return updated;
     }
 
-    public int? GetForeignID(ForeignEntityType foreignType)
-        => foreignType switch
-        {
-            ForeignEntityType.Movie => TmdbMovieID,
-            ForeignEntityType.Episode => TmdbEpisodeID,
-            ForeignEntityType.Season => TmdbSeasonID,
-            ForeignEntityType.Show => TmdbShowID,
-            ForeignEntityType.Collection => TmdbCollectionID,
-            ForeignEntityType.Network => TmdbNetworkID,
-            ForeignEntityType.Company => TmdbCompanyID,
-            ForeignEntityType.Person => TmdbPersonID,
-            _ => null,
-        };
-
-    public IImageMetadata GetImageMetadata(bool preferred = false)
-        => new Image_Base(DataSourceEnum.TMDB, ImageType, ID, LocalPath, RemoteURL)
-        {
-            IsEnabled = IsEnabled,
-            IsPreferred = preferred,
-            _width = Width,
-            _height = Height,
-        };
+    public TMDB_Image GetImageMetadata(bool? preferred = null, ImageEntityType? imageType = null)
+        => (!preferred.HasValue || preferred.Value == IsPreferred) && (!imageType.HasValue || imageType.Value == ImageType)
+            ? this
+            : new TMDB_Image(RemoteFileName, imageType ?? ImageType)
+            {
+                IsEnabled = IsEnabled,
+                IsPreferred = preferred ?? IsPreferred,
+                LanguageCode = LanguageCode,
+                Height = Height,
+                Width = Width,
+                TMDB_ImageID = TMDB_ImageID,
+                UserRating = UserRating,
+                UserVotes = UserVotes,
+                _width = Width,
+                _height = Height,
+            };
 
     #endregion
+
+    #region IImage Implementation
+
+    double? IImage.Rating => UserRating;
+
+    int? IImage.RatingVotes => UserVotes;
+
+    #endregion
+}
+
+internal static class TmdbLibObjectExtensions
+{
+    /// <summary>
+    /// The language/country code which indicates the language/country of the
+    /// image is not specified.
+    /// </summary>
+    internal const string NotSpecifiedLanguage = "xx";
+
+    /// <summary>
+    /// Get the language code to use for the image, or null if not specified.
+    /// </summary>
+    /// <param name="image">The image to get the language code for.</param>
+    /// <returns>The language code, or null if not specified.</returns>
+    internal static string? GetLanguageCode(this ImageData image)
+        => string.IsNullOrEmpty(image.Iso_639_1) || string.Equals(image.Iso_639_1, NotSpecifiedLanguage, StringComparison.InvariantCultureIgnoreCase) ? null : image.Iso_639_1;
 }

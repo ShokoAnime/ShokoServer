@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml;
 using Microsoft.Extensions.Logging;
-using Shoko.Models.Enums;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Settings;
 
@@ -17,6 +17,7 @@ public class RequestVotes : HttpRequest<List<ResponseVote>>
         $"httpapi?client=animeplugin&clientver=1&protover=1&request=votes&user={Username}&pass={Password}";
 
     public string Username { private get; set; }
+
     public string Password { private get; set; }
 
     protected override Task<HttpResponse<List<ResponseVote>>> ParseResponse(HttpResponse<string> data)
@@ -29,21 +30,21 @@ public class RequestVotes : HttpRequest<List<ResponseVote>>
             var myitems = docAnime["votes"]?["anime"]?.GetElementsByTagName("vote");
             if (myitems != null)
             {
-                results.AddRange(myitems.Cast<XmlNode>().Select(GetAnime).Where(vote => vote != null));
+                results.AddRange(myitems.Cast<XmlNode>().Select(GetAnime).WhereNotNull());
             }
 
             // get the temporary anime votes
             myitems = docAnime["votes"]?["animetemporary"]?.GetElementsByTagName("vote");
             if (myitems != null)
             {
-                results.AddRange(myitems.Cast<XmlNode>().Select(GetAnimeTemp).Where(vote => vote != null));
+                results.AddRange(myitems.Cast<XmlNode>().Select(GetAnimeTemp).WhereNotNull());
             }
 
             // get the episode votes
             myitems = docAnime["votes"]?["episode"]?.GetElementsByTagName("vote");
             if (myitems != null)
             {
-                results.AddRange(myitems.Cast<XmlNode>().Select(GetEpisode).Where(vote => vote != null));
+                results.AddRange(myitems.Cast<XmlNode>().Select(GetEpisode).WhereNotNull());
             }
 
             return Task.FromResult(new HttpResponse<List<ResponseVote>> { Code = data.Code, Response = results });
@@ -65,12 +66,12 @@ public class RequestVotes : HttpRequest<List<ResponseVote>>
             return null;
         }
 
-        if (!decimal.TryParse(node.InnerText.Trim(), style, culture, out var val))
+        if (!double.TryParse(node.InnerText.Trim(), style, culture, out var val))
         {
             return null;
         }
 
-        return new ResponseVote { EntityID = entityID, VoteType = AniDBVoteType.Anime, VoteValue = val };
+        return new ResponseVote { EntityID = entityID, VoteType = VoteType.AnimePermanent, VoteValue = val };
     }
 
     private static ResponseVote GetAnimeTemp(XmlNode node)
@@ -83,12 +84,12 @@ public class RequestVotes : HttpRequest<List<ResponseVote>>
             return null;
         }
 
-        if (!decimal.TryParse(node.InnerText.Trim(), style, culture, out var val))
+        if (!double.TryParse(node.InnerText.Trim(), style, culture, out var val))
         {
             return null;
         }
 
-        return new ResponseVote { EntityID = entityID, VoteType = AniDBVoteType.AnimeTemp, VoteValue = val };
+        return new ResponseVote { EntityID = entityID, VoteType = VoteType.AnimeTemporary, VoteValue = val };
     }
 
     private static ResponseVote GetEpisode(XmlNode node)
@@ -101,12 +102,12 @@ public class RequestVotes : HttpRequest<List<ResponseVote>>
             return null;
         }
 
-        if (!decimal.TryParse(node.InnerText.Trim(), style, culture, out var val))
+        if (!double.TryParse(node.InnerText.Trim(), style, culture, out var val))
         {
             return null;
         }
 
-        return new ResponseVote { EntityID = entityID, VoteType = AniDBVoteType.Episode, VoteValue = val };
+        return new ResponseVote { EntityID = entityID, VoteType = VoteType.Episode, VoteValue = val };
     }
 
     public RequestVotes(IHttpConnectionHandler handler, ILoggerFactory loggerFactory, ISettingsProvider settingsProvider) : base(handler, loggerFactory) { }

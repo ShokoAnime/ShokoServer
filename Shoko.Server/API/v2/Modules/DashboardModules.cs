@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Commons.Extensions;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v2.Modules;
@@ -29,7 +28,7 @@ public class DashboardModules : BaseController
     [HttpGet]
     public object GetStats()
     {
-        var user = HttpContext.User.Identity as SVR_JMMUser;
+        var user = HttpContext.User.Identity as JMMUser;
 
         int series_count;
         int file_count;
@@ -65,7 +64,7 @@ public class DashboardModules : BaseController
             });
 
             hours = Math.Round((decimal)watched.Select(a => RepoFactory.VideoLocal.GetByID(a.VideoLocalID))
-                    .Where(a => a != null)
+                    .WhereNotNull()
                     .Sum(a => a.MediaInfo?.GeneralStream?.Duration ?? 0) / 3600, 1,
                 MidpointRounding.AwayFromZero); // 60s * 60m = ?h
 
@@ -89,7 +88,7 @@ public class DashboardModules : BaseController
             tags = RepoFactory.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
                 .ToDictionary(a => a.Key, a => a.Count()).OrderByDescending(a => a.Value)
                 .Select(a => RepoFactory.AniDB_Tag.GetByTagID(a.Key)?.TagName)
-                .Where(a => a != null).ToList();
+                .WhereNotNull().ToList();
             var tagfilter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source;
             tags = TagFilter.String.ProcessTags(tagfilter, tags).Take(10).ToList();
         }

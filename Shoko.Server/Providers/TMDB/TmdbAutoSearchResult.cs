@@ -1,6 +1,6 @@
-
 using System.Diagnostics.CodeAnalysis;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Enums;
+using Shoko.Server.Models.AniDB;
 using TMDbLib.Objects.Search;
 
 #nullable enable
@@ -19,32 +19,39 @@ public class TmdbAutoSearchResult
     /// </summary>
     public bool IsRemote { get; set; } = false;
 
+    /// <summary>
+    /// The match rating of the result.
+    /// </summary>
+    public MatchRating MatchRating { get; set; }
+
     [MemberNotNullWhen(true, nameof(AnidbEpisode))]
     [MemberNotNullWhen(true, nameof(TmdbMovie))]
     [MemberNotNullWhen(false, nameof(TmdbShow))]
     public bool IsMovie { get; init; }
 
-    public SVR_AniDB_Anime AnidbAnime { get; init; }
+    public AniDB_Anime AnidbAnime { get; init; }
 
-    public SVR_AniDB_Episode? AnidbEpisode { get; init; }
+    public AniDB_Episode? AnidbEpisode { get; init; }
 
     public SearchTv? TmdbShow { get; init; }
 
     public SearchMovie? TmdbMovie { get; init; }
 
-    public TmdbAutoSearchResult(SVR_AniDB_Anime anime, SearchTv show)
+    public TmdbAutoSearchResult(AniDB_Anime anime, SearchTv show, MatchRating matchRating = MatchRating.FirstAvailable)
     {
         IsMovie = false;
         AnidbAnime = anime;
         TmdbShow = show;
+        MatchRating = matchRating;
     }
 
-    public TmdbAutoSearchResult(SVR_AniDB_Anime anime, SVR_AniDB_Episode episode, SearchMovie movie)
+    public TmdbAutoSearchResult(AniDB_Anime anime, AniDB_Episode episode, SearchMovie movie, MatchRating matchRating = MatchRating.FirstAvailable)
     {
         IsMovie = true;
         AnidbAnime = anime;
         AnidbEpisode = episode;
         TmdbMovie = movie;
+        MatchRating = matchRating;
     }
 
     public TmdbAutoSearchResult(TmdbAutoSearchResult result)
@@ -53,5 +60,6 @@ public class TmdbAutoSearchResult
         AnidbEpisode = result.AnidbEpisode;
         TmdbMovie = result.TmdbMovie;
         TmdbShow = result.TmdbShow;
+        MatchRating = result.MatchRating;
     }
 }

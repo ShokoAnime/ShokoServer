@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
-using Shoko.Models.Enums;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;

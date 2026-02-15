@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Files;
@@ -12,15 +13,13 @@ public class HasResolutionExpression : FilterExpression<bool>, IWithStringParame
     public HasResolutionExpression() { }
 
     public string Parameter { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if any of the files have the specified video resolution";
     public override string[] HelpPossibleParameters => new[]
     {
         "2160p","1080p","720p","480p","UWHD","UWQHD","1440p","576p","360p","240p"
     };
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.Resolutions.Contains(Parameter);
     }
@@ -53,15 +52,5 @@ public class HasResolutionExpression : FilterExpression<bool>, IWithStringParame
     public override int GetHashCode()
     {
         return HashCode.Combine(base.GetHashCode(), Parameter);
-    }
-
-    public static bool operator ==(HasResolutionExpression left, HasResolutionExpression right)
-    {
-        return Equals(left, right);
-    }
-
-    public static bool operator !=(HasResolutionExpression left, HasResolutionExpression right)
-    {
-        return !Equals(left, right);
     }
 }

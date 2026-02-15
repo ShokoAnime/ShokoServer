@@ -1,74 +1,47 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
-using Shoko.Server.Providers.AniDB;
 
+#nullable enable
 namespace Shoko.Server.Filters.Files;
 
-public class HasSharedVideoSourceExpression : FilterExpression<bool>, IWithStringParameter
+public class HasSharedVideoSourceExpression : FilterExpression<bool>, IWithStringParameter, IEquatable<HasSharedVideoSourceExpression>
 {
-    public HasSharedVideoSourceExpression(string parameter)
-    {
-        Parameter = parameter;
-    }
-    public HasSharedVideoSourceExpression() { }
-
     public string Parameter { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
+
     public override string HelpDescription => "This condition passes if all of the files have the specified video source";
-    public override string[] HelpPossibleParameters => new[]
-    {
-        GetFile_Source.BluRay.ToString(), GetFile_Source.DVD.ToString(),
-        GetFile_Source.Web.ToString(), GetFile_Source.TV.ToString(),
-        GetFile_Source.HDTV.ToString(), GetFile_Source.Unknown.ToString(),
-        GetFile_Source.Camcorder.ToString(), GetFile_Source.DTV.ToString(),
-        GetFile_Source.VCD.ToString(), GetFile_Source.VHS.ToString(),
-        GetFile_Source.SVCD.ToString(), GetFile_Source.HDDVD.ToString(),
-        GetFile_Source.HKDVD.ToString(), GetFile_Source.LaserDisc.ToString()
-    };
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
-    {
-        return filterable.SharedVideoSources.Contains(Parameter);
-    }
+    public override string[] HelpPossibleParameters =>
+    [
+        "tv",
+        "www",
+        "dvd",
+        "bluray",
+        "vhs",
+        "camcorder",
+        "vcd",
+        "ld",
+        "unk",
+    ];
 
-    protected bool Equals(HasSharedVideoSourceExpression other)
-    {
-        return base.Equals(other) && Parameter == other.Parameter;
-    }
+    public HasSharedVideoSourceExpression(string parameter)
+        => Parameter = parameter;
 
-    public override bool Equals(object obj)
-    {
-        if (ReferenceEquals(null, obj))
-        {
-            return false;
-        }
+    public HasSharedVideoSourceExpression()
+        => Parameter = string.Empty;
 
-        if (ReferenceEquals(this, obj))
-        {
-            return true;
-        }
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
+        => filterable.SharedVideoSources.Contains(Parameter);
 
-        if (obj.GetType() != this.GetType())
-        {
-            return false;
-        }
+    public bool Equals(HasSharedVideoSourceExpression? other)
+        => other is not null && (
+            ReferenceEquals(this, other) ||
+            Parameter == other.Parameter
+        );
 
-        return Equals((HasSharedVideoSourceExpression)obj);
-    }
+    public override bool Equals(object? obj)
+        => obj is not null && Equals(obj as HasSharedVideoSourceExpression);
 
     public override int GetHashCode()
-    {
-        return HashCode.Combine(base.GetHashCode(), Parameter);
-    }
-
-    public static bool operator ==(HasSharedVideoSourceExpression left, HasSharedVideoSourceExpression right)
-    {
-        return Equals(left, right);
-    }
-
-    public static bool operator !=(HasSharedVideoSourceExpression left, HasSharedVideoSourceExpression right)
-    {
-        return !Equals(left, right);
-    }
+        => HashCode.Combine(base.GetHashCode(), Parameter);
 }

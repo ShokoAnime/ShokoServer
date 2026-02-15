@@ -1,17 +1,23 @@
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Services;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Utilities;
+using Shoko.Server.Server;
+
+using AnidbRefreshMethod = Shoko.Abstractions.Enums.AnidbRefreshMethod;
+using ImageEntityType = Shoko.Abstractions.Enums.ImageEntityType;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -26,6 +32,8 @@ public class GetAniDBCreatorJob : BaseJob
     private readonly IRequestFactory _requestFactory;
 
     private readonly ISchedulerFactory _schedulerFactory;
+
+    private readonly IAnidbService _anidbService;
 
     private string? _creatorName;
 
@@ -60,6 +68,29 @@ public class GetAniDBCreatorJob : BaseJob
         if (response is null)
         {
             _logger.LogError("Unable to find an AniDB Creator with the given ID: {CreatorID}", CreatorID);
+            var anidbAnimeStaffRoles = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(CreatorID);
+            var anidbCharacterCreators = RepoFactory.AniDB_Anime_Character_Creator.GetByCreatorID(CreatorID);
+            var anidbAnimeCharacters = anidbCharacterCreators
+                .SelectMany(c => RepoFactory.AniDB_Anime_Character.GetByCharacterID(c.CharacterID))
+                .ToList();
+            var anidbAnime = anidbAnimeStaffRoles.Select(a => a.AnimeID)
+                .Concat(anidbAnimeCharacters.Select(a => a.AnimeID))
+                .Distinct()
+                .Select(RepoFactory.AniDB_Anime.GetByAnimeID)
+                .WhereNotNull()
+                .ToList();
+
+            RepoFactory.AniDB_Creator.Delete(CreatorID);
+            RepoFactory.AniDB_Anime_Character_Creator.Delete(anidbCharacterCreators);
+            RepoFactory.AniDB_Anime_Staff.Delete(anidbAnimeStaffRoles);
+
+            if (anidbAnime.Count > 0)
+            {
+                _logger.LogInformation("Scheduling {Count} AniDB Anime for a refresh due to removal of creator: {CreatorID}", anidbAnime.Count, CreatorID);
+                foreach (var anime in anidbAnime)
+                    await _anidbService.ScheduleRefresh(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
+            }
+
             return;
         }
 
@@ -79,31 +110,48 @@ public class GetAniDBCreatorJob : BaseJob
         creator.LastUpdatedAt = response.LastUpdateAt;
         RepoFactory.AniDB_Creator.Save(creator);
 
-        if (RepoFactory.AnimeStaff.GetByAniDBID(creator.CreatorID) is { } staff)
-        {
-            var creatorBasePath = ImageUtils.GetBaseAniDBCreatorImagesPath() + Path.DirectorySeparatorChar;
-            staff.Name = creator.Name;
-            staff.AlternateName = creator.OriginalName;
-            staff.ImagePath = creator.GetFullImagePath()?.Replace(creatorBasePath, "");
-            RepoFactory.AnimeStaff.Save(staff);
-        }
-
-        if (!string.IsNullOrEmpty(creator.ImagePath) && (!creator.GetImageMetadata()?.IsLocalAvailable ?? false))
+        if (!(creator.GetImageMetadata()?.IsLocalAvailable ?? true))
         {
             _logger.LogInformation("Image not found locally, queuing image download for {Creator} (ID={CreatorID},Type={Type})", response.Name, response.ID, response.Type.ToString());
             var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
             await scheduler.StartJob<DownloadAniDBImageJob>(c =>
             {
-                c.ImageType = ImageEntityType.Person;
+                c.ImageType = ImageEntityType.Creator;
                 c.ImageID = creator.CreatorID;
             });
         }
+
+        var rolesToUpdate = new List<AniDB_Anime_Staff>();
+        var roles = RepoFactory.AniDB_Anime_Staff.GetByCreatorID(creator.CreatorID);
+        foreach (var role in roles)
+        {
+            var roleType = role.Role switch
+            {
+                "Animation Work" when creator.Type is CreatorType.Company => CreatorRoleType.Studio,
+                "Work" when creator.Type is CreatorType.Company => CreatorRoleType.Studio,
+                "Original Work" => CreatorRoleType.SourceWork,
+                "Music" => CreatorRoleType.Music,
+                "Character Design" => CreatorRoleType.CharacterDesign,
+                "Direction" => CreatorRoleType.Director,
+                "Series Composition" => CreatorRoleType.SeriesComposer,
+                "Chief Animation Direction" => CreatorRoleType.Producer,
+                _ => CreatorRoleType.Staff
+            };
+            if (role.RoleType != roleType)
+            {
+                role.RoleType = roleType;
+                rolesToUpdate.Add(role);
+            }
+        }
+
+        RepoFactory.AniDB_Anime_Staff.Save(rolesToUpdate);
     }
 
-    public GetAniDBCreatorJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory)
+    public GetAniDBCreatorJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, IAnidbService anidbService)
     {
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;
+        _anidbService = anidbService;
     }
 
     protected GetAniDBCreatorJob()

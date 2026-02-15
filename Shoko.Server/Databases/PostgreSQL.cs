@@ -4,21 +4,13 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using FluentNHibernate.Cfg;
-using FluentNHibernate.Cfg.Db;
-using FluentNHibernate.Testing.Values;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.Data.SqlClient;
-using MySqlConnector;
 using NHibernate;
 using NHibernate.Cfg;
 using NHibernate.Driver;
 using NHibernate.SqlCommand;
 using NHibernate.SqlTypes;
-using NHibernate.Tool.hbm2ddl;
 using Npgsql;
-using Shoko.Commons.Properties;
-using Shoko.Server.Databases.NHIbernate;
-using Shoko.Server.Repositories;
+using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -699,12 +691,12 @@ public class PostgreSQL : BaseDatabase<NpgsqlConnection>
         }
     }
 
-    protected override List<object> ExecuteReader(NpgsqlConnection connection, string command)
+    protected override List<object[]> ExecuteReader(NpgsqlConnection connection, string command)
     {
         using var cmd = new NpgsqlCommand(command, connection);
 
         using var reader = cmd.ExecuteReader();
-        var rows = new List<object>();
+        var rows = new List<object[]>();
         while (reader.Read())
         {
             var values = new object[reader.FieldCount];
@@ -861,7 +853,7 @@ public class PostgreSQL : BaseDatabase<NpgsqlConnection>
             var connStr = GetTestConnectionString();
             using var conn = new NpgsqlConnection(connStr);
             conn.Open();
-            ServerState.Instance.ServerStartingStatus = Resources.Database_CreateSchema; ;
+            ServerState.Instance.ServerStartingStatus = "Database - Creating Initial Schema...";
             ExecuteWithException(conn, AddSchemaAndOwner(settings, createDatabase, true));
             connStr = GetConnectionString();
             using var conn2 = new NpgsqlConnection(connStr);
@@ -917,17 +909,17 @@ public class PostgreSQL : BaseDatabase<NpgsqlConnection>
                 {
                     AddVersion(cmd.Version.ToString(), cmd.Revision.ToString(), cmd.CommandName);
                 }
-                
+
                 PreFillVersions(commands);
                 ExecuteWithException(myConn, AddSchemaAndOwner(settings, createTables));
             }
 
 
-            ServerState.Instance.ServerStartingStatus = Resources.Database_ApplySchema;
+            ServerState.Instance.ServerStartingStatus = "Database - Applying Schema Patches...";
 
             ExecuteWithException(myConn, AddSchemaAndOwner(settings, patchCommands));
         });
     }
 
-   
+
 }

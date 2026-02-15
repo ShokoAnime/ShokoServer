@@ -6,13 +6,14 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Shoko.Plugin.Abstractions.Services;
+using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.API.WebUI;
 using Shoko.Server.Databases;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -60,8 +61,8 @@ public class InitController : BaseController
         var versionSet = new ComponentVersionSet()
         {
             Server = new() { Version = Utils.GetApplicationVersion(), ReleaseChannel = ReleaseChannel.Debug },
-            Commons = new() { Version = Utils.GetApplicationVersion(Assembly.GetAssembly(typeof(Shoko.Commons.Culture))) },
-            Models = new() { Version = Utils.GetApplicationVersion(Assembly.GetAssembly(typeof(Shoko.Models.Constants))) },
+            Commons = new() { Version = Utils.GetApplicationVersion() },
+            Models = new() { Version = Utils.GetApplicationVersion() },
             MediaInfo = new()
         };
 
@@ -81,14 +82,15 @@ public class InitController : BaseController
             Version = mediaInfoFileInfo.Exists ? FileVersionInfo.GetVersionInfo(mediaInfoFileInfo.FullName).FileVersion : null,
         };
 
-        var webuiVersion = WebUIHelper.LoadWebUIVersionInfo();
+        var webuiVersion = WebUIUpdateService.LoadWebUIVersionInfo();
         if (webuiVersion != null)
         {
             versionSet.WebUI = new()
             {
-                Version = webuiVersion.Package,
-                ReleaseChannel = webuiVersion.Debug ? ReleaseChannel.Debug : webuiVersion.Package.Contains("-dev") ? ReleaseChannel.Dev : ReleaseChannel.Stable,
-                Commit = webuiVersion.Git,
+                Version = webuiVersion.Version,
+                Tag = webuiVersion.Tag,
+                ReleaseChannel = webuiVersion.Channel,
+                Commit = webuiVersion.Commit,
                 ReleaseDate = webuiVersion.Date,
             };
         }
@@ -246,8 +248,8 @@ public class InitController : BaseController
         {
             Constants.DatabaseType.MySQL when new MySQL().TestConnection() => Ok(),
             Constants.DatabaseType.PostgreSQL when new PostgreSQL().TestConnection() => Ok(),
-            Constants.DatabaseType.SqlServer when new SQLServer().TestConnection() => Ok(),
-            Constants.DatabaseType.Sqlite => Ok(),
+            Constants.DatabaseType.SQLServer when new SQLServer().TestConnection() => Ok(),
+            Constants.DatabaseType.SQLite => Ok(),
             _ => BadRequest("Failed to Connect")
         };
     }

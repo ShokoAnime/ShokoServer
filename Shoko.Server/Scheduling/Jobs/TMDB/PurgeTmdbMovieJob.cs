@@ -21,8 +21,6 @@ public class PurgeTmdbMovieJob : BaseJob
 
     public virtual int TmdbMovieID { get; set; }
 
-    public virtual bool RemoveImageFiles { get; set; } = true;
-
     public virtual string? MovieTitle { get; set; }
 
     public override void PostInit()
@@ -48,7 +46,7 @@ public class PurgeTmdbMovieJob : BaseJob
     public override async Task Process()
     {
         _logger.LogInformation("Processing PurgeTmdbMovieJob: {TmdbMovieId}", TmdbMovieID);
-        await _tmdbService.PurgeMovie(TmdbMovieID, RemoveImageFiles).ConfigureAwait(false);
+        await _tmdbService.PurgeMovie(TmdbMovieID).ConfigureAwait(false);
     }
 
     public PurgeTmdbMovieJob(TmdbMetadataService tmdbService)

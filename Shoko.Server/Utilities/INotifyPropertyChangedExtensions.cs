@@ -31,27 +31,27 @@ public static class INotifyPropertyChangedExtensions
 
     public static void SetField<T>(this INotifyPropertyChangedExt cls, Expression<Func<object>> property, T value, [CallerMemberName] string memberName = "")
     {
-        var expr = Resolve(property);       
+        var expr = Resolve(property);
         T original;
         var changed = false;
         switch (expr.Member)
         {
             case FieldInfo info:
-                {
-                    original = (T) info.GetValue(cls);
-                    changed = !EqualityComparer<T>.Default.Equals(original, value);
-                    if (changed)
-                        info.SetValue(cls, value);
-                    break;
-                }
+            {
+                original = (T)info.GetValue(cls);
+                changed = !EqualityComparer<T>.Default.Equals(original, value);
+                if (changed)
+                    info.SetValue(cls, value);
+                break;
+            }
             case PropertyInfo info:
-                {
-                    original = (T) info.GetValue(cls);
-                    changed = !EqualityComparer<T>.Default.Equals(original, value);
-                    if (changed)
-                        info.SetValue(cls, value);
-                    break;
-                }
+            {
+                original = (T)info.GetValue(cls);
+                changed = !EqualityComparer<T>.Default.Equals(original, value);
+                if (changed)
+                    info.SetValue(cls, value);
+                break;
+            }
         }
 
         if (!changed) return;

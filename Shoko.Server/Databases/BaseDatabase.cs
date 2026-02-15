@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
-using Shoko.Commons.Extensions;
-using Shoko.Commons.Properties;
-using Shoko.Models;
-using Shoko.Models.Server;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Services;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Internal;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -31,7 +32,7 @@ public abstract class BaseDatabase<T> : IDatabase
             if (_databaseBackupDirectoryPath != null)
                 return _databaseBackupDirectoryPath;
 
-            var dirPath =  Utils.SettingsProvider.GetSettings().Database.DatabaseBackupDirectory;
+            var dirPath = Utils.SettingsProvider.GetSettings().Database.DatabaseBackupDirectory;
             if (string.IsNullOrWhiteSpace(dirPath))
                 return _databaseBackupDirectoryPath = Utils.ApplicationPath;
 
@@ -171,8 +172,7 @@ public abstract class BaseDatabase<T> : IDatabase
                 }
 
                 message = ServerState.Instance.ServerStartingStatus =
-                    Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
-                    " - " + message;
+                    $"Database - Applying Schema Patches...{cmd.Version}.{cmd.Revision} - {message}";
                 Logger.Info($"Starting Server: {message}");
                 ServerState.Instance.ServerStartingStatus = message;
 
@@ -207,9 +207,7 @@ public abstract class BaseDatabase<T> : IDatabase
             message = message.Substring(0, 42) + "...";
         }
 
-        message = ServerState.Instance.ServerStartingStatus =
-            Resources.Database_ApplySchema + cmd.Version + "." + cmd.Revision +
-            " - " + message;
+        message = ServerState.Instance.ServerStartingStatus = $"Database - Applying Schema Patches...{cmd.Version}.{cmd.Revision} - {message}";
         ServerState.Instance.ServerStartingStatus = message;
 
         switch (cmd.Type)
@@ -244,28 +242,28 @@ public abstract class BaseDatabase<T> : IDatabase
 
     public void PopulateInitialData()
     {
-        var message = Resources.Database_Users;
+        var message = "Database - Populating Data (Users)...";
 
         Logger.Info($"Starting Server: {message}");
         ServerState.Instance.ServerStartingStatus = message;
         CreateInitialUsers();
 
-        message = Resources.Database_Filters;
+        message = "Database - Populating Data (Group Filters)...";
         Logger.Info($"Starting Server: {message}");
         ServerState.Instance.ServerStartingStatus = message;
         CreateInitialGroupFilters();
 
-        message = Resources.Database_LockFilters;
+        message = "Database - Populating Data (Locked Group Filters)...";
         Logger.Info($"Starting Server: {message}");
         ServerState.Instance.ServerStartingStatus = message;
         CreateOrVerifyLockedFilters();
 
-        message = Resources.Database_RenameScripts;
+        message = "Database - Populating Data (Rename Script)...";
         Logger.Info($"Starting Server: {message}");
         ServerState.Instance.ServerStartingStatus = message;
         CreateInitialRenameScript();
 
-        message = Resources.Database_CustomTags;
+        message = "Database - Populating Data (Custom Tags)...";
         Logger.Info($"Starting Server: {message}");
         ServerState.Instance.ServerStartingStatus = message;
         CreateInitialCustomTags();
@@ -293,7 +291,7 @@ public abstract class BaseDatabase<T> : IDatabase
         var defaultPassword = settings.Database.DefaultUserPassword == ""
             ? ""
             : Digest.Hash(settings.Database.DefaultUserPassword);
-        var defaultUser = new SVR_JMMUser
+        var defaultUser = new JMMUser
         {
             CanEditServerSettings = 1,
             HideCategories = string.Empty,
@@ -304,77 +302,29 @@ public abstract class BaseDatabase<T> : IDatabase
             Username = settings.Database.DefaultUserUsername
         };
         RepoFactory.JMMUser.Save(defaultUser);
-
-        var familyUser = new SVR_JMMUser
-        {
-            CanEditServerSettings = 1,
-            HideCategories = "ecchi,nudity,sex,sexual abuse,horror,erotic game,incest,18 restricted",
-            IsAdmin = 1,
-            IsAniDBUser = 1,
-            IsTraktUser = 1,
-            Password = string.Empty,
-            Username = "Family Friendly"
-        };
-        RepoFactory.JMMUser.Save(familyUser);
     }
 
     private void CreateInitialRenameScript()
     {
-        if (RepoFactory.RenamerConfig.GetAll().Any())
-        {
+        if (RepoFactory.StoredRelocationPipe.GetAll().Any())
             return;
-        }
 
-        var initialScript = new RenamerConfig();
-
-        initialScript.Name = Resources.Rename_Default;
-        initialScript.Type = typeof(WebAOMRenamer);
-        initialScript.Settings = new WebAOMSettings
+        var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
+        var relocationService = Utils.ServiceContainer.GetRequiredService<IRelocationService>();
+        var provider = relocationService.GetProviderInfo<WebAOMRenamer>();
+        var configuration = provider.ConfigurationInfo is null ? null : Encoding.UTF8.GetBytes(
+            configurationService.Serialize(
+                configurationService.New(provider.ConfigurationInfo)
+            )
+        );
+        var pipe = new StoredRelocationPipe()
         {
-            Script =
-                "// Sample Output: [Coalgirls]_Highschool_of_the_Dead_-_01_(1920x1080_Blu-ray_H264)_[90CC6DC1].mkv" +
-                Environment.NewLine +
-                "// Sub group name" + Environment.NewLine +
-                "DO ADD '[%grp] '" + Environment.NewLine +
-                "// Anime Name, use english name if it exists, otherwise use the Romaji name" + Environment.NewLine +
-                "IF I(eng) DO ADD '%eng '" + Environment.NewLine +
-                "IF I(ann);I(!eng) DO ADD '%ann '" + Environment.NewLine +
-                "// Episode Number, don't use episode number for movies" + Environment.NewLine +
-                "IF T(!Movie) DO ADD '- %enr'" + Environment.NewLine +
-                "// If the file version is v2 or higher add it here" + Environment.NewLine +
-                "IF F(!1) DO ADD 'v%ver'" + Environment.NewLine +
-                "// Video Resolution" + Environment.NewLine +
-                "DO ADD ' (%res'" + Environment.NewLine +
-                "// Video Source (only if blu-ray or DVD)" + Environment.NewLine +
-                "IF R(DVD),R(Blu-ray) DO ADD ' %src'" + Environment.NewLine +
-                "// Video Codec" + Environment.NewLine +
-                "DO ADD ' %vid'" + Environment.NewLine +
-                "// Video Bit Depth (only if 10bit)" + Environment.NewLine +
-                "IF Z(10) DO ADD ' %bitbit'" + Environment.NewLine +
-                "DO ADD ') '" + Environment.NewLine +
-                "DO ADD '[%CRC]'" + Environment.NewLine +
-                string.Empty + Environment.NewLine +
-                "// Replacement rules (cleanup)" + Environment.NewLine +
-                "DO REPLACE ' ' '_' // replace spaces with underscores" + Environment.NewLine +
-                "DO REPLACE 'H264/AVC' 'H264'" + Environment.NewLine +
-                "DO REPLACE '0x0' ''" + Environment.NewLine +
-                "DO REPLACE '__' '_'" + Environment.NewLine +
-                "DO REPLACE '__' '_'" + Environment.NewLine +
-                string.Empty + Environment.NewLine +
-                "// Replace all illegal file name characters" + Environment.NewLine +
-                "DO REPLACE '<' '('" + Environment.NewLine +
-                "DO REPLACE '>' ')'" + Environment.NewLine +
-                "DO REPLACE ':' '-'" + Environment.NewLine +
-                "DO REPLACE '" + (char)34 + "' '`'" + Environment.NewLine +
-                "DO REPLACE '/' '_'" + Environment.NewLine +
-                "DO REPLACE '/' '_'" + Environment.NewLine +
-                "DO REPLACE '\\' '_'" + Environment.NewLine +
-                "DO REPLACE '|' '_'" + Environment.NewLine +
-                "DO REPLACE '?' '_'" + Environment.NewLine +
-                "DO REPLACE '*' '_'" + Environment.NewLine,
+            Name = "Default",
+            Configuration = configuration,
+            ProviderID = provider.ID,
         };
 
-        RepoFactory.RenamerConfig.Save(initialScript);
+        RepoFactory.StoredRelocationPipe.Save(pipe);
     }
 
     public void CreateInitialCustomTags()
@@ -391,37 +341,40 @@ public abstract class BaseDatabase<T> : IDatabase
             // Dropped
             var tag = new CustomTag
             {
-                TagName = Resources.CustomTag_Dropped, TagDescription = Resources.CustomTag_DroppedInfo
+                TagName = "Dropped",
+                TagDescription = "Started watching this series, but have since dropped it"
             };
             RepoFactory.CustomTag.Save(tag);
 
             // Pinned
             tag = new CustomTag
             {
-                TagName = Resources.CustomTag_Pinned, TagDescription = Resources.CustomTag_PinnedInfo
+                TagName = "Pinned",
+                TagDescription = "Pinned this series for whatever reason you like"
             };
             RepoFactory.CustomTag.Save(tag);
 
             // Ongoing
             tag = new CustomTag
             {
-                TagName = Resources.CustomTag_Ongoing, TagDescription = Resources.CustomTag_OngoingInfo
+                TagName = "Ongoing",
+                TagDescription = "This series does not have an end date"
             };
             RepoFactory.CustomTag.Save(tag);
 
             // Waiting for Series Completion
             tag = new CustomTag
             {
-                TagName = Resources.CustomTag_SeriesComplete,
-                TagDescription = Resources.CustomTag_SeriesCompleteInfo
+                TagName = "Waiting for Series Completion",
+                TagDescription = "Will start watching this once this series is finished"
             };
             RepoFactory.CustomTag.Save(tag);
 
             // Waiting for Bluray Completion
             tag = new CustomTag
             {
-                TagName = Resources.CustomTag_BlurayComplete,
-                TagDescription = Resources.CustomTag_BlurayCompleteInfo
+                TagName = "Waiting for Blu-ray Completion",
+                TagDescription = "Will start watching this once all episodes are available in Blu-Ray"
             };
             RepoFactory.CustomTag.Save(tag);
         }
@@ -430,65 +383,4 @@ public abstract class BaseDatabase<T> : IDatabase
             Logger.Error(ex, "Could not Create Initial Custom Tags: " + ex);
         }
     }
-
-    /*
- private static void CreateContinueWatchingGroupFilter()
- {
-     // group filters
-     GroupFilterRepository repFilters = new GroupFilterRepository();
-     GroupFilterConditionRepository repGFC = new GroupFilterConditionRepository();
-
-     using (var session = JMMService.SessionFactory.OpenSession())
-     {
-         // check if it already exists
-         List<GroupFilter> lockedGFs = repFilters.GetLockedGroupFilters(session);
-
-         if (lockedGFs != null)
-         {
-             // if it already exists we can leave
-             foreach (GroupFilter gfTemp in lockedGFs)
-             {
-                 if (gfTemp.FilterType == (int)GroupFilterType.ContinueWatching)
-                     return;
-             }
-
-             // the default value when the column was added to the database was '1'
-             // this is only needed for users of a migrated database
-             foreach (GroupFilter gfTemp in lockedGFs)
-             {
-                 if (gfTemp.GroupFilterName.Equals(Constants.GroupFilterName.ContinueWatching, StringComparison.InvariantCultureIgnoreCase) &&
-                     gfTemp.FilterType != (int)GroupFilterType.ContinueWatching)
-                 {
-                     DatabaseFixes.FixContinueWatchingGroupFilter_20160406();
-                     return;
-                 }
-             }
-         }
-
-         GroupFilter gf = new GroupFilter();
-         gf.GroupFilterName = Constants.GroupFilterName.ContinueWatching;
-         gf.Locked = 1;
-         gf.SortingCriteria = "4;2"; // by last watched episode desc
-         gf.ApplyToSeries = 0;
-         gf.BaseCondition = 1; // all
-         gf.FilterType = (int)GroupFilterType.ContinueWatching;
-
-         repFilters.Save(gf,true,null);
-
-         GroupFilterCondition gfc = new GroupFilterCondition();
-         gfc.ConditionType = (int)GroupFilterConditionType.HasWatchedEpisodes;
-         gfc.ConditionOperator = (int)GroupFilterOperator.Include;
-         gfc.ConditionParameter = string.Empty;
-         gfc.GroupFilterID = gf.GroupFilterID;
-         repGFC.Save(gfc);
-
-         gfc = new GroupFilterCondition();
-         gfc.ConditionType = (int)GroupFilterConditionType.HasUnwatchedEpisodes;
-         gfc.ConditionOperator = (int)GroupFilterOperator.Include;
-         gfc.ConditionParameter = string.Empty;
-         gfc.GroupFilterID = gf.GroupFilterID;
-         repGFC.Save(gfc);
-     }
- }
- */
 }

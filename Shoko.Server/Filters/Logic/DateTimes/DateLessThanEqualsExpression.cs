@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.DateTimes;
@@ -16,7 +17,7 @@ public class DateLessThanEqualsExpression : FilterExpression<bool>, IWithDateSel
         Parameter = parameter;
     }
     public DateLessThanEqualsExpression() { }
-    
+
     public FilterExpression<DateTime?> Left { get; set; }
     public FilterExpression<DateTime?> Right { get; set; }
     public DateTime Parameter { get; set; }
@@ -25,16 +26,16 @@ public class DateLessThanEqualsExpression : FilterExpression<bool>, IWithDateSel
     public override string HelpDescription => "This condition passes if the left selector is less than or equal to either the right selector or the parameter";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Logic;
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        var date = Left.Evaluate(filterable, userInfo);
-        if (date == null || date.Value == DateTime.MinValue || date.Value == DateTime.MaxValue || date.Value == DateTime.UnixEpoch)
+        var date = Left.Evaluate(filterable, userInfo, time);
+        if (date is null || date.Value == DateTime.MinValue || date.Value == DateTime.MaxValue || date.Value == DateTime.UnixEpoch)
         {
             return false;
         }
 
-        var operand = Right == null ? Parameter : Right.Evaluate(filterable, userInfo);
-        if (operand == null || operand.Value == DateTime.MinValue || operand.Value == DateTime.MaxValue || operand.Value == DateTime.UnixEpoch)
+        var operand = Right is null ? Parameter : Right.Evaluate(filterable, userInfo, time);
+        if (operand is null || operand.Value == DateTime.MinValue || operand.Value == DateTime.MaxValue || operand.Value == DateTime.UnixEpoch)
         {
             return false;
         }

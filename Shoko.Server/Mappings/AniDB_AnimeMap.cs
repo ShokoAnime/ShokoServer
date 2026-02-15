@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Enums;
+using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Mappings;
 
-public class AniDB_AnimeMap : ClassMap<SVR_AniDB_Anime>
+public class AniDB_AnimeMap : ClassMap<AniDB_Anime>
 {
     public AniDB_AnimeMap()
     {
@@ -16,7 +17,7 @@ public class AniDB_AnimeMap : ClassMap<SVR_AniDB_Anime>
         Map(x => x.AllTitles);
         Map(x => x.AllTags);
         Map(x => x.AnimeID).Not.Nullable();
-        Map(x => x.AnimeType).Not.Nullable();
+        Map(x => x.AnimeType).Not.Nullable().CustomType<AnimeType>();
         Map(x => x.ANNID);
         Map(x => x.AnisonID);
         Map(x => x.SyoboiID);

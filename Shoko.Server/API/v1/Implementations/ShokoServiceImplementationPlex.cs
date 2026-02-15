@@ -2,20 +2,19 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Models.Interfaces;
-using Shoko.Models.Plex.Connections;
-using Shoko.Models.PlexAndKodi;
+using Shoko.Server.API.v1.Models;
 using Shoko.Server.Plex;
+using Shoko.Server.Plex.Models.Connections;
+using Shoko.Server.Plex.Models.Libraries;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
-using Directory = Shoko.Models.Plex.Libraries.Directory;
 
 namespace Shoko.Server.API.v1.Implementations;
 
 [ApiController]
 [Route("/api/Plex")]
 [ApiVersion("1.0", Deprecated = true)]
-public class ShokoServiceImplementationPlex : IShokoServerPlex, IHttpContextAccessor
+public class ShokoServiceImplementationPlex : IHttpContextAccessor
 {
     public HttpContext HttpContext { get; set; }
     private readonly ISettingsProvider _settingsProvider;
@@ -26,15 +25,15 @@ public class ShokoServiceImplementationPlex : IShokoServerPlex, IHttpContextAcce
     }
 
     [HttpGet("User")]
-    public PlexContract_Users GetUsers()
+    public CL_PlexContract_Users GetUsers()
     {
-        var gfs = new PlexContract_Users
+        var gfs = new CL_PlexContract_Users
         {
             Users = []
         };
         foreach (var us in RepoFactory.JMMUser.GetAll())
         {
-            var p = new PlexContract_User { id = us.JMMUserID.ToString(), name = us.Username };
+            var p = new CL_PlexContract_User { id = us.JMMUserID.ToString(), name = us.Username };
             gfs.Users.Add(p);
         }
 

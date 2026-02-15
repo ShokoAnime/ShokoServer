@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Models.Legacy;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct;

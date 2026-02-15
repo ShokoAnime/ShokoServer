@@ -1,6 +1,6 @@
 using System;
+using Shoko.Abstractions.Filtering;
 using Shoko.Server.Filters.Interfaces;
-using Shoko.Server.Models;
 
 namespace Shoko.Server.Filters.Files;
 
@@ -13,12 +13,10 @@ public class HasSharedSubtitleLanguageExpression : FilterExpression<bool>, IWith
     public HasSharedSubtitleLanguageExpression() { }
 
     public string Parameter { get; set; }
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string HelpDescription => "This condition passes if all of the files have the specified subtitle language";
-    public override string[] HelpPossibleParameters => SVR_AniDB_File.GetPossibleSubtitleLanguages();
+    public override string[] HelpPossibleParameters => HasSubtitleLanguageExpression.PossibleSubtitleLanguages;
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.SharedSubtitleLanguages.Contains(Parameter);
     }

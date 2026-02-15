@@ -7,13 +7,11 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
-using Shoko.Commons.Extensions;
-using Shoko.Commons.Properties;
-using Shoko.Models.Enums;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Tasks;
@@ -23,12 +21,12 @@ using Shoko.Server.Utilities;
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
+public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    private PocoIndex<int, SVR_AnimeSeries, int>? AniDBIds;
-    private PocoIndex<int, SVR_AnimeSeries, int>? Groups;
+    private PocoIndex<int, AnimeSeries, int>? AniDBIds;
+    private PocoIndex<int, AnimeSeries, int>? Groups;
 
     private readonly ChangeTracker<int> Changes = new();
 
@@ -56,7 +54,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         };
     }
 
-    protected override int SelectKey(SVR_AnimeSeries entity)
+    protected override int SelectKey(AnimeSeries entity)
     {
         return entity.AnimeSeriesID;
     }
@@ -72,7 +70,8 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
     {
         try
         {
-            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries), " Database Regeneration - Caching Titles & Overview");
+            ServerState.Instance.ServerStartingStatus =
+                $"Database - Validating - {nameof(AnimeSeries)} Database Regeneration - Caching Titles & Overview...";
             foreach (var series in Cache.Values.ToList())
             {
                 series.ResetPreferredTitle();
@@ -82,7 +81,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
 
             var sers = Cache.Values.Where(a => a.AnimeGroupID == 0 || RepoFactory.AnimeGroup.GetByID(a.AnimeGroupID) == null).ToList();
             var max = sers.Count;
-            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries), " Database Regeneration - Ensuring Groups Exist");
+            ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(AnimeSeries)} Database Regeneration - Ensuring Groups Exist...";
 
             var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
             for (var i = 0; i < max; i++)
@@ -100,12 +99,12 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
                 }
 
                 if (i % 10 != 0) continue;
-                ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries),
-                    " DbRegen - Ensuring Groups Exist - " + i + "/" + max);
+                ServerState.Instance.ServerStartingStatus =
+                    $"Database - Validating - {nameof(AnimeSeries)} DbRegen - Ensuring Groups Exist - {i}/{max}...";
             }
 
-            ServerState.Instance.ServerStartingStatus = string.Format(Resources.Database_Validating, nameof(AnimeSeries),
-                " DbRegen - Ensuring Groups Exist - " + max + "/" + max);
+            ServerState.Instance.ServerStartingStatus =
+                $"Database - Validating - {nameof(AnimeSeries)} DbRegen - Ensuring Groups Exist - {max}/{max}...";
         }
         catch (Exception e)
         {
@@ -119,24 +118,24 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         return Changes;
     }
 
-    public override void Save(SVR_AnimeSeries obj)
+    public override void Save(AnimeSeries obj)
     {
         Save(obj, false);
     }
 
-    public void Save(SVR_AnimeSeries obj, bool onlyupdatestats)
+    public void Save(AnimeSeries obj, bool onlyupdatestats)
     {
         Save(obj, true, onlyupdatestats);
     }
 
-    public void Save(SVR_AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool alsoupdateepisodes = false)
+    public void Save(AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool alsoupdateepisodes = false)
     {
         var animeID = obj.AniDB_Anime?.MainTitle ?? obj.AniDB_ID.ToString();
         logger.Trace($"Saving Series {animeID}");
         var totalSw = Stopwatch.StartNew();
         var sw = Stopwatch.StartNew();
         var newSeries = false;
-        SVR_AnimeGroup? oldGroup = null;
+        AnimeGroup? oldGroup = null;
         // Updated Now
         obj.DateTimeUpdated = DateTime.Now;
         var isMigrating = false;
@@ -154,7 +153,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
                 logger.Trace($"Saving Series {id} | Got Database Lock in {s.Elapsed.TotalSeconds:0.00###}s");
                 s.Restart();
                 using var session = _databaseFactory.SessionFactory.OpenSession();
-                var series = session.Get<SVR_AnimeSeries>(animeSeriesID);
+                var series = session.Get<AnimeSeries>(animeSeriesID);
                 s.Stop();
                 logger.Trace($"Saving Series {id} | Got Series from Database in {s.Elapsed.TotalSeconds:0.00###}s");
                 s.Restart();
@@ -197,7 +196,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
             sw.Restart();
         }
 
-        var seasons = obj.AniDB_Anime?.Seasons;
+        var seasons = obj.AniDB_Anime?.YearlySeasons;
         if (seasons == null || !seasons.Any()) RegenerateSeasons(obj, sw, animeID);
 
         sw.Stop();
@@ -219,7 +218,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         logger.Trace($"Saving Series {animeID} | Finished Saving in {totalSw.Elapsed.TotalSeconds:0.00###}s");
     }
 
-    private static void RegenerateSeasons(SVR_AnimeSeries obj, Stopwatch sw, string animeID)
+    private static void RegenerateSeasons(AnimeSeries obj, Stopwatch sw, string animeID)
     {
         sw.Stop();
         logger.Trace(
@@ -236,7 +235,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         sw.Restart();
     }
 
-    private static void UpdateEpisodes(SVR_AnimeSeries obj, Stopwatch sw, string animeID)
+    private static void UpdateEpisodes(AnimeSeries obj, Stopwatch sw, string animeID)
     {
         sw.Stop();
         logger.Trace($"Saving Series {animeID} | Updating Episodes");
@@ -248,7 +247,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         sw.Restart();
     }
 
-    private static void UpdateGroups(SVR_AnimeSeries obj, string animeID, Stopwatch sw, SVR_AnimeGroup oldGroup)
+    private static void UpdateGroups(AnimeSeries obj, string animeID, Stopwatch sw, AnimeGroup oldGroup)
     {
         logger.Trace($"Saving Series {animeID} | Also Updating Group {obj.AnimeGroupID}");
         var grp = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
@@ -275,7 +274,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         }
     }
 
-    public async Task UpdateBatch(ISessionWrapper session, IReadOnlyCollection<SVR_AnimeSeries> seriesBatch)
+    public async Task UpdateBatch(ISessionWrapper session, IReadOnlyCollection<AnimeSeries> seriesBatch)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(seriesBatch);
@@ -293,24 +292,24 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         }
     }
 
-    public SVR_AnimeSeries? GetByAnimeID(int id)
+    public AnimeSeries? GetByAnimeID(int id)
     {
         return ReadLock(() => AniDBIds!.GetOne(id));
     }
 
-    public List<SVR_AnimeSeries> GetByGroupID(int groupid)
+    public List<AnimeSeries> GetByGroupID(int groupid)
     {
         return ReadLock(() => Groups!.GetMultiple(groupid));
     }
 
-    public List<SVR_AnimeSeries> GetWithMissingEpisodes()
+    public List<AnimeSeries> GetWithMissingEpisodes()
     {
         return ReadLock(() => Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
             .OrderByDescending(a => a.EpisodeAddedDate)
             .ToList());
     }
 
-    public List<SVR_AnimeSeries> GetMostRecentlyAdded(int maxResults, int userID)
+    public List<AnimeSeries> GetMostRecentlyAdded(int maxResults, int userID)
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
         return ReadLock(() => user == null
@@ -319,18 +318,18 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
                 .ToList());
     }
 
-    private const string IgnoreVariationsQuery =
+    private const string MultipleReleasesIgnoreVariationsQuery =
         @"SELECT DISTINCT ani.AnimeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.AnimeID, ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
-    private const string CountVariationsQuery =
+    private const string MultipleReleasesCountVariationsQuery =
         @"SELECT DISTINCT ani.AnimeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.AnimeID, ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
 
-    public List<SVR_AnimeSeries> GetWithMultipleReleases(bool ignoreVariations)
+    public IEnumerable<AnimeSeries> GetWithMultipleReleases(bool ignoreVariations)
     {
         var ids = Lock(() =>
         {
             using var session = _databaseFactory.SessionFactory.OpenSession();
 
-            var query = ignoreVariations ? IgnoreVariationsQuery : CountVariationsQuery;
+            var query = ignoreVariations ? MultipleReleasesIgnoreVariationsQuery : MultipleReleasesCountVariationsQuery;
             return session.CreateSQLQuery(query)
                 .AddScalar("AnimeID", NHibernateUtil.Int32)
                 .List<int>();
@@ -339,8 +338,78 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
         return ids
             .Distinct()
             .Select(GetByAnimeID)
-            .WhereNotNull()
-            .ToList();
+            .WhereNotNull();
+    }
+
+    private const string DuplicateFilesQuery = @"
+SELECT DISTINCT
+    ani.AnimeID
+FROM
+    (
+        SELECT
+            vl.FileSize,
+            vl.Hash
+        FROM
+            VideoLocal AS vl
+        WHERE
+            VideoLocalID IN (
+                SELECT
+                    VideoLocalID
+                FROM
+                    VideoLocal_Place
+                GROUP BY
+                    VideoLocalID
+                HAVING
+                    COUNT(VideoLocal_Place_ID) > 1
+            )
+        AND
+            vl.Hash != ''
+    ) AS vlp_selected
+INNER JOIN
+    CrossRef_File_Episode ani
+    ON vlp_selected.Hash = ani.Hash
+       AND vlp_selected.FileSize = ani.FileSize
+GROUP BY
+    ani.AnimeID
+";
+
+    public IEnumerable<AnimeSeries> GetWithDuplicateFiles()
+    {
+        var ids = Lock(() =>
+        {
+            using var session = _databaseFactory.SessionFactory.OpenSession();
+
+            return session.CreateSQLQuery(DuplicateFilesQuery)
+                .AddScalar("AnimeID", NHibernateUtil.Int32)
+                .List<int>();
+        });
+
+        return ids
+            .Distinct()
+            .Select(GetByAnimeID)
+            .WhereNotNull();
+    }
+
+    public const string MissingEpisodesCollectingQuery = @"SELECT ser.AniDB_ID FROM AnimeSeries AS ser WHERE ser.MissingEpisodeCountGroups > 0";
+
+    public const string MissingEpisodesQuery = @"SELECT ser.AniDB_ID FROM AnimeSeries AS ser WHERE ser.MissingEpisodeCount > 0";
+
+    public IEnumerable<AnimeSeries> GetWithMissingEpisodes(bool collecting)
+    {
+        var ids = Lock(() =>
+        {
+            using var session = _databaseFactory.SessionFactory.OpenSession();
+
+            var query = collecting ? MissingEpisodesCollectingQuery : MissingEpisodesQuery;
+            return session.CreateSQLQuery(query)
+                .AddScalar("AniDB_ID", NHibernateUtil.Int32)
+                .List<int>();
+        });
+
+        return ids
+            .Distinct()
+            .Select(GetByAnimeID)
+            .WhereNotNull();
     }
 
     public ImageEntityType[] GetAllImageTypes()
@@ -350,51 +419,33 @@ public class AnimeSeriesRepository : BaseCachedRepository<SVR_AnimeSeries, int>
     {
         var anime = RepoFactory.AnimeSeries.GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
         if (anime.Count == 0) yield break;
-        var minDate = anime.Min(a => a.AirDate!.Value);
-        var maxDate = anime.Max(o => o.EndDate ?? DateTime.Today);
+        var minDate = anime.Min(a => a!.AirDate!.Value);
+        var maxDate = anime.Max(o => o!.EndDate ?? DateTime.Today);
 
         for (var year = minDate.Year; year <= maxDate.Year; year++)
         {
             var yearStart = new DateTime(year, 1, 1);
             var yearEnd = new DateTime(year, 12, 31);
 
-            if (anime.Any(o => o.AirDate <= yearEnd && (o.EndDate >= yearStart || o.EndDate == null)))
+            if (anime.Any(o => o!.AirDate <= yearEnd && (o.EndDate >= yearStart || o.EndDate == null)))
             {
                 yield return year;
             }
         }
     }
 
-    public SortedSet<(int Year, AnimeSeason Season)> GetAllSeasons()
+    public SortedSet<(int Year, YearlySeason Season)> GetAllSeasons()
     {
         var anime = GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
-        return GetAllSeasons(anime);
+        return GetAllSeasons(anime!);
     }
 
-    public static SortedSet<(int Year, AnimeSeason Season)> GetAllSeasons(IEnumerable<AniDB_Anime> anime)
+    public static SortedSet<(int Year, YearlySeason Season)> GetAllSeasons(IEnumerable<AniDB_Anime> anime)
     {
-        var seasons = new SortedSet<(int Year, AnimeSeason Season)>();
+        var seasons = new SortedSet<(int Year, YearlySeason Season)>();
         foreach (var current in anime)
-        {
-            var beginYear = current.AirDate!.Value.Year;
-            var endYear = current.EndDate?.Year ?? DateTime.Today.Year;
-            for (var year = beginYear; year <= endYear; year++)
-            {
-                if (beginYear < year && year < endYear)
-                {
-                    seasons.Add((year, AnimeSeason.Winter));
-                    seasons.Add((year, AnimeSeason.Spring));
-                    seasons.Add((year, AnimeSeason.Summer));
-                    seasons.Add((year, AnimeSeason.Fall));
-                    continue;
-                }
-
-                if (!seasons.Contains((year, AnimeSeason.Winter)) && current.IsInSeason(AnimeSeason.Winter, year)) seasons.Add((year, AnimeSeason.Winter));
-                if (!seasons.Contains((year, AnimeSeason.Spring)) && current.IsInSeason(AnimeSeason.Spring, year)) seasons.Add((year, AnimeSeason.Spring));
-                if (!seasons.Contains((year, AnimeSeason.Summer)) && current.IsInSeason(AnimeSeason.Summer, year)) seasons.Add((year, AnimeSeason.Summer));
-                if (!seasons.Contains((year, AnimeSeason.Fall)) && current.IsInSeason(AnimeSeason.Fall, year)) seasons.Add((year, AnimeSeason.Fall));
-            }
-        }
+            foreach (var tuple in current.YearlySeasons)
+                seasons.Add(tuple);
 
         return seasons;
     }

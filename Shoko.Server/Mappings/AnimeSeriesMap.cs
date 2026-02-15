@@ -1,9 +1,10 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Mappings;
 
-public class AnimeSeriesMap : ClassMap<SVR_AnimeSeries>
+public class AnimeSeriesMap : ClassMap<AnimeSeries>
 {
     public AnimeSeriesMap()
     {
@@ -25,9 +26,8 @@ public class AnimeSeriesMap : ClassMap<SVR_AnimeSeries>
         Map(x => x.HiddenMissingEpisodeCount).Not.Nullable();
         Map(x => x.HiddenMissingEpisodeCountGroups).Not.Nullable();
         Map(x => x.SeriesNameOverride);
-        Map(x => x.DefaultFolder);
         Map(x => x.AirsOn);
         Map(x => x.UpdatedAt).Not.Nullable();
-        Map(x => x.DisableAutoMatchFlags).Not.Nullable().CustomType<Shoko.Models.Enums.DataSourceType>();
+        Map(x => x.DisableAutoMatchFlags).Not.Nullable().CustomType<DisabledAutoMatchFlag>();
     }
 }

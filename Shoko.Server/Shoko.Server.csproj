@@ -20,6 +20,10 @@
     <ApplicationIcon>db.ico</ApplicationIcon>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
+  <PropertyGroup>
+    <!-- Define plugin names here -->
+    <PluginNames>ReleaseExporter;OfflineImporter;RelocationPlus</PluginNames>
+  </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'ApiLogging' ">
     <DefineConstants>LOGWEB;DEBUG</DefineConstants>
   </PropertyGroup>
@@ -27,9 +31,6 @@
     <Content Include="..\Dependencies\**\*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\SharedAssemblyInfo.cs" Link="Properties\SharedAssemblyInfo.cs" />
     <Resource Include="db.ico" />
-    <Resource Include="Images\**\*.png" />
-    <Resource Include="Images\**\*.gif" />
-    <Resource Include="Images\db.ico" />
     <Resource Include="**\*.txt" />
     <Content Include="nlog.config" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="plugins\*.md" CopyToOutputDirectory="Always" />
@@ -49,17 +50,27 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Shoko.Commons\Shoko.Commons.csproj" />
-    <ProjectReference Include="..\Shoko.Commons\Shoko.Models\Shoko.Models.csproj" />
-    <ProjectReference Include="..\Shoko.Plugin.Abstractions\Shoko.Plugin.Abstractions.csproj" />
+    <ProjectReference Include="..\Shoko.Abstractions\Shoko.Abstractions.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+      <ProjectsToInclude Include="..\plugins\**\*.csproj">
+          <PluginName>$([System.String]::new('%(Filename)').SubString(13))</PluginName>
+          <KeepThis Condition=" '$([System.Text.RegularExpressions.Regex]::IsMatch($(PluginNames), &quot;(^;?|;)\b%(PluginName)\b(;|;?$)&quot;))' != 'true'">false</KeepThis>
+      </ProjectsToInclude>
+      <ProjectsToInclude Remove="@(ProjectsToInclude)" MatchOnMetadata="KeepThis" />
+      <ProjectReference Include="@(ProjectsToInclude)">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+          <OutputItemType>CopyToPublishDirectory</OutputItemType>
+      </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DeepCloner" Version="0.10.4" />
     <PackageReference Include="F23.StringSimilarity" Version="6.0.0" />
     <PackageReference Include="FluentNHibernate" Version="3.3.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
+    <PackageReference Include="JsonDiffPatch.Net" Version="2.5.0" />
     <PackageReference Include="Libuv" Version="1.10.0" />
-    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="13.6.0" />
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.10.2" />
     <PackageReference Include="MessagePack" Version="2.5.187" />
     <PackageReference Include="MessagePackAnalyzer" Version="2.5.140">
       <PrivateAssets>all</PrivateAssets>
@@ -76,18 +87,24 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.3" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Mime-Detective" Version="24.12.2" />
+    <PackageReference Include="Mime-Detective.Definitions.Condensed" Version="24.12.2" />
     <PackageReference Include="MimeMapping" Version="3.0.1" />
     <PackageReference Include="Mono.Posix.NETStandard" Version="5.20.1-preview" />
     <PackageReference Include="MySqlBackup.NET.MySqlConnector" Version="2.3.8" />
-    <PackageReference Include="MySqlConnector" Version="2.3.6" />
+    <PackageReference Include="MySqlConnector" Version="2.4.0" />
     <PackageReference Include="Nancy.Rest.Annotations" Version="1.4.4" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="NHibernate" Version="5.5.2" />
     <PackageReference Include="NHibernate.Driver.MySqlConnector" Version="2.0.5" />
     <PackageReference Include="NHibernate.Extensions.NpgSql" Version="8.0.8" />
+    <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
+    <PackageReference Include="NJsonSchema" Version="11.1.0" />
+    <PackageReference Include="NJsonSchema.Annotations" Version="11.1.0" />
+    <PackageReference Include="NJsonSchema.NewtonsoftJson" Version="11.1.0" />
     <PackageReference Include="NLog" Version="5.2.8" />
     <PackageReference Include="NLog.Web.AspNetCore" Version="5.3.8" />
     <PackageReference Include="Polly" Version="8.3.1" />
@@ -97,9 +114,9 @@
     <PackageReference Include="Sentry.NLog" Version="4.2.1" />
     <PackageReference Include="SharpCompress" Version="0.36.0" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="6.5.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.5.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.1.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="7.1.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.1.0" />
     <!-- This needs to be explicit because of dep BS -->
     <!--<PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />-->
     <PackageReference Include="System.Diagnostics.EventLog" Version="8.0.0" />
@@ -128,4 +145,9 @@
       <HintPath>..\Dependencies\Quartz\Quartz.Server.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <Target Inputs="@(ProjectsToInclude)" Outputs="(OutputPath)plugins" Name="MovePluginReferencesOutput" AfterTargets="Build">
+      <Move SourceFiles="$(OutputPath)%(ProjectsToInclude.Filename).dll" DestinationFolder="$(OutputPath)plugins" />
+      <Move SourceFiles="$(OutputPath)%(ProjectsToInclude.Filename).pdb" DestinationFolder="$(OutputPath)plugins" />
+      <Move SourceFiles="$(OutputPath)%(ProjectsToInclude.Filename).xml" DestinationFolder="$(OutputPath)plugins" />
+  </Target>
 </Project>

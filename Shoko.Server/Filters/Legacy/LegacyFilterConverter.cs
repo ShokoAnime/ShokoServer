@@ -1,31 +1,31 @@
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Models.Client;
-using Shoko.Models.Enums;
-using Shoko.Models.Server;
-using Shoko.Server.Models;
+using Shoko.Abstractions.Filtering.Services;
+using Shoko.Server.API.v1.Models;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Filters.Legacy;
 
 public class LegacyFilterConverter
 {
-    private readonly FilterEvaluator _evaluator;
+    private readonly IFilterEvaluator _evaluator;
 
-    public LegacyFilterConverter(FilterEvaluator evaluator)
+    public LegacyFilterConverter(IFilterEvaluator evaluator)
     {
         _evaluator = evaluator;
     }
 
     public FilterPreset FromClient(CL_GroupFilter model)
     {
-        var expression = LegacyConditionConverter.GetExpression(model.FilterConditions, (GroupFilterBaseCondition)model.BaseCondition);
+        var expression = LegacyConditionConverter.GetExpression(model.FilterConditions, (CL_GroupFilterBaseCondition)model.BaseCondition);
         var filter = new FilterPreset
         {
             FilterPresetID = model.GroupFilterID,
             ParentFilterPresetID = model.ParentGroupFilterID,
             Name = model.GroupFilterName,
-            FilterType = (GroupFilterType)model.FilterType,
+            FilterType = (FilterPresetType)model.FilterType,
             Hidden = model.InvisibleInClients == 1,
             Locked = model.Locked == 1,
             ApplyAtSeriesLevel = model.ApplyToSeries == 1,
@@ -35,13 +35,13 @@ public class LegacyFilterConverter
         return filter;
     }
 
-    public FilterPreset FromLegacy(GroupFilter model, List<GroupFilterCondition> conditions)
+    public FilterPreset FromLegacy(CL_GroupFilter model, List<CL_GroupFilterCondition> conditions)
     {
-        var expression = LegacyConditionConverter.GetExpression(conditions, (GroupFilterBaseCondition)model.BaseCondition);
+        var expression = LegacyConditionConverter.GetExpression(conditions, (CL_GroupFilterBaseCondition)model.BaseCondition);
         var filter = new FilterPreset
         {
             Name = model.GroupFilterName,
-            FilterType = (GroupFilterType)model.FilterType,
+            FilterType = (FilterPresetType)model.FilterType,
             Hidden = model.InvisibleInClients == 1,
             Locked = model.Locked == 1,
             ApplyAtSeriesLevel = model.ApplyToSeries == 1,
@@ -58,11 +58,11 @@ public class LegacyFilterConverter
         var seriesIds = new Dictionary<int, HashSet<int>>();
         if ((filter.Expression?.UserDependent ?? false) || (filter.SortingExpression?.UserDependent ?? false))
         {
-            foreach (var userID in RepoFactory.JMMUser.GetAll().Select(a => a.JMMUserID))
+            foreach (var user in RepoFactory.JMMUser.GetAll())
             {
-                var results = _evaluator.EvaluateFilter(filter, userID).ToList();
-                groupIds[userID] = results.Select(a => a.Key).ToHashSet();
-                seriesIds[userID] = results.SelectMany(a => a).ToHashSet();
+                var results = _evaluator.EvaluateFilter(filter, user).ToList();
+                groupIds[user.JMMUserID] = results.Select(a => a.Key).ToHashSet();
+                seriesIds[user.JMMUserID] = results.SelectMany(a => a).ToHashSet();
             }
         }
         else
@@ -99,7 +99,7 @@ public class LegacyFilterConverter
         };
         return contract;
     }
-    
+
     public List<CL_GroupFilter> ToClient(IReadOnlyList<FilterPreset> filters, int? userID = null)
     {
         var result = new List<CL_GroupFilter>();
@@ -115,8 +115,7 @@ public class LegacyFilterConverter
 
     private List<CL_GroupFilter> SetOtherFilters(List<FilterPreset> otherFilters)
     {
-
-        var results = _evaluator.BatchEvaluateFilters(otherFilters, null, true);
+        var results = _evaluator.BatchPrepareFilters(otherFilters, null, skipSorting: true);
         var models = results.Select(kv =>
         {
             var filter = kv.Key;
@@ -162,12 +161,12 @@ public class LegacyFilterConverter
     /// <param name="userFilters"></param>
     private List<CL_GroupFilter> SetUserFilters(int? userID, List<FilterPreset> userFilters)
     {
-
         var userResults = userID.HasValue
-            ? _evaluator.BatchEvaluateFilters(userFilters, userID.Value, true).Select(a => (a.Key, JMMUserID: userID.Value, a.Value))
+            ? _evaluator.BatchPrepareFilters(userFilters, RepoFactory.JMMUser.GetByID(userID.Value), skipSorting: true)
+                .Select(a => (a.Key, JMMUserID: userID.Value, a.Value))
                 .GroupBy(a => a.Key, a => (a.JMMUserID, a.Value))
             : RepoFactory.JMMUser.GetAll()
-                .SelectMany(user => _evaluator.BatchEvaluateFilters(userFilters, user.JMMUserID, true).Select(a => (a.Key, user.JMMUserID, a.Value)))
+                .SelectMany(user => _evaluator.BatchPrepareFilters(userFilters, user, skipSorting: true).Select(a => (a.Key, user.JMMUserID, a.Value)))
                 .GroupBy(a => a.Key, a => (a.JMMUserID, a.Value));
         var userModels = userResults.Select(group =>
         {

@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Security;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Plugin.Abstractions.Services;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.AniDB.UDP;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB;
 
@@ -14,7 +17,6 @@ public static class AniDBStartup
     public static IServiceCollection AddAniDB(this IServiceCollection services)
     {
         services.AddSingleton<HttpAnimeParser>();
-        services.AddSingleton<ImageHttpClientFactory>();
         services.AddSingleton<AniDBTitleHelper>();
         services.AddSingleton<AnimeCreator>();
         services.AddSingleton<HttpXmlUtils>();
@@ -22,7 +24,6 @@ public static class AniDBStartup
         services.AddSingleton<HttpRateLimiter>();
         services.AddSingleton<IHttpConnectionHandler, AniDBHttpConnectionHandler>();
         services.AddSingleton<IUDPConnectionHandler, AniDBUDPConnectionHandler>();
-        services.AddTransient<IAniDBService, AniDBService>();
         services.AddSingleton<IRequestFactory, RequestFactory>();
 
         // Register Requests
@@ -42,6 +43,23 @@ public static class AniDBStartup
         {
             services.AddTransient(type);
         }
+
+        services.AddHttpClient("AniDB", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(20);
+                client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
+                client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("deflate"));
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1");
+                client.BaseAddress = new Uri(Utils.SettingsProvider.GetSettings().AniDb.HTTPServerUrl);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AutomaticDecompression = DecompressionMethods.All,
+                SslOptions = new SslClientAuthenticationOptions
+                {
+                    RemoteCertificateValidationCallback = delegate { return true; }
+                }
+            });
 
         return services;
     }

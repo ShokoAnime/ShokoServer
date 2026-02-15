@@ -1,4 +1,3 @@
-﻿#region
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -9,16 +8,14 @@ using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-#endregion
 namespace Shoko.CLI;
 
 public static class Program
 {
     private static ILogger _logger = null!;
-    public static async Task Main()
+    public static async Task<int> Main()
     {
         try
         {
@@ -35,25 +32,24 @@ public static class Program
 
         try
         {
-            var settingsProvider = new SettingsProvider(logFactory.CreateLogger<SettingsProvider>());
-            settingsProvider.LoadSettings();
-            Utils.SettingsProvider = settingsProvider;
-            var startup = new Startup(logFactory.CreateLogger<Startup>(), settingsProvider);
+            var startup = new Startup(logFactory);
             startup.AboutToStart += (_, args) => AddEventHandlers(args.ServiceProvider);
             await startup.Start();
             await startup.WaitForShutdown();
+            return 0;
         }
         catch (Exception e)
         {
             _logger.LogCritical(e, "The server failed to start");
+            return -1;
         }
     }
-    
+
     private static void AddEventHandlers(IServiceProvider provider)
     {
         ServerState.Instance.PropertyChanged += OnInstanceOnPropertyChanged;
         var queueStateEventHandler = provider.GetRequiredService<QueueStateEventHandler>();
-        queueStateEventHandler.QueueItemAdded += QueueStateEventHandlerOnQueueItemAdded;
+        queueStateEventHandler.QueueItemsAdded += QueueStateEventHandlerOnQueueItemAdded;
         queueStateEventHandler.ExecutingJobsChanged += ExecutingJobsStateEventHandlerOnExecutingJobsChanged;
     }
 
@@ -61,8 +57,8 @@ public static class Program
     {
         return map == null ? string.Intern("No Details") : string.Join(", ", map.Select(a => a.Key + ": " + a.Value));
     }
-    
-    private static void QueueStateEventHandlerOnQueueItemAdded(object? sender, QueueItemAddedEventArgs e)
+
+    private static void QueueStateEventHandlerOnQueueItemAdded(object? sender, QueueItemsAddedEventArgs e)
     {
         if (e.AddedItems is not { Count: > 0 }) return;
 
@@ -102,6 +98,4 @@ public static class Program
         if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
             Console.WriteLine(@"Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
     }
-
-    private static void OnUtilsOnYesNoRequired(object? _, Utils.CancelReasonEventArgs e) => e.Cancel = true;
 }

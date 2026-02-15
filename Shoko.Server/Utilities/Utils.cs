@@ -1,31 +1,23 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Security.Principal;
 using System.Text;
-using System.Text.RegularExpressions;
-using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using NLog.Config;
 using NLog.Filters;
 using NLog.Targets;
 using NLog.Targets.Wrappers;
 using Quartz.Logging;
-using Shoko.Models.Enums;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.API.SignalR.NLog;
-using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities;
 
-public static class Utils
+public static partial class Utils
 {
     public static ShokoServer ShokoServer { get; set; }
 
@@ -46,7 +38,7 @@ public static class Utils
             if (!string.IsNullOrWhiteSpace(shokoHome))
                 return _applicationPath = Path.GetFullPath(shokoHome);
 
-            if (IsLinux)
+            if (!PlatformUtility.IsWindows)
                 return _applicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".shoko",
                     DefaultInstance);
 
@@ -140,7 +132,7 @@ public static class Utils
         }
 
         LogProvider.SetLogProvider(new NLog.Extensions.Logging.NLogLoggerFactory());
-        
+
         LogManager.ReconfigExistingLoggers();
     }
 
@@ -164,67 +156,13 @@ public static class Utils
 
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-    public class ErrorEventArgs : EventArgs
-    {
-        public string Message { get; internal set; }
-
-        public string Title { get; internal set; }
-
-        public bool IsError { get; internal set; } = true;
-    }
-
-    public class CancelReasonEventArgs : CancelEventArgs
-    {
-        public CancelReasonEventArgs(string reason, string formTitle)
-        {
-            FormTitle = formTitle;
-            Reason = reason;
-        }
-
-        public string Reason { get; }
-        public string FormTitle { get; }
-    }
-
-    public static event EventHandler<ErrorEventArgs> ErrorMessage;
-
-    public static event EventHandler OnEvents;
-
-    public delegate void DispatchHandler(Action a);
-
-    public static event DispatchHandler OnDispatch;
-
-    public static void DoEvents()
-    {
-        OnEvents?.Invoke(null, null);
-    }
-
-    public static void MainThreadDispatch(Action a)
-    {
-        if (OnDispatch != null)
-        {
-            OnDispatch?.Invoke(a);
-        }
-        else
-        {
-            a();
-        }
-    }
-
     public static void ShowErrorMessage(Exception ex, string message = null)
     {
-        ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = message ?? ex.Message });
         _logger.Error(ex, message);
     }
 
     public static void ShowErrorMessage(string msg)
     {
-        ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = msg });
-        _logger.Error(msg);
-    }
-
-    public static void ShowErrorMessage(string title, string msg)
-    {
-        ErrorMessage?.Invoke(null, new ErrorEventArgs { Message = msg, Title = title });
         _logger.Error(msg);
     }
 
@@ -244,36 +182,6 @@ public static class Utils
                 .Select(raw => raw.Split("="))
                 .Where(pair => pair.Length == 2 && !string.IsNullOrEmpty(pair[1]))
                 .ToDictionary(pair => pair[0], pair => pair[1]);
-    }
-
-    public static string ReplaceInvalidFolderNameCharacters(string folderName)
-    {
-        var ret = folderName.Replace(@"*", "\u2605"); // ★ (BLACK STAR)
-        ret = ret.Replace(@"|", "\u00a6"); // ¦ (BROKEN BAR)
-        ret = ret.Replace(@"\", "\u29F9"); // ⧹ (BIG REVERSE SOLIDUS)
-        ret = ret.Replace(@"/", "\u2044"); // ⁄ (FRACTION SLASH)
-        ret = ret.Replace(@":", "\u0589"); // ։ (ARMENIAN FULL STOP)
-        ret = ret.Replace("\"", "\u2033"); // ″ (DOUBLE PRIME)
-        ret = ret.Replace(@">", "\u203a"); // › (SINGLE RIGHT-POINTING ANGLE QUOTATION MARK)
-        ret = ret.Replace(@"<", "\u2039"); // ‹ (SINGLE LEFT-POINTING ANGLE QUOTATION MARK)
-        ret = ret.Replace(@"?", "\uff1f"); // ？ (FULL WIDTH QUESTION MARK)
-        ret = ret.Replace(@"...", "\u2026"); // … (HORIZONTAL ELLIPSIS)
-        if (ret.StartsWith('.'))
-        {
-            ret = string.Concat("․", ret.AsSpan(1, ret.Length - 1));
-        }
-
-        if (ret.EndsWith('.')) // U+002E
-        {
-            ret = string.Concat(ret.AsSpan(0, ret.Length - 1), "․"); // U+2024
-        }
-
-        return ret.Trim();
-    }
-
-    public static string GetOSInfo()
-    {
-        return RuntimeInformation.OSDescription;
     }
 
     // Returns the human-readable file size for an arbitrary, 64-bit file size
@@ -327,36 +235,6 @@ public static class Utils
         return readable.ToString("0.### ") + suffix;
     }
 
-    public static int GetVideoWidth(string videoResolution)
-    {
-        var videoWidth = 0;
-        if (videoResolution.Trim().Length > 0)
-        {
-            var dimensions = videoResolution.Split('x');
-            if (dimensions.Length > 0)
-            {
-                int.TryParse(dimensions[0], out videoWidth);
-            }
-        }
-
-        return videoWidth;
-    }
-
-    public static int GetVideoHeight(string videoResolution)
-    {
-        var videoHeight = 0;
-        if (videoResolution.Trim().Length > 0)
-        {
-            var dimensions = videoResolution.Split('x');
-            if (dimensions.Length > 1)
-            {
-                int.TryParse(dimensions[1], out videoHeight);
-            }
-        }
-
-        return videoHeight;
-    }
-
     public static int GetScheduledHours(ScheduledUpdateFrequency freq)
     {
         return freq switch
@@ -370,70 +248,8 @@ public static class Utils
         };
     }
 
-    public static void GetFilesForImportFolder(DirectoryInfo sDir, ref List<string> fileList)
-    {
-        try
-        {
-            if (sDir == null)
-            {
-                _logger.Error("Filesystem not found");
-                return;
-            }
-            // get root level files
-
-            if (!sDir.Exists)
-            {
-                _logger.Error($"Unable to retrieve folder {sDir.FullName}");
-                return;
-            }
-
-            fileList.AddRange(sDir.GetFiles().Select(a => a.FullName));
-
-            // search sub folders
-            foreach (var dir in sDir.GetDirectories())
-            {
-                GetFilesForImportFolder(dir, ref fileList);
-            }
-        }
-        catch (Exception excpt)
-        {
-            _logger.Error(excpt.Message);
-        }
-    }
-
-    public static bool IsDirectoryWritable(string dirPath, bool throwIfFails = false)
-    {
-        try
-        {
-            using (File.Create(Path.Combine(dirPath, Path.GetRandomFileName()), 1, FileOptions.DeleteOnClose))
-            {
-                return true;
-            }
-        }
-        catch
-        {
-            if (throwIfFails)
-            {
-                throw;
-            }
-
-            return false;
-        }
-    }
-
-    public static bool IsLinux
-    {
-        get
-        {
-            var p = (int)Environment.OSVersion.Platform;
-            return p == 4 || p == 6 || p == 128;
-        }
-    }
-
-    public static bool IsRunningOnLinuxOrMac()
-    {
-        return !RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-    }
+    public static bool IsVideo(string fileName)
+        => SettingsProvider.GetSettings().Import.VideoExtensions.Any(extName => fileName.EndsWith(extName, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Determines an encoded string's encoding by analyzing its byte order mark (BOM).

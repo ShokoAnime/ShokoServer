@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Services;
@@ -34,7 +35,7 @@ public class RefreshAnimeStatsJob : BaseJob
 
     public override void PostInit()
     {
-        _anime = _animeRepo.GetByAnimeID(AnimeID)?.PreferredTitle ?? AnimeID.ToString();
+        _anime = _animeRepo.GetByAnimeID(AnimeID)?.Title ?? AnimeID.ToString();
     }
 
     public override Task Process()

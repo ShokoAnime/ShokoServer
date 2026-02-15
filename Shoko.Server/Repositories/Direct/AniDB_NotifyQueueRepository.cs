@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NHibernate.Linq;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Direct;

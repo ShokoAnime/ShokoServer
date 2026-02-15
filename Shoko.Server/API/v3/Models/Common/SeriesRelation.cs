@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.DataModels;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
 
@@ -37,22 +37,15 @@ public class SeriesRelation
     [Required]
     public string Source { get; set; }
 
-    public SeriesRelation(HttpContext context, AniDB_Anime_Relation relation, AnimeSeries series = null,
-        AnimeSeries relatedSeries = null)
+    public SeriesRelation(IRelatedMetadata relation, IShokoSeries series = null,
+        IShokoSeries relatedSeries = null)
     {
-        if (series == null)
-        {
-            series = RepoFactory.AnimeSeries.GetByAnimeID(relation.AnimeID);
-        }
+        series ??= RepoFactory.AnimeSeries.GetByAnimeID(relation.BaseID);
+        relatedSeries ??= RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedID);
 
-        if (relatedSeries == null)
-        {
-            relatedSeries = RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedAnimeID);
-        }
-
-        IDs = new RelationIDs { AniDB = relation.AnimeID, Shoko = series?.AnimeSeriesID };
-        RelatedIDs = new RelationIDs { AniDB = relation.RelatedAnimeID, Shoko = relatedSeries?.AnimeSeriesID };
-        Type = ((IRelatedMetadata)relation).RelationType;
+        IDs = new RelationIDs { AniDB = relation.BaseID, Shoko = series?.ID };
+        RelatedIDs = new RelationIDs { AniDB = relation.RelatedID, Shoko = relatedSeries?.ID };
+        Type = relation.RelationType;
         Source = "AniDB";
     }
 
@@ -70,27 +63,5 @@ public class SeriesRelation
         /// The ID of the <see cref="Series.AniDB"/> entry.
         /// </summary>
         public int? AniDB { get; set; }
-    }
-}
-
-public static class RelationExtensions
-{
-    /// <summary>
-    /// Reverse the relation.
-    /// </summary>
-    /// <param name="type">The relation to reverse.</param>
-    /// <returns>The reversed relation.</returns>
-    public static RelationType Reverse(this RelationType type)
-    {
-        return type switch
-        {
-            RelationType.Prequel => RelationType.Sequel,
-            RelationType.Sequel => RelationType.Prequel,
-            RelationType.MainStory => RelationType.SideStory,
-            RelationType.SideStory => RelationType.MainStory,
-            RelationType.FullStory => RelationType.Summary,
-            RelationType.Summary => RelationType.FullStory,
-            _ => type
-        };
     }
 }

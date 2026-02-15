@@ -1,7 +1,7 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Models.Enums;
 using Shoko.Server.Databases.NHibernate;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Mappings;
 
@@ -16,7 +16,7 @@ public class FilterPresetMap : ClassMap<FilterPreset>
         References(a => a.Parent).Column("ParentFilterPresetID").ReadOnly();
         HasMany(x => x.Children).Fetch.Join().KeyColumn("ParentFilterPresetID").ReadOnly();
         Map(x => x.Name).Not.Nullable();
-        Map(x => x.FilterType).Not.Nullable().CustomType<GroupFilterType>();
+        Map(x => x.FilterType).Not.Nullable().CustomType<FilterPresetType>();
         Map(x => x.Locked).Not.Nullable();
         Map(x => x.Hidden).Not.Nullable();
         Map(x => x.ApplyAtSeriesLevel).Not.Nullable();

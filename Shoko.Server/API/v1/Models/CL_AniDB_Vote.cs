@@ -1,0 +1,9 @@
+namespace Shoko.Server.API.v1.Models;
+
+public class CL_AniDB_Vote
+{
+    public int AniDB_VoteID { get; set; }
+    public int EntityID { get; set; }
+    public int VoteValue { get; set; }  //WARNING FIX IN CLIENT THE VALUE SHOULD BE DIVIDED BY 100 in the Clients
+    public int VoteType { get; set; }
+}

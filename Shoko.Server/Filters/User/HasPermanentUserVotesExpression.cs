@@ -1,15 +1,14 @@
 using System;
-using Shoko.Server.Filters.Interfaces;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.User;
 
 public class HasPermanentUserVotesExpression : FilterExpression<bool>
 {
-    public override bool TimeDependent => false;
     public override bool UserDependent => true;
     public override string HelpDescription => "This condition passes if the filterable has a user vote that is of the permanent vote type";
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         ArgumentNullException.ThrowIfNull(userInfo);
         return userInfo.HasPermanentVotes;

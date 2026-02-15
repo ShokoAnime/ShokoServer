@@ -1,6 +1,6 @@
 using FluentNHibernate.Mapping;
-using Shoko.Models.Server;
 using Shoko.Server.Databases.NHIbernate;
+using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Mappings;
 

@@ -1,8 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using Shoko.Models.Plex.TVShow;
-using Shoko.Server.Models;
+using Shoko.Server.Plex.Models.TVShow;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Plex.TVShow;
@@ -16,7 +16,7 @@ internal class SVR_Episode : Episode
         Helper = helper;
     }
 
-    public SVR_AnimeEpisode AnimeEpisode
+    public AnimeEpisode AnimeEpisode
     {
         get
         {
@@ -36,7 +36,7 @@ internal class SVR_Episode : Episode
 
             var file = RepoFactory.VideoLocalPlace
                 .GetAll()
-                .FirstOrDefault(location => location.FullServerPath?.EndsWith(filenameWithParent, StringComparison.OrdinalIgnoreCase) ?? false);
+                .FirstOrDefault(location => location.Path?.EndsWith(filenameWithParent, StringComparison.OrdinalIgnoreCase) ?? false);
 
             return file is null ? null : RepoFactory.AnimeEpisode.GetByHash(file.VideoLocal?.Hash).FirstOrDefault();
 

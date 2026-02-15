@@ -1,17 +1,16 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
-using NHibernate.SqlTypes;
-using NHibernate.UserTypes;
 using System.Data;
 using System.Data.Common;
+using System.Globalization;
+using System.Linq;
 using NHibernate;
 using NHibernate.Engine;
-using System.Globalization;
-using System.Collections;
-using NHibernate.Mapping;
-using System.Collections.Generic;
-using System.Linq;
-using Shoko.Server.Extensions;
+using NHibernate.SqlTypes;
+using NHibernate.UserTypes;
+using Shoko.Abstractions.Extensions;
 
 #nullable enable
 namespace Shoko.Server.Databases.NHibernate;
@@ -36,6 +35,7 @@ public class StringListConverter : TypeConverter, IUserType
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object? value)
         => value switch
         {
+            null => [],
             string i => i.Split("|||").ToList(),
             List<string> l => l,
             _ => throw new ArgumentException($"DestinationType must be {nameof(String)}.")
@@ -44,6 +44,7 @@ public class StringListConverter : TypeConverter, IUserType
     public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type? destinationType)
         => value switch
         {
+            null => string.Empty,
             string i => i,
             List<string> l => l.Join("|||"),
             _ => throw new ArgumentException($"DestinationType must be {typeof(List<string>).FullName}."),

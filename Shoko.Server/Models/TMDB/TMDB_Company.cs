@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Commons.Extensions;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Repositories;
 using TMDbLib.Objects.General;
@@ -69,7 +69,7 @@ public class TMDB_Company
         ? RepoFactory.TMDB_Image.GetByTmdbCompanyIDAndType(TmdbCompanyID, entityType.Value)
         : RepoFactory.TMDB_Image.GetByTmdbCompanyID(TmdbCompanyID);
 
-    public IReadOnlyList<IImageMetadata> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImageMetadata> preferredImages) =>
+    public IReadOnlyList<IImage> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImage> preferredImages) =>
         GetImages(entityType)
             .GroupBy(i => i.ImageType)
             .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)

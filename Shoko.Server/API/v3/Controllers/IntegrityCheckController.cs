@@ -2,12 +2,12 @@ using System;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
-using Shoko.Models.Server;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.Models;
+using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Models.Legacy;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -19,37 +19,46 @@ namespace Shoko.Server.API.v3.Controllers;
 public class IntegrityCheckController : BaseController
 {
     [HttpPost]
-    public ActionResult<Scan> AddScan(Scan scan)
+    public ActionResult<IntegrityCheck> AddScan(IntegrityCheck check)
     {
-        if (scan.ScanID == 0)
+        var scan = check.ID is > 0 ? RepoFactory.Scan.GetByID(check.ID) : new()
         {
-            var s = new SVR_Scan
-            {
-                Status = scan.Status, ImportFolders = scan.ImportFolders, CreationTIme = DateTime.Now
-            };
-            RepoFactory.Scan.Save(s);
-            scan = s;
-        }
+            Status = check.Status,
+            ImportFolders = check.ManagedFolderIDs.Select(a => a.ToString()).Join(','),
+            CreationTIme = DateTime.Now,
+        };
+        if (scan.ScanID == 0)
+            RepoFactory.Scan.Save(scan);
 
-        var files = scan.GetImportFolderList()
-            .SelectMany(a => RepoFactory.VideoLocalPlace.GetByImportFolder(a))
+        var files = scan.ImportFolders.Split(',')
+            .Select(int.Parse)
+            .SelectMany(RepoFactory.VideoLocalPlace.GetByManagedFolderID)
             .Select(p => new { p, v = p.VideoLocal })
             .Select(t => new ScanFile
             {
                 Hash = t.v.Hash,
                 FileSize = t.v.FileSize,
-                FullName = t.p.FullServerPath,
+                FullName = t.p.Path,
                 ScanID = scan.ScanID,
-                Status = (int)ScanFileStatus.Waiting,
-                ImportFolderID = t.p.ImportFolderID,
-                VideoLocal_Place_ID = t.p.VideoLocal_Place_ID
+                Status = ScanFileStatus.Waiting,
+                ImportFolderID = t.p.ManagedFolderID,
+                VideoLocal_Place_ID = t.p.ID
             }).ToList();
         RepoFactory.ScanFile.Save(files);
-        return scan;
+
+        return new IntegrityCheck()
+        {
+            ID = scan.ScanID,
+            ManagedFolderIDs = scan.ImportFolders.Split(',')
+                .Select(int.Parse)
+                .ToList(),
+            Status = scan.Status,
+            CreatedAt = scan.CreationTIme,
+        };
     }
 
-    [HttpGet("{id}/Start")]
-    public ActionResult StartScan(int id)
+    [HttpPost("{scanID}/Start")]
+    public ActionResult StartScan(int scanID)
     {
         return Ok();
     }

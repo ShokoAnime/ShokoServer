@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
@@ -18,7 +21,7 @@ namespace Shoko.Server.Models.TMDB;
 /// <summary>
 /// The Movie DataBase (TMDB) Person Database Model.
 /// </summary>
-public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
+public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
 {
     #region Properties
 
@@ -90,6 +93,11 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
+    /// <summary>
+    /// When the person was last linked to a crew or cast role in the local system.
+    /// </summary>
+    public DateTime? LastOrphanedAt { get; set; }
+
     #endregion
 
     #region Constructors
@@ -130,8 +138,8 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
             UpdateProperty(EnglishBiography, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : person.Biography, v => EnglishBiography = v),
             UpdateProperty(Aliases, person.AlsoKnownAs, v => Aliases = v, (a, b) => string.Equals(string.Join("|", a),string.Join("|", b))),
             UpdateProperty(IsRestricted, person.Adult, v => IsRestricted = v),
-            UpdateProperty(BirthDay, person.Birthday.HasValue ? DateOnly.FromDateTime(person.Birthday.Value) : null, v => BirthDay = v),
-            UpdateProperty(DeathDay, person.Deathday.HasValue ? DateOnly.FromDateTime(person.Deathday.Value) : null, v => DeathDay = v),
+            UpdateProperty(BirthDay, person.Birthday?.ToDateOnly(), v => BirthDay = v),
+            UpdateProperty(DeathDay, person.Deathday?.ToDateOnly(), v => DeathDay = v),
             UpdateProperty(PlaceOfBirth, string.IsNullOrEmpty(person.PlaceOfBirth) ? null : person.PlaceOfBirth, v => PlaceOfBirth = v),
         };
 
@@ -194,11 +202,11 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
 
     #endregion
 
-    #region IEntityMetadata
+    #region IEntityMetadata Implementation
 
     ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Person;
 
-    DataSourceEnum IEntityMetadata.DataSource => DataSourceEnum.TMDB;
+    DataSource IEntityMetadata.DataSource => DataSource.TMDB;
 
     string IEntityMetadata.EnglishTitle => EnglishName;
 
@@ -212,6 +220,104 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata
 
     // Technically not untrue. Though this is more of a joke mapping than anything.
     DateOnly? IEntityMetadata.ReleasedAt => BirthDay;
+
+    #endregion
+
+    #region IMetadata Implementation
+
+    int IMetadata<int>.ID => TmdbPersonID;
+
+    DataSource IMetadata.Source => DataSource.TMDB;
+
+    #endregion
+
+    #region IWithDescriptions Implementation
+
+    IText? IWithDescriptions.DefaultDescription => new TextStub()
+    {
+        Language = TitleLanguage.EnglishAmerican,
+        CountryCode = "US",
+        LanguageCode = "en",
+        Value = EnglishBiography,
+        Source = DataSource.TMDB,
+    };
+
+    IText? IWithDescriptions.PreferredDescription => GetPreferredBiography();
+
+    IReadOnlyList<IText> IWithDescriptions.Descriptions => GetAllBiographies();
+
+    #endregion
+
+    #region IWithPortraitImage Implementation
+
+    IImage? IWithPortraitImage.PortraitImage => GetImages(ImageEntityType.Creator) is { Count: > 0 } images ? images[0] : null;
+
+    #endregion
+
+    #region ICreator Implementation
+
+    string ICreator.Name => EnglishName;
+
+    string? ICreator.OriginalName => null;
+
+    CreatorType ICreator.Type => CreatorType.Person;
+
+    IEnumerable<ICast<IEpisode>> ICreator.EpisodeCastRoles =>
+        RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(TmdbPersonID);
+
+    IEnumerable<ICast<IMovie>> ICreator.MovieCastRoles =>
+        RepoFactory.TMDB_Movie_Cast.GetByTmdbPersonID(TmdbPersonID);
+
+    IEnumerable<ICast<ISeries>> ICreator.SeriesCastRoles =>
+        RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(TmdbPersonID)
+            .GroupBy(cast => new { cast.TmdbShowID, cast.TmdbPersonID, cast.CharacterName, cast.IsGuestRole })
+            .Select(group =>
+            {
+                var episodes = group.ToList();
+                var firstEpisode = episodes.First();
+                var seasonCount = episodes.GroupBy(a => a.TmdbSeasonID).Count();
+                return new TMDB_Show_Cast()
+                {
+                    TmdbPersonID = firstEpisode.TmdbPersonID,
+                    TmdbShowID = firstEpisode.TmdbShowID,
+                    CharacterName = firstEpisode.CharacterName,
+                    Ordering = firstEpisode.Ordering,
+                    EpisodeCount = episodes.Count,
+                    SeasonCount = seasonCount,
+                };
+            })
+            .OrderBy(cast => cast.TmdbShowID)
+            .ThenBy(cast => cast.Ordering)
+            .ThenBy(cast => cast.TmdbPersonID);
+
+    IEnumerable<ICrew<IEpisode>> ICreator.EpisodeCrewRoles =>
+        RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(TmdbPersonID);
+
+    IEnumerable<ICrew<IMovie>> ICreator.MovieCrewRoles =>
+        RepoFactory.TMDB_Movie_Crew.GetByTmdbPersonID(TmdbPersonID);
+
+    IEnumerable<ICrew<ISeries>> ICreator.SeriesCrewRoles =>
+        RepoFactory.TMDB_Episode_Crew.GetByTmdbPersonID(TmdbPersonID)
+            .GroupBy(cast => new { cast.TmdbShowID, cast.TmdbPersonID, cast.Department, cast.Job })
+            .Select(group =>
+            {
+                var episodes = group.ToList();
+                var firstEpisode = episodes.First();
+                var seasonCount = episodes.GroupBy(a => a.TmdbSeasonID).Count();
+                return new TMDB_Show_Crew()
+                {
+                    TmdbPersonID = firstEpisode.TmdbPersonID,
+                    TmdbShowID = firstEpisode.TmdbShowID,
+                    Department = firstEpisode.Department,
+                    Job = firstEpisode.Job,
+                    EpisodeCount = episodes.Count,
+                    SeasonCount = seasonCount,
+                };
+            })
+            .OrderBy(crew => crew.TmdbShowID)
+            .ThenBy(crew => crew.Department)
+            .ThenBy(crew => crew.Job)
+            .ThenBy(crew => crew.TmdbPersonID);
 
     #endregion
 }

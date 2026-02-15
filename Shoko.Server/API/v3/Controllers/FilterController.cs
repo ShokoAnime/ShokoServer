@@ -5,13 +5,13 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Commons.Extensions;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Filtering.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Repositories;
@@ -24,12 +24,10 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class FilterController : BaseController
+public class FilterController(ISettingsProvider settingsProvider, FilterFactory _factory, IFilterEvaluator _filterEvaluator) : BaseController(settingsProvider)
 {
     internal const string FilterNotFound = "No Filter entry for the given filterID";
 
-    private readonly FilterFactory _factory;
-    private readonly FilterEvaluator _filterEvaluator;
     private static Filter.FilterExpressionHelp[] _expressionTypes;
     private static Filter.SortingCriteriaHelp[] _sortingTypes;
 
@@ -39,33 +37,34 @@ public class FilterController : BaseController
     /// Get all <see cref="Filter"/>s except the live filter.
     /// </summary>
     /// <param name="includeEmpty">Include empty filters.</param>
+    /// <param name="includeEmptyGroups">Include empty groups for size calculations.</param>
     /// <param name="showHidden">Show hidden filters.</param>
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
     /// <param name="withConditions">Include conditions and sort criteria in the response.</param>
     /// <returns></returns>
     [HttpGet]
-    public ActionResult<ListResult<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false,
+    public ActionResult<ListResult<Filter>> GetAllFilters([FromQuery] bool includeEmpty = false, [FromQuery] bool includeEmptyGroups = true,
         [FromQuery] bool showHidden = false, [FromQuery, Range(0, 100)] int pageSize = 10,
         [FromQuery, Range(1, int.MaxValue)] int page = 1, [FromQuery] bool withConditions = false)
     {
         var user = User;
 
-        return _filterEvaluator.BatchEvaluateFilters(RepoFactory.FilterPreset.GetTopLevel(), user.JMMUserID, true)
+        return _filterEvaluator.BatchPrepareFilters(RepoFactory.FilterPreset.GetTopLevel(), user, skipSorting: true)
             .Where(kv =>
             {
                 var filter = kv.Key;
                 if (!showHidden && filter.Hidden)
                     return false;
 
-                if (includeEmpty || (filter.IsDirectory() ? RepoFactory.FilterPreset.GetByParentID(filter.FilterPresetID).Count > 0 : kv.Value.Any()))
+                if (includeEmpty || (filter.IsDirectory ? RepoFactory.FilterPreset.GetByParentID(filter.FilterPresetID).Count > 0 : kv.Value.Any()))
                     return true;
 
                 return false;
             })
             .Select(a => a.Key)
             .OrderBy(filter => filter.Name)
-            .ToListResult(filter => _factory.GetFilter(filter, withConditions), page, pageSize);
+            .ToListResult(filter => _factory.GetFilter(filter, withConditions, includeEmptyGroups), page, pageSize);
     }
 
     /// <summary>
@@ -106,7 +105,7 @@ public class FilterController : BaseController
     /// <param name="groups">Optional. The Expression groups to return</param>
     [HttpGet("Expressions")]
     public ActionResult<Filter.FilterExpressionHelp[]> GetExpressions([FromQuery] Filter.FilterExpressionHelp.FilterExpressionParameterType[] types = null,
-        [FromQuery] FilterExpressionGroup[] groups = null)
+        [FromQuery] Filter.FilterExpressionHelp.FilterExpressionGroup[] groups = null)
     {
         types ??= [];
         groups ??= [];
@@ -142,6 +141,7 @@ public class FilterController : BaseController
                     IWithDateParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Date,
                     IWithNumberParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Number,
                     IWithStringParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.String,
+                    IWithStringSetParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSet,
                     IWithTimeSpanParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.TimeSpan,
                     _ => null
                 };
@@ -163,7 +163,7 @@ public class FilterController : BaseController
                 {
                     Expression = a.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim(),
                     Name = expression.Name,
-                    Group = expression.Group,
+                    Group = (Filter.FilterExpressionHelp.FilterExpressionGroup)expression.Group,
                     Description = expression.HelpDescription,
                     PossibleParameters = expression.HelpPossibleParameters,
                     PossibleSecondParameters = expression.HelpPossibleSecondParameters,
@@ -204,7 +204,7 @@ public class FilterController : BaseController
                     Name = criteria.Name,
                     Description = criteria.HelpDescription
                 };
-            }).Where(a => a != null).ToArray();
+            }).WhereNotNull().ToArray();
         return _sortingTypes;
     }
 
@@ -213,15 +213,16 @@ public class FilterController : BaseController
     /// </summary>
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="withConditions">Include conditions and sort criteria in the response.</param>
+    /// <param name="includeEmptyGroups">Include empty groups for size calculations.</param>
     /// <returns>The filter</returns>
     [HttpGet("{filterID}")]
-    public ActionResult<Filter> GetFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool withConditions = false)
+    public ActionResult<Filter> GetFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool withConditions = false, [FromQuery] bool includeEmptyGroups = true)
     {
         var filterPreset = RepoFactory.FilterPreset.GetByID(filterID);
         if (filterPreset == null)
             return NotFound(FilterNotFound);
 
-        return _factory.GetFilter(filterPreset, withConditions);
+        return _factory.GetFilter(filterPreset, withConditions, includeEmptyGroups);
     }
 
     /// <summary>
@@ -324,7 +325,7 @@ public class FilterController : BaseController
     [HttpPost("Preview/Group")]
     public ActionResult<ListResult<Group>> GetPreviewFilteredGroups([FromBody] Filter.Input.CreateOrUpdateFilterBody filter,
         [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool includeEmpty = false, [FromQuery] bool randomImages = false, [FromQuery] bool orderByName = false)
+        [FromQuery] bool includeEmpty = true, [FromQuery] bool randomImages = false, [FromQuery] bool orderByName = false)
     {
         // Directories should only contain sub-filters, not groups and series.
         if (filter.IsDirectory)
@@ -334,7 +335,7 @@ public class FilterController : BaseController
         var filterPreset = _factory.GetFilterPreset(filter, ModelState);
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
-        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID);
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User);
         if (!results.Any()) return new ListResult<Group>();
 
         var groups = results
@@ -359,7 +360,7 @@ public class FilterController : BaseController
     ///     <see cref="Episode"/>s in the count.</param>
     /// <returns></returns>
     [HttpPost("Preview/Group/Letters")]
-    public ActionResult<Dictionary<char, int>> GetPreviewGroupNameLettersInFilter([FromBody] Filter.Input.CreateOrUpdateFilterBody filter, [FromQuery] bool includeEmpty = false)
+    public ActionResult<Dictionary<char, int>> GetPreviewGroupNameLettersInFilter([FromBody] Filter.Input.CreateOrUpdateFilterBody filter, [FromQuery] bool includeEmpty = true)
     {
         // Directories should only contain sub-filters, not groups and series.
         if (filter.IsDirectory)
@@ -368,7 +369,7 @@ public class FilterController : BaseController
         // Fast path when user is not in the filter
         var filterPreset = _factory.GetFilterPreset(filter, ModelState);
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
-        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User).ToArray();
         if (results.Length == 0)
             return new Dictionary<char, int>();
 
@@ -395,7 +396,7 @@ public class FilterController : BaseController
     [HttpPost("Preview/Series")]
     public ActionResult<ListResult<Series>> GetPreviewSeriesInFilteredGroup([FromBody] Filter.Input.CreateOrUpdateFilterBody filter,
         [FromQuery, Range(0, 100)] int pageSize = 50, [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool randomImages = false, [FromQuery] bool includeMissing = false)
+        [FromQuery] bool randomImages = false, [FromQuery] bool includeMissing = true)
     {
         // Directories should only contain sub-filters, not groups and series.
         if (filter.IsDirectory)
@@ -404,14 +405,14 @@ public class FilterController : BaseController
         // Return early if every series will be filtered out.
         var filterPreset = _factory.GetFilterPreset(filter, ModelState);
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
-        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User).ToArray();
         if (results.Length == 0)
             return new ListResult<Series>();
 
         // We don't need separate logic for ApplyAtSeriesLevel, as the FilterEvaluator handles that
         return results.SelectMany(a => a.Select(id => RepoFactory.AnimeSeries.GetByID(id)))
             .Where(series => series != null && (includeMissing || series.VideoLocals.Count > 0))
-            .OrderBy(series => series.PreferredTitle.ToLowerInvariant())
+            .OrderBy(series => series.Title.ToLowerInvariant())
             .ToListResult(series => new Series(series, User.JMMUserID, randomImages), page, pageSize);
     }
 
@@ -432,7 +433,7 @@ public class FilterController : BaseController
         var filterPreset = _factory.GetFilterPreset(filter, ModelState);
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
-        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID);
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User);
         return results.SelectMany(groupBy => groupBy)
             .ToList();
     }
@@ -447,7 +448,7 @@ public class FilterController : BaseController
     /// <returns></returns>
     [HttpPost("Preview/Group/{groupID}/Group")]
     public ActionResult<List<Group>> GetPreviewFilteredSubGroups([FromBody] Filter.Input.CreateOrUpdateFilterBody filter, [FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromQuery] bool randomImages = false, [FromQuery] bool includeEmpty = false)
+        [FromQuery] bool randomImages = false, [FromQuery] bool includeEmpty = true)
     {
         var filterPreset = _factory.GetFilterPreset(filter, ModelState);
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -461,11 +462,11 @@ public class FilterController : BaseController
             return Forbid(GroupController.GroupForbiddenForUser);
 
         // Directories should only contain sub-filters, not groups and series.
-        if (filterPreset.IsDirectory())
+        if (filterPreset.IsDirectory)
             return new List<Group>();
 
         // Just return early because the every group will be filtered out.
-        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User).ToArray();
         if (results.Length == 0)
             return new List<Group>();
 
@@ -502,12 +503,12 @@ public class FilterController : BaseController
     /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/>. Even the <see cref="Series"/> within the sub-<see cref="Group"/>s.</param>
     /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the list.</param>
     /// <param name="randomImages">Randomize images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSource"/>s.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// /// <returns></returns>
     [HttpPost("Preview/Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetPreviewSeriesInFilteredGroup([FromBody] Filter.Input.CreateOrUpdateFilterBody filter, [FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = false,
-        [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSource> includeDataFrom = null)
+        [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = true,
+        [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
         var filterPreset = _factory.GetFilterPreset(filter, ModelState);
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -521,7 +522,7 @@ public class FilterController : BaseController
             return Forbid(GroupController.GroupForbiddenForUser);
 
         // Directories should only contain sub-filters, not groups and series.
-        if (filterPreset.IsDirectory())
+        if (filterPreset.IsDirectory)
             return new List<Series>();
 
         if (!filterPreset.ApplyAtSeriesLevel)
@@ -533,7 +534,7 @@ public class FilterController : BaseController
                 .ToList();
 
         // Just return early because the every series will be filtered out.
-        var results = _filterEvaluator.EvaluateFilter(filterPreset, User.JMMUserID).ToArray();
+        var results = _filterEvaluator.EvaluateFilter(filterPreset, User).ToArray();
         if (results.Length == 0)
             return new List<Series>();
 
@@ -549,10 +550,4 @@ public class FilterController : BaseController
     }
 
     #endregion
-
-    public FilterController(ISettingsProvider settingsProvider, FilterFactory factory, FilterEvaluator filterEvaluator) : base(settingsProvider)
-    {
-        _factory = factory;
-        _filterEvaluator = filterEvaluator;
-    }
 }

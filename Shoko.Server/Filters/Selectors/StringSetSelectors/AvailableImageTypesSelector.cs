@@ -1,17 +1,17 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Server.Filters.Interfaces;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Selectors.StringSetSelectors;
 
 public class AvailableImageTypesSelector : FilterExpression<IReadOnlySet<string>>
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
+
     public override string HelpDescription => "This returns a set of all the available image types in a filterable.";
     public override FilterExpressionGroup Group => FilterExpressionGroup.Selector;
 
-    public override IReadOnlySet<string> Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    public override IReadOnlySet<string> Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         return filterable.AvailableImageTypes.Select(t => t.ToString()).ToHashSet();
     }

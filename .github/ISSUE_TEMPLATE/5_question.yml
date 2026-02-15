@@ -1,0 +1,18 @@
+name: General Questions
+description: For general questions related to Shoko.
+labels: [Question]
+body:
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: 'Before submitting your question, please verify the following.'
+      options:
+        - label: You've searched this repository (top of the page) for the issue you are reporting.
+          required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Please type your question here.
+    validations:
+      required: true

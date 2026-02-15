@@ -13,6 +13,7 @@ namespace Shoko.Server.API.ModelBinders;
 public class CommaDelimitedModelBinder : IModelBinder
 {
     private readonly ILogger<CommaDelimitedModelBinder> _logger;
+
     private static readonly Dictionary<Type, MethodInfo> AddCache = new();
 
     public CommaDelimitedModelBinder(ILogger<CommaDelimitedModelBinder> logger)
@@ -34,7 +35,7 @@ public class CommaDelimitedModelBinder : IModelBinder
         if (bindingContext.ModelType.IsArray)
         {
             var array = Array.CreateInstance(elementType, items.Length);
-            Array.Copy(items.Select(a => converter.ConvertFromString(a)).ToArray(), array, items.Length);
+            Array.Copy(items.Select(converter.ConvertFromString).ToArray(), array, items.Length);
             result = array;
         }
         else

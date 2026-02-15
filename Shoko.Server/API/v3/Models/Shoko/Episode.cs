@@ -3,22 +3,23 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.API.Converters;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Services;
+using Shoko.Abstractions.UserData;
 using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
-using AniDBEpisodeType = Shoko.Models.Enums.EpisodeType;
-using DataSource = Shoko.Server.API.v3.Models.Common.DataSource;
-using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.Episode;
-using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.Movie;
+using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
+using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.TmdbEpisode;
+using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.TmdbMovie;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -41,6 +42,11 @@ public class Episode : BaseModel
     public string Description { get; set; }
 
     /// <summary>
+    /// Indicates that the episode is marked as favorite by the user.
+    /// </summary>
+    public bool IsFavorite { get; set; }
+
+    /// <summary>
     /// The preferred images for the episode.
     /// </summary>
     public Images Images { get; set; }
@@ -56,14 +62,6 @@ public class Episode : BaseModel
     /// positions.
     /// </summary>
     public TimeSpan? ResumePosition { get; set; }
-
-    /// <summary>
-    /// The last watched date and time for the current user for the most
-    /// recently watched file, if any. Or `null` if it is considered
-    /// "unwatched."
-    /// </summary>
-    [JsonConverter(typeof(IsoDateTimeConverter))]
-    public DateTime? Watched { get; set; }
 
     /// <summary>
     /// Total number of times the episode have been watched (till completion) by
@@ -83,17 +81,35 @@ public class Episode : BaseModel
     /// </summary>
     public Rating? UserRating { get; set; }
 
-#pragma warning disable IDE1006
     /// <summary>
-    /// The <see cref="Episode.AniDB"/>, if <see cref="DataSource.AniDB"/> is
-    /// included in the data to add.
+    /// The last watched date and time for the current user for the most
+    /// recently watched file, if any. Or `null` if it is considered
+    /// "unwatched."
     /// </summary>
-    [JsonProperty("AniDB", NullValueHandling = NullValueHandling.Ignore)]
-    public AniDB? _AniDB { get; set; }
-#pragma warning restore IDE1006
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime? Watched { get; set; }
 
     /// <summary>
-    /// The <see cref="TmdbData"/> entries, if <see cref="DataSource.TMDB"/>
+    /// The time when the episode was created.
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime Created { get; set; }
+
+    /// <summary>
+    /// The time when the episode was last updated,
+    /// </summary>
+    [JsonConverter(typeof(IsoDateTimeConverter))]
+    public DateTime Updated { get; set; }
+
+    /// <summary>
+    /// The <see cref="Episode.AniDB"/>, if <see cref="DataSourceType.AniDB"/> is
+    /// included in the data to add.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public AnidbEpisode? AniDB { get; set; }
+
+    /// <summary>
+    /// The <see cref="TmdbData"/> entries, if <see cref="DataSourceType.TMDB"/>
     /// is included in the data to add.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -111,7 +127,7 @@ public class Episode : BaseModel
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IEnumerable<FileCrossReference.EpisodeCrossReferenceIDs>? CrossReferences { get; set; }
 
-    public Episode(HttpContext context, SVR_AnimeEpisode episode, HashSet<DataSource>? includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool withXRefs = false)
+    public Episode(HttpContext context, AnimeEpisode episode, HashSet<DataSourceType>? includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool withXRefs = false, bool includeReleaseInfo = false)
     {
         includeDataFrom ??= [];
         var userID = context.GetUser()?.JMMUserID ?? 0;
@@ -122,10 +138,9 @@ public class Episode : BaseModel
         var tmdbEpisodeXRefs = episode.TmdbEpisodeCrossReferences;
         var files = episode.VideoLocals;
         var (file, fileUserRecord) = files
-            .Select(file => (file, userRecord: RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(userID, file.VideoLocalID)))
+            .Select(file => (file, userRecord: RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(userID, file.VideoLocalID)))
             .OrderByDescending(tuple => tuple.userRecord?.LastUpdated)
             .FirstOrDefault();
-        var vote = RepoFactory.AniDB_Vote.GetByEntityAndType(episode.AniDB_EpisodeID, AniDBVoteType.Episode);
         IDs = new EpisodeIDs
         {
             ID = episode.AnimeEpisodeID,
@@ -156,32 +171,41 @@ public class Episode : BaseModel
         HasCustomName = !string.IsNullOrEmpty(episode.EpisodeNameOverride);
         Images = episode.GetImages().ToDto(includeThumbnails: true, preferredImages: true);
         Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, anidbEpisode.LengthSeconds);
-        ResumePosition = fileUserRecord?.ResumePositionTimeSpan;
-        Watched = fileUserRecord?.WatchedDate?.ToUniversalTime();
+        ResumePosition = fileUserRecord?.ProgressPosition;
+        Watched = episodeUserRecord?.WatchedDate?.ToUniversalTime();
         WatchCount = episodeUserRecord?.WatchedCount ?? 0;
+        IsFavorite = episodeUserRecord?.IsFavorite ?? false;
         IsHidden = episode.IsHidden;
-        Name = episode.PreferredTitle;
-        Description = episode.PreferredOverview;
+        Name = episode.Title;
+        Description = episode.PreferredOverview?.Value ?? string.Empty;
         Size = files.Count;
+        Created = episode.DateTimeCreated.ToUniversalTime();
+        Updated = episode.DateTimeUpdated.ToUniversalTime();
 
-        if (vote is not null)
+        if (episodeUserRecord is { HasUserRating: true } userData)
         {
             UserRating = new()
             {
-                Value = (decimal)Math.Round(vote.VoteValue / 100D, 1),
+                Value = userData.UserRating.Value,
                 MaxValue = 10,
-                Type = AniDBVoteType.Episode.ToString(),
+                Type = "Episode",
                 Source = "User"
             };
         }
 
-        if (includeDataFrom.Contains(DataSource.AniDB))
-            _AniDB = new AniDB(anidbEpisode);
-        if (includeDataFrom.Contains(DataSource.TMDB))
+        if (includeDataFrom.Contains(DataSourceType.AniDB))
+            AniDB = new AnidbEpisode(anidbEpisode);
+        if (includeDataFrom.Contains(DataSourceType.TMDB))
             TMDB = new()
             {
                 Episodes = tmdbEpisodeXRefs
-                    .Select(tmdbEpisodeXref => tmdbEpisodeXref.TmdbEpisode)
+                    .Select(tmdbEpisodeXref =>
+                    {
+                        var episode = tmdbEpisodeXref.TmdbEpisode;
+                        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
+                            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+                        return episode;
+                    })
                     .WhereNotNull()
                     .GroupBy(tmdbEpisode => tmdbEpisode.TmdbShowID)
                     .Select(groupBy => (TmdbShow: groupBy.First().TmdbShow!, TmdbEpisodes: groupBy.ToList()))
@@ -196,104 +220,23 @@ public class Episode : BaseModel
                     ))
                     .ToList(),
                 Movies = tmdbMovieXRefs
-                    .Select(tmdbMovieXref => tmdbMovieXref.TmdbMovie)
+                    .Select(tmdbMovieXref =>
+                    {
+                        var movie = tmdbMovieXref.TmdbMovie;
+                        if (movie is not null && (TmdbMetadataService.Instance?.WaitForMovieUpdate(movie.TmdbMovieID) ?? false))
+                            movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movie.TmdbMovieID);
+                        return movie;
+                    })
                     .WhereNotNull()
                     .Select(tmdbMovie => new TmdbMovie(tmdbMovie))
                     .ToList(),
             };
         if (includeFiles)
             Files = files
-                .Select(f => new File(context, f, false, includeDataFrom, includeMediaInfo, includeAbsolutePaths))
+                .Select(f => new File(context, f, false, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths))
                 .ToList();
         if (withXRefs)
             CrossReferences = FileCrossReference.From(episode.FileCrossReferences).FirstOrDefault()?.EpisodeIDs ?? [];
-    }
-
-    internal static EpisodeType MapAniDBEpisodeType(AniDBEpisodeType episodeType)
-        => episodeType switch
-        {
-            AniDBEpisodeType.Episode => EpisodeType.Normal,
-            AniDBEpisodeType.Special => EpisodeType.Special,
-            AniDBEpisodeType.Parody => EpisodeType.Parody,
-            AniDBEpisodeType.Credits => EpisodeType.ThemeSong,
-            AniDBEpisodeType.Trailer => EpisodeType.Trailer,
-            AniDBEpisodeType.Other => EpisodeType.Other,
-            _ => EpisodeType.Unknown,
-        };
-
-    /// <summary>
-    /// AniDB specific data for an Episode
-    /// </summary>
-    public class AniDB
-    {
-        public AniDB(SVR_AniDB_Episode ep)
-        {
-            if (!decimal.TryParse(ep.Rating, out var rating))
-            {
-                rating = 0;
-            }
-
-            if (!int.TryParse(ep.Votes, out var votes))
-            {
-                votes = 0;
-            }
-
-            var defaultTitle = ep.DefaultTitle;
-            var mainTitle = ep.PreferredTitle;
-            var titles = ep.GetTitles();
-            ID = ep.EpisodeID;
-            Type = MapAniDBEpisodeType(ep.GetEpisodeTypeEnum());
-            EpisodeNumber = ep.EpisodeNumber;
-            AirDate = ep.GetAirDateAsDate();
-            Description = ep.Description;
-            Rating = new Rating { MaxValue = 10, Value = rating, Votes = votes, Source = "AniDB" };
-            Title = mainTitle.Title;
-            Titles = titles
-                .Select(a => new Title(a, defaultTitle.Title, mainTitle))
-                .ToList();
-        }
-
-        /// <summary>
-        /// AniDB Episode ID
-        /// </summary>
-        public int ID { get; set; }
-
-        /// <summary>
-        /// Episode Type
-        /// </summary>
-        [JsonConverter(typeof(StringEnumConverter))]
-        public EpisodeType Type { get; set; }
-
-        /// <summary>
-        /// Episode Number
-        /// </summary>
-        public int EpisodeNumber { get; set; }
-
-        /// <summary>
-        /// First Listed Air Date. This may not be when it aired, but an early release date
-        /// </summary>
-        [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
-        public DateTime? AirDate { get; set; }
-
-        /// <summary>
-        /// Preferred title for the episode.
-        /// </summary>
-        public string Title { get; set; }
-
-        /// <summary>
-        /// All titles for the episode.
-        /// </summary>
-        public List<Title> Titles { get; set; }
-
-        /// <summary>
-        /// AniDB Episode Summary
-        /// </summary>
-        public string Description { get; set; }
-
-        /// <summary>
-        /// Episode Rating
-        /// </summary>
-        public Rating Rating { get; set; }
     }
 
     public class EpisodeIDs : IDs
@@ -312,13 +255,13 @@ public class Episode : BaseModel
         // These are useful for many things, but for clients, it is mostly auxiliary
 
         /// <summary>
-        /// The AniDB ID
+        /// The AniDB Episode ID.
         /// </summary>
         [Required]
         public int AniDB { get; set; }
 
         /// <summary>
-        /// The TvDB IDs
+        /// The TvDB Episode IDs.
         /// </summary>
         public List<int> TvDB { get; set; } = [];
 
@@ -350,6 +293,81 @@ public class Episode : BaseModel
         public IEnumerable<TmdbMovie> Movies { get; init; } = [];
     }
 
+    /// <summary>
+    ///   The user data for an episode.
+    /// </summary>
+    public class EpisodeUserData
+    {
+        /// <summary>
+        ///   Gets the number of times the episode has been played for the user,
+        ///   locally or otherwise.
+        /// </summary>
+        public int PlaybackCount { get; set; }
+
+        /// <summary>
+        ///   Gets the date and time when the episode was last played to completion,
+        ///   locally or otherwise.
+        /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime? LastPlayedAt { get; set; }
+
+        /// <summary>
+        ///   Indicates that the user has marked the episode as favorite.
+        /// </summary>
+        public bool IsFavorite { get; set; }
+
+        /// <summary>
+        ///   The unique tags assigned to the episode by the user.
+        /// </summary>
+        public IReadOnlyList<string> UserTags { get; set; }
+
+        /// <summary>
+        ///   The user rating, on a scale of 1-10 with a maximum of 1 decimal places, or <c>null</c> if unrated.
+        /// </summary>
+        public double? UserRating { get; set; }
+
+        /// <summary>
+        /// When the entry was last updated.
+        /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime LastUpdatedAt { get; set; }
+
+        public EpisodeUserData()
+        {
+            PlaybackCount = 0;
+            LastPlayedAt = null;
+            IsFavorite = false;
+            UserTags = [];
+            UserRating = null;
+            LastUpdatedAt = DateTime.UtcNow;
+        }
+
+        public EpisodeUserData(IEpisodeUserData userData)
+        {
+            PlaybackCount = userData.PlaybackCount;
+            LastPlayedAt = userData.LastPlayedAt;
+            IsFavorite = userData.IsFavorite;
+            UserTags = userData.UserTags;
+            UserRating = userData.UserRating;
+            LastUpdatedAt = userData.LastUpdatedAt;
+        }
+
+        public EpisodeUserData MergeWithExisting(JMMUser user, AnimeEpisode episode)
+        {
+            var userDataService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
+            var userData = userDataService.SaveEpisodeUserData(episode, user, new()
+            {
+                IsFavorite = IsFavorite,
+                UserTags = UserTags,
+                UserRating = UserRating,
+                LastPlayedAt = LastPlayedAt,
+                LastUpdatedAt = LastUpdatedAt,
+                PlaybackCount = PlaybackCount,
+            }).GetAwaiter().GetResult();
+            return new(userData);
+        }
+    }
+
     public static class Input
     {
         public class EpisodeTitleOverrideBody
@@ -361,62 +379,4 @@ public class Episode : BaseModel
             public string Title { get; set; } = string.Empty;
         }
     }
-}
-
-public enum EpisodeType
-{
-    /// <summary>
-    /// The episode type is unknown.
-    /// </summary>
-    Unknown = 0,
-
-    /// <summary>
-    /// A catch-all type for future extensions when a provider can't use a current episode type, but knows what the future type should be.
-    /// </summary>
-    Other = 1,
-
-    /// <summary>
-    /// A normal episode.
-    /// </summary>
-    Normal = 2,
-
-    /// <summary>
-    /// A special episode.
-    /// </summary>
-    Special = 3,
-
-    /// <summary>
-    /// A trailer.
-    /// </summary>
-    Trailer = 4,
-
-    /// <summary>
-    /// Either an opening-song, or an ending-song.
-    /// </summary>
-    ThemeSong = 5,
-
-    /// <summary>
-    /// Intro, and/or opening-song.
-    /// </summary>
-    OpeningSong = 6,
-
-    /// <summary>
-    /// Outro, end-roll, credits, and/or ending-song.
-    /// </summary>
-    EndingSong = 7,
-
-    /// <summary>
-    /// AniDB parody type. Where else would this be useful?
-    /// </summary>
-    Parody = 8,
-
-    /// <summary>
-    /// A interview tied to the series.
-    /// </summary>
-    Interview = 9,
-
-    /// <summary>
-    /// A DVD or BD extra, e.g. BD-menu or deleted scenes.
-    /// </summary>
-    Extra = 10
 }

@@ -1,5 +1,5 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Models.Server;
+using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Mappings;
 
@@ -7,6 +7,7 @@ public class FileNameHashMap : ClassMap<FileNameHash>
 {
     public FileNameHashMap()
     {
+        Table("FileNameHash");
         Not.LazyLoad();
         Id(x => x.FileNameHashID);
 

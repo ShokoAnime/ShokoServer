@@ -8,42 +8,6 @@ namespace Shoko.Server.Extensions;
 
 public static class StringExtensions
 {
-    public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second)
-    {
-        first = list.Count > 0 ? list[0] : default;
-        second = list.Count > 1 ? list[1] : default;
-    }
-
-    public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second, out T third)
-    {
-        first = list.Count > 0 ? list[0] : default;
-        second = list.Count > 1 ? list[1] : default;
-        third = list.Count > 2 ? list[2] : default;
-    }
-
-    public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second, out T third, out T forth)
-    {
-        first = list.Count > 0 ? list[0] : default;
-        second = list.Count > 1 ? list[1] : default;
-        third = list.Count > 2 ? list[2] : default;
-        forth = list.Count > 3 ? list[3] : default;
-    }
-
-    public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second, out T third, out T forth, out T fifth)
-    {
-        first = list.Count > 0 ? list[0] : default;
-        second = list.Count > 1 ? list[1] : default;
-        third = list.Count > 2 ? list[2] : default;
-        forth = list.Count > 3 ? list[3] : default;
-        fifth = list.Count > 4 ? list[4] : default;
-    }
-
-    public static string Join(this IEnumerable<string> list, char separator)
-        => string.Join(separator, list);
-
-    public static string Join(this IEnumerable<string> list, string separator)
-        => string.Join(separator, list);
-
     public static string ToISO8601Date(this DateTime dt)
     {
         return dt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -83,21 +47,6 @@ public static class StringExtensions
         return listHash.Overlaps(itemHash);
     }
 
-    public static bool FindIn(this string item, IEnumerable<string> list)
-    {
-        return list.Contains(item, StringComparer.InvariantCultureIgnoreCase);
-    }
-
-    public static bool IsWithinErrorMargin(this DateTime value1, DateTime value2, TimeSpan error)
-    {
-        if (value1 > value2)
-        {
-            return value1 - value2 <= error;
-        }
-
-        return value2 - value1 <= error;
-    }
-
     public static bool EqualsInvariantIgnoreCase(this string value1, string value2)
     {
         return value1.Equals(value2, StringComparison.InvariantCultureIgnoreCase);
@@ -119,13 +68,5 @@ public static class StringExtensions
             newText.Append(text[i]);
         }
         return newText.ToString();
-    }
-
-    public static string TrimEnd(this string inputText, string value, StringComparison comparisonType = StringComparison.CurrentCultureIgnoreCase)
-    {
-        if (string.IsNullOrEmpty(value)) return inputText;
-        while (!string.IsNullOrEmpty(inputText) && inputText.EndsWith(value, comparisonType)) inputText = inputText[..^value.Length];
-
-        return inputText;
     }
 }

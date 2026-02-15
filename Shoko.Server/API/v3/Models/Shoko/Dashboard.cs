@@ -1,15 +1,15 @@
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.API.Converters;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public static class Dashboard
@@ -120,6 +120,16 @@ public static class Dashboard
         public int Other { get; set; }
 
         /// <summary>
+        /// The Number of Music Videos
+        /// </summary>
+        public int MusicVideo { get; set; }
+
+        /// <summary>
+        /// The entry have not yet been assigned a type.
+        /// </summary>
+        public int Unknown { get; set; }
+
+        /// <summary>
         /// Series that don't have AniDB Records. This is very bad, and usually means there was an error in the import process. It can also happen if the API is hit at just the right time.
         /// </summary>
         public int None { get; set; }
@@ -128,10 +138,10 @@ public static class Dashboard
     /// <summary>
     /// Episode details for displaying on the dashboard.
     /// </summary>
-    public class EpisodeDetails
+    public class Episode
     {
-        public EpisodeDetails(SVR_AniDB_Episode episode, SVR_AniDB_Anime anime, SVR_AnimeSeries series = null,
-            SVR_VideoLocal file = null, SVR_VideoLocal_User userRecord = null)
+        public Episode(AniDB_Episode episode, AniDB_Anime anime, AnimeSeries? series = null,
+            VideoLocal? file = null, VideoLocal_User? userRecord = null)
         {
             IDs = new EpisodeDetailsIDs()
             {
@@ -143,15 +153,16 @@ public static class Dashboard
                     ? RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID)?.AnimeEpisodeID
                     : null
             };
-            Title = episode.PreferredTitle.Title;
+            Title = episode.Title;
             Number = episode.EpisodeNumber;
-            Type = Episode.MapAniDBEpisodeType(episode.GetEpisodeTypeEnum());
-            AirDate = episode.GetAirDateAsDate();
+            Type = episode.EpisodeType.ToV3Dto();
+            AirDate = episode.GetAirDateAsDate()?.ToDateOnly();
             Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, episode.LengthSeconds);
-            ResumePosition = userRecord?.ResumePositionTimeSpan;
+            ResumePosition = userRecord?.ProgressPosition;
             Watched = userRecord?.WatchedDate?.ToUniversalTime();
-            SeriesTitle = series?.PreferredTitle ?? anime.PreferredTitle;
+            SeriesTitle = series?.Title ?? anime.Title;
             SeriesPoster = new Image(anime.PreferredOrDefaultPoster);
+            Thumbnail = episode.PreferredOrDefaultThumbnail is { } image ? new Image(image) : null;
         }
 
         /// <summary>
@@ -179,8 +190,7 @@ public static class Dashboard
         /// Air Date.
         /// </summary>
         /// <value></value>
-        [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
-        public DateTime? AirDate { get; set; }
+        public DateOnly? AirDate { get; set; }
 
         /// <summary>
         /// The duration of the episode.
@@ -207,6 +217,11 @@ public static class Dashboard
         /// Series poster.
         /// </summary>
         public Image SeriesPoster { get; set; }
+
+        /// <summary>
+        /// Episode thumbnail.
+        /// </summary>
+        public Image? Thumbnail { get; set; }
     }
 
     /// <summary>
@@ -215,7 +230,7 @@ public static class Dashboard
     public class EpisodeDetailsIDs : IDs
     {
         /// <summary>
-        /// The related <see cref="Episode.AniDB"/> id for the entry.
+        /// The related <see cref="AnidbEpisode"/> id for the entry.
         /// </summary>
         public new int ID { get; set; }
 
@@ -231,7 +246,7 @@ public static class Dashboard
         public int? ShokoFile { get; set; }
 
         /// <summary>
-        /// The related Shoko <see cref="Episode"/> id if the episode is
+        /// The related Shoko <see cref="Shoko.Episode"/> id if the episode is
         /// available locally.
         /// </summary>
         public int? ShokoEpisode { get; set; }

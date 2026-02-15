@@ -1,4 +1,7 @@
-using Shoko.Server.Filters.Interfaces;
+using System;
+using System.Linq;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Filtering;
 
 namespace Shoko.Server.Filters.Info;
 
@@ -7,14 +10,26 @@ namespace Shoko.Server.Filters.Info;
 /// </summary>
 public class MissingTmdbLinkExpression : FilterExpression<bool>
 {
-    public override bool TimeDependent => false;
-    public override bool UserDependent => false;
     public override string Name => "Missing TMDB Link";
+
     public override string HelpDescription => "This condition passes if any of the anime should have a TMDB link but does not have one";
 
-    public override bool Evaluate(IFilterable filterable, IFilterableUserInfo userInfo)
+    internal static readonly AnimeType[] AnimeTypes =
+    [
+        AnimeType.Unknown,
+        AnimeType.MusicVideo,
+        AnimeType.Other,
+    ];
+
+    public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return filterable.HasMissingTmdbLink;
+        if (!filterable.AnimeTypes.Except(AnimeTypes).Any())
+            return false;
+
+        if (filterable.HasTmdbAutoLinkingDisabled)
+            return false;
+
+        return !filterable.HasTmdbLink;
     }
 
     protected bool Equals(MissingTmdbLinkExpression other)

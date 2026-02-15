@@ -1,4 +1,6 @@
 using System;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -20,6 +22,7 @@ public class ServerStatus
     /// </summary>
     public TimeSpan? Uptime { get; set; }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum StartupState
     {
         /// <summary>

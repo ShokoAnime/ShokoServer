@@ -1,6 +1,6 @@
 ﻿using System.Linq;
-using Shoko.Models.Server;
 using Shoko.Server.Databases;
+using Shoko.Server.Models.Internal;
 
 namespace Shoko.Server.Repositories.Direct;
 

@@ -1,18 +1,15 @@
 ﻿using System;
 using System.Globalization;
 using System.IO;
-using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.AspNetCore.Mvc;
-using Quartz;
-using Shoko.Models.Enums;
-using Shoko.Server.API.Annotations;
+using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Web.Attributes;
+using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.Extensions;
 using Shoko.Server.Properties;
-using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.API.v2.Modules;
@@ -21,17 +18,11 @@ namespace Shoko.Server.API.v2.Modules;
 [Route("/api/image")]
 [Route("/api/v2/image")]
 [ApiVersion("2.0")]
-public class Image : BaseController
+public class Image(IImageManager imageManager, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
-    private readonly ISchedulerFactory _schedulerFactory;
-
     [HttpGet("validateall")]
-    public async Task<ActionResult> ValidateAll()
-    {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJobNow<ValidateAllImagesJob>();
-        return APIStatus.OK();
-    }
+    public ActionResult ValidateAll()
+        => APIStatus.BadRequest("Use APIv3.");
 
     /// <summary>
     /// Return image with given id, type
@@ -40,14 +31,12 @@ public class Image : BaseController
     /// <param name="type">image type</param>
     /// <returns>image body inside stream</returns>
     [HttpGet("{type}/{id}")]
-    public FileResult GetImage(int type, int id)
+    public ActionResult GetImage(int type, int id)
     {
-        var metadata = ImageUtils.GetImageMetadata((CL_ImageEntityType)type, id);
+        var imageType = (CL_ImageEntityType)type;
+        var metadata = imageManager.GetImage(imageType.ToServerSource(), imageType.ToServerType(), id);
         if (metadata is null || metadata.GetStream() is not { } stream)
-        {
-            Response.StatusCode = 404;
-            return File(MissingImage(), "image/png");
-        }
+            return APIStatus.NotFound();
 
         return File(stream, metadata.ContentType);
     }
@@ -60,18 +49,15 @@ public class Image : BaseController
     /// <param name="ratio">new image ratio</param>
     /// <returns>resize image body inside stream</returns>
     [HttpGet("thumb/{type}/{id}/{ratio?}")]
-    public FileResult GetThumb(int type, int id, string ratio = "0")
+    public ActionResult GetThumb(int type, int id, string ratio = "0")
     {
-        ratio = ratio.Replace(',', '.');
-        if (!float.TryParse(ratio, NumberStyles.AllowDecimalPoint, CultureInfo.CreateSpecificCulture("en-EN"), out var newRatio))
+        if (!float.TryParse(ratio.Replace(',', '.'), NumberStyles.AllowDecimalPoint, CultureInfo.CreateSpecificCulture("en-EN"), out var newRatio))
             newRatio = 0.6667f;
 
-        var metadata = ImageUtils.GetImageMetadata((CL_ImageEntityType)type, id);
+        var imageType = (CL_ImageEntityType)type;
+        var metadata = imageManager.GetImage(imageType.ToServerSource(), imageType.ToServerType(), id);
         if (metadata is null || metadata.GetStream() is not { } stream)
-        {
-            Response.StatusCode = 404;
-            return File(MissingImage(), "image/png");
-        }
+            return APIStatus.NotFound();
 
         return File(ResizeImageToRatio(stream, newRatio), metadata.ContentType);
     }
@@ -122,35 +108,22 @@ public class Image : BaseController
     /// <param name="type">image type</param>
     /// <returns>image body inside stream</returns>
     [HttpGet("{type}/random")]
-    public FileResult GetRandomImage(int type)
+    public ActionResult GetRandomImage(int type)
     {
         // Try 5 times to find a **valid** random image.
         var tries = 0;
         var imageType = (CL_ImageEntityType)type;
         while (tries++ < 5)
         {
-            var metadata = ImageUtils.GetRandomImageID(imageType);
-            if (metadata is not null && metadata.GetStream(allowRemote: false) is { } stream)
+            var metadata = imageManager.GetRandomImage(imageType.ToServerSource(), imageType.ToServerType());
+            if (metadata is not null && metadata.GetStream() is { } stream)
                 return File(stream, metadata.ContentType);
         }
 
-        Response.StatusCode = 404;
-        return File(MissingImage(), "image/png");
+        return APIStatus.NotFound();
     }
 
-    /// <summary>
-    /// Internal function that return image for missing image
-    /// </summary>
-    /// <returns>Stream</returns>
-    internal static Stream MissingImage()
-    {
-        var dta = Resources.blank;
-        var ms = new MemoryStream(dta);
-        ms.Seek(0, SeekOrigin.Begin);
-        return ms;
-    }
-
-    internal static Stream ResizeImageToRatio(Stream imageStream, float newRatio)
+    private static Stream ResizeImageToRatio(Stream imageStream, float newRatio)
     {
         if (Math.Abs(newRatio) < 0.1F)
             return imageStream;
@@ -158,7 +131,7 @@ public class Image : BaseController
         var image = new MagickImage(imageStream);
         float originalWidth = image.Width;
         float originalHeight = image.Height;
-        int newWidth, newHeight;
+        uint newWidth, newHeight;
 
         var calculatedWidth = originalWidth;
         var calculatedHeight = originalHeight;
@@ -176,8 +149,8 @@ public class Image : BaseController
             }
         } while (calculatedHeight > originalHeight + 0.5F);
 
-        newWidth = (int)Math.Round(calculatedWidth);
-        newHeight = (int)Math.Round(calculatedHeight);
+        newWidth = (uint)Math.Round(calculatedWidth);
+        newHeight = (uint)Math.Round(calculatedHeight);
         image.Resize(new MagickGeometry(newWidth, newHeight));
 
         var outStream = new MemoryStream();
@@ -185,10 +158,5 @@ public class Image : BaseController
         outStream.Seek(0, SeekOrigin.Begin);
 
         return outStream;
-    }
-
-    public Image(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory) : base(settingsProvider)
-    {
-        _schedulerFactory = schedulerFactory;
     }
 }

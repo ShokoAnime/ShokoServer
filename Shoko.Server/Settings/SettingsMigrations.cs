@@ -4,15 +4,14 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shoko.Models.Enums;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Extensions;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Extensions;
 
 namespace Shoko.Server.Settings;
 
 public static class SettingsMigrations
 {
-    public const int Version = 9;
+    public static int Version => s_migrations.Keys.Max();
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
@@ -49,6 +48,7 @@ public static class SettingsMigrations
         { 8, MigrateRenamerFromImportToPluginsSettings },
         { 9, MigrateFixDefaultRenamer },
         { 10, MigrateLanguageSourceOrders },
+        { 11, MigrateServerPortToWebPort }
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -184,18 +184,32 @@ public static class SettingsMigrations
 
         languageSettings["SeriesTitleSourceOrder"] = new JArray
         {
-            DataSourceType.AniDB, DataSourceType.TMDB
+            DataSource.AniDB, DataSource.TMDB
         };
-;
+
         languageSettings["EpisodeTitleSourceOrder"] = new JArray
         {
-            DataSourceType.AniDB, DataSourceType.TMDB
+            DataSource.AniDB, DataSource.TMDB
         };
 
         languageSettings["DescriptionSourceOrder"] = new JArray
         {
-            DataSourceType.AniDB, DataSourceType.TMDB
+            DataSource.AniDB, DataSource.TMDB
         };
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateServerPortToWebPort(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        var serverPort = currentSettings["ServerPort"]?.Value<ushort>() ?? 0;
+        if (serverPort == 0)
+            return settings;
+
+        var webSettings = currentSettings["Web"] ?? (currentSettings["Web"] = new JObject());
+        webSettings["Port"] = serverPort;
+        currentSettings.Remove("ServerPort");
 
         return currentSettings.ToString();
     }

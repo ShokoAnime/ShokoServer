@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Settings;
@@ -107,7 +108,7 @@ public class FolderController : BaseController
                     Type = d.DriveType,
                 };
             })
-            .Where(mountPoint => mountPoint != null)
+            .WhereNotNull()
             .OrderBy(mountPoint => mountPoint.Path)
             .ToList();
     }

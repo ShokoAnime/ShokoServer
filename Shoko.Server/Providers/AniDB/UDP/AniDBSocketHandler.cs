@@ -19,9 +19,6 @@ public class AniDBSocketHandler : IAniDBSocketHandler
     private readonly ushort _serverPort;
     private readonly ushort _clientPort;
     private readonly ILogger<AniDBSocketHandler> _logger;
-    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
-    private bool Locked { get; set; }
-    public bool IsLocked => Locked;
     private static int SendTimeoutMs => 30000; // 30 seconds
     private static int ReceiveTimeoutMs => 30000; // 30 seconds
     public bool IsConnected { get; private set; }
@@ -35,38 +32,23 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         _clientPort = clientPort;
     }
 
-    public async Task<byte[]> Send(byte[] payload)
+    public byte[] Send(byte[] payload)
     {
         if (!IsConnected) return [0];
-        await _semaphore.WaitAsync();
         // this doesn't need to be bigger than 1400, but meh, better safe than sorry
-        var result = new byte[1600];
-        Locked = true;
-
-        try
-        {
-            result = await SendUnsafe(payload, result);
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
-
-        Locked = false;
-        return result;
+        return SendUnsafe(payload);
     }
 
-    private async Task<byte[]> SendUnsafe(byte[] payload, byte[] result)
+    private byte[] SendUnsafe(byte[] payload)
     {
         EmptyBuffer();
 
-        using CancellationTokenSource sendCts = new(SendTimeoutMs);
-        await _aniDBSocket.SendToAsync(payload, SocketFlags.None, _remoteIpEndPoint, sendCts.Token);
+        _aniDBSocket.SendTo(payload, _remoteIpEndPoint);
 
         using CancellationTokenSource receiveCts = new(ReceiveTimeoutMs);
-        var receivedResult = await _aniDBSocket.ReceiveFromAsync(result, SocketFlags.None, _remoteIpEndPoint, receiveCts.Token);
-
-        var received = receivedResult.ReceivedBytes;
+        var result = new byte[1600];
+        EndPoint endpoint = _remoteIpEndPoint;
+        var received = _aniDBSocket.ReceiveFrom(result, ref endpoint);
 
         if (received > 2 && result[0] == 0 && result[1] == 0)
         {
@@ -107,10 +89,9 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         }
     }
 
-    public async Task<bool> TryConnection()
+    public bool TryConnection()
     {
         if (IsConnected) return true;
-        await _semaphore.WaitAsync();
         // Don't send Expect 100 requests. These requests aren't always supported by remote internet devices, in which case can cause failure.
         ServicePointManager.Expect100Continue = false;
 
@@ -125,6 +106,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
              *  The local port may be hardcoded, however, an option to manually specify another port should be offered.
              */
             _aniDBSocket.Bind(_localIpEndPoint);
+            _aniDBSocket.SendTimeout = SendTimeoutMs;
             _aniDBSocket.ReceiveTimeout = ReceiveTimeoutMs;
 
             _logger.LogInformation("Bound to local address: {Local} - Port: {ClientPort} ({Family})", _localIpEndPoint,
@@ -133,14 +115,13 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not bind to local port");
-            _semaphore.Release();
             IsConnected = false;
             return false;
         }
 
         try
         {
-            var remoteHostEntry = await Dns.GetHostEntryAsync(_serverHost).WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            var remoteHostEntry = Dns.GetHostEntry(_serverHost);
             _remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], _serverPort);
 
             _logger.LogInformation("Bound to remote address: {Address} : {Port}", _remoteIpEndPoint.Address,
@@ -149,28 +130,25 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         catch (Exception ex)
         {
             _logger.LogError(ex, "Could not bind to remote port");
-            _semaphore.Release();
             IsConnected = false;
             return false;
         }
 
-        _semaphore.Release();
         IsConnected = true;
         return true;
     }
 
     public async ValueTask DisposeAsync()
     {
-        await _semaphore.WaitAsync();
         GC.SuppressFinalize(this);
-        if (_aniDBSocket == null)
-        {
-            IsConnected = false;
-            return;
-        }
-
         try
         {
+            if (_aniDBSocket == null)
+            {
+                IsConnected = false;
+                return;
+            }
+
             if (_aniDBSocket.Connected)
             {
                 _aniDBSocket.Shutdown(SocketShutdown.Both);
@@ -181,6 +159,9 @@ public class AniDBSocketHandler : IAniDBSocketHandler
             {
                 await _aniDBSocket.DisconnectAsync(false);
             }
+
+            _aniDBSocket.Close();
+            _logger.LogInformation("Closed AniDB Connection");
         }
         catch (SocketException ex)
         {
@@ -188,26 +169,21 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         }
         finally
         {
-            _aniDBSocket.Close();
-            _logger.LogInformation("Closed AniDB Connection");
-            _semaphore.Release();
-            _semaphore.Dispose();
             IsConnected = false;
         }
     }
 
     public void Dispose()
     {
-        _semaphore.Wait();
         GC.SuppressFinalize(this);
-        if (_aniDBSocket == null)
-        {
-            IsConnected = false;
-            return;
-        }
-
         try
         {
+            if (_aniDBSocket == null)
+            {
+                IsConnected = false;
+                return;
+            }
+
             if (_aniDBSocket.Connected)
             {
                 _aniDBSocket.Shutdown(SocketShutdown.Both);
@@ -218,6 +194,9 @@ public class AniDBSocketHandler : IAniDBSocketHandler
             {
                 _aniDBSocket.Disconnect(false);
             }
+
+            _aniDBSocket.Close();
+            _logger.LogInformation("Closed AniDB Connection");
         }
         catch (SocketException ex)
         {
@@ -225,10 +204,6 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         }
         finally
         {
-            _aniDBSocket.Close();
-            _logger.LogInformation("Closed AniDB Connection");
-            _semaphore.Release();
-            _semaphore.Dispose();
             IsConnected = false;
         }
     }

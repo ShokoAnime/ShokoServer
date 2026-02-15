@@ -1,8 +1,8 @@
 ﻿using Newtonsoft.Json;
-using Shoko.Models.Plex;
-using Shoko.Models.Plex.Collection;
-using Shoko.Models.Plex.TVShow;
-using MediaContainer = Shoko.Models.Plex.TVShow.MediaContainer;
+using Shoko.Server.Plex.Models;
+using Shoko.Server.Plex.Models.Collection;
+using Shoko.Server.Plex.Models.TVShow;
+using MediaContainer = Shoko.Server.Plex.Models.TVShow.MediaContainer;
 
 namespace Shoko.Server.Plex.Collection;
 

@@ -1,8 +1,8 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
-using Shoko.Models.Server;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Services;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
@@ -22,7 +22,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 public class GetAniDBCalendarJob : BaseJob
 {
     private readonly IRequestFactory _requestFactory;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IAnidbService _anidbService;
     private readonly ISettingsProvider _settingsProvider;
     public bool ForceRefresh { get; set; }
 
@@ -40,7 +40,7 @@ public class GetAniDBCalendarJob : BaseJob
         var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
         if (schedule is null)
         {
-            schedule = new ScheduledUpdate
+            schedule = new()
             {
                 UpdateType = (int)ScheduledUpdateType.AniDBCalendar,
                 UpdateDetails = string.Empty,
@@ -64,13 +64,12 @@ public class GetAniDBCalendarJob : BaseJob
         var response = request.Send();
         RepoFactory.ScheduledUpdate.Save(schedule);
 
-        var scheduler = await _schedulerFactory.GetScheduler();
         if (response.Response?.Next25Anime is not null)
         {
             foreach (var cal in response.Response.Next25Anime)
             {
                 if (cal.AnimeID == 0) continue;
-                await GetAnime(scheduler, cal, settings);
+                await GetAnime(cal, settings);
             }
         }
 
@@ -79,28 +78,26 @@ public class GetAniDBCalendarJob : BaseJob
         foreach (var cal in response.Response.Previous25Anime)
         {
             if (cal.AnimeID == 0) continue;
-            await GetAnime(scheduler, cal, settings);
+            await GetAnime(cal, settings);
         }
     }
 
-    private static async Task GetAnime(IScheduler scheduler, ResponseCalendar.CalendarEntry cal, IServerSettings settings)
+    private async Task GetAnime(ResponseCalendar.CalendarEntry cal, IServerSettings settings)
     {
         var anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
         var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
+        var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
+        if (settings.AutoGroupSeries || settings.AniDb.DownloadRelatedAnime)
+            refreshMethod |= AnidbRefreshMethod.DownloadRelations;
+        if (settings.AniDb.AutomaticallyImportSeries)
+            refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
         if (anime is not null && update is not null)
         {
             // don't update if the local data is less 2 days old
             var ts = DateTime.Now - update.UpdatedAt;
             if (ts.TotalDays >= 2)
             {
-                await scheduler.StartJob<GetAniDBAnimeJob>(
-                    c =>
-                    {
-                        c.AnimeID = cal.AnimeID;
-                        c.DownloadRelations = settings.AniDb.DownloadRelatedAnime;
-                        c.ForceRefresh = true;
-                        c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
-                    });
+                await _anidbService.ScheduleRefreshByID(cal.AnimeID, refreshMethod).ConfigureAwait(false);
             }
             else
             {
@@ -115,22 +112,15 @@ public class GetAniDBCalendarJob : BaseJob
         }
         else
         {
-            await scheduler.StartJob<GetAniDBAnimeJob>(
-                c =>
-                {
-                    c.AnimeID = cal.AnimeID;
-                    c.DownloadRelations = settings.AniDb.DownloadRelatedAnime;
-                    c.ForceRefresh = true;
-                    c.CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
-                });
+            await _anidbService.ScheduleRefreshByID(cal.AnimeID, refreshMethod).ConfigureAwait(false);
         }
     }
 
     public GetAniDBCalendarJob(IRequestFactory requestFactory,
-        ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider)
+        IAnidbService anidbService, ISettingsProvider settingsProvider)
     {
         _requestFactory = requestFactory;
-        _schedulerFactory = schedulerFactory;
+        _anidbService = anidbService;
         _settingsProvider = settingsProvider;
     }
 

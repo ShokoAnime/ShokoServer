@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
-using Shoko.Models.PlexAndKodi;
 using Shoko.Server.API.v2.Models.common;
 
 namespace Shoko.Server.API.v2.Models;

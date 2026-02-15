@@ -1,7 +1,6 @@
 
 using System;
-using Shoko.Plugin.Abstractions.DataModels;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Server;
 
 #nullable enable
@@ -22,7 +21,7 @@ public interface IEntityMetadata
     /// <summary>
     /// Entity data source.
     /// </summary>
-    public DataSourceEnum DataSource { get; }
+    public DataSource DataSource { get; }
 
     /// <summary>
     /// The english title of the movie, used as a fallback for when no title

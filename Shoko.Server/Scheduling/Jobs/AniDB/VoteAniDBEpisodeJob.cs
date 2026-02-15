@@ -26,8 +26,8 @@ public class VoteAniDBEpisodeJob : BaseJob
     public override void PostInit()
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
-        _animeName = episode?.AnimeSeries?.PreferredTitle ?? EpisodeID.ToString();
-        _episodeName = episode?.PreferredTitle ?? EpisodeID.ToString();
+        _animeName = episode?.AnimeSeries?.Title ?? EpisodeID.ToString();
+        _episodeName = episode?.Title ?? EpisodeID.ToString();
     }
 
     public override string TypeName => "Send AniDB Episode Rating";

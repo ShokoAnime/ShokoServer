@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Quartz;
-using Quartz.Impl;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs;
 
@@ -25,7 +24,7 @@ public class QueueHandler
         _jobFactory = jobFactory;
         _jobStore = jobStore;
         _queueStateEventHandler.ExecutingJobsChanged += ExecutingJobsStateEventHandlerOnExecutingJobsChanged;
-        _queueStateEventHandler.QueueItemAdded += QueueStateEventHandlerOnQueueItemAdded;
+        _queueStateEventHandler.QueueItemsAdded += QueueStateEventHandlerOnQueueItemAdded;
     }
 
     ~QueueHandler()
@@ -55,7 +54,7 @@ public class QueueHandler
         }
     }
 
-    private void QueueStateEventHandlerOnQueueItemAdded(object sender, QueueItemAddedEventArgs e)
+    private void QueueStateEventHandlerOnQueueItemAdded(object sender, QueueItemsAddedEventArgs e)
     {
         WaitingCount = e.WaitingJobsCount;
         BlockedCount = e.BlockedJobsCount;

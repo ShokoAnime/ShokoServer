@@ -1,4 +1,3 @@
-using System;
 using NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -35,26 +34,13 @@ public class DatabaseFactory
             if (_instance != null) return _instance;
 
             var settings = Utils.SettingsProvider.GetSettings();
-            if (settings.Database.Type.Trim()
-                .Equals(Constants.DatabaseType.SqlServer, StringComparison.InvariantCultureIgnoreCase))
+            return _instance = settings.Database.Type switch
             {
-                _instance = new SQLServer();
-            }
-            else if (settings.Database.Type.Trim()
-                     .Equals(Constants.DatabaseType.Sqlite, StringComparison.InvariantCultureIgnoreCase))
-            {
-                _instance = new SQLite();
-            }
-            else if (settings.Database.Type.Trim().Equals(Constants.DatabaseType.MySQL, StringComparison.InvariantCultureIgnoreCase))
-            {
-                _instance = new MySQL();
-            }
-            else
-            {
-                _instance = new PostgreSQL();
-            }
-
-            return _instance;
+                Constants.DatabaseType.SQLServer => new SQLServer(),
+                Constants.DatabaseType.MySQL => new MySQL(),
+                Constants.DatabaseType.PostgreSQL => new PostgreSQL(),
+                _ => new SQLite()
+            };
         }
         set => _instance = value;
     }

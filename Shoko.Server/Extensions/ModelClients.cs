@@ -1,27 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Commons.Extensions;
-using Shoko.Commons.Properties;
-using Shoko.Models.Client;
-using Shoko.Models.Enums;
-using Shoko.Models.Interfaces;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.Enums;
-using Shoko.Server.Models;
+using Shoko.Server.API.v1.Models;
+using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Release;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.TMDB;
-using Shoko.Server.Models.Trakt;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using TMDbLib.Objects.Search;
 
 #nullable enable
 namespace Shoko.Server.Extensions;
 
 public static class ModelClients
 {
-    public static CL_ServerSettings ToContract(this IServerSettings settings)
+    public static CL_ServerSettings ToClient(this IServerSettings settings)
         => new()
         {
             AniDB_Username = settings.AniDb.Username,
@@ -33,8 +30,8 @@ public static class ModelClients
             AniDB_AVDumpKey = settings.AniDb.AVDumpKey,
             AniDB_DownloadRelatedAnime = settings.AniDb.DownloadRelatedAnime,
             AniDB_DownloadSimilarAnime = false,
-            AniDB_DownloadReviews = settings.AniDb.DownloadReviews,
-            AniDB_DownloadReleaseGroups = settings.AniDb.DownloadReleaseGroups,
+            AniDB_DownloadReviews = false,
+            AniDB_DownloadReleaseGroups = false,
             AniDB_MyList_AddFiles = settings.AniDb.MyList_AddFiles,
             AniDB_MyList_StorageState = (int)settings.AniDb.MyList_StorageState,
             AniDB_MyList_DeleteType = (int)settings.AniDb.MyList_DeleteType,
@@ -80,9 +77,6 @@ public static class ModelClients
             Import_UseExistingFileWatchedStatus = settings.Import.UseExistingFileWatchedStatus,
             RunImportOnStart = settings.Import.RunOnStart,
             ScanDropFoldersOnStart = settings.Import.ScanDropFoldersOnStart,
-            Hash_CRC32 = settings.Import.Hasher.CRC,
-            Hash_MD5 = settings.Import.Hasher.MD5,
-            Hash_SHA1 = settings.Import.Hasher.SHA1,
             SkipDiskSpaceChecks = settings.Import.SkipDiskSpaceChecks,
 
             // Language
@@ -97,7 +91,7 @@ public static class ModelClients
             Trakt_AuthToken = settings.TraktTv.AuthToken,
             Trakt_RefreshToken = settings.TraktTv.RefreshToken,
             Trakt_TokenExpirationDate = settings.TraktTv.TokenExpirationDate,
-            Trakt_UpdateFrequency = (int)settings.TraktTv.UpdateFrequency,
+            Trakt_UpdateFrequency = 0,
             Trakt_SyncFrequency = (int)settings.TraktTv.SyncFrequency,
 
             // LogRotator
@@ -114,7 +108,7 @@ public static class ModelClients
             Plex_ServerHost = settings.Plex.Server
         };
 
-    public static CL_AniDB_Anime ToClient(this SVR_AniDB_Anime anime)
+    public static CL_AniDB_Anime ToClient(this AniDB_Anime anime)
         => new()
         {
             AniDB_AnimeID = anime.AniDB_AnimeID,
@@ -127,7 +121,7 @@ public static class ModelClients
             Picname = anime.Picname,
             BeginYear = anime.BeginYear,
             EndYear = anime.EndYear,
-            AnimeType = anime.AnimeType,
+            AnimeType = (int)anime.AnimeType,
             MainTitle = anime.MainTitle,
             AllTitles = anime.AllTitles,
             AllTags = anime.AllTags,
@@ -165,27 +159,17 @@ public static class ModelClients
             EpisodeRange = g.EpisodeRange
         };
 
-    public static CL_IgnoreAnime ToClient(this IgnoreAnime i)
-        => new()
-        {
-            IgnoreAnimeID = i.IgnoreAnimeID,
-            JMMUserID = i.JMMUserID,
-            AnimeID = i.AnimeID,
-            IgnoreType = i.IgnoreType,
-            Anime = RepoFactory.AniDB_Anime.GetByAnimeID(i.AnimeID).ToClient(),
-        };
-
-    public static CrossRef_AniDB_Other? ToClient(this CrossRef_AniDB_TMDB_Movie? xref)
+    public static CL_CrossRef_AniDB_Other? ToClient(this CrossRef_AniDB_TMDB_Movie? xref)
         => xref is null ? null : new()
         {
             CrossRef_AniDB_OtherID = xref.CrossRef_AniDB_TMDB_MovieID,
             AnimeID = xref.AnidbAnimeID,
-            CrossRefType = (int)CrossRefType.MovieDB,
+            CrossRefType = 1 /* CrossRefType.MovieDB */,
             CrossRefID = xref.TmdbMovieID.ToString(),
-            CrossRefSource = (int)CrossRefSource.User,
+            CrossRefSource = 2 /* CrossRefSource.User */,
         };
 
-    public static MovieDB_Movie ToClient(this TMDB_Movie movie)
+    public static CL_MovieDB_Movie ToClient(this TMDB_Movie movie)
         => new()
         {
             MovieDB_MovieID = movie.TMDB_MovieID,
@@ -196,7 +180,7 @@ public static class ModelClients
             Rating = (int)Math.Round(movie.UserRating * 10),
         };
 
-    public static MovieDB_Fanart ToClientFanart(this TMDB_Image image)
+    public static CL_MovieDB_Fanart ToClientFanart(this TMDB_Image image)
         => new()
         {
             MovieDB_FanartID = image.TMDB_ImageID,
@@ -206,11 +190,11 @@ public static class ModelClients
             ImageSize = "original",
             ImageType = "backdrop",
             ImageWidth = image.Width,
-            MovieId = image.TmdbMovieID ?? 0,
+            MovieId = 0,
             URL = image.RemoteFileName,
         };
 
-    public static MovieDB_Poster ToClientPoster(this TMDB_Image image)
+    public static CL_MovieDB_Poster ToClientPoster(this TMDB_Image image)
         => new()
         {
             MovieDB_PosterID = image.TMDB_ImageID,
@@ -220,14 +204,13 @@ public static class ModelClients
             ImageSize = "original",
             ImageType = "poster",
             ImageWidth = image.Width,
-            MovieId = image.TmdbMovieID ?? 0,
+            MovieId = 0,
             URL = image.RemoteFileName,
         };
 
-    public static CL_AniDB_Anime_DefaultImage? ToClient(this AniDB_Anime_PreferredImage image, IImageEntity? parentImage = null)
+    public static CL_AniDB_Anime_DefaultImage? ToClient(this AniDB_Anime_PreferredImage image)
     {
-        parentImage ??= image.GetImageEntity();
-        if (parentImage is null)
+        if (image.ImageSource is not DataSource.TMDB)
             return null;
 
         var contract = new CL_AniDB_Anime_DefaultImage()
@@ -238,145 +221,80 @@ public static class ModelClients
             ImageParentType = (int)image.ImageType.ToClient(image.ImageSource),
             ImageType = image.ImageType switch
             {
-                ImageEntityType.Backdrop => (int)CL_ImageSizeType.Fanart,
-                ImageEntityType.Poster => (int)CL_ImageSizeType.Poster,
-                ImageEntityType.Banner => (int)CL_ImageSizeType.WideBanner,
-                _ => (int)CL_ImageSizeType.Fanart,
+                ImageEntityType.Poster => 1,
+                ImageEntityType.Banner => 3,
+                _ => 2,
             },
         };
 
         switch ((CL_ImageEntityType)contract.ImageParentType)
         {
             case CL_ImageEntityType.MovieDB_Poster:
-                contract.MoviePoster = parentImage as MovieDB_Poster;
+                contract.MoviePoster = ((TMDB_Image?)image.GetImageMetadata())?.ToClientPoster();
+                if (contract.MoviePoster is null)
+                    return null;
                 break;
             case CL_ImageEntityType.MovieDB_FanArt:
-                contract.MovieFanart = parentImage as MovieDB_Fanart;
+                contract.MovieFanart = ((TMDB_Image?)image.GetImageMetadata())?.ToClientFanart();
+                if (contract.MovieFanart is null)
+                    return null;
                 break;
         }
 
         return contract;
     }
 
-    public static AniDB_Anime_PreferredImage? ToServer(this CL_AniDB_Anime_DefaultImage image)
-        => new()
-        {
-            AniDB_Anime_PreferredImageID = image.AniDB_Anime_DefaultImageID,
-            AnidbAnimeID = image.AnimeID,
-            ImageID = image.ImageParentID,
-            ImageType = (CL_ImageSizeType)image.ImageType switch
-            {
-                CL_ImageSizeType.Poster => ImageEntityType.Poster,
-                CL_ImageSizeType.Fanart => ImageEntityType.Backdrop,
-                CL_ImageSizeType.WideBanner => ImageEntityType.Banner,
-                _ => ImageEntityType.None,
-            },
-            ImageSource = (CL_ImageEntityType)image.ImageParentType switch
-            {
-                CL_ImageEntityType.AniDB_Cover => DataSourceType.AniDB,
-                CL_ImageEntityType.MovieDB_FanArt => DataSourceType.TMDB,
-                CL_ImageEntityType.MovieDB_Poster => DataSourceType.TMDB,
-                _ => DataSourceType.None,
-            },
-        };
-
     public static ImageEntityType ToServerType(this CL_ImageEntityType type)
         => type switch
         {
             CL_ImageEntityType.AniDB_Character => ImageEntityType.Character,
             CL_ImageEntityType.AniDB_Cover => ImageEntityType.Poster,
-            CL_ImageEntityType.AniDB_Creator => ImageEntityType.Person,
+            CL_ImageEntityType.AniDB_Creator => ImageEntityType.Creator,
             CL_ImageEntityType.Character => ImageEntityType.Character,
             CL_ImageEntityType.MovieDB_FanArt => ImageEntityType.Backdrop,
             CL_ImageEntityType.MovieDB_Poster => ImageEntityType.Poster,
-            CL_ImageEntityType.Staff => ImageEntityType.Person,
-            CL_ImageEntityType.Trakt_Episode => ImageEntityType.Thumbnail,
-            CL_ImageEntityType.Trakt_Fanart => ImageEntityType.Backdrop,
-            CL_ImageEntityType.Trakt_Friend => ImageEntityType.Person,
-            CL_ImageEntityType.Trakt_Poster => ImageEntityType.Poster,
+            CL_ImageEntityType.Staff => ImageEntityType.Creator,
             CL_ImageEntityType.UserAvatar => ImageEntityType.Thumbnail,
             _ => ImageEntityType.None,
         };
 
-    public static DataSourceType ToServerSource(this CL_ImageEntityType type)
+    public static DataSource ToServerSource(this CL_ImageEntityType type)
         => type switch
         {
-            CL_ImageEntityType.AniDB_Character => DataSourceType.AniDB,
-            CL_ImageEntityType.AniDB_Cover => DataSourceType.AniDB,
-            CL_ImageEntityType.AniDB_Creator => DataSourceType.AniDB,
-            CL_ImageEntityType.Character => DataSourceType.Shoko,
-            CL_ImageEntityType.MovieDB_FanArt => DataSourceType.TMDB,
-            CL_ImageEntityType.MovieDB_Poster => DataSourceType.TMDB,
-            CL_ImageEntityType.Staff => DataSourceType.Shoko,
-            CL_ImageEntityType.Trakt_Episode => DataSourceType.Trakt,
-            CL_ImageEntityType.Trakt_Fanart => DataSourceType.Trakt,
-            CL_ImageEntityType.Trakt_Friend => DataSourceType.Trakt,
-            CL_ImageEntityType.Trakt_Poster => DataSourceType.Trakt,
-            CL_ImageEntityType.UserAvatar => DataSourceType.User,
-            _ => DataSourceType.None,
+            CL_ImageEntityType.AniDB_Character => DataSource.AniDB,
+            CL_ImageEntityType.AniDB_Cover => DataSource.AniDB,
+            CL_ImageEntityType.AniDB_Creator => DataSource.AniDB,
+            CL_ImageEntityType.Character => DataSource.Shoko,
+            CL_ImageEntityType.MovieDB_FanArt => DataSource.TMDB,
+            CL_ImageEntityType.MovieDB_Poster => DataSource.TMDB,
+            CL_ImageEntityType.Staff => DataSource.Shoko,
+            CL_ImageEntityType.UserAvatar => DataSource.User,
+            _ => DataSource.None,
         };
 
-    public static DataSourceType ToDataSourceType(this DataSourceEnum value)
-        => value switch
-        {
-            DataSourceEnum.AniDB => DataSourceType.AniDB,
-            DataSourceEnum.AniList => DataSourceType.AniList,
-            DataSourceEnum.Animeshon => DataSourceType.Animeshon,
-            DataSourceEnum.Shoko => DataSourceType.Shoko,
-            DataSourceEnum.TMDB => DataSourceType.TMDB,
-            DataSourceEnum.Trakt => DataSourceType.Trakt,
-            DataSourceEnum.User => DataSourceType.User,
-            _ => DataSourceType.None,
-        };
-
-    public static DataSourceEnum ToDataSourceEnum(this DataSourceType value)
-        => value switch
-        {
-            DataSourceType.AniDB => DataSourceEnum.AniDB,
-            DataSourceType.AniList => DataSourceEnum.AniList,
-            DataSourceType.Animeshon => DataSourceEnum.Animeshon,
-            DataSourceType.Shoko => DataSourceEnum.Shoko,
-            DataSourceType.TMDB => DataSourceEnum.TMDB,
-            DataSourceType.Trakt => DataSourceEnum.Trakt,
-            DataSourceType.User => DataSourceEnum.User,
-            _ => DataSourceEnum.AniDB,
-        };
-
-    public static CL_ImageEntityType ToClient(this ImageEntityType type, DataSourceEnum source)
-        => ToClient(source.ToDataSourceType(), type);
-
-    public static CL_ImageEntityType ToClient(this ImageEntityType type, DataSourceType source)
-        => ToClient(source, type);
-
-    public static CL_ImageEntityType ToClient(this DataSourceType source, ImageEntityType imageType)
+    public static CL_ImageEntityType ToClient(this ImageEntityType imageType, DataSource source)
         => source switch
         {
-            DataSourceType.AniDB => imageType switch
+            DataSource.AniDB => imageType switch
             {
                 ImageEntityType.Character => CL_ImageEntityType.AniDB_Character,
                 ImageEntityType.Poster => CL_ImageEntityType.AniDB_Cover,
-                ImageEntityType.Person => CL_ImageEntityType.AniDB_Creator,
+                ImageEntityType.Creator => CL_ImageEntityType.AniDB_Creator,
                 _ => CL_ImageEntityType.None,
             },
-            DataSourceType.Shoko => imageType switch
+            DataSource.Shoko => imageType switch
             {
                 ImageEntityType.Character => CL_ImageEntityType.Character,
-                ImageEntityType.Person => CL_ImageEntityType.Staff,
+                ImageEntityType.Creator => CL_ImageEntityType.Staff,
                 _ => CL_ImageEntityType.None,
             },
-            DataSourceType.TMDB => imageType switch
+            DataSource.TMDB => imageType switch
             {
                 ImageEntityType.Backdrop => CL_ImageEntityType.MovieDB_FanArt,
                 ImageEntityType.Poster => CL_ImageEntityType.MovieDB_Poster,
                 _ => CL_ImageEntityType.None,
             },
-            DataSourceType.Trakt => imageType switch
-            {
-                ImageEntityType.Backdrop => CL_ImageEntityType.MovieDB_FanArt,
-                ImageEntityType.Poster => CL_ImageEntityType.MovieDB_Poster,
-                _ => CL_ImageEntityType.None,
-            },
-            DataSourceType.User => imageType switch
+            DataSource.User => imageType switch
             {
                 ImageEntityType.Thumbnail => CL_ImageEntityType.UserAvatar,
                 _ => CL_ImageEntityType.None,
@@ -384,41 +302,39 @@ public static class ModelClients
             _ => CL_ImageEntityType.None,
         };
 
-    public static CL_Trakt_Season ToClient(this Trakt_Season season)
+    public static CL_CrossRef_AniDB_TraktV2 ToClient(this CrossRef_AniDB_TraktV2 xref)
         => new()
         {
-            Trakt_SeasonID = season.Trakt_SeasonID,
-            Trakt_ShowID = season.Trakt_ShowID,
-            Season = season.Season,
-            URL = season.URL,
-            Episodes = season.GetTraktEpisodes(),
+            CrossRef_AniDB_TraktV2ID = xref.CrossRef_AniDB_TraktV2ID,
+            AnimeID = xref.AnimeID,
+            TraktID = xref.TraktID,
+            TraktSeasonNumber = xref.TraktSeasonNumber,
+            AniDBStartEpisodeType = xref.AniDBStartEpisodeType,
+            AniDBStartEpisodeNumber = xref.AniDBStartEpisodeNumber,
+            CrossRefSource = xref.CrossRefSource,
+            TraktStartEpisodeNumber = xref.TraktStartEpisodeNumber,
+            TraktTitle = xref.TraktTitle,
         };
 
-    public static CL_Trakt_Show ToClient(this Trakt_Show show)
+    public static CL_CrossRef_CustomTag ToClient(this CrossRef_CustomTag xref)
         => new()
         {
-            Trakt_ShowID = show.Trakt_ShowID,
-            TraktID = show.TraktID,
-            Title = show.Title,
-            Year = show.Year,
-            URL = show.URL,
-            Overview = show.Overview,
-            TvDB_ID = null,
-            Seasons = show.GetTraktSeasons()
-                .Select(a => a.ToClient())
-                .ToList(),
+            CrossRef_CustomTagID = xref.CrossRef_CustomTagID,
+            CrossRefID = xref.CrossRefID,
+            CrossRefType = 1 /* Anime */,
+            CustomTagID = xref.CustomTagID,
         };
 
     public static CL_AniDB_Character ToClient(this AniDB_Character character)
         => new()
         {
             AniDB_CharacterID = character.AniDB_CharacterID,
-            CharID = character.CharID,
-            PicName = character.PicName,
-            CreatorListRaw = character.CreatorListRaw ?? "",
-            CharName = character.CharName,
-            CharKanjiName = character.CharKanjiName,
-            CharDescription = character.CharDescription,
+            CharID = character.CharacterID,
+            PicName = character.ImagePath,
+            CreatorListRaw = string.Empty,
+            CharName = character.Name,
+            CharKanjiName = character.OriginalName,
+            CharDescription = character.Description,
             Seiyuu = character.GetCreator()?.ToClient(),
         };
 
@@ -431,7 +347,7 @@ public static class ModelClients
             PicName = creator.ImagePath,
         };
 
-    public static CL_AniDB_Episode ToClient(this SVR_AniDB_Episode ep)
+    public static CL_AniDB_Episode ToClient(this AniDB_Episode ep)
         => new()
         {
             AniDB_EpisodeID = ep.AniDB_EpisodeID,
@@ -441,7 +357,7 @@ public static class ModelClients
             Rating = ep.Rating,
             Votes = ep.Votes,
             EpisodeNumber = ep.EpisodeNumber,
-            EpisodeType = ep.EpisodeType,
+            EpisodeType = (int)ep.EpisodeType,
             Description = ep.Description,
             AirDate = ep.AirDate,
             DateTimeUpdated = ep.DateTimeUpdated,
@@ -449,15 +365,38 @@ public static class ModelClients
                 .ToDictionary(a => a.LanguageCode, a => a.Title),
         };
 
-    public static CL_VideoLocal_Place ToClient(this SVR_VideoLocal_Place vlp)
+    public static CL_VideoLocal_Place ToClient(this VideoLocal_Place vlp)
         => new()
         {
-            FilePath = vlp.FilePath,
-            ImportFolderID = vlp.ImportFolderID,
-            ImportFolderType = vlp.ImportFolderType,
-            VideoLocalID = vlp.VideoLocalID,
-            ImportFolder = vlp.ImportFolder,
-            VideoLocal_Place_ID = vlp.VideoLocal_Place_ID
+            VideoLocal_Place_ID = vlp.ID,
+            ImportFolderID = vlp.ManagedFolderID,
+            FilePath = vlp.RelativePath,
+            ImportFolderType = 1 /* HDD */,
+            VideoLocalID = vlp.VideoID,
+            ImportFolder = vlp.ManagedFolder?.ToClient(),
+        };
+
+    public static CL_ImportFolder ToClient(this ShokoManagedFolder mf)
+        => new()
+        {
+            ImportFolderID = mf.ID,
+            ImportFolderLocation = mf.Path,
+            ImportFolderName = mf.Name,
+            ImportFolderType = 1 /* HDD */,
+            IsDropDestination = mf.IsDropDestination ? 1 : 0,
+            IsDropSource = mf.IsDropSource ? 1 : 0,
+            IsWatched = mf.IsWatched ? 1 : 0,
+        };
+
+    public static ShokoManagedFolder ToServer(this CL_ImportFolder mf)
+        => new()
+        {
+            ID = mf.ImportFolderID,
+            Path = mf.ImportFolderLocation,
+            Name = mf.ImportFolderName,
+            IsDropDestination = mf.IsDropDestination == 1,
+            IsDropSource = mf.IsDropSource == 1,
+            IsWatched = mf.IsWatched == 1,
         };
 
     public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
@@ -520,33 +459,29 @@ public static class ModelClients
                 StringComparer.InvariantCultureIgnoreCase)
         };
 
-    public static CL_AniDB_ReleaseGroup? ToClient(this AniDB_ReleaseGroup? group)
+    public static CL_AniDB_ReleaseGroup? ToClient(this IReleaseGroup? group)
         => group is null ? null : new CL_AniDB_ReleaseGroup
         {
-            AniDB_ReleaseGroupID = group.AniDB_ReleaseGroupID,
-            AnimeCount = group.AnimeCount,
-            FileCount = group.FileCount,
-            GroupID = group.GroupID,
-            GroupName = group.GroupName,
-            GroupNameShort = group.GroupNameShort,
-            IRCChannel = group.IRCChannel,
-            IRCServer = group.IRCServer,
-            Picname = group.Picname,
-            Rating = group.Rating,
-            URL = group.URL,
-            Votes = group.Votes,
+            AniDB_ReleaseGroupID = 0,
+            AnimeCount = 0,
+            FileCount = 0,
+            GroupID = int.TryParse(group.ID, out var id) ? id : 0,
+            GroupName = group.Name,
+            GroupNameShort = group.ShortName,
+            IRCChannel = null,
+            IRCServer = null,
+            Picname = null,
+            Rating = 0,
+            URL = null,
+            Votes = 0,
         };
 
-    //The resources need to be moved
-    public static string GetAnimeTypeDescription(this AniDB_Anime anime)
-        => anime.GetAnimeTypeEnum() switch
+    public static CL_MovieDBMovieSearch_Response ToClient(this SearchMovie movie)
+        => new()
         {
-            AnimeType.Movie => Resources.AnimeType_Movie,
-            AnimeType.Other => Resources.AnimeType_Other,
-            AnimeType.OVA => Resources.AnimeType_OVA,
-            AnimeType.TVSeries => Resources.AnimeType_TVSeries,
-            AnimeType.TVSpecial => Resources.AnimeType_TVSpecial,
-            AnimeType.Web => Resources.AnimeType_Web,
-            _ => Resources.AnimeType_Other,
+            MovieID = movie.Id,
+            MovieName = movie.Title,
+            OriginalName = movie.OriginalTitle,
+            Overview = movie.Overview,
         };
 }

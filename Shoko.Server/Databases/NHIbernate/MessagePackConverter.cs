@@ -35,7 +35,7 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
             if (typeof(T) == typeof(object)) return MessagePackSerializer.Typeless.Deserialize(s);
             return MessagePackSerializer.Deserialize<T>(s);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
 
             Utils.ServiceContainer.GetRequiredService<ILogger<MessagePackConverter<T>>>().LogError(ex, "Failed to deserialize {Type} from {Value}",

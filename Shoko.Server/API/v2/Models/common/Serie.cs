@@ -4,20 +4,12 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
-using Quartz;
-using Shoko.Commons.Extensions;
-using Shoko.Models.Enums;
-using Shoko.Models.PlexAndKodi;
-using Shoko.Models.Server;
-using Shoko.Plugin.Abstractions.Enums;
+using Shoko.Abstractions.Enums;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.AniDB;
 
-#pragma warning disable CA2012
 #pragma warning disable IDE1006
 namespace Shoko.Server.API.v2.Models.common;
 
@@ -48,7 +40,7 @@ public class Serie : BaseDirectory, IComparable
         tags = [];
     }
 
-    public static Serie GenerateFromVideoLocal(HttpContext ctx, SVR_VideoLocal vl, int uid, bool noCast, bool noTag,
+    public static Serie GenerateFromVideoLocal(HttpContext ctx, VideoLocal vl, int uid, bool noCast, bool noTag,
         int level, bool all, bool allPictures, int pic, TagFilter.Filter tagFilter)
     {
         if (vl is null)
@@ -61,32 +53,7 @@ public class Serie : BaseDirectory, IComparable
         return GenerateFromAnimeSeries(ctx, ser, uid, noCast, noTag, level, all, allPictures, pic, tagFilter);
     }
 
-    public static Serie GenerateFromBookmark(HttpContext ctx, BookmarkedAnime bookmark, int uid, bool noCast,
-        bool noTag, int level, bool all, bool allPictures, int pic, TagFilter.Filter tagFilter)
-    {
-        var series = RepoFactory.AnimeSeries.GetByAnimeID(bookmark.AnimeID);
-        if (series is not null)
-            return GenerateFromAnimeSeries(ctx, series, uid, noCast, noTag, level, all, allPictures, pic, tagFilter);
-
-        var aniDB_Anime = RepoFactory.AniDB_Anime.GetByAnimeID(bookmark.AnimeID);
-        if (aniDB_Anime is null)
-        {
-            var scheduler = ctx.RequestServices.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
-            scheduler.StartJob<GetAniDBAnimeJob>(
-                c =>
-                {
-                    c.AnimeID = bookmark.AnimeID;
-                    c.ForceRefresh = true;
-                }
-            ).GetAwaiter().GetResult();
-
-            return new Serie { id = -1, name = "GetAnimeInfoHTTP", aid = bookmark.AnimeID };
-        }
-
-        return GenerateFromAniDBAnime(ctx, aniDB_Anime, noCast, noTag, allPictures, pic, tagFilter);
-    }
-
-    public static Serie GenerateFromAniDBAnime(HttpContext ctx, SVR_AniDB_Anime anime, bool noCast, bool noTag,
+    public static Serie GenerateFromAniDBAnime(HttpContext ctx, AniDB_Anime anime, int uid, bool noCast, bool noTag,
         bool allPictures, int pic, TagFilter.Filter tagFilter)
     {
         var sr = new Serie
@@ -99,7 +66,7 @@ public class Serie : BaseDirectory, IComparable
                 .ToString(CultureInfo.InvariantCulture),
             votes = anime.VoteCount.ToString(),
             name = anime.MainTitle,
-            ismovie = anime.AnimeType == (int)AnimeType.Movie ? 1 : 0
+            ismovie = anime.AnimeType is AnimeType.Movie ? 1 : 0
         };
 
         if (anime.AirDate.HasValue)
@@ -112,11 +79,12 @@ public class Serie : BaseDirectory, IComparable
             }
         }
 
-        var vote = RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.Anime) ??
-                   RepoFactory.AniDB_Vote.GetByEntityAndType(anime.AnimeID, AniDBVoteType.AnimeTemp);
-        if (vote is not null)
+        if (
+            RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID) is { } series &&
+            RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(uid, series.AnimeSeriesID) is { HasUserRating: true } userData
+        )
         {
-            sr.userrating = Math.Round(vote.VoteValue / 100D, 1).ToString(CultureInfo.InvariantCulture);
+            sr.userrating = userData.UserRating.Value.ToString(CultureInfo.InvariantCulture);
         }
 
         sr.titles = anime.Titles.Select(title =>
@@ -131,29 +99,26 @@ public class Serie : BaseDirectory, IComparable
 
         if (!noCast)
         {
-            var xrefAnimeStaff = RepoFactory.CrossRef_Anime_Staff.GetByAnimeIDAndRoleType(anime.AnimeID,
-                StaffRoleType.Seiyuu);
+            var xrefAnimeStaff = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(anime.AnimeID);
             foreach (var xref in xrefAnimeStaff)
             {
-                if (!xref.RoleID.HasValue)
-                    continue;
+                var character = RepoFactory.AniDB_Character.GetByID(xref.CharacterID);
+                if (character == null) continue;
 
-                var character = RepoFactory.AnimeCharacter.GetByID(xref.RoleID.Value);
-                if (character is null)
-                    continue;
+                var staff = RepoFactory.AniDB_Creator.GetByID(xref.CreatorID);
+                if (staff == null) continue;
 
-                var staff = RepoFactory.AnimeStaff.GetByID(xref.StaffID);
-                if (staff is null)
-                    continue;
+                var xref2 = xref.CharacterCrossReference;
+                if (xref2 == null) continue;
 
                 var role = new Role
                 {
                     character = character.Name,
-                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Character, DataSourceEnum.Shoko, xref.RoleID.Value),
+                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Character, DataSource.AniDB, xref.CharacterID),
                     staff = staff.Name,
-                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Person, DataSourceEnum.Shoko, xref.StaffID),
-                    role = xref.Role,
-                    type = ((StaffRoleType)xref.RoleType).ToString()
+                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Creator, DataSource.AniDB, xref.CreatorID),
+                    role = xref2.AppearanceType.ToString().Replace("_", " "),
+                    type = "Seiyuu",
                 };
                 sr.roles ??= [];
                 sr.roles.Add(role);
@@ -172,20 +137,18 @@ public class Serie : BaseDirectory, IComparable
         return sr;
     }
 
-    public static Serie GenerateFromAnimeSeries(HttpContext ctx, SVR_AnimeSeries ser, int uid, bool noCast, bool noTag,
+    public static Serie GenerateFromAnimeSeries(HttpContext ctx, AnimeSeries ser, int uid, bool noCast, bool noTag,
         int level, bool all, bool allPictures, int maxPictures, TagFilter.Filter tagFilter)
     {
-        var sr = GenerateFromAniDBAnime(ctx, ser.AniDB_Anime, noCast, noTag, allPictures, maxPictures, tagFilter);
+        var sr = GenerateFromAniDBAnime(ctx, ser.AniDB_Anime, uid, noCast, noTag, allPictures, maxPictures, tagFilter);
 
         var ael = ser.AnimeEpisodes;
 
         sr.id = ser.AnimeSeriesID;
-        sr.name = ser.PreferredTitle;
+        sr.name = ser.Title;
         GenerateSizes(sr, ael, uid);
 
-        var season = ael.FirstOrDefault(a =>
-                a.AniDB_Episode.EpisodeType == (int)EpisodeType.Episode &&
-                a.AniDB_Episode.EpisodeNumber == 1)
+        var season = ael.FirstOrDefault(a => a is { AniDB_Episode: { EpisodeType: EpisodeType.Episode, EpisodeNumber: 1 } })
             ?.TmdbEpisodes.FirstOrDefault()?.SeasonNumber;
         if (season is not null)
         {
@@ -254,7 +217,7 @@ public class Serie : BaseDirectory, IComparable
         return sr;
     }
 
-    private static void GenerateSizes(Serie sr, IEnumerable<SVR_AnimeEpisode> ael, int uid)
+    private static void GenerateSizes(Serie sr, IEnumerable<AnimeEpisode> ael, int uid)
     {
         var eps = 0;
         var credits = 0;
@@ -287,98 +250,98 @@ public class Serie : BaseDirectory, IComparable
 
             var local = ep.VideoLocals.Count != 0;
             var watched = ep.GetUserRecord(uid)?.WatchedDate is not null;
-            switch (ep.EpisodeTypeEnum)
+            switch (ep.EpisodeType)
             {
                 case EpisodeType.Episode:
+                {
+                    eps++;
+                    if (local)
                     {
-                        eps++;
-                        if (local)
-                        {
-                            local_eps++;
-                        }
-
-                        if (watched)
-                        {
-                            watched_eps++;
-                        }
-
-                        break;
+                        local_eps++;
                     }
+
+                    if (watched)
+                    {
+                        watched_eps++;
+                    }
+
+                    break;
+                }
                 case EpisodeType.Credits:
+                {
+                    credits++;
+                    if (local)
                     {
-                        credits++;
-                        if (local)
-                        {
-                            local_credits++;
-                        }
-
-                        if (watched)
-                        {
-                            watched_credits++;
-                        }
-
-                        break;
+                        local_credits++;
                     }
+
+                    if (watched)
+                    {
+                        watched_credits++;
+                    }
+
+                    break;
+                }
                 case EpisodeType.Special:
+                {
+                    specials++;
+                    if (local)
                     {
-                        specials++;
-                        if (local)
-                        {
-                            local_specials++;
-                        }
-
-                        if (watched)
-                        {
-                            watched_specials++;
-                        }
-
-                        break;
+                        local_specials++;
                     }
+
+                    if (watched)
+                    {
+                        watched_specials++;
+                    }
+
+                    break;
+                }
                 case EpisodeType.Trailer:
+                {
+                    trailers++;
+                    if (local)
                     {
-                        trailers++;
-                        if (local)
-                        {
-                            local_trailers++;
-                        }
-
-                        if (watched)
-                        {
-                            watched_trailers++;
-                        }
-
-                        break;
+                        local_trailers++;
                     }
+
+                    if (watched)
+                    {
+                        watched_trailers++;
+                    }
+
+                    break;
+                }
                 case EpisodeType.Parody:
+                {
+                    parodies++;
+                    if (local)
                     {
-                        parodies++;
-                        if (local)
-                        {
-                            local_parodies++;
-                        }
-
-                        if (watched)
-                        {
-                            watched_parodies++;
-                        }
-
-                        break;
+                        local_parodies++;
                     }
+
+                    if (watched)
+                    {
+                        watched_parodies++;
+                    }
+
+                    break;
+                }
                 case EpisodeType.Other:
+                {
+                    others++;
+                    if (local)
                     {
-                        others++;
-                        if (local)
-                        {
-                            local_others++;
-                        }
-
-                        if (watched)
-                        {
-                            watched_others++;
-                        }
-
-                        break;
+                        local_others++;
                     }
+
+                    if (watched)
+                    {
+                        watched_others++;
+                    }
+
+                    break;
+                }
             }
         }
 
@@ -418,7 +381,7 @@ public class Serie : BaseDirectory, IComparable
         };
     }
 
-    public static void PopulateArtFromAniDBAnime(HttpContext ctx, SVR_AniDB_Anime anime, Serie sr, bool allPictures,
+    public static void PopulateArtFromAniDBAnime(HttpContext ctx, AniDB_Anime anime, Serie sr, bool allPictures,
         int maxPictures)
     {
         var rand = (Random)ctx.Items["Random"];
@@ -477,7 +440,7 @@ public class Serie : BaseDirectory, IComparable
                 {
                     sr.art.fanart.Add(new Art
                     {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBackdrop.ImageType, preferredBackdrop.ImageSource.ToDataSourceEnum(), preferredBackdrop.ImageID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBackdrop.ImageType, preferredBackdrop.ImageSource, preferredBackdrop.ImageID),
                         index = 0
                     });
                 }
@@ -499,7 +462,7 @@ public class Serie : BaseDirectory, IComparable
                     sr.art.banner.Add(new Art
                     {
                         index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBanner.ImageType, preferredBanner.ImageSource.ToDataSourceEnum(), preferredBanner.ImageID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBanner.ImageType, preferredBanner.ImageSource, preferredBanner.ImageID),
                     });
                 }
                 else

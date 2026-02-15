@@ -1,9 +1,9 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Server.Models;
+using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Mappings;
 
-public class VideoLocal_UserMap : ClassMap<SVR_VideoLocal_User>
+public class VideoLocal_UserMap : ClassMap<VideoLocal_User>
 {
     public VideoLocal_UserMap()
     {

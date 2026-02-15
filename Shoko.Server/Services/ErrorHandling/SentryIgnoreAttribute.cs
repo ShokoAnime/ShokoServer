@@ -3,7 +3,4 @@
 namespace Shoko.Server.Services.ErrorHandling;
 
 [AttributeUsage(AttributeTargets.Class)]
-public class SentryIgnoreAttribute : Attribute
-{
-        
-}   
+public class SentryIgnoreAttribute : Attribute { }

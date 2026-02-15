@@ -53,11 +53,43 @@ jobs:
             const sha = context.sha.substring(0, 7);
             core.setOutput("sha", sha);
 
+  plugin-nuget:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        dotnet: [ '8.x' ]
+
+    name: Publish Shoko.Abstractions Nuget
+
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+          submodules: recursive
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Run dotnet build
+        run: dotnet build -c Release Shoko.Abstractions
+
+      - name: Publish Shoko.Abstractions Nuget
+        uses: brandedoutcast/publish-nuget@v2.5.2
+        with:
+          PROJECT_FILE_PATH: Shoko.Abstractions/Shoko.Abstractions.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+          TAG_FORMAT: Shoko.Abstractions-v*
+
   cli-release:
     runs-on: ubuntu-latest
 
     needs:
       - current_info
+      - plugin-nuget
 
     strategy:
       matrix:
@@ -65,11 +97,11 @@ jobs:
           - '8.x'
         include:
           - build_type: 'Standalone'
-            build_props: ''
+            build_props: '--self-contained true'
             display_id: 'linux-x64'
             rid: 'linux-x64'
           - build_type: 'Standalone'
-            build_props: ''
+            build_props: '--self-contained true'
             display_id: 'linux-arm64'
             rid: 'linux-arm64'
           - build_type: 'Framework'
@@ -108,7 +140,7 @@ jobs:
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0\\publish .\\Shoko.CLI_${{ matrix.build_type }}_${{ matrix.display_id }}.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0\\${{matrix.rid}}\\publish .\\Shoko.CLI_${{ matrix.build_type }}_${{ matrix.display_id }}.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
@@ -123,6 +155,7 @@ jobs:
 
     needs:
       - current_info
+      - plugin-nuget
 
     strategy:
       matrix:
@@ -165,10 +198,11 @@ jobs:
           file_glob: true
 
   tray-service-installer:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     needs:
       - current_info
+      - plugin-nuget
 
     strategy:
       matrix:
@@ -221,12 +255,23 @@ jobs:
           tag: ${{ needs.current_info.outputs.tag }}
           file_glob: true
 
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@d4fffb50872869abe2d9a9098a6d9c5aa7d16be4
+        if: ${{ env.SSH_USERNAME != '' && env.SSH_SERVER != '' }}
+        env:
+          SSH_USERNAME: ${{ secrets.FILES_USERNAME }}
+          SSH_SERVER: ${{ secrets.FILES_SERVER }}
+        with:
+          key: ${{ secrets.FILES_SSH_KEY }}
+          name: files_id_rsa
+          known_hosts: ${{ secrets.FILES_KNOWN_HOSTS }}
+
       - name: Upload Installer to site
         shell: pwsh
+        if: ${{ env.SSH_USERNAME != '' && env.SSH_SERVER != '' }}
         env:
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          SSH_USERNAME: ${{ secrets.FILES_USERNAME }}
+          SSH_SERVER: ${{ secrets.FILES_SERVER }}
         run:
           .\\.github\\workflows\\UploadRelease.ps1 -remote "ShokoServer-${{ needs.current_info.outputs.version_short }}-Win.exe" -local "Shoko.Setup.exe";
 
@@ -235,6 +280,7 @@ jobs:
 
     needs:
       - current_info
+      - plugin-nuget
 
     strategy:
       fail-fast: false

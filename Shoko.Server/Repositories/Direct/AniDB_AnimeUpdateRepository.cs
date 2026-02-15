@@ -1,6 +1,6 @@
 ﻿using System.Linq;
 using Shoko.Server.Databases;
-using Shoko.Server.Models;
+using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Repositories.Direct;
 

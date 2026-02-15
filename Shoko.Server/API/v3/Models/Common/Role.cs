@@ -1,9 +1,13 @@
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Shoko.Models.Server;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.TMDB;
+using Shoko.Server.Providers.TMDB;
+using Shoko.Server.Server;
+using Shoko.Server.Utilities;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
@@ -39,31 +43,70 @@ public class Role
     [Required]
     public string RoleDetails { get; set; } = string.Empty;
 
-    public Role(CrossRef_Anime_Staff xref, AnimeStaff staff, AnimeCharacter? character)
+    public Role(AniDB_Anime_Character xref, AniDB_Character character, AniDB_Creator? staff = null)
     {
         Character = character == null ? null : new()
         {
-            ID = character.AniDBID,
+            ID = character.CharacterID,
             Name = character.Name,
-            AlternateName = character.AlternateName,
-            Description = character.Description,
+            AlternateName = character.OriginalName ?? string.Empty,
+            Description = character.Description ?? string.Empty,
             Image = character.GetImageMetadata() is { } characterImage ? new Image(characterImage) : null,
         };
+        Staff = staff is not null
+            ? new()
+            {
+                ID = staff.CreatorID,
+                Name = staff.Name,
+                AlternateName = staff.OriginalName ?? string.Empty,
+                Description = string.Empty,
+                Image = staff.GetImageMetadata() is { } staffImage ? new Image(staffImage) : null,
+                Type = staff.Type.ToString(),
+            }
+            : new()
+            {
+                ID = 0,
+                Name = string.Empty,
+                AlternateName = string.Empty,
+                Description = string.Empty,
+                Image = null,
+                Type = "Unknown",
+            };
+        RoleName = CreatorRoleType.Actor;
+        RoleDetails = staff is not null
+            ? xref.AppearanceType.ToString().Replace("_", " ")
+            : "Appears In";
+    }
+
+    public Role(AniDB_Anime_Staff xref, AniDB_Creator staff)
+    {
         Staff = new()
         {
-            ID = staff.AniDBID,
+            ID = staff.CreatorID,
             Name = staff.Name,
-            AlternateName = staff.AlternateName,
-            Description = staff.Description,
+            AlternateName = staff.OriginalName ?? string.Empty,
+            Description = string.Empty,
             Image = staff.GetImageMetadata() is { } staffImage ? new Image(staffImage) : null,
+            Type = staff.Type.ToString(),
         };
-        RoleName = (CreatorRoleType)xref.RoleType;
+        RoleName = xref.RoleType;
         RoleDetails = xref.Role;
     }
 
     public Role(TMDB_Movie_Cast cast)
     {
         var person = cast.GetTmdbPerson();
+        // Band-aid for missing data until the root cause is found and fixed.
+        if (person is null)
+        {
+            var tmdbMetadataService = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
+            tmdbMetadataService.UpdatePerson(cast.TmdbPersonID)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+            person = cast.GetTmdbPerson() ??
+                throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
+        }
         var personImages = person.GetImages();
         Character = new()
         {
@@ -77,13 +120,24 @@ public class Role
             Description = person.EnglishBiography,
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
-        RoleName = CreatorRoleType.Seiyuu;
+        RoleName = CreatorRoleType.Actor;
         RoleDetails = "Character";
     }
 
     public Role(TMDB_Show_Cast cast)
     {
         var person = cast.GetTmdbPerson();
+        // Band-aid for missing data until the root cause is found and fixed.
+        if (person is null)
+        {
+            var tmdbMetadataService = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
+            tmdbMetadataService.UpdatePerson(cast.TmdbPersonID)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+            person = cast.GetTmdbPerson() ??
+                throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
+        }
         var personImages = person.GetImages();
         Character = new()
         {
@@ -97,13 +151,14 @@ public class Role
             Description = person.EnglishBiography,
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
-        RoleName = CreatorRoleType.Seiyuu;
+        RoleName = CreatorRoleType.Actor;
         RoleDetails = "Character";
     }
 
     public Role(TMDB_Season_Cast cast)
     {
-        var person = cast.GetTmdbPerson();
+        var person = cast.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
         var personImages = person.GetImages();
         Character = new()
         {
@@ -117,13 +172,14 @@ public class Role
             Description = person.EnglishBiography,
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
-        RoleName = CreatorRoleType.Seiyuu;
+        RoleName = CreatorRoleType.Actor;
         RoleDetails = "Character";
     }
 
     public Role(TMDB_Episode_Cast cast)
     {
-        var person = cast.GetTmdbPerson();
+        var person = cast.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={cast.TmdbPersonID})");
         var personImages = person.GetImages();
         Character = new()
         {
@@ -137,28 +193,31 @@ public class Role
             Description = person.EnglishBiography,
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
-        RoleName = CreatorRoleType.Seiyuu;
+        RoleName = CreatorRoleType.Actor;
         RoleDetails = "Character";
     }
 
     public Role(TMDB_Movie_Crew crew)
     {
-        var person = crew.GetTmdbPerson();
+        var person = crew.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
         var personImages = person.GetImages();
         Staff = new()
         {
+            ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
         RoleName = crew.ToCreatorRole();
-        RoleDetails = $"{crew.Department}, ${crew.Job}";
+        RoleDetails = $"{crew.Department}, {crew.Job}";
     }
 
     public Role(TMDB_Show_Crew crew)
     {
-        var person = crew.GetTmdbPerson();
+        var person = crew.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
         var personImages = person.GetImages();
         Staff = new()
         {
@@ -169,12 +228,13 @@ public class Role
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
         RoleName = crew.ToCreatorRole();
-        RoleDetails = $"{crew.Department}, ${crew.Job}";
+        RoleDetails = $"{crew.Department}, {crew.Job}";
     }
 
     public Role(TMDB_Season_Crew crew)
     {
-        var person = crew.GetTmdbPerson();
+        var person = crew.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
         var personImages = person.GetImages();
         Staff = new()
         {
@@ -185,12 +245,13 @@ public class Role
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
         RoleName = crew.ToCreatorRole();
-        RoleDetails = $"{crew.Department}, ${crew.Job}";
+        RoleDetails = $"{crew.Department}, {crew.Job}";
     }
 
     public Role(TMDB_Episode_Crew crew)
     {
-        var person = crew.GetTmdbPerson();
+        var person = crew.GetTmdbPerson() ??
+            throw new Exception($"Unable to find TMDB Person with the given id. (Person={crew.TmdbPersonID})");
         var personImages = person.GetImages();
         Staff = new()
         {
@@ -201,7 +262,7 @@ public class Role
             Image = personImages.Count > 0 ? new Image(personImages[0]) : null,
         };
         RoleName = crew.ToCreatorRole();
-        RoleDetails = $"{crew.Department}, ${crew.Job}";
+        RoleDetails = $"{crew.Department}, {crew.Job}";
     }
 
     /// <summary>
@@ -214,6 +275,12 @@ public class Role
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public int? ID { get; set; }
+
+        /// <summary>
+        /// AniDB creator type, if the person object is an AniDB creator.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? Type { get; set; }
 
         /// <summary>
         /// Main Name, romanized if needed
@@ -238,54 +305,5 @@ public class Role
         /// image object, usually a profile picture of sorts
         /// </summary>
         public Image? Image { get; set; }
-    }
-
-    [JsonConverter(typeof(StringEnumConverter))]
-    public enum CreatorRoleType
-    {
-        /// <summary>
-        /// Voice actor or voice actress.
-        /// </summary>
-        Seiyuu,
-
-        /// <summary>
-        /// This can be anything involved in writing the show.
-        /// </summary>
-        Staff,
-
-        /// <summary>
-        /// The studio responsible for publishing the show.
-        /// </summary>
-        Studio,
-
-        /// <summary>
-        /// The main producer(s) for the show.
-        /// </summary>
-        Producer,
-
-        /// <summary>
-        /// Direction.
-        /// </summary>
-        Director,
-
-        /// <summary>
-        /// Series Composition.
-        /// </summary>
-        SeriesComposer,
-
-        /// <summary>
-        /// Character Design.
-        /// </summary>
-        CharacterDesign,
-
-        /// <summary>
-        /// Music composer.
-        /// </summary>
-        Music,
-
-        /// <summary>
-        /// Responsible for the creation of the source work this show is detrived from.
-        /// </summary>
-        SourceWork,
     }
 }
