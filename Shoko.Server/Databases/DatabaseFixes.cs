@@ -1469,6 +1469,13 @@ public class DatabaseFixes
                 VoteValue = (int)fields[1],
                 VoteType = (VoteType)fields[2],
             };
+
+            if (vote.VoteValue != -1 && vote.VoteValue is < 100 or > 1000)
+            {
+                _logger.Warn("Invalid value found: {VoteValue}. Dropping vote", vote.VoteValue);
+                continue;
+            }
+
             switch (vote.VoteType)
             {
                 case VoteType.AnimePermanent:
