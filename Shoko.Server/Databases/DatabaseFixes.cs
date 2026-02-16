@@ -1472,7 +1472,7 @@ public class DatabaseFixes
 
             if (vote.VoteValue != -1 && vote.VoteValue is < 100 or > 1000)
             {
-                _logger.Warn("Invalid value found: {VoteValue}. Dropping vote", vote.VoteValue);
+                _logger.Warn("Invalid value found for entity {EntityID}: {VoteValue}. Dropping vote", vote.EntityID, vote.VoteValue);
                 continue;
             }
 
