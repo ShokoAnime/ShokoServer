@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Shoko.Abstractions;
+using Shoko.Abstractions.Extensions;
 using Xunit;
 
 namespace Shoko.Tests

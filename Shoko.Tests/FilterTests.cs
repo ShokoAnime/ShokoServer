@@ -40,7 +40,7 @@ public class FilterTests
             new HasWatchedEpisodesExpression());
 
         Assert.True(top.UserDependent);
-        Assert.Throws<ArgumentNullException>(() => top.Evaluate(group, null));
+        Assert.Throws<ArgumentNullException>(() => top.Evaluate(group, null, null));
     }
 
     [Theory, MemberData(nameof(GroupFilterable))]
@@ -50,7 +50,7 @@ public class FilterTests
             new HasVideoSourceExpression("Web"));
 
         Assert.False(top.UserDependent);
-        Assert.True(top.Evaluate(group, null));
+        Assert.True(top.Evaluate(group, null, null));
     }
 
     [Theory, MemberData(nameof(GroupFilterable))]
@@ -61,7 +61,7 @@ public class FilterTests
                 new DateDiffFunction(new DateAddFunction(new TodayFunction(), TimeSpan.FromDays(1) - TimeSpan.FromMilliseconds(1)), TimeSpan.FromDays(30))));
 
         Assert.False(top.UserDependent);
-        Assert.False(top.Evaluate(group, null));
+        Assert.False(top.Evaluate(group, null, null));
     }
 
     [Theory, MemberData(nameof(GroupFilterable))]
@@ -71,7 +71,7 @@ public class FilterTests
             new DateGreaterThanEqualsExpression(new LastAddedDateSelector(), DateTime.Parse("2023-4-15")));
 
         Assert.False(top.UserDependent);
-        Assert.True(top.Evaluate(group, null));
+        Assert.True(top.Evaluate(group, null, null));
     }
 
     [Theory, MemberData(nameof(GroupUserFilterable))]
@@ -81,7 +81,7 @@ public class FilterTests
             new HasWatchedEpisodesExpression());
 
         Assert.True(top.UserDependent);
-        Assert.True(top.Evaluate(group, groupUserInfo));
+        Assert.True(top.Evaluate(group, groupUserInfo, null));
     }
 
     [Theory, MemberData(nameof(SeriesFilterable))]
@@ -91,7 +91,7 @@ public class FilterTests
             new HasWatchedEpisodesExpression());
 
         Assert.True(top.UserDependent);
-        Assert.Throws<ArgumentNullException>(() => top.Evaluate(series, null));
+        Assert.Throws<ArgumentNullException>(() => top.Evaluate(series, null, null));
     }
 
     [Theory, MemberData(nameof(SeriesUserFilterable))]
@@ -101,6 +101,6 @@ public class FilterTests
             new HasWatchedEpisodesExpression());
 
         Assert.True(top.UserDependent);
-        Assert.True(top.Evaluate(series, seriesUserInfo));
+        Assert.True(top.Evaluate(series, seriesUserInfo, null));
     }
 }

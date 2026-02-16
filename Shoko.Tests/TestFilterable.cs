@@ -58,4 +58,5 @@ public class TestFilterable : IFilterableInfo
     public IReadOnlyDictionary<CastRoleType, IReadOnlySet<string>> CharacterAppearances { get; init; }
     public IReadOnlySet<string> CreatorIDs { get; init; }
     public IReadOnlyDictionary<CrewRoleType, IReadOnlySet<string>> CreatorRoles { get; init; }
+    public IReadOnlySet<string> ReleaseGroupNames { get; init; }
 }
