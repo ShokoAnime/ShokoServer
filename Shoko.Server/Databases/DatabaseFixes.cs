@@ -943,11 +943,11 @@ public class DatabaseFixes
             .AddScalar("CrossRef_File_EpisodeID", NHibernateUtil.Int32)
             .AddScalar("CrossRefSource", NHibernateUtil.Int32)
             .List();
-        var rawAnidbFileLanguages = session.CreateSQLQuery("SELECT FileID, LanguageName FROM CrossRef_Languages_AniDB_File")
+        var rawAnidbFileLanguages = session.CreateSQLQuery("SELECT DISTINCT FileID, LanguageName FROM CrossRef_Languages_AniDB_File")
             .AddScalar("FileID", NHibernateUtil.Int32)
             .AddScalar("LanguageName", NHibernateUtil.String)
             .List();
-        var rawAnidbFileSubtitles = session.CreateSQLQuery("SELECT FileID, LanguageName FROM CrossRef_Subtitles_AniDB_File")
+        var rawAnidbFileSubtitles = session.CreateSQLQuery("SELECT DISTINCT FileID, LanguageName FROM CrossRef_Subtitles_AniDB_File")
             .AddScalar("FileID", NHibernateUtil.Int32)
             .AddScalar("LanguageName", NHibernateUtil.String)
             .List();
@@ -1158,7 +1158,7 @@ public class DatabaseFixes
                     (!string.IsNullOrEmpty(anidbFile.FileName) && creditlessRegex.IsMatch(anidbFile.FileName)) ||
                     (video?.Places is { Count: > 0 } places && places.Any(x => creditlessRegex.IsMatch(x.FileName)));
                 storedReleaseInfo.IsCorrupted = anidbFile.IsDeprecated;
-                storedReleaseInfo.Source = Enum.Parse<GetFile_Source>(anidbFile.File_Source.ToString(), ignoreCase: true) switch
+                storedReleaseInfo.Source = Enum.Parse<GetFile_Source>(anidbFile.File_Source, ignoreCase: true) switch
                 {
                     GetFile_Source.TV => ReleaseSource.TV,
                     GetFile_Source.DTV => ReleaseSource.TV,

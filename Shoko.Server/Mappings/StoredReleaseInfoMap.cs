@@ -1,6 +1,7 @@
 using FluentNHibernate.Mapping;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Release;
+using Shoko.Abstractions.Enums;
 
 namespace Shoko.Server.Mappings;
 
@@ -26,7 +27,7 @@ public class StoredReleaseInfoMap : ClassMap<StoredReleaseInfo>
         Map(x => x.IsChaptered);
         Map(x => x.IsCreditless);
         Map(x => x.IsCorrupted).Not.Nullable();
-        Map(x => x.Source).Not.Nullable();
+        Map(x => x.Source).CustomType<ReleaseSource>().Not.Nullable();
         Map(x => x.GroupID);
         Map(x => x.GroupSource);
         Map(x => x.GroupName);
