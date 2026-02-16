@@ -288,9 +288,8 @@ public class AniDbSettings
     [Display(Name = "API Key")]
     [EnvironmentVariable("ANIDB_AVDUMP_API_KEY")]
     [PasswordPropertyText]
-    [DefaultValue("")]
-    [Required(AllowEmptyStrings = true)]
-    public string AVDumpKey { get; set; } = "";
+    [DefaultValue(null)]
+    public string? AVDumpKey { get; set; }
 
     /// <summary>
     /// The client port to prefer binding to when using AVDump to dump files for
