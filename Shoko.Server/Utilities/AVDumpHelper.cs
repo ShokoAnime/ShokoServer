@@ -148,7 +148,7 @@ public static partial class AVDumpHelper
             return new("Failed to install or update the AVDump component.");
 
         var settings = Utils.SettingsProvider.GetSettings();
-        if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
+        if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey) || string.IsNullOrWhiteSpace(settings.AniDb.Username))
         {
             var message = "Missing AVDump API Key in the settings.";
             ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.MissingApiKey);
@@ -199,7 +199,7 @@ public static partial class AVDumpHelper
                     "--DisableFileMove=true",
                     "--DisableFileRename=true",
                     "--Consumers=ED2K",
-                    $"--Auth={settings.AniDb.Username.Trim()}:{settings.AniDb.AVDumpKey?.Trim()}",
+                    $"--Auth={settings.AniDb.Username.Trim()}:{settings.AniDb.AVDumpKey.Trim()}",
                     // Workaround for when we try to start multiple dump sessions.
                     $"--LPort={(preExistingSessions == 0 ? settings.AniDb.AVDumpClientPort : 0)}", "--PrintEd2kLink=true",
                     ..videoDict.Values,

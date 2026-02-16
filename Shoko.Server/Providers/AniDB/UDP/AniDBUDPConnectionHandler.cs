@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -463,7 +464,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         return false;
     }
 
-    private bool Login(string username, string password)
+    private bool Login(string? username, string? password)
     {
         // check if we are already logged in
         if (_isLoggedOn) return true;
@@ -592,7 +593,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         return true;
     }
 
-    public bool ValidAniDBCredentials(string user, string pass)
+    public bool ValidAniDBCredentials([NotNullWhen(true)] string? user, [NotNullWhen(true)] string? pass)
     {
         if (string.IsNullOrEmpty(user)) return false;
         if (string.IsNullOrEmpty(pass)) return false;

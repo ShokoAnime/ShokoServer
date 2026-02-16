@@ -22,9 +22,9 @@ public class AniDbSettings
     /// </summary>
     [SectionName("Login")]
     [EnvironmentVariable("ANIDB_USER")]
-    [DefaultValue("")]
+    [DefaultValue(null)]
     [Required(AllowEmptyStrings = true)]
-    public string Username { get; set; } = "";
+    public string? Username { get; set; }
 
     /// <summary>
     /// AniDB password.
@@ -32,9 +32,9 @@ public class AniDbSettings
     [SectionName("Login")]
     [PasswordPropertyText]
     [EnvironmentVariable("ANIDB_PASS")]
-    [DefaultValue("")]
+    [DefaultValue(null)]
     [Required(AllowEmptyStrings = true)]
-    public string Password { get; set; } = "";
+    public string? Password { get; set; }
 
     [CustomAction(
         Theme = DisplayColorTheme.Primary,
