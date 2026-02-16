@@ -21,7 +21,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
 {
     public override string Name => "SQLite";
 
-    public override int RequiredVersion => 140;
+    public override int RequiredVersion => 141;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -904,6 +904,8 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(140, 22, DatabaseFixes.RefreshAnimeSeriesUserStats),
         new(140, 23, "ALTER TABLE TMDB_Person ADD COLUMN LastOrphanedAt DATETIME;"),
         new(140, 24, "ALTER TABLE TMDB_Network ADD COLUMN LastOrphanedAt DATETIME;"),
+        new(141, 1, "DELETE FROM AnimeSeries_User WHERE AbsoluteUserRating = 0;"),
+        new(141, 2, "DELETE FROM AnimeEpisode_User WHERE AbsoluteUserRating = 0;"),
     };
 
     private static Tuple<bool, string> DropLanguage(object connection)

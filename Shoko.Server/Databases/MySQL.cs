@@ -20,7 +20,7 @@ namespace Shoko.Server.Databases;
 public class MySQL : BaseDatabase<MySqlConnection>
 {
     public override string Name { get; } = "MySQL";
-    public override int RequiredVersion { get; } = 159;
+    public override int RequiredVersion { get; } = 160;
 
     private List<DatabaseCommand> createVersionTable = new()
     {
@@ -981,6 +981,8 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(159, 21, DatabaseFixes.RefreshAnimeSeriesUserStats),
         new(159, 22, "ALTER TABLE `TMDB_Person` ADD COLUMN `LastOrphanedAt` DATETIME;"),
         new(159, 23, "ALTER TABLE `TMDB_Network` ADD COLUMN `LastOrphanedAt` DATETIME;"),
+        new(160, 1, "DELETE FROM AnimeSeries_User WHERE AbsoluteUserRating = 0;"),
+        new(160, 2, "DELETE FROM AnimeEpisode_User WHERE AbsoluteUserRating = 0;"),
     };
 
     private DatabaseCommand linuxTableVersionsFix = new("RENAME TABLE versions TO Versions;");

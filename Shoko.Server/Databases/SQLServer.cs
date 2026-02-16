@@ -22,7 +22,7 @@ namespace Shoko.Server.Databases;
 public class SQLServer : BaseDatabase<SqlConnection>
 {
     public override string Name { get; } = "SQLServer";
-    public override int RequiredVersion { get; } = 151;
+    public override int RequiredVersion { get; } = 152;
 
     public override void BackupDatabase(string fullfilename)
     {
@@ -935,6 +935,8 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new DatabaseCommand(151, 21, DatabaseFixes.RefreshAnimeSeriesUserStats),
         new DatabaseCommand(151, 22, "ALTER TABLE TMDB_Person ADD LastOrphanedAt DATETIME2;"),
         new DatabaseCommand(151, 23, "ALTER TABLE TMDB_Network ADD LastOrphanedAt DATETIME2;"),
+        new DatabaseCommand(152, 1, "DELETE FROM AnimeSeries_User WHERE AbsoluteUserRating = 0;"),
+        new DatabaseCommand(152, 2, "DELETE FROM AnimeEpisode_User WHERE AbsoluteUserRating = 0;"),
     };
 
     private static void AlterImdbMovieIDType()
