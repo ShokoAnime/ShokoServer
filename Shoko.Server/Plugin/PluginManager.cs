@@ -62,7 +62,32 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
         public byte[]? Thumbnail { get; set; }
     }
 
-    private class IsolatedLoadContext() : AssemblyLoadContext(isCollectible: true) { }
+    private class IsolatedLoadContext : AssemblyLoadContext
+    {
+        private readonly AssemblyDependencyResolver? _resolver;
+
+        public IsolatedLoadContext(string? selfResolvingPluginPath = null) : base(isCollectible: true)
+        {
+            if (selfResolvingPluginPath is not null)
+                _resolver = new AssemblyDependencyResolver(selfResolvingPluginPath);
+        }
+
+        protected override Assembly? Load(AssemblyName assemblyName)
+        {
+            if (_resolver is null)
+                return base.Load(assemblyName);
+            var assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
+            return assemblyPath is not null ? LoadFromAssemblyPath(assemblyPath) : null;
+        }
+
+        protected override nint LoadUnmanagedDll(string unmanagedDllName)
+        {
+            if (_resolver is null)
+                return base.LoadUnmanagedDll(unmanagedDllName);
+            var libraryPath = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
+            return libraryPath is not null ? LoadUnmanagedDllFromPath(libraryPath) : nint.Zero;
+        }
+    }
 
     public void RegisterPlugins(IServiceCollection serviceCollection)
     {
@@ -344,10 +369,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
 
     private BasicPluginInfo? LoadBasicPluginInfo(string? dirPath, string[] dlls, bool isSystem, IServerSettings settings, ref bool settingsChanged)
     {
-        var alc = new IsolatedLoadContext();
+        var selfResolvingPluginPath = dlls.FirstOrDefault(dll => Path.Exists(Path.ChangeExtension(dll, ".deps.json")));
+        var dllsToLoad = dirPath is not null && selfResolvingPluginPath is not null ? [selfResolvingPluginPath] : dlls;
+        var alc = new IsolatedLoadContext(selfResolvingPluginPath);
         try
         {
-            foreach (var dllPath in dlls)
+            foreach (var dllPath in dllsToLoad)
             {
                 var name = Path.GetFileNameWithoutExtension(dllPath);
                 try
