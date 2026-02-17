@@ -54,13 +54,13 @@ public static class OfflineReleaseGroupSearch
 
     private static void EnsureGroupsExists(IApplicationPaths? applicationPaths)
     {
-        if (applicationPaths is null || _groupsByName is not null && _groupsByID is not null && _nextUpdate is not null && _nextUpdate.Value > DateTime.Now)
+        if (applicationPaths is null || (_groupsByName is not null && _groupsByID is not null && _nextUpdate is not null && _nextUpdate.Value > DateTime.Now))
             return;
 
         try
         {
             _accessLock.EnterWriteLock();
-            if (applicationPaths is null || _groupsByName is not null && _groupsByID is not null && _nextUpdate is not null && _nextUpdate.Value > DateTime.Now)
+            if (applicationPaths is null || (_groupsByName is not null && _groupsByID is not null && _nextUpdate is not null && _nextUpdate.Value > DateTime.Now))
                 return;
 
             var filePath = Path.Combine(applicationPaths.DataPath, "groups.json");
