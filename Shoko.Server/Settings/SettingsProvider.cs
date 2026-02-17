@@ -310,6 +310,7 @@ public class SettingsProvider : ISettingsProvider
         }
 
         // Init language settings and react to changes.
+        var shouldRenameAllGroups = false;
         if (_seriesTitleLanguageOrder is null)
         {
             _seriesTitleLanguageOrder = Instance.Language.SeriesTitleLanguageOrder;
@@ -322,8 +323,7 @@ public class SettingsProvider : ISettingsProvider
             // Reset all preferred titles when the language setting has been updated.
             Parallel.ForEach(RepoFactory.AnimeSeries.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredTitle());
             Parallel.ForEach(RepoFactory.AniDB_Anime.GetAll(), new() { MaxDegreeOfParallelism = 10 }, anime => anime.ResetPreferredTitle());
-            if (Utils.ServiceContainer?.GetService<AnimeGroupService>() is { } groupService)
-                Task.Factory.StartNew(groupService.RenameAllGroups, TaskCreationOptions.LongRunning);
+            shouldRenameAllGroups = true;
         }
 
         if (_episodeTitleLanguageOrder is null)
@@ -347,8 +347,12 @@ public class SettingsProvider : ISettingsProvider
 
             // Reset all preferred overviews when the language setting has been updated.
             Parallel.ForEach(RepoFactory.AnimeSeries.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredOverview());
-            if (Utils.ServiceContainer?.GetService<AnimeGroupService>() is { } groupService)
-                Task.Factory.StartNew(groupService.RenameAllGroups, TaskCreationOptions.LongRunning);
+            shouldRenameAllGroups = true;
+        }
+        if (shouldRenameAllGroups)
+        {
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            Task.Factory.StartNew(groupService.RenameAllGroups, TaskCreationOptions.LongRunning);
         }
 
         // Fire off the settings saved event now.
