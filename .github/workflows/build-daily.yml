@@ -228,7 +228,7 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Run dotnet publish
-        run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+        run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService /p:UseSharedCompilation=false /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
