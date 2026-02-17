@@ -62,6 +62,7 @@ public class SettingsProvider : ISettingsProvider, IDisposable
         Utils.SetTraceLogging(eventArgs.Configuration.TraceLog);
 
         // Init language settings and react to changes.
+        var shouldRenameAllGroups = false;
         if (_seriesTitleLanguageOrder is null)
         {
             _seriesTitleLanguageOrder = eventArgs.Configuration.Language.SeriesTitleLanguageOrder.ToArray();
@@ -74,10 +75,9 @@ public class SettingsProvider : ISettingsProvider, IDisposable
             // Reset all preferred titles when the language setting has been updated.
             var animeSeriesRepository = Utils.ServiceContainer.GetRequiredService<AnimeSeriesRepository>();
             var anidbAnimeRepository = Utils.ServiceContainer.GetRequiredService<AniDB_AnimeRepository>();
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
             Parallel.ForEach(animeSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredTitle());
             Parallel.ForEach(anidbAnimeRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, anime => anime.ResetPreferredTitle());
-            Task.Factory.StartNew(groupService.RenameAllGroups, TaskCreationOptions.LongRunning);
+            shouldRenameAllGroups = true;
         }
 
         if (_episodeTitleLanguageOrder is null)
@@ -101,8 +101,12 @@ public class SettingsProvider : ISettingsProvider, IDisposable
 
             // Reset all preferred overviews when the language setting has been updated.
             var animeSeriesRepository = Utils.ServiceContainer.GetRequiredService<AnimeSeriesRepository>();
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
             Parallel.ForEach(animeSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredOverview());
+            shouldRenameAllGroups = true;
+        }
+        if (shouldRenameAllGroups)
+        {
+            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
             Task.Factory.StartNew(groupService.RenameAllGroups, TaskCreationOptions.LongRunning);
         }
     }
