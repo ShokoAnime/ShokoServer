@@ -1345,6 +1345,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         {
             /// <inheritdoc/>
             [Visibility(DisplayVisibility.Hidden), Key]
+            [DefaultValue("{ \"Key\": \"Episode Ranges: 0, Location Rules: 0, Release Group Rules: 0\", \"Value\": \"New Auto Match Rule\" }")]
             public KeyValuePair<string, string> Key
             {
                 get => new(
@@ -1406,10 +1407,11 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
             {
                 /// <inheritdoc/>
                 [Visibility(DisplayVisibility.Hidden), Key]
+                [DefaultValue("{ \"Key\": \"-\", \"Value\": \"New Location Rule\" }")]
                 public KeyValuePair<string, string> Key
                 {
                     get => new(
-                        ManagedFolderID > 0 ? !string.IsNullOrEmpty(RelativePath) ? $"Relative Path: {RelativePath}" : "-" : "",
+                        !string.IsNullOrEmpty(RelativePath) ? $"Relative Path: {RelativePath}" : "-",
                         ManagedFolderID > 0
                             ? $"Managed Folder: {ManagedFolderName} ({ManagedFolderID})"
                             : ManagedFolderSelector is not null && ManagedFolderSelector.Options.FirstOrDefault(o => o.IsSelected) is { } selected ?
@@ -1496,6 +1498,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
             {
                 /// <inheritdoc/>
                 [Visibility(DisplayVisibility.Hidden), Key]
+                [DefaultValue("{ \"Key\": \"AniDB\", \"Value\": \"New Group Rule\" }")]
                 public KeyValuePair<string, string> Key
                 {
                     get => new(
