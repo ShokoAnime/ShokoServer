@@ -45,16 +45,16 @@ else
 fi
 
 # Make sure SHOKO_HOME directory is correctly set.
-SHOKO_HOME=${SHOKO_HOME:-/home/shoko/.shoko/}
+SHOKO_HOME=${SHOKO_HOME:-/home/shoko/.shoko/Shoko.CLI}
 if [ "$PUID" -eq 0 ]; then
-    if [ "$SHOKO_HOME" == "/home/shoko/.shoko/" ]; then
+    if [ "$SHOKO_HOME" == "/home/shoko/.shoko/Shoko.CLI" ]; then
         echo "Error: Cannot use default SHOKO_HOME directory when running as root (PUID=0)."
         echo "Please set a custom SHOKO_HOME directory."
         exit 1
     fi
 fi
 if [ ! -d "$SHOKO_HOME" ]; then
-    if [ "$SHOKO_HOME" == "/home/shoko/.shoko/" ]; then
+    if [ "$SHOKO_HOME" == "/home/shoko/.shoko/Shoko.CLI" ]; then
         echo "Creating default SHOKO_HOME directory: $SHOKO_HOME"
         mkdir -p "$SHOKO_HOME"
     else
