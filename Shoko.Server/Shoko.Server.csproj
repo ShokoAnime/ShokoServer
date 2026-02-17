@@ -144,9 +144,35 @@
       <HintPath>..\Dependencies\Quartz\Quartz.Server.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <Target Inputs="@(ProjectsToInclude)" Outputs="(OutputPath)plugins" Name="MovePluginReferencesOutput" AfterTargets="Build">
-      <Move SourceFiles="$(OutputPath)%(ProjectsToInclude.Filename).dll" DestinationFolder="$(OutputPath)plugins" />
-      <Move SourceFiles="$(OutputPath)%(ProjectsToInclude.Filename).pdb" DestinationFolder="$(OutputPath)plugins" />
-      <Move SourceFiles="$(OutputPath)%(ProjectsToInclude.Filename).xml" DestinationFolder="$(OutputPath)plugins" />
+  <Target
+    Name="MovePluginReferencesOutput"
+    DependsOnTargets="CopyFilesToOutputDirectory;GetCopyToOutputDirectoryItems;Build"
+    AfterTargets="CopyFilesToOutputDirectory;GetCopyToOutputDirectoryItems;Build"
+  >
+      <Message Text="[MovePluginReferencesOutput] Starting plugin move" Importance="high" />
+      <ItemGroup>
+          <OutputPlugins Include="$(OutputPath)%(ProjectsToInclude.Filename).dll" />
+          <OutputPlugins Include="$(OutputPath)%(ProjectsToInclude.Filename).pdb" />
+          <OutputPlugins Include="$(OutputPath)%(ProjectsToInclude.Filename).xml" />
+      </ItemGroup>
+      <Message Text="[MovePluginReferencesOutput] Moving to: $(OutputPath)plugins" Importance="normal" />
+      <Copy SourceFiles="@(OutputPlugins)" DestinationFolder="$(OutputPath)plugins" />
+      <Message Text="[MovePluginReferencesOutput] Finished plugin move" Importance="high" />
+  </Target>
+  <Target
+    Name="MovePluginReferencesOutputForPublish"
+    DependsOnTargets="MovePluginReferencesOutput"
+    AfterTargets="MovePluginReferencesOutput;CopyFilesToOutputDirectory;GetCopyToOutputDirectoryItems;Build"
+    Condition="'$(_IsPublishing)' == 'true'"
+  >
+      <Message Text="[MovePluginReferencesOutputForPublish] Starting plugin move for publish" Importance="high" />
+      <ItemGroup>
+          <PublishedPlugins Include="$(OutputPath)%(ProjectsToInclude.Filename).dll" />
+          <PublishedPlugins Include="$(OutputPath)%(ProjectsToInclude.Filename).pdb" />
+          <PublishedPlugins Include="$(OutputPath)%(ProjectsToInclude.Filename).xml" />
+      </ItemGroup>
+      <Message Text="[MovePluginReferencesOutputForPublish] Moving to: $(PublishDir)plugins" Importance="normal" />
+      <Copy SourceFiles="@(PublishedPlugins)" DestinationFolder="$(PublishDir)plugins" />
+      <Message Text="[MovePluginReferencesOutputForPublish] Finished publish plugin move" Importance="high" />
   </Target>
 </Project>
