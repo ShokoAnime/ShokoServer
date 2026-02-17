@@ -23,7 +23,6 @@ public class AniDbSettings
     [SectionName("Login")]
     [EnvironmentVariable("ANIDB_USER")]
     [DefaultValue(null)]
-    [Required(AllowEmptyStrings = true)]
     public string? Username { get; set; }
 
     /// <summary>
@@ -33,7 +32,6 @@ public class AniDbSettings
     [PasswordPropertyText]
     [EnvironmentVariable("ANIDB_PASS")]
     [DefaultValue(null)]
-    [Required(AllowEmptyStrings = true)]
     public string? Password { get; set; }
 
     [CustomAction(
