@@ -667,11 +667,12 @@ public class TagFilter<T> where T : class
         // evaluates like an xor because of how invert works
         var includeSource = flags.HasFlag(TagFilter.Filter.Source) == flags.HasFlag(TagFilter.Filter.Invert);
         var addOriginal = includeSource && !tags.Select(GetTagName).Any(TagFilter.TagBlackListSource.Contains);
+        var addSourceMaterial = flags.HasFlag(TagFilter.Filter.AnidbInternal) != flags.HasFlag(TagFilter.Filter.Invert);
         if (addOriginal)
         {
             tags.Add(GetTag("original work"));
             var includeHelpers = flags.HasFlag(TagFilter.Filter.AnidbInternal) == flags.HasFlag(TagFilter.Filter.Invert);
-            if (includeHelpers && !tags.Select(GetTagName).Contains("source material")) tags.Add(GetTag("source material"));
+            if (includeHelpers && !tags.Select(GetTagName).Contains("source material") && addSourceMaterial) tags.Add(GetTag("source material"));
         }
     }
 
