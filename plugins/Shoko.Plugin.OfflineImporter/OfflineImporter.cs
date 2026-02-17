@@ -1509,11 +1509,12 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
                         {
                             GroupType.AniDB => OfflineReleaseGroupSearch.LookupByID(AnidbID) is { } group
                                 ? $"Group: {group.Name} ({group.ID})"
-                                : AnidbID is > 0 ? $"Group: <unknown> ({AnidbID})" : "",
+                                : AnidbID is > 0 ? $"Group: <unknown> ({AnidbID})"
+                                : "New Group Rule",
                             GroupType.Custom => !string.IsNullOrEmpty(GroupName ?? GroupID)
                                 ? $"Group: {GroupName ?? GroupID}" + (string.IsNullOrEmpty(GroupID) ? "" : $" ({GroupID})")
-                                : string.Empty,
-                            _ => string.Empty,
+                                : "New Group Rule",
+                            _ => "New Group Rule",
                         }
                     );
                     // no setter
