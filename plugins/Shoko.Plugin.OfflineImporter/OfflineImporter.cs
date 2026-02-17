@@ -1348,8 +1348,8 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
             public KeyValuePair<string, string> Key
             {
                 get => new(
-                    $"Episode Ranges: {ParseEpisodeRanges(EpisodeRanges).Count}," +
-                    $"Location Rules: {LocationRules.Count}," +
+                    $"Episode Ranges: {ParseEpisodeRanges(EpisodeRanges).Count}, " +
+                    $"Location Rules: {LocationRules.Count}, " +
                     $"Release Group Rules: {GroupRules.Count}",
                     !string.IsNullOrEmpty(Name) ? Name : "New Auto Match Rule"
                 );
