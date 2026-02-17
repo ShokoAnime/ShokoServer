@@ -1118,7 +1118,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     [GeneratedRegex(@"(?<=^|,)\s*(?:a?(?<animeId>\d+)(?:[=\- \.]|(?=e)))?e?(?<episodeId>\d+)(?:['@](?<percentRangeStartOrWholeRange>\d+)(?:\-(?<percentRangeEnd>\d+))?%?)?\s*(?=$|,),?", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex SegmentRegex();
 
-    [GeneratedRegex(@"(?<!\-)(?:\b|(?=[\*|E|SP?|C|OP|ED|P|T|PV|O]))(?<prefix>(E|SP?|C|OP|ED|P|T|PV|O))?(?:(?<isStar>\*)|(?:(?<rangeStart>[1-9][0-9]*)(?:-\k<prefix>?(?<rangeEnd>[1-9][0-9]*)?)?))[,\.]?(?:(?<=[\*|E|SP?|C|OP|ED|P|T|PV|O])|\b)")]
+    [GeneratedRegex(@"(?<!\-)(?:\b|(?=[\*|E|SP?|C|OP|ED|P|T|PV|O]))(?<prefix>(E|SP?|C|OP|ED|P|T|PV|O))?(?:(?<isStar>\*)|(?:(?<rangeStart>[1-9][0-9]*)(?:-\k<prefix>?(?<rangeEnd>[1-9][0-9]*)?)?))[,\.]?(?:(?<=[\*|E|SP?|C|OP|ED|P|T|PV|O])|\b)", RegexOptions.IgnoreCase)]
     private static partial Regex EpisodeRangeRegex();
 
     /// <summary>
