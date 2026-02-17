@@ -27,11 +27,11 @@ public class SettingsProvider : ISettingsProvider, IDisposable
 
     private readonly ConfigurationProvider<ServerSettings> _configurationProvider;
 
-    private string[] _seriesTitleLanguageOrder = [];
+    private string[]? _seriesTitleLanguageOrder = null;
 
-    private string[] _episodeTitleLanguageOrder = [];
+    private string[]? _episodeTitleLanguageOrder = null;
 
-    private string[] _descriptionLanguageOrder = [];
+    private string[]? _descriptionLanguageOrder = null;
 
     private bool _ready = false;
 
