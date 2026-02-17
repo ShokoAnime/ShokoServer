@@ -49,6 +49,11 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
   </ItemGroup>
+  <ItemDefinitionGroup>
+    <ProjectReference>
+      <GlobalPropertiesToRemove>Version</GlobalPropertiesToRemove>
+    </ProjectReference>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ProjectReference Include="..\Shoko.Abstractions\Shoko.Abstractions.csproj" />
   </ItemGroup>
