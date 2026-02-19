@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 ARG version
 ARG channel
@@ -14,7 +14,7 @@ WORKDIR /usr/src/app/source
 
 RUN dotnet build -c=Release -r linux-x64 -f net10.0 -o=/usr/src/app/build/ Shoko.CLI/Shoko.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\""
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 ENV PUID=1000 \
     PGID=100 \
     LANG=C.UTF-8 \
