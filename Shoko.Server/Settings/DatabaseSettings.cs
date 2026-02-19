@@ -29,7 +29,7 @@ public class DatabaseSettings
     public Constants.DatabaseType Type { get; set; } = Constants.DatabaseType.SQLite;
 
     [JsonIgnore]
-    private string _sqliteFile = "ShokoServer.db3";
+    private string _sqliteFile = "Shoko.db3";
 
     /// <summary>
     /// File name of the SQLite database file.
