@@ -60,7 +60,7 @@ public partial class TmdbSearchService
             return (results, total);
 
         var lastPage = firstPage.TotalPages;
-        var actualPageSize = firstPage.Results.Count;
+        var actualPageSize = firstPage.Results!.Count;
         var startIndex = (page - 1) * pageSize;
         var startPage = (int)Math.Floor((decimal)startIndex / actualPageSize) + 1;
         var endIndex = Math.Min(startIndex + pageSize, total);
@@ -69,7 +69,7 @@ public partial class TmdbSearchService
         {
             var actualPage = await _tmdbService.UseClient(c => c.SearchMovieAsync(query, i, includeRestricted, year), $"Searching{(includeRestricted ? " all" : string.Empty)} movies for \"{query}\"{(year > 0 ? $" at year {year}" : string.Empty)}").ConfigureAwait(false) ??
                 throw new HttpRequestException(HttpRequestError.ConnectionError, "Failed to get search results");
-            results.AddRange(actualPage.Results);
+            results.AddRange(actualPage.Results!);
         }
 
         var skipCount = startIndex - (startPage - 1) * actualPageSize;
@@ -269,7 +269,7 @@ public partial class TmdbSearchService
             return (results, total);
 
         var lastPage = firstPage.TotalPages;
-        var actualPageSize = firstPage.Results.Count;
+        var actualPageSize = firstPage.Results!.Count;
         var startIndex = (page - 1) * pageSize;
         var startPage = (int)Math.Floor((decimal)startIndex / actualPageSize) + 1;
         var endIndex = Math.Min(startIndex + pageSize, total);
@@ -279,7 +279,7 @@ public partial class TmdbSearchService
             var actualPage = await _tmdbService.UseClient(c => c.SearchTvShowAsync(query, i, includeRestricted, year), $"Searching{(includeRestricted ? " all" : "")} shows for \"{query}\"{(year > 0 ? $" at year {year}" : "")}").ConfigureAwait(false) ??
                 throw new HttpRequestException(HttpRequestError.ConnectionError, "Failed to get search results");
 
-            results.AddRange(actualPage.Results);
+            results.AddRange(actualPage.Results!);
         }
 
         var skipCount = startIndex - (startPage - 1) * actualPageSize;

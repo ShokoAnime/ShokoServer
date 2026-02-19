@@ -9,13 +9,11 @@ namespace Shoko.Server.API.SignalR.NLog;
 [Target("SignalR")]
 public class SignalRTarget : TargetWithLayout
 {
-    [RequiredParameter]
     [DefaultValue("Log")]
-    public string LogMethodName { get; set; }
+    public string LogMethodName { get; set; } = "Log";
 
-    [RequiredParameter]
     [DefaultValue("GetBacklogs")]
-    public string ConnectMethodName { get; set; }
+    public string ConnectMethodName { get; set; } = "GetBacklogs";
 
     /// <summary>
     /// Gets or sets the max number of items to have in memory. If set to 0, then no backlog will be kept.

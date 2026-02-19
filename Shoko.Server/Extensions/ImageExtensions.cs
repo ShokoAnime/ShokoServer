@@ -78,7 +78,7 @@ public static class ImageExtensions
             using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
             var bytes = new byte[12];
             if (fs.Length < 12) return false;
-            fs.Read(bytes, 0, 12);
+            fs.ReadExactly(bytes);
             return GetImageFormat(bytes) != null;
         }
         catch

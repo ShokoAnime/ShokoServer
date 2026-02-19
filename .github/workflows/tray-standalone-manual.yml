@@ -59,11 +59,11 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: Shoko.TrayService
-          path: Shoko.Server/bin/Release/net8.0-windows/win-x64/publish/
+          path: Shoko.Server/bin/Release/net10.0-windows/win-x64/publish/
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net8.0-windows\\win-x64\\publish .\\ShokoServer.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0-windows\\win-x64\\publish .\\ShokoServer.zip
 
       - name: Install SSH key
         uses: shimataro/ssh-key-action@d4fffb50872869abe2d9a9098a6d9c5aa7d16be4

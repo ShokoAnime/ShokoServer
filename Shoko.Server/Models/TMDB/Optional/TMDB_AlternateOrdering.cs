@@ -110,8 +110,8 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>, ITmdbShowOrderingInform
         {
             UpdateProperty(TmdbShowID, showId, v => TmdbShowID = v),
             UpdateProperty(TmdbNetworkID, collection.Network?.Id, v => TmdbNetworkID = v),
-            UpdateProperty(EnglishTitle, collection.Name, v => EnglishTitle = v),
-            UpdateProperty(EnglishOverview, collection.Description, v => EnglishOverview = v),
+            UpdateProperty(EnglishTitle, collection.Name!, v => EnglishTitle = v),
+            UpdateProperty(EnglishOverview, collection.Description!, v => EnglishOverview = v),
             UpdateProperty(SeasonCount, collection.GroupCount, v => SeasonCount = v),
             UpdateProperty(Type, Enum.Parse<AlternateOrderingType>(collection.Type.ToString()), v => Type = v),
         };

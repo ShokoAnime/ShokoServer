@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Sentry;
@@ -92,17 +92,10 @@ public static class APIExtensions
                         Scheme = "apikey"
                     });
 
-                options.AddSecurityRequirement(new OpenApiSecurityRequirement()
+                options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement()
                 {
                     {
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new OpenApiReference
-                            {
-                                Type = ReferenceType.SecurityScheme, Id = "ApiKey"
-                            }
-                        },
-                        Array.Empty<string>()
+                        new("ApiKey"), []
                     }
                 });
 
@@ -431,10 +424,11 @@ public static class APIExtensions
                     var paths = new OpenApiPaths();
                     foreach (var path in swaggerDoc.Paths)
                     {
-                        if (!path.Key.Contains(basepathInt) && !path.Key.Contains(basepathDecimal))
+                        if (!path.Key.Contains(basepathInt) && !path.Key.Contains(basepathDecimal) && path.Value is OpenApiPathItem pathValue)
                         {
-                            path.Value.Servers.Clear();
-                            path.Value.Servers.Add(new() { Url = "/" });
+                            pathValue.Servers ??= [];
+                            pathValue.Servers.Clear();
+                            pathValue.Servers.Add(new() { Url = "/" });
                         }
 
                         paths.Add(path.Key.Replace(basepathInt, "/").Replace(basepathDecimal, "/"), path.Value);

@@ -44,7 +44,7 @@ Install mediainfo and rhash. For apt, that would be:
 
 Build from CLI:
 
-`dotnet build -c=Release -r linux-x64 -f net8.0 Shoko.CLI/Shoko.CLI.csproj`
+`dotnet build -c=Release -r linux-x64 -f net10.0 Shoko.CLI/Shoko.CLI.csproj`
 
 If that doesn't work, this document may be out of date. Check the dockerfile for guaranteedly updated build steps.
 

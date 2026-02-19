@@ -419,11 +419,11 @@ public class ActionService(
 
         foreach (var hash in locals.Keys)
         {
-            var values = locals[hash];
+            var values = locals[hash].ToList();
             values.Sort(comparer);
             var to = values.First();
-            var from = values.Except(to).ToList();
-            foreach (var places in from.Select(from => from.Places).Where(places => places != null && places.Count != 0))
+            values.Remove(to);
+            foreach (var places in values.Select(from => from.Places).Where(places => places != null && places.Count != 0))
             {
                 BaseRepository.Lock(session, places, (s, ps) =>
                 {
@@ -438,7 +438,7 @@ public class ActionService(
                 });
             }
 
-            toRemove.AddRange(from);
+            toRemove.AddRange(values);
         }
 
         BaseRepository.Lock(session, toRemove, (s, ps) =>

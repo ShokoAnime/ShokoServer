@@ -456,8 +456,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
                             }
                             else
                             {
-                                var thumbnailImage0 = new byte[thumbnailStream!.Length];
-                                thumbnailStream.Read(thumbnailImage);
+                                var thumbnailImage0 = new byte[thumbnailStream.Length];
+                                thumbnailStream.ReadExactly(thumbnailImage0);
                                 thumbnailImage = thumbnailImage0;
                             }
                         }
@@ -729,7 +729,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
             if (mime is null)
                 return null;
 
-            var extName = MimeMapping.MimeUtility.GetExtensions(mime).FirstOrDefault();
+            var extName = MimeMapping.MimeUtility.GetExtensions(mime)?.FirstOrDefault();
             if (extName is null)
                 return null;
 

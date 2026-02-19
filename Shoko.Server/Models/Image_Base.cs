@@ -155,7 +155,7 @@ public class Image_Base : IImage
         {
             var stream = await _retryPolicy.ExecuteAsync(async () => await Client.GetStreamAsync(RemoteURL));
             var bytes = new byte[12];
-            stream.Read(bytes, 0, 12);
+            stream.ReadExactly(bytes);
             stream.Close();
             _urlExists = ImageExtensions.IsImageValid(bytes);
             return _urlExists.Value;

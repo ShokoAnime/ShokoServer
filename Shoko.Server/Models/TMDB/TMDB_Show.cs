@@ -219,22 +219,22 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
     {
         // Don't trust 'show.Name' for the English title since it will fall-back
         // to the original language if there is no title in English.
-        var translation = show.Translations.Translations.FirstOrDefault(translation => translation.Iso_639_1 == "en");
+        var translation = show.Translations!.Translations!.FirstOrDefault(translation => translation.Iso_639_1 == "en");
         var updates = new[]
         {
-            UpdateProperty(PosterPath, show.PosterPath, v => PosterPath = v),
-            UpdateProperty(BackdropPath, show.BackdropPath, v => BackdropPath = v),
-            UpdateProperty(OriginalTitle, show.OriginalName, v => OriginalTitle = v),
-            UpdateProperty(OriginalLanguageCode, show.OriginalLanguage, v => OriginalLanguageCode = v),
-            UpdateProperty(EnglishTitle, !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : show.Name, v => EnglishTitle = v),
-            UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : show.Overview, v => EnglishOverview = v),
+            UpdateProperty(PosterPath, show.PosterPath!, v => PosterPath = v),
+            UpdateProperty(BackdropPath, show.BackdropPath!, v => BackdropPath = v),
+            UpdateProperty(OriginalTitle, show.OriginalName!, v => OriginalTitle = v),
+            UpdateProperty(OriginalLanguageCode, show.OriginalLanguage!, v => OriginalLanguageCode = v),
+            UpdateProperty(EnglishTitle, !string.IsNullOrEmpty(translation?.Data?.Name) ? translation.Data.Name : show.Name!, v => EnglishTitle = v),
+            UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data?.Overview) ? translation.Data.Overview : show.Overview!, v => EnglishOverview = v),
             UpdateProperty(IsRestricted, show.Adult, v => IsRestricted = v),
             UpdateProperty(Genres, show.GetGenres(), v => Genres = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
-            UpdateProperty(Keywords, show.Keywords.Results.Select(k => k.Name).ToList(), v => Keywords = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
+            UpdateProperty(Keywords, show.Keywords!.Results!.Select(k => k.Name!).ToList(), v => Keywords = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
             UpdateProperty(
                 ContentRatings,
-                show.ContentRatings.Results
-                    .Select(rating => new TMDB_ContentRating(rating.Iso_3166_1, rating.Rating))
+                show.ContentRatings!.Results!
+                    .Select(rating => new TMDB_ContentRating(rating.Iso_3166_1!, rating.Rating!))
                     .WhereInLanguages(crLanguages?.Append(TitleLanguage.EnglishAmerican).ToHashSet())
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
@@ -243,15 +243,15 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
             ),
             UpdateProperty(
                 ProductionCountries,
-                show.ProductionCountries
-                    .Select(country => new TMDB_ProductionCountry(country.Iso_3166_1, country.Name))
+                show.ProductionCountries!
+                    .Select(country => new TMDB_ProductionCountry(country.Iso_3166_1!, country.Name!))
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
                 v => ProductionCountries = v,
                 (a, b) => string.Equals(string.Join(",", a.Select(a1 => a1.ToString())), string.Join(",", b.Select(b1 => b1.ToString())))
             ),
             UpdateProperty(SeasonCount, show.NumberOfSeasons, v => SeasonCount = v),
-            UpdateProperty(AlternateOrderingCount, show.EpisodeGroups?.Results.Count ?? AlternateOrderingCount, v => AlternateOrderingCount = v),
+            UpdateProperty(AlternateOrderingCount, show.EpisodeGroups?.Results!.Count ?? AlternateOrderingCount, v => AlternateOrderingCount = v),
             UpdateProperty(UserRating, show.VoteAverage, v => UserRating = v),
             UpdateProperty(UserVotes, show.VoteCount, v => UserVotes = v),
             UpdateProperty(FirstAiredAt, show.FirstAirDate?.ToDateOnly(), v => FirstAiredAt = v),

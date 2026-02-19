@@ -13,7 +13,7 @@ COPY . /usr/src/app/source
 WORKDIR /usr/src/app/source
 
 # maxcpucount added because we were facing this issue -> https://github.com/dotnet/sdk/issues/2902
-RUN dotnet build -c=Release -f net8.0 -o=/usr/src/app/build/ -r=linux-arm64 Shoko.CLI/Shoko.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\"" /maxcpucount:1
+RUN dotnet build -c=Release -f net10.0 -o=/usr/src/app/build/ -r=linux-arm64 Shoko.CLI/Shoko.CLI.csproj /p:Version="${version}" /p:InformationalVersion="\"channel=${channel},commit=${commit},tag=${tag},date=${date},\"" /maxcpucount:1
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 ENV PUID=1000 \

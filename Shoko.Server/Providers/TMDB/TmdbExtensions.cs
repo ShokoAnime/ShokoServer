@@ -16,8 +16,8 @@ public static class TmdbExtensions
     private static readonly TimeOnly MidDay = TimeOnly.FromTimeSpan(TimeSpan.FromHours(12));
 
     public static List<string> GetGenres(this Movie movie)
-        => movie.Genres
-            .SelectMany(genre => genre.Name.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        => movie.Genres!
+            .SelectMany(genre => genre.Name!.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
             .OrderBy(genre => genre)
             .ToList();
 
@@ -28,7 +28,7 @@ public static class TmdbExtensions
             return [];
 
         var allMovieGenres = instance.GetMovieGenres().ConfigureAwait(false).GetAwaiter().GetResult();
-        return movie.GenreIds
+        return movie.GenreIds!
             .Select(id => allMovieGenres.TryGetValue(id, out var genre) ? genre : null)
             .WhereNotNull()
             .SelectMany(genre => genre.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
@@ -37,8 +37,8 @@ public static class TmdbExtensions
     }
 
     public static List<string> GetGenres(this TvShow movie)
-        => movie.Genres
-            .SelectMany(genre => genre.Name.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        => movie.Genres!
+            .SelectMany(genre => genre.Name!.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
             .OrderBy(genre => genre)
             .ToList();
 
@@ -49,7 +49,7 @@ public static class TmdbExtensions
             return [];
 
         var allShowGenres = instance.GetShowGenres().ConfigureAwait(false).GetAwaiter().GetResult();
-        return show.GenreIds
+        return show.GenreIds!
             .Select(id => allShowGenres.TryGetValue(id, out var genre) ? genre : null)
             .WhereNotNull()
             .SelectMany(genre => genre.Split('&', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))

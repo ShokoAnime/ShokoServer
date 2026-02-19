@@ -92,8 +92,6 @@ public class AniDBSocketHandler : IAniDBSocketHandler
     public bool TryConnection()
     {
         if (IsConnected) return true;
-        // Don't send Expect 100 requests. These requests aren't always supported by remote internet devices, in which case can cause failure.
-        ServicePointManager.Expect100Continue = false;
 
         try
         {

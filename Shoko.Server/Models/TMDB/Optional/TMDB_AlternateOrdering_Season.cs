@@ -102,7 +102,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
         {
             UpdateProperty(TmdbShowID, showId, v => TmdbShowID = v),
             UpdateProperty(TmdbEpisodeGroupCollectionID, collectionId, v => TmdbEpisodeGroupCollectionID = v),
-            UpdateProperty(EnglishTitle, episodeGroup.Name, v => EnglishTitle = v),
+            UpdateProperty(EnglishTitle, episodeGroup.Name!, v => EnglishTitle = v),
             UpdateProperty(SeasonNumber, seasonNumber, v => SeasonNumber = v),
             UpdateProperty(IsLocked, episodeGroup.Locked, v => IsLocked = v),
         };

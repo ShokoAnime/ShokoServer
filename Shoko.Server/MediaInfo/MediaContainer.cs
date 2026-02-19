@@ -12,6 +12,7 @@ using Shoko.Abstractions.Video.Media;
 // ReSharper disable IdentifierTypo
 #pragma warning disable IDE0019
 #pragma warning disable IDE1006
+#pragma warning disable MsgPack015
 #nullable enable
 namespace Shoko.Server.MediaInfo;
 
@@ -93,8 +94,10 @@ public class MediaContainer : IMediaInfo
     public List<MenuStream> MenuStreams =>
         _menus ??= media?.track?.Where(a => a?.type == StreamType.Menu).Cast<MenuStream>().ToList() ?? [];
 
+    [IgnoreMember]
     string? IMediaInfo.Title => GeneralStream.Title;
 
+    [IgnoreMember]
     TimeSpan IMediaInfo.Duration
     {
         get
@@ -106,35 +109,48 @@ public class MediaContainer : IMediaInfo
         }
     }
 
+    [IgnoreMember]
     int IMediaInfo.BitRate => GeneralStream.OverallBitRate;
 
+    [IgnoreMember]
     decimal IMediaInfo.FrameRate => GeneralStream.FrameRate;
 
+    [IgnoreMember]
     DateTime? IMediaInfo.Encoded => GeneralStream.Encoded_Date;
 
+    [IgnoreMember]
     bool IMediaInfo.IsStreamable => GeneralStream.IsStreamable;
 
+    [IgnoreMember]
     string IMediaInfo.FileExtension => GeneralStream.FileExtension;
 
+    [IgnoreMember]
     string IMediaInfo.ContainerName => GeneralStream.Format;
 
+    [IgnoreMember]
     int IMediaInfo.ContainerVersion =>
         GeneralStream.Format_Version;
 
+    [IgnoreMember]
     IVideoStream? IMediaInfo.VideoStream => VideoStream;
 
+    [IgnoreMember]
     IReadOnlyList<IVideoStream> IMediaInfo.VideoStreams =>
         VideoStreams;
 
+    [IgnoreMember]
     IReadOnlyList<IAudioStream> IMediaInfo.AudioStreams =>
         AudioStreams;
 
+    [IgnoreMember]
     IReadOnlyList<ITextStream> IMediaInfo.TextStreams =>
         TextStreams;
 
+    [IgnoreMember]
     IReadOnlyList<string> IMediaInfo.Attachments =>
         GeneralStream.extra?.Attachments?.Split("/", StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToArray() ?? [];
 
+    [IgnoreMember]
     IReadOnlyList<IChapterInfo> IMediaInfo.Chapters
     {
         get

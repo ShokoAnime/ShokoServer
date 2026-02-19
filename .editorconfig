@@ -254,6 +254,15 @@ dotnet_diagnostic.IDE0051.severity = warning
 # IDE0170: Prefer extended property pattern
 dotnet_diagnostic.IDE0170.severity = warning
 
+# dotnet 10.0 locking
+dotnet_diagnostic.MT1000.severity = suggestion
+dotnet_diagnostic.MT1001.severity = suggestion
+dotnet_diagnostic.MT1002.severity = suggestion
+dotnet_diagnostic.MT1003.severity = suggestion
+dotnet_diagnostic.MT1012.severity = suggestion
+dotnet_diagnostic.MT1013.severity = suggestion
+dotnet_diagnostic.MT1016.severity = suggestion
+
 # RS0016: Only enable if API files are present
 dotnet_public_api_analyzer.require_api_files = true
 

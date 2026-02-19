@@ -162,13 +162,13 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Run dotnet publish
-        run: dotnet publish -c Release -r ${{ matrix.rid }} -f net8.0 ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=dev,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
+        run: dotnet publish -c Release -r ${{ matrix.rid }} -f net10.0 ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=dev,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Shoko.CLI_${{ matrix.build_type }}_${{ matrix.rid }}
-          path: Shoko.Server/bin/Release/net8.0/${{matrix.rid}}/publish/
+          path: Shoko.Server/bin/Release/net10.0/${{matrix.rid}}/publish/
 
   tray-service:
     runs-on: windows-latest
@@ -184,11 +184,11 @@ jobs:
         include:
           - build_props: '-r win-x64 --self-contained true'
             build_type: 'Standalone'
-          - build_dir: '/net8.0-windows/win-x64'
+          - build_dir: '/net10.0-windows/win-x64'
             build_type: 'Standalone'
           - build_props: ''
             build_type: 'Framework'
-          - build_dir: '/net8.0-windows'
+          - build_dir: '/net10.0-windows'
             build_type: 'Framework'
 
     name: Build Tray Service — ${{ matrix.build_type }} (Daily)

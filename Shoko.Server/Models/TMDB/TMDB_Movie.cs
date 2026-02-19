@@ -218,9 +218,9 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     /// <returns>True if any of the fields have been updated.</returns>
     public bool Populate(Movie movie, HashSet<TitleLanguage>? crLanguages)
     {
-        var translation = movie.Translations.Translations.FirstOrDefault(translation => translation.Iso_639_1 == "en");
-        var lang = movie.ProductionCountries.FirstOrDefault()?.Iso_3166_1;
-        var releaseDate = !string.IsNullOrEmpty(lang) && movie.ReleaseDates.Results.FirstOrDefault(obj0 => obj0.Iso_3166_1 == lang) is { } obj1
+        var translation = movie.Translations!.Translations!.FirstOrDefault(translation => translation.Iso_639_1 == "en");
+        var lang = movie.ProductionCountries!.FirstOrDefault()?.Iso_3166_1;
+        var releaseDate = !string.IsNullOrEmpty(lang) && movie.ReleaseDates!.Results!.FirstOrDefault(obj0 => obj0.Iso_3166_1 == lang) is { ReleaseDates: { } } obj1
             ? obj1.ReleaseDates.FirstOrDefault(obj2 => obj2.Type is ReleaseDateType.TheatricalLimited or ReleaseDateType.Theatrical)?.ReleaseDate ??
                 obj1.ReleaseDates.FirstOrDefault(obj2 => obj2.Type is ReleaseDateType.Premiere)?.ReleaseDate ??
                 obj1.ReleaseDates.FirstOrDefault()?.ReleaseDate ??
@@ -228,22 +228,22 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
             : movie.ReleaseDate;
         var updatedList = new[]
         {
-            UpdateProperty(PosterPath, movie.PosterPath, v => PosterPath = v),
-            UpdateProperty(BackdropPath, movie.BackdropPath, v => BackdropPath = v),
+            UpdateProperty(PosterPath, movie.PosterPath!, v => PosterPath = v),
+            UpdateProperty(BackdropPath, movie.BackdropPath!, v => BackdropPath = v),
             UpdateProperty(TmdbCollectionID, movie.BelongsToCollection?.Id, v => TmdbCollectionID = v),
-            UpdateProperty(EnglishTitle, !string.IsNullOrEmpty(translation?.Data.Name) ? translation.Data.Name : movie.Title, v => EnglishTitle = v),
-            UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data.Overview) ? translation.Data.Overview : movie.Overview, v => EnglishOverview = v),
-            UpdateProperty(OriginalTitle, movie.OriginalTitle, v => OriginalTitle = v),
-            UpdateProperty(OriginalLanguageCode, movie.OriginalLanguage, v => OriginalLanguageCode = v),
+            UpdateProperty(EnglishTitle, !string.IsNullOrEmpty(translation?.Data?.Name) ? translation.Data.Name : movie.Title!, v => EnglishTitle = v),
+            UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data?.Overview) ? translation.Data.Overview : movie.Overview!, v => EnglishOverview = v),
+            UpdateProperty(OriginalTitle, movie.OriginalTitle!, v => OriginalTitle = v),
+            UpdateProperty(OriginalLanguageCode, movie.OriginalLanguage!, v => OriginalLanguageCode = v),
             UpdateProperty(IsRestricted, movie.Adult, v => IsRestricted = v),
             UpdateProperty(IsVideo, movie.Video, v => IsVideo = v),
             UpdateProperty(Genres, movie.GetGenres(), v => Genres = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
-            UpdateProperty(Keywords, movie.Keywords.Keywords.Select(k => k.Name).ToList(), v => Keywords = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
+            UpdateProperty(Keywords, movie.Keywords!.Keywords!.Select(k => k.Name!).ToList(), v => Keywords = v, (a, b) => string.Equals(string.Join("|", a), string.Join("|", b))),
             UpdateProperty(
                 ContentRatings,
-                movie.ReleaseDates.Results
-                    .Where(releaseDate => releaseDate.ReleaseDates.Any(r => !string.IsNullOrEmpty(r.Certification)))
-                    .Select(releaseDate => new TMDB_ContentRating(releaseDate.Iso_3166_1, releaseDate.ReleaseDates.Last(r => !string.IsNullOrEmpty(r.Certification)).Certification))
+                movie.ReleaseDates!.Results!
+                    .Where(releaseDate => releaseDate.ReleaseDates?.Any(r => !string.IsNullOrEmpty(r.Certification)) ?? false)
+                    .Select(releaseDate => new TMDB_ContentRating(releaseDate.Iso_3166_1!, releaseDate.ReleaseDates!.Last(r => !string.IsNullOrEmpty(r.Certification)).Certification!))
                     .WhereInLanguages(crLanguages?.Append(TitleLanguage.EnglishAmerican).ToHashSet())
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
@@ -252,8 +252,8 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
             ),
             UpdateProperty(
                 ProductionCountries,
-                movie.ProductionCountries
-                    .Select(country => new TMDB_ProductionCountry(country.Iso_3166_1, country.Name))
+                movie.ProductionCountries!
+                    .Select(country => new TMDB_ProductionCountry(country.Iso_3166_1!, country.Name!))
                     .OrderBy(c => c.CountryCode)
                     .ToList(),
                 v => ProductionCountries = v,

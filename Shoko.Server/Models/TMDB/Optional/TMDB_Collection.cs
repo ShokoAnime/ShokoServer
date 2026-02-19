@@ -97,12 +97,12 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
     /// <returns>True if any of the fields have been updated.</returns>
     public bool Populate(Collection collection)
     {
-        var translation = collection.Translations?.Translations.FirstOrDefault(translation => translation.Iso_639_1 == "en");
+        var translation = collection.Translations?.Translations!.FirstOrDefault(translation => translation.Iso_639_1 == "en");
         var updates = new[]
         {
-            UpdateProperty(EnglishTitle, string.IsNullOrEmpty(translation?.Data.Name) ? collection.Name : translation.Data.Name, v => EnglishTitle = v),
-            UpdateProperty(EnglishOverview, string.IsNullOrEmpty(translation?.Data.Overview) ? collection.Overview : translation.Data.Overview, v => EnglishOverview = v),
-            UpdateProperty(MovieCount, collection.Parts.Count, v => MovieCount = v),
+            UpdateProperty(EnglishTitle, string.IsNullOrEmpty(translation?.Data?.Name) ? collection.Name! : translation.Data.Name, v => EnglishTitle = v),
+            UpdateProperty(EnglishOverview, string.IsNullOrEmpty(translation?.Data?.Overview) ? collection.Overview! : translation.Data.Overview, v => EnglishOverview = v),
+            UpdateProperty(MovieCount, collection.Parts?.Count ?? 0, v => MovieCount = v),
         };
 
         return updates.Any(updated => updated);

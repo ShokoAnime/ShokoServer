@@ -198,9 +198,9 @@ public static class Search
         public RemoteSearchMovie(RemoteMovie movie)
         {
             ID = movie.Id;
-            Title = movie.Title;
-            OriginalTitle = movie.OriginalTitle;
-            OriginalLanguage = movie.OriginalLanguage;
+            Title = movie.Title!;
+            OriginalTitle = movie.OriginalTitle!;
+            OriginalLanguage = movie.OriginalLanguage!;
             Overview = movie.Overview ?? string.Empty;
             IsRestricted = movie.Adult;
             IsVideo = movie.Video;
@@ -223,9 +223,9 @@ public static class Search
         public RemoteSearchMovie(SearchMovie movie)
         {
             ID = movie.Id;
-            Title = movie.Title;
-            OriginalTitle = movie.OriginalTitle;
-            OriginalLanguage = movie.OriginalLanguage;
+            Title = movie.Title!;
+            OriginalTitle = movie.OriginalTitle!;
+            OriginalLanguage = movie.OriginalLanguage!;
             Overview = movie.Overview ?? string.Empty;
             IsRestricted = movie.Adult;
             IsVideo = movie.Video;
@@ -329,9 +329,9 @@ public static class Search
         public RemoteSearchShow(RemoteShow show)
         {
             ID = show.Id;
-            Title = show.Name;
-            OriginalTitle = show.OriginalName;
-            OriginalLanguage = show.OriginalLanguage;
+            Title = show.Name!;
+            OriginalTitle = show.OriginalName!;
+            OriginalLanguage = show.OriginalLanguage!;
             Overview = show.Overview ?? string.Empty;
             FirstAiredAt = show.FirstAirDate?.ToDateOnly();
             Poster = !string.IsNullOrEmpty(show.PosterPath)
@@ -354,9 +354,9 @@ public static class Search
         public RemoteSearchShow(SearchTv show)
         {
             ID = show.Id;
-            Title = show.Name;
-            OriginalTitle = show.OriginalName;
-            OriginalLanguage = show.OriginalLanguage;
+            Title = show.Name!;
+            OriginalTitle = show.OriginalName!;
+            OriginalLanguage = show.OriginalLanguage!;
             Overview = show.Overview ?? string.Empty;
             FirstAiredAt = show.FirstAirDate?.ToDateOnly();
             Poster = !string.IsNullOrEmpty(show.PosterPath)

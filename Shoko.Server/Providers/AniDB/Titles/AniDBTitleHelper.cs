@@ -195,11 +195,6 @@ public class AniDBTitleHelper
         {
             if (File.Exists(_cacheFilePathTemp)) File.Delete(_cacheFilePathTemp);
 
-            // Ignore all certificate failures.
-            ServicePointManager.Expect100Continue = true;
-            //ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-            //ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
-
             // Download the file
             using var httpClient = new HttpClient(new SocketsHttpHandler
             {

@@ -103,20 +103,21 @@ public class TmdbImageService
             .OrderBy(tuple => languages.IndexOf(tuple.Language))
             .ThenBy(tuple => tuple.Index)
             .Take(isLimitEnabled ? maxCount : int.MaxValue)
-            .OrderByDescending(tuple => tuple.Image.FilePath.Equals(defaultForType))
+            .OrderByDescending(tuple => tuple.Image.FilePath!.Equals(defaultForType))
             .ThenBy(tuple => tuple.Index)
             .Select((tuple, index) => (tuple.Image, index))
             .ToList();
         foreach (var (imageData, index) in orderedImages)
         {
-            visitedImages.Add(imageData.FilePath);
+            var imageFilePath = imageData.FilePath!;
+            visitedImages.Add(imageFilePath);
 
-            var image = _tmdbImages.GetByRemoteFileName(imageData.FilePath) ?? new(imageData.FilePath, imageType);
+            var image = _tmdbImages.GetByRemoteFileName(imageFilePath) ?? new(imageFilePath, imageType);
             var updated = image.Populate(imageData);
             if (updated)
                 _tmdbImages.Save(image);
 
-            var imageEntity = _tmdbImageEntities.GetByForeignIDAndTypeAndRemoteFileName(foreignId, foreignType, imageType, imageData.FilePath) ?? new(imageData.FilePath, imageType, foreignType, foreignId);
+            var imageEntity = _tmdbImageEntities.GetByForeignIDAndTypeAndRemoteFileName(foreignId, foreignType, imageType, imageFilePath) ?? new(imageFilePath, imageType, foreignType, foreignId);
             updated = imageEntity.Populate(index, releasedAt);
             if (updated)
                 _tmdbImageEntities.Save(imageEntity);

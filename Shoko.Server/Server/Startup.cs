@@ -43,7 +43,7 @@ public class Startup
 
     private readonly SettingsProvider _settingsProvider;
 
-    private IWebHost? _webHost;
+    private IHost? _webHost;
 
     public event EventHandler<ServerAboutToStartEventArgs>? AboutToStart;
 
@@ -180,33 +180,37 @@ public class Startup
         return false;
     }
 
-    private IWebHost InitWebHost()
+    private IHost InitWebHost()
     {
         if (_webHost != null) return _webHost;
 
         _logger.LogInformation("Initializing Web Hosts.");
         ServerState.Instance.ServerStartingStatus = "Initializing Web Hosts.";
         var settings = _settingsProvider.GetSettings();
-        var builder = new WebHostBuilder()
-            .UseKestrel(options =>
+        var builder = new HostBuilder()
+            .ConfigureWebHost(webHostBuilder =>
             {
-                options.ListenAnyIP(settings.Web.Port);
-            })
-            .ConfigureApp()
-            .ConfigureServiceProvider()
-            .UseStartup(_ => new ServerStartup(_configurationService, _settingsProvider, _pluginManager))
-            .ConfigureLogging(logging =>
-            {
-                logging.ClearProviders();
-                logging.SetMinimumLevel(LogLevel.Trace);
+                webHostBuilder
+                    .UseKestrel(options =>
+                    {
+                        options.ListenAnyIP(settings.Web.Port);
+                    })
+                    .ConfigureApp()
+                    .ConfigureServiceProvider()
+                    .UseStartup(_ => new ServerStartup(_configurationService, _settingsProvider, _pluginManager))
+                    .ConfigureLogging(logging =>
+                    {
+                        logging.ClearProviders();
+                        logging.SetMinimumLevel(LogLevel.Trace);
 #if !LOGWEB
-                logging.AddFilter("Microsoft", LogLevel.Warning);
-                logging.AddFilter("System", LogLevel.Warning);
-                logging.AddFilter("Shoko.Server.API", LogLevel.Warning);
+                        logging.AddFilter("Microsoft", LogLevel.Warning);
+                        logging.AddFilter("System", LogLevel.Warning);
+                        logging.AddFilter("Shoko.Server.API", LogLevel.Warning);
 #endif
-            })
-            .UseNLog()
-            .UseSentryConfig();
+                    })
+                    .UseNLog()
+                    .UseSentryConfig();
+            });
 
         var result = builder.Build();
 

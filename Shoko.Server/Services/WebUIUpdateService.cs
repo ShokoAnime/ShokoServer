@@ -93,7 +93,6 @@ public partial class WebUIUpdateService
     public void InstallUpdateForChannel(ReleaseChannel channel, bool allowIncompatible = false)
     {
         var version = GetLatestVersion(channel, allowIncompatible: allowIncompatible);
-        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
         var release = DownloadApiResponse($"releases/tags/{version.Tag}", ClientRepoName);
         if (release is null)
             return;

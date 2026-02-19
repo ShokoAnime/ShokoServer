@@ -1,6 +1,5 @@
 using System;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 #nullable enable
@@ -10,15 +9,16 @@ public class EnumSchemaFilter<T> : ISchemaFilter where T : struct, Enum
 {
     private string[]? _names;
 
-    public void Apply(OpenApiSchema model, SchemaFilterContext context)
+    public void Apply(IOpenApiSchema model, SchemaFilterContext context)
     {
         if (!context.Type.IsEnum) return;
         if (context.Type != typeof(T)) return;
+        if (model is not OpenApiSchema mod) return;
 
-        model.Enum.Clear();
-        model.Type = "string";
-        model.Format = null;
+        mod!.Enum!.Clear();
+        mod.Type = JsonSchemaType.String;
+        mod.Format = null;
         _names ??= Enum.GetNames<T>();
-        Array.ForEach(_names, name => model.Enum.Add(new OpenApiString(name)));
+        Array.ForEach(_names, name => model.Enum!.Add(name));
     }
 }
