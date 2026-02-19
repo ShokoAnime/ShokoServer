@@ -414,6 +414,8 @@ public static class APIExtensions
         {
             app.UseSwagger(c =>
             {
+                if (webSettings.SwaggerUIPrefix is not "swagger")
+                    c.RouteTemplate = c.RouteTemplate.Replace("/swagger/", $"/{webSettings.SwaggerUIPrefix}/");
                 c.PreSerializeFilters.Add((swaggerDoc, _) =>
                 {
                     var version = double.Parse(swaggerDoc.Info.Version);
