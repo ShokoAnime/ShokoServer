@@ -20,7 +20,7 @@ namespace Shoko.Server.Settings;
 public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHiddenConfiguration, IConfigurationWithMigrations, IConfigurationWithCustomValidation<ServerSettings>
 {
     public static string ApplyMigrations(string config, IApplicationPaths applicationPaths)
-        => FixNonEmittedDefaults(SettingsMigrations.MigrateSettings(config));
+        => FixNonEmittedDefaults(SettingsMigrations.MigrateSettings(config, applicationPaths));
 
     /// <summary>
     /// Fix the behavior of missing members in pre-4.0

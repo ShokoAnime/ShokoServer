@@ -1,31 +1,51 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Plugin;
 
+#nullable enable
 namespace Shoko.Server.Settings;
 
-public static class SettingsMigrations
+public static partial class SettingsMigrations
 {
-    public static int Version => s_migrations.Keys.Max();
+    public static int Version => _migrations.Keys.Max();
+
+    [GeneratedRegex("(\"SettingsVersion\"\\:\\s*)(\\d+)(,)", RegexOptions.Compiled)]
+    private static partial Regex VersionRegex();
 
     /// <summary>
     /// Perform migrations on the settings json, pre-init
     /// </summary>
     /// <param name="settings">unparsed json settings</param>
+    /// <param name="applicationPaths"></param>
     /// <returns>migrated still-unparsed settings</returns>
-    public static string MigrateSettings(string settings)
+    public static string MigrateSettings(string settings, IApplicationPaths applicationPaths)
     {
-        var versionRegex = new Regex("(\"SettingsVersion\"\\:\\s*)(\\d+)(,)", RegexOptions.Compiled);
+        var versionRegex = VersionRegex();
         // first group is full match, second group is first group
         var versionString = versionRegex.Matches(settings).FirstOrDefault()?.Groups.Values.Skip(2).FirstOrDefault()?.Value;
         if (!int.TryParse(versionString, out var version)) version = 0;
 
-        var migrationsToApply = s_migrations.Where(a => a.Key > version).OrderBy(a => a.Key).Select(a => a.Value);
+        var migrationsToApply = _migrations
+            .Where(a => a.Value is not null && a.Key > version)
+            .OrderBy(a => a.Key)
+            .Select(a => a.Value!)
+            .ToList();
+        if (migrationsToApply.Count == 0 && version == Version)
+            return settings;
+
+        var backupDir = Path.Combine(applicationPaths.DataPath, "SettingsBackup");
+        Directory.CreateDirectory(backupDir);
+        var dateNow = DateTime.Now;
+        var fileName = $"settings-server.v{version}.{dateNow.Year:D4}{dateNow.Month:D2}{dateNow.Day:D2}{dateNow.Hour:D2}{dateNow.Minute:D2}.json";
+        var backupFile = Path.Combine(backupDir, fileName);
+        File.WriteAllText(backupFile, settings);
 
         var result = migrationsToApply.Aggregate(settings, (current, migration) => migration(current));
 
@@ -36,7 +56,7 @@ public static class SettingsMigrations
     }
 
     // Settings in, settings out
-    private static readonly Dictionary<int, Func<string, string>> s_migrations = new()
+    private static readonly Dictionary<int, Func<string, string>?> _migrations = new()
     {
         { 1, MigrateTvDBLanguageEnum },
         { 2, MigrateEpisodeLanguagePreference },
@@ -48,7 +68,12 @@ public static class SettingsMigrations
         { 8, MigrateRenamerFromImportToPluginsSettings },
         { 9, MigrateFixDefaultRenamer },
         { 10, MigrateLanguageSourceOrders },
-        { 11, MigrateServerPortToWebPort }
+        { 11, MigrateServerPortToWebPort },
+        // Note: there are changes to how some of the settings store their values
+        // in the file which are not backwards compatible, so add a no-op so the
+        // settings file gets backed up in case the user wants to downgrade their
+        // install.
+        { 12, null },
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -105,12 +130,12 @@ public static class SettingsMigrations
         if (currentSettings["AniDb"] is null)
             return settings;
 
-        var serverAddress = currentSettings["AniDb"]["ServerAddress"]?.Value<string>() ?? "api.anidb.net";
-        var serverPort = currentSettings["AniDb"]["ServerPort"]?.Value<ushort>() ?? 9000;
+        var serverAddress = currentSettings["AniDb"]!["ServerAddress"]?.Value<string>() ?? "api.anidb.net";
+        var serverPort = currentSettings["AniDb"]!["ServerPort"]?.Value<ushort>() ?? 9000;
 
-        currentSettings["AniDb"]["HTTPServerUrl"] = $"http://{serverAddress}:{serverPort + 1}";
-        currentSettings["AniDb"]["UDPServerAddress"] = serverAddress;
-        currentSettings["AniDb"]["UDPServerPort"] = serverPort;
+        currentSettings["AniDb"]!["HTTPServerUrl"] = $"http://{serverAddress}:{serverPort + 1}";
+        currentSettings["AniDb"]!["UDPServerAddress"] = serverAddress;
+        currentSettings["AniDb"]!["UDPServerPort"] = serverPort;
 
         return currentSettings.ToString();
     }
@@ -127,12 +152,12 @@ public static class SettingsMigrations
         {
             UseSynonyms = currentSettings["LanguageUseSynonyms"]?.Value<bool>() ?? false,
             SeriesTitleLanguageOrder = seriesTitlePreference
-                .Select(val => val.GetTitleLanguage())
+                .Select(val => val!.GetTitleLanguage())
                 .Except([TitleLanguage.None, TitleLanguage.Unknown])
                 .Select(val => val.GetString())
                 .ToList(),
             EpisodeTitleLanguageOrder = episodeTitlePreference
-                .Select(val => val.GetTitleLanguage())
+                .Select(val => val!.GetTitleLanguage())
                 .Except([TitleLanguage.None, TitleLanguage.Unknown])
                 .Select(val => val.GetString())
                 .ToList(),
@@ -168,7 +193,7 @@ public static class SettingsMigrations
         if (currentSettings["Plugins"]?["Renamer"] is null)
             return settings;
 
-        var renamerSettings = currentSettings["Plugins"]["Renamer"];
+        var renamerSettings = currentSettings["Plugins"]!["Renamer"]!;
 
         if (string.IsNullOrEmpty(renamerSettings["DefaultRenamer"]?.Value<string>()))
             renamerSettings["DefaultRenamer"] = "Default";
