@@ -20,6 +20,7 @@ using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Exceptions;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Hashing;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Plugin;
@@ -104,7 +105,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         _anidbService = anidbService;
         _metadataService = metadataService;
         _configurationProvider = configurationProvider;
-        _rules = configurationProvider.Load().Rules.Select(x => x.ToMatchRule()).ToList();
+        _rules = configurationProvider.Load().ParseRules.Select(x => x.ToMatchRule()).ToList();
 
         _configurationProvider.Saved += OnConfigurationChanged;
     }
@@ -119,7 +120,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
 
     private void OnConfigurationChanged(object? sender, ConfigurationSavedEventArgs<Configuration> e)
     {
-        _rules = e.Configuration.Rules.Select(x => x.ToMatchRule()).ToList();
+        _rules = e.Configuration.ParseRules.Select(x => x.ToMatchRule()).ToList();
     }
 
     /// <inheritdoc/>
@@ -127,12 +128,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     {
         var (video, isAutomatic) = context;
         var config = _configurationProvider.Load();
-        if (config.AutoMatch is Configuration.AutoMatchMode.Disabled)
-        {
-            _logger.LogDebug("Auto matching is disabled.");
-            return null;
-        }
-        if (config.AutoMatch is Configuration.AutoMatchMode.RulesOnly && !config.AutoMatchRules.Any())
+        if (isAutomatic && config.AutoMatchRules.Count is 0)
         {
             _logger.LogDebug("No rules configured for auto matching.");
             return null;
@@ -159,10 +155,18 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
             if (releaseInfo is null)
                 continue;
 
-            if (isAutomatic && config.AutoMatch is Configuration.AutoMatchMode.RulesOnly && !CheckAutomaticRelease(filePath, videoFiles, releaseInfo, config))
+            if (isAutomatic)
             {
-                _logger.LogDebug("Release info {ReleaseInfo} is was not allowed by any of the {Count} rules", releaseInfo, config.AutoMatchRules.Count);
-                return null;
+                if (!CheckAutomaticRelease(filePath, videoFiles, releaseInfo, config, out var rule))
+                {
+                    if (rule is not null)
+                        _logger.LogDebug("Release info {ReleaseInfo} is was explicitly disallowed by rule {Rule}", releaseInfo, rule.Name);
+                    else
+                        _logger.LogDebug("Release info {ReleaseInfo} is was not allowed by any of the {Count} rules", releaseInfo, config.AutoMatchRules.Count);
+                    return null;
+                }
+
+                _logger.LogDebug("Release info {ReleaseInfo} was allowed by rule {Rule}", releaseInfo, rule.Name);
             }
 
             releaseInfo.FileSize = video.Size;
@@ -920,7 +924,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         return match is not null ? [match] : [];
     }
 
-    private bool CheckAutomaticRelease(string filePath, IReadOnlyList<IVideoFile> videoFiles, ReleaseInfo releaseInfo, Configuration config)
+    private bool CheckAutomaticRelease(string filePath, IReadOnlyList<IVideoFile> videoFiles, ReleaseInfo releaseInfo, Configuration config, [NotNullWhen(true)] out Configuration.AutoMatchRule? matchedRule)
     {
         _logger.LogInformation("Checking rules for automatic match for {Path}", filePath);
         foreach (var rule in config.AutoMatchRules)
@@ -953,7 +957,11 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
                         break;
                     }
                     if (ruleMatched)
+                    {
+                        if (locationRule.MatchType is Configuration.AutoMatchRuleMatchType.Deny)
+                            ruleMatched = !ruleMatched;
                         break;
+                    }
                 }
                 if (!ruleMatched)
                 {
@@ -974,7 +982,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
                 var ruleMatched = false;
                 foreach (var groupRule in rule.GroupRules)
                 {
-                    if (groupRule.Type is Configuration.AutoMatchRule.AutoMatchGroupRule.GroupType.AniDB)
+                    if (groupRule.RuleType is Configuration.AutoMatchReleaseGroupRuleType.AniDB)
                     {
                         if (groupRule.AnidbID is not > 0)
                             continue;
@@ -982,7 +990,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
                             continue;
                         if (releaseGroupId != groupRule.AnidbID)
                             continue;
-                        ruleMatched = true;
+                        ruleMatched = groupRule.MatchType is Configuration.AutoMatchRuleMatchType.Allow;
                         break;
                     }
                     else
@@ -997,7 +1005,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
                             !string.Equals(groupRule.GroupName, releaseGroup.Name, groupRule.IsGroupSourceCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) &&
                             !string.Equals(groupRule.GroupName, releaseGroup.ShortName, groupRule.IsGroupSourceCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase))
                             continue;
-                        ruleMatched = true;
+                        ruleMatched = groupRule.MatchType is Configuration.AutoMatchRuleMatchType.Allow;
                         break;
                     }
                 }
@@ -1017,9 +1025,11 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
                     continue;
                 }
             }
-            return true;
+            matchedRule = rule;
+            return rule.MatchType is Configuration.AutoMatchRuleMatchType.Allow;
         }
 
+        matchedRule = null;
         return false;
     }
 
@@ -1031,33 +1041,34 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
             var isValid = false;
             if (_metadataService.GetEpisodeByProviderID(xref.AnidbEpisodeID, IMetadataService.ProviderName.AniDB) is not IAnidbEpisode anidbEpisode)
                 return false;
-            foreach (var (type, start, end) in ranges)
+            foreach (var range in ranges)
             {
-                switch (type)
+                switch (range.EpisodeType)
                 {
-                    case "Episode":
-                    case "Special":
-                    case "Credits":
-                    case "Trailer":
-                    case "Parody":
-                    case "Other":
-                        var episodeType = Enum.Parse<EpisodeType>(type, true);
+                    case Configuration.AutoMatchEpisodeRangeType.Episode:
+                    case Configuration.AutoMatchEpisodeRangeType.Special:
+                    case Configuration.AutoMatchEpisodeRangeType.AnyCredits:
+                    case Configuration.AutoMatchEpisodeRangeType.Trailer:
+                    case Configuration.AutoMatchEpisodeRangeType.Parody:
+                    case Configuration.AutoMatchEpisodeRangeType.Other:
+                        var episodeType = Enum.Parse<EpisodeType>(range.EpisodeType.ToString(), true);
                         if (anidbEpisode.Type != episodeType)
-                            continue;
-                        if (!start.HasValue || !end.HasValue || anidbEpisode.EpisodeNumber >= start && anidbEpisode.EpisodeNumber <= end)
+                            break;
+                        if (range.RuleType is Configuration.AutoMatchEpisodeRangeRuleType.All || (anidbEpisode.EpisodeNumber >= range.Start && anidbEpisode.EpisodeNumber <= range.End))
                         {
                             isValid = true;
                             break;
                         }
                         break;
-                    case "OP":
-                    case "ED":
+                    case Configuration.AutoMatchEpisodeRangeType.OpeningCredits:
+                    case Configuration.AutoMatchEpisodeRangeType.EndingCredits:
                         if (anidbEpisode.Type is not EpisodeType.Credits)
-                            continue;
+                            break;
+                        var type = range.EpisodeType is Configuration.AutoMatchEpisodeRangeType.OpeningCredits ? "OP" : "ED";
                         var parsedInfo = ParseCreditType(anidbEpisode.DefaultTitle.Value);
                         if (parsedInfo.type != type)
-                            continue;
-                        if (!start.HasValue || !end.HasValue || parsedInfo.number >= start && parsedInfo.number <= end)
+                            break;
+                        if (range.RuleType is Configuration.AutoMatchEpisodeRangeRuleType.All || (parsedInfo.number >= range.Start && parsedInfo.number <= range.End))
                         {
                             isValid = true;
                             break;
@@ -1065,7 +1076,11 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
                         break;
                 }
                 if (isValid)
+                {
+                    if (range.MatchType is Configuration.AutoMatchRuleMatchType.Deny)
+                        isValid = !isValid;
                     break;
+                }
             }
             if (!isValid)
                 return false;
@@ -1073,35 +1088,50 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         return false;
     }
 
-    private static IReadOnlyList<(string, int?, int?)> ParseEpisodeRanges(string? episodeRanges)
+    private static List<Configuration.AutoMatchEpisodeRangeRule> ParseEpisodeRanges(string? episodeRanges)
     {
         if (string.IsNullOrEmpty(episodeRanges) || EpisodeRangeRegex().Matches(episodeRanges) is not { Count: > 0 } result)
             return [];
 
-        var ranges = new List<(string, int?, int?)>();
+        var ranges = new List<Configuration.AutoMatchEpisodeRangeRule>();
         foreach (var range in result)
         {
             var match = EpisodeRangeRegex().Match(range!.ToString()!);
-            var type = match.Groups["type"].Value switch
+            Configuration.AutoMatchEpisodeRangeType? type = match.Groups["type"].Value switch
             {
-                "E" or "" => "Episode",
-                "S" or "SP" => "Special",
-                "C" => "Credits",
-                "OP" => "OP",
-                "T" or "PV" => "Trailer",
-                "P" => "Parody",
-                "O" => "Other",
-                "ED" => "ED",
+                "E" or "" => Configuration.AutoMatchEpisodeRangeType.Episode,
+                "S" or "SP" => Configuration.AutoMatchEpisodeRangeType.Special,
+                "C" => Configuration.AutoMatchEpisodeRangeType.AnyCredits,
+                "T" or "PV" => Configuration.AutoMatchEpisodeRangeType.Trailer,
+                "P" => Configuration.AutoMatchEpisodeRangeType.Parody,
+                "O" => Configuration.AutoMatchEpisodeRangeType.Other,
+                "OP" => Configuration.AutoMatchEpisodeRangeType.OpeningCredits,
+                "ED" => Configuration.AutoMatchEpisodeRangeType.EndingCredits,
                 _ => null,
             };
-            if (type is null)
+            if (!type.HasValue)
                 continue;
 
-            var start = match.Groups["isStar"].Success ? null : (int?)int.Parse(match.Groups["rangeStart"].Value);
+            var inverseMatch = match.Groups["inverseMatch"].Success;
+            var start = match.Groups["rangeStart"].Success ? (int?)int.Parse(match.Groups["rangeStart"].Value) : null;
             var end = start is null ? null : match.Groups["rangeEnd"].Success ? int.Parse(match.Groups["rangeEnd"].Value) : start;
+            var ruleType = !start.HasValue
+                ? Configuration.AutoMatchEpisodeRangeRuleType.All
+                : start == end
+                ? Configuration.AutoMatchEpisodeRangeRuleType.Single
+                : Configuration.AutoMatchEpisodeRangeRuleType.Range;
             if (start.HasValue && end.HasValue && start > end)
                 (start, end) = (end, start);
-            ranges.Add((type, start, end));
+            ranges.Add(new()
+            {
+                MatchType = inverseMatch
+                    ? Configuration.AutoMatchRuleMatchType.Deny
+                    : Configuration.AutoMatchRuleMatchType.Allow,
+                RuleType = ruleType,
+                EpisodeType = type.Value,
+                Start = start ?? 1,
+                End = end ?? 1,
+            });
         }
         return ranges;
     }
@@ -1118,7 +1148,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     [GeneratedRegex(@"(?<=^|,)\s*(?:a?(?<animeId>\d+)(?:[=\- \.]|(?=e)))?e?(?<episodeId>\d+)(?:['@](?<percentRangeStartOrWholeRange>\d+)(?:\-(?<percentRangeEnd>\d+))?%?)?\s*(?=$|,),?", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex SegmentRegex();
 
-    [GeneratedRegex(@"(?<!\-)(?:\b|(?=[\*|E|SP?|C|OP|ED|P|T|PV|O]))(?<prefix>(E|SP?|C|OP|ED|P|T|PV|O))?(?:(?<isStar>\*)|(?:(?<rangeStart>[1-9][0-9]*)(?:-\k<prefix>?(?<rangeEnd>[1-9][0-9]*)?)?))[,\.]?(?:(?<=[\*|E|SP?|C|OP|ED|P|T|PV|O])|\b)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?<![-*A-Z0-9])(?:(?<inverseMatch>!)?)(?:\b|(?=\*|E|SP?|C|OP|ED|P|T|PV|O))(?:(?<prefix>(E|SP?|C|OP|ED|P|T|PV|O))|(?<prefix>(E|SP?|C|OP|ED|P|T|PV|O))?(?:(?<isStar>\*)|(?:(?<rangeStart>[1-9][0-9]*)(?:-\k<prefix>?(?<rangeEnd>[1-9][0-9]*)?)?))(?!-?(?:\*|E|SP?|C|OP|ED|P|T|PV|O|[0-9])))(?!-?(?:\*|E|SP?|C|OP|ED|P|T|PV|O|[0-9]))[,\.]?(?:(?<=\*|E|SP?|C|OP|ED|P|T|PV|O)|\b)", RegexOptions.IgnoreCase)]
     private static partial Regex EpisodeRangeRegex();
 
     /// <summary>
@@ -1182,13 +1212,20 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         public bool SkipAvailabilityCheck { get; set; }
 
         /// <summary>
+        /// The rules to use for automatic matching. If empty, then automatic
+        /// matching is disabled.
+        /// </summary>
+        [List(ListType = DisplayListType.ComplexInline)]
+        public List<AutoMatchRule> AutoMatchRules { get; set; } = [];
+
+        /// <summary>
         /// The regex patterns to use for matching.
         /// </summary>
-        [Display(Name = "Rules")]
+        [Display(Name = "Parsing Rules")]
         [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
         [Visibility(Advanced = true)]
         [List(ListType = DisplayListType.ComplexInline, UniqueItems = true)]
-        public List<CustomRuleDefinition> Rules { get; set; } = [
+        public List<CustomParseRule> ParseRules { get; set; } = [
             new()
             {
                 Name = "anti-timestamp",
@@ -1230,16 +1267,33 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         ];
 
         /// <summary>
-        /// Determines how the provider acts in an auto-matching scenario.
+        ///   Live edit action handler.
         /// </summary>
-        [Display(Name = "Auto Match Mode")]
-        public AutoMatchMode AutoMatch { get; set; } = AutoMatchMode.Disabled;
+        /// <param name="context">The context for the action.</param>
+        /// <param name="applicationPaths">The application paths to use for storing the offline data.</param>
+        /// <returns>The result of the action.</returns>
+        [ConfigurationAction(ConfigurationActionType.LiveEdit)]
+        public ConfigurationActionResult LiveEditActionHandler(ConfigurationActionContext<Configuration> context, IApplicationPaths applicationPaths)
+        {
+            // Finalize episode ranges once we're done.
+            foreach (var rule in AutoMatchRules.ToList())
+            {
+                if (string.IsNullOrWhiteSpace(rule.Name))
+                {
+                    AutoMatchRules.Remove(rule);
+                    continue;
+                }
 
-        /// <summary>
-        /// Auto matching rules.
-        /// </summary>
-        [List(ListType = DisplayListType.ComplexInline)]
-        public List<AutoMatchRule> AutoMatchRules { get; set; } = [];
+                if (rule.EpisodeRangeRules is not null)
+                {
+                    rule.EpisodeRanges = rule.EpisodeRangeRules
+                        .Select(rule => rule.ToString())
+                        .Join(' ');
+                    rule.EpisodeRangeRules = null;
+                }
+            }
+            return new(context.Configuration);
+        }
 
         /// <summary>
         /// Match mode to use during the import.
@@ -1312,30 +1366,131 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         }
 
         /// <summary>
-        /// Automatic matching mode.
+        /// Auto matching behavior.
         /// </summary>
-        public enum AutoMatchMode
+        public enum AutoMatchRuleMatchType
         {
             /// <summary>
-            /// Auto matching is disabled.
+            /// Will allow all matches to this rule.
             /// </summary>
-            [Display(Name = "Disabled")]
-            [EnumMember(Value = "disabled")]
-            Disabled,
+            [Display(Name = "Allow Matches")]
+            [EnumMember(Value = "allow")]
+            Allow = 0,
 
             /// <summary>
-            /// Only results matching one or more auto-matching rules will be valid matches.
+            /// Will deny all matches to this rule.
             /// </summary>
-            [Display(Name = "Rules Only")]
-            [EnumMember(Value = "rules-only")]
-            RulesOnly,
+            [Display(Name = "Deny Matches")]
+            [EnumMember(Value = "deny")]
+            Deny = 1,
+        }
+
+        /// <summary>
+        /// Auto matching episode range type.
+        /// </summary>
+        public enum AutoMatchEpisodeRangeType
+        {
+            /// <summary>
+            /// Normal episodes.
+            /// </summary>
+            [Display(Name = "Normal Episodes")]
+            [EnumMember(Value = "episode")]
+            Episode = 1,
 
             /// <summary>
-            /// All results will be valid matches.
+            /// Specials.
             /// </summary>
-            [Display(Name = "Rules and Files")]
-            [EnumMember(Value = "rules-and-files")]
-            All,
+            [Display(Name = "Specials")]
+            [EnumMember(Value = "special")]
+            Special = 2,
+
+            /// <summary>
+            /// Any credits, including opening credits, ending credits, any anything else.
+            /// </summary>
+            [Display(Name = "Any Credits")]
+            [EnumMember(Value = "credits")]
+            AnyCredits = 3,
+
+            /// <summary>
+            /// Opening credits.
+            /// </summary>
+            [Display(Name = "Opening Credits")]
+            [EnumMember(Value = "openings")]
+            OpeningCredits = 4,
+
+            /// <summary>
+            /// Ending credits.
+            /// </summary>
+            [Display(Name = "Ending Credits")]
+            [EnumMember(Value = "endings")]
+            EndingCredits = 5,
+
+            /// <summary>
+            /// Trailers / previews.
+            /// </summary>
+            [Display(Name = "Trailers / Preview Videos (PVs)")]
+            [EnumMember(Value = "trailer")]
+            Trailer = 6,
+
+            /// <summary>
+            /// Parodies. Legacy type.
+            /// </summary>
+            [Display(Name = "Parodies (Legacy)")]
+            Parody = 7,
+
+            /// <summary>
+            /// Other type episodes. Edge cases.
+            /// </summary>
+            [Display(Name = "Other Type Episodes / Edge Cases")]
+            [EnumMember(Value = "other")]
+            Other = 8,
+        }
+
+        /// <summary>
+        /// Auto matching episode range rule type.
+        /// </summary>
+        public enum AutoMatchEpisodeRangeRuleType
+        {
+            /// <summary>
+            /// Select all episodes for the given episode type.
+            /// </summary>
+            [Display(Name = "All Episodes")]
+            [EnumMember(Value = "all")]
+            All = 1,
+
+            /// <summary>
+            /// Select a single episode for the given episode type.
+            /// </summary>
+            [Display(Name = "Single Episode")]
+            [EnumMember(Value = "single")]
+            Single = 2,
+
+            /// <summary>
+            /// Select a range of episodes for the given episode type.
+            /// </summary>
+            [Display(Name = "Range of Episodes")]
+            [EnumMember(Value = "range")]
+            Range = 3,
+        }
+
+        /// <summary>
+        /// The type of group to validate a rule against a potential match.
+        /// </summary>
+        public enum AutoMatchReleaseGroupRuleType
+        {
+            /// <summary>
+            /// Matches against a custom group.
+            /// </summary>
+            [Display(Name = "Custom Group")]
+            [EnumMember(Value = "custom")]
+            Custom = 0,
+
+            /// <summary>
+            /// Matches against an AniDB group.
+            /// </summary>
+            [Display(Name = "AniDB Group")]
+            [EnumMember(Value = "anidb")]
+            AniDB = 1,
         }
 
         /// <summary>
@@ -1345,32 +1500,53 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         {
             /// <inheritdoc/>
             [Visibility(DisplayVisibility.Hidden), Key]
-            [DefaultValue("{ \"Key\": \"Episode Ranges: 0, Location Rules: 0, Release Group Rules: 0\", \"Value\": \"New Auto Match Rule\" }")]
+            [DefaultValue("{ \"Key\": \"Allow\", \"Value\": \"New Auto Match Allow Rule\" }")]
             public KeyValuePair<string, string> Key
             {
                 get => new(
-                    $"Episode Ranges: {ParseEpisodeRanges(EpisodeRanges).Count}, " +
-                    $"Location Rules: {LocationRules.Count}, " +
-                    $"Release Group Rules: {GroupRules.Count}",
-                    !string.IsNullOrEmpty(Name) ? Name : "New Auto Match Rule"
+                    new string?[]
+                    {
+                        MatchType.ToString(),
+                        (EpisodeRangeRules ?? ParseEpisodeRanges(EpisodeRanges)) is { Count: > 0 } episodeRanges
+                            ? $"{episodeRanges.Count} Episode Ranges"
+                            : null,
+                        LocationRules.Count is > 0
+                            ? $"{LocationRules.Count} Location Rules"
+                            : null,
+                        GroupRules.Count is > 0
+                            ? $"{GroupRules.Count} Release Group Rules"
+                            : null
+                    }
+                        .WhereNotNullOrDefault()
+                        .Join(", "),
+                    !string.IsNullOrEmpty(Name)
+                        ? Name
+                        : MatchType is AutoMatchRuleMatchType.Allow
+                            ? "New Auto Match Allow Rule"
+                            : "New Auto Match Deny Rule"
                 );
                 // no setter
                 set { }
             }
 
             /// <summary>
+            /// Determines if the match should be allowed or denied.
+            /// </summary>
+            [DefaultValue(AutoMatchRuleMatchType.Allow)]
+            public AutoMatchRuleMatchType MatchType { get; set; } = AutoMatchRuleMatchType.Allow;
+
+            /// <summary>
             /// Human and machine friendly name of the rule.
             /// </summary>
             [Visibility(Size = DisplayElementSize.Full)]
             [Display(Name = "Rule Name")]
-            [DefaultValue("match-rule-1")]
+            [DefaultValue("")]
             [Required]
             public string Name { get; set; } = string.Empty;
 
             /// <summary>
             /// The episode ranges to match.
-            /// Can be multiple ranges separated by commas.
-            /// Space and other whitespace characters are ignored.
+            /// Can be multiple ranges separated by commas or spaces.
             /// For a single digit range, just use the number.
             /// If you want to define a range for a different episode type, then prefix the range with the episode type prefix. Episode Prefixes:
             /// "" or "E" → Episode,
@@ -1382,270 +1558,33 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
             /// "P" → Parody,
             /// "O" → Other.
             /// Unprefixed ranges counts as normal episodes.
-            /// If you want to match all episodes for a range, use the episode type prefix plus a star, e.g. "*", "E*", "S*", etc.
+            /// If you want to match all episodes for a range, use the episode type prefix, optionally followed plus a star, e.g. "*", "E", "E*", etc.
+            /// Append "!" to inverse the match, e.g. "!3 *" to allow everything but episode 3.
             /// Leave blank to allow everything.
             /// </summary>
-            [Visibility(Size = DisplayElementSize.Full)]
+            [Visibility(DisplayVisibility.Hidden)]
             [DefaultValue("")]
             public string EpisodeRanges { get; set; } = string.Empty;
 
             /// <summary>
-            /// 
+            /// Sub-rules for auto-matching only episode ranges matching known shapes.
             /// </summary>
-            [List(ListType = DisplayListType.ComplexInline, Sortable = false)]
+            [List(ListType = DisplayListType.ComplexInline)]
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public List<AutoMatchEpisodeRangeRule>? EpisodeRangeRules { get; set; }
+
+            /// <summary>
+            /// Sub-rules for auto-matching only location matching known shapes.
+            /// </summary>
+            [List(ListType = DisplayListType.ComplexInline)]
             public List<AutoMatchLocationRule> LocationRules { get; set; } = [];
+
             /// <summary>
-            /// 
+            /// Sub-rules for auto-matching only release groups matching known shapes.
             /// </summary>
-            [List(ListType = DisplayListType.ComplexInline, Sortable = false)]
+            [Display(Name = "Release Group Rules")]
+            [List(ListType = DisplayListType.ComplexInline)]
             public List<AutoMatchGroupRule> GroupRules { get; set; } = [];
-
-            /// <summary>
-            /// A location auto-match rule.
-            /// </summary>
-            public class AutoMatchLocationRule
-            {
-                /// <inheritdoc/>
-                [Visibility(DisplayVisibility.Hidden), Key]
-                [DefaultValue("{ \"Key\": \"-\", \"Value\": \"New Location Rule\" }")]
-                public KeyValuePair<string, string> Key
-                {
-                    get => new(
-                        !string.IsNullOrEmpty(RelativePath) ? $"Relative Path: {RelativePath}" : "-",
-                        ManagedFolderID > 0
-                            ? $"Managed Folder: {ManagedFolderName} ({ManagedFolderID})"
-                            : ManagedFolderSelector is not null && ManagedFolderSelector.Options.FirstOrDefault(o => o.IsSelected) is { } selected ?
-                                $"Managed Folder: {selected.Label} ({selected.Value})"
-                            : "New Location Rule"
-                    );
-                    // no setter
-                    set { }
-                }
-
-                /// <summary>
-                /// The managed folder to match against.
-                /// </summary>
-                [Visibility(DisplayVisibility.Hidden)]
-                public int ManagedFolderID { get; set; }
-
-                /// <summary>
-                /// The managed folder to match against.
-                /// </summary>
-                [Display(Name = "Managed Folder")]
-                [Visibility(
-                    Size = DisplayElementSize.Full,
-                    Visibility = DisplayVisibility.ReadOnly,
-                    ToggleVisibilityTo = DisplayVisibility.Hidden,
-                    ToggleWhenMemberIsSet = nameof(ManagedFolderID),
-                    ToggleWhenSetTo = 0
-                )]
-                public string? ManagedFolderName { get; set; }
-
-                /// <summary>
-                /// The managed folder to match against.
-                /// </summary>
-                [Display(Name = "Managed Folder")]
-                [Visibility(
-                    Size = DisplayElementSize.Full,
-                    Visibility = DisplayVisibility.Visible,
-                    ToggleVisibilityTo = DisplayVisibility.Hidden,
-                    ToggleWhenMemberIsSet = nameof(ManagedFolderSelector),
-                    ToggleWhenSetTo = null,
-                    InverseToggleCondition = true
-                )]
-                public SelectComponent<int>? ManagedFolderSelector { get; set; }
-
-                /// <summary>
-                /// Relative path prefix from the start of the managed folder to match against.
-                /// </summary>
-                [Visibility(
-                    Size = DisplayElementSize.Full,
-                    Visibility = DisplayVisibility.ReadOnly,
-                    ToggleVisibilityTo = DisplayVisibility.Visible,
-                    ToggleWhenMemberIsSet = nameof(ManagedFolderID),
-                    ToggleWhenSetTo = 0
-                )]
-                [DefaultValue("")]
-                public string RelativePath { get; set; } = string.Empty;
-
-                /// <summary>
-                ///   Live edit action handler.
-                /// </summary>
-                /// <param name="context">The context for the action.</param>
-                /// <param name="service">The video service.</param>
-                /// <returns>The result of the action.</returns>
-                [ConfigurationAction(ConfigurationActionType.LiveEdit)]
-                public ConfigurationActionResult LiveEditActionHandler(ConfigurationActionContext<Configuration> context, IVideoService service)
-                {
-                    if (ManagedFolderID is 0 && ManagedFolderSelector is null)
-                    {
-                        try
-                        {
-                            ManagedFolderSelector = new SelectComponent<int>(
-                                service.GetAllManagedFolders().Select(folder => new SelectOption<int>(folder.ID, folder.Name))
-                            );
-                        }
-                        catch { }
-                    }
-                    return new(context.Configuration);
-                }
-            }
-
-            /// <summary>
-            /// A release group auto-match rule.
-            /// </summary>
-            public class AutoMatchGroupRule
-            {
-                /// <inheritdoc/>
-                [Visibility(DisplayVisibility.Hidden), Key]
-                [DefaultValue("{ \"Key\": \"AniDB\", \"Value\": \"New Group Rule\" }")]
-                public KeyValuePair<string, string> Key
-                {
-                    get => new(
-                        Type switch
-                        {
-                            GroupType.AniDB => "AniDB",
-                            GroupType.Custom => "Custom" + (string.IsNullOrEmpty(GroupSource) ? "" : $" ({GroupSource})"),
-                            _ => string.Empty,
-                        },
-                        Type switch
-                        {
-                            GroupType.AniDB => OfflineReleaseGroupSearch.LookupByID(AnidbID) is { } group
-                                ? $"Group: {group.Name} ({group.ID})"
-                                : AnidbID is > 0 ? $"Group: <unknown> ({AnidbID})"
-                                : "New Group Rule",
-                            GroupType.Custom => !string.IsNullOrEmpty(GroupName ?? GroupID)
-                                ? $"Group: {GroupName ?? GroupID}" + (string.IsNullOrEmpty(GroupID) ? "" : $" ({GroupID})")
-                                : "New Group Rule",
-                            _ => "New Group Rule",
-                        }
-                    );
-                    // no setter
-                    set { }
-                }
-
-                /// <summary>
-                /// The type of group.
-                /// </summary>
-                public GroupType Type { get; set; }
-
-                /// <summary>
-                /// The ID of the AniDB group to match.
-                /// </summary>
-                [Display(Name = "AniDB Group ID")]
-                [Visibility(
-                    Size = DisplayElementSize.Full,
-                    DisableWhenMemberIsSet = nameof(Type),
-                    DisableWhenSetTo = GroupType.AniDB,
-                    InverseDisableCondition = true
-                )]
-                public int AnidbID { get; set; }
-
-                /// <summary>
-                /// The ID of the custom group to match.
-                /// </summary>
-                [Display(Name = "Custom Group ID")]
-                [Visibility(
-                    Size = DisplayElementSize.Full,
-                    DisableWhenMemberIsSet = nameof(Type),
-                    DisableWhenSetTo = GroupType.Custom,
-                    InverseDisableCondition = true
-                )]
-                public string? GroupID { get; set; }
-
-                /// <summary>
-                /// Determines if the group ID is case sensitive.
-                /// </summary>
-                [Display(Name = "Custom Group ID Case Sensitive")]
-                [Visibility(
-                    Size = DisplayElementSize.Full,
-                    DisableWhenMemberIsSet = nameof(Type),
-                    DisableWhenSetTo = GroupType.Custom,
-                    InverseDisableCondition = true
-                )]
-                public bool IsGroupIDCaseSensitive { get; set; }
-
-                /// <summary>
-                /// The long or short name of the custom group to match.
-                /// </summary>
-                [Display(Name = "Custom Group Name")]
-                [Visibility(
-                    Size = DisplayElementSize.Full,
-                    DisableWhenMemberIsSet = nameof(Type),
-                    DisableWhenSetTo = GroupType.Custom,
-                    InverseDisableCondition = true
-                )]
-                public string? GroupName { get; set; }
-
-                /// <summary>
-                /// Determines if the group name is case sensitive.
-                /// </summary>
-                [Display(Name = "Custom Group Name Case Sensitive")]
-                [Visibility(
-                    Size = DisplayElementSize.Full,
-                    DisableWhenMemberIsSet = nameof(Type),
-                    DisableWhenSetTo = GroupType.Custom,
-                    InverseDisableCondition = true
-                )]
-                public bool IsGroupNameCaseSensitive { get; set; }
-
-                /// <summary>
-                /// The source of the custom group to match.
-                /// </summary>
-                [Display(Name = "Custom Group Source")]
-                [Visibility(
-                    Size = DisplayElementSize.Full,
-                    DisableWhenMemberIsSet = nameof(Type),
-                    DisableWhenSetTo = GroupType.Custom,
-                    InverseDisableCondition = true
-                )]
-                public string? GroupSource { get; set; }
-
-                /// <summary>
-                /// Determines if the group source is case sensitive.
-                /// </summary>
-                [Display(Name = "Custom Group Source Case Sensitive")]
-                [Visibility(
-                    Size = DisplayElementSize.Full,
-                    DisableWhenMemberIsSet = nameof(Type),
-                    DisableWhenSetTo = GroupType.Custom,
-                    InverseDisableCondition = true
-                )]
-                public bool IsGroupSourceCaseSensitive { get; set; }
-
-                /// <summary>
-                /// The type of group to validate a rule against a potential match.
-                /// </summary>
-                public enum GroupType
-                {
-                    /// <summary>
-                    /// Matches against an AniDB group.
-                    /// </summary>
-                    [Display(Name = "AniDB Group")]
-                    [EnumMember(Value = "anidb")]
-                    AniDB,
-
-                    /// <summary>
-                    /// Matches against a custom group.
-                    /// </summary>
-                    [Display(Name = "Custom Group")]
-                    [EnumMember(Value = "custom")]
-                    Custom,
-                }
-
-                /// <summary>
-                ///   Live edit action handler.
-                /// </summary>
-                /// <param name="context">The context for the action.</param>
-                /// <param name="applicationPaths">The application paths to use for storing the offline data.</param>
-                /// <returns>The result of the action.</returns>
-                [ConfigurationAction(ConfigurationActionType.LiveEdit)]
-                public ConfigurationActionResult LiveEditActionHandler(ConfigurationActionContext<Configuration> context, IApplicationPaths applicationPaths)
-                {
-                    OfflineReleaseGroupSearch.InitializeBeforeUse(applicationPaths);
-                    return new(context.Configuration);
-                }
-            }
 
             /// <summary>
             ///   Live edit action handler.
@@ -1655,21 +1594,44 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
             [ConfigurationAction(ConfigurationActionType.LiveEdit)]
             public ConfigurationActionResult LiveEditActionHandler(ConfigurationActionContext<Configuration> context)
             {
-                foreach (var rule in LocationRules)
+                // Finalize and remove invalid episode range rules.
+                EpisodeRangeRules ??= ParseEpisodeRanges(EpisodeRanges);
+                // Finalize or remove invalid location rules.
+                foreach (var rule in LocationRules.ToList())
                 {
                     if (rule.ManagedFolderSelector is not null)
                     {
-                        if (rule.ManagedFolderSelector.Options.FirstOrDefault(o => o.IsSelected) is { } selected)
+                        if (rule.ManagedFolderSelector.Options.FirstOrDefault(o => o.IsSelected) is { Value: not 0 } selected)
                         {
                             rule.ManagedFolderID = selected.Value;
                             rule.ManagedFolderName = selected.Label;
+                            rule.ManagedFolderSelector = null;
+                            rule.RelativePath = !string.IsNullOrEmpty(rule.RelativePath)
+                                ? '/' + PlatformUtility.NormalizePath(rule.RelativePath, stripLeadingSlash: true)
+                                : string.Empty;
                         }
                         else
                         {
-                            rule.ManagedFolderID = 0;
-                            rule.ManagedFolderName = string.Empty;
+                            LocationRules.Remove(rule);
                         }
-                        rule.ManagedFolderSelector = null;
+                    }
+                    else if (rule.ManagedFolderID is not > 0)
+                    {
+                        LocationRules.Remove(rule);
+                    }
+                }
+                // Remove invalid group rules.
+                foreach (var rule in GroupRules.ToList())
+                {
+                    if (rule.RuleType is AutoMatchReleaseGroupRuleType.AniDB)
+                    {
+                        if (rule.AnidbID < 0)
+                            GroupRules.Remove(rule);
+                    }
+                    else
+                    {
+                        if (string.IsNullOrWhiteSpace(rule.GroupID) && string.IsNullOrWhiteSpace(rule.GroupName) && string.IsNullOrWhiteSpace(rule.GroupSource))
+                            GroupRules.Remove(rule);
                     }
                 }
                 return new(context.Configuration);
@@ -1677,18 +1639,386 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         }
 
         /// <summary>
+        /// A episode range auto-match rule.
+        /// </summary>
+        public class AutoMatchEpisodeRangeRule
+        {
+            /// <inheritdoc/>
+            [Visibility(DisplayVisibility.Hidden), Key]
+            [DefaultValue("{ \"Key\": \"Allow\", \"Value\": \"Match: *\" }")]
+            public KeyValuePair<string, string> Key
+            {
+                get => new(
+                    $"{MatchType}",
+                    $"Match: {ToString(addPrefix: false)}"
+                );
+                // no setter
+                set { }
+            }
+
+            /// <summary>
+            /// Determines if the match should be allowed or denied.
+            /// </summary>
+            [DefaultValue(AutoMatchRuleMatchType.Allow)]
+            public AutoMatchRuleMatchType MatchType { get; set; } = AutoMatchRuleMatchType.Allow;
+
+            /// <summary>
+            /// The rule type.
+            /// </summary>
+            [DefaultValue(AutoMatchEpisodeRangeRuleType.All)]
+            public AutoMatchEpisodeRangeRuleType RuleType { get; set; } = AutoMatchEpisodeRangeRuleType.All;
+
+            /// <summary>
+            /// The episode type to match.
+            /// </summary>
+            [Visibility(Size = DisplayElementSize.Large)]
+            [DefaultValue(AutoMatchEpisodeRangeType.Episode)]
+            public AutoMatchEpisodeRangeType EpisodeType { get; set; } = AutoMatchEpisodeRangeType.Episode;
+
+            /// <summary>
+            /// The start of the range.
+            /// </summary>
+            [Visibility(
+                ToggleWhenMemberIsSet = nameof(RuleType),
+                ToggleWhenSetTo = AutoMatchEpisodeRangeRuleType.All,
+                ToggleVisibilityTo = DisplayVisibility.Hidden
+            )]
+            [Range(0, int.MaxValue)]
+            [DefaultValue(1)]
+            public int Start { get; set; } = 1;
+
+            /// <summary>
+            /// The end of the range.
+            /// </summary>
+            [Visibility(
+                ToggleWhenMemberIsSet = nameof(RuleType),
+                Visibility = DisplayVisibility.Hidden,
+                ToggleWhenSetTo = AutoMatchEpisodeRangeRuleType.Range,
+                ToggleVisibilityTo = DisplayVisibility.Visible
+            )]
+            [Range(0, int.MaxValue)]
+            [DefaultValue(1)]
+            public int End { get; set; } = 1;
+
+            /// <inheritdoc/>
+            public string ToString(bool addPrefix = true)
+            {
+                var type = EpisodeType switch
+                {
+                    AutoMatchEpisodeRangeType.Special => "S",
+                    AutoMatchEpisodeRangeType.AnyCredits => "C",
+                    AutoMatchEpisodeRangeType.OpeningCredits => "OP",
+                    AutoMatchEpisodeRangeType.EndingCredits => "ED",
+                    AutoMatchEpisodeRangeType.Trailer => "T",
+                    AutoMatchEpisodeRangeType.Parody => "P",
+                    AutoMatchEpisodeRangeType.Other => "O",
+                    AutoMatchEpisodeRangeType.Episode or _ => string.Empty,
+                };
+                var prefix = MatchType is AutoMatchRuleMatchType.Deny && addPrefix
+                    ? "!"
+                    : string.Empty;
+                var range = RuleType is AutoMatchEpisodeRangeRuleType.Single
+                    ? Start.ToString()
+                    : RuleType is AutoMatchEpisodeRangeRuleType.Range
+                        ? $"{Start}-{End}"
+                        : string.IsNullOrEmpty(type) ? "*" : string.Empty;
+                return $"{prefix}{type}{range}";
+            }
+        }
+
+        /// <summary>
+        /// A location auto-match rule.
+        /// </summary>
+        public class AutoMatchLocationRule
+        {
+            /// <inheritdoc/>
+            [Visibility(DisplayVisibility.Hidden), Key]
+            [DefaultValue("{ \"Key\": \"Allow\", \"Value\": \"New Location Allow Rule\" }")]
+            public KeyValuePair<string, string> Key
+            {
+                get => new(
+                    !string.IsNullOrEmpty(RelativePath)
+                        ? $"{MatchType}, Relative Path: '{RelativePath}'"
+                        : $"{MatchType}",
+                    ManagedFolderID > 0
+                        ? $"Managed Folder: {ManagedFolderName}"
+                        : ManagedFolderSelector is not null && ManagedFolderSelector.Options.FirstOrDefault(o => o.IsSelected) is { Value: not 0 } selected ?
+                            $"Managed Folder: {selected.Label}"
+                        : MatchType is AutoMatchRuleMatchType.Allow
+                            ? "New Location Allow Rule"
+                            : "New Location Deny Rule"
+                );
+                // no setter
+                set { }
+            }
+
+            /// <summary>
+            /// The managed folder to match against.
+            /// </summary>
+            [Visibility(DisplayVisibility.Hidden)]
+            public int ManagedFolderID { get; set; }
+
+            /// <summary>
+            /// Determines if the match should be allowed or denied.
+            /// </summary>
+            [DefaultValue(AutoMatchRuleMatchType.Allow)]
+            public AutoMatchRuleMatchType MatchType { get; set; } = AutoMatchRuleMatchType.Allow;
+
+            /// <summary>
+            /// The managed folder to match against.
+            /// </summary>
+            [Display(Name = "Managed Folder")]
+            [Visibility(
+                Size = DisplayElementSize.Full,
+                Visibility = DisplayVisibility.ReadOnly,
+                ToggleVisibilityTo = DisplayVisibility.Hidden,
+                ToggleWhenMemberIsSet = nameof(ManagedFolderID),
+                ToggleWhenSetTo = 0
+            )]
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public string? ManagedFolderName { get; set; }
+
+            /// <summary>
+            /// The managed folder to match against.
+            /// </summary>
+            [Display(Name = "Managed Folder")]
+            [Visibility(
+                Size = DisplayElementSize.Full,
+                Visibility = DisplayVisibility.Visible,
+                ToggleVisibilityTo = DisplayVisibility.Hidden,
+                ToggleWhenMemberIsSet = nameof(ManagedFolderSelector),
+                ToggleWhenSetTo = null,
+                InverseToggleCondition = true
+            )]
+            public SelectComponent<int>? ManagedFolderSelector { get; set; }
+
+            /// <summary>
+            /// Relative path prefix from the start of the managed folder to match against.
+            /// </summary>
+            [Visibility(
+                Size = DisplayElementSize.Full,
+                Visibility = DisplayVisibility.ReadOnly,
+                ToggleVisibilityTo = DisplayVisibility.Visible,
+                ToggleWhenMemberIsSet = nameof(ManagedFolderID),
+                ToggleWhenSetTo = 0
+            )]
+            [DefaultValue("")]
+            public string RelativePath { get; set; } = string.Empty;
+
+            /// <summary>
+            ///   Live edit action handler.
+            /// </summary>
+            /// <param name="context">The context for the action.</param>
+            /// <param name="service">The video service.</param>
+            /// <param name="logger">The logger.</param>
+            /// <returns>The result of the action.</returns>
+            [ConfigurationAction(ConfigurationActionType.LiveEdit)]
+            public ConfigurationActionResult LiveEditActionHandler(ConfigurationActionContext<Configuration> context, IVideoService service, ILogger logger)
+            {
+                if (ManagedFolderID is 0 && (ManagedFolderSelector is null || ManagedFolderSelector.Options.Count <= 1))
+                {
+                    try
+                    {
+                        ManagedFolderSelector = new SelectComponent<int>(
+                            service.GetAllManagedFolders()
+                                .Select(folder => new SelectOption<int>(folder.ID, $"{folder.Name} ({folder.ID})"))
+                                .Prepend(new SelectOption<int>(0, "-"))
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to load managed folders.");
+                        ManagedFolderSelector = new([
+                            new SelectOption<int>(0, "-"),
+                        ]);
+                    }
+                }
+                return new(context.Configuration);
+            }
+        }
+
+        /// <summary>
+        /// A release group auto-match rule.
+        /// </summary>
+        public class AutoMatchGroupRule
+        {
+            /// <inheritdoc/>
+            [Visibility(DisplayVisibility.Hidden), Key]
+            [DefaultValue("{ \"Key\": \"Allow, Source: Custom\", \"Value\": \"New Release Group Allow Rule\" }")]
+            public KeyValuePair<string, string> Key
+            {
+                get => new(
+                    $"{MatchType}, " +
+                    RuleType switch
+                    {
+                        AutoMatchReleaseGroupRuleType.Custom => "Source: Custom" + (string.IsNullOrEmpty(GroupSource) ? "" : $" ({GroupSource})"),
+                        AutoMatchReleaseGroupRuleType.AniDB => "Source: AniDB",
+                        _ => "Source: -",
+                    },
+                    RuleType switch
+                    {
+                        AutoMatchReleaseGroupRuleType.Custom => !string.IsNullOrEmpty(GroupName ?? GroupID)
+                            ? $"Group: {GroupName ?? GroupID}" + (string.IsNullOrEmpty(GroupID) ? "" : $" ({GroupID})")
+                            : MatchType is AutoMatchRuleMatchType.Allow
+                                ? "New Release Group Allow Rule"
+                                : "New Release Group Deny Rule",
+                        AutoMatchReleaseGroupRuleType.AniDB => OfflineReleaseGroupSearch.LookupByID(AnidbID) is { } group
+                            ? $"Group: {group.Name} ({group.ID})"
+                            : AnidbID is > 0 ? $"Group: <unknown> ({AnidbID})"
+                            : MatchType is AutoMatchRuleMatchType.Allow
+                                ? "New Release Group Allow Rule"
+                                : "New Release Group Deny Rule",
+                        _ => MatchType is AutoMatchRuleMatchType.Allow
+                            ? "New Release Group Allow Rule"
+                            : "New Release Group Deny Rule",
+                    }
+                );
+                // no setter
+                set { }
+            }
+
+            /// <summary>
+            /// Determines if the match should be allowed or denied.
+            /// </summary>
+            [DefaultValue(AutoMatchRuleMatchType.Allow)]
+            public AutoMatchRuleMatchType MatchType { get; set; } = AutoMatchRuleMatchType.Allow;
+
+            /// <summary>
+            /// Determines how to match the group.
+            /// </summary>
+            [DefaultValue(AutoMatchReleaseGroupRuleType.Custom)]
+            public AutoMatchReleaseGroupRuleType RuleType { get; set; } = AutoMatchReleaseGroupRuleType.Custom;
+
+            /// <summary>
+            /// The ID of the AniDB group to match.
+            /// </summary>
+            [Display(Name = "AniDB Group ID")]
+            [Visibility(
+                Size = DisplayElementSize.Large,
+                Visibility = DisplayVisibility.Hidden,
+                ToggleWhenMemberIsSet = nameof(RuleType),
+                ToggleWhenSetTo = AutoMatchReleaseGroupRuleType.AniDB,
+                ToggleVisibilityTo = DisplayVisibility.Visible
+            )]
+            public int AnidbID { get; set; }
+
+            /// <summary>
+            /// The ID of the custom group to match.
+            /// </summary>
+            [Display(Name = "Custom Group ID")]
+            [Visibility(
+                Size = DisplayElementSize.Full,
+                Visibility = DisplayVisibility.Hidden,
+                ToggleWhenMemberIsSet = nameof(RuleType),
+                ToggleWhenSetTo = AutoMatchReleaseGroupRuleType.Custom,
+                ToggleVisibilityTo = DisplayVisibility.Visible
+            )]
+            public string? GroupID { get; set; }
+
+            /// <summary>
+            /// Determines if the group ID is case sensitive.
+            /// </summary>
+            [Display(Name = "Custom Group ID Case Sensitive")]
+            [Visibility(
+                Size = DisplayElementSize.Full,
+                Visibility = DisplayVisibility.Hidden,
+                ToggleWhenMemberIsSet = nameof(RuleType),
+                ToggleWhenSetTo = AutoMatchReleaseGroupRuleType.Custom,
+                ToggleVisibilityTo = DisplayVisibility.Visible
+            )]
+            public bool IsGroupIDCaseSensitive { get; set; }
+
+            /// <summary>
+            /// The long or short name of the custom group to match.
+            /// </summary>
+            [Display(Name = "Custom Group Name")]
+            [Visibility(
+                Size = DisplayElementSize.Full,
+                Visibility = DisplayVisibility.Hidden,
+                ToggleWhenMemberIsSet = nameof(RuleType),
+                ToggleWhenSetTo = AutoMatchReleaseGroupRuleType.Custom,
+                ToggleVisibilityTo = DisplayVisibility.Visible
+            )]
+            public string? GroupName { get; set; }
+
+            /// <summary>
+            /// Determines if the group name is case sensitive.
+            /// </summary>
+            [Display(Name = "Custom Group Name Case Sensitive")]
+            [Visibility(
+                Size = DisplayElementSize.Full,
+                Visibility = DisplayVisibility.Hidden,
+                ToggleWhenMemberIsSet = nameof(RuleType),
+                ToggleWhenSetTo = AutoMatchReleaseGroupRuleType.Custom,
+                ToggleVisibilityTo = DisplayVisibility.Visible
+            )]
+            public bool IsGroupNameCaseSensitive { get; set; }
+
+            /// <summary>
+            /// The source of the custom group to match.
+            /// </summary>
+            [Display(Name = "Custom Group Source")]
+            [Visibility(
+                Size = DisplayElementSize.Full,
+                Visibility = DisplayVisibility.Hidden,
+                ToggleWhenMemberIsSet = nameof(RuleType),
+                ToggleWhenSetTo = AutoMatchReleaseGroupRuleType.Custom,
+                ToggleVisibilityTo = DisplayVisibility.Visible
+            )]
+            public string? GroupSource { get; set; }
+
+            /// <summary>
+            /// Determines if the group source is case sensitive.
+            /// </summary>
+            [Display(Name = "Custom Group Source Case Sensitive")]
+            [Visibility(
+                Size = DisplayElementSize.Full,
+                Visibility = DisplayVisibility.Hidden,
+                ToggleWhenMemberIsSet = nameof(RuleType),
+                ToggleWhenSetTo = AutoMatchReleaseGroupRuleType.Custom,
+                ToggleVisibilityTo = DisplayVisibility.Visible
+            )]
+            public bool IsGroupSourceCaseSensitive { get; set; }
+
+            /// <summary>
+            ///   Live edit action handler.
+            /// </summary>
+            /// <param name="context">The context for the action.</param>
+            /// <param name="applicationPaths">The application paths to use for storing the offline data.</param>
+            /// <returns>The result of the action.</returns>
+            [ConfigurationAction(ConfigurationActionType.LiveEdit)]
+            public ConfigurationActionResult LiveEditActionHandler(ConfigurationActionContext<Configuration> context, IApplicationPaths applicationPaths)
+            {
+                OfflineReleaseGroupSearch.InitializeBeforeUse(applicationPaths);
+                return new(context.Configuration);
+            }
+        }
+
+        /// <summary>
         /// A custom rule definition.
         /// </summary>
-        public class CustomRuleDefinition
+        public class CustomParseRule
         {
+            /// <inheritdoc/>
+            [Visibility(DisplayVisibility.Hidden), Key]
+            [DefaultValue("New Parsing Rule")]
+            public string Key
+            {
+                get => !string.IsNullOrWhiteSpace(Name)
+                    ? Name
+                    : "New Parsing Rule";
+                // no setter
+                set { }
+            }
+
             /// <summary>
             /// Human and machine friendly name of the rule.
             /// </summary>
             [Visibility(Size = DisplayElementSize.Full)]
             [Display(Name = "Rule Name")]
-            [DefaultValue("custom-rule-1")]
-            [Key, Required]
-            public string Name { get; set; } = "custom-rule-1";
+            [DefaultValue("")]
+            [Required]
+            public string Name { get; set; } = "";
 
             /// <summary>
             /// Determines the transform to apply post-matching.
