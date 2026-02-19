@@ -54,10 +54,11 @@ public abstract class BaseDatabase<T> : IDatabase
             //ignored
         }
 
+        var dateNow = DateTime.Now;
         var fname = settings.Database.Schema + "_" + version.ToString("D3") + "_" +
-                    DateTime.Now.Year.ToString("D4") + DateTime.Now.Month.ToString("D2") +
-                    DateTime.Now.Day.ToString("D2") + DateTime.Now.Hour.ToString("D2") +
-                    DateTime.Now.Minute.ToString("D2");
+                    dateNow.Year.ToString("D4") + dateNow.Month.ToString("D2") +
+                    dateNow.Day.ToString("D2") + dateNow.Hour.ToString("D2") +
+                    dateNow.Minute.ToString("D2");
         return Path.Combine(DatabaseBackupDirectoryPath, fname);
     }
 
