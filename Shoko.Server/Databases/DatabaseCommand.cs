@@ -35,25 +35,23 @@ public class DatabaseCommand
         Command = command;
     }
 
-    public DatabaseCommand(int version, int revision, Action databasefix)
+    public DatabaseCommand(int version, int revision, Action databaseFix)
     {
         Version = version;
         Revision = revision;
-        DatabaseFix = databasefix;
+        DatabaseFix = databaseFix;
     }
 
-    public DatabaseCommand(int version, int revision, Func<object, Tuple<bool, string>> updatecommand)
+    public DatabaseCommand(int version, int revision, Func<object, Tuple<bool, string>> updateCommand = null)
     {
         Version = version;
         Revision = revision;
-        UpdateCommand = updatecommand;
+        UpdateCommand = updateCommand ?? DatabaseFixes.NoOperation;
     }
 
-    public DatabaseCommand(Func<object, Tuple<bool, string>> updatecommand)
+    public DatabaseCommand(Func<object, Tuple<bool, string>> updateCommand)
     {
-        Version = 0;
-        Revision = 0;
-        UpdateCommand = updatecommand;
+        UpdateCommand = updateCommand;
     }
 
     public DatabaseCommand(string command)
