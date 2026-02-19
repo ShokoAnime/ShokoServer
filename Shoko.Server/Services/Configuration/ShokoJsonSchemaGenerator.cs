@@ -134,8 +134,17 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                     if (!propertyDict.TryGetValue(propertyKey, out var propertyDefinition))
                         continue;
 
-                    if (propertyDefinition.TryGetValue(ElementLabel, out var propertyLabel
-                    ))
+                    // Handle enum default values.
+                    if (propertyDefinition.TryGetValue(EnumDefinitions, out var d0) && d0 is List<Dictionary<string, string>> d1 &&
+                        schemaValue.Reference?.EnumerationNames?.Count is > 0 &&
+                        schemaValue.Default is string defaultValue
+                    )
+                    {
+                        var index = schemaValue.Reference.EnumerationNames.IndexOf(defaultValue);
+                        schemaValue.Default = index >= 0 ? d1[schemaValue.Reference.EnumerationNames.IndexOf(defaultValue)]["value"] : null;
+                    }
+
+                    if (propertyDefinition.TryGetValue(ElementLabel, out var propertyLabel))
                     {
                         propertyDefinition.Remove(ElementLabel);
                         schemaValue.Title = (string)propertyLabel!;
@@ -530,19 +539,16 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                 schema.Enumeration.Clear();
                 schema.EnumerationNames.Clear();
 
-                var enumList = new List<Dictionary<string, object?>>();
+                var enumList = new List<Dictionary<string, string>>();
                 var enumValueConverter = context.Settings.ReflectionService.GetEnumValueConverter(context.Settings);
                 foreach (var enumName in Enum.GetNames(contextualType.Type))
                 {
-                    string? value = null;
                     var field = contextualType.GetField(enumName)!;
                     var title = TypeReflectionExtensions.GetDisplayName(field);
                     var description = TypeReflectionExtensions.GetDescription(field);
-                    if (field.GetAttribute<EnumMemberAttribute>(false) is { } enumMemberAttribute && !string.IsNullOrEmpty(enumMemberAttribute.Value))
-                        value = enumMemberAttribute.Value;
-                    else
-                        value = enumValueConverter(Enum.Parse(contextualType.Type, enumName));
-
+                    var value = field.GetAttribute<EnumMemberAttribute>(false) is { } enumMemberAttribute && !string.IsNullOrEmpty(enumMemberAttribute.Value)
+                        ? enumMemberAttribute.Value
+                        : enumValueConverter(Enum.Parse(contextualType.Type, enumName))!;
                     schema.Enumeration.Add(value);
                     schema.EnumerationNames.Add(enumName);
                     enumList.Add(new()
