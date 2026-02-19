@@ -444,8 +444,7 @@ public static class APIExtensions
                     var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
                     foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
                     {
-                        options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
-                            description.GroupName.ToUpperInvariant());
+                        options.SwaggerEndpoint($"/{webSettings.SwaggerUIPrefix}/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
                     }
                     options.EnablePersistAuthorization();
                 });
