@@ -833,6 +833,16 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(140, 24, "ALTER TABLE TMDB_Network ADD COLUMN LastOrphanedAt DATETIME;"),
         new(141,  1, "DELETE FROM AnimeSeries_User WHERE AbsoluteUserRating = 0;"),
         new(141,  2, "DELETE FROM AnimeEpisode_User WHERE AbsoluteUserRating = 0;"),
+        new(142,  1, "UPDATE StoredReleaseInfo SET Source = '0' WHERE Source = 'Unknown';"),
+        new(142,  2, "UPDATE StoredReleaseInfo SET Source = '1' WHERE Source = 'Other';"),
+        new(142,  3, "UPDATE StoredReleaseInfo SET Source = '2' WHERE Source = 'TV';"),
+        new(142,  4, "UPDATE StoredReleaseInfo SET Source = '3' WHERE Source = 'DVD';"),
+        new(142,  5, "UPDATE StoredReleaseInfo SET Source = '4' WHERE Source = 'BluRay';"),
+        new(142,  6, "UPDATE StoredReleaseInfo SET Source = '5' WHERE Source = 'Web';"),
+        new(142,  7, "UPDATE StoredReleaseInfo SET Source = '6' WHERE Source = 'VHS';"),
+        new(142,  8, "UPDATE StoredReleaseInfo SET Source = '7' WHERE Source = 'VCD';"),
+        new(142,  9, "UPDATE StoredReleaseInfo SET Source = '8' WHERE Source = 'LaserDisc';"),
+        new(142, 10, "UPDATE StoredReleaseInfo SET Source = '9' WHERE Source = 'Camera';"),
     ];
 
     #endregion
