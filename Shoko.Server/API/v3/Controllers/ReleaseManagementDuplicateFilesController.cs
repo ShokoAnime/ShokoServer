@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -17,6 +18,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController]
 [Route("/api/v{version:apiVersion}/ReleaseManagement/DuplicateFiles")]
 [ApiV3]
+[Authorize]
 public class ReleaseManagementDuplicateFilesController(ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
     /// <summary>

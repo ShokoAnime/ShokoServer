@@ -21,6 +21,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// </summary>
 [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
 [DatabaseBlockedExempt]
+[Authorize(Roles = "user,admin,init")]
 public class QueueController : BaseController
 {
     private readonly QueueHandler _queueHandler;

@@ -43,6 +43,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
+[Authorize]
 public partial class WebUIController(ISettingsProvider settingsProvider, IApplicationPaths applicationPaths, WebUIUpdateService updateService, CssThemeService themeService, WebUIFactory webUIFactory, ILogger<WebUIController> logger) : BaseController(settingsProvider)
 {
     /// <summary>
@@ -391,6 +392,7 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
     }
 
     /// <inheritdoc cref="InstallWebUI"/>
+    [AllowAnonymous]
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("Install")]
