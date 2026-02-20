@@ -58,7 +58,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '8.x' ]
+        dotnet: [ '10.x' ]
 
     name: Publish Shoko.Abstractions Nuget
 
@@ -94,7 +94,7 @@ jobs:
     strategy:
       matrix:
         dotnet:
-          - '8.x'
+          - '10.x'
         include:
           - build_type: 'Standalone'
             build_props: '--self-contained true'
@@ -160,7 +160,7 @@ jobs:
     strategy:
       matrix:
         dotnet:
-          - '8.x'
+          - '10.x'
 
     name: Build Tray Service — Framework dependent (Stable)
 
@@ -207,7 +207,7 @@ jobs:
     strategy:
       matrix:
         dotnet:
-          - '8.x'
+          - '10.x'
 
     name: Build Tray Service — Installer (Stable)
 

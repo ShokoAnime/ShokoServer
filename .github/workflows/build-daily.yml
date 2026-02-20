@@ -71,7 +71,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '8.x' ]
+        dotnet: [ '10.x' ]
 
     name: Publish Shoko.Abstractions Nuget
 
@@ -110,7 +110,7 @@ jobs:
     strategy:
       matrix:
         rid: ['linux-x64', 'linux-arm64']
-        dotnet: [ '8.x' ]
+        dotnet: [ '10.x' ]
         build_type: ['Standalone']
         include:
           - build_type: 'Standalone'
@@ -179,7 +179,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '8.x' ]
+        dotnet: [ '10.x' ]
         build_type: ['Standalone', 'Framework']
         include:
           - build_props: '-r win-x64 --self-contained true'
@@ -245,7 +245,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '8.x' ]
+        dotnet: [ '10.x' ]
 
     name: Build Tray Service — Installer (Daily)
 

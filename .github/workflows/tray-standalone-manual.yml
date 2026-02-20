@@ -22,7 +22,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '8.x' ]
+        dotnet: [ '10.x' ]
 
     name: Shoko Tray Service build
 
