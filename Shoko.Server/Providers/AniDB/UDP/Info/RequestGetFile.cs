@@ -285,6 +285,9 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
             "vcd" => GetFile_Source.VCD,
             "svcd" => GetFile_Source.SVCD,
             "ld" => GetFile_Source.LaserDisc,
+            "8mm" => GetFile_Source.Film8mm,
+            "16mm" => GetFile_Source.Film16mm,
+            "35mm" => GetFile_Source.Film35mm,
             _ => GetFile_Source.Unknown
         };
     }

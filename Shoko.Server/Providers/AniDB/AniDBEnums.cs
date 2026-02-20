@@ -46,6 +46,9 @@ public enum GetFile_Source
     VCD,
     SVCD,
     LaserDisc,
+    Film8mm,
+    Film16mm,
+    Film35mm,
 }
 
 public enum UpdateType

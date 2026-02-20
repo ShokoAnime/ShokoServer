@@ -56,4 +56,9 @@ public enum ReleaseSource : byte
     /// Filmed with a camera.
     /// </summary>
     Camera = 9,
+
+    /// <summary>
+    /// Digitized from a 8, 16 or 35mm film reel.
+    /// </summary>
+    Film = 10,
 }

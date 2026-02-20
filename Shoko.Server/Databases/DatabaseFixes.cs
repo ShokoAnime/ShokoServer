@@ -1173,6 +1173,9 @@ public class DatabaseFixes
                     GetFile_Source.LaserDisc => ReleaseSource.LaserDisc,
                     GetFile_Source.BluRay => ReleaseSource.BluRay,
                     GetFile_Source.Web => ReleaseSource.Web,
+                    GetFile_Source.Film8mm => ReleaseSource.Film,
+                    GetFile_Source.Film16mm => ReleaseSource.Film,
+                    GetFile_Source.Film35mm => ReleaseSource.Film,
                     _ => ReleaseSource.Unknown,
                 };
                 storedReleaseInfo.ProvidedFileSize = fileSize;
