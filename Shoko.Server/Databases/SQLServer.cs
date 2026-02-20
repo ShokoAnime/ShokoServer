@@ -827,7 +827,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new(140,  7, "CREATE TABLE AniDB_Character (AniDB_CharacterID INT IDENTITY(1,1), CharacterID INT NOT NULL, Name NVARCHAR(512) NOT NULL, OriginalName NVARCHAR(512) NOT NULL, Description TEXT NOT NULL, ImagePath NVARCHAR(20) NOT NULL, Gender INT NOT NULL);"),
         new(140,  8, "CREATE TABLE AniDB_Anime_Staff (AniDB_Anime_StaffID INT IDENTITY(1,1), AnimeID INT NOT NULL, CreatorID INT NOT NULL, Role NVARCHAR(64) NOT NULL, RoleType INT NOT NULL, Ordering INT NOT NULL);"),
         new(140,  9, "CREATE TABLE AniDB_Anime_Character (AniDB_Anime_CharacterID INT IDENTITY(1,1), AnimeID INT NOT NULL, CharacterID INT NOT NULL, Appearance NVARCHAR(20) NOT NULL, AppearanceType INT NOT NULL, Ordering INT NOT NULL);"),
-        new(140,  0, "CREATE TABLE AniDB_Anime_Character_Creator (AniDB_Anime_Character_CreatorID INT IDENTITY(1,1), AnimeID INT NOT NULL, CharacterID INT NOT NULL, CreatorID INT NOT NULL, Ordering INT NOT NULL);"),
+        new(140,  10, "CREATE TABLE AniDB_Anime_Character_Creator (AniDB_Anime_Character_CreatorID INT IDENTITY(1,1), AnimeID INT NOT NULL, CharacterID INT NOT NULL, CreatorID INT NOT NULL, Ordering INT NOT NULL);"),
         new(140, 11, "CREATE INDEX IX_AniDB_Anime_Staff_CreatorID ON AniDB_Anime_Staff(CreatorID);"),
         new(140, 12),
         new(141,  1, "ALTER TABLE AniDB_Character ADD Type int NOT NULL DEFAULT 0;"),
