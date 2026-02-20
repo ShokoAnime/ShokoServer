@@ -898,6 +898,12 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new(151, 23, "ALTER TABLE TMDB_Network ADD LastOrphanedAt DATETIME2;"),
         new(152, 1, "DELETE FROM AnimeSeries_User WHERE AbsoluteUserRating = 0;"),
         new(152, 2, "DELETE FROM AnimeEpisode_User WHERE AbsoluteUserRating = 0;"),
+        new(153, 1, "ALTER TABLE AnimeEpisode_User ALTER COLUMN WatchedDate datetime2 NULL;"),
+        new(153, 2, "ALTER TABLE AnimeGroup_User ALTER COLUMN WatchedDate datetime2 NULL;"),
+        new(153, 3, "ALTER TABLE AnimeSeries_User ALTER COLUMN WatchedDate datetime2 NULL;"),
+        new(153, 4, DropLastEpisodeUpdateDefaultOnAnimeSeries_User),
+        new(153, 5, "ALTER TABLE AnimeSeries_User ALTER COLUMN LastEpisodeUpdate datetime2 NULL;"),
+        new(153, 6, "ALTER TABLE AnimeSeries_User ADD DEFAULT NULL FOR LastEpisodeUpdate;"),
     ];
 
     #endregion
@@ -1012,6 +1018,12 @@ public class SQLServer : BaseDatabase<SqlConnection>
     {
         DropDefaultConstraint("TMDB_Show", "Keywords");
         DropDefaultConstraint("TMDB_Movie", "Keywords");
+        return Tuple.Create<bool, string>(true, null);
+    }
+
+    private static Tuple<bool, string> DropLastEpisodeUpdateDefaultOnAnimeSeries_User(object connection)
+    {
+        DropDefaultConstraint("AnimeSeries_User", "LastEpisodeUpdate");
         return Tuple.Create<bool, string>(true, null);
     }
 
