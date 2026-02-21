@@ -51,7 +51,7 @@ public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupReposit
         {
             try
             {
-                return filter.Expression?.Evaluate(a.Filterable, a.UserInfo, time) ?? true;
+                return filter.Expression?.Evaluate(a.Filterable, a.UserInfo, now) ?? true;
             }
             catch (Exception e)
             {
@@ -132,7 +132,7 @@ public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupReposit
                 {
                     try
                     {
-                        return expression?.Evaluate(a.Filterable, a.UserInfo, time) ?? true;
+                        return expression?.Evaluate(a.Filterable, a.UserInfo, now) ?? true;
                     }
                     catch (Exception e)
                     {
