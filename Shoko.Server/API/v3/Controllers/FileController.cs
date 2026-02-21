@@ -36,6 +36,7 @@ using MediaInfoDto = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 using Path = System.IO.Path;
 using ReleaseInfo = Shoko.Server.API.v3.Models.Release.ReleaseInfo;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
@@ -81,10 +82,10 @@ public class FileController(
     public ActionResult<ListResult<File>> GetFiles(
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[] exclude = default,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[] include_only = default,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string> sortOrder = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[]? exclude = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[]? include_only = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null)
     {
         return ModelHelper.FilterFiles(RepoFactory.VideoLocal.GetAll(), User, pageSize, page, include, exclude, include_only, sortOrder);
     }
@@ -106,10 +107,10 @@ public class FileController(
         [FromRoute] string query,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[] exclude = default,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[] include_only = default,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string> sortOrder = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[]? exclude = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[]? include_only = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null,
         [FromQuery] bool fuzzy = true)
     {
         // Search.
@@ -127,7 +128,7 @@ public class FileController(
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete]
-    public async Task<ActionResult> DeleteFiles([FromBody] File.Input.BatchDeleteFilesBody body = null)
+    public async Task<ActionResult> DeleteFiles([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] File.Input.BatchDeleteFilesBody? body = null)
     {
         if (body == null)
             return ValidationProblem("Missing Body.");
@@ -167,7 +168,7 @@ public class FileController(
     public ActionResult<File> GetFileByEd2k(
         [FromQuery, Required, Length(32, 32)] string hash,
         [FromQuery, Required, Range(0L, long.MaxValue)] long size,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null)
     {
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
@@ -192,7 +193,7 @@ public class FileController(
     public ActionResult<File> GetFileByCrc32(
         [FromQuery, Required, Length(8, 8)] string hash,
         [FromQuery, Required, Range(0L, long.MaxValue)] long size,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null)
     {
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
@@ -217,7 +218,7 @@ public class FileController(
     public ActionResult<File> GetFileByMd5(
         [FromQuery, Required, Length(32, 32)] string hash,
         [FromQuery, Required, Range(0L, long.MaxValue)] long size,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null)
     {
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
@@ -242,7 +243,7 @@ public class FileController(
     public ActionResult<File> GetFileBySha1(
         [FromQuery, Required, Length(40, 40)] string hash,
         [FromQuery, Required, Range(0L, long.MaxValue)] long size,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null)
     {
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
@@ -267,7 +268,7 @@ public class FileController(
     [HttpGet("{fileID}")]
     public ActionResult<File> GetFile(
         [FromRoute, Range(1, int.MaxValue)] int fileID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -519,7 +520,7 @@ public class FileController(
     [HttpGet("AniDB/{anidbFileID}/File")]
     public ActionResult<File> GetFileByAnidbFileID(
         [FromRoute, Range(1, int.MaxValue)] int anidbFileID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null)
     {
         if (
             RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
@@ -591,11 +592,11 @@ public class FileController(
     [AllowAnonymous]
     [HttpGet("{fileID}/StreamDirectory/{filename}")]
     [HttpHead("{fileID}/StreamDirectory/{filename}")]
-    public ActionResult GetFileStreamWithDirectory([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string filename = null, [FromQuery] bool streamPositionScrobbling = false)
+    public ActionResult GetFileStreamWithDirectory([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string? filename = null, [FromQuery] bool streamPositionScrobbling = false)
         => GetFileStreamInternal(fileID, filename, streamPositionScrobbling);
 
     [NonAction]
-    public ActionResult GetFileStreamInternal(int fileID, string filename = null, bool streamPositionScrobbling = false)
+    public ActionResult GetFileStreamInternal(int fileID, string? filename = null, bool streamPositionScrobbling = false)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -604,7 +605,7 @@ public class FileController(
         var bestLocation = file.Places.FirstOrDefault(a => a.FileName.Equals(filename));
         bestLocation ??= file.FirstValidPlace;
 
-        var fileInfo = bestLocation.FileInfo;
+        var fileInfo = bestLocation?.FileInfo;
         if (fileInfo == null)
             return InternalError("Unable to find physical file for reading the stream data.");
 
@@ -641,7 +642,7 @@ public class FileController(
 
         var routeTemplate = Request.Scheme + "://" + Request.Host + "/api/v3/File/" + fileID + "/StreamDirectory/ExternalSub/";
         return new ObjectResult("<table>" + string.Join(string.Empty,
-            file.MediaInfo.TextStreams.Where(a => a.External).Select(a => $"<tr><td><a href=\"{routeTemplate + a.Filename}\"/></td></tr>")) + "</table>");
+            file.MediaInfo?.TextStreams.Where(a => a.External).Select(a => $"<tr><td><a href=\"{routeTemplate + a.Filename}\"/></td></tr>") ?? []) + "</table>");
     }
 
     /// <summary>
@@ -805,7 +806,7 @@ public class FileController(
     /// <returns></returns>
     [HttpGet("{fileID}/Scrobble")]
     [HttpPatch("{fileID}/Scrobble")]
-    public async Task<ActionResult> ScrobbleFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery(Name = "event")] string eventName = null, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
+    public async Task<ActionResult> ScrobbleFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery(Name = "event")] string? eventName = null, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
@@ -911,7 +912,7 @@ public class FileController(
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var files = new Dictionary<int, string> { { file.VideoLocalID, filePath } };
+        var files = new Dictionary<int, string> { { file.VideoLocalID, filePath! } };
         if (immediate)
             AVDumpHelper.DumpFiles(files, true);
         else
@@ -1021,7 +1022,7 @@ public class FileController(
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [HttpGet("PathEndsWith")]
     public ActionResult<List<File>> PathEndsWithQuery([FromQuery] string path,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
         [Range(0, 100)] int limit = 0)
         => PathEndsWithInternal(path, include, limit);
 
@@ -1036,7 +1037,7 @@ public class FileController(
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [HttpGet("PathEndsWith/{*path}")]
     public ActionResult<List<File>> PathEndsWithPath([FromRoute] string path,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
         [Range(0, 100)] int limit = 0)
         => PathEndsWithInternal(Uri.UnescapeDataString(path), include, limit);
 
@@ -1050,7 +1051,7 @@ public class FileController(
     /// <param name="limit">Limit the number of returned results.</param>
     /// <returns>A list of all files with a file location that ends with the given path.</returns>
     [NonAction]
-    private ActionResult<List<File>> PathEndsWithInternal(string path, FileNonDefaultIncludeType[] include, int limit = 0)
+    private ActionResult<List<File>> PathEndsWithInternal(string path, FileNonDefaultIncludeType[]? include, int limit = 0)
     {
         if (string.IsNullOrWhiteSpace(path))
             return new List<File>();
@@ -1061,7 +1062,7 @@ public class FileController(
         var results = RepoFactory.VideoLocalPlace.GetAll()
             .AsParallel()
             .Where(location => location.Path?.EndsWith(query, StringComparison.OrdinalIgnoreCase) ?? false)
-            .Select(location => location.VideoLocal)
+            .Select(location => location.VideoLocal!)
             .Where(file =>
             {
                 if (file == null)
@@ -1073,6 +1074,7 @@ public class FileController(
             })
             .DistinctBy(file => file.VideoLocalID);
 
+        include ??= [];
         if (limit <= 0)
             return results
                 .Select(a => new File(HttpContext, a, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
@@ -1109,12 +1111,15 @@ public class FileController(
             return ValidationProblem(e.Message, "path");
         }
 
-        var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
-            .Where(a => regex.IsMatch(a.Path)).Select(a => a.VideoLocal)
-            .Distinct()
+        var results = RepoFactory.VideoLocalPlace.GetAll()
+            .AsParallel()
+            .Where(a => regex.IsMatch(a.Path ?? ""))
+            .DistinctBy(v => v.VideoID)
+            .Select(a => a.VideoLocal)
+            .WhereNotNull()
             .Where(a =>
             {
-                var ser = a?.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
+                var ser = a.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
                 return ser == null || User.AllowedSeries(ser);
             }).Select(a => new File(HttpContext, a, true)).ToList();
         return results;
@@ -1144,8 +1149,10 @@ public class FileController(
         }
 
         var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
-            .Where(a => regex.IsMatch(a.FileName)).Select(a => a.VideoLocal)
-            .Distinct()
+            .Where(a => regex.IsMatch(a.FileName))
+            .DistinctBy(v => v.VideoID)
+            .Select(a => a.VideoLocal)
+            .WhereNotNull()
             .Where(a =>
             {
                 var ser = a?.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
