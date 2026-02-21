@@ -1117,7 +1117,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
             var end = start is null ? null : match.Groups["rangeEnd"].Success ? int.Parse(match.Groups["rangeEnd"].Value) : start;
             var ruleType = !start.HasValue
                 ? Configuration.AutoMatchEpisodeRangeRuleType.All
-                : start == end
+                : !match.Groups["rangeEnd"].Success
                 ? Configuration.AutoMatchEpisodeRangeRuleType.Single
                 : Configuration.AutoMatchEpisodeRangeRuleType.Range;
             if (start.HasValue && end.HasValue && start > end)
@@ -1148,7 +1148,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     [GeneratedRegex(@"(?<=^|,)\s*(?:a?(?<animeId>\d+)(?:[=\- \.]|(?=e)))?e?(?<episodeId>\d+)(?:['@](?<percentRangeStartOrWholeRange>\d+)(?:\-(?<percentRangeEnd>\d+))?%?)?\s*(?=$|,),?", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled)]
     private static partial Regex SegmentRegex();
 
-    [GeneratedRegex(@"(?<![-*A-Z0-9])(?:(?<inverseMatch>!)?)(?:\b|(?=\*|E|SP?|C|OP|ED|P|T|PV|O))(?:(?<prefix>(E|SP?|C|OP|ED|P|T|PV|O))|(?<prefix>(E|SP?|C|OP|ED|P|T|PV|O))?(?:(?<isStar>\*)|(?:(?<rangeStart>[1-9][0-9]*)(?:-\k<prefix>?(?<rangeEnd>[1-9][0-9]*)?)?))(?!-?(?:\*|E|SP?|C|OP|ED|P|T|PV|O|[0-9])))(?!-?(?:\*|E|SP?|C|OP|ED|P|T|PV|O|[0-9]))[,\.]?(?:(?<=\*|E|SP?|C|OP|ED|P|T|PV|O)|\b)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?<![-*A-Z0-9])(?:(?<inverseMatch>!)?)(?:\b|(?=\*|E|SP?|C|OP|ED|P|T|PV|O))(?:(?<type>(E|SP?|C|OP|ED|P|T|PV|O))|(?<type>(E|SP?|C|OP|ED|P|T|PV|O))?(?:(?<isStar>\*)|(?:(?<rangeStart>[1-9][0-9]*)(?:-\k<type>?(?<rangeEnd>[1-9][0-9]*)?)?))(?!-?(?:\*|E|SP?|C|OP|ED|P|T|PV|O|[0-9])))(?!-?(?:\*|E|SP?|C|OP|ED|P|T|PV|O|[0-9]))[,\.]?(?:(?<=\*|E|SP?|C|OP|ED|P|T|PV|O)|\b)", RegexOptions.IgnoreCase)]
     private static partial Regex EpisodeRangeRegex();
 
     /// <summary>
