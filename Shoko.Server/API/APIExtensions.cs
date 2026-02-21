@@ -23,6 +23,7 @@ using Shoko.Server.API.FileProviders;
 using Shoko.Server.API.SignalR;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.Swagger;
+using Shoko.Server.API.v1.Services;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
@@ -49,6 +50,7 @@ public static class APIExtensions
         services.AddSingleton<IEventEmitter, ReleaseEventEmitter>();
         services.AddSingleton<IEventEmitter, UserDataEventEmitter>();
         services.AddSingleton<IEventEmitter, UserEventEmitter>();
+        services.AddSingleton<ShokoServiceImplementationService>();
         services.AddScoped<GeneratedPlaylistService>();
         services.AddScoped<FilterFactory>();
         services.AddScoped<WebUIFactory>();
