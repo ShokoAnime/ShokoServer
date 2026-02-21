@@ -55,6 +55,7 @@ public static partial class Utils
 
     public static string MyListDirectory { get; set; } = Path.Combine(ApplicationPath, "MyList");
 
+    public static bool CreateDatabaseOnly { get; set; } = false;
     public static string GetDistinctPath(string fullPath)
     {
         var parent = Path.GetDirectoryName(fullPath);
@@ -72,14 +73,20 @@ public static partial class Utils
             return null;
         return args[idx + 1];
     }
-
+    private static bool GetDBOnlyFromCommandLineArguments()
+    {
+        const int notFound = -1;
+        var args = Environment.GetCommandLineArgs();
+        var idx = Array.FindIndex(args, x => x.Contains("createdatabaseonly", StringComparison.InvariantCultureIgnoreCase));
+        return (idx != notFound);
+    }
     public static void SetInstance()
     {
         var instance = GetInstanceFromCommandLineArguments();
         if (string.IsNullOrWhiteSpace(instance) is false)
             DefaultInstance = instance;
+        CreateDatabaseOnly = GetDBOnlyFromCommandLineArguments();
     }
-
     public static void InitLogger()
     {
         var target = (FileTarget)LogManager.Configuration.FindTargetByName("file");
