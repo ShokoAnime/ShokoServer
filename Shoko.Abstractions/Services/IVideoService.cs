@@ -87,6 +87,17 @@ public interface IVideoService
     IVideoFile? GetVideoFileByAbsolutePath(string absolutePath);
 
     /// <summary>
+    ///   Looks up all video files which start with the given absolute path.
+    /// </summary>
+    /// <param name="absolutePath">
+    ///   The absolute path of the video file.
+    /// </param>
+    /// <returns>
+    ///   The video file if found, otherwise <see langword="null"/>.
+    /// </returns>
+    IReadOnlyList<IVideoFile> GetVideoFilesByAbsolutePath(string absolutePath);
+
+    /// <summary>
     ///   Looks up a video file by its relative path, optionally filtered by
     ///   managed folder in case the relative path is not unique enough by
     ///   itself.
@@ -101,6 +112,22 @@ public interface IVideoService
     ///   The video file if found, otherwise <see langword="null"/>.
     /// </returns>
     IVideoFile? GetVideoFileByRelativePath(string relativePath, IManagedFolder? managedFolder = null);
+
+    /// <summary>
+    ///   Looks up all video files which start with the given relative path
+    ///   within the given managed folder. If relativePath is
+    ///   <see langword="null"/>, all files in the managed folder are returned.
+    /// </summary>
+    /// <param name="managedFolder">
+    ///   The the managed folder.
+    /// </param>
+    /// <param name="relativePath">
+    ///   The relative path to filter by.
+    /// </param>
+    /// <returns>
+    ///   The video file if found, otherwise <see langword="null"/>.
+    /// </returns>
+    IReadOnlyList<IVideoFile> GetVideoFilesInManagedFolder(IManagedFolder managedFolder, string? relativePath = null);
 
     /// <summary>
     ///   Deletes a video file from the database and optionally from the disk.

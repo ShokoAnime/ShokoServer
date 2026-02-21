@@ -212,6 +212,12 @@ public class VideoService : IVideoService
             .FirstOrDefault(a => string.Equals(a.Path, absolutePath, PlatformUtility.StringComparison));
 
     /// <inheritdoc/>
+    public IReadOnlyList<IVideoFile> GetVideoFilesByAbsolutePath(string absolutePath)
+        => string.IsNullOrWhiteSpace(absolutePath) ? [] : _placeRepository.GetAll()
+            .Where(a => string.Equals(a.Path, absolutePath, PlatformUtility.StringComparison))
+            .ToList();
+
+    /// <inheritdoc/>
     public IVideoFile? GetVideoFileByRelativePath(string relativePath, IManagedFolder? managedFolder = null)
     {
         if (string.IsNullOrWhiteSpace(relativePath))
@@ -221,6 +227,22 @@ public class VideoService : IVideoService
             return _placeRepository.GetByRelativePath(relativePath);
 
         return _placeRepository.GetByRelativePathAndManagedFolderID(relativePath, managedFolder.ID);
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IVideoFile> GetVideoFilesInManagedFolder(IManagedFolder managedFolder, string? relativePath = null)
+    {
+        if (managedFolder is not ShokoManagedFolder folder)
+            return [];
+
+        relativePath = PlatformUtility.NormalizePath(relativePath, stripLeadingSlash: true);
+        var videoFiles = _placeRepository.GetByManagedFolderID(folder.ID);
+        if (string.IsNullOrEmpty(relativePath))
+            return videoFiles;
+
+        return videoFiles
+            .Where(a => string.IsNullOrEmpty(relativePath) || a.RelativePath.StartsWith(relativePath, PlatformUtility.StringComparison))
+            .ToList();
     }
 
     /// <inheritdoc/>
