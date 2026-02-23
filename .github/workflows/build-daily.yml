@@ -22,15 +22,6 @@ jobs:
       sha_short: ${{ steps.commit_info.outputs.sha }}
 
     steps:
-      - name: Setup Node v20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install NPM Packages
-        run: |
-          npm install --no-save semver fast-xml-parser
-
       - name: Checkout "${{ github.ref }}"
         uses: actions/checkout@v4
         with:
@@ -44,6 +35,15 @@ jobs:
           TZ: UTC0
         run: |
           echo "date=$(git --no-pager show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format=%cd ${{ github.sha }})" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node v20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install NPM Packages
+        run: |
+          npm install --no-save semver fast-xml-parser
 
       - name: Read Source Version
         id: read_source_version
