@@ -22,11 +22,19 @@ jobs:
       sha_short: ${{ steps.commit_info.outputs.sha }}
 
     steps:
+      - name: Setup Node v20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install NPM Packages
+        run: |
+          npm install --no-save semver fast-xml-parser
+
       - name: Checkout "${{ github.ref }}"
         uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
-          submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
       - name: Get Commit Date (as ISO8601)
@@ -37,26 +45,98 @@ jobs:
         run: |
           echo "date=$(git --no-pager show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format=%cd ${{ github.sha }})" >> "$GITHUB_OUTPUT"
 
-      - name: Get Previous Version
-        id: previous_release_info
-        uses: revam/gh-action-get-tag-and-version@v1
+      - name: Read Source Version
+        id: read_source_version
+        uses: actions/github-script@v7
         with:
-          branch: false
-          prefix: "v"
-          prefixRegex: "[vV]?"
-          suffixRegex: "dev"
-          suffix: "dev"
+          script: |
+            const XML = new (require('fast-xml-parser').XMLParser)();
+            const current_version = XML.parse(fs.readFileSync('./Shoko.Server/Shoko.Server.csproj', 'utf-8'))
+              .Project
+              .PropertyGroup.find(p => 'Version' in p)
+              .Version;
+            core.setOutput('version', current_version);
 
-      - name: Get Current Version
-        id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
+      - name: Get Source Version Info
+        id: source_version_info
+        uses: revam/gh-action-get-tag-and-version@v3
         with:
-          branch: false
-          increment: "suffix"
+          use_version: "${{ steps.read_source_version.outputs.version }}"
           prefix: "v"
-          prefixRegex: "[vV]?"
-          suffixRegex: "dev"
+          prefix_regex: "[vV]?"
           suffix: "dev"
+          suffix_regex: "dev"
+
+      - name: Get Currently Tagged Version
+        id: tagged_release_info
+        uses: revam/gh-action-get-tag-and-version@v3
+        with:
+          use_branch_history: false
+          use_semver: true
+          prefix: "v"
+          prefix_regex: "[vV]?"
+          suffix: "dev"
+          suffix_regex: "dev"
+
+      - name: Decide Version And Increment By To Use
+        id: decide_version
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const semver = require('semver');
+            const source_version = '${{ steps.source_version_info.outputs.version_short }}';
+            const tagged_version = '${{ steps.tagged_release_info.outputs.version_short }}';
+            const tagged_suffix = '${{ steps.tagged_release_info.outputs.tag_suffix }}';
+            // If we're already above the version in the source.
+            if (semver.gt(tagged_version, source_version)) {
+              // If the tagged version doesn't have a suffix, then we just released a new
+              // stable release, so increment the patch and suffix.
+              if (!tagged_suffix) {
+                core.setOutput('tag_ref', '${{ steps.tagged_release_info.outputs.tag }}');
+                core.setOutput('version', '');
+                core.setOutput('increment_by', 'patch,suffix');
+              }
+              // Else, we're still on a daily build.
+              else {
+                core.setOutput('tag_ref', '${{ steps.tagged_release_info.outputs.tag }}');
+                core.setOutput('version', '');
+                core.setOutput('increment_by', 'suffix');
+              }
+            }
+            // The currently tagged version matches the source version.
+            else if (semver.eq(source_version, tagged_version)) {
+              // If it doesn't have a suffix, then we just released a new stable release, so
+              // increment the patch and suffix.
+              if (!tagged_suffix) {
+                core.setOutput('tag_ref', '');
+                core.setOutput('version', '${{ steps.source_version_info.outputs.version }}');
+                core.setOutput('increment_by', 'patch,suffix');
+              }
+              // If it does have a suffix, then we're still on a daily build.
+              else {
+                core.setOutput('tag_ref', '${{ steps.tagged_release_info.outputs.tag }}');
+                core.setOutput('version', '');
+                core.setOutput('increment_by', 'suffix');
+              }
+            }
+            // Else, we're below the expected version, so increment the base version and suffix.
+            else {
+              core.setOutput('tag_ref', '');
+              core.setOutput('version', source_version);
+              core.setOutput('increment_by', 'suffix');
+            }
+
+      - name: Get Next Version
+        id: release_info
+        uses: revam/gh-action-get-tag-and-version@v3
+        with:
+          use_tag_ref: "${{ steps.decide_version.outputs.tag_ref }}"
+          use_version: "${{ steps.decide_version.outputs.version }}"
+          increment_by: "${{ steps.decide_version.outputs.increment_by }}"
+          prefix: "v"
+          prefix_regex: "[vV]?"
+          suffix: "dev"
+          suffix_regex: "dev"
 
       - id: commit_info
         name: Shorten Commit Hash
@@ -319,7 +399,6 @@ jobs:
         uses: actions/checkout@master
         with:
           ref: "${{ github.sha }}"
-          submodules: recursive
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh

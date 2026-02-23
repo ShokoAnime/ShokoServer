@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -270,7 +271,8 @@ public partial class WebUIUpdateService
 
                     string? description = release.body;
                     var minServerVersion = GetMinimumServerVersion(description);
-                    if (!allowIncompatible && (minServerVersion is null || minServerVersion > currentServerVersion))
+                    _versionComparer ??= new();
+                    if (!allowIncompatible && (minServerVersion is null || _versionComparer.Compare(minServerVersion, currentServerVersion) > 0))
                         continue;
 
                     foreach (var asset in release.assets)
@@ -323,7 +325,8 @@ public partial class WebUIUpdateService
                 var latestRelease = DownloadApiResponse("releases/latest", ClientRepoName);
                 string? description = latestRelease.body;
                 var minServerVersion = GetMinimumServerVersion(description);
-                if (!allowIncompatible && (minServerVersion is null || minServerVersion > currentServerVersion))
+                _versionComparer ??= new();
+                if (!allowIncompatible && (minServerVersion is null || _versionComparer.Compare(minServerVersion, currentServerVersion) > 0))
                     goto case ReleaseChannel.Dev;
 
                 string tagName = latestRelease.tag_name;
@@ -398,7 +401,8 @@ public partial class WebUIUpdateService
                             localVersion = new Version(regexResult.Groups["version"].Value + "." + regexResult.Groups["buildNumber"].Value);
                         else
                             localVersion = new Version(regexResult.Groups["version"].Value + ".0");
-                        if (localVersion > version)
+                        _versionComparer ??= new();
+                        if (_versionComparer.Compare(localVersion, version) > 0)
                         {
                             version = localVersion;
                             tagName = localTagName;
@@ -468,6 +472,41 @@ public partial class WebUIUpdateService
             }
         }
     }
+
+    private class SemverVersionComparer : IComparer<Version>
+    {
+        public int Compare(Version? x, Version? y)
+        {
+            if (x is null)
+                return y is null ? 0 : -1;
+            if (y is null)
+                return 1;
+
+            var value = x.Major.CompareTo(y.Major);
+            if (value != 0)
+                return value;
+
+            value = x.Minor.CompareTo(y.Minor);
+            if (value != 0)
+                return value;
+
+            if (x.Build != y.Build)
+                return x.Build.CompareTo(y.Build);
+
+            if (x.Revision is 0 && y.Revision is 0)
+                return 0;
+
+            if (x.Revision is 0 && y.Revision is not 0)
+                return 1;
+
+            if (x.Revision is not 0 && y.Revision is 0)
+                return -1;
+
+            return x.Revision.CompareTo(y.Revision);
+        }
+    }
+
+    private SemverVersionComparer? _versionComparer;
 
     private ReleaseChannel GetCurrentWebUIReleaseChannel()
     {

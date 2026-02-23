@@ -39,11 +39,11 @@ jobs:
 
       - name: Get Current Version
         id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
+        uses: revam/gh-action-get-tag-and-version@v3
         with:
-          tag: "${{ github.ref }}"
+          use_tag_ref: "${{ github.ref }}"
           prefix: v
-          prefixRegex: "[vV]?"
+          prefix_regex: "[vV]?"
 
       - id: commit_info
         name: Shorten Commit Hash

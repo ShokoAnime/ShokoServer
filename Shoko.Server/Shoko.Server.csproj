@@ -6,6 +6,7 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
     <Platforms>x64;AnyCPU</Platforms>
+    <Version>6.0.0</Version>
     <Deterministic>false</Deterministic>
     <GenerateErrorForMissingTargetingPacks>false</GenerateErrorForMissingTargetingPacks>
     <PublishUrl>publish\</PublishUrl>
