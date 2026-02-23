@@ -50,6 +50,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const fs = require('fs');
             const XML = new (require('fast-xml-parser').XMLParser)();
             const current_version = XML.parse(fs.readFileSync('./Shoko.Server/Shoko.Server.csproj', 'utf-8'))
               .Project
@@ -83,6 +84,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const fs = require('fs');
             const semver = require('semver');
             const source_version = '${{ steps.source_version_info.outputs.version_short }}';
             const tagged_version = '${{ steps.tagged_release_info.outputs.version_short }}';
