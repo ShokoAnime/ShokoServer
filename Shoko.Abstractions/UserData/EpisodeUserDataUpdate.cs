@@ -30,7 +30,7 @@ public class EpisodeUserDataUpdate
         get => _lastPlayedAt;
         set
         {
-            HasLastPlayedAt = value.HasValue;
+            HasLastPlayedAt = true;
             _lastPlayedAt = value;
         }
     }
