@@ -159,10 +159,13 @@ public static partial class Utils
         _logger.Error(msg);
     }
 
-    public static string GetApplicationVersion(Assembly a = null)
+    public static string GetApplicationVersion()
     {
-        a ??= Assembly.GetExecutingAssembly();
-        return a.GetName().Version.ToString();
+        var version = Assembly.GetExecutingAssembly().GetName().Version!;
+        var isStable = version.Revision is 0;
+        return isStable
+            ? $"{version.Major}.{version.Minor}.{version.Build}"
+            : $"{version.Major}.{version.Minor}.{version.Build}-dev.{version.Revision}";
     }
 
     public static Dictionary<string, string> GetApplicationExtraVersion(Assembly assembly = null)

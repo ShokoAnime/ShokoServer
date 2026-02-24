@@ -188,9 +188,8 @@ public class SettingsProvider : ISettingsProvider, IDisposable
 
         try
         {
-            var assembly = Assembly.GetEntryAssembly();
-            var serverVersion = Utils.GetApplicationVersion(assembly);
-            var extraVersionDict = Utils.GetApplicationExtraVersion(assembly);
+            var serverVersion = Utils.GetApplicationVersion();
+            var extraVersionDict = Utils.GetApplicationExtraVersion();
             if (!extraVersionDict.TryGetValue("tag", out var tag))
                 tag = null;
 
