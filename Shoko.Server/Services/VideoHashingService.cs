@@ -462,7 +462,9 @@ public class VideoHashingService(
     private async Task<HashingResult> GetHashesForVideo(VideoLocal video, VideoLocal_Place videoLocation, ShokoManagedFolder folder, bool useExistingHashes, bool skipFindRelease = false, bool skipMylist = false, CancellationToken cancellationToken = default)
     {
         var originalPath = PlatformUtility.EnsureUsablePath(Path.Join(folder.Path, videoLocation.RelativePath));
-        var resolvedPath = File.ResolveLinkTarget(originalPath, true)?.FullName;
+        var resolvedPath = File.Exists(originalPath)
+            ? File.ResolveLinkTarget(originalPath, true)?.FullName
+            : null;
         if (string.IsNullOrEmpty(resolvedPath))
             resolvedPath = originalPath;
         else

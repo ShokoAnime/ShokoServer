@@ -48,7 +48,9 @@ public class RecoveringFileSystemWatcher : IDisposable
             try
             {
                 path = PlatformUtility.EnsureUsablePath(path);
-                var resolvedPath = File.ResolveLinkTarget(path, true)?.FullName;
+                var resolvedPath = File.Exists(path)
+                    ? File.ResolveLinkTarget(path, true)?.FullName
+                    : null;
                 if (string.IsNullOrEmpty(resolvedPath))
                     resolvedPath = path;
                 else

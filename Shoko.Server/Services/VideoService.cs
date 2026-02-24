@@ -426,7 +426,9 @@ public class VideoService : IVideoService
             if (video is { VideoLocalID: 0 })
             {
                 var originalPath = PlatformUtility.EnsureUsablePath(Path.Join(managedFolder.Path, relativePath));
-                var resolvedPath = File.ResolveLinkTarget(originalPath, true)?.FullName;
+                var resolvedPath = File.Exists(originalPath)
+                    ? File.ResolveLinkTarget(originalPath, true)?.FullName
+                    : null;
                 if (string.IsNullOrEmpty(resolvedPath))
                 {
                     resolvedPath = originalPath;
