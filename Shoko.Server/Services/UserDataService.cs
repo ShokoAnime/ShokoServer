@@ -183,6 +183,7 @@ public class UserDataService(
         }
 
         var toUpdateSeries = new Dictionary<int, AnimeSeries>();
+        var videoReason = reason is VideoUserDataSaveReason.Import ? VideoUserDataSaveReason.None : reason;
         if (watchedStatusChanged)
         {
             // now find all the episode records associated with this video file,
@@ -220,7 +221,7 @@ public class UserDataService(
                     if (updateStatsNow && episode.Series is AnimeSeries series)
                         toUpdateSeries.TryAdd(series.AnimeSeriesID, series);
 
-                    await SaveEpisodeUserData(episode, user, new() { LastPlayedAt = userDataUpdate.LastPlayedAt }, updateStatsNow: false);
+                    await SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = userDataUpdate.LastPlayedAt }, importSource, videoReason, updateStatsNow: false);
                 }
             }
             else
@@ -251,7 +252,7 @@ public class UserDataService(
                     if (updateStatsNow && episode.Series is AnimeSeries series)
                         toUpdateSeries.TryAdd(series.AnimeSeriesID, series);
 
-                    await SaveEpisodeUserData(episode, user, new() { LastPlayedAt = null }, updateStatsNow: false);
+                    await SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = null }, importSource, videoReason, updateStatsNow: false);
                 }
             }
 
@@ -276,7 +277,7 @@ public class UserDataService(
         if (updateStatsNow && toUpdateSeries.Count > 0)
         {
             foreach (var series in toUpdateSeries.Values)
-                UpdateWatchedStats(series, user);
+                UpdateWatchedStats(series, user, videoReason);
             var groups = toUpdateSeries.Values
                 .SelectMany(a => a.AllGroupsAbove)
                 .WhereNotNull()
@@ -369,16 +370,16 @@ public class UserDataService(
     public Task<IEpisodeUserData> SetUserTagsForEpisode(IShokoEpisode episode, IUser user, IEnumerable<string>? tags)
         => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { UserTags = tags });
 
-    public Task<IEpisodeUserData> SetEpisodeWatchedStatus(IShokoEpisode episode, IUser user, bool watched = true, DateTime? watchedAt = null, bool updateStatsNow = true)
+    public Task<IEpisodeUserData> SetEpisodeWatchedStatus(IShokoEpisode episode, IUser user, bool watched = true, DateTime? watchedAt = null, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, bool updateStatsNow = true)
         => SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = watched ? watchedAt ?? DateTime.Now : null }, updateStatsNow: updateStatsNow);
 
-    public Task<IEpisodeUserData> SaveEpisodeUserData(IShokoEpisode episode, IUser user, EpisodeUserDataUpdate userDataUpdate, bool updateStatsNow = true)
-        => SaveEpisodeUserDataInternal(episode, user, userDataUpdate, null, updateStatsNow);
+    public Task<IEpisodeUserData> SaveEpisodeUserData(IShokoEpisode episode, IUser user, EpisodeUserDataUpdate userDataUpdate, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None, bool updateStatsNow = true)
+        => SaveEpisodeUserDataInternal(episode, user, userDataUpdate, null, videoReason, updateStatsNow);
 
-    public Task<IEpisodeUserData> ImportEpisodeUserData(IShokoEpisode episode, IUser user, EpisodeUserDataUpdate userDataUpdate, string importSource, bool updateStatsNow = true)
-        => SaveEpisodeUserDataInternal(episode, user, userDataUpdate, importSource, updateStatsNow);
+    public Task<IEpisodeUserData> ImportEpisodeUserData(IShokoEpisode episode, IUser user, EpisodeUserDataUpdate userDataUpdate, string importSource, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None, bool updateStatsNow = true)
+        => SaveEpisodeUserDataInternal(episode, user, userDataUpdate, importSource, videoReason, updateStatsNow);
 
-    private async Task<IEpisodeUserData> SaveEpisodeUserDataInternal(IShokoEpisode episode, IUser user, EpisodeUserDataUpdate userDataUpdate, string? importSource = null, bool updateStatsNow = true)
+    private async Task<IEpisodeUserData> SaveEpisodeUserDataInternal(IShokoEpisode episode, IUser user, EpisodeUserDataUpdate userDataUpdate, string? importSource = null, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None, bool updateStatsNow = true)
     {
         ArgumentNullException.ThrowIfNull(episode);
         ArgumentNullException.ThrowIfNull(user);
@@ -474,7 +475,7 @@ public class UserDataService(
                 });
             }
 
-            SendEvent(episode, user, userData, reason, importSource);
+            SendEvent(episode, user, userData, reason, importSource, videoReason);
         }
 
         if (watchedStatusChanged)
@@ -509,12 +510,13 @@ public class UserDataService(
         return userData;
     }
 
-    private void SendEvent(IShokoEpisode episode, IUser user, IEpisodeUserData userData, EpisodeUserDataSaveReason reason, string? importSource = null)
+    private void SendEvent(IShokoEpisode episode, IUser user, IEpisodeUserData userData, EpisodeUserDataSaveReason reason, string? importSource, VideoUserDataSaveReason videoReason)
     {
         Task.Run(() =>
         {
             var eventArgs = new EpisodeUserDataSavedEventArgs()
             {
+                VideoReason = videoReason,
                 Reason = reason,
                 Episode = episode,
                 User = user,
@@ -704,13 +706,13 @@ public class UserDataService(
     public Task<ISeriesUserData> SetUserTagsForSeries(IShokoSeries series, IUser user, IEnumerable<string>? tags)
         => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { UserTags = tags });
 
-    public Task<ISeriesUserData> SaveSeriesUserData(IShokoSeries series, IUser user, SeriesUserDataUpdate userDataUpdate)
+    public Task<ISeriesUserData> SaveSeriesUserData(IShokoSeries series, IUser user, SeriesUserDataUpdate userDataUpdate, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None)
         => SaveSeriesUserDataInternal(series, user, userDataUpdate);
 
-    public Task<ISeriesUserData> ImportSeriesUserData(IShokoSeries series, IUser user, SeriesUserDataUpdate userDataUpdate, string importSource)
+    public Task<ISeriesUserData> ImportSeriesUserData(IShokoSeries series, IUser user, SeriesUserDataUpdate userDataUpdate, string importSource, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None)
         => SaveSeriesUserDataInternal(series, user, userDataUpdate, importSource);
 
-    private async Task<ISeriesUserData> SaveSeriesUserDataInternal(IShokoSeries series, IUser user, SeriesUserDataUpdate userDataUpdate, string? importSource = null)
+    private async Task<ISeriesUserData> SaveSeriesUserDataInternal(IShokoSeries series, IUser user, SeriesUserDataUpdate userDataUpdate, string? importSource = null, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None)
     {
         var reason = string.IsNullOrEmpty(importSource)
             ? SeriesUserDataSaveReason.None
@@ -791,7 +793,7 @@ public class UserDataService(
                 });
             }
 
-            SendEvent(series, user, userData, reason, importSource);
+            SendEvent(series, user, userData, reason, importSource, videoReason);
         }
 
         return userData;
@@ -819,10 +821,10 @@ public class UserDataService(
             .ToLookup(a => (a.EpisodeID, UserID: a.AnimeEpisode_User.JMMUserID), b => b.AnimeEpisode_User);
         var lockObj = new object();
         foreach (var user in userRepository.GetAll())
-            UpdateWatchedStatsInternal(series, episodes, user, videoLookup, videoUserDataLookup, episodeUserDataLookup, lockObj);
+            UpdateWatchedStatsInternal(series, episodes, user, VideoUserDataSaveReason.None, videoLookup, videoUserDataLookup, episodeUserDataLookup, lockObj);
     }
 
-    private void UpdateWatchedStats(IShokoSeries series, IUser user)
+    private void UpdateWatchedStats(IShokoSeries series, IUser user, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None)
     {
         var episodes = series.Episodes;
         var videoLookup = series.CrossReferences
@@ -844,13 +846,14 @@ public class UserDataService(
             .Where(a => a.AnimeEpisode_User is not null)
             .ToLookup(a => (a.EpisodeID, UserID: a.AnimeEpisode_User.JMMUserID), b => b.AnimeEpisode_User);
         var lockObj = new object();
-        UpdateWatchedStatsInternal(series, episodes, user, videoLookup, videoUserDataLookup, episodeUserDataLookup, lockObj);
+        UpdateWatchedStatsInternal(series, episodes, user, reason, videoLookup, videoUserDataLookup, episodeUserDataLookup, lockObj);
     }
 
     private void UpdateWatchedStatsInternal(
         IShokoSeries series,
         IReadOnlyList<IShokoEpisode> episodes,
         IUser user,
+        VideoUserDataSaveReason videoReason,
         ILookup<int, IVideo> videoLookup,
         ILookup<(int EpisodeID, int UserID), VideoLocal_User> videoUserDataLookup,
         ILookup<(int EpisodeID, int UserID), AnimeEpisode_User> episodeUserDataLookup,
@@ -929,16 +932,17 @@ public class UserDataService(
             userData.LastVideoUpdate = lastVideoUpdate;
             seriesUserDataRepository.Save(userData);
 
-            SendEvent(series, user, userData, SeriesUserDataSaveReason.SeriesStats);
+            SendEvent(series, user, userData, SeriesUserDataSaveReason.SeriesStats, videoReason: videoReason);
         }
     }
 
-    private void SendEvent(IShokoSeries series, IUser user, ISeriesUserData userData, SeriesUserDataSaveReason reason, string? importSource = null)
+    private void SendEvent(IShokoSeries series, IUser user, ISeriesUserData userData, SeriesUserDataSaveReason reason, string? importSource = null, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None)
     {
         Task.Run(() =>
         {
             var eventArgs = new SeriesUserDataSavedEventArgs()
             {
+                VideoReason = videoReason,
                 Reason = reason,
                 Series = series,
                 User = user,

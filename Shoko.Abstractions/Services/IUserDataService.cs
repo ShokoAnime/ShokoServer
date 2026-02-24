@@ -232,6 +232,10 @@ public interface IUserDataService
     /// <param name="lastPlayedAt">
     ///   Optional. When the video was watched.
     /// </param>
+    /// <param name="videoReason">
+    ///   Optional. The video reason why the episode watch status was updated.
+    ///   If this update was caused by a video update, this should be set.
+    /// </param>
     /// <param name="updateStatsNow">
     ///   Optional. When set to <c>true</c> will update the series stats after
     ///   saving. If doing multiple updates on the same series at once, it is
@@ -244,7 +248,7 @@ public interface IUserDataService
     /// <returns>
     ///   The user data for the episode and user.
     /// </returns>
-    Task<IEpisodeUserData> SetEpisodeWatchedStatus(IShokoEpisode episode, IUser user, bool isWatched = true, DateTime? lastPlayedAt = null, bool updateStatsNow = true);
+    Task<IEpisodeUserData> SetEpisodeWatchedStatus(IShokoEpisode episode, IUser user, bool isWatched = true, DateTime? lastPlayedAt = null, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None, bool updateStatsNow = true);
 
     /// <summary>
     ///   Toggles the favorite status of a episode.
@@ -461,6 +465,10 @@ public interface IUserDataService
     /// <param name="userDataUpdate">
     ///   The update containing the details to save.
     /// </param>
+    /// <param name="videoReason">
+    ///   Optional. The video reason why the episode watch status was updated.
+    ///   If this update was caused by a video update, this should be set.
+    /// </param>
     /// <param name="updateStatsNow">
     ///   Optional. When set to <c>true</c> will update the series stats after
     ///   saving. If doing multiple updates on the same series at once, it is
@@ -472,7 +480,7 @@ public interface IUserDataService
     /// <returns>
     ///   The task containing the new or updated user data for the episode and user.
     /// </returns>
-    Task<IEpisodeUserData> SaveEpisodeUserData(IShokoEpisode episode, IUser user, EpisodeUserDataUpdate userDataUpdate, bool updateStatsNow = true);
+    Task<IEpisodeUserData> SaveEpisodeUserData(IShokoEpisode episode, IUser user, EpisodeUserDataUpdate userDataUpdate, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None, bool updateStatsNow = true);
 
     /// <summary>
     ///   Imports some user data for the episode and user from the given import
@@ -490,6 +498,10 @@ public interface IUserDataService
     /// <param name="importSource">
     ///   The import source.
     /// </param>
+    /// <param name="videoReason">
+    ///   Optional. The video reason why the episode watch status was updated.
+    ///   If this update was caused by a video update, this should be set.
+    /// </param>
     /// <param name="updateStatsNow">
     ///   Optional. When set to <c>true</c> will update the series stats after
     ///   saving. If doing multiple updates on the same series at once, it is
@@ -501,7 +513,7 @@ public interface IUserDataService
     /// <returns>
     ///   The task containing the new or updated user data for the episode and user.
     /// </returns>
-    Task<IEpisodeUserData> ImportEpisodeUserData(IShokoEpisode episode, IUser user, EpisodeUserDataUpdate userDataUpdate, string importSource, bool updateStatsNow = true);
+    Task<IEpisodeUserData> ImportEpisodeUserData(IShokoEpisode episode, IUser user, EpisodeUserDataUpdate userDataUpdate, string importSource, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None, bool updateStatsNow = true);
 
     #endregion
 
@@ -775,13 +787,17 @@ public interface IUserDataService
     /// <param name="userDataUpdate">
     ///   The update containing the details to save.
     /// </param>
+    /// <param name="videoReason">
+    ///   Optional. The video reason why the series watch status was updated. If
+    ///   this update was caused by a video update, this should be set.
+    /// </param>
     /// <exception cref="ArgumentNullException">
     ///   Thrown when <paramref name="series"/> or <paramref name="user"/> is <c>null</c>.
     /// </exception>
     /// <returns>
     ///   The task containing the new or updated user data for the series and user.
     /// </returns>
-    Task<ISeriesUserData> SaveSeriesUserData(IShokoSeries series, IUser user, SeriesUserDataUpdate userDataUpdate);
+    Task<ISeriesUserData> SaveSeriesUserData(IShokoSeries series, IUser user, SeriesUserDataUpdate userDataUpdate, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None);
 
     /// <summary>
     ///   Imports some user data for the series and user from the given import
@@ -796,6 +812,10 @@ public interface IUserDataService
     /// <param name="userDataUpdate">
     ///   The update containing the details to save.
     /// </param>
+    /// <param name="videoReason">
+    ///   Optional. The video reason why the series watch status was updated. If
+    ///   this update was caused by a video update, this should be set.
+    /// </param>
     /// <param name="importSource">
     ///   The import source.
     /// </param>
@@ -805,7 +825,7 @@ public interface IUserDataService
     /// <returns>
     ///   The task containing the new or updated user data for the series and user.
     /// </returns>
-    Task<ISeriesUserData> ImportSeriesUserData(IShokoSeries series, IUser user, SeriesUserDataUpdate userDataUpdate, string importSource);
+    Task<ISeriesUserData> ImportSeriesUserData(IShokoSeries series, IUser user, SeriesUserDataUpdate userDataUpdate, string importSource, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None);
 
     #endregion
 }

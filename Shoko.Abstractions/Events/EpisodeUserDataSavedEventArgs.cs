@@ -13,6 +13,12 @@ namespace Shoko.Abstractions.Events;
 public class EpisodeUserDataSavedEventArgs : EventArgs
 {
     /// <summary>
+    /// The video reason why the episode user data was updated, if this update
+    /// was caused by a video update.
+    /// </summary>
+    public required VideoUserDataSaveReason VideoReason { get; init; }
+
+    /// <summary>
     /// The reason why the user data was updated.
     /// </summary>
     public required EpisodeUserDataSaveReason Reason { get; init; }
