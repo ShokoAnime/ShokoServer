@@ -57,13 +57,13 @@ public partial class WebUIUpdateService
         _applicationPaths = applicationPaths;
         _httpClient = new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", $"ShokoServer/{Utils.GetApplicationVersion()}");
         ClientRepoName = Environment.GetEnvironmentVariable("SHOKO_CLIENT_REPO") is { } clientRepoName && CompiledRepoNameRegex().IsMatch(clientRepoName)
             ? clientRepoName
             : "ShokoAnime/Shoko-WebUI";
         ServerRepoName = Environment.GetEnvironmentVariable("SHOKO_SERVER_REPO") is { } serverRepoName && CompiledRepoNameRegex().IsMatch(serverRepoName)
             ? serverRepoName
             : "ShokoAnime/ShokoServer";
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", $"ShokoServer/{Utils.GetApplicationVersion()} (https://github.com/{ServerRepoName})");
         if (Environment.GetEnvironmentVariable("GITHUB_TOKEN") is { Length: > 0 } githubToken)
             _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {githubToken}");
     }
