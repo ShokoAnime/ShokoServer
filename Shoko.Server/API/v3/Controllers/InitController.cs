@@ -61,8 +61,6 @@ public class InitController : BaseController
         var versionSet = new ComponentVersionSet()
         {
             Server = new() { Version = Utils.GetApplicationVersion(), ReleaseChannel = ReleaseChannel.Debug },
-            Commons = new() { Version = Utils.GetApplicationVersion() },
-            Models = new() { Version = Utils.GetApplicationVersion() },
             MediaInfo = new()
         };
 
