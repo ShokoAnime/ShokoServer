@@ -483,7 +483,8 @@ public class UserDataService(
             var settings = settingsProvider.GetSettings();
             var syncTrakt =
                 !(reason.HasFlag(EpisodeUserDataSaveReason.Import) && importSource is "Trakt") &&
-                user.IsAnidbUser &&
+                user is JMMUser { IsTraktUser: 1 } &&
+                videoReason is VideoUserDataSaveReason.None or VideoUserDataSaveReason.UserInteraction or VideoUserDataSaveReason.PlaybackEnd &&
                 settings.TraktTv.Enabled && !string.IsNullOrEmpty(settings.TraktTv.AuthToken);
             if (syncTrakt && watchedStatusChanged)
             {
