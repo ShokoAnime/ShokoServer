@@ -23,8 +23,8 @@ public class VersionController(ISettingsProvider settingsProvider, InitControlle
     public List<ComponentVersion> GetVersion()
         => init.GetVersion() is not { } versionSet ? [] : [
             new() { name = "server", version = versionSet.Server.Version },
-            new() { name = "commons", version = versionSet.Commons?.Version },
-            new() { name = "models", version = versionSet.Models?.Version },
+            new() { name = "commons", version = null },
+            new() { name = "models", version = null },
             new() { name = "MediaInfo", version = versionSet.MediaInfo?.Version },
             new() { name = "webui", version = versionSet.WebUI?.Version },
         ];
