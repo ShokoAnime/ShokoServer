@@ -67,9 +67,6 @@ public static class SentryInit
             if (extraInfo.TryGetValue("commit", out var gitCommit)) opts.DefaultTags.Add("commit", gitCommit);
             if (extraInfo.TryGetValue("tag", out var gitTag)) opts.DefaultTags.Add("commit.tag", gitTag);
 
-            // Append the release channel for the release on non-stable branches.
-            if (environment is not "stable" and not "dev") opts.Release += string.IsNullOrEmpty(gitCommit) ? $"-{environment}" : $"-{environment}-{gitCommit[0..7]}";
-
             opts.SampleRate = 0.5f;
 
             opts.SetBeforeSend(BeforeSentrySend);
