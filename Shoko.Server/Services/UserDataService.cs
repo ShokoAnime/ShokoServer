@@ -872,7 +872,7 @@ public class UserDataService(
             ?? new() { JMMUserID = user.ID, AnimeSeriesID = series.ID, LastUpdated = DateTime.Now };
         Parallel.ForEach(episodes, new() { MaxDegreeOfParallelism = 4 }, ep =>
             {
-                if (ep.Type is not EpisodeType.Episode or EpisodeType.Special)
+                if (ep.Type is not (EpisodeType.Episode or EpisodeType.Special))
                     return;
                 VideoLocal_User? videoUserData = null;
                 DateTime? videoUpdated = null;
