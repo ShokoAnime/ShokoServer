@@ -1025,6 +1025,10 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(159, 23, "ALTER TABLE `TMDB_Network` ADD COLUMN `LastOrphanedAt` DATETIME;"),
         new(160,  1, "DELETE FROM AnimeSeries_User WHERE AbsoluteUserRating = 0;"),
         new(160,  2, "DELETE FROM AnimeEpisode_User WHERE AbsoluteUserRating = 0;"),
+        new(161,  1, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `MALTitle`;"),
+        new(161,  2, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `StartEpisodeType`;"),
+        new(161,  3, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `StartEpisodeNumber`;"),
+        new(161,  4, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `CrossRefSource`;"),
     ];
 
     #endregion

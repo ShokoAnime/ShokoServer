@@ -843,6 +843,10 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(142,  8, "UPDATE StoredReleaseInfo SET Source = '7' WHERE Source = 'VCD';"),
         new(142,  9, "UPDATE StoredReleaseInfo SET Source = '8' WHERE Source = 'LaserDisc';"),
         new(142, 10, "UPDATE StoredReleaseInfo SET Source = '9' WHERE Source = 'Camera';"),
+        new(143,  1, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN MALTitle;"),
+        new(143,  2, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN StartEpisodeType;"),
+        new(143,  3, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN StartEpisodeNumber;"),
+        new(143,  4, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN CrossRefSource;"),
     ];
 
     #endregion

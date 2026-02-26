@@ -617,7 +617,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new(100,  7, "ALTER TABLE AniDB_Tag DROP COLUMN TagCount;"),
         new(100,  8, "ALTER TABLE AniDB_Anime_Tag ADD LocalSpoiler integer NOT NULL DEFAULT 0;"),
         new(100,  9, "ALTER TABLE AniDB_Anime_Tag DROP COLUMN Approval;"),
-        new(100,  10, DatabaseFixes.FixTagParentIDsAndNameOverrides),
+        new(100, 10, DatabaseFixes.FixTagParentIDsAndNameOverrides),
         new(101,  1, "ALTER TABLE AnimeEpisode ADD IsHidden integer NOT NULL DEFAULT 0;"),
         new(101,  2, "ALTER TABLE AnimeSeries_User ADD HiddenUnwatchedEpisodeCount integer NOT NULL DEFAULT 0;"),
         new(102,  1, "UPDATE v SET DateTimeImported = DateTimeCreated FROM VideoLocal v INNER JOIN CrossRef_File_Episode CRFE on v.Hash = CRFE.Hash;"),
@@ -827,7 +827,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new(140,  7, "CREATE TABLE AniDB_Character (AniDB_CharacterID INT IDENTITY(1,1), CharacterID INT NOT NULL, Name NVARCHAR(512) NOT NULL, OriginalName NVARCHAR(512) NOT NULL, Description TEXT NOT NULL, ImagePath NVARCHAR(20) NOT NULL, Gender INT NOT NULL);"),
         new(140,  8, "CREATE TABLE AniDB_Anime_Staff (AniDB_Anime_StaffID INT IDENTITY(1,1), AnimeID INT NOT NULL, CreatorID INT NOT NULL, Role NVARCHAR(64) NOT NULL, RoleType INT NOT NULL, Ordering INT NOT NULL);"),
         new(140,  9, "CREATE TABLE AniDB_Anime_Character (AniDB_Anime_CharacterID INT IDENTITY(1,1), AnimeID INT NOT NULL, CharacterID INT NOT NULL, Appearance NVARCHAR(20) NOT NULL, AppearanceType INT NOT NULL, Ordering INT NOT NULL);"),
-        new(140,  10, "CREATE TABLE AniDB_Anime_Character_Creator (AniDB_Anime_Character_CreatorID INT IDENTITY(1,1), AnimeID INT NOT NULL, CharacterID INT NOT NULL, CreatorID INT NOT NULL, Ordering INT NOT NULL);"),
+        new(140, 10, "CREATE TABLE AniDB_Anime_Character_Creator (AniDB_Anime_Character_CreatorID INT IDENTITY(1,1), AnimeID INT NOT NULL, CharacterID INT NOT NULL, CreatorID INT NOT NULL, Ordering INT NOT NULL);"),
         new(140, 11, "CREATE INDEX IX_AniDB_Anime_Staff_CreatorID ON AniDB_Anime_Staff(CreatorID);"),
         new(140, 12),
         new(141,  1, "ALTER TABLE AniDB_Character ADD Type int NOT NULL DEFAULT 0;"),
@@ -904,6 +904,10 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new(153, 4, DropLastEpisodeUpdateDefaultOnAnimeSeries_User),
         new(153, 5, "ALTER TABLE AnimeSeries_User ALTER COLUMN LastEpisodeUpdate datetime2 NULL;"),
         new(153, 6, "ALTER TABLE AnimeSeries_User ADD DEFAULT NULL FOR LastEpisodeUpdate;"),
+        new(154, 1, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN MALTitle;"),
+        new(154, 2, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN StartEpisodeType;"),
+        new(154, 3, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN StartEpisodeNumber;"),
+        new(154, 4, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN CrossRefSource;"),
     ];
 
     #endregion
