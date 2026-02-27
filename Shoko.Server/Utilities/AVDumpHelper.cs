@@ -360,7 +360,12 @@ public static partial class AVDumpHelper
 
             if (!force && File.Exists(AVDumpExecutable))
             {
-                if (File.Exists(RuntimeConfigPath) && File.ReadAllText(RuntimeConfigPath).Contains("6.0")) ReplaceNet6();
+                if (
+                    File.Exists(RuntimeConfigPath) &&
+                    File.ReadAllText(RuntimeConfigPath) is { Length: > 0 } text && (
+                        text.Contains("6.0") || text.Contains("8.0")
+                    )
+                ) ReplaceNet6And8();
                 return true;
             }
 
@@ -436,21 +441,21 @@ public static partial class AVDumpHelper
                 // eh we tried
             }
 
-            ReplaceNet6();
+            ReplaceNet6And8();
 
             ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.InstalledAVDump);
             return true;
         }
     }
 
-    private static void ReplaceNet6()
+    private static void ReplaceNet6And8()
     {
         try
         {
             if (File.Exists(RuntimeConfigPath))
             {
                 var current = File.ReadAllText(RuntimeConfigPath);
-                var replaced = current.Replace("6.0", "8.0");
+                var replaced = current.Replace("6.0", "10.0").Replace("8.0", "10.0");
                 File.WriteAllText(RuntimeConfigPath, replaced);
             }
         }
