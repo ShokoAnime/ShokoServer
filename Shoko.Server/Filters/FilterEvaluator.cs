@@ -154,8 +154,11 @@ public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupReposit
                 : sorted.Select(a => new Grouping(a.GroupID, _series.GetByGroupID(a.GroupID).Select(ser => ser.AnimeSeriesID)));
             results[filter] = new(() => result.ToArray());
         }
+
+        // Add Directory Filters
         foreach (var filter in filters.Except(results.Keys))
-            results.Add(filter, new());
+            results.Add(filter, new(() => []));
+
         return new LazyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>>(results);
     }
 
