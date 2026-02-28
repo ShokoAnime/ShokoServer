@@ -27,31 +27,34 @@ public static class LanguageExtensions
     /// This method is used to convert persisted strings from several DB tables</remarks>
     public static TitleLanguage GetTitleLanguage(this string lang)
     {
-        try
+        if (!string.IsNullOrEmpty(lang) && lang.Length >= 5 && lang[2] == '-')
         {
-            var cultureInfo = CultureInfo.GetCultureInfo(lang);
-            var ietfResult = cultureInfo.IetfLanguageTag.ToUpperInvariant() switch
+            try
             {
-                "EN-US" => TitleLanguage.EnglishAmerican,
-                "EN-GB" => TitleLanguage.EnglishBritish,
-                "EN-AU" => TitleLanguage.EnglishAustralian,
-                "EN-CA" => TitleLanguage.EnglishCanadian,
-                "EN-IN" => TitleLanguage.EnglishIndia,
-                "EN-NZ" => TitleLanguage.EnglishNewZealand,
-                "FR-CA" => TitleLanguage.FrenchCanadian,
-                "PT-BR" => TitleLanguage.BrazilianPortuguese,
+                var cultureInfo = CultureInfo.GetCultureInfo(lang);
+                var ietfResult = cultureInfo.IetfLanguageTag.ToUpperInvariant() switch
+                {
+                    "EN-US" => TitleLanguage.EnglishAmerican,
+                    "EN-GB" => TitleLanguage.EnglishBritish,
+                    "EN-AU" => TitleLanguage.EnglishAustralian,
+                    "EN-CA" => TitleLanguage.EnglishCanadian,
+                    "EN-IN" => TitleLanguage.EnglishIndia,
+                    "EN-NZ" => TitleLanguage.EnglishNewZealand,
+                    "FR-CA" => TitleLanguage.FrenchCanadian,
+                    "PT-BR" => TitleLanguage.BrazilianPortuguese,
 
-                "ZH-HANS" => TitleLanguage.ChineseSimplified,
-                "ZH-HANT" => TitleLanguage.ChineseTraditional,
-                _ => TitleLanguage.None,
-            };
-            if (ietfResult is not TitleLanguage.None)
-                return ietfResult;
+                    "ZH-HANS" => TitleLanguage.ChineseSimplified,
+                    "ZH-HANT" => TitleLanguage.ChineseTraditional,
+                    _ => TitleLanguage.None,
+                };
+                if (ietfResult is not TitleLanguage.None)
+                    return ietfResult;
 
-            lang = string.IsNullOrWhiteSpace(cultureInfo.TwoLetterISOLanguageName) ? lang : cultureInfo.TwoLetterISOLanguageName;
-        }
-        catch (CultureNotFoundException)
-        {
+                lang = string.IsNullOrWhiteSpace(cultureInfo.TwoLetterISOLanguageName) ? lang : cultureInfo.TwoLetterISOLanguageName;
+            }
+            catch (CultureNotFoundException)
+            {
+            }
         }
 
         return lang.ToUpperInvariant() switch
