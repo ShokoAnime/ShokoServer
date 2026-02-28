@@ -21,6 +21,8 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Relocation;
 using Shoko.Server.API.v3.Models.Relocation.Input;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
@@ -29,7 +31,10 @@ using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+using AbstractReleaseInfo = Shoko.Abstractions.Release.ReleaseInfo;
+using AbstractReleaseVideoCrossReference = Shoko.Abstractions.Release.ReleaseVideoCrossReference;
 using AnimeType = Shoko.Abstractions.Enums.AnimeType;
+using EpisodeType = Shoko.Abstractions.Enums.EpisodeType;
 using AVDump = Shoko.Server.API.v3.Models.Shoko.AVDump;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using MediaInfoDto = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
@@ -1160,4 +1165,350 @@ public class FileController(
             }).Select(a => new File(HttpContext, a, true)).ToList();
         return results;
     }
+
+    #region Linking Compat.
+
+    /// <summary>
+    /// Link one or more episodes to the same file.
+    /// </summary>
+    /// <param name="fileID">The file id.</param>
+    /// <param name="body">The body.</param>
+    /// <returns></returns>
+    [Obsolete("Deprecated in favor of the release info API. Will be removed in a future version.")]
+    [HttpPost("{fileID}/Link")]
+    public async Task<ActionResult> LinkSingleEpisodeToFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.Input.LinkEpisodesBody body)
+    {
+        if (RepoFactory.VideoLocal.GetByID(fileID) is not { } video)
+            return NotFound(FileNotFoundWithFileID);
+
+        // Validate the episodes.
+        var episodeList = body.EpisodeIDs
+            .Select(episodeID =>
+            {
+                var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+                if (episode == null)
+                    ModelState.AddModelError(nameof(body.EpisodeIDs), $"Unable to find shoko episode with id {episodeID}");
+                var anidbEpisode = episode?.AniDB_Episode;
+                if (anidbEpisode == null)
+                    ModelState.AddModelError(nameof(body.EpisodeIDs), $"Unable to find anidb episode for shoko episode with id {episodeID}");
+                return anidbEpisode;
+            })
+            .WhereNotNull()
+            .ToList();
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
+        {
+            CrossReferences = episodeList
+                .Select(episode => new AbstractReleaseVideoCrossReference()
+                {
+                    AnidbAnimeID = episode.AnimeID,
+                    AnidbEpisodeID = episode.EpisodeID,
+                })
+                .ToList(),
+        });
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Link one or more episodes from a series to the same file.
+    /// </summary>
+    /// <param name="fileID">The file id.</param>
+    /// <param name="body">The body.</param>
+    /// <returns></returns>
+    [Obsolete("Deprecated in favor of the release info API. Will be removed in a future version.")]
+    [HttpPost("{fileID}/LinkFromSeries")]
+    public async Task<ActionResult> LinkMultipleEpisodesToFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.Input.LinkSeriesBody body)
+    {
+        if (RepoFactory.VideoLocal.GetByID(fileID) is not { } video)
+            return NotFound(FileNotFoundWithFileID);
+
+        // Validate that the ranges are in a valid syntax and that the series exists.
+        var series = RepoFactory.AnimeSeries.GetByID(body.SeriesID);
+        if (series == null)
+            ModelState.AddModelError(nameof(body.SeriesID), $"Unable to find series with id {body.SeriesID}.");
+
+        var (rangeStart, startType, startErrorMessage) = ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeStart);
+        if (!string.IsNullOrEmpty(startErrorMessage))
+            ModelState.AddModelError(nameof(body.RangeStart), string.Format(startErrorMessage, nameof(body.RangeStart)));
+
+        var (rangeEnd, endType, endErrorMessage) = ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeEnd);
+        if (!string.IsNullOrEmpty(endErrorMessage))
+            ModelState.AddModelError(nameof(body.RangeEnd), string.Format(endErrorMessage, nameof(body.RangeEnd)));
+
+        if (startType != endType)
+            ModelState.AddModelError(nameof(body.RangeEnd), "Unable to use different episode types in the `RangeStart` and `RangeEnd`.");
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Validate that the ranges are valid for the series.
+        var episodeType = startType ?? EpisodeType.Episode;
+        var totalEpisodes = ModelHelper.GetTotalEpisodesForType(series!.AllAnimeEpisodes, episodeType);
+        if (rangeStart < 1)
+            ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be lower then 1.");
+
+        if (rangeStart > totalEpisodes)
+            ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be higher then the total number of episodes for the selected type.");
+
+        if (rangeEnd < rangeStart)
+            ModelState.AddModelError(nameof(body.RangeEnd), "`RangeEnd`cannot be lower then `RangeStart`.");
+
+        if (rangeEnd > totalEpisodes)
+            ModelState.AddModelError(nameof(body.RangeEnd), "`RangeEnd` cannot be higher than the total number of episodes for the selected type.");
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Validate the episodes.
+        var episodeList = new List<AniDB_Episode>();
+        for (var episodeNumber = rangeStart; episodeNumber <= rangeEnd; episodeNumber++)
+        {
+            var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
+            if (anidbEpisode == null)
+            {
+                ModelState.AddModelError("Episodes", $"Could not find the AniDB entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
+                continue;
+            }
+
+            var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
+            if (episode == null)
+            {
+                ModelState.AddModelError("Episodes", $"Could not find the Shoko entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
+                continue;
+            }
+
+            episodeList.Add(anidbEpisode);
+        }
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
+        {
+            CrossReferences = episodeList
+                .Select(episode => new AbstractReleaseVideoCrossReference()
+                {
+                    AnidbAnimeID = episode.AnimeID,
+                    AnidbEpisodeID = episode.EpisodeID,
+                })
+                .ToList(),
+        });
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Unlink all the episodes from the file.
+    /// </summary>
+    /// <param name="fileID">The file id.</param>
+    /// <returns></returns>
+    [Obsolete("Deprecated in favor of the release info API. Will be removed in a future version.")]
+    [HttpDelete("{fileID}/Link")]
+    public async Task<ActionResult> UnlinkMultipleEpisodesFromFile([FromRoute, Range(1, int.MaxValue)] int fileID)
+    {
+        if (RepoFactory.VideoLocal.GetByID(fileID) is not { } video)
+            return NotFound(FileNotFoundWithFileID);
+
+        if (_videoReleaseService.GetCurrentReleaseForVideo(video) is null)
+            return ValidationProblem("The file is not linked to any episodes.");
+
+        await _videoReleaseService.ClearReleaseForVideo(video);
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Link multiple files to one or more episodes in a series.
+    /// </summary>
+    /// <param name="body">The body.</param>
+    /// <returns></returns>
+    [Obsolete("Deprecated in favor of the release info API. Will be removed in a future version.")]
+    [HttpPost("LinkFromSeries")]
+    public async Task<ActionResult> LinkMultipleFiles([FromBody] File.Input.LinkSeriesMultipleBody body)
+    {
+        // Validate the file ids, series ids, and the range syntax.
+        var files = body.FileIDs
+            .Select(fileID =>
+            {
+                var file = RepoFactory.VideoLocal.GetByID(fileID);
+                if (file == null)
+                    ModelState.AddModelError(nameof(body.FileIDs), $"Unable to find a file with id {fileID}.");
+
+                return file;
+            })
+            .WhereNotNull()
+            .ToList();
+        if (body.FileIDs.Length == 0)
+            ModelState.AddModelError(nameof(body.FileIDs), "`FileIDs` must contain at least one element.");
+
+        var series = RepoFactory.AnimeSeries.GetByID(body.SeriesID);
+        if (series == null)
+            ModelState.AddModelError(nameof(body.SeriesID), $"Unable to find series with id {body.SeriesID}.");
+
+        var (rangeStart, startType, startErrorMessage) = ModelHelper.GetEpisodeNumberAndTypeFromInput(body.RangeStart);
+        if (!string.IsNullOrEmpty(startErrorMessage))
+            ModelState.AddModelError(nameof(body.RangeStart), string.Format(startErrorMessage, nameof(body.RangeStart)));
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Validate the range.
+        var episodeType = startType ?? EpisodeType.Episode;
+        var rangeEnd = rangeStart + files.Count - 1;
+        var totalEpisodes = ModelHelper.GetTotalEpisodesForType(series!.AllAnimeEpisodes, episodeType);
+        if (rangeStart < 1)
+            ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be lower then 1.");
+
+        if (rangeStart > totalEpisodes)
+            ModelState.AddModelError(nameof(body.RangeStart), "`RangeStart` cannot be higher then the total number of episodes for the selected type.");
+
+        if (rangeEnd < rangeStart)
+            ModelState.AddModelError("RangeEnd", "`RangeEnd`cannot be lower then `RangeStart`.");
+
+        if (rangeEnd > totalEpisodes)
+            ModelState.AddModelError("RangeEnd", "`RangeEnd` cannot be higher than the total number of episodes for the selected type.");
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Validate the episodes.
+        var singleEpisode = body.SingleEpisode;
+        var episodeNumber = rangeStart;
+        var episodeList = new List<(VideoLocal, AniDB_Episode)>();
+        foreach (var file in files)
+        {
+            var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
+            if (anidbEpisode == null)
+            {
+                ModelState.AddModelError("Episodes", $"Could not find the AniDB entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
+                continue;
+            }
+
+            var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
+            if (episode == null)
+            {
+                ModelState.AddModelError("Episodes", $"Could not find the Shoko entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
+                continue;
+            }
+
+            episodeList.Add((file, anidbEpisode));
+        }
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // many:1 mapping between files and episode
+        if (body.SingleEpisode)
+        {
+            var count = 0;
+            var percentageRange = (int)Math.Round(1D / files.Count * 100);
+            var percentageEnd = 0;
+            foreach (var (video, episode) in episodeList)
+            {
+                var percentageStart = percentageEnd;
+                percentageEnd += percentageRange;
+                if (++count == files.Count)
+                    percentageEnd = 100;
+
+                await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
+                {
+                    CrossReferences = [
+                        new()
+                        {
+                            AnidbAnimeID = episode.AnimeID,
+                            AnidbEpisodeID = episode.EpisodeID,
+                            PercentageStart = percentageStart,
+                            PercentageEnd = percentageEnd,
+                        },
+                    ],
+                });
+            }
+
+            return Ok();
+        }
+
+        // 1:1 mapping between files and episodes.
+        foreach (var (video, episode) in episodeList)
+        {
+            await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
+            {
+                CrossReferences = [
+                    new()
+                    {
+                        AnidbAnimeID = episode.AnimeID,
+                        AnidbEpisodeID = episode.EpisodeID,
+                    },
+                ],
+            });
+        }
+
+        return Ok();
+    }
+
+    /// <summary>
+    /// Link multiple files to a single episode.
+    /// </summary>
+    /// <param name="body">The body.</param>
+    /// <returns></returns>
+    [Obsolete("Deprecated in favor of the release info API. Will be removed in a future version.")]
+    [HttpPost("Link")]
+    public async Task<ActionResult> LinkMultipleFiles([FromBody] File.Input.LinkMultipleFilesBody body)
+    {
+        // Validate the file ids and episode id.
+        var files = body.FileIDs
+            .Select(fileID =>
+            {
+                var file = RepoFactory.VideoLocal.GetByID(fileID);
+                if (file == null)
+                    ModelState.AddModelError(nameof(body.FileIDs), $"Unable to find a file with id {fileID}.");
+
+                return file;
+            })
+            .WhereNotNull()
+            .ToList();
+        if (body.FileIDs.Length == 0)
+            ModelState.AddModelError(nameof(body.FileIDs), "`FileIDs` must contain at least one element.");
+
+        var episode = RepoFactory.AnimeEpisode.GetByID(body.EpisodeID);
+        if (episode == null)
+            ModelState.AddModelError(nameof(body.EpisodeID), $"Unable to find episode with id {body.EpisodeID}.");
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var anidbEpisode = episode!.AniDB_Episode;
+        if (anidbEpisode == null)
+            return InternalError("Could not find the AniDB entry for episode");
+
+        var count = 0;
+        var percentageRange = (int)Math.Round(1D / files.Count * 100);
+        var percentageEnd = 0;
+        foreach (var video in files)
+        {
+            var percentageStart = percentageEnd;
+            percentageEnd += percentageRange;
+            if (++count == files.Count)
+                percentageEnd = 100;
+
+            await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
+            {
+                CrossReferences = [
+                    new()
+                    {
+                        AnidbAnimeID = anidbEpisode.AnimeID,
+                        AnidbEpisodeID = anidbEpisode.EpisodeID,
+                        PercentageStart = percentageStart,
+                        PercentageEnd = percentageEnd,
+                    },
+                ],
+            });
+        }
+
+        return Ok();
+    }
+
+    #endregion
 }
