@@ -40,8 +40,6 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
-        <PackageReference Include="NLog" Version="6.1.0" />
-        <PackageReference Include="NLog.Extensions.Logging" Version="6.1.1" />
     </ItemGroup>
     <ItemGroup>
         <Resource Include="..\Shoko.Server\db.ico">

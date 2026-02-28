@@ -71,7 +71,7 @@
     <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
     <PackageReference Include="JsonDiffPatch.Net" Version="2.5.0" />
     <PackageReference Include="Libuv" Version="1.10.0" />
-    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.10.2" />
+    <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.10.3" />
     <PackageReference Include="MessagePack" Version="3.1.4" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="3.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.3" />
@@ -91,14 +91,15 @@
     <PackageReference Include="MySqlConnector" Version="2.5.0" />
     <PackageReference Include="Nancy.Rest.Annotations" Version="1.4.4" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="NHibernate" Version="5.5.2" />
+    <PackageReference Include="NHibernate" Version="5.6.0" />
     <PackageReference Include="NHibernate.Driver.MySqlConnector" Version="2.0.5" />
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
     <PackageReference Include="NJsonSchema" Version="11.5.2" />
     <PackageReference Include="NJsonSchema.Annotations" Version="11.5.2" />
     <PackageReference Include="NJsonSchema.NewtonsoftJson" Version="11.5.2" />
-    <PackageReference Include="NLog" Version="6.1.0" />
-    <PackageReference Include="NLog.Web.AspNetCore" Version="6.1.1" />
+    <PackageReference Include="NLog" Version="6.1.1" />
+    <PackageReference Include="NLog.Web.AspNetCore" Version="6.1.2" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="6.1.2" />
     <PackageReference Include="Polly" Version="8.6.5" />
     <PackageReference Include="Sentry" Version="6.1.0" />
     <PackageReference Include="Sentry.AspNetCore" Version="6.1.0" />
