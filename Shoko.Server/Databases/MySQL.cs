@@ -699,7 +699,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new( 92,  1, DropAniDBUniqueIndex),
         new( 93,  1, "CREATE TABLE `AniDB_Anime_Staff` ( `AniDB_Anime_StaffID` INT NOT NULL AUTO_INCREMENT, `AnimeID` int NOT NULL, `CreatorID` int NOT NULL, `CreatorType` varchar(50) NOT NULL, PRIMARY KEY (`AniDB_Anime_StaffID`) );"),
         new( 93,  2, DatabaseFixes.RefreshAniDBInfoFromXML),
-        new( 94,  1, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
+        new( 94,  1),
         new( 95,  1, "UPDATE VideoLocal_User SET WatchedDate = NULL WHERE WatchedDate = '1970-01-01 00:00:00';"),
         new( 95,  2, "ALTER TABLE VideoLocal_User ADD WatchedCount INT NOT NULL DEFAULT 0;"),
         new( 95,  3, "ALTER TABLE VideoLocal_User ADD LastUpdated datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"),
@@ -1030,6 +1030,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(161,  3, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `StartEpisodeNumber`;"),
         new(161,  4, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `CrossRefSource`;"),
         new(161,  5, "ALTER TABLE `AnimeGroup_User` DROP COLUMN `IsFave`;"),
+        new(161,  6, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
     ];
 
     #endregion

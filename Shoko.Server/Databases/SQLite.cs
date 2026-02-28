@@ -526,7 +526,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new( 80,  1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID;"),
         new( 81,  1, "CREATE TABLE AniDB_Anime_Staff ( AniDB_Anime_StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, CreatorID INTEGER NOT NULL, CreatorType TEXT NOT NULL );"),
         new( 81,  2, DatabaseFixes.RefreshAniDBInfoFromXML),
-        new( 82,  1, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
+        new( 82,  1),
         new( 83,  1, "UPDATE VideoLocal_User SET WatchedDate = NULL WHERE WatchedDate = '1970-01-01 00:00:00';"),
         new( 83,  2, "ALTER TABLE VideoLocal_User ADD WatchedCount INTEGER NOT NULL DEFAULT 0;"),
         new( 83,  3, "ALTER TABLE VideoLocal_User ADD LastUpdated DATETIME NOT NULL DEFAULT '2000-01-01 00:00:00';"),
@@ -848,6 +848,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(143,  3, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN StartEpisodeNumber;"),
         new(143,  4, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN CrossRefSource;"),
         new(143,  5, "ALTER TABLE AnimeGroup_User DROP COLUMN IsFave;"),
+        new(143,  6, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
     ];
 
     #endregion

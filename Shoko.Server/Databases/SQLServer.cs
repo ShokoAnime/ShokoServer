@@ -565,7 +565,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new( 85,  1, "DROP INDEX IF EXISTS UIX_AniDB_File_FileID ON AniDB_File;"),
         new( 86,  1, "CREATE TABLE AniDB_Anime_Staff ( AniDB_Anime_StaffID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, CreatorID int NOT NULL, CreatorType varchar(50) NOT NULL );"),
         new( 86,  2, DatabaseFixes.RefreshAniDBInfoFromXML),
-        new( 87,  1, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
+        new( 87,  1),
         new( 88,  1, "UPDATE VideoLocal_User SET WatchedDate = NULL WHERE WatchedDate = '1970-01-01 00:00:00';"),
         new( 88,  2, "ALTER TABLE VideoLocal_User ADD WatchedCount INT NOT NULL DEFAULT 0;"),
         new( 88,  3, "ALTER TABLE VideoLocal_User ADD LastUpdated datetime NOT NULL DEFAULT CURRENT_TIMESTAMP;"),
@@ -909,6 +909,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new(154, 3, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN StartEpisodeNumber;"),
         new(154, 4, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN CrossRefSource;"),
         new(154, 5, "ALTER TABLE AnimeGroup_User DROP COLUMN IsFave;"),
+        new(154, 6, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
     ];
 
     #endregion
