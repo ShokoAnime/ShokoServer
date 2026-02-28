@@ -1,7 +1,6 @@
 {
   "recommendations": [
     "aaron-bond.better-comments",
-    "augustocdias.tasks-shell-input",
     "eamodio.gitlens",
     "editorconfig.editorconfig",
     "github.vscode-github-actions",
