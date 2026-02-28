@@ -908,6 +908,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         new(154, 2, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN StartEpisodeType;"),
         new(154, 3, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN StartEpisodeNumber;"),
         new(154, 4, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN CrossRefSource;"),
+        new(154, 5, "ALTER TABLE AnimeGroup_User DROP COLUMN IsFave;"),
     ];
 
     #endregion

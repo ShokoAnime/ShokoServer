@@ -847,6 +847,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
         new(143,  2, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN StartEpisodeType;"),
         new(143,  3, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN StartEpisodeNumber;"),
         new(143,  4, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN CrossRefSource;"),
+        new(143,  5, "ALTER TABLE AnimeGroup_User DROP COLUMN IsFave;"),
     ];
 
     #endregion

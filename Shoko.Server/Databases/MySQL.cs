@@ -1029,6 +1029,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
         new(161,  2, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `StartEpisodeType`;"),
         new(161,  3, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `StartEpisodeNumber`;"),
         new(161,  4, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `CrossRefSource`;"),
+        new(161,  5, "ALTER TABLE `AnimeGroup_User` DROP COLUMN `IsFave`;"),
     ];
 
     #endregion
