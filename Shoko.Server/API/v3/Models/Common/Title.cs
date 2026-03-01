@@ -63,7 +63,7 @@ public class Title
         Name = title.Value;
         Language = title.Language.GetString();
         Type = TitleType.None;
-        Default = title.Language == TitleLanguage.English && !string.IsNullOrEmpty(mainTitle) && string.Equals(title.Value, mainTitle);
+        Default = title.Language is TitleLanguage.EnglishAmerican && !string.IsNullOrEmpty(mainTitle) && string.Equals(title.Value, mainTitle);
         Preferred = title.Equals(preferredTitle);
         Source = "TMDB";
     }
