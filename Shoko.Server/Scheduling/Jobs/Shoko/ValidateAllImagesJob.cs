@@ -8,6 +8,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
+using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Settings;
@@ -17,6 +18,7 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
+[LimitConcurrency(1, 1)]
 [JobKeyGroup(JobKeyGroup.Import)]
 public class ValidateAllImagesJob : BaseJob
 {
