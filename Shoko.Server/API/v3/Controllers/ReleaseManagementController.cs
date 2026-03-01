@@ -45,7 +45,7 @@ public class ReleaseManagementController(ISettingsProvider settingsProvider) : B
         if (onlyFinishedSeries) enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
 
         return enumerable
-            .OrderBy(series => series.PreferredTitle)
+            .OrderBy(series => series.Title)
             .ThenBy(series => series.AniDB_ID)
             .ToListResult(series => new Series.WithEpisodeCount(RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
     }

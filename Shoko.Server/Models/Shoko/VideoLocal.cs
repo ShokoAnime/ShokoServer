@@ -203,7 +203,7 @@ public class VideoLocal : IVideo
             .DistinctBy(x => x.AnimeID)
             .Select(x => x.AnimeSeries)
             .WhereNotNull()
-            .OrderBy(a => a.PreferredTitle)
+            .OrderBy(a => a.Title)
             .ToArray();
 
     IReadOnlyList<IShokoGroup> IVideo.Groups =>

@@ -72,7 +72,7 @@ public class ReleaseManagementMissingEpisodesController(ISettingsProvider settin
             enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
 
         return enumerable
-            .OrderBy(series => series.PreferredTitle)
+            .OrderBy(series => series.Title)
             .ThenBy(series => series.AniDB_ID)
             .ToListResult(series => new Series.WithEpisodeCount(collecting ? series.MissingEpisodeCountGroups : series.MissingEpisodeCount, series, User.JMMUserID, includeDataFrom), page, pageSize);
     }
