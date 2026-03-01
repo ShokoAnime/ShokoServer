@@ -216,7 +216,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         var preferredTitle = movie.GetPreferredTitle();
-        return new(movie.GetAllTitles().ToDto(movie.EnglishTitle, preferredTitle, language));
+        return new(movie.GetAllTitles().ToTitleDto(movie.EnglishTitle, preferredTitle, language));
     }
 
     [HttpGet("Movie/{movieID}/Overviews")]
@@ -232,7 +232,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         var preferredOverview = movie.GetPreferredOverview();
-        return new(movie.GetAllOverviews().ToDto(movie.EnglishTitle, preferredOverview, language));
+        return new(movie.GetAllOverviews().ToOverviewDto(movie.EnglishOverview, preferredOverview, language));
     }
 
     [HttpGet("Movie/{movieID}/Images")]
@@ -796,7 +796,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieCollectionNotFound);
 
         var preferredTitle = collection.GetPreferredTitle();
-        return new(collection.GetAllTitles().ToDto(collection.EnglishTitle, preferredTitle, language));
+        return new(collection.GetAllTitles().ToTitleDto(collection.EnglishTitle, preferredTitle, language));
     }
 
     [HttpGet("Movie/Collection/{collectionID}/Overviews")]
@@ -812,7 +812,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieCollectionNotFound);
 
         var preferredOverview = collection.GetPreferredOverview();
-        return new(collection.GetAllOverviews().ToDto(collection.EnglishTitle, preferredOverview, language));
+        return new(collection.GetAllOverviews().ToOverviewDto(collection.EnglishOverview, preferredOverview, language));
     }
 
     [HttpGet("Movie/Collection/{collectionID}/Images")]
@@ -1056,7 +1056,7 @@ public partial class TmdbController : BaseController
             return NotFound(ShowNotFound);
 
         var preferredTitle = show.GetPreferredTitle();
-        return new(show.GetAllTitles().ToDto(show.EnglishTitle, preferredTitle, language));
+        return new(show.GetAllTitles().ToTitleDto(show.EnglishTitle, preferredTitle, language));
     }
 
     [HttpGet("Show/{showID}/Overviews")]
@@ -1072,7 +1072,7 @@ public partial class TmdbController : BaseController
             return NotFound(ShowNotFound);
 
         var preferredOverview = show.GetPreferredOverview();
-        return new(show.GetAllOverviews().ToDto(show.EnglishOverview, preferredOverview, language));
+        return new(show.GetAllOverviews().ToOverviewDto(show.EnglishOverview, preferredOverview, language));
     }
 
     [HttpGet("Show/{showID}/Images")]
@@ -1904,7 +1904,8 @@ public partial class TmdbController : BaseController
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
-            return new List<Title>();
+            var altPreferredTitle = altOrderSeason.GetPreferredTitle();
+            return new(altOrderSeason.GetAllTitles().ToTitleDto(altOrderSeason.EnglishTitle, altPreferredTitle, language));
         }
 
         var seasonId = int.Parse(seasonID);
@@ -1915,7 +1916,7 @@ public partial class TmdbController : BaseController
             return NotFound(SeasonNotFound);
 
         var preferredTitle = season.GetPreferredTitle();
-        return new(season.GetAllTitles().ToDto(season.EnglishTitle, preferredTitle, language));
+        return new(season.GetAllTitles().ToTitleDto(season.EnglishTitle, preferredTitle, language));
     }
 
     [HttpGet("Season/{seasonID}/Overviews")]
@@ -1943,7 +1944,7 @@ public partial class TmdbController : BaseController
             return NotFound(SeasonNotFound);
 
         var preferredOverview = season.GetPreferredOverview();
-        return new(season.GetAllOverviews().ToDto(season.EnglishOverview, preferredOverview, language));
+        return new(season.GetAllOverviews().ToOverviewDto(season.EnglishOverview, preferredOverview, language));
     }
 
     [HttpGet("Season/{seasonID}/Images")]
@@ -2429,7 +2430,7 @@ public partial class TmdbController : BaseController
             return NotFound(EpisodeNotFound);
 
         var preferredTitle = episode.GetPreferredTitle();
-        return new(episode.GetAllTitles().ToDto(episode.EnglishTitle, preferredTitle, language));
+        return new(episode.GetAllTitles().ToTitleDto(episode.EnglishTitle, preferredTitle, language));
     }
 
     [HttpGet("Episode/{episodeID}/Overviews")]
@@ -2445,7 +2446,7 @@ public partial class TmdbController : BaseController
             return NotFound(EpisodeNotFound);
 
         var preferredOverview = episode.GetPreferredOverview();
-        return new(episode.GetAllOverviews().ToDto(episode.EnglishTitle, preferredOverview, language));
+        return new(episode.GetAllOverviews().ToOverviewDto(episode.EnglishOverview, preferredOverview, language));
     }
 
     [HttpGet("Episode/{episodeID}/Ordering")]

@@ -162,7 +162,7 @@ public static class APIv3_Extensions
             images.Add(poster);
     }
 
-    public static IReadOnlyList<Title> ToDto(this IEnumerable<TMDB_Title> titles, string? mainTitle = null, TMDB_Title? preferredTitle = null, IReadOnlySet<TitleLanguage>? language = null)
+    public static IReadOnlyList<Title> ToTitleDto<TTitle>(this IEnumerable<TTitle> titles, string? mainTitle = null, ITitle? preferredTitle = null, IReadOnlySet<TitleLanguage>? language = null) where TTitle : ITitle
     {
         if (language != null && language.Count > 0)
             titles = titles.WhereInLanguages(language);
@@ -175,7 +175,7 @@ public static class APIv3_Extensions
             .ToList();
     }
 
-    public static IReadOnlyList<Overview> ToDto(this IEnumerable<TMDB_Overview> overviews, string? mainOverview = null, TMDB_Overview? preferredOverview = null, IReadOnlySet<TitleLanguage>? language = null)
+    public static IReadOnlyList<Overview> ToOverviewDto<TText>(this IEnumerable<TText> overviews, string? mainOverview = null, IText? preferredOverview = null, IReadOnlySet<TitleLanguage>? language = null) where TText : IText
     {
         if (language != null && language.Count > 0)
             overviews = overviews.WhereInLanguages(language);

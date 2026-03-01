@@ -188,11 +188,11 @@ public class TmdbMovie
         Title = preferredTitle!.Value;
         if (include.HasFlag(IncludeDetails.Titles))
             Titles = movie.GetAllTitles()
-                .ToDto(movie.EnglishTitle, preferredTitle, language);
+                .ToTitleDto(movie.EnglishTitle, preferredTitle, language);
         Overview = preferredOverview!.Value;
         if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = movie.GetAllOverviews()
-                .ToDto(movie.EnglishOverview, preferredOverview, language);
+                .ToOverviewDto(movie.EnglishOverview, preferredOverview, language);
         OriginalLanguage = movie.OriginalLanguageCode;
         IsRestricted = movie.IsRestricted;
         IsVideo = movie.IsVideo;
@@ -307,11 +307,11 @@ public class TmdbMovie
             Title = preferredTitle.Value;
             if (include.HasFlag(IncludeDetails.Titles))
                 Titles = collection.GetAllTitles()
-                    .ToDto(collection.EnglishTitle, preferredTitle, language);
+                    .ToTitleDto(collection.EnglishTitle, preferredTitle, language);
             Overview = preferredOverview!.Value;
             if (include.HasFlag(IncludeDetails.Overviews))
                 Overviews = collection.GetAllOverviews()
-                    .ToDto(collection.EnglishOverview, preferredOverview, language);
+                    .ToOverviewDto(collection.EnglishOverview, preferredOverview, language);
             MovieCount = collection.MovieCount;
             if (include.HasFlag(IncludeDetails.Images))
                 Images = collection.GetImages()

@@ -164,12 +164,12 @@ public class TmdbEpisode
         Title = preferredTitle!.Value;
         if (include.HasFlag(IncludeDetails.Titles))
             Titles = episode.GetAllTitles()
-                .ToDto(episode.EnglishTitle, preferredTitle, language);
+                .ToTitleDto(episode.EnglishTitle, preferredTitle, language);
 
         Overview = preferredOverview!.Value;
         if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = episode.GetAllOverviews()
-                .ToDto(episode.EnglishOverview, preferredOverview, language);
+                .ToOverviewDto(episode.EnglishOverview, preferredOverview, language);
         IsHidden = episode.IsHidden;
 
         if (alternateOrderingEpisode != null)

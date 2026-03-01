@@ -129,11 +129,11 @@ public class TmdbSeason
         Title = preferredTitle!.Value;
         if (include.HasFlag(IncludeDetails.Titles))
             Titles = season.GetAllTitles()
-                .ToDto(season.EnglishTitle, preferredTitle, language);
+                .ToTitleDto(season.EnglishTitle, preferredTitle, language);
         Overview = preferredOverview!.Value;
         if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = season.GetAllOverviews()
-                .ToDto(season.EnglishOverview, preferredOverview, language);
+                .ToOverviewDto(season.EnglishOverview, preferredOverview, language);
         if (include.HasFlag(IncludeDetails.Images))
             Images = season.GetImages()
                 .ToDto(language, preferredPoster: season.DefaultPoster);
@@ -162,7 +162,7 @@ public class TmdbSeason
         LastUpdatedAt = season.LastUpdatedAt.ToUniversalTime();
     }
 
-    public TmdbSeason(TMDB_AlternateOrdering_Season season, IncludeDetails? includeDetails = null)
+    public TmdbSeason(TMDB_AlternateOrdering_Season season, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
     {
         var include = includeDetails ?? default;
 
@@ -171,7 +171,8 @@ public class TmdbSeason
         AlternateOrderingID = season.TmdbEpisodeGroupCollectionID;
         Title = season.EnglishTitle;
         if (include.HasFlag(IncludeDetails.Titles))
-            Titles = Array.Empty<Title>();
+            Titles = season.GetAllTitles()
+                .ToTitleDto(season.EnglishTitle, season.GetPreferredTitle(), language);
         Overview = string.Empty;
         if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = Array.Empty<Overview>();

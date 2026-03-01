@@ -208,12 +208,12 @@ public class TmdbShow
         Title = preferredTitle!.Value;
         if (include.HasFlag(IncludeDetails.Titles))
             Titles = show.GetAllTitles()
-                .ToDto(show.EnglishOverview, preferredTitle, language);
+                .ToTitleDto(show.EnglishTitle, preferredTitle, language);
 
         Overview = preferredOverview!.Value;
         if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = show.GetAllOverviews()
-                .ToDto(show.EnglishTitle, preferredOverview, language);
+                .ToOverviewDto(show.EnglishOverview, preferredOverview, language);
         OriginalLanguage = show.OriginalLanguageCode;
         IsRestricted = show.IsRestricted;
         UserRating = new()

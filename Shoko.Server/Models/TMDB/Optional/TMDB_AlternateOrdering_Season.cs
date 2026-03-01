@@ -110,6 +110,40 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
         return updates.Any(updated => updated);
     }
 
+    /// <inheritdoc/>
+    public ITitle GetDefaultTitle() => new TitleStub()
+    {
+        Language = TitleLanguage.EnglishAmerican,
+        CountryCode = "US",
+        LanguageCode = "en",
+        Value = EnglishTitle,
+        Source = DataSource.TMDB,
+    };
+
+    /// <inheritdoc/>
+    public ITitle? GetPreferredTitle() => Utils.SettingsProvider.GetSettings().Language.SeriesTitleLanguageOrder.Contains("en-US")
+        ? new TitleStub()
+        {
+            Language = TitleLanguage.EnglishAmerican,
+            CountryCode = "US",
+            LanguageCode = "en",
+            Value = EnglishTitle,
+            Source = DataSource.TMDB,
+        }
+        : null;
+
+    public IReadOnlyList<ITitle> GetAllTitles() =>
+    [
+        new TitleStub()
+        {
+            Language = TitleLanguage.EnglishAmerican,
+            CountryCode = "US",
+            LanguageCode = "en",
+            Value = EnglishTitle,
+            Source = DataSource.TMDB,
+        },
+    ];
+
     /// <summary>
     /// Get all cast members that have worked on this season.
     /// </summary>
@@ -197,37 +231,11 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
 
     string IWithTitles.Title => EnglishTitle;
 
-    ITitle IWithTitles.DefaultTitle => new TitleStub()
-    {
-        Language = TitleLanguage.EnglishAmerican,
-        CountryCode = "US",
-        LanguageCode = "en",
-        Value = EnglishTitle,
-        Source = DataSource.TMDB,
-    };
+    ITitle IWithTitles.DefaultTitle => GetDefaultTitle();
 
-    ITitle? IWithTitles.PreferredTitle => Utils.SettingsProvider.GetSettings().Language.SeriesTitleLanguageOrder.Contains("en-US")
-        ? new TitleStub()
-        {
-            Language = TitleLanguage.EnglishAmerican,
-            CountryCode = "US",
-            LanguageCode = "en",
-            Value = EnglishTitle,
-            Source = DataSource.TMDB,
-        }
-        : null;
+    ITitle? IWithTitles.PreferredTitle => GetPreferredTitle();
 
-    IReadOnlyList<ITitle> IWithTitles.Titles =>
-    [
-        new TitleStub()
-        {
-            Language = TitleLanguage.EnglishAmerican,
-            CountryCode = "US",
-            LanguageCode = "en",
-            Value = EnglishTitle,
-            Source = DataSource.TMDB,
-        },
-    ];
+    IReadOnlyList<ITitle> IWithTitles.Titles => GetAllTitles();
 
     #endregion
 

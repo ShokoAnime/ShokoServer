@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Models.TMDB;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
@@ -60,20 +61,20 @@ public static class TmdbExtensions
     public static DateTime ToDateTime(this DateOnly date)
         => date.ToDateTime(MidDay, DateTimeKind.Utc);
 
-    public static TMDB_Title? GetByLanguage(this IEnumerable<TMDB_Title> titles, TitleLanguage language)
+    public static TText? GetByLanguage<TText>(this IEnumerable<TText> texts, TitleLanguage language) where TText : IText
     {
         var (languageCode, countryCode) = language.GetLanguageAndCountryCode();
-        Func<TMDB_Title, bool> filter = string.IsNullOrEmpty(countryCode)
+        Func<TText, bool> filter = string.IsNullOrEmpty(countryCode)
             ? (title => string.Equals(title.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase))
             : (title => string.Equals(title.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(title.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase));
-        return titles.FirstOrDefault(filter);
+        return texts.FirstOrDefault(filter);
     }
 
-    public static IEnumerable<TMDB_Title> WhereInLanguages(this IEnumerable<TMDB_Title> contentRatings, IReadOnlySet<TitleLanguage>? languages)
+    public static IEnumerable<TText> WhereInLanguages<TText>(this IEnumerable<TText> texts, IReadOnlySet<TitleLanguage>? languages) where TText : IText
     {
         if (languages is null)
-            return contentRatings;
+            return texts;
 
         var countyCodes = languages
             .Select(c => c.GetLanguageAndCountryCode())
@@ -85,35 +86,7 @@ public static class TmdbExtensions
             .Where(c => c.countryCode is null)
             .Select(c => c.languageCode)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return contentRatings.Where(cr => languagesCodes.Contains(cr.LanguageCode) || countyCodes.Contains(cr.CountryCode));
-    }
-
-    public static TMDB_Overview? GetByLanguage(this IEnumerable<TMDB_Overview> titles, TitleLanguage language)
-    {
-        var (languageCode, countryCode) = language.GetLanguageAndCountryCode();
-        Func<TMDB_Overview, bool> filter = string.IsNullOrEmpty(countryCode)
-            ? (title => string.Equals(title.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase))
-            : (title => string.Equals(title.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(title.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase));
-        return titles.FirstOrDefault(filter);
-    }
-
-    public static IEnumerable<TMDB_Overview> WhereInLanguages(this IEnumerable<TMDB_Overview> contentRatings, IReadOnlySet<TitleLanguage>? languages)
-    {
-        if (languages is null)
-            return contentRatings;
-
-        var countyCodes = languages
-            .Select(c => c.GetLanguageAndCountryCode())
-            .Where(c => c.countryCode is not null)
-            .Select(c => c.countryCode)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var languagesCodes = languages
-            .Select(c => c.GetLanguageAndCountryCode())
-            .Where(c => c.countryCode is null)
-            .Select(c => c.languageCode)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return contentRatings.Where(cr => languagesCodes.Contains(cr.LanguageCode) || countyCodes.Contains(cr.CountryCode));
+        return texts.Where(cr => languagesCodes.Contains(cr.LanguageCode) || countyCodes.Contains(cr.CountryCode));
     }
 
     public static IEnumerable<TMDB_ContentRating> WhereInLanguages(this IEnumerable<TMDB_ContentRating> contentRatings, IReadOnlySet<TitleLanguage>? languages)
