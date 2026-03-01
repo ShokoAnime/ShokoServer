@@ -11,9 +11,12 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
+using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Services;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Delegates;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -33,44 +36,61 @@ public class ThreadPooledJobStore : JobStoreTX
     private readonly JobFactory _jobFactory;
     private readonly Dictionary<JobKey, (IJobDetail Job, DateTime StartTime)> _executingJobs = [];
     private readonly IAcquisitionFilter[] _acquisitionFilters;
+    private readonly IVideoReleaseService _videoReleaseService;
+    private readonly IShokoEventHandler _shokoEventHandler;
     private ITypeLoadHelper _typeLoadHelper;
-    private readonly Dictionary<Type, int> _typeConcurrencyCache;
-
-    private readonly Dictionary<string, Type[]> _concurrencyGroupCache;
-
+    private readonly Dictionary<Type, int> _typeConcurrencyCache = [];
+    private readonly Dictionary<string, Type[]> _concurrencyGroupCache = [];
+    private readonly ReaderWriterLockSlim _cacheReadWriteLock = new(LockRecursionPolicy.NoRecursion);
+    private bool _noProvidersEnabled = true;
+    private bool _anidbProviderEnabled = false;
+    private bool _ready = false;
+    private readonly Type[] _anidbUdpTypesWithProcessFileJob;
+    private readonly Type[] _anidbUdpTypesWithoutProcessFileJob;
+    private readonly int _processFileConcurrencyLimit;
     private int _threadPoolSize;
 
     protected new IFilteredDriverDelegate Delegate => (IFilteredDriverDelegate)base.Delegate;
 
     #region Init
 
-    public ThreadPooledJobStore(ILogger<ThreadPooledJobStore> logger, ISettingsProvider settingsProvider, IEnumerable<IAcquisitionFilter> acquisitionFilters,
-        QueueStateEventHandler queueStateEventHandler, JobFactory jobFactory)
+    public ThreadPooledJobStore(
+        ILogger<ThreadPooledJobStore> logger,
+        ISettingsProvider settingsProvider,
+        IVideoReleaseService videoReleaseService,
+        IShokoEventHandler shokoEventHandler,
+        IEnumerable<IAcquisitionFilter> acquisitionFilters,
+        QueueStateEventHandler queueStateEventHandler,
+        JobFactory jobFactory)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
         _queueStateEventHandler = queueStateEventHandler;
         _jobFactory = jobFactory;
+        _videoReleaseService = videoReleaseService;
+        _shokoEventHandler = shokoEventHandler;
         _acquisitionFilters = acquisitionFilters.ToArray();
+        _videoReleaseService.ProvidersUpdated += OnProvidersUpdated;
+        _shokoEventHandler.Started += OnProvidersReady;
         foreach (var filter in _acquisitionFilters)
             filter.StateChanged += FilterOnStateChanged;
-        _concurrencyGroupCache = [];
-        _typeConcurrencyCache = [];
+
         var types = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(a => a.GetTypes())
             .Where(a => typeof(IJob).IsAssignableFrom(a) && !a.IsAbstract)
             .ToList();
-
         foreach (var type in types)
         {
             var limitConcurrencyAttribute = type.GetCustomAttribute<LimitConcurrencyAttribute>();
-            if (limitConcurrencyAttribute != null) _typeConcurrencyCache[type] = limitConcurrencyAttribute.MaxConcurrentJobs;
+            if (limitConcurrencyAttribute is not null && limitConcurrencyAttribute.MaxConcurrentJobs is > 0)
+                _typeConcurrencyCache[type] = limitConcurrencyAttribute.MaxConcurrentJobs;
 
             var disallowConcurrentExecutionAttribute = type.GetCustomAttribute<DisallowConcurrentExecutionAttribute>();
-            if (disallowConcurrentExecutionAttribute != null) _typeConcurrencyCache[type] = 1;
+            if (disallowConcurrentExecutionAttribute is not null)
+                _typeConcurrencyCache[type] = 1;
 
             var disallowConcurrencyGroupAttribute = type.GetCustomAttribute<DisallowConcurrencyGroupAttribute>();
-            if (disallowConcurrencyGroupAttribute != null)
+            if (disallowConcurrencyGroupAttribute is not null)
             {
                 if (_concurrencyGroupCache.TryGetValue(disallowConcurrencyGroupAttribute.Group, out var groupTypes))
                     groupTypes = groupTypes.Append(type).Distinct().ToArray();
@@ -79,26 +99,50 @@ public class ThreadPooledJobStore : JobStoreTX
             }
         }
 
-        var overrides = Utils.SettingsProvider.GetSettings().Quartz.LimitedConcurrencyOverrides;
-        if (overrides == null) return;
-        foreach (var kv in overrides)
+        if (Utils.SettingsProvider.GetSettings().Quartz.LimitedConcurrencyOverrides is { Count: > 0 } overrides)
         {
-            var type = Assembly.GetExecutingAssembly().GetTypes().FirstOrDefault(a => a.Name.Equals(kv.Key));
-            if (type == null) continue;
-            var value = kv.Value;
-            var attribute = type.GetCustomAttribute<LimitConcurrencyAttribute>();
-            if (attribute is null)
+            foreach (var kv in overrides)
             {
-                _typeConcurrencyCache[type] = value;
-                continue;
-            }
+                if (types.FirstOrDefault(a => a.Name.Equals(kv.Key)) is not { } type)
+                    continue;
 
-            // limit the upper bound according to the attribute
-            if (attribute.MaxAllowedConcurrentJobs > 0 && attribute.MaxAllowedConcurrentJobs < kv.Value) value = attribute.MaxAllowedConcurrentJobs;
-            // by not adding it to the cache, we don't limit it
-            if (kv.Value <= 0) continue;
-            _typeConcurrencyCache[type] = value;
+                // don't allow overriding any type that disallows concurrent execution
+                var disallowConcurrentExecutionAttribute = type.GetCustomAttribute<DisallowConcurrentExecutionAttribute>();
+                if (disallowConcurrentExecutionAttribute is not null)
+                    continue;
+
+                var value = kv.Value < 0 ? 0 : kv.Value;
+                var attribute = type.GetCustomAttribute<LimitConcurrencyAttribute>();
+                if (attribute is null)
+                {
+                    // only set the value if it's greater than 0 when we don't have a limit attribute
+                    if (value > 0)
+                        _typeConcurrencyCache[type] = value;
+                    continue;
+                }
+
+                // limit the upper bound according to the attribute
+                if (attribute.MaxAllowedConcurrentJobs is > 0 && value > attribute.MaxAllowedConcurrentJobs)
+                    value = attribute.MaxAllowedConcurrentJobs;
+
+                // if the value is 0 (or below) and we have a limit attribute, don't set it
+                if (value is 0)
+                    continue;
+
+                _typeConcurrencyCache[type] = value;
+            }
         }
+
+        // Extract and remove ProcessFileJob concurrency limit for now.
+        _processFileConcurrencyLimit = _typeConcurrencyCache[typeof(ProcessFileJob)];
+        _typeConcurrencyCache.Remove(typeof(ProcessFileJob));
+
+        // Cache AniDB UDP types with and without ProcessFileJob for now.
+        _anidbUdpTypesWithProcessFileJob = _concurrencyGroupCache[ConcurrencyGroups.AniDB_UDP];
+        _anidbUdpTypesWithoutProcessFileJob = _anidbUdpTypesWithProcessFileJob
+            .Except([typeof(ProcessFileJob)])
+            .ToArray();
+        _concurrencyGroupCache[ConcurrencyGroups.AniDB_UDP] = _anidbUdpTypesWithoutProcessFileJob;
     }
 
     public override ValueTask Initialize(ITypeLoadHelper loadHelper, ISchedulerSignaler signaler, CancellationToken cancellationToken = default)
@@ -109,12 +153,68 @@ public class ThreadPooledJobStore : JobStoreTX
 
     ~ThreadPooledJobStore()
     {
+        _videoReleaseService.ProvidersUpdated -= OnProvidersUpdated;
+        _shokoEventHandler.Started -= OnProvidersReady;
         foreach (var filter in _acquisitionFilters) filter.StateChanged -= FilterOnStateChanged;
     }
 
     private void FilterOnStateChanged(object? sender, EventArgs e)
     {
-        SignalSchedulingChangeImmediately(new DateTimeOffset(1982, 6, 28, 0, 0, 0, TimeSpan.FromSeconds(0)));
+        SignalSchedulingChangeImmediately(new DateTimeOffset(1982, 6, 28, 0, 0, 0, TimeSpan.Zero));
+    }
+
+    private void OnProvidersReady(object? sender, EventArgs e)
+    {
+        _ready = true;
+        var availableProviders = _videoReleaseService.GetAvailableProviders(onlyEnabled: true).ToList();
+        var currentNoProvidersEnabled = availableProviders.Count is 0;
+        var currentAnidbEnabled = availableProviders.Any(a => a.Provider.Name is "AniDB");
+        UpdateConcurrencyGroupCache(currentNoProvidersEnabled, currentAnidbEnabled);
+    }
+
+    private void OnProvidersUpdated(object? sender, EventArgs e)
+    {
+        if (!_ready) return;
+        var availableProviders = _videoReleaseService.GetAvailableProviders(onlyEnabled: true).ToList();
+        var currentNoProvidersEnabled = availableProviders.Count is 0;
+        var currentAnidbEnabled = availableProviders.Any(a => a.Provider.Name is "AniDB");
+        if (currentNoProvidersEnabled != _noProvidersEnabled || currentAnidbEnabled != _anidbProviderEnabled)
+            UpdateConcurrencyGroupCache(currentNoProvidersEnabled, currentAnidbEnabled);
+    }
+
+    private void UpdateConcurrencyGroupCache(bool noProvidersEnabled, bool anidbProviderEnabled)
+    {
+        try
+        {
+            _cacheReadWriteLock.EnterWriteLock();
+            if (noProvidersEnabled)
+            {
+                _noProvidersEnabled = true;
+                _anidbProviderEnabled = false;
+                _typeConcurrencyCache.Remove(typeof(ProcessFileJob));
+                _concurrencyGroupCache[ConcurrencyGroups.AniDB_UDP] = _anidbUdpTypesWithoutProcessFileJob;
+            }
+            else if (anidbProviderEnabled)
+            {
+                _noProvidersEnabled = false;
+                _anidbProviderEnabled = true;
+                _typeConcurrencyCache.Remove(typeof(ProcessFileJob));
+                _concurrencyGroupCache[ConcurrencyGroups.AniDB_UDP] = _anidbUdpTypesWithProcessFileJob;
+            }
+            else
+            {
+                _noProvidersEnabled = false;
+                _anidbProviderEnabled = false;
+                _typeConcurrencyCache[typeof(ProcessFileJob)] = _processFileConcurrencyLimit;
+                _concurrencyGroupCache[ConcurrencyGroups.AniDB_UDP] = _anidbUdpTypesWithoutProcessFileJob;
+            }
+        }
+        finally
+        {
+            _cacheReadWriteLock.ExitWriteLock();
+        }
+
+        SignalSchedulingChangeImmediately(new DateTimeOffset(1982, 6, 28, 0, 0, 0, TimeSpan.Zero));
     }
 
     #endregion
@@ -225,46 +325,58 @@ public class ThreadPooledJobStore : JobStoreTX
 
     public JobTypes GetTypes()
     {
-        var excludedTypes = new List<Type>();
-        var limitedTypes = new Dictionary<Type, int>();
-        foreach (var filter in _acquisitionFilters) excludedTypes.AddRange(filter.GetTypesToExclude());
-
-        IEnumerable<(Type Type, int Count)> executingTypes;
-        lock (_executingJobs)
-            executingTypes = _executingJobs.Values.Select(a => a.Job.JobType.Type).GroupBy(a => a).Select(a => (Type: a.Key, Count: a.Count())).ToList();
-
-        foreach (var kv in _typeConcurrencyCache)
+        try
         {
-            var executing = executingTypes.FirstOrDefault(a => a.Type == kv.Key);
-            // kv.Value is the max count, we want to get the number of remaining jobs we can run
-            var limit = executing == default ? kv.Value : kv.Value - executing.Count;
-            if (limit <= 0) excludedTypes.Add(kv.Key);
-            else if (!excludedTypes.Contains(kv.Key)) limitedTypes[kv.Key] = limit;
-        }
+            _cacheReadWriteLock.EnterReadLock();
+            var excludedTypes = new List<Type>();
+            var limitedTypes = new Dictionary<Type, int>();
+            foreach (var filter in _acquisitionFilters) excludedTypes.AddRange(filter.GetTypesToExclude());
 
-        var groups = new List<List<Type>>();
-        foreach (var kv in _concurrencyGroupCache)
-        {
-            var executing = kv.Value.Any(a => executingTypes.Any(b => b.Type == a));
-            if (executing)
+            IEnumerable<(Type Type, int Count)> executingTypes;
+            lock (_executingJobs)
+                executingTypes = _executingJobs.Values.Select(a => a.Job.JobType.Type).GroupBy(a => a).Select(a => (Type: a.Key, Count: a.Count())).ToList();
+
+            // Block until providers are ready
+            if (_noProvidersEnabled)
+                excludedTypes.Add(typeof(ProcessFileJob));
+
+            foreach (var kv in _typeConcurrencyCache)
             {
-                excludedTypes.AddRange(kv.Value);
-                continue;
+                var executing = executingTypes.FirstOrDefault(a => a.Type == kv.Key);
+                // kv.Value is the max count, we want to get the number of remaining jobs we can run
+                var limit = executing == default ? kv.Value : kv.Value - executing.Count;
+                if (limit <= 0) excludedTypes.Add(kv.Key);
+                else if (!excludedTypes.Contains(kv.Key)) limitedTypes[kv.Key] = limit;
             }
 
-            var group = new List<Type>();
-            foreach (var limitedType in kv.Value)
+            var groups = new List<List<Type>>();
+            foreach (var kv in _concurrencyGroupCache)
             {
-                // this could happen if network isn't available or something
-                if (excludedTypes.Contains(limitedType)) continue;
-                // we only allow one concurrent job in a concurrency group, for example only 1 AniDB command
-                group.Add(limitedType);
+                var executing = kv.Value.Any(a => executingTypes.Any(b => b.Type == a));
+                if (executing)
+                {
+                    excludedTypes.AddRange(kv.Value);
+                    continue;
+                }
+
+                var group = new List<Type>();
+                foreach (var limitedType in kv.Value)
+                {
+                    // this could happen if network isn't available or something
+                    if (excludedTypes.Contains(limitedType)) continue;
+                    // we only allow one concurrent job in a concurrency group, for example only 1 AniDB command
+                    group.Add(limitedType);
+                }
+
+                if (group.Count > 0) groups.Add(group);
             }
 
-            if (group.Count > 0) groups.Add(group);
+            return new JobTypes(excludedTypes.Distinct().ToList(), limitedTypes, groups);
         }
-
-        return new JobTypes(excludedTypes.Distinct().ToList(), limitedTypes, groups);
+        finally
+        {
+            _cacheReadWriteLock.ExitReadLock();
+        }
     }
 
     public Dictionary<string, string[]> GetAcquisitionFilterResults()
