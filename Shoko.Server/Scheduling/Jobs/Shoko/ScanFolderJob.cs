@@ -9,7 +9,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
 [JobKeyMember("ScanFolder")]
-[JobKeyGroup(JobKeyGroup.Actions)]
+[JobKeyGroup(JobKeyGroup.Import)]
 internal class ScanFolderJob : BaseJob
 {
     private readonly IVideoService _videoService;

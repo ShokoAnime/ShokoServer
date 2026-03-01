@@ -6,17 +6,20 @@ using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
+using Shoko.Server.Scheduling.Concurrency;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
-[JobKeyGroup(JobKeyGroup.Actions)]
+[JobKeyGroup(JobKeyGroup.Import)]
 public class ProcessFileMovedMessageJob : BaseJob
 {
     private readonly IVideoReleaseService _videoReleaseService;
 
     public override string TypeName => "Handle Moved File Message";
+
     public override string Title => "Handling Moved File Message";
+
     public int MessageID { get; set; }
 
     public override async Task Process()
