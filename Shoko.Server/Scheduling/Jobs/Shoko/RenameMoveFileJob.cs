@@ -20,6 +20,7 @@ public class RenameMoveFileJob : BaseJob
     private readonly IRelocationService _relocationService;
 
     private VideoLocal? _vlocal;
+
     private string? _fileName;
 
     public int VideoLocalID { get; set; }
