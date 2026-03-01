@@ -122,14 +122,17 @@ public static class FilterExtensions
             AudioLanguagesDelegate = () => series.VideoLocals
                 .Select(a => a.ReleaseInfo)
                 .WhereNotNull()
-                .SelectMany(a => a.AudioLanguages?.Select(b => b.GetString()) ?? [])
+                .SelectMany(a => a.AudioLanguages?.Select(b => b.ToString()) ?? [])
                 .ToHashSet(StringComparer.InvariantCultureIgnoreCase),
             SharedAudioLanguagesDelegate = () =>
                 series.VideoLocals.Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.AudioLanguages?.Select(b => b.GetString()) ?? []).ToList() is { Count: > 0 } audioNames
                     ? audioNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet()
                     : [],
-            SubtitleLanguagesDelegate = () =>
-                series.VideoLocals.Select(a => a.ReleaseInfo).WhereNotNull().SelectMany(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? []).ToHashSet(StringComparer.InvariantCultureIgnoreCase),
+            SubtitleLanguagesDelegate = () => series.VideoLocals
+                .Select(a => a.ReleaseInfo)
+                .WhereNotNull()
+                .SelectMany(a => a.SubtitleLanguages?.Select(b => b.ToString()) ?? [])
+                .ToHashSet(StringComparer.InvariantCultureIgnoreCase),
             SharedSubtitleLanguagesDelegate = () =>
                 series.VideoLocals.Select(b => b.ReleaseInfo).WhereNotNull().Select(a => a.SubtitleLanguages?.Select(b => b.GetString()) ?? []).ToList() is { Count: > 0 } subtitleNames
                     ? subtitleNames.Aggregate((a, b) => a.Intersect(b, StringComparer.InvariantCultureIgnoreCase)).ToHashSet()
