@@ -93,6 +93,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="NHibernate" Version="5.6.0" />
     <PackageReference Include="NHibernate.Driver.MySqlConnector" Version="2.0.5" />
+    <PackageReference Include="NHibernate.Extensions.NpgSql" Version="8.0.8" />
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
     <PackageReference Include="NJsonSchema" Version="11.5.2" />
     <PackageReference Include="NJsonSchema.Annotations" Version="11.5.2" />

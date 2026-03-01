@@ -316,6 +316,11 @@ public class ShokoServer
             {
                 _logger.LogInformation("Starting Server: {Type} - CreateAndUpdateSchema()", instance.GetType());
                 instance.CreateAndUpdateSchema();
+                if (Utils.CreateDatabaseOnly)
+                {
+                    Utils.ShokoServer.ShutDown();
+                    Environment.Exit(1);
+                }
 
                 _logger.LogInformation("Starting Server: RepoFactory.Init()");
                 _repoFactory.Init();
@@ -380,7 +385,7 @@ public class ShokoServer
 
     #region Tray Minimize
 
-    private void ShutDown()
+    public void ShutDown()
     {
         _fileWatcherService.StopWatchingFiles();
         AniDBDispose();
