@@ -15,6 +15,7 @@ using Shoko.Server.Utilities;
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
+[LimitConcurrency(4)]
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.Import)]
@@ -25,6 +26,7 @@ public class ProcessFileJob : BaseJob
     private readonly IRelocationService _relocationService;
 
     private VideoLocal _vlocal;
+
     private string _fileName;
 
     public int VideoLocalID { get; set; }
