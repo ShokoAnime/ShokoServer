@@ -13,11 +13,10 @@ using Shoko.Server.Utilities;
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
-[LimitConcurrency]
+[LimitConcurrency(2)]
 [JobKeyGroup(JobKeyGroup.Import)]
 public class HashFileJob : BaseJob
 {
-
     private readonly IVideoHashingService _videoHashingService;
 
     public string FilePath { get; set; }
