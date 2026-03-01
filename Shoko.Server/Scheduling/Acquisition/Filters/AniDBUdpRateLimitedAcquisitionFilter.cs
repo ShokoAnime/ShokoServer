@@ -54,14 +54,14 @@ public class AniDBUdpRateLimitedAcquisitionFilter : IAcquisitionFilter
     private void OnProvidersReady(object sender, EventArgs e)
     {
         _ready = true;
-        _processJobIncluded = _videoReleaseService.GetAvailableProviders().Any(a => a.Provider.Name is "AniDB");
+        _processJobIncluded = _videoReleaseService.GetAvailableProviders(onlyEnabled: true).Any(a => a.Provider.Name is "AniDB");
         StateChanged?.Invoke(null, EventArgs.Empty);
     }
 
     private void OnProvidersUpdated(object sender, EventArgs e)
     {
         if (!_ready) return;
-        _processJobIncluded = _videoReleaseService.GetAvailableProviders().Any(a => a.Provider.Name is "AniDB");
+        _processJobIncluded = _videoReleaseService.GetAvailableProviders(onlyEnabled: true).Any(a => a.Provider.Name is "AniDB");
         StateChanged?.Invoke(null, EventArgs.Empty);
     }
 
