@@ -391,7 +391,7 @@ public static class APIExtensions
             (
                 WebUIUpdateService.LoadWebUIVersionInfo() is not { } currentVersion ||
                 (
-                    includedVersion.VersionAsVersion > currentVersion.VersionAsVersion &&
+                    new WebUIUpdateService.SemverVersionComparer().Compare(includedVersion.VersionAsVersion, currentVersion.VersionAsVersion) > 0 &&
                     (
                         (includedVersion.Channel is not ReleaseChannel.Debug && currentVersion.Channel is not ReleaseChannel.Debug) ||
                         (includedVersion.Channel is ReleaseChannel.Debug && currentVersion.Channel is ReleaseChannel.Debug)

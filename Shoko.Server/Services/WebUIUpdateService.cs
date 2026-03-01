@@ -473,7 +473,7 @@ public partial class WebUIUpdateService
         }
     }
 
-    private class SemverVersionComparer : IComparer<Version>
+    internal class SemverVersionComparer : IComparer<Version>
     {
         public int Compare(Version? x, Version? y)
         {
