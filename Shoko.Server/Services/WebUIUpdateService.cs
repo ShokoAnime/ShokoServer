@@ -560,7 +560,27 @@ public partial class WebUIUpdateService
         /// Minimum Shoko Server version compatible with the Web UI.
         /// </summary>
         [JsonProperty("minimumServerVersion", NullValueHandling = NullValueHandling.Ignore)]
-        public Version? MinimumServerVersion { get; set; }
+        public string? MinimumServerVersionAsString { get; set; }
+
+        /// <summary>
+        /// Minimum Shoko Server version compatible with the Web UI.
+        /// </summary>
+        [JsonIgnore]
+        public Version? MinimumServerVersion
+        {
+            get => MinimumServerVersionAsString is { Length: > 0 }
+                ? new(MinimumServerVersionAsString.Replace("-dev", ""))
+                : null;
+            set
+            {
+                if (value is null)
+                    MinimumServerVersionAsString = null;
+                else if (value is not { Revision: > 0 })
+                    MinimumServerVersionAsString = $"{value.Major}.{value.Minor}.{value.Build}";
+                else
+                    MinimumServerVersionAsString = $"{value.Major}.{value.Minor}.{value.Build}-dev.{value.Revision}";
+            }
+        }
 
         /// <summary>
         /// Git tag.
