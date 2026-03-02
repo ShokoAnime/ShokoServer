@@ -2949,7 +2949,7 @@ public class SeriesController : BaseController
         [FromQuery] bool searchById = true,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
-        => AnidbSearchInternal(query, fuzzy, local, includeTitles, searchById, pageSize, page);
+        => AnidbSearchInternal(query, fuzzy, local, searchById, includeTitles, pageSize, page);
 
     /// <summary>
     /// Search the title dump for the given query or directly using the anidb id.
@@ -2971,7 +2971,7 @@ public class SeriesController : BaseController
         [FromQuery] bool searchById = true,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
-        => AnidbSearchInternal(HttpUtility.UrlDecode(query), fuzzy, local, includeTitles, searchById, pageSize, page);
+        => AnidbSearchInternal(HttpUtility.UrlDecode(query), fuzzy, local, searchById, includeTitles, pageSize, page);
 
     [NonAction]
     internal ListResult<AnidbAnime> AnidbSearchInternal(
