@@ -56,6 +56,8 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
 
     private readonly IMetadataService _metadataService;
 
+    private readonly IVideoService _videoService;
+
     private readonly ConfigurationProvider<Configuration> _configurationProvider;
 
     private IReadOnlyList<ParsedFileResult.CompiledRule> _rules;
@@ -63,7 +65,9 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     /// <inheritdoc/>
     public string Name => "Offline Importer";
 
-    private const string FilePrefix = "file://";
+    private const string MatchPrefix = "match://";
+
+    private const string SearchPrefix = "search://";
 
     private const string IdPrefix = "offline://";
 
@@ -91,12 +95,14 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     /// <param name="applicationPaths">The application paths.</param>
     /// <param name="anidbService">The anidb service.</param>
     /// <param name="metadataService">The metadata service.</param>
+    /// <param name="videoService">The video service.</param>
     /// <param name="configurationProvider">The configuration provider.</param>
     public OfflineImporter(
         ILogger<OfflineImporter> logger,
         IApplicationPaths applicationPaths,
         IAnidbService anidbService,
         IMetadataService metadataService,
+        IVideoService videoService,
         ConfigurationProvider<Configuration> configurationProvider
     )
     {
@@ -104,6 +110,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         _applicationPaths = applicationPaths;
         _anidbService = anidbService;
         _metadataService = metadataService;
+        _videoService = videoService;
         _configurationProvider = configurationProvider;
         _rules = configurationProvider.Load().ParseRules.Select(x => x.ToMatchRule()).ToList();
 
@@ -138,21 +145,21 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         var videoFiles = video.Files;
         foreach (var location in videoFiles)
         {
-            var filePath = location.Path;
-            if (string.IsNullOrEmpty(filePath))
+            var isAvailable = location.IsAvailable;
+            if (location.Path is not { Length: > 0 } filePath)
             {
                 _logger.LogDebug("Location is not available: {Path} (ManagedFolder={ManagedFolderID})", location.RelativePath, location.ManagedFolderID);
                 continue;
             }
 
-            if (!_configurationProvider.Load().SkipAvailabilityCheck && !location.IsAvailable)
+            if (!_configurationProvider.Load().SkipAvailabilityCheck && !isAvailable)
             {
                 _logger.LogDebug("Location is not available: {Path} (ManagedFolder={ManagedFolderID})", location.RelativePath, location.ManagedFolderID);
                 continue;
             }
 
-            var releaseInfo = await GetReleaseInfoByFilePath(filePath, location.RelativePath, cancellationToken).ConfigureAwait(false);
-            if (releaseInfo is null)
+            var releaseInfo = await GetReleaseInfoByFilePath(filePath, location.RelativePath, search: true, local: isAvailable, cancellationToken).ConfigureAwait(false);
+            if (releaseInfo is not { CrossReferences.Count: > 0 })
                 continue;
 
             if (isAutomatic)
@@ -188,7 +195,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         return null;
     }
 
-    private async Task<ReleaseInfo?> GetReleaseInfoByFilePath(string filePath, string relativePath, CancellationToken cancellationToken)
+    private async Task<ReleaseInfo?> GetReleaseInfoByFilePath(string filePath, string relativePath, bool search, bool local, CancellationToken cancellationToken)
     {
         var config = _configurationProvider.Load();
         var animeId = (int?)null;
@@ -208,12 +215,15 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
             animeId = int.Parse(folderNameMatch.Groups["animeId"].Value.Trim());
         if (filenameMatch.Groups["episodeRange"].Success)
             releaseInfo = (await GetReleaseInfoById(IdPrefix + filenameMatch.Groups["episodeRange"].Value, cancellationToken))!;
-        else if (config.Mode is Configuration.MatchMode.Lax && match is { Success: true })
+        else if (search && config.Mode is Configuration.MatchMode.Lax && match is { Success: true })
             releaseInfo = await GetReleaseInfoForMatch(match, animeId, cancellationToken);
-        if (releaseInfo is not { CrossReferences.Count: > 0 })
-            return null;
 
-        if (releaseInfo.CrossReferences.Any(xref => xref.AnidbAnimeID is null or <= 0) && animeId is > 0 && _anidbService.SearchByID(animeId.Value) is not null)
+        if (
+            releaseInfo is not null &&
+            releaseInfo.CrossReferences.Any(xref => xref.AnidbAnimeID is null or <= 0) &&
+            animeId is > 0 &&
+            _anidbService.SearchByID(animeId.Value) is not null
+        )
         {
             foreach (var xref in releaseInfo.CrossReferences)
             {
@@ -224,6 +234,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
 
         if (match is { Success: true })
         {
+            releaseInfo ??= new();
             var group = (ReleaseGroup?)null;
             if (!string.IsNullOrEmpty(match.ReleaseGroup))
             {
@@ -241,7 +252,8 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
             releaseInfo.IsCreditless = match.Creditless;
             releaseInfo.IsCensored = match.Censored;
             // Assume the creation date has been properly set in the file-system.
-            releaseInfo.ReleasedAt ??= DateOnly.FromDateTime(File.GetCreationTimeUtc(match.FilePath));
+            if (local && releaseInfo.ReleasedAt is null)
+                releaseInfo.ReleasedAt = DateOnly.FromDateTime(File.GetCreationTimeUtc(match.FilePath));
         }
 
         return releaseInfo;
@@ -682,15 +694,28 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
     /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)
     {
-        if (releaseId.StartsWith(FilePrefix))
+        // Search/match by file name/path.
+        if (releaseId.StartsWith(MatchPrefix) || releaseId.StartsWith(SearchPrefix))
         {
-            var filePath = releaseId[FilePrefix.Length..];
+            var search = releaseId.StartsWith(SearchPrefix);
+            var filePath = search
+                ? releaseId[SearchPrefix.Length..]
+                : releaseId[MatchPrefix.Length..];
             var relativePath = Path.GetFileName(filePath);
             var folderName = "/" + Path.GetDirectoryName(filePath);
             if (folderName is { Length: > 0 })
-                relativePath = "/" + folderName + relativePath;
-            _logger.LogDebug("Getting release info for {FilePath} (RelativePath={RelativePath})", filePath, relativePath);
-            return GetReleaseInfoByFilePath(filePath, relativePath, cancellationToken);
+                relativePath = folderName + "/" + relativePath;
+            _logger.LogDebug("Getting release info for {FilePath} (RelativePath={RelativePath},Search={Search})", filePath, relativePath, search);
+
+            var local = false;
+            if (Path.IsPathFullyQualified(filePath) &&
+                _videoService.GetVideoFileByAbsolutePath(filePath) is { Path: { Length: > 0 } videoPath, IsAvailable: var isAvailable })
+            {
+                local = isAvailable;
+                filePath = videoPath;
+            }
+
+            return GetReleaseInfoByFilePath(filePath, relativePath, search, local, cancellationToken);
         }
 
         if (!releaseId.StartsWith(IdPrefix))
