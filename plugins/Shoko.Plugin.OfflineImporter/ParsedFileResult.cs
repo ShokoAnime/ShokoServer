@@ -268,6 +268,34 @@ public record ParsedFileResult
         return EpisodeType.Episode;
     }
 
+    private static ReleaseSource ParseReleaseSource(string releaseSource)
+        => releaseSource.ToUpper().Replace("-", "").Replace(" ", "") switch
+        {
+            "BD" => ReleaseSource.BluRay,
+            "BluRay" => ReleaseSource.BluRay,
+            "BlueRay" => ReleaseSource.BluRay,
+            "HDBD" => ReleaseSource.BluRay,
+            "UHDBD" => ReleaseSource.BluRay,
+            "DVD" => ReleaseSource.DVD,
+            "HDDVD" => ReleaseSource.DVD,
+            "HKDVD" => ReleaseSource.DVD,
+            "VHS" => ReleaseSource.VHS,
+            "VCD" => ReleaseSource.VCD,
+            "SVCD" => ReleaseSource.VCD,
+            "CAMERA" => ReleaseSource.Camera,
+            "CAMCORDER" => ReleaseSource.Camera,
+            "LD" => ReleaseSource.LaserDisc,
+            "LASERDISC" => ReleaseSource.LaserDisc,
+            "TV" => ReleaseSource.TV,
+            "SDTV" => ReleaseSource.TV,
+            "HDTV" => ReleaseSource.TV,
+            "UHDTV" => ReleaseSource.TV,
+            "WEB" => ReleaseSource.Web,
+            "WEBDL" => ReleaseSource.Web,
+            "WWW" => ReleaseSource.Web,
+            _ => ReleaseSource.Unknown,
+        };
+
     /// <summary>
     /// Default transform.
     /// </summary>
@@ -385,40 +413,7 @@ public record ParsedFileResult
 
         if (modifiedDetails.Source is null && _sourceRegex.Match(originalDetails.FilePath) is { Success: true } sourceResult)
         {
-            modifiedDetails.Source = sourceResult.Groups["source"].Value.ToUpper() switch
-            {
-                "BD" => ReleaseSource.BluRay,
-                "BluRay" => ReleaseSource.BluRay,
-                "BlueRay" => ReleaseSource.BluRay,
-                "Blu-Ray" => ReleaseSource.BluRay,
-                "Blue-Ray" => ReleaseSource.BluRay,
-                "HDBD" => ReleaseSource.BluRay,
-                "HD BD" => ReleaseSource.BluRay,
-                "UHDBD" => ReleaseSource.BluRay,
-                "UHD BD" => ReleaseSource.BluRay,
-                "DVD" => ReleaseSource.DVD,
-                "HDDVD" => ReleaseSource.DVD,
-                "HD DVD" => ReleaseSource.DVD,
-                "HKDVD" => ReleaseSource.DVD,
-                "HK DVD" => ReleaseSource.DVD,
-                "VHS" => ReleaseSource.VHS,
-                "VCD" => ReleaseSource.VCD,
-                "SVCD" => ReleaseSource.VCD,
-                "CAMERA" => ReleaseSource.Camera,
-                "CAMCORDER" => ReleaseSource.Camera,
-                "LD" => ReleaseSource.LaserDisc,
-                "LASERDISC" => ReleaseSource.LaserDisc,
-                "TV" => ReleaseSource.TV,
-                "SDTV" => ReleaseSource.TV,
-                "SD TV" => ReleaseSource.TV,
-                "HDTV" => ReleaseSource.TV,
-                "HD TV" => ReleaseSource.TV,
-                "UHDTV" => ReleaseSource.TV,
-                "UHD TV" => ReleaseSource.TV,
-                "WEB" => ReleaseSource.Web,
-                "WWW" => ReleaseSource.Web,
-                _ => ReleaseSource.Unknown,
-            };
+            modifiedDetails.Source = ParseReleaseSource(sourceResult.Groups["source"].Value);
         }
 
         if (modifiedDetails.Censored is null && _censoredRegex.Match(originalDetails.FilePath) is { Success: true } censoredResult)
@@ -509,51 +504,24 @@ public record ParsedFileResult
             if (post.Length > 0 && post[0] is ')' or ']' or '}')
                 post = post[1..];
             if (_sourceRegex.Match(post) is { Success: true } sourceResult)
-            {
-                modifiedDetails.Source = sourceResult.Groups["source"].Value.ToUpper() switch
-                {
-                    "BD" => ReleaseSource.BluRay,
-                    "BluRay" => ReleaseSource.BluRay,
-                    "BlueRay" => ReleaseSource.BluRay,
-                    "Blu-Ray" => ReleaseSource.BluRay,
-                    "Blue-Ray" => ReleaseSource.BluRay,
-                    "HDBD" => ReleaseSource.BluRay,
-                    "HD BD" => ReleaseSource.BluRay,
-                    "UHDBD" => ReleaseSource.BluRay,
-                    "UHD BD" => ReleaseSource.BluRay,
-                    "DVD" => ReleaseSource.DVD,
-                    "HDDVD" => ReleaseSource.DVD,
-                    "HD DVD" => ReleaseSource.DVD,
-                    "HKDVD" => ReleaseSource.DVD,
-                    "HK DVD" => ReleaseSource.DVD,
-                    "VHS" => ReleaseSource.VHS,
-                    "VCD" => ReleaseSource.VCD,
-                    "SVCD" => ReleaseSource.VCD,
-                    "CAMERA" => ReleaseSource.Camera,
-                    "CAMCORDER" => ReleaseSource.Camera,
-                    "LD" => ReleaseSource.LaserDisc,
-                    "LASERDISC" => ReleaseSource.LaserDisc,
-                    "TV" => ReleaseSource.TV,
-                    "SDTV" => ReleaseSource.TV,
-                    "SD TV" => ReleaseSource.TV,
-                    "HDTV" => ReleaseSource.TV,
-                    "HD TV" => ReleaseSource.TV,
-                    "UHDTV" => ReleaseSource.TV,
-                    "UHD TV" => ReleaseSource.TV,
-                    "WEB" => ReleaseSource.Web,
-                    "WEBDL" => ReleaseSource.Web,
-                    "WWW" => ReleaseSource.Web,
-                    _ => ReleaseSource.Unknown,
-                };
-            }
-            post = post.Replace(_miscRegex, string.Empty).Replace(_bracketCollapseRegex, string.Empty);
+                modifiedDetails.Source = ParseReleaseSource(sourceResult.Groups["source"].Value);
+
+            post = post
+                .Replace(_miscRegex, string.Empty)
+                .Replace(_bracketCollapseRegex, string.Empty);
+
             if (_trailingReleaseGroupCheck.Match(post) is { Success: true } releaseGroupMatch)
             {
                 if (string.IsNullOrEmpty(modifiedDetails.ReleaseGroup))
                     modifiedDetails.ReleaseGroup = releaseGroupMatch.Groups["releaseGroup"].Value;
                 post = post[..^releaseGroupMatch.Length];
             }
-            post = post.Replace(_spaceCollapseRegex, " ").Replace(_bracketTrimRegex, string.Empty);
+
+            post = post
+                .Replace('.', ' ')
+                .Replace(_spaceCollapseRegex, " ")
+                .Replace(_bracketTrimRegex, string.Empty);
+
             if (post.Length > 2 && ((post[0] == '(' && post[^1] == ')') || (post[0] == '[' && post[^1] == ']') || (post[0] == '{' && post[^1] == '}') || (post[0] == '「' && post[^1] == '」')))
                 post = post[1..^1];
 
@@ -595,41 +563,7 @@ public record ParsedFileResult
             }
             if (_sourceRegex.Match(fallback) is { Success: true } sourceResult)
             {
-                modifiedDetails.Source = sourceResult.Groups["source"].Value.ToUpper() switch
-                {
-                    "BD" => ReleaseSource.BluRay,
-                    "BluRay" => ReleaseSource.BluRay,
-                    "BlueRay" => ReleaseSource.BluRay,
-                    "Blu-Ray" => ReleaseSource.BluRay,
-                    "Blue-Ray" => ReleaseSource.BluRay,
-                    "HDBD" => ReleaseSource.BluRay,
-                    "HD BD" => ReleaseSource.BluRay,
-                    "UHDBD" => ReleaseSource.BluRay,
-                    "UHD BD" => ReleaseSource.BluRay,
-                    "DVD" => ReleaseSource.DVD,
-                    "HDDVD" => ReleaseSource.DVD,
-                    "HD DVD" => ReleaseSource.DVD,
-                    "HKDVD" => ReleaseSource.DVD,
-                    "HK DVD" => ReleaseSource.DVD,
-                    "VHS" => ReleaseSource.VHS,
-                    "VCD" => ReleaseSource.VCD,
-                    "SVCD" => ReleaseSource.VCD,
-                    "CAMERA" => ReleaseSource.Camera,
-                    "CAMCORDER" => ReleaseSource.Camera,
-                    "LD" => ReleaseSource.LaserDisc,
-                    "LASERDISC" => ReleaseSource.LaserDisc,
-                    "TV" => ReleaseSource.TV,
-                    "SDTV" => ReleaseSource.TV,
-                    "SD TV" => ReleaseSource.TV,
-                    "HDTV" => ReleaseSource.TV,
-                    "HD TV" => ReleaseSource.TV,
-                    "UHDTV" => ReleaseSource.TV,
-                    "UHD TV" => ReleaseSource.TV,
-                    "WEB" => ReleaseSource.Web,
-                    "WEBDL" => ReleaseSource.Web,
-                    "WWW" => ReleaseSource.Web,
-                    _ => ReleaseSource.Unknown,
-                };
+                modifiedDetails.Source = ParseReleaseSource(sourceResult.Groups["source"].Value);
             }
             fallback = fallback.Replace(_miscRegex, string.Empty).Replace(_bracketCollapseRegex, string.Empty);
             if (_trailingReleaseGroupCheck.Match(fallback) is { Success: true } releaseGroupMatch1)
@@ -674,7 +608,7 @@ public record ParsedFileResult
     );
 
     private static readonly Regex _trailingReleaseGroupCheck = new(
-        @"[\. _]+-(?<releaseGroup>\w+)(?: \([^\)]+\))?[\. _]*$|[\. _]*\[(?<releaseGroup>[\w \.]+)\][\. _]*$",
+        @"(?<=[\. _]+)-(?<releaseGroup>\w+)(?: \([^\)]+\))?[\. _]*$|[\. _]*\[(?<releaseGroup>[\w \.]+)\][\. _]*$",
         RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
     );
 
@@ -696,7 +630,7 @@ public record ParsedFileResult
     );
 
     private static readonly Regex _miscRegex = new(
-        @"(?:(?<source>(?:U?HD[ _-]?|SD[ _-]?)?TV(?!-cm)|(?:U?HD[ _-]?)?(?:BD|Blue?-?Ray)(?! (?:menu|notice))|(?:H[KD] ?)?DVD|VHS|S?VCD|Web(?:-?DL)?|www|(?:\b|(?<=_))LD(?:\b|(?=_))|LaserDisc|camera|camcorder)s?(?:[ _-]?rip)?|(?<lang>(?:\b|(?<=_))lng(?:\b|(?=_))|(?:\b|(?<=_))jpn?(?:\b|(?=_))|jap(?:anese)?|(?:\b|(?<=_))gb(?:\b|(?=_))|eng(?:lish)?|(?:\b|(?<=_))en(?:\b|(?=_))|(?:\b|(?<=_))es\b|(?:\b|(?<=_))cn(?:\b|(?=_))|chinese|spa(?:nish)?|ita(?:lian)?|(?:\b|(?<=_))de(?:\b|(?=_))|ger(?:man)?)|(?<codec>(?:xvid|divx|prores|vvc|hevc|avc|mpeg[\.-]?[1-4]|vc1|av1|flv|[hx]\.?26[1-6]|aac|e?ac-?3|flac|dca|ogg|opus|wmav2|wmapro|adpcm_ms|pcm|mp[23]|vp[69]f?)(?:[ \._-]?[1-9]\.[0-9](?:\.[0-9])?|-(?:8|10)bits?)?)|(?:multi(?:(?:ple)? )?)?sub(?!a)(?:s|titled?)?|dub(?:bed)?|raw|rip|(un)?cen(ored)?|(?<resolution>[48]k|\d{3,5}[pi]|\d{3,5}[x×]\d{3,5})|multi(?:[-_ ]?(?:pack|audio))?|remux|truehd|hi10[pi]?|(?:\b|(?<=_))proper(?:\b|(?=_))|dolby (?:atmos|vision)?|\bdovi\b|dts|vostfr|vorbis|crf\d+|at-x|dual[-_ ]?audio|[24579]ch|(?:8|10)-?bits?|[0-9a-f]{8})",
+        @"(?:(?<source>(?:U?HD[ _-]?|SD[ _-]?)?TV(?!-cm)|(?:U?HD[ _-]?)?(?:BD|Blue?-?Ray)(?! (?:menu|notice))|(?:H[KD] ?)?DVD|VHS|S?VCD|Web(?:-?DL)?|www|(?:\b|(?<=_))LD(?:\b|(?=_))|LaserDisc|camera|camcorder)s?(?:[ _-]?rip)?|(?<lang>(?:\b|(?<=_))lng(?:\b|(?=_))|(?:\b|(?<=_))jpn?(?:\b|(?=_))|jap(?:anese)?|(?:\b|(?<=_))gb(?:\b|(?=_))|eng(?:lish)?|(?:\b|(?<=_))en(?:\b|(?=_))|(?:\b|(?<=_))es\b|(?:\b|(?<=_))cn(?:\b|(?=_))|chinese|spa(?:nish)?|ita(?:lian)?|(?:\b|(?<=_))de(?:\b|(?=_))|ger(?:man)?)|(?<codec>(?:xvid|divx|prores|vvc|hevc|avc|mpeg[\.-]?[1-4]|vc1|av1|flv|[hx]\.?26[1-6]|aac|e?ac-?3|flac|dca|ogg|opus|wmav2|wmapro|adpcm_ms|pcm|mp[23]|vp[69]f?)(?:[ \._-]?[1-9]\.[0-9](?:\.[0-9])?|-(?:8|10)bits?)?)|esub|(?:multi(?:(?:ple)? )?)?sub(?!a)(?:s|titled?)?|dub(?:bed)?|raw|rip|(un)?cen(ored)?|(?<resolution>[48]k|\d{3,5}[pi]|\d{3,5}[x×]\d{3,5})|multi(?:[-_ ]?(?:pack|audio))?|remux|truehd|hi10[pi]?|(?:\b|(?<=_))proper(?:\b|(?=_))|dolby (?:atmos|vision)?|\bdovi\b|dts|vostfr|vorbis|crf\d+|at-x|dual[-_ ]?audio|ddp2\.0|amzn|[24579]ch|(?:8|10)-?bits?|[0-9a-f]{8})",
         RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Compiled
     );
 
