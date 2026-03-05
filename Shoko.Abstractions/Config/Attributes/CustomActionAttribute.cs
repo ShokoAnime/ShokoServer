@@ -113,7 +113,7 @@ public class CustomActionAttribute : Attribute
     public bool HasDisableCondition => !string.IsNullOrEmpty(DisableWhenMemberIsSet) && _hasDisableWhenSetTo;
 
     /// <summary>
-    /// Indicates that the action should be hidden by default. This means that <see cref="DisableWhenMemberIsSet"/> and
+    /// Indicates that the action should be disabled by default. This means that <see cref="DisableWhenMemberIsSet"/> and
     /// <see cref="DisableWhenSetTo"/> will show the action instead of hiding it.
     /// </summary>
     public bool InverseDisableCondition { get; set; }
