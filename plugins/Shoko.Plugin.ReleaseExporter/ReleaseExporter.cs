@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Release;
@@ -30,6 +31,8 @@ public class ReleaseExporter : IHostedService
 
     private readonly ConfigurationProvider<Configuration> _configProvider;
 
+    private int _isExportingAll;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="ReleaseExporter"/> class.
     /// </summary>
@@ -45,11 +48,6 @@ public class ReleaseExporter : IHostedService
         _videoReleaseService = videoReleaseService;
         _videoService = videoService;
         _configProvider = configProvider;
-
-        _videoReleaseService.ReleaseSaved += OnVideoReleaseSaved;
-        _videoReleaseService.ReleaseDeleted += OnVideoReleaseDeleted;
-        _videoService.VideoFileDeleted += OnVideoDeleted;
-        _videoService.VideoFileRelocated += OnVideoRelocated;
     }
 
     /// <summary>
@@ -65,11 +63,23 @@ public class ReleaseExporter : IHostedService
 
     /// <inheritdoc />
     public Task StartAsync(CancellationToken cancellationToken)
-        => Task.CompletedTask;
+    {
+        _videoReleaseService.ReleaseSaved += OnVideoReleaseSaved;
+        _videoReleaseService.ReleaseDeleted += OnVideoReleaseDeleted;
+        _videoService.VideoFileDeleted += OnVideoDeleted;
+        _videoService.VideoFileRelocated += OnVideoRelocated;
+        return Task.CompletedTask;
+    }
 
     /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken)
-        => Task.CompletedTask;
+    {
+        _videoReleaseService.ReleaseSaved -= OnVideoReleaseSaved;
+        _videoReleaseService.ReleaseDeleted -= OnVideoReleaseDeleted;
+        _videoService.VideoFileDeleted -= OnVideoDeleted;
+        _videoService.VideoFileRelocated -= OnVideoRelocated;
+        return Task.CompletedTask;
+    }
 
     private void OnVideoReleaseSaved(object? sender, VideoReleaseSavedEventArgs eventArgs)
     {
@@ -309,6 +319,94 @@ public class ReleaseExporter : IHostedService
             {
                 _logger.LogError(e, "Encountered an error deleting release file: {ReleasePath}", releasePath);
             }
+        }
+    }
+
+    /// <summary>
+    /// Exports release info for all videos to the file system. Only one
+    /// instance of this operation can run at a time; concurrent calls will
+    /// be skipped.
+    /// </summary>
+    public ConfigurationActionResult ExportAll()
+    {
+        var config = _configProvider.Load();
+        if (!config.IsExporterEnabled)
+            return new("Exporting is disabled!", DisplayColorTheme.Warning);
+
+        if (Interlocked.CompareExchange(ref _isExportingAll, 1, 0) == 1)
+            return new("Export all is already running!", DisplayColorTheme.Important);
+
+        Task.Factory.StartNew(ExportAllInternal).ConfigureAwait(false);
+        return new("Export Started!");
+    }
+
+    private void ExportAllInternal()
+    {
+        try
+        {
+            _logger.LogInformation("Started exporting release info for all videos.");
+            var config = _configProvider.Load();
+            var totalExported = 0;
+            var totalSkipped = 0;
+            var totalErrored = 0;
+            var totalReadOnly = 0;
+            foreach (var video in _videoService.GetAllVideos())
+            {
+                if (video.ReleaseInfo is not { } releaseInfo)
+                    continue;
+
+                if (video.Files is not { Count: > 0 } locations)
+                    continue;
+
+                var releaseLocations = locations.SelectMany(l => config.GetReleaseFilePaths(_applicationPaths, l.ManagedFolder, video, l.RelativePath)).ToHashSet();
+                var serializedReleaseInfo = JsonConvert.SerializeObject(new ReleaseInfoWithProvider(releaseInfo));
+                foreach (var releasePath in releaseLocations)
+                {
+                    try
+                    {
+                        if (File.Exists(releasePath))
+                        {
+                            var textData = File.ReadAllText(releasePath);
+                            if (string.Equals(textData, serializedReleaseInfo, StringComparison.Ordinal))
+                            {
+                                _logger.LogTrace("Release info for {VideoID} already exists at {Path}", video.ID, releasePath);
+                                totalSkipped++;
+                                continue;
+                            }
+                        }
+
+                        var releaseDirectory = Path.GetDirectoryName(releasePath);
+                        if (!string.IsNullOrEmpty(releaseDirectory) && !Directory.Exists(releaseDirectory))
+                            Directory.CreateDirectory(releaseDirectory);
+
+                        File.WriteAllText(releasePath, serializedReleaseInfo);
+                        _logger.LogInformation("Saved release info for {VideoID} at {Path}", video.ID, releasePath);
+                        totalExported++;
+                    }
+                    catch (IOException ex) when (ex.Message.StartsWith("Read-only file system", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        // Abort if this is a full or partial read-only file system.
+                        if (totalReadOnly >= 50 && totalErrored == 0 && totalSkipped == 0)
+                        {
+                            _logger.LogWarning("Failed to save release files due to read-only file system.");
+                            return;
+                        }
+
+                        totalReadOnly++;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Encountered an unexpected error saving release file: {ReleasePath}", releasePath);
+                        totalErrored++;
+                    }
+                }
+            }
+
+            _logger.LogInformation("Export all completed. Exported: {Exported}, Skipped: {Skipped}, Errored: {Errored}, Read-Only Warnings: {ReadOnly}", totalExported, totalSkipped, totalErrored, totalReadOnly);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _isExportingAll, 0);
         }
     }
 }

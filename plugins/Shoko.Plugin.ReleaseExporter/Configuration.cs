@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
+using System.Threading.Tasks;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
@@ -15,8 +16,12 @@ namespace Shoko.Plugin.ReleaseExporter;
 /// Configure how the import/export functionality works.
 /// </summary>
 [Display(Name = "Release Importer/Exporter")]
-public class Configuration : IReleaseInfoProviderConfiguration
+public class Configuration : IReleaseInfoProviderConfiguration, IConfigurationWithMigrations
 {
+    /// <inheritdoc/>
+    public static string ApplyMigrations(string config, IApplicationPaths applicationPaths)
+        => config.Replace("%managed_root%%file_path%", "%managed_folder_root%%file_path_no_ext%");
+
     /// <summary>
     /// Enables the exporter functionality.
     /// </summary>
@@ -65,6 +70,9 @@ public class Configuration : IReleaseInfoProviderConfiguration
     /// - <c>%managed_folder_name%</c> to get the managed folder's name,
     /// <br/>
     /// - <c>%file_path%</c> to get the relative path of the file within the
+    ///   managed folder without a leading slash,
+    /// <br/>
+    /// - <c>%file_path_no_ext%</c> to get the relative path of the file within the
     ///   managed folder without the extension without a leading slash,
     /// <br/>
     /// - <c>%file_name%</c> to get the name of the file without the extension,
@@ -82,8 +90,22 @@ public class Configuration : IReleaseInfoProviderConfiguration
     [TextArea]
     [Display(Name = "Release Location Templates")]
     [RegularExpression(@"\.\b[a-zA-Z\.]{1,}\b")]
-    [DefaultValue(new string[] { "%managed_root%%file_path%%release_extension%" })]
-    public List<string> ReleaseLocationTemplates { get; set; } = ["%managed_root%%file_path%%release_extension%"];
+    [DefaultValue(new string[] { "%managed_folder_root%%file_path_no_ext%%release_extension%" })]
+    public List<string> ReleaseLocationTemplates { get; set; } = ["%managed_folder_root%%file_path_no_ext%%release_extension%"];
+
+    /// <summary>
+    /// Exports all releases.
+    /// </summary>
+    /// <param name="context"></param>
+    /// <param name="exporter"></param>
+    /// <returns></returns>
+    [CustomAction(
+        Theme = DisplayColorTheme.Secondary,
+        DisableWhenMemberIsSet = nameof(IsExporterEnabled),
+        DisableWhenSetTo = false
+    )]
+    public ConfigurationActionResult ExportAll(ConfigurationActionContext<Configuration> context, ReleaseExporter exporter)
+        => exporter.ExportAll();
 
     /// <summary>
     /// Get the release file path for a video file.
@@ -114,7 +136,10 @@ public class Configuration : IReleaseInfoProviderConfiguration
                 template = template.Replace("%managed_folder_name%", managedFolder.Name.RemoveInvalidPathCharacters());
 
             if (template.Contains("%file_path%"))
-                template = template.Replace("%file_path%", relativePath[1..Path.GetExtension(relativePath).Length]);
+                template = template.Replace("%file_path%", relativePath[1..]);
+
+            if (template.Contains("%file_path_no_ext%"))
+                template = template.Replace("%file_path_no_ext%", relativePath[1..^Path.GetExtension(relativePath).Length]);
 
             if (template.Contains("%file_name%"))
                 template = template.Replace("%file_name%", Path.GetFileNameWithoutExtension(relativePath));
@@ -131,7 +156,10 @@ public class Configuration : IReleaseInfoProviderConfiguration
             if (template.Contains("%release_extension%"))
                 template = template.Replace("%release_extension%", ReleaseExtension);
 
-            yield return template.Replace('/', Path.DirectorySeparatorChar);
+            template = template.Replace('/', Path.DirectorySeparatorChar);
+
+            if (Path.IsPathFullyQualified(template))
+                yield return template;
         }
     }
 }

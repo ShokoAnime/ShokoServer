@@ -30,6 +30,7 @@ public class PluginServiceRegistration : IPluginServiceRegistration
     /// <inheritdoc />
     public void RegisterServices(IServiceCollection serviceCollection, IApplicationPaths applicationPaths)
     {
-        serviceCollection.AddHostedService<ReleaseExporter>();
+        serviceCollection.AddSingleton<ReleaseExporter>();
+        serviceCollection.AddHostedService(sp => sp.GetRequiredService<ReleaseExporter>());
     }
 }
