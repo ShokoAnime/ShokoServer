@@ -111,4 +111,24 @@ public class WebSettings
     [DefaultValue(false)]
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
     public bool AlwaysUseDeveloperExceptions { get; set; } = false;
+
+    /// <summary>
+    /// The name of the client repo to use.
+    /// </summary>
+    [Visibility(Advanced = true)]
+    [Display(Name = "Client Repo Name")]
+    [RegularExpression(@"^[a-zA-Z0-9_\-\.]+/[a-zA-Z0-9_\-\.]+$")]
+    [EnvironmentVariable("SHOKO_CLIENT_REPO")]
+    [DefaultValue("ShokoAnime/Shoko-WebUI")]
+    public string ClientRepoName { get; set; } = "ShokoAnime/Shoko-WebUI";
+
+    /// <summary>
+    /// The name of the server repo to use.
+    /// </summary>
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
+    [Display(Name = "Server Repo Name")]
+    [EnvironmentVariable("SHOKO_SERVER_REPO")]
+    [DefaultValue("ShokoAnime/ShokoServer")]
+    public string ServerRepoName { get; set; } = "ShokoAnime/ShokoServer";
 }
