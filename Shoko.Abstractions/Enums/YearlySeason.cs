@@ -24,10 +24,10 @@ public enum YearlySeason : byte
     /// <summary>
     /// Autumn/Fall.
     /// </summary>
-    Autumn = 3,
+    Fall = 3,
 
     /// <summary>
     /// Autumn/Fall. (Alias)
     /// </summary>
-    Fall = Autumn,
+    Autumn = Fall,
 }
