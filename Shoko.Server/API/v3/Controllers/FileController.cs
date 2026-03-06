@@ -763,26 +763,31 @@ public class FileController : BaseController
     /// <param name="eventName">The name of the event that triggered the scrobble.</param>
     /// <param name="episodeID">The episode id to scrobble.</param>
     /// <param name="watched">True if file should be marked as watched, false if file should be unmarked, or null if it shall not be updated.</param>
-    /// <param name="resumePosition">Number of ticks into the video to resume from, or null if it shall not be updated.</param>
+    /// <param name="resumePosition">Time into the video to resume from, or null if it shall not be updated. This can either be a string in the format of HH:mm:ss.ffff or a number in ticks.</param>
     /// <returns></returns>
     [HttpGet("{fileID}/Scrobble")]
     [HttpPatch("{fileID}/Scrobble")]
-    public async Task<ActionResult> ScrobbleFileAndEpisode([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery(Name = "event")] string eventName = null, [FromQuery] int? episodeID = null, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
+    public async Task<ActionResult> Scrobble([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery(Name = "event")] string eventName = null, [FromQuery] int? episodeID = null, [FromQuery] bool? watched = null, [FromQuery] string? resumePosition = null)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var episode = episodeID.HasValue ? RepoFactory.AnimeEpisode.GetByID(episodeID.Value) : file.AnimeEpisodes?.FirstOrDefault();
-        if (episode == null)
-            return ValidationProblem($"Could not get Episode with ID: {episodeID}", nameof(episodeID));
+        TimeSpan? playPosition = null;
+        if (resumePosition != null && long.TryParse(resumePosition, out var resumePositionLong))
+        {
+            playPosition = TimeSpan.FromTicks(resumePositionLong);
+        } else if (resumePosition != null && TimeSpan.TryParse(resumePosition, out var playPositionTs))
+        {
+            playPosition = playPositionTs;
+        }
 
-        var playbackPositionTicks = TimeSpan.FromTicks(resumePosition ?? 0);
+        playPosition ??= TimeSpan.Zero;
         var totalDurationTicks = file.DurationTimeSpan;
-        if (playbackPositionTicks >= totalDurationTicks)
+        if (playPosition >= totalDurationTicks)
         {
             watched = true;
-            playbackPositionTicks = TimeSpan.Zero;
+            playPosition = TimeSpan.Zero;
         }
 
         var reason = eventName switch
@@ -797,18 +802,28 @@ public class FileController : BaseController
         };
         var now = DateTime.Now;
         var userData = _userDataService.GetVideoUserData(User.JMMUserID, file.VideoLocalID);
-        await _userDataService.SaveVideoUserData(User, file, new()
+        var newUserData = await _userDataService.SaveVideoUserData(User, file, new()
         {
-            ResumePosition = resumePosition.HasValue
-                ? playbackPositionTicks
-                : (watched.HasValue ? TimeSpan.Zero : null),
+            ResumePosition = playPosition != TimeSpan.Zero
+                ? playPosition : null,
             LastPlayedAt = watched.HasValue
                 ? (watched.Value ? now : null)
                 : userData?.LastPlayedAt,
             LastUpdatedAt = now,
         }, reason);
 
-        return NoContent();
+        // Give useful responses
+        // We are trying to scrobble position
+        if (playPosition != TimeSpan.Zero)
+        {
+            if (playPosition >= file.DurationTimeSpan)
+                return Accepted((string?)null,
+                    $"The {nameof(resumePosition)} was greater than or equal to the file's duration, so it was marked as watched. {nameof(resumePosition)}: {playPosition:c} vs {nameof(file.DurationTimeSpan)}: {file.DurationTimeSpan}");
+            if (newUserData.PlaybackCount > 0)
+                return Accepted((string?)null, $"The file was marked as watched. The {nameof(resumePosition)} may not behave as expected.");
+        }
+
+        return Ok(newUserData);
     }
 
     /// <summary>
