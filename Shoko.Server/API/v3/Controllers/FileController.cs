@@ -807,22 +807,31 @@ public class FileController(
     /// <param name="fileID">VideoLocal ID. Watch status and resume position is kept per file, regardless of how many duplicates the file has.</param>
     /// <param name="eventName">The name of the event that triggered the scrobble.</param>
     /// <param name="watched">True if file should be marked as watched, false if file should be unmarked, or null if it shall not be updated.</param>
-    /// <param name="resumePosition">Number of ticks into the video to resume from, or null if it shall not be updated.</param>
+    /// <param name="resumePosition">Time into the video to resume from, or null if it shall not be updated. This can either be a string in the format of HH:mm:ss.ffff or a number in ticks.</param>
     /// <returns></returns>
     [HttpGet("{fileID}/Scrobble")]
     [HttpPatch("{fileID}/Scrobble")]
-    public async Task<ActionResult> ScrobbleFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery(Name = "event")] string? eventName = null, [FromQuery] bool? watched = null, [FromQuery] long? resumePosition = null)
+    public async Task<ActionResult> ScrobbleFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery(Name = "event")] string? eventName = null, [FromQuery] bool? watched = null, [FromQuery] string? resumePosition = null)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
-        var playbackPositionTicks = TimeSpan.FromTicks(resumePosition ?? 0);
+        TimeSpan? playPosition = null;
+        if (resumePosition != null && long.TryParse(resumePosition, out var resumePositionLong))
+        {
+            playPosition = TimeSpan.FromTicks(resumePositionLong);
+        } else if (resumePosition != null && TimeSpan.TryParse(resumePosition, out var playPositionTs))
+        {
+            playPosition = playPositionTs;
+        }
+
+        playPosition ??= TimeSpan.Zero;
         var totalDurationTicks = file.DurationTimeSpan;
-        if (playbackPositionTicks >= totalDurationTicks)
+        if (playPosition >= totalDurationTicks)
         {
             watched = true;
-            playbackPositionTicks = TimeSpan.Zero;
+            playPosition = TimeSpan.Zero;
         }
 
         var reason = eventName switch
@@ -837,18 +846,28 @@ public class FileController(
         };
         var now = DateTime.Now;
         var userData = _userDataService.GetVideoUserData(file, User);
-        await _userDataService.SaveVideoUserData(file, User, new()
+        var newUserData = await _userDataService.SaveVideoUserData(file, User, new()
         {
-            ProgressPosition = resumePosition.HasValue
-                ? playbackPositionTicks
-                : (watched.HasValue ? TimeSpan.Zero : null),
+            ProgressPosition = playPosition != TimeSpan.Zero
+                ? playPosition : null,
             LastPlayedAt = watched.HasValue
                 ? (watched.Value ? now : null)
                 : userData?.LastPlayedAt,
             LastUpdatedAt = now,
         }, reason);
 
-        return NoContent();
+        // Give useful responses
+        // We are trying to scrobble position
+        if (playPosition != TimeSpan.Zero)
+        {
+            if (playPosition >= file.DurationTimeSpan)
+                return Accepted((string?)null,
+                    $"The {nameof(resumePosition)} was greater than or equal to the file's duration, so it was marked as watched. {nameof(resumePosition)}: {playPosition:c} vs {nameof(file.DurationTimeSpan)}: {file.DurationTimeSpan}");
+            if (newUserData.IsWatched)
+                return Accepted((string?)null, $"The file was marked as watched. The {nameof(resumePosition)} may not behave as expected.");
+        }
+
+        return Ok(newUserData);
     }
 
     #endregion
