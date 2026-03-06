@@ -140,7 +140,7 @@ public class ReleaseManagementMultipleReleasesController(ISettingsProvider setti
         var enumerable = RepoFactory.AnimeEpisode.GetWithMultipleReleases(ignoreVariations, series.AniDB_ID);
 
         return enumerable
-            .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
+            .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo: true), page, pageSize);
     }
 
     /// <summary>
