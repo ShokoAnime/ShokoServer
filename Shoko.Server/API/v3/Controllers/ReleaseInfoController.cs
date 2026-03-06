@@ -134,6 +134,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// </summary>
     /// <param name="providerID">The ID of the release provider to get.</param>
     /// <returns>A <see cref="ReleaseInfoProvider"/>.</returns>
+    [Authorize(Roles = "admin,init")]
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("Provider/{providerID}")]
