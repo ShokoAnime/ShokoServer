@@ -709,10 +709,15 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
 
             var local = false;
             if (Path.IsPathFullyQualified(filePath) &&
-                _videoService.GetVideoFileByAbsolutePath(filePath) is { Path: { Length: > 0 } videoPath, IsAvailable: var isAvailable })
+                _videoService.GetVideoFileByAbsolutePath(filePath) is { Path: { Length: > 0 } videoPath0, IsAvailable: var isAvailable0 })
             {
-                local = isAvailable;
-                filePath = videoPath;
+                local = isAvailable0;
+                filePath = videoPath0;
+            }
+            else if (_videoService.GetVideoFileByRelativePath(filePath) is { Path: { Length: > 0 } videoPath1, IsAvailable: var isAvailable1 })
+            {
+                local = isAvailable1;
+                filePath = videoPath1;
             }
 
             return GetReleaseInfoByFilePath(filePath, relativePath, search, local, cancellationToken);
