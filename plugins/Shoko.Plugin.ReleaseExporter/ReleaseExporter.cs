@@ -163,7 +163,7 @@ public class ReleaseExporter : IHostedService
     private void OnVideoRelocated(object? sender, FileRelocatedEventArgs eventArgs)
     {
         var config = _configProvider.Load();
-        if (!config.IsRelocationEnabled)
+        if (!config.IsExporterEnabled || !config.IsRelocationEnabled)
             return;
 
         var otherLocations = eventArgs.Video.Files
