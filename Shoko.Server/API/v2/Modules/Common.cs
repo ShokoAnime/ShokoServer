@@ -993,8 +993,8 @@ public class Common : BaseController
     public ActionResult SetFileOffset([FromBody] API_Call_Parameters para)
     {
         var videoId = para.id;
-        var resumePositionTicks = para.offset;
-        if (videoId == 0 || resumePositionTicks < 0)
+        var resumePosition = TimeSpan.FromMilliseconds(para.offset);
+        if (videoId == 0 || resumePosition.Ticks < 0)
             return BadRequest("Invalid arguments");
 
         if (RepoFactory.VideoLocal.GetByID(videoId) is not { } video)
@@ -1007,7 +1007,7 @@ public class Common : BaseController
             video,
             new(videoUserData)
             {
-                ResumePosition = TimeSpan.FromTicks(resumePositionTicks),
+                ResumePosition = resumePosition,
                 LastUpdatedAt = DateTime.Now
             }
         ).GetAwaiter().GetResult();

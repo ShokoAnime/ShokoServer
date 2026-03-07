@@ -145,7 +145,7 @@ public class RawFile : BaseDirectory
 
         is_ignored = vl.IsIgnored ? 1 : 0;
         var vl_user = RepoFactory.VideoLocalUser.GetByUserIDAndVideoLocalID(uid, vl.VideoLocalID);
-        offset = vl_user?.ResumePosition ?? 0;
+        offset = (vl_user?.ResumePositionTimeSpan ?? TimeSpan.Zero).Milliseconds;
 
         var place = vl.FirstValidPlace;
         if (place != null)
