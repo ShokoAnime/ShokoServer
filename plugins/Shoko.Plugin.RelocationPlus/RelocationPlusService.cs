@@ -216,12 +216,16 @@ public class RelocationPlusService : IHostedService
             }
         }
 
-        var potentialExtraDirectories = Directory.EnumerateDirectories(directory, $"{videoFileName}.*", new EnumerationOptions()
-        {
-            IgnoreInaccessible = true,
-            RecurseSubdirectories = true,
-            MaxRecursionDepth = 1,
-        })
+        var potentialExtraDirectories = (
+            Directory.Exists(directory)
+                ? Directory.EnumerateDirectories(directory, $"{videoFileName}.*", new EnumerationOptions()
+                {
+                    IgnoreInaccessible = true,
+                    RecurseSubdirectories = true,
+                    MaxRecursionDepth = 1,
+                })
+                : []
+        )
             .Select(path => (path, extName: Path.GetExtension(path), relativePath: path[(directory.Length + 1)..^Path.GetFileName(path).Length], extraBit: Path.GetFileNameWithoutExtension(path)[videoFileName.Length..]))
             .Where(tuple => tuple.path != videoAbsolutePath && !string.IsNullOrEmpty(tuple.extName) && tuple.path.StartsWith(videoAbsolutePath))
             .ToList();
