@@ -39,10 +39,10 @@ public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory) : Bas
             throw new Exception($"Could not find managed folder ID: {folder.ID}");
 
         if (string.IsNullOrEmpty(folder.Name))
-            throw new Exception("Must specify an managed folder name");
+            throw new Exception("Must specify a name for the managed folder");
 
         if (string.IsNullOrEmpty(folder.Path))
-            throw new Exception("Must specify an managed folder location");
+            throw new Exception("Must specify a location for the managed folder");
 
         if (!Directory.Exists(folder.Path))
             throw new Exception("Cannot find managed folder location");
@@ -54,7 +54,7 @@ public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory) : Bas
                 f.Path.StartsWith(folder.Path, StringComparison.OrdinalIgnoreCase)
             )
         )
-            throw new Exception("Unable to nest an managed folder within another managed folder.");
+            throw new Exception("Unable to nest a managed folder within another managed folder.");
 
         var isNew = folder.ID <= 0;
         var isUpdated = isNew;

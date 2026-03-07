@@ -72,7 +72,7 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, ISchedu
             return ValidationProblem("Path does not exist. Managed Folders must be a location that exists on the server.", nameof(body.Path));
 
         if (RepoFactory.ShokoManagedFolder.GetAll().Any(iF => body.Path.StartsWith(iF.Path, StringComparison.OrdinalIgnoreCase) || iF.Path.StartsWith(body.Path, StringComparison.OrdinalIgnoreCase)))
-            return ValidationProblem("Unable to nest an managed folder within another managed folder.", nameof(body.Path));
+            return ValidationProblem("Unable to nest a managed folder within another managed folder.", nameof(body.Path));
 
         try
         {
@@ -168,7 +168,7 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, ISchedu
             ModelState.AddModelError(nameof(body.Path), "Path does not exist. Managed Folders must be a location that exists on the server.");
         if (RepoFactory.ShokoManagedFolder.GetAll().ExceptBy([body.ID], iF => iF.ID)
             .Any(iF => body.Path.StartsWith(iF.Path, StringComparison.OrdinalIgnoreCase) || iF.Path.StartsWith(body.Path, StringComparison.OrdinalIgnoreCase)))
-            ModelState.AddModelError(nameof(body.Path), "Unable to nest an managed folder within another managed folder.");
+            ModelState.AddModelError(nameof(body.Path), "Unable to nest a managed folder within another managed folder.");
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -178,7 +178,7 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, ISchedu
     }
 
     /// <summary>
-    /// Delete an Managed Folder
+    /// Delete a Managed Folder
     /// </summary>
     /// <param name="folderID">Managed Folder ID</param>
     /// <param name="removeRecords">If this is false, then VideoLocals, DuplicateFiles, and several other things will be left intact. This is for migration of files to new locations.</param>

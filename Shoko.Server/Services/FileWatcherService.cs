@@ -126,7 +126,7 @@ public class FileWatcherService
         var tuple = _managedFolders.GetFromAbsolutePath(path);
         if (tuple == default)
         {
-            _logger.LogWarning("File path could not be parsed into an managed folder location: {Path}", path);
+            _logger.LogWarning("File path could not be parsed into a managed folder location: {Path}", path);
             return;
         }
 
