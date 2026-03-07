@@ -29,6 +29,8 @@ public class VideoUserDataUpdate
         get => _progressPosition;
         set
         {
+            if (value is not null && value < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(ProgressPosition), "Progress position cannot be less than zero.");
             HasProgressPosition = true;
             _progressPosition = value;
         }

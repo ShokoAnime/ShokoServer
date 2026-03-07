@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Quartz;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Services;
+using Shoko.Abstractions.UserData;
 using Shoko.Abstractions.UserData.Enums;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -33,9 +34,8 @@ using Shoko.Server.Utilities;
 
 using AbstractReleaseInfo = Shoko.Abstractions.Release.ReleaseInfo;
 using AbstractReleaseVideoCrossReference = Shoko.Abstractions.Release.ReleaseVideoCrossReference;
-using AnimeType = Shoko.Abstractions.Enums.AnimeType;
-using EpisodeType = Shoko.Abstractions.Enums.EpisodeType;
 using AVDump = Shoko.Server.API.v3.Models.Shoko.AVDump;
+using EpisodeType = Shoko.Abstractions.Enums.EpisodeType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using MediaInfoDto = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
 using Path = System.IO.Path;
@@ -818,20 +818,28 @@ public class FileController(
             return NotFound(FileNotFoundWithFileID);
 
         TimeSpan? playPosition = null;
+        var playPositionWasAdjusted = false;
         if (resumePosition != null && long.TryParse(resumePosition, out var resumePositionLong))
-        {
             playPosition = TimeSpan.FromTicks(resumePositionLong);
-        } else if (resumePosition != null && TimeSpan.TryParse(resumePosition, out var playPositionTs))
-        {
+        else if (resumePosition != null && TimeSpan.TryParse(resumePosition, out var playPositionTs))
             playPosition = playPositionTs;
-        }
-
-        playPosition ??= TimeSpan.Zero;
-        var totalDurationTicks = file.DurationTimeSpan;
-        if (playPosition >= totalDurationTicks)
+        if (playPosition.HasValue)
         {
-            watched = true;
-            playPosition = TimeSpan.Zero;
+            // If we don't check this here, then it will err in the video user data update when set.
+            if (playPosition < TimeSpan.Zero)
+                return ValidationProblem("The resume position cannot be less than zero.", nameof(resumePosition));
+
+            // Alternatively, we could leave this to the user data service, but we want to give a useful response.
+            if (playPosition >= file.DurationTimeSpan)
+            {
+                watched = true;
+                playPosition = null;
+                playPositionWasAdjusted = true;
+            }
+            else if (watched is true && playPosition == TimeSpan.Zero)
+            {
+                playPosition = null;
+            }
         }
 
         var reason = eventName switch
@@ -844,30 +852,23 @@ public class FileController(
             "user-interaction" => VideoUserDataSaveReason.UserInteraction,
             _ => VideoUserDataSaveReason.None,
         };
-        var now = DateTime.Now;
-        var userData = _userDataService.GetVideoUserData(file, User);
-        var newUserData = await _userDataService.SaveVideoUserData(file, User, new()
-        {
-            ProgressPosition = playPosition != TimeSpan.Zero
-                ? playPosition : null,
-            LastPlayedAt = watched.HasValue
-                ? (watched.Value ? now : null)
-                : userData?.LastPlayedAt,
-            LastUpdatedAt = now,
-        }, reason);
+        var userDataUpdate = new VideoUserDataUpdate() { LastUpdatedAt = DateTime.Now };
+        if (playPosition.HasValue)
+            userDataUpdate.ProgressPosition = playPosition;
+        if (watched.HasValue)
+            userDataUpdate.LastPlayedAt = watched.Value ? userDataUpdate.LastUpdatedAt.Value : null;
+        await _userDataService.SaveVideoUserData(file, User, userDataUpdate, reason);
 
         // Give useful responses
         // We are trying to scrobble position
-        if (playPosition != TimeSpan.Zero)
-        {
-            if (playPosition >= file.DurationTimeSpan)
-                return Accepted((string?)null,
-                    $"The {nameof(resumePosition)} was greater than or equal to the file's duration, so it was marked as watched. {nameof(resumePosition)}: {playPosition:c} vs {nameof(file.DurationTimeSpan)}: {file.DurationTimeSpan}");
-            if (newUserData.IsWatched)
-                return Accepted((string?)null, $"The file was marked as watched. The {nameof(resumePosition)} may not behave as expected.");
-        }
-
-        return Ok(newUserData);
+        if (playPositionWasAdjusted)
+            return Accepted((string?)null,
+                $"The {nameof(resumePosition)} was greater than or equal to the file's duration, so it was marked as watched. {nameof(resumePosition)}: {playPosition} vs {nameof(file.DurationTimeSpan)}: {file.DurationTimeSpan}");
+        if (watched is true && playPosition.HasValue)
+            return Accepted((string?)null, $"The file was marked as watched with the progress position set to {playPosition}.");
+        if (watched is true)
+            return Accepted((string?)null, $"The file was marked as watched.");
+        return Accepted((string?)null, "The file progress was updated.");
     }
 
     #endregion
