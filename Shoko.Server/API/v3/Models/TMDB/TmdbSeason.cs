@@ -161,7 +161,7 @@ public class TmdbSeason
         LastUpdatedAt = season.LastUpdatedAt.ToUniversalTime();
     }
 
-    public TmdbSeason(TMDB_AlternateOrdering_Season season, IncludeDetails? includeDetails = null)
+    public TmdbSeason(TMDB_AlternateOrdering_Season season, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
     {
         var include = includeDetails ?? default;
 
@@ -170,7 +170,8 @@ public class TmdbSeason
         AlternateOrderingID = season.TmdbEpisodeGroupCollectionID;
         Title = season.EnglishTitle;
         if (include.HasFlag(IncludeDetails.Titles))
-            Titles = Array.Empty<Title>();
+            Titles = season.GetAllTitles()
+                .ToDto(season.EnglishTitle, season.GetPreferredTitle(), language);
         Overview = string.Empty;
         if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = Array.Empty<Overview>();

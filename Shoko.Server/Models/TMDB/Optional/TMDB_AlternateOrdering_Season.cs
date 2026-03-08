@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 using TMDbLib.Objects.TvShows;
 
 using AnimeSeason = Shoko.Models.Enums.AnimeSeason;
@@ -102,6 +103,34 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>
 
         return updates.Any(updated => updated);
     }
+
+    /// <inheritdoc/>
+    public TMDB_Title GetDefaultTitle() => new()
+    {
+        CountryCode = "US",
+        LanguageCode = "en",
+        Value = EnglishTitle,
+    };
+
+    /// <inheritdoc/>
+    public TMDB_Title? GetPreferredTitle() => Utils.SettingsProvider.GetSettings().Language.SeriesTitleLanguageOrder.Contains("en-US")
+        ? new()
+        {
+            CountryCode = "US",
+            LanguageCode = "en",
+            Value = EnglishTitle,
+        }
+        : null;
+
+    public IReadOnlyList<TMDB_Title> GetAllTitles() =>
+    [
+        new()
+        {
+            CountryCode = "US",
+            LanguageCode = "en",
+            Value = EnglishTitle,
+        },
+    ];
 
     /// <summary>
     /// Get all cast members that have worked on this season.
