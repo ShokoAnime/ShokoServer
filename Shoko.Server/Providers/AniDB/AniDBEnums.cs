@@ -46,7 +46,10 @@ public enum GetFile_Source
     Camcorder,
     VCD,
     SVCD,
-    LaserDisc
+    LaserDisc,
+    Film8mm,
+    Film16mm,
+    Film35mm,
 }
 
 public enum UpdateType

@@ -723,6 +723,9 @@ public partial class File
             "ld" => FileSource.LaserDisc,
             "laserdisc" => FileSource.LaserDisc,
             "camcorder" => FileSource.Camera,
+            "film8mm" => FileSource.Film,
+            "film16mm" => FileSource.Film,
+            "film35mm" => FileSource.Film,
             _ => FileSource.Unknown
         };
     }
@@ -810,5 +813,6 @@ public enum FileSource
     VHS = 6,
     VCD = 7,
     LaserDisc = 8,
-    Camera = 9
+    Camera = 9,
+    Film = 10,
 }
