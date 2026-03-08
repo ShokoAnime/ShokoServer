@@ -774,20 +774,29 @@ public class FileController : BaseController
             return NotFound(FileNotFoundWithFileID);
 
         TimeSpan? playPosition = null;
+        var playPositionWasAdjusted = false;
         if (resumePosition != null && long.TryParse(resumePosition, out var resumePositionLong))
-        {
             playPosition = TimeSpan.FromTicks(resumePositionLong);
-        } else if (resumePosition != null && TimeSpan.TryParse(resumePosition, out var playPositionTs))
-        {
+        else if (resumePosition != null && TimeSpan.TryParse(resumePosition, out var playPositionTs))
             playPosition = playPositionTs;
-        }
-
-        playPosition ??= TimeSpan.Zero;
-        var totalDurationTicks = file.DurationTimeSpan;
-        if (playPosition >= totalDurationTicks)
+        if (playPosition.HasValue)
         {
-            watched = true;
-            playPosition = TimeSpan.Zero;
+            // Disallow negative resume positions.
+            if (playPosition < TimeSpan.Zero)
+                return ValidationProblem("The resume position cannot be less than zero.", nameof(resumePosition));
+
+            // Adjust the resume position if it is greater than or equal to the file's duration, and remove
+            // the play position if it's set to zero.
+            if (playPosition >= file.DurationTimeSpan)
+            {
+                watched = true;
+                playPosition = null;
+                playPositionWasAdjusted = true;
+            }
+            else if (watched is true && playPosition == TimeSpan.Zero)
+            {
+                playPosition = null;
+            }
         }
 
         var reason = eventName switch
@@ -802,10 +811,9 @@ public class FileController : BaseController
         };
         var now = DateTime.Now;
         var userData = _userDataService.GetVideoUserData(User.JMMUserID, file.VideoLocalID);
-        var newUserData = await _userDataService.SaveVideoUserData(User, file, new()
+        await _userDataService.SaveVideoUserData(User, file, new()
         {
-            ResumePosition = playPosition != TimeSpan.Zero
-                ? playPosition : null,
+            ResumePosition = playPosition,
             LastPlayedAt = watched.HasValue
                 ? (watched.Value ? now : null)
                 : userData?.LastPlayedAt,
@@ -814,16 +822,14 @@ public class FileController : BaseController
 
         // Give useful responses
         // We are trying to scrobble position
-        if (playPosition != TimeSpan.Zero)
-        {
-            if (playPosition >= file.DurationTimeSpan)
-                return Accepted((string?)null,
-                    $"The {nameof(resumePosition)} was greater than or equal to the file's duration, so it was marked as watched. {nameof(resumePosition)}: {playPosition:c} vs {nameof(file.DurationTimeSpan)}: {file.DurationTimeSpan}");
-            if (newUserData.PlaybackCount > 0)
-                return Accepted((string?)null, $"The file was marked as watched. The {nameof(resumePosition)} may not behave as expected.");
-        }
-
-        return Ok(newUserData);
+        if (playPositionWasAdjusted)
+            return Accepted((string?)null,
+                $"The {nameof(resumePosition)} was greater than or equal to the file's duration, so it was marked as watched. {nameof(resumePosition)}: {playPosition} vs {nameof(file.DurationTimeSpan)}: {file.DurationTimeSpan}");
+        if (watched is true && playPosition.HasValue)
+            return Accepted((string?)null, $"The file was marked as watched with the progress position set to {playPosition}.");
+        if (watched is true)
+            return Accepted((string?)null, $"The file was marked as watched.");
+        return Accepted((string?)null, "The file progress was updated.");
     }
 
     /// <summary>
