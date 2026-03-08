@@ -119,7 +119,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: ['10.0']
+        dotnet: ['10.x']
         include:
           - build_type: 'Standalone'
             build_props: '--self-contained true'
@@ -166,11 +166,11 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r ${{ matrix.rid }} -f net${{ matrix.dotnet }} ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=stable,commit=${{  needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} -f net10.0 ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=stable,commit=${{  needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net${{ matrix.dotnet }}\\${{matrix.rid}}\\publish .\\Shoko.CLI_${{ matrix.build_type }}_${{ matrix.display_id }}.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0\\${{matrix.rid}}\\publish .\\Shoko.CLI_${{ matrix.build_type }}_${{ matrix.display_id }}.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
@@ -191,7 +191,7 @@ jobs:
     strategy:
       matrix:
         rid: ['linux-x64', 'linux-arm64', 'osx-arm64']
-        dotnet: ['10.0']
+        dotnet: ['10.x']
 
     name: Build Tray Service — Framework ${{ matrix.rid }} (Release)
 
@@ -225,11 +225,11 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - run: dotnet publish -c Release -r ${{ matrix.rid }} -f net${{ matrix.dotnet }} --no-self-contained Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=stable,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
+      - run: dotnet publish -c Release -r ${{ matrix.rid }} -f net10.0 --no-self-contained Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=stable,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive ./Shoko.Server/bin/Release/net${{ matrix.dotnet }}/${{ matrix.rid }}/publish ./Shoko.TrayService_Framework_${{ matrix.rid }}.zip
+        run: Compress-Archive ./Shoko.Server/bin/Release/net10.0/${{ matrix.rid }}/publish ./Shoko.TrayService_Framework_${{ matrix.rid }}.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
@@ -249,7 +249,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: ['10.0']
+        dotnet: ['10.x']
 
     name: Build Tray Service — Framework win-x64 (Release)
 
@@ -281,7 +281,7 @@ jobs:
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net${{ matrix.dotnet }}\\win-x64\\publish .\\Shoko.TrayService_Framework_win-x64.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0\\win-x64\\publish .\\Shoko.TrayService_Framework_win-x64.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
@@ -301,7 +301,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: ['10.0']
+        dotnet: ['10.x']
 
     name: Build Tray Service — Installer (Stable)
 
@@ -333,7 +333,7 @@ jobs:
 
       - name: Archive Release
         shell: pwsh
-        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net${{ matrix.dotnet }}\\win-x64\\publish .\\Shoko.TrayService_Standalone_win-x64.zip
+        run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0\\win-x64\\publish .\\Shoko.TrayService_Standalone_win-x64.zip
 
       - name: Upload Release
         uses: svenstaro/upload-release-action@v2
