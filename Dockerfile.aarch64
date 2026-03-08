@@ -22,8 +22,6 @@ ENV PUID=1000 \
     LC_CTYPE=C.UTF-8 \
     LC_ALL=C.UTF-8
 
-ARG channel
-
 RUN apt-get update && apt-get install -y gnupg curl
 
 RUN curl --retry 3 -O https://mediaarea.net/repo/deb/debian/pubkey.gpg
@@ -31,23 +29,11 @@ RUN curl --retry 3 -O https://mediaarea.net/repo/deb/debian/pubkey.gpg
 RUN gpg --no-default-keyring --keyring ./temp-keyring.gpg --import pubkey.gpg && gpg --no-default-keyring --keyring ./temp-keyring.gpg --export --output /usr/share/keyrings/mediainfo.gpg && rm pubkey.gpg
 RUN echo "deb [signed-by=/usr/share/keyrings/mediainfo.gpg] https://mediaarea.net/repo/deb/debian/ bookworm main" | tee -a /etc/apt/sources.list
 
-RUN apt-get update && apt-get install -y apt-utils gosu jq unzip mediainfo librhash-dev
+RUN apt-get update && apt-get install -y apt-utils gosu mediainfo librhash-dev
 
 WORKDIR /usr/src/app/build
 COPY --from=build /usr/src/app/build .
 COPY ./dockerentry.sh /dockerentry.sh
-
-# Create a sub-scope where we navigate to the web ui directory, then download the needed web ui archive, extract it, and remove the archive.
-RUN (\
-        cd /usr/src/app/build/webui;\
-        if [ "${channel:-dev}" = "stable" ]; then\
-            curl -L $(curl https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases/latest | jq -r '.assets[0].browser_download_url') -o latest.zip;\
-        else\
-            curl -L $(curl https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases | jq -r '.[0].assets[0].browser_download_url') -o latest.zip;\
-        fi;\
-        unzip -o latest.zip;\
-        rm latest.zip\
-    )
 
 VOLUME /home/shoko/.shoko/
 

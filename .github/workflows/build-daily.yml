@@ -148,6 +148,33 @@ jobs:
           script: |
             core.setOutput("version_semver", '${{ steps.release_info.outputs.tag }}'.replace(/^[vV]/g, ''));
 
+  webui:
+    runs-on: ubuntu-latest
+
+    name: Download Web UI
+
+    steps:
+      - name: Get Latest Web UI Release
+        id: webui_release
+        run: |
+          download_url=$(curl -s https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases | jq -r '.[0].assets[0].browser_download_url')
+          echo "download_url=${download_url}" >> "$GITHUB_OUTPUT"
+
+      - name: Download and Extract Web UI
+        run: |
+          mkdir -p webui
+          curl -L "${{ steps.webui_release.outputs.download_url }}" -o webui/latest.zip
+          cd webui
+          unzip -o latest.zip
+          rm latest.zip
+
+      - name: Upload Web UI Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webui
+          path: webui/
+          retention-days: 1
+
   plugin-nuget:
     runs-on: ubuntu-latest
 
@@ -188,6 +215,7 @@ jobs:
     needs:
       - current_info
       - plugin-nuget
+      - webui
 
     strategy:
       matrix:
@@ -213,6 +241,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
+
+      - name: Download Web UI
+        uses: actions/download-artifact@v4
+        with:
+          name: webui
+          path: Shoko.Server/webui
 
       - name: Replace Sentry DSN
         if: ${{ env.SENTRY_DSN != '' }}
@@ -258,6 +292,7 @@ jobs:
     needs:
       - current_info
       - plugin-nuget
+      - webui
 
     strategy:
       matrix:
@@ -276,6 +311,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
+
+      - name: Download Web UI
+        uses: actions/download-artifact@v4
+        with:
+          name: webui
+          path: Shoko.Server/webui
 
       - name: Replace Sentry DSN
         if: ${{ env.SENTRY_DSN != '' }}
@@ -321,6 +362,7 @@ jobs:
     needs:
       - current_info
       - plugin-nuget
+      - webui
 
     strategy:
       matrix:
@@ -344,6 +386,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
+
+      - name: Download Web UI
+        uses: actions/download-artifact@v4
+        with:
+          name: webui
+          path: Shoko.Server/webui
 
       - name: Replace Sentry DSN
         if: ${{ env.SENTRY_DSN != '' }}
@@ -383,6 +431,7 @@ jobs:
     needs:
       - current_info
       - plugin-nuget
+      - webui
 
     strategy:
       matrix:
@@ -400,6 +449,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: "${{ github.ref }}"
+
+      - name: Download Web UI
+        uses: actions/download-artifact@v4
+        with:
+          name: webui
+          path: Shoko.Server/webui
 
       - name: Replace Sentry DSN
         if: ${{ env.SENTRY_DSN != '' }}
@@ -442,6 +497,7 @@ jobs:
     needs:
       - current_info
       - plugin-nuget
+      - webui
 
     strategy:
       fail-fast: false
@@ -460,6 +516,12 @@ jobs:
         uses: actions/checkout@master
         with:
           ref: "${{ github.sha }}"
+
+      - name: Download Web UI
+        uses: actions/download-artifact@v4
+        with:
+          name: webui
+          path: Shoko.Server/webui
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh

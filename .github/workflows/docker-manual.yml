@@ -21,8 +21,43 @@ on:
         required: true
 
 jobs:
+  webui:
+    runs-on: ubuntu-latest
+
+    name: Download Web UI
+
+    steps:
+      - name: Get Web UI Release URL
+        id: webui_release
+        run: |
+          if [ "${{ github.event.inputs.release }}" = "stable" ]; then
+            download_url=$(curl -s https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases/latest | jq -r '.assets[0].browser_download_url')
+          else
+            download_url=$(curl -s https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases | jq -r '.[0].assets[0].browser_download_url')
+          fi
+          echo "download_url=${download_url}" >> "$GITHUB_OUTPUT"
+
+      - name: Download and Extract Web UI
+        run: |
+          mkdir -p webui
+          curl -L "${{ steps.webui_release.outputs.download_url }}" -o webui/latest.zip
+          cd webui
+          unzip -o latest.zip
+          rm latest.zip
+
+      - name: Upload Web UI Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webui
+          path: webui/
+          retention-days: 1
+
   docker-manual-build:
     name: Publish docker image
+
+    needs:
+      - webui
+
     strategy:
       matrix:
         include:
@@ -39,6 +74,12 @@ jobs:
           ref: "${{ github.event.inputs.ref }}"
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Download Web UI
+        uses: actions/download-artifact@v4
+        with:
+          name: webui
+          path: Shoko.Server/webui
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
