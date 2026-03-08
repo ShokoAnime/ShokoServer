@@ -153,7 +153,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '10.x' ]
+        dotnet: ['10.0']
 
     name: Publish Shoko.Abstractions Nuget
 
@@ -191,8 +191,8 @@ jobs:
 
     strategy:
       matrix:
-        rid: ['linux-x64', 'linux-arm64']
-        dotnet: [ '10.x' ]
+        rid: ['linux-x64', 'linux-arm64', 'osx-arm64']
+        dotnet: ['10.0']
         build_type: ['Standalone']
         include:
           - build_type: 'Standalone'
@@ -244,15 +244,78 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Run dotnet publish
-        run: dotnet publish -c Release -r ${{ matrix.rid }} -f net10.0 ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=dev,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
+        run: dotnet publish -c Release -r ${{ matrix.rid }} -f net${{ matrix.dotnet }} ${{ matrix.build_props }} Shoko.CLI /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=dev,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Shoko.CLI_${{ matrix.build_type }}_${{ matrix.rid }}
-          path: Shoko.Server/bin/Release/net10.0/${{matrix.rid}}/publish/
+          path: Shoko.Server/bin/Release/net${{ matrix.dotnet }}/${{matrix.rid}}/publish/
 
-  tray-service:
+  tray-service-framework-cross:
+    runs-on: ubuntu-latest
+
+    needs:
+      - current_info
+      - plugin-nuget
+
+    strategy:
+      matrix:
+        rid: ['linux-x64', 'linux-arm64', 'osx-arm64']
+        dotnet: ['10.0']
+
+    name: Build Tray Service — Framework (${{ matrix.rid }}) (Daily)
+
+    env:
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      TMDB_API: ${{ secrets.TMDB_API }}
+      AVD3_URL: ${{ secrets.AVD3_URL }}
+
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@v4
+        with:
+          ref: "${{ github.sha }}"
+
+      - name: Replace Sentry DSN
+        if: ${{ env.SENTRY_DSN != '' }}
+        shell: pwsh
+        run: |
+          ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ env.SENTRY_DSN }}
+
+      - name: Replace TMDB API Key
+        if: ${{ env.TMDB_API != '' }}
+        shell: pwsh
+        run: |
+          ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ env.TMDB_API }}
+
+      - name: Replace AVD3 URL
+        if: ${{ env.AVD3_URL != '' }}
+        shell: pwsh
+        run: |
+          ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ env.AVD3_URL }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+        if: ${{ matrix.rid == 'linux-arm64' }}
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Run dotnet publish
+        run: dotnet publish -c Release -r ${{ matrix.rid }} -f net${{ matrix.dotnet }} --no-self-contained Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="\"channel=dev,commit=${{ needs.current_info.outputs.sha }},tag=${{ needs.current_info.outputs.tag }},date=${{ needs.current_info.outputs.date }},\""
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shoko.TrayService_Framework_${{ matrix.rid }}
+          path: Shoko.Server/bin/Release/net${{ matrix.dotnet }}/${{ matrix.rid }}/publish/
+
+  tray-service-windows:
     runs-on: windows-latest
 
     needs:
@@ -261,19 +324,15 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '10.x' ]
+        dotnet: ['10.0']
         build_type: ['Standalone', 'Framework']
         include:
-          - build_props: '-r win-x64 --self-contained true'
-            build_type: 'Standalone'
-          - build_dir: '/net10.0-windows/win-x64'
+          - build_props: '--self-contained true'
             build_type: 'Standalone'
           - build_props: ''
             build_type: 'Framework'
-          - build_dir: '/net10.0-windows'
-            build_type: 'Framework'
 
-    name: Build Tray Service — ${{ matrix.build_type }} (Daily)
+    name: Build Tray Service — ${{ matrix.build_type }} (win-x64) (Daily)
 
     env:
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
@@ -310,13 +369,13 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Run dotnet publish
-        run: dotnet publish -c Release ${{ matrix.build_props }} Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
+        run: dotnet publish -c Release -r win-x64 -f net${{ matrix.dotnet }} ${{ matrix.build_props }} Shoko.TrayService /p:Version="${{ needs.current_info.outputs.version }}" /p:InformationalVersion="channel=dev%2ccommit=${{ needs.current_info.outputs.sha }}%2ctag=${{ needs.current_info.outputs.tag }}%2cdate=${{ needs.current_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Shoko.TrayService_${{ matrix.build_type }}_win-x64
-          path: Shoko.Server/bin/Release${{ matrix.build_dir }}/publish/
+          path: Shoko.Server/bin/Release/net${{ matrix.dotnet }}/win-x64/publish/
 
   tray-service-installer:
     runs-on: windows-2022
@@ -327,7 +386,7 @@ jobs:
 
     strategy:
       matrix:
-        dotnet: [ '10.x' ]
+        dotnet: ['10.0']
 
     name: Build Tray Service — Installer (Daily)
 
@@ -490,7 +549,8 @@ jobs:
     needs:
       - current_info
       - cli
-      - tray-service
+      - tray-service-framework-cross
+      - tray-service-windows
       - tray-service-installer
       - docker-push-manifest
 

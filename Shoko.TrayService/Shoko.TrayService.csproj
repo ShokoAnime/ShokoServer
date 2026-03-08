@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net10.0-windows</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-        <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+        <RuntimeIdentifiers>win-x64;linux-x64;linux-arm64;osx-arm64</RuntimeIdentifiers>
         <Platforms>x64;AnyCPU</Platforms>
         <Deterministic>false</Deterministic>
         <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
@@ -12,9 +12,6 @@
         <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
         <AssemblyName>ShokoServer</AssemblyName>
         <LangVersion>latest</LangVersion>
-        <EnableWindowsTargeting>true</EnableWindowsTargeting>
-        <UseWPF>true</UseWPF>
-        <UseWindowsForms>true</UseWindowsForms>
         <Configurations>Debug;Release;ApiLogging;Benchmarks</Configurations>
         <ApplicationIcon>..\Shoko.Server\db.ico</ApplicationIcon>
         <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
@@ -36,19 +33,19 @@
         <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <WCFMetadata Include="Connected Services\" />
+        <PackageReference Include="Avalonia" Version="11.3.12" />
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
+        <!-- Needed for the windows' native tray system menu to function properly. -->
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
-    </ItemGroup>
-    <ItemGroup>
-        <Resource Include="..\Shoko.Server\db.ico">
+        <AvaloniaResource Include="..\Shoko.Server\db.ico">
             <Link>db.ico</Link>
-        </Resource>
+        </AvaloniaResource>
     </ItemGroup>
     <ItemGroup>
-      <Reference Include="Quartz">
-        <HintPath>..\Dependencies\Quartz\Quartz.dll</HintPath>
-      </Reference>
+        <Reference Include="Quartz">
+            <HintPath>..\Dependencies\Quartz\Quartz.dll</HintPath>
+        </Reference>
     </ItemGroup>
 </Project>

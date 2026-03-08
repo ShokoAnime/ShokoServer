@@ -1,13 +1,15 @@
-﻿#region
 using System;
 using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
-using System.Threading;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using Hardcodet.Wpf.TaskbarNotification;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Markup.Xaml;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -17,23 +19,29 @@ using Shoko.Server;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-#endregion
+
 namespace Shoko.TrayService;
 
-/// <summary>
-/// Interaction logic for App.xaml
-/// </summary>
-public partial class App
+public partial class App : Application
 {
-    private static TaskbarIcon? _icon;
     private ILogger _logger = null!;
+    private TrayIcon? _trayIcon;
 
-    private void OnStartup(object a, StartupEventArgs e)
+    public override void Initialize()
     {
+        AvaloniaXamlLoader.Load(this);
+    }
+
+    public override void OnFrameworkInitializationCompleted()
+    {
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        }
+
         Console.CancelKeyPress += OnConsoleOnCancelKeyPress;
-        InitialiseTaskbarIcon();
-        
-        
+        InitialiseTrayIcon();
+
         try
         {
             UnhandledExceptionManager.AddHandler();
@@ -42,8 +50,6 @@ public partial class App
         {
             Console.WriteLine(ex.ToString());
         }
-
-        if (Mutex.TryOpenExisting(Utils.DefaultInstance + "Mutex", out _)) Shutdown();
 
         Utils.SetInstance();
         Utils.InitLogger();
@@ -59,8 +65,10 @@ public partial class App
         catch (Exception exception)
         {
             _logger.LogCritical(exception, "The server has failed to start");
-            Shutdown();
+            DispatchShutdown();
         }
+
+        base.OnFrameworkInitializationCompleted();
     }
 
     private void AddEventHandlers()
@@ -68,32 +76,38 @@ public partial class App
         ShokoEventHandler.Instance.Shutdown += (_, _) => DispatchShutdown();
     }
 
-    private void InitialiseTaskbarIcon()
+    private void InitialiseTrayIcon()
     {
-        _icon = new TaskbarIcon{
-                                   ToolTipText = "Shoko Server",
-                                   ContextMenu = CreateContextMenu(),
-                                   MenuActivation = PopupActivationMode.RightClick,
-                                   Visibility = Visibility.Visible
-                               };
-        using var iconStream = GetResourceStream(new Uri("pack://application:,,,/ShokoServer;component/db.ico"))?.Stream;
-        if (iconStream is not null)
-            _icon.Icon = new Icon(iconStream);
+        var menu = new NativeMenu();
+
+        var openWebUI = new NativeMenuItem("Open WebUI");
+        openWebUI.Click += OnTrayOpenWebUIClick;
+        menu.Add(openWebUI);
+
+        var exit = new NativeMenuItem("Exit");
+        exit.Click += OnTrayExit;
+        menu.Add(exit);
+
+        _trayIcon = new TrayIcon
+        {
+            ToolTipText = "Shoko Server",
+            Menu = menu,
+            IsVisible = true
+        };
+
+        try
+        {
+            var uri = new Uri("avares://ShokoServer/db.ico");
+            using var assetStream = AssetLoader.Open(uri);
+            _trayIcon.Icon = new WindowIcon(assetStream);
+        }
+        catch (Exception)
+        {
+            // Icon loading may fail on some platforms; continue without icon
+        }
     }
 
-    private ContextMenu CreateContextMenu()
-    {
-        var menu = new ContextMenu();
-        var webui = new MenuItem{Header = "Open WebUI"};
-        webui.Click += OnTrayOpenWebUIClick;
-        menu.Items.Add(webui);
-        webui = new MenuItem{Header = "Exit"};
-        webui.Click += OnTrayExit;
-        menu.Items.Add(webui);
-        return menu;
-    }
-
-    private void OnTrayOpenWebUIClick(object? sender, RoutedEventArgs args)
+    private void OnTrayOpenWebUIClick(object? sender, EventArgs args)
     {
         try
         {
@@ -106,7 +120,7 @@ public partial class App
         }
     }
 
-    private void OnTrayExit(object? sender, RoutedEventArgs args)
+    private void OnTrayExit(object? sender, EventArgs args)
     {
         var lifetime = Utils.ServiceContainer.GetRequiredService<IHostApplicationLifetime>();
         Task.Run(() => lifetime.StopApplication());
@@ -136,7 +150,13 @@ public partial class App
     {
         try
         {
-            Dispatcher.Invoke(Shutdown);
+            Dispatcher.UIThread.Invoke(() =>
+            {
+                _trayIcon?.IsVisible = false;
+
+                if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                    desktop.Shutdown();
+            });
         }
         catch (TaskCanceledException)
         {
@@ -144,25 +164,8 @@ public partial class App
         }
     }
 
-    protected override void OnExit(ExitEventArgs e)
-    {
-        base.OnExit(e);
-        _logger.LogInformation("Exit was Requested. Shutting Down");
-        if (_icon is not null)
-            _icon.Visibility = Visibility.Hidden;
-    }
-
-    ///hack because of this: https://github.com/dotnet/corefx/issues/10361
     private static void OpenUrl(string url)
     {
-        try
-        {
-            Process.Start(url);
-        }
-        catch
-        {
-            url = url.Replace("&", "^&");
-            Process.Start(new ProcessStartInfo("cmd", $"/c start {url}"){CreateNoWindow = true});
-        }
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 }
