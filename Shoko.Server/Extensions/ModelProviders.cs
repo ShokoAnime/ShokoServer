@@ -3,8 +3,6 @@ using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v1.Models.Metro;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Models.Trakt;
-using Shoko.Server.Providers.TraktTV.Contracts;
 
 namespace Shoko.Server.Extensions;
 

@@ -1,9 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using NHibernate;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Models.Trakt;
 using Shoko.Server.Repositories;
 
 #nullable enable

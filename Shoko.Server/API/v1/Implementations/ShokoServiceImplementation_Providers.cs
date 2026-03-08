@@ -9,7 +9,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Trakt;

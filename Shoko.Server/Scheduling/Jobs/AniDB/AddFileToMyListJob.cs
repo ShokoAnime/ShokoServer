@@ -17,8 +17,6 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Scheduling.Jobs.Trakt;
-using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 

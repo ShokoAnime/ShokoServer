@@ -25,7 +25,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Server;
-using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v1.Implementations;

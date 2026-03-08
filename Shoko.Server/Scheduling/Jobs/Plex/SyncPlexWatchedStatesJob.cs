@@ -15,7 +15,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Scheduling.Jobs.Plex;

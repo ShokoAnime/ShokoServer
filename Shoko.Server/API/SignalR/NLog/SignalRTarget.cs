@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
 using NLog;
-using NLog.Config;
 using NLog.Targets;
 
 namespace Shoko.Server.API.SignalR.NLog;

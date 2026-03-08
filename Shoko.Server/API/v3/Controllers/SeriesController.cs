@@ -26,7 +26,6 @@ using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.API.v3.Models.TMDB.Input;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.TMDB;
