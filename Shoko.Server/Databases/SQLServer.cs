@@ -144,7 +144,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         var settings = Utils.SettingsProvider.GetSettings();
         return Fluently.Configure()
             .Database(MsSqlConfiguration.MsSql2012.ConnectionString(GetConnectionString()).Driver<MicrosoftDataSqlClientDriver>())
-            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoServer>())
+            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ServerState>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
                 prop.Batcher<NonBatchingBatcherFactory>();

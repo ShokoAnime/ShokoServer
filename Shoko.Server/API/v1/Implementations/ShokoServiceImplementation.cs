@@ -534,7 +534,8 @@ public partial class ShokoServiceImplementation : Controller
     [HttpPost("Folder/RefreshMediaInfo")]
     public void RefreshAllMediaInfo()
     {
-        Utils.ShokoServer.RefreshAllMediaInfo();
+        var scheduler = _schedulerFactory.GetScheduler().Result;
+        scheduler.StartJob<MediaInfoAllFilesJob>().GetAwaiter().GetResult();
     }
 
     [HttpPost("AniDB/MyList/Sync")]

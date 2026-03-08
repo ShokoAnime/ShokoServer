@@ -11,8 +11,8 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
-using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Core;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Delegates;
@@ -37,7 +37,7 @@ public class ThreadPooledJobStore : JobStoreTX
     private readonly Dictionary<JobKey, (IJobDetail Job, DateTime StartTime)> _executingJobs = [];
     private readonly IAcquisitionFilter[] _acquisitionFilters;
     private readonly IVideoReleaseService _videoReleaseService;
-    private readonly IShokoEventHandler _shokoEventHandler;
+    private readonly ISystemService _systemService;
     private ITypeLoadHelper _typeLoadHelper;
     private readonly Dictionary<Type, int> _typeConcurrencyCache = [];
     private readonly Dictionary<string, Type[]> _concurrencyGroupCache = [];
@@ -58,7 +58,7 @@ public class ThreadPooledJobStore : JobStoreTX
         ILogger<ThreadPooledJobStore> logger,
         ISettingsProvider settingsProvider,
         IVideoReleaseService videoReleaseService,
-        IShokoEventHandler shokoEventHandler,
+        ISystemService systemService,
         IEnumerable<IAcquisitionFilter> acquisitionFilters,
         QueueStateEventHandler queueStateEventHandler,
         JobFactory jobFactory)
@@ -68,10 +68,10 @@ public class ThreadPooledJobStore : JobStoreTX
         _queueStateEventHandler = queueStateEventHandler;
         _jobFactory = jobFactory;
         _videoReleaseService = videoReleaseService;
-        _shokoEventHandler = shokoEventHandler;
+        _systemService = systemService;
         _acquisitionFilters = acquisitionFilters.ToArray();
         _videoReleaseService.ProvidersUpdated += OnProvidersUpdated;
-        _shokoEventHandler.Started += OnProvidersReady;
+        _systemService.AboutToStart += OnProvidersReady;
         foreach (var filter in _acquisitionFilters)
             filter.StateChanged += FilterOnStateChanged;
 
@@ -154,7 +154,7 @@ public class ThreadPooledJobStore : JobStoreTX
     ~ThreadPooledJobStore()
     {
         _videoReleaseService.ProvidersUpdated -= OnProvidersUpdated;
-        _shokoEventHandler.Started -= OnProvidersReady;
+        _systemService.AboutToStart -= OnProvidersReady;
         foreach (var filter in _acquisitionFilters) filter.StateChanged -= FilterOnStateChanged;
     }
 

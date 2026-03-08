@@ -6,7 +6,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Shoko;
-using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
@@ -16,7 +15,7 @@ using Shoko.Server.Utilities;
 #nullable enable
 namespace Shoko.Server;
 
-public class ShokoEventHandler : IShokoEventHandler
+public class ShokoEventHandler
 {
     public event EventHandler<FileEventArgs>? FileDeleted;
 
@@ -29,12 +28,6 @@ public class ShokoEventHandler : IShokoEventHandler
     public event EventHandler<MovieInfoUpdatedEventArgs>? MovieUpdated;
 
     public event EventHandler<AvdumpEventArgs>? AVDumpEvent;
-
-    public event EventHandler? Starting;
-
-    public event EventHandler? Started;
-
-    public event EventHandler? Shutdown;
 
     private static ShokoEventHandler? _instance;
 
@@ -204,20 +197,5 @@ public class ShokoEventHandler : IShokoEventHandler
             StartedAt = session.StartedAt,
             EndedAt = session.EndedAt,
         });
-    }
-
-    public void OnStarting()
-    {
-        Starting?.Invoke(null, EventArgs.Empty);
-    }
-
-    public void OnStarted()
-    {
-        Started?.Invoke(null, EventArgs.Empty);
-    }
-
-    public void OnShutdown()
-    {
-        Shutdown?.Invoke(null, EventArgs.Empty);
     }
 }

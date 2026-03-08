@@ -1,23 +1,22 @@
 using System;
-using System.Diagnostics;
-using System.IO;
-using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Databases;
+using Shoko.Server.MediaInfo;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 using Constants = Shoko.Server.Server.Constants;
+using ReleaseChannel = Shoko.Server.Server.ReleaseChannel;
 using ServerStatus = Shoko.Server.API.v3.Models.Shoko.ServerStatus;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -32,19 +31,22 @@ namespace Shoko.Server.API.v3.Controllers;
 public class InitController : BaseController
 {
     private readonly ILogger<InitController> _logger;
+    private readonly SystemService _systemService;
     private readonly IConnectivityService _connectivityService;
     private readonly IUDPConnectionHandler _udpHandler;
     private readonly IHttpConnectionHandler _httpHandler;
 
     public InitController(
-        ISettingsProvider settingsProvider,
         ILogger<InitController> logger,
+        ISystemService systemService,
+        ISettingsProvider settingsProvider,
         IConnectivityService connectivityService,
         IUDPConnectionHandler udpHandler,
         IHttpConnectionHandler httpHandler
     ) : base(settingsProvider)
     {
         _logger = logger;
+        _systemService = (SystemService)systemService;
         _connectivityService = connectivityService;
         _udpHandler = udpHandler;
         _httpHandler = httpHandler;
@@ -60,25 +62,22 @@ public class InitController : BaseController
     {
         var versionSet = new ComponentVersionSet()
         {
-            Server = new() { Version = Utils.GetApplicationVersion(), ReleaseChannel = ReleaseChannel.Debug },
-            MediaInfo = new()
+            Server = new()
+            {
+                Version = _systemService.Version.Version,
+                ReleaseChannel = Enum.Parse<ReleaseChannel>(_systemService.Version.Channel.ToString()),
+                Commit = _systemService.Version.SourceRevision,
+                Tag = _systemService.Version.Tag,
+                ReleaseDate = _systemService.Version.ReleasedAt,
+            },
         };
 
-        var extraVersionDict = Utils.GetApplicationExtraVersion();
-        if (extraVersionDict.TryGetValue("tag", out var tag))
-            versionSet.Server.Tag = tag;
-        if (extraVersionDict.TryGetValue("commit", out var commit))
-            versionSet.Server.Commit = commit;
-        if (extraVersionDict.TryGetValue("channel", out var rawChannel) && Enum.TryParse<ReleaseChannel>(rawChannel, true, out var channel))
-            versionSet.Server.ReleaseChannel = channel;
-        if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
-            versionSet.Server.ReleaseDate = releaseDate.ToUniversalTime();
-
-        var mediaInfoFileInfo = new FileInfo(Path.Combine(Assembly.GetEntryAssembly().Location, "../MediaInfo", "MediaInfo.exe"));
-        versionSet.MediaInfo = new()
+        try
         {
-            Version = mediaInfoFileInfo.Exists ? FileVersionInfo.GetVersionInfo(mediaInfoFileInfo.FullName).FileVersion : null,
-        };
+            if (MediaInfoUtility.GetVersion() is { Length: > 0 } mediaInfoVersion)
+                versionSet.MediaInfo = new() { Version = mediaInfoVersion };
+        }
+        catch { }
 
         var webuiVersion = WebUIUpdateService.LoadWebUIVersionInfo();
         if (webuiVersion != null)
@@ -104,10 +103,12 @@ public class InitController : BaseController
     [HttpGet("Status")]
     public ServerStatus GetServerStatus()
     {
-        TimeSpan? uptime = ShokoServer.UpTime;
+        var uptime = _systemService.StartedAt.HasValue
+            ? DateTime.Now - _systemService.StartedAt.Value
+            : (TimeSpan?)null;
 
-        string message = null;
-        ServerStatus.StartupState state = ServerStatus.StartupState.Waiting;
+        var message = (string)null;
+        var state = ServerStatus.StartupState.Waiting;
         if (ServerState.Instance.StartupFailed)
         {
             message = ServerState.Instance.StartupFailedMessage;
@@ -156,7 +157,7 @@ public class InitController : BaseController
     /// updated details for the server.
     /// </summary>
     /// <returns></returns>
-    [Authorize("admin")]
+    [Authorize(Roles = "admin,init")]
     [HttpPost("Connectivity")]
     public async Task<ActionResult<object>> CheckNetworkAvailability()
     {
@@ -213,17 +214,20 @@ public class InitController : BaseController
     }
 
     /// <summary>
-    /// Starts the server, or does nothing
+    /// Starts the server unless it's already running.
     /// </summary>
     /// <returns></returns>
     [HttpGet("StartServer")]
+    [HttpPost("StartServer")]
     public ActionResult StartServer()
     {
-        if (ServerState.Instance.ServerOnline) return BadRequest("Already Running");
-        if (ServerState.Instance.ServerStarting) return BadRequest("Already Starting");
+        if (_systemService.IsStarted)
+            return BadRequest("Already Running");
+        if (ServerState.Instance.ServerStarting)
+            return BadRequest("Already Starting");
         try
         {
-            Utils.ShokoServer.RunWorkSetupDB();
+            _systemService.LateStart();
         }
         catch (Exception e)
         {
@@ -231,6 +235,38 @@ public class InitController : BaseController
             return InternalError($"There was an error starting the server: {e}");
         }
         return Ok();
+    }
+
+    /// <summary>
+    /// Requests the server to shutdown.
+    /// </summary>
+    /// <returns></returns>
+    [Authorize(Roles = "admin,init")]
+    [HttpPost("StopServer")]
+    public ActionResult StopServer()
+    {
+        if (_systemService.ShutdownPending)
+            return BadRequest("Shutdown Already Requested");
+        if (!_systemService.RequestShutdown())
+            return BadRequest("Shutdown Request Blocked");
+        return Ok("Shutdown Requested");
+    }
+
+    /// <summary>
+    /// Requests the server to restart if possible.
+    /// </summary>
+    /// <returns></returns>
+    [Authorize(Roles = "admin,init")]
+    [HttpPost("RestartServer")]
+    public ActionResult RestartServer()
+    {
+        if (!_systemService.CanRestart)
+            return BadRequest("Restart Not Possible for this instance");
+        if (_systemService.ShutdownPending)
+            return BadRequest("Shutdown Already Requested");
+        if (!_systemService.RequestRestart())
+            return BadRequest("Restart Request Blocked");
+        return Ok("Restart Requested");
     }
 
     /// <summary>

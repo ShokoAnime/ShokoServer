@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
@@ -180,6 +181,17 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     [Display(Name = "Enable Trace Logging")]
     [EnvironmentVariable("SHOKO_TRACE_LOG")]
     public bool TraceLog { get; set; }
+
+    /// <summary>
+    /// Dump the settings to the log file on startup.
+    /// </summary>
+    /// <remarks>
+    /// This is useful for debugging issues with the server configuration.
+    /// </remarks>
+    [EnvironmentVariable("SHOKO_DUMP_SETTINGS_ON_START")]
+    [Display(Name = "Dump Settings On Start")]
+    [DefaultValue(true)]
+    public bool DumpSettingsOnStart { get; set; } = true;
 
     /// <summary>
     /// Disable Sentry error reporting in the server. This will not affect the

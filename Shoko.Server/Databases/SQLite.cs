@@ -128,7 +128,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
                 .Dialect<SqliteDialectFix>()
                 .Driver<SqliteDriverFix>()
             )
-            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoServer>())
+            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ServerState>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
                 prop.LogSqlInConsole = settings.Database.LogSqlInConsole;

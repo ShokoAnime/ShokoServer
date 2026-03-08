@@ -21,7 +21,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Plex;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 #if DEBUG
 using Shoko.Server.Plex.Models.Collection;
@@ -210,7 +209,12 @@ public class PlexWebhook : BaseController
     [HttpGet("sync/all")]
     public async Task<ActionResult> SyncAll()
     {
-        await Utils.ShokoServer.SyncPlex();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        foreach (var user in RepoFactory.JMMUser.GetAll())
+        {
+            if (string.IsNullOrEmpty(user.PlexToken)) continue;
+            await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = user);
+        }
         return Ok();
     }
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,19 +31,58 @@ using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server.Services;
 
-public class ActionService(
-    ILogger<ActionService> _logger,
-    ISchedulerFactory _schedulerFactory,
-    IRequestFactory _requestFactory,
-    ISettingsProvider _settingsProvider,
-    IVideoReleaseService _videoReleaseService,
-    IAnidbService _anidbService,
-    IVideoService _videoService,
-    TmdbMetadataService _tmdbService,
-    DatabaseFactory _databaseFactory,
-    HttpXmlUtils _xmlUtils
-)
+public class ActionService
 {
+    private readonly ILogger<ActionService> _logger;
+
+    private readonly ISchedulerFactory _schedulerFactory;
+
+    private readonly IRequestFactory _requestFactory;
+
+    private readonly ISettingsProvider _settingsProvider;
+
+    private readonly IVideoReleaseService _videoReleaseService;
+
+    private readonly IAnidbService _anidbService;
+
+    private readonly IVideoService _videoService;
+
+    private readonly TmdbMetadataService _tmdbService;
+
+    private readonly DatabaseFactory _databaseFactory;
+
+    private readonly HttpXmlUtils _xmlUtils;
+
+    private readonly BackgroundWorker _downloadImagesWorker;
+
+    public ActionService(
+        ILogger<ActionService> logger,
+        ISchedulerFactory schedulerFactory,
+        IRequestFactory requestFactory,
+        ISettingsProvider settingsProvider,
+        IVideoReleaseService videoReleaseService,
+        IAnidbService anidbService,
+        IVideoService videoService,
+        TmdbMetadataService tmdbService,
+        DatabaseFactory databaseFactory,
+        HttpXmlUtils xmlUtils
+    )
+    {
+        _logger = logger;
+        _schedulerFactory = schedulerFactory;
+        _requestFactory = requestFactory;
+        _settingsProvider = settingsProvider;
+        _videoReleaseService = videoReleaseService;
+        _anidbService = anidbService;
+        _videoService = videoService;
+        _tmdbService = tmdbService;
+        _databaseFactory = databaseFactory;
+        _xmlUtils = xmlUtils;
+        _downloadImagesWorker = new();
+        _downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
+        _downloadImagesWorker.WorkerSupportsCancellation = true;
+    }
+
     public async Task RunImport_IntegrityCheck()
     {
         var scheduler = await _schedulerFactory.GetScheduler();
@@ -96,7 +136,16 @@ public class ActionService(
         }
     }
 
-    public async Task RunImport_GetImages()
+    public void RunImport_GetImages()
+    {
+        if (!_downloadImagesWorker.IsBusy)
+            _downloadImagesWorker.RunWorkerAsync();
+    }
+
+    private void DownloadImagesWorker_DoWork(object sender, DoWorkEventArgs e)
+        => RunImport_GetImagesInternal().ConfigureAwait(false).GetAwaiter().GetResult();
+
+    private async Task RunImport_GetImagesInternal()
     {
         var settings = _settingsProvider.GetSettings();
         var scheduler = await _schedulerFactory.GetScheduler();

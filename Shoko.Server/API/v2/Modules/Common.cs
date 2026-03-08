@@ -245,9 +245,10 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpGet("medainfo_update")]
-    public ActionResult UpdateMediaInfo()
+    public async Task<ActionResult> UpdateMediaInfo()
     {
-        Utils.ShokoServer.RefreshAllMediaInfo();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<MediaInfoAllFilesJob>();
         return Ok();
     }
 

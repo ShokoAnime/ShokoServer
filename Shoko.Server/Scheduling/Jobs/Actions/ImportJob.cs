@@ -36,7 +36,7 @@ public class ImportJob : BaseJob
         await _service.RunImport_PurgeUnlinkedTmdbShowNetworks();
 
         // Check for missing images
-        await _service.RunImport_GetImages();
+        _service.RunImport_GetImages();
 
         // Check for previously ignored files
         _service.CheckForPreviouslyIgnored();

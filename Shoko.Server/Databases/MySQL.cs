@@ -171,7 +171,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
 
         return Fluently.Configure()
             .Database(connectionConfig)
-            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ShokoServer>())
+            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ServerState>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
                 prop.LogSqlInConsole = settings.Database.LogSqlInConsole;

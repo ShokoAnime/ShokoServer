@@ -5,7 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Shoko.Server.Server;
+namespace Shoko.Server.Extensions;
 
 public static class StartupExtensions
 {

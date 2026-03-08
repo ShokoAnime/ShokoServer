@@ -1,13 +1,11 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,8 +13,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using Quartz;
-using Shoko.Server;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -25,7 +23,10 @@ namespace Shoko.TrayService;
 public partial class App : Application
 {
     private ILogger _logger = null!;
+
     private TrayIcon? _trayIcon;
+
+    private SystemService? _systemService;
 
     public override void Initialize()
     {
@@ -58,9 +59,10 @@ public partial class App : Application
 
         try
         {
-            var startup = new Startup(logFactory);
-            startup.AboutToStart += (_, _) => AddEventHandlers();
-            startup.Start().ConfigureAwait(true).GetAwaiter().GetResult();
+            _systemService = new SystemService(logFactory, false);
+            _systemService.Shutdown += (_, _) => DispatchShutdown();
+            if (!_systemService.StartAsync().ConfigureAwait(true).GetAwaiter().GetResult())
+                DispatchShutdown();
         }
         catch (Exception exception)
         {
@@ -69,11 +71,6 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
-    }
-
-    private void AddEventHandlers()
-    {
-        ShokoEventHandler.Instance.Shutdown += (_, _) => DispatchShutdown();
     }
 
     private void InitialiseTrayIcon()
@@ -155,7 +152,7 @@ public partial class App : Application
                 _trayIcon?.IsVisible = false;
 
                 if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-                    desktop.Shutdown();
+                    desktop.Shutdown(_systemService?.RestartPending ?? false ? 140 /* Custom restart exit code */ : 0);
             });
         }
         catch (TaskCanceledException)

@@ -10,17 +10,16 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Scheduling.Jobs.Plex;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
-using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
@@ -177,7 +176,7 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllImages")]
     public ActionResult UpdateAllImages()
     {
-        Utils.ShokoServer.DownloadAllImages();
+        _actionService.RunImport_GetImages();
         return Ok();
     }
 
@@ -455,9 +454,10 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("UpdateAllMediaInfo")]
-    public ActionResult UpdateAllMediaInfo()
+    public async Task<ActionResult> UpdateAllMediaInfo()
     {
-        Utils.ShokoServer.RefreshAllMediaInfo();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        await scheduler.StartJob<MediaInfoAllFilesJob>();
         return Ok();
     }
 
@@ -551,7 +551,12 @@ public class ActionController : BaseController
     [HttpGet("PlexSyncAll")]
     public async Task<ActionResult> PlexSyncAll()
     {
-        await Utils.ShokoServer.SyncPlex();
+        var scheduler = await _schedulerFactory.GetScheduler();
+        foreach (var user in RepoFactory.JMMUser.GetAll())
+        {
+            if (string.IsNullOrEmpty(user.PlexToken)) continue;
+            await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = user);
+        }
         return Ok();
     }
 

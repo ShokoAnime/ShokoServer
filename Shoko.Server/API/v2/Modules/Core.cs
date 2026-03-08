@@ -646,7 +646,7 @@ public class Core : BaseController
     [HttpGet("images/update")]
     public ActionResult UpdateImages()
     {
-        Utils.ShokoServer.DownloadAllImages();
+        _actionService.RunImport_GetImages();
 
         return APIStatus.OK();
     }

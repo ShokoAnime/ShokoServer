@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Quartz;
 using Quartz.Util;
-using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Core;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -24,17 +24,17 @@ public class AniDBUdpRateLimitedAcquisitionFilter : IAcquisitionFilter
 
     private readonly IUDPConnectionHandler _connectionHandler;
 
-    private readonly IShokoEventHandler _shokoEventHandler;
+    private readonly ISystemService _systemService;
 
     private readonly IVideoReleaseService _videoReleaseService;
 
-    public AniDBUdpRateLimitedAcquisitionFilter(IUDPConnectionHandler connectionHandler, IShokoEventHandler shokoEventHandler, IVideoReleaseService videoReleaseService)
+    public AniDBUdpRateLimitedAcquisitionFilter(IUDPConnectionHandler connectionHandler, ISystemService systemService, IVideoReleaseService videoReleaseService)
     {
         _connectionHandler = connectionHandler;
-        _shokoEventHandler = shokoEventHandler;
+        _systemService = systemService;
         _videoReleaseService = videoReleaseService;
         _connectionHandler.AniDBStateUpdate += OnAniDBStateUpdate;
-        _shokoEventHandler.Started += OnProvidersReady;
+        _systemService.AboutToStart += OnProvidersReady;
         _videoReleaseService.ProvidersUpdated += OnProvidersUpdated;
         _processJobIncluded = true;
         _ready = false;
@@ -47,7 +47,7 @@ public class AniDBUdpRateLimitedAcquisitionFilter : IAcquisitionFilter
     ~AniDBUdpRateLimitedAcquisitionFilter()
     {
         _connectionHandler.AniDBStateUpdate -= OnAniDBStateUpdate;
-        _shokoEventHandler.Started -= OnProvidersReady;
+        _systemService.AboutToStart -= OnProvidersReady;
         _videoReleaseService.ProvidersUpdated -= OnProvidersUpdated;
     }
 

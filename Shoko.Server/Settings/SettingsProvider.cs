@@ -2,7 +2,6 @@ using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -10,13 +9,12 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Events;
-using Shoko.Server.Hashing;
-using Shoko.Server.MediaInfo;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
-using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
+
+using ISystemService = Shoko.Abstractions.Core.ISystemService;
 
 #nullable enable
 namespace Shoko.Server.Settings;
@@ -24,6 +22,8 @@ namespace Shoko.Server.Settings;
 public class SettingsProvider : ISettingsProvider, IDisposable
 {
     private readonly ILogger<SettingsProvider> _logger;
+
+    private readonly ISystemService _systemService;
 
     private readonly ConfigurationProvider<ServerSettings> _configurationProvider;
 
@@ -35,18 +35,19 @@ public class SettingsProvider : ISettingsProvider, IDisposable
 
     private bool _ready = false;
 
-    public SettingsProvider(ILogger<SettingsProvider> logger, ConfigurationProvider<ServerSettings> configurationProvider)
+    public SettingsProvider(ILogger<SettingsProvider> logger, ISystemService systemService, ConfigurationProvider<ServerSettings> configurationProvider)
     {
         _logger = logger;
         _configurationProvider = configurationProvider;
         _configurationProvider.Saved += OnSettingsSaved;
-        ShokoEventHandler.Instance.Started += OnSettingsReady;
+        _systemService = systemService;
+        _systemService.AboutToStart += OnSettingsReady;
     }
 
     public void Dispose()
     {
         _configurationProvider.Saved -= OnSettingsSaved;
-        ShokoEventHandler.Instance.Started -= OnSettingsReady;
+        _systemService.AboutToStart -= OnSettingsReady;
         GC.SuppressFinalize(this);
     }
 
@@ -137,6 +138,15 @@ public class SettingsProvider : ISettingsProvider, IDisposable
         return JsonConvert.SerializeObject(obj, serializerSettings);
     }
 
+    public void DebugSettingsToLog()
+    {
+        _logger.LogInformation("----------------- SERVER SETTINGS ----------------------");
+
+        DumpSettings(_configurationProvider.Load(), "Settings");
+
+        _logger.LogInformation("-------------------------------------------------------");
+    }
+
     private void DumpSettings(object obj, string path = "")
     {
         foreach (var prop in obj.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
@@ -178,70 +188,5 @@ public class SettingsProvider : ISettingsProvider, IDisposable
         }
 
         return false;
-    }
-
-    public void DebugSettingsToLog()
-    {
-        #region System Info
-
-        _logger.LogInformation("-------------------- SYSTEM INFO -----------------------");
-
-        try
-        {
-            var serverVersion = Utils.GetApplicationVersion();
-            var extraVersionDict = Utils.GetApplicationExtraVersion();
-            if (!extraVersionDict.TryGetValue("tag", out var tag))
-                tag = null;
-
-            if (!extraVersionDict.TryGetValue("commit", out var commit))
-                commit = null;
-
-            var releaseChannel = ReleaseChannel.Debug;
-            if (extraVersionDict.TryGetValue("channel", out var rawChannel))
-                if (Enum.TryParse<ReleaseChannel>(rawChannel, true, out var channel))
-                    releaseChannel = channel;
-
-            DateTime? releaseDate = null;
-            if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate1))
-                releaseDate = releaseDate1;
-
-            _logger.LogInformation("Shoko Server Version: v{ApplicationVersion}, Channel: {Channel}, Tag: {Tag}, Commit: {Commit}", serverVersion,
-                releaseChannel, tag, commit);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning("Error in log (server version lookup): {Ex}", ex);
-        }
-
-        _logger.LogInformation("Operating System: {OSInfo}", RuntimeInformation.OSDescription);
-
-        try
-        {
-            var mediaInfoVersion = "**** MediaInfo Not found *****";
-
-            var tempVersion = MediaInfoUtility.GetVersion();
-            if (tempVersion != null) mediaInfoVersion = $"MediaInfo: {tempVersion}";
-            _logger.LogInformation("{msg}", mediaInfoVersion);
-
-            var hasherInfoVersion = "**** Hasher - DLL NOT found *****";
-
-            tempVersion = CoreHashProvider.GetRhashVersion();
-            if (tempVersion != null) hasherInfoVersion = $"RHash: {tempVersion}";
-            _logger.LogInformation("{msg}", hasherInfoVersion);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError("Error in log (hasher / info): {Message}", ex.Message);
-        }
-
-        _logger.LogInformation("-------------------------------------------------------");
-
-        #endregion
-
-        _logger.LogInformation("----------------- SERVER SETTINGS ----------------------");
-
-        DumpSettings(_configurationProvider.Load(), "Settings");
-
-        _logger.LogInformation("-------------------------------------------------------");
     }
 }

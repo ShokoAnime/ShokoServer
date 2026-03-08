@@ -19,8 +19,6 @@ namespace Shoko.Server.Utilities;
 
 public static partial class Utils
 {
-    public static ShokoServer ShokoServer { get; set; }
-
     public static IServiceProvider ServiceContainer { get; set; }
 
     public static ISettingsProvider SettingsProvider { get; set; }

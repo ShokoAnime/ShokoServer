@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.CLI;
@@ -15,8 +16,9 @@ namespace Shoko.CLI;
 public static class Program
 {
     private static ILogger _logger = null!;
-    public static async Task<int> Main()
+    public static async Task<int> Main(string[] args)
     {
+        var restart = args.Contains("--restart");
         try
         {
             UnhandledExceptionManager.AddHandler();
@@ -32,10 +34,12 @@ public static class Program
 
         try
         {
-            var startup = new Startup(logFactory);
+            var startup = new SystemService(logFactory, restart);
             startup.AboutToStart += (_, args) => AddEventHandlers(args.ServiceProvider);
-            await startup.Start();
+            await startup.StartAsync();
             await startup.WaitForShutdown();
+            if (startup.RestartPending)
+                return 140; // Custom restart exit code.
             return 0;
         }
         catch (Exception e)

@@ -134,6 +134,14 @@ public interface IServerSettings
     bool TraceLog { get; set; }
 
     /// <summary>
+    /// Dump the settings to the log file on startup.
+    /// </summary>
+    /// <remarks>
+    /// This is useful for debugging issues with the server configuration.
+    /// </remarks>
+    bool DumpSettingsOnStart { get; set; }
+
+    /// <summary>
     /// Opt out of sending error reports to Sentry.
     /// </summary>
     bool SentryOptOut { get; set; }

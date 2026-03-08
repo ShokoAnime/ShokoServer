@@ -45,9 +45,6 @@ public sealed class UnhandledExceptionManager
         //-- for console applications
         AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
         AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionHandler;
-
-        //-- I cannot find a good way to programatically detect a console app, so that must be specified.
-        //_blnConsoleApp = blnConsoleApp;
     }
 
     //--
@@ -106,7 +103,6 @@ public sealed class UnhandledExceptionManager
     private static string StackFrameToString(StackFrame sf)
     {
         var sb = new StringBuilder();
-        var intParam = 0;
         MemberInfo mi = sf.GetMethod();
 
         var _with1 = sb;
@@ -122,7 +118,7 @@ public sealed class UnhandledExceptionManager
         var objParameters = sf.GetMethod().GetParameters();
         ParameterInfo objParameter = null;
         _with1.Append("(");
-        intParam = 0;
+        var intParam = 0;
         foreach (var objParameter_loopVariable in objParameters)
         {
             objParameter = objParameter_loopVariable;

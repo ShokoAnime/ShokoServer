@@ -11,7 +11,7 @@
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/Shoko.Server/bin/Debug/net10.0/Shoko.CLI",
-            "args": [],
+            "args": ["--restart"],
             "cwd": "${workspaceFolder}/Shoko.Server/bin/Debug/net10.0",
             "envFile": "${workspaceFolder}/.env",
             "env": {
