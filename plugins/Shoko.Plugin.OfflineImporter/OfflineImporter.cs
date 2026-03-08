@@ -204,9 +204,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         var (folderName, fileName) = parts.Length > 1 ? (parts[^2], parts[^1]) : (null, parts[0]);
         var filenameMatch = StrictFilenameCheckRegex().Match(fileName);
         var folderNameMatch = string.IsNullOrEmpty(folderName) ? null : StrictFolderNameCheckRegex().Match(folderName);
-        var match = config.Mode is not Configuration.MatchMode.StrictAndFast
-            ? ParsedFileResult.Match(filePath, _rules)
-            : ParsedFileResult.Empty;
+        var match = ParsedFileResult.Match(filePath, _rules);
         if (match.AnidbAnimeId.HasValue)
             animeId = match.AnidbAnimeId.Value;
         else if (filenameMatch.Groups["animeId"].Success)
