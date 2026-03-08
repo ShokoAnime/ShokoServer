@@ -6,12 +6,14 @@ using Shoko.Server.Models;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
+using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
+[LimitConcurrency(2)]
 [JobKeyGroup(JobKeyGroup.Import)]
 public class MediaInfoJob : BaseJob
 {
