@@ -331,8 +331,6 @@ public partial class ConfigurationService : IConfigurationService
         if (errorDict.Count is 0 && typeof(TConfig).IsAssignableTo(typeof(IConfigurationWithCustomValidation<TConfig>)))
         {
             config ??= DeserializeInternal<TConfig>(json);
-
-            _logger.LogTrace("Calling custom validation for {Type}.", info.Name);
             errorDict = ((IReadOnlyDictionary<string, IReadOnlyList<string>>)typeof(TConfig)
                 .GetMethod(nameof(IConfigurationWithCustomValidation<TConfig>.Validate), BindingFlags.Public | BindingFlags.Static)!
                 .Invoke(null, [config, this, _pluginManager])!).ToDictionary(a => a.Key, a => a.Value.ToList());
