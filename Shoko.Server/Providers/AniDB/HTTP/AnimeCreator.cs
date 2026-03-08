@@ -319,6 +319,12 @@ public class AnimeCreator
             anime.ImageEnabled = 1;
         }
 
+#pragma warning disable CS0618
+        // Make sure these fields are set for new entries.
+        if (isNew)
+            anime.DateTimeUpdated = anime.DateTimeDescUpdated = DateTime.Now;
+#pragma warning restore CS0618
+
         return (isUpdated, descriptionUpdated, shouldUpdateFiles);
     }
 
