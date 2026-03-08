@@ -1,4 +1,5 @@
-﻿using FluentNHibernate.Mapping;
+using FluentNHibernate.Mapping;
+using Shoko.Server.Databases.NHIbernate;
 using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Mappings;
@@ -16,8 +17,8 @@ public class AniDB_TagMap : ClassMap<AniDB_Tag>
         Map(x => x.TagNameSource).Column("TagName").Not.Nullable();
         Map(x => x.TagNameOverride);
         Map(x => x.TagDescription).Not.Nullable().CustomType("StringClob");
-        Map(x => x.GlobalSpoiler).Not.Nullable();
-        Map(x => x.Verified).Not.Nullable();
+        Map(x => x.GlobalSpoiler).CustomType<BoolToIntConverter>().Not.Nullable();
+        Map(x => x.Verified).CustomType<BoolToIntConverter>().Not.Nullable();
         Map(x => x.LastUpdated);
     }
 }
