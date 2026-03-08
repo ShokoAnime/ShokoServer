@@ -397,6 +397,8 @@ public static class APIExtensions
         {
             app.UseSwagger(c =>
             {
+                if (webSettings.SwaggerUIPrefix is not "swagger")
+                    c.RouteTemplate = c.RouteTemplate.Replace("/swagger/", $"/{webSettings.SwaggerUIPrefix}/");
                 c.PreSerializeFilters.Add((swaggerDoc, _) =>
                 {
                     var version = double.Parse(swaggerDoc.Info.Version);
@@ -426,8 +428,7 @@ public static class APIExtensions
                     var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
                     foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
                     {
-                        options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
-                            description.GroupName.ToUpperInvariant());
+                        options.SwaggerEndpoint($"/{webSettings.SwaggerUIPrefix}/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
                     }
                     options.EnablePersistAuthorization();
                 });
