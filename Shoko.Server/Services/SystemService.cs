@@ -237,7 +237,7 @@ public class SystemService : ISystemService
                 // connectivity manually once, since Quartz is not up and
                 // running yet, and the AniDB login test requires us to have
                 // internet access.
-                await _webHost.Services.GetRequiredService<IConnectivityService>().CheckAvailability();
+                _ = Task.Run(_webHost.Services.GetRequiredService<IConnectivityService>().CheckAvailability);
 
                 _logger.LogWarning("The Server is NOT STARTED. It needs to be configured via webui or the server-settings.json");
             }
