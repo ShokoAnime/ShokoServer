@@ -5,13 +5,16 @@
    "version": "0.2.0",
    "configurations": [
         {
-            "name": ".NET Core Launch (console)",
+            "name": "Launch Shoko.CLI",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build",
+            "preLaunchTask": "build:cli",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/Shoko.Server/bin/Debug/net10.0/Shoko.CLI",
-            "args": ["--restart"],
+            "args": [
+              "--shutdown-enabled",
+              "--restart-enabled",
+            ],
             "cwd": "${workspaceFolder}/Shoko.Server/bin/Debug/net10.0",
             "envFile": "${workspaceFolder}/.env",
             "env": {
@@ -24,10 +27,26 @@
             "requireExactSource": false
         },
         {
-            "name": ".NET Core Attach",
+            "name": "Launch Shoko.TrayService",
             "type": "coreclr",
-            "request": "attach",
-            "processId": "${command:pickProcess}"
-        }
+            "request": "launch",
+            "preLaunchTask": "build:tray-service",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/Shoko.Server/bin/Debug/net10.0/ShokoServer",
+            "args": [
+              "--shutdown-enabled",
+              "--restart-enabled",
+            ],
+            "cwd": "${workspaceFolder}/Shoko.Server/bin/Debug/net10.0",
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+              "SHOKO_HOME": "${workspaceFolder}/Shoko.Server/bin/Data",
+              "SHOKO_PORT": "8111",
+            },
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "integratedTerminal",
+            "stopAtEntry": false,
+            "requireExactSource": false
+        },
     ]
 }
