@@ -91,6 +91,10 @@ public interface IUserDataService
     /// <param name="reason">
     ///   Optional. The reason why the video watch status was updated.
     /// </param>
+    /// <param name="noEpisodePropagation">
+    ///   Optional. When set to <c>true</c> will prevent the watch status from
+    ///   propagating to any episodes associated with the video.
+    /// </param>
     /// <param name="updateStatsNow">
     ///   Optional. When set to <c>true</c> will update the series stats after
     ///   saving. If doing multiple updates on the same series at once, it is
@@ -102,7 +106,7 @@ public interface IUserDataService
     /// <returns>
     ///   The task containing the new or updated user data for the video and user.
     /// </returns>
-    Task<IVideoUserData> SetVideoWatchedStatus(IVideo video, IUser user, bool isWatched = true, DateTime? lastPlayedAt = null, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, bool updateStatsNow = true);
+    Task<IVideoUserData> SetVideoWatchedStatus(IVideo video, IUser user, bool isWatched = true, DateTime? lastPlayedAt = null, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, bool noEpisodePropagation = false, bool updateStatsNow = true);
 
     /// <summary>
     ///   Saves the user data for the video and user.

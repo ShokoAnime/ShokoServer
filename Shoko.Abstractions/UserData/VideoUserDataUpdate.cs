@@ -63,6 +63,12 @@ public class VideoUserDataUpdate
     public DateTime? LastUpdatedAt { get; set; }
 
     /// <summary>
+    ///   When set to <c>true</c>, will prevent the watch status from
+    ///   propagating to any episodes associated with the video.
+    /// </summary>
+    public bool NoEpisodePropagation { get; set; }
+
+    /// <summary>
     ///   Initializes a new instance of the <see cref="VideoUserDataUpdate"/> class.
     /// </summary>
     public VideoUserDataUpdate() { }

@@ -67,8 +67,20 @@ public class UserDataService(
         return videoUserDataRepository.GetByVideoLocalID(video.ID);
     }
 
-    public Task<IVideoUserData> SetVideoWatchedStatus(IVideo video, IUser user, bool watched = true, DateTime? watchedAt = null, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, bool updateStatsNow = true)
-        => SaveVideoUserData(video, user, new() { ProgressPosition = TimeSpan.Zero, LastPlayedAt = watched ? watchedAt ?? DateTime.Now : null, LastUpdatedAt = DateTime.Now }, reason: reason, updateStatsNow: updateStatsNow);
+    public Task<IVideoUserData> SetVideoWatchedStatus(IVideo video, IUser user, bool watched = true, DateTime? watchedAt = null, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, bool noEpisodePropagation = false, bool updateStatsNow = true)
+        => SaveVideoUserDataInternal(
+            video,
+            user,
+            new()
+            {
+                ProgressPosition = TimeSpan.Zero,
+                LastPlayedAt = watched ? watchedAt ?? DateTime.Now : null,
+                LastUpdatedAt = DateTime.Now,
+                NoEpisodePropagation = noEpisodePropagation,
+            },
+            reason: reason,
+            updateStatsNow: updateStatsNow
+        );
 
     public Task<IVideoUserData> SaveVideoUserData(IVideo video, IUser user, VideoUserDataUpdate userDataUpdate, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, bool updateStatsNow = true)
         => SaveVideoUserDataInternal(video, user, userDataUpdate, reason, null, updateStatsNow);
@@ -186,73 +198,76 @@ public class UserDataService(
         var videoReason = reason is VideoUserDataSaveReason.Import ? VideoUserDataSaveReason.None : reason;
         if (watchedStatusChanged)
         {
-            // now find all the episode records associated with this video file,
-            // but we also need to check if there are any other files attached to this episode with a watched status
-            var xrefs = video.CrossReferences;
-            var episodeLastUpdated = DateTime.Now;
-            if (userDataUpdate.LastPlayedAt.HasValue)
+            if (!userDataUpdate.NoEpisodePropagation)
             {
-                foreach (var episodeXref in xrefs)
+                // now find all the episode records associated with this video file,
+                // but we also need to check if there are any other files attached to this episode with a watched status
+                var xrefs = video.CrossReferences;
+                var episodeLastUpdated = DateTime.Now;
+                if (userDataUpdate.LastPlayedAt.HasValue)
                 {
-                    // get the episodes for this file, may be more than one (One Piece x Toriko)
-                    if (episodeXref.ShokoEpisode is not { } episode)
-                        continue;
-
-                    // find the total watched percentage
-                    // e.g. one file can have a % = 100
-                    // or if 2 files make up one episode they will each have a % = 50
-                    var epPercentWatched = 0;
-                    foreach (var videoXref in episode.CrossReferences)
+                    foreach (var episodeXref in xrefs)
                     {
-                        if (videoXref.Video is not { } otherVideo)
+                        // get the episodes for this file, may be more than one (One Piece x Toriko)
+                        if (episodeXref.ShokoEpisode is not { } episode)
                             continue;
 
-                        var videoUser = videoUserDataRepository.GetByUserAndVideoLocalID(user.ID, otherVideo.ID);
-                        if (videoUser?.WatchedDate != null)
-                            epPercentWatched += videoXref.Percentage <= 0 ? 100 : videoXref.Percentage;
+                        // find the total watched percentage
+                        // e.g. one file can have a % = 100
+                        // or if 2 files make up one episode they will each have a % = 50
+                        var epPercentWatched = 0;
+                        foreach (var videoXref in episode.CrossReferences)
+                        {
+                            if (videoXref.Video is not { } otherVideo)
+                                continue;
 
-                        if (epPercentWatched > 95)
-                            break;
+                            var videoUser = videoUserDataRepository.GetByUserAndVideoLocalID(user.ID, otherVideo.ID);
+                            if (videoUser?.WatchedDate != null)
+                                epPercentWatched += videoXref.Percentage <= 0 ? 100 : videoXref.Percentage;
+
+                            if (epPercentWatched > 95)
+                                break;
+                        }
+
+                        if (epPercentWatched <= 95)
+                            continue;
+
+                        if (updateStatsNow && episode.Series is AnimeSeries series)
+                            toUpdateSeries.TryAdd(series.AnimeSeriesID, series);
+
+                        await SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = userDataUpdate.LastPlayedAt, LastUpdatedAt = episodeLastUpdated }, importSource, videoReason, updateStatsNow: false);
                     }
-
-                    if (epPercentWatched <= 95)
-                        continue;
-
-                    if (updateStatsNow && episode.Series is AnimeSeries series)
-                        toUpdateSeries.TryAdd(series.AnimeSeriesID, series);
-
-                    await SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = userDataUpdate.LastPlayedAt }, importSource, videoReason, updateStatsNow: false);
                 }
-            }
-            else
-            {
-                // if setting a file to unwatched only set the episode unwatched, if ALL the files are unwatched
-                foreach (var episodeXref in xrefs)
+                else
                 {
-                    if (episodeXref.ShokoEpisode is not { } episode)
-                        continue;
-
-                    var epPercentWatched = 0;
-                    foreach (var videoXref in episode.CrossReferences)
+                    // if setting a file to unwatched only set the episode unwatched, if ALL the files are unwatched
+                    foreach (var episodeXref in xrefs)
                     {
-                        if (videoXref.Video is not { } otherVideo)
+                        if (episodeXref.ShokoEpisode is not { } episode)
                             continue;
 
-                        var videoUser = videoUserDataRepository.GetByUserAndVideoLocalID(user.ID, otherVideo.ID);
-                        if (videoUser?.WatchedDate != null)
-                            epPercentWatched += videoXref.Percentage <= 0 ? 100 : videoXref.Percentage;
+                        var epPercentWatched = 0;
+                        foreach (var videoXref in episode.CrossReferences)
+                        {
+                            if (videoXref.Video is not { } otherVideo)
+                                continue;
+
+                            var videoUser = videoUserDataRepository.GetByUserAndVideoLocalID(user.ID, otherVideo.ID);
+                            if (videoUser?.WatchedDate != null)
+                                epPercentWatched += videoXref.Percentage <= 0 ? 100 : videoXref.Percentage;
+
+                            if (epPercentWatched > 95)
+                                break;
+                        }
 
                         if (epPercentWatched > 95)
-                            break;
+                            continue;
+
+                        if (updateStatsNow && episode.Series is AnimeSeries series)
+                            toUpdateSeries.TryAdd(series.AnimeSeriesID, series);
+
+                        await SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = null, LastUpdatedAt = episodeLastUpdated }, importSource, videoReason, updateStatsNow: false);
                     }
-
-                    if (epPercentWatched > 95)
-                        continue;
-
-                    if (updateStatsNow && episode.Series is AnimeSeries series)
-                        toUpdateSeries.TryAdd(series.AnimeSeriesID, series);
-
-                    await SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = null }, importSource, videoReason, updateStatsNow: false);
                 }
             }
 
