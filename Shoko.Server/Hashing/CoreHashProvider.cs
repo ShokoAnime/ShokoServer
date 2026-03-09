@@ -59,25 +59,46 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
 
     public static string? GetRhashVersion()
     {
-        if (!PlatformUtility.IsWindows)
-            return null;
+        if (PlatformUtility.IsWindows)
+        {
+            try
+            {
+                var dllPath = Assembly.GetEntryAssembly()!.Location;
+                var fi = new FileInfo(dllPath);
+                dllPath = Path.Combine(fi.Directory!.FullName, Environment.Is64BitProcess ? "x64" : "x86", "librhash.dll");
 
+                if (!File.Exists(dllPath)) return null;
+
+                var fvi = FileVersionInfo.GetVersionInfo(dllPath);
+                return $"RHash {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({dllPath})";
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // On Linux/macOS, query the library version via rhash_ctrl.
+        // The version is encoded as 0xMMmmpp00 (major, minor, patch, 0).
         try
         {
-            var dllPath = Assembly.GetEntryAssembly()!.Location;
-            var fi = new FileInfo(dllPath);
-            dllPath = Path.Combine(fi.Directory!.FullName, Environment.Is64BitProcess ? "x64" : "x86", "librhash.dll");
-
-            if (!File.Exists(dllPath)) return null;
-
-            var fvi = FileVersionInfo.GetVersionInfo(dllPath);
-            return $"RHash {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({dllPath})";
+            Native.rhash_library_init();
+            var xversion = Native.rhash_ctrl(IntPtr.Zero, RMSG_GET_LIBRHASH_VERSION, UIntPtr.Zero, IntPtr.Zero);
+            if (xversion == UIntPtr.Zero)
+                return null;
+            var v = (uint)(ulong)xversion;
+            var major = (v >> 24) & 0xFF;
+            var minor = (v >> 16) & 0xFF;
+            var patch = (v >> 8) & 0xFF;
+            return $"RHash {major}.{minor}.{patch}";
         }
         catch
         {
             return null;
         }
     }
+
+    private const int RMSG_GET_LIBRHASH_VERSION = 20;
 
     #region IHashProvider Implementation
 
@@ -391,6 +412,9 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
 
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void rhash_free(IntPtr ctx);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern UIntPtr rhash_ctrl(IntPtr context, int cmd, UIntPtr size, IntPtr data);
     }
 
     [Flags]
