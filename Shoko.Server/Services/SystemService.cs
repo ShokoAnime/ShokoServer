@@ -352,10 +352,6 @@ public class SystemService : ISystemService
             services.AddSingleton<IUserService, UserService>();
             services.AddSingleton<IUserDataService, UserDataService>();
             services.AddSingleton<IImageManager, AbstractImageManager>();
-            services.AddSingleton<IConnectivityMonitor, CloudFlareConnectivityMonitor>();
-            services.AddSingleton<IConnectivityMonitor, MicrosoftConnectivityMonitor>();
-            services.AddSingleton<IConnectivityMonitor, MozillaConnectivityMonitor>();
-            services.AddSingleton<IConnectivityMonitor, WeChatConnectivityMonitor>();
             services.AddSingleton<IConnectivityService, ConnectivityService>();
             services.AddScoped<AnimeGroupCreator>();
 

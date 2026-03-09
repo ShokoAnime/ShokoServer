@@ -1,6 +1,8 @@
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Shoko.Abstractions.Connectivity;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Events;
 
@@ -31,4 +33,25 @@ public interface IConnectivityService
     /// </summary>
     /// <returns>The updated network availability status.</returns>
     public Task<NetworkAvailability> CheckAvailability();
+
+    /// <summary>
+    /// The current list of connectivity monitors used for WAN checks.
+    /// </summary>
+    public IReadOnlyList<IConnectivityMonitor> GetMonitorDefinitions();
+
+    /// <summary>
+    /// Add a new connectivity monitor definition.
+    /// </summary>
+    /// <param name="name">A unique, human-readable name for this monitor.</param>
+    /// <param name="type">The type of HTTP request to perform.</param>
+    /// <param name="address">The URL to check for connectivity.</param>
+    /// <returns>The created monitor.</returns>
+    public IConnectivityMonitor AddMonitorDefinition(string name, ConnectivityCheckType type, string address);
+
+    /// <summary>
+    /// Remove a connectivity monitor definition by name.
+    /// </summary>
+    /// <param name="name">The name of the monitor definition to remove.</param>
+    /// <returns><c>true</c> if a definition with the given name was found and removed; otherwise <c>false</c>.</returns>
+    public bool RemoveMonitorDefinition(string name);
 }
