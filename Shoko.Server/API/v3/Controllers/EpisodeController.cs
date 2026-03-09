@@ -947,9 +947,13 @@ public class EpisodeController : BaseController
     /// </summary>
     /// <param name="episodeID">Shoko ID</param>
     /// <param name="watched"></param>
+    /// <param name="updateFiles">Update the watched status on the files.</param>
     /// <returns></returns>
     [HttpPost("{episodeID}/Watched/{watched}")]
-    public async Task<ActionResult> SetWatchedStatusOnEpisode([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] bool watched)
+    public async Task<ActionResult> SetWatchedStatusOnEpisode(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromRoute] bool watched,
+        [FromQuery] bool updateFiles = true)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -962,6 +966,12 @@ public class EpisodeController : BaseController
         var user = User;
         if (!user.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
+
+        if (updateFiles)
+        {
+            foreach (var file in episode.VideoLocals)
+                await _userDataService.SetVideoWatchedStatus(file, user, watched);
+        }
 
         await _userDataService.SetEpisodeWatchedStatus(episode, user, watched);
 
