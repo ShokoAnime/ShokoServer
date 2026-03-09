@@ -204,10 +204,11 @@ public class SystemService : ISystemService
             catch (Exception e)
             {
                 Utils.ShowErrorMessage(e, "Unable to start hosting. Check the logs");
-                if (_webHost is IAsyncDisposable disposable)
-                    await disposable.DisposeAsync();
-                else
-                    _webHost?.Dispose();
+                if (_webHost is not null)
+                {
+                    var lifetime = _webHost.Services.GetRequiredService<IHostApplicationLifetime>();
+                    _ = Task.Run(lifetime.StopApplication);
+                }
                 _webHost = null;
                 return false;
             }
