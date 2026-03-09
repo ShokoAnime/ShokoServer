@@ -217,17 +217,6 @@ public class SystemService : ISystemService
             if (settings.DumpSettingsOnStart)
                 _settingsProvider.DebugSettingsToLog();
 
-            ServerState.Instance.ServerStartingStatus = "Initializing UDP Connection Handler...";
-            var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
-            try
-            {
-                udpConnectionHandler.Init();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error initializing UDP Connection Handler");
-            }
-
             if (!settings.FirstRun)
             {
                 LateStart();
@@ -450,6 +439,21 @@ public class SystemService : ISystemService
 
             if (cancellationToken.IsCancellationRequested)
                 return false;
+
+            ServerState.Instance.ServerStartingStatus = "Initializing UDP Connection Handler...";
+            var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
+            try
+            {
+                udpConnectionHandler.Init();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error initializing UDP Connection Handler");
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+                return false;
+
 
             ServerState.Instance.ServerStartingStatus = "Initializing File Watchers...";
             fileWatcherService.StartWatchingFiles();
