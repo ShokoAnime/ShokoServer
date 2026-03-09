@@ -33,7 +33,7 @@ public interface IVideoUserData : IUserData
     ///   Indicates that the video has been watched to completion at least once
     ///   by the user locally.
     /// </summary>
-    bool IsWatched => PlaybackCount > 0;
+    bool IsWatched => LastPlayedAt.HasValue || PlaybackCount > 0;
 
     /// <summary>
     /// Gets the video associated with this user data, if available.
