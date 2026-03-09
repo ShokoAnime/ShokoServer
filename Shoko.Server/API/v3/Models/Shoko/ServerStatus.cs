@@ -18,6 +18,16 @@ public class ServerStatus
     public StartupState State { get; set; }
 
     /// <summary>
+    /// Indicates that we can perform a controlled shutdown.
+    /// </summary>
+    public bool CanShutdown { get; set; }
+
+    /// <summary>
+    /// Indicates that we can perform a controlled restart.
+    /// </summary>
+    public bool CanRestart { get; set; }
+
+    /// <summary>
     /// Uptime in hh:mm:ss or null if not started. Uses hours may be greater than a day.
     /// </summary>
     public TimeSpan? Uptime { get; set; }
@@ -43,7 +53,7 @@ public class ServerStatus
         /// <summary>
         /// Waiting for setup
         /// </summary>
-        Waiting = 4
+        Waiting = 4,
     }
 
     /// <summary>

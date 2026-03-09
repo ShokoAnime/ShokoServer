@@ -59,7 +59,7 @@ public partial class App : Application
 
         try
         {
-            _systemService = new SystemService(logFactory, false);
+            _systemService = new SystemService(logFactory);
             _systemService.Shutdown += (_, _) => DispatchShutdown();
             if (!_systemService.StartAsync().ConfigureAwait(true).GetAwaiter().GetResult())
                 DispatchShutdown();
@@ -120,11 +120,13 @@ public partial class App : Application
     private void OnTrayExit(object? sender, EventArgs args)
     {
         var lifetime = Utils.ServiceContainer.GetRequiredService<IHostApplicationLifetime>();
-        Task.Run(() => lifetime.StopApplication());
-        // stupid
-        Task.Run(async () => await ShutdownQuartz());
+        Task.Run(lifetime.StopApplication);
     }
 
+    /// <summary>
+    /// Signal to Quartz to shutdown, since it's not ran properly signalled by the application's lifetime
+    /// when running in a desktop application.
+    /// </summary>
     private async Task ShutdownQuartz()
     {
         var quartz = Utils.ServiceContainer.GetServices<IHostedService>().FirstOrDefault(a => a is QuartzHostedService);
@@ -145,6 +147,9 @@ public partial class App : Application
 
     private void DispatchShutdown()
     {
+        // stupid
+        Task.Run(ShutdownQuartz);
+
         try
         {
             Dispatcher.UIThread.Invoke(() =>

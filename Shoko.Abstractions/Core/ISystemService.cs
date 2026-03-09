@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using Shoko.Abstractions.Core.Events;
 
 namespace Shoko.Abstractions.Core;
@@ -46,13 +47,17 @@ public interface ISystemService
     bool IsStarted { get => StartedAt.HasValue; }
 
     /// <summary>
+    ///   Indicates that we can perform a controlled shutdown.
+    /// </summary>
+    bool CanShutdown { get; }
+
+    /// <summary>
     ///   Indicates that we can perform a controlled restart.
     /// </summary>
     bool CanRestart { get; }
 
     /// <summary>
-    ///   Indicates that a shutdown is pending. This will also be true if
-    ///   <see cref="RestartPending"/> is set to <see langword="true" />.
+    ///   Indicates that a shutdown is pending.
     /// </summary>
     bool ShutdownPending { get; }
 
@@ -67,14 +72,14 @@ public interface ISystemService
     VersionInformation Version { get; }
 
     /// <summary>
-    ///   The time the server was fully started after the initial boo
-    /// </summary>
-    DateTime? StartedAt { get; }
-
-    /// <summary>
-    ///   The time the server was initially bootstrapped.you ca
+    ///   The time the server was initially bootstrapped.
     /// </summary>
     DateTime BootstrappedAt { get; }
+
+    /// <summary>
+    ///   The time the server was fully started after the initial bootstrapping.
+    /// </summary>
+    DateTime? StartedAt { get; }
 
     /// <summary>
     ///   Request a shutdown of the server.

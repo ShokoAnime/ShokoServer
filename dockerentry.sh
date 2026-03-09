@@ -101,7 +101,7 @@ Directory: \"$SHOKO_HOME\"
 
 # Run the server, and restart it if it exits with code 140 (Custom restart exit code).
 while true; do
-  gosu $USER:$GROUP /usr/src/app/build/Shoko.CLI --restart
+  gosu $USER:$GROUP /usr/src/app/build/Shoko.CLI --restart-enabled
   EXIT_CODE=$?
   [ $EXIT_CODE -ne 140 ] && exit $EXIT_CODE
 done

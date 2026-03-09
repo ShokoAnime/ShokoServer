@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
@@ -244,13 +245,17 @@ public class RepoFactory
         VideoLocalUser = videoLocalUser;
     }
 
-    public void Init()
+    public void Init(CancellationToken cancellationToken)
     {
+        if (cancellationToken.IsCancellationRequested)
+            return;
         try
         {
             foreach (var repo in _cachedRepositories)
             {
-                repo.Populate();
+                repo.Populate(cancellationToken: cancellationToken);
+                if (cancellationToken.IsCancellationRequested)
+                    return;
             }
         }
         catch (Exception exception)

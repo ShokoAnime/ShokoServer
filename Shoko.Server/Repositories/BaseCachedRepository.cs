@@ -33,9 +33,12 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     public Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
     public Action<T> EndSaveCallback { get; set; }
 
-    public virtual void Populate(ISessionWrapper session, bool displayname = true)
+    public virtual void Populate(ISessionWrapper session, bool displayName = true, CancellationToken cancellationToken = default)
     {
-        if (displayname)
+        if (cancellationToken.IsCancellationRequested)
+            return;
+
+        if (displayName)
         {
             ServerState.Instance.ServerStartingStatus = $"Database Cache - Caching  - {typeof(T).Name}...";
         }
@@ -46,10 +49,13 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         PopulateIndexes();
     }
 
-    public virtual void Populate(bool displayname = true)
+    public virtual void Populate(bool displayName = true, CancellationToken cancellationToken = default)
     {
+        if (cancellationToken.IsCancellationRequested)
+            return;
+
         using var session = _databaseFactory.SessionFactory.OpenSession();
-        Populate(session.Wrap(), displayname);
+        Populate(session.Wrap(), displayName, cancellationToken);
     }
 
     public void ClearCache()

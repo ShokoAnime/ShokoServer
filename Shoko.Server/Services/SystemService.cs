@@ -58,31 +58,33 @@ public class SystemService : ISystemService
 {
     private readonly ILogger<SystemService> _logger;
 
-    private readonly IPluginManager _pluginManager;
+    private readonly PluginManager _pluginManager;
 
     private readonly ConfigurationService _configurationService;
 
     private readonly SettingsProvider _settingsProvider;
 
-    private Timer? _autoUpdateTimer;
+    private readonly CancellationTokenSource _shutdownTokenSource;
 
-    private FileWatcherService? _fileWatcherService;
+    private Timer? _autoUpdateTimer;
 
     private IHost? _webHost;
 
     public bool IsStarted => StartedAt.HasValue;
 
+    public bool CanShutdown { get; private init; }
+
+    public bool CanRestart { get; private init; }
+
     public bool ShutdownPending { get; private set; }
 
     public bool RestartPending { get; private set; }
 
-    public bool CanRestart { get; private init; }
-
     public VersionInformation Version { get; }
 
-    public DateTime? StartedAt { get; private set; }
-
     public DateTime BootstrappedAt { get; private set; }
+
+    public DateTime? StartedAt { get; private set; }
 
     public event EventHandler<ServerAboutToStartEventArgs>? AboutToStart;
 
@@ -92,12 +94,22 @@ public class SystemService : ISystemService
 
     public event EventHandler? Shutdown;
 
-    public SystemService(ILoggerFactory loggerFactory, bool canRestart)
+    public SystemService(ILoggerFactory loggerFactory)
     {
-        BootstrappedAt = DateTime.UtcNow;
-        CanRestart = canRestart;
-
+        var now = DateTime.UtcNow;
+        var args = Environment.GetCommandLineArgs();
         var extraVersionDict = Utils.GetApplicationExtraVersion();
+
+        _logger = loggerFactory.CreateLogger<SystemService>();
+        _pluginManager = new(loggerFactory.CreateLogger<PluginManager>(), ApplicationPaths.Instance);
+        _configurationService = new(loggerFactory, ApplicationPaths.Instance, _pluginManager);
+        _settingsProvider = new(loggerFactory.CreateLogger<SettingsProvider>(), this, _configurationService.CreateProvider<ServerSettings>());
+        _shutdownTokenSource = new();
+
+        CanShutdown = args.Contains("--shutdown-enabled");
+        CanRestart = args.Contains("--restart-enabled");
+        ShutdownPending = false;
+        RestartPending = false;
         Version = new()
         {
             Version = Utils.GetApplicationVersion(),
@@ -111,11 +123,8 @@ public class SystemService : ISystemService
             ReleasedAt = extraVersionDict.TryGetValue("date", out var rawDate) && DateTime.TryParse(rawDate, out var date)
                 ? date.ToUniversalTime() : null,
         };
-
-        _logger = loggerFactory.CreateLogger<SystemService>();
-        _pluginManager = new PluginManager(loggerFactory.CreateLogger<PluginManager>(), ApplicationPaths.Instance);
-        _configurationService = new ConfigurationService(loggerFactory, ApplicationPaths.Instance, _pluginManager);
-        _settingsProvider = new SettingsProvider(loggerFactory.CreateLogger<SettingsProvider>(), this, _configurationService.CreateProvider<ServerSettings>());
+        BootstrappedAt = now;
+        StartedAt = null;
     }
 
     #region Startup
@@ -195,13 +204,28 @@ public class SystemService : ISystemService
             catch (Exception e)
             {
                 Utils.ShowErrorMessage(e, "Unable to start hosting. Check the logs");
-                await StopHost();
+                if (_webHost is IAsyncDisposable disposable)
+                    await disposable.DisposeAsync();
+                else
+                    _webHost?.Dispose();
+                _webHost = null;
                 return false;
             }
 
             var settings = _settingsProvider.GetSettings();
             if (settings.DumpSettingsOnStart)
                 _settingsProvider.DebugSettingsToLog();
+
+            ServerState.Instance.ServerStartingStatus = "Initializing UDP Connection Handler...";
+            var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
+            try
+            {
+                udpConnectionHandler.Init();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error initializing UDP Connection Handler");
+            }
 
             if (!settings.FirstRun)
             {
@@ -215,7 +239,6 @@ public class SystemService : ISystemService
                 // internet access.
                 await _webHost.Services.GetRequiredService<IConnectivityService>().CheckAvailability();
 
-                ServerState.Instance.ServerStarting = false;
                 _logger.LogWarning("The Server is NOT STARTED. It needs to be configured via webui or the server-settings.json");
             }
 
@@ -387,36 +410,33 @@ public class SystemService : ISystemService
             var schedulerFactory = _webHost!.Services.GetRequiredService<ISchedulerFactory>();
             var databaseFactory = _webHost.Services.GetRequiredService<DatabaseFactory>();
             var repoFactory = _webHost.Services.GetRequiredService<RepoFactory>();
-            var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
-
-            _fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
-
-            ServerState.Instance.ServerStartingStatus = "Initializing UDP Connection Handler...";
-            try
-            {
-                udpConnectionHandler.Init();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error initializing UDP Connection Handler");
-            }
+            var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
+            var lifetime = _webHost.Services.GetRequiredService<IHostApplicationLifetime>();
+            var cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(lifetime.ApplicationStopping, _shutdownTokenSource.Token).Token;
+            if (cancellationToken.IsCancellationRequested)
+                return false;
 
             _logger.LogInformation("Setting up database...");
             ServerState.Instance.ServerStartingStatus = "Setting up database...";
-            if (!InitializeDatabase(databaseFactory, repoFactory, out var errorMessage))
+            if (!InitializeDatabase(databaseFactory, repoFactory, out var errorMessage, cancellationToken) && !cancellationToken.IsCancellationRequested)
             {
                 ServerState.Instance.DatabaseAvailable = false;
-
                 ServerState.Instance.StartupFailed = true;
                 ServerState.Instance.StartupFailedMessage = errorMessage;
                 return false;
             }
+
+            if (cancellationToken.IsCancellationRequested)
+                return false;
 
             //init session factory
             _logger.LogInformation("Initializing Session Factory...");
             ServerState.Instance.ServerStartingStatus = "Initializing Session Factory...";
             var _ = databaseFactory.SessionFactory;
             ServerState.Instance.DatabaseAvailable = true;
+
+            if (cancellationToken.IsCancellationRequested)
+                return false;
 
             // timer for automatic updates
             _autoUpdateTimer = new Timer
@@ -427,8 +447,14 @@ public class SystemService : ISystemService
             _autoUpdateTimer.Elapsed += AutoUpdateTimer_Elapsed;
             _autoUpdateTimer.Start();
 
+            if (cancellationToken.IsCancellationRequested)
+                return false;
+
             ServerState.Instance.ServerStartingStatus = "Initializing File Watchers...";
-            _fileWatcherService.StartWatchingFiles();
+            fileWatcherService.StartWatchingFiles();
+
+            if (cancellationToken.IsCancellationRequested)
+                return false;
 
             AboutToStart?.Invoke(this, new() { ServiceProvider = _webHost.Services });
 
@@ -450,6 +476,9 @@ public class SystemService : ISystemService
                 _settingsProvider.SaveSettings(settings);
             }
 
+            if (cancellationToken.IsCancellationRequested)
+                return false;
+
             Started?.Invoke(this, new());
 
             return true;
@@ -468,8 +497,9 @@ public class SystemService : ISystemService
 
     #region Startup | Database & Repositories
 
-    private bool InitializeDatabase(DatabaseFactory databaseFactory, RepoFactory repoFactory, out string errorMessage)
+    private bool InitializeDatabase(DatabaseFactory databaseFactory, RepoFactory repoFactory, out string errorMessage, CancellationToken cancellationToken)
     {
+        errorMessage = string.Empty;
         try
         {
             databaseFactory.Instance = null;
@@ -504,6 +534,9 @@ public class SystemService : ISystemService
                 Thread.Sleep(3000);
             }
 
+            if (cancellationToken.IsCancellationRequested)
+                return false;
+
             databaseFactory.CloseSessionFactory();
 
             var message = "Initializing Session Factory...";
@@ -535,7 +568,10 @@ public class SystemService : ISystemService
                 instance.CreateAndUpdateSchema();
 
                 _logger.LogInformation("Starting Server: RepoFactory.Init()");
-                repoFactory.Init();
+                repoFactory.Init(cancellationToken);
+                if (cancellationToken.IsCancellationRequested)
+                    return false;
+
                 instance.ExecuteDatabaseFixes();
                 instance.PopulateInitialData();
                 repoFactory.PostInit();
@@ -557,7 +593,6 @@ public class SystemService : ISystemService
                 return false;
             }
 
-            errorMessage = string.Empty;
             return true;
         }
         catch (Exception ex)
@@ -575,22 +610,23 @@ public class SystemService : ISystemService
 
     #region Shutdown
 
-    private async Task StopHost()
-    {
-        if (_webHost is IAsyncDisposable disposable)
-            await disposable.DisposeAsync();
-        else
-            _webHost?.Dispose();
-        _webHost = null;
-    }
-
     public Task WaitForShutdown()
         => _webHost?.WaitForShutdownAsync() ?? Task.CompletedTask;
 
     internal void OnShutdown()
     {
+        // Mark the server as shutting down.
+        lock (_logger)
+        {
+            if (!RestartPending && !ShutdownPending)
+                ShutdownPending = true;
+        }
+
+        _shutdownTokenSource.Cancel();
         if (_webHost is not null)
         {
+            _autoUpdateTimer?.Stop();
+
             var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
             fileWatcherService.StopWatchingFiles();
 
@@ -615,12 +651,12 @@ public class SystemService : ISystemService
     /// <inheritdoc/>
     public bool RequestShutdown()
     {
-        if (ShutdownPending || _webHost is null)
+        if (!CanShutdown || RestartPending || ShutdownPending || _webHost is null)
             return false;
 
         lock (_logger)
         {
-            if (ShutdownPending || _webHost is null)
+            if (!CanShutdown || RestartPending || ShutdownPending || _webHost is null)
                 return false;
 
             _logger.LogTrace("Shutdown requested");
@@ -643,7 +679,7 @@ public class SystemService : ISystemService
             _logger.LogInformation("Shutdown request accepted");
             ShutdownPending = true;
             var lifetime = _webHost.Services.GetRequiredService<IHostApplicationLifetime>();
-            lifetime.StopApplication();
+            Task.Run(lifetime.StopApplication);
             return true;
         }
     }
@@ -651,12 +687,12 @@ public class SystemService : ISystemService
     /// <inheritdoc/>
     public bool RequestRestart()
     {
-        if (!CanRestart || ShutdownPending || _webHost is null)
+        if (!CanRestart || RestartPending || ShutdownPending || _webHost is null)
             return false;
 
         lock (_logger)
         {
-            if (!CanRestart || ShutdownPending || _webHost is null)
+            if (!CanRestart || RestartPending || ShutdownPending || _webHost is null)
                 return false;
 
             _logger.LogTrace("Restart requested");
@@ -677,10 +713,9 @@ public class SystemService : ISystemService
             }
 
             _logger.LogInformation("Restart request accepted");
-            ShutdownPending = true;
             RestartPending = true;
             var lifetime = _webHost.Services.GetRequiredService<IHostApplicationLifetime>();
-            lifetime.StopApplication();
+            Task.Run(lifetime.StopApplication);
             return true;
         }
     }
@@ -693,6 +728,9 @@ public class SystemService : ISystemService
 
     private void AutoUpdateTimer_Elapsed(object? sender, ElapsedEventArgs e)
     {
+        if (RestartPending || ShutdownPending)
+            return;
+
         var actionService = _webHost!.Services.GetRequiredService<ActionService>();
 
         // TODO: Move all of these to Quartz

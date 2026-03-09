@@ -18,7 +18,6 @@ public static class Program
     private static ILogger _logger = null!;
     public static async Task<int> Main(string[] args)
     {
-        var restart = args.Contains("--restart");
         try
         {
             UnhandledExceptionManager.AddHandler();
@@ -34,7 +33,7 @@ public static class Program
 
         try
         {
-            var startup = new SystemService(logFactory, restart);
+            var startup = new SystemService(logFactory);
             startup.AboutToStart += (_, args) => AddEventHandlers(args.ServiceProvider);
             await startup.StartAsync();
             await startup.WaitForShutdown();

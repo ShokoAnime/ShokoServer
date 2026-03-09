@@ -100,6 +100,7 @@ public class InitController : BaseController
     /// This will work after init
     /// </summary>
     /// <returns></returns>
+    [Authorize(Roles = "admin,init")]
     [HttpGet("Status")]
     public ServerStatus GetServerStatus()
     {
@@ -129,6 +130,8 @@ public class InitController : BaseController
             State = state,
             StartupMessage = message,
             Uptime = uptime,
+            CanShutdown = _systemService.CanShutdown,
+            CanRestart = _systemService.CanRestart,
             DatabaseBlocked = ServerState.Instance.DatabaseBlocked
         };
         return status;
@@ -138,7 +141,6 @@ public class InitController : BaseController
     /// Gets the current network connectivity details for the server.
     /// </summary>
     /// <returns></returns>
-    [InitFriendly]
     [HttpGet("Connectivity")]
     public ActionResult<ConnectivityDetails> GetNetworkAvailability()
     {
@@ -218,7 +220,7 @@ public class InitController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("StartServer")]
-    [HttpPost("StartServer")]
+    [HttpPost("LateStart")]
     public ActionResult StartServer()
     {
         if (_systemService.IsStarted)
@@ -242,9 +244,11 @@ public class InitController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize(Roles = "admin,init")]
-    [HttpPost("StopServer")]
+    [HttpPost("Shutdown")]
     public ActionResult StopServer()
     {
+        if (!_systemService.CanShutdown)
+            return BadRequest("Shutdown Not Possible for this instance");
         if (_systemService.ShutdownPending)
             return BadRequest("Shutdown Already Requested");
         if (!_systemService.RequestShutdown())
@@ -257,7 +261,7 @@ public class InitController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize(Roles = "admin,init")]
-    [HttpPost("RestartServer")]
+    [HttpPost("Restart")]
     public ActionResult RestartServer()
     {
         if (!_systemService.CanRestart)

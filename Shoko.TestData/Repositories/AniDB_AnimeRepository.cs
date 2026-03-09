@@ -15,15 +15,15 @@ public class AniDB_AnimeRepository : Server.Repositories.Cached.AniDB.AniDB_Anim
         // noop
     }
 
-    public override void Populate(ISessionWrapper session, bool displayname = true)
+    public override void Populate(ISessionWrapper session, bool displayName = true, CancellationToken cancellationToken = default)
     {
         Cache = new PocoCache<int, AniDB_Anime>(TestData.AniDB_Anime.Value, SelectKey);
         PopulateIndexes();
     }
 
-    public override void Populate(bool displayname = true)
+    public override void Populate(bool displayName = true, CancellationToken cancellationToken = default)
     {
-        Populate(null!, displayname);
+        Populate(null!, displayName);
     }
 
     public AniDB_AnimeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
