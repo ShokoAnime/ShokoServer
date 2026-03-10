@@ -254,11 +254,11 @@ public class InitController : BaseController
     public ActionResult StopServer()
     {
         if (!_systemService.CanShutdown)
-            return BadRequest("Shutdown Not Possible for this instance");
+            return BadRequest("Shutdown is disabled for this instance");
         if (_systemService.ShutdownPending)
-            return BadRequest("Shutdown Already Requested");
+            return BadRequest("Shutdown already requested");
         if (!_systemService.RequestShutdown())
-            return BadRequest("Shutdown Request Blocked");
+            return BadRequest("Shutdown request blocked");
         return Ok("Shutdown Requested");
     }
 
@@ -271,11 +271,11 @@ public class InitController : BaseController
     public ActionResult RestartServer()
     {
         if (!_systemService.CanRestart)
-            return BadRequest("Restart Not Possible for this instance");
+            return BadRequest("Restart is disabled for this instance");
         if (_systemService.ShutdownPending)
-            return BadRequest("Shutdown Already Requested");
+            return BadRequest("Shutdown already requested");
         if (!_systemService.RequestRestart())
-            return BadRequest("Restart Request Blocked");
+            return BadRequest("Restart request blocked");
         return Ok("Restart Requested");
     }
 
