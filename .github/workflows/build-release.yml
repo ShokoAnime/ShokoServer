@@ -534,3 +534,17 @@ jobs:
         with:
           environment: 'stable'
           version: ${{ needs.current_info.outputs.version }}
+
+  cleanup-webui:
+    runs-on: ubuntu-latest
+
+    name: Remove Web UI Artifact
+
+    needs:
+      - sentry-upload
+
+    steps:
+      - name: Remove Web UI Artifact
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: webui

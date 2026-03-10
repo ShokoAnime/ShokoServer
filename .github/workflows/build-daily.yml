@@ -735,3 +735,17 @@ jobs:
 
             **Changes since last build**:
             ${{ steps.generate_changelog.outputs.CHANGELOG }}
+
+  cleanup-webui:
+    runs-on: ubuntu-latest
+
+    name: Remove Web UI Artifact
+
+    needs:
+      - sentry-upload
+
+    steps:
+      - name: Remove Web UI Artifact
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: webui
