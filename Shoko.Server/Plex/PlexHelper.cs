@@ -277,7 +277,7 @@ public class PlexHelper
         var assemblyName = Assembly.GetEntryAssembly()?.GetName();
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Add("X-Plex-Client-Identifier", ClientIdentifier);
-        client.DefaultRequestHeaders.Add("X-Plex-Platform-Version", ServerState.Instance.ApplicationVersion);
+        client.DefaultRequestHeaders.Add("X-Plex-Platform-Version", Utils.GetApplicationVersion());
         client.DefaultRequestHeaders.Add("X-Plex-Platform", "Shoko Server");
         client.DefaultRequestHeaders.Add("X-Plex-Device-Name", "Shoko Server Sync");
         client.DefaultRequestHeaders.Add("X-Plex-Product", "Shoko Server Sync");

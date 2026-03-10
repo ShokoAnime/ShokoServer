@@ -8,18 +8,21 @@ using NHibernate;
 using NLog;
 using Shoko.Abstractions.Services;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.Internal;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
+
 using Constants = Shoko.Server.Server.Constants;
 
 namespace Shoko.Server.Databases;
 
-public abstract class BaseDatabase<T> : IDatabase
+public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
 {
+    protected readonly SystemService SystemService = systemService;
+
     // ReSharper disable once StaticMemberInGenericType
     protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
@@ -108,7 +111,7 @@ public abstract class BaseDatabase<T> : IDatabase
             VersionValue = version,
             VersionRevision = revision,
             VersionCommand = command,
-            VersionProgram = ServerState.Instance.ApplicationVersion
+            VersionProgram = Utils.GetApplicationVersion(),
         };
         RepoFactory.Versions.Save(v);
 
@@ -172,10 +175,10 @@ public abstract class BaseDatabase<T> : IDatabase
                     message = message.Substring(0, 42) + "...";
                 }
 
-                message = ServerState.Instance.ServerStartingStatus =
+                message = SystemService.StartupMessage =
                     $"Database - Applying Schema Patches...{cmd.Version}.{cmd.Revision} - {message}";
                 Logger.Info($"Starting Server: {message}");
-                ServerState.Instance.ServerStartingStatus = message;
+                SystemService.StartupMessage = message;
 
                 cmd.DatabaseFix();
                 AddVersion(cmd.Version.ToString(), cmd.Revision.ToString(), cmd.CommandName);
@@ -208,8 +211,8 @@ public abstract class BaseDatabase<T> : IDatabase
             message = message.Substring(0, 42) + "...";
         }
 
-        message = ServerState.Instance.ServerStartingStatus = $"Database - Applying Schema Patches...{cmd.Version}.{cmd.Revision} - {message}";
-        ServerState.Instance.ServerStartingStatus = message;
+        message = SystemService.StartupMessage = $"Database - Applying Schema Patches...{cmd.Version}.{cmd.Revision} - {message}";
+        SystemService.StartupMessage = message;
 
         switch (cmd.Type)
         {
@@ -246,27 +249,27 @@ public abstract class BaseDatabase<T> : IDatabase
         var message = "Database - Populating Data (Users)...";
 
         Logger.Info($"Starting Server: {message}");
-        ServerState.Instance.ServerStartingStatus = message;
+        SystemService.StartupMessage = message;
         CreateInitialUsers();
 
         message = "Database - Populating Data (Group Filters)...";
         Logger.Info($"Starting Server: {message}");
-        ServerState.Instance.ServerStartingStatus = message;
+        SystemService.StartupMessage = message;
         CreateInitialGroupFilters();
 
         message = "Database - Populating Data (Locked Group Filters)...";
         Logger.Info($"Starting Server: {message}");
-        ServerState.Instance.ServerStartingStatus = message;
+        SystemService.StartupMessage = message;
         CreateOrVerifyLockedFilters();
 
         message = "Database - Populating Data (Rename Script)...";
         Logger.Info($"Starting Server: {message}");
-        ServerState.Instance.ServerStartingStatus = message;
+        SystemService.StartupMessage = message;
         CreateInitialRenameScript();
 
         message = "Database - Populating Data (Custom Tags)...";
         Logger.Info($"Starting Server: {message}");
-        ServerState.Instance.ServerStartingStatus = message;
+        SystemService.StartupMessage = message;
         CreateInitialCustomTags();
     }
 

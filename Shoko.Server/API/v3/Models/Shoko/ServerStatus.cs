@@ -1,8 +1,8 @@
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Server.Server;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class ServerStatus
@@ -10,7 +10,7 @@ public class ServerStatus
     /// <summary>
     /// The progress message for starting up
     /// </summary>
-    public string StartupMessage { get; set; }
+    public string? StartupMessage { get; set; }
 
     /// <summary>
     /// The state of startup.
@@ -31,6 +31,12 @@ public class ServerStatus
     /// Uptime in hh:mm:ss or null if not started. Uses hours may be greater than a day.
     /// </summary>
     public TimeSpan? Uptime { get; set; }
+
+    /// <summary>
+    /// This is true in situations where there can be absolutely no write operations.
+    /// This is for polling. Ideally, a client will use the Events SignalR Hub.
+    /// </summary>
+    public required DatabaseBlockedInfo DatabaseBlocked { get; set; }
 
     [JsonConverter(typeof(StringEnumConverter))]
     public enum StartupState
@@ -56,9 +62,16 @@ public class ServerStatus
         Waiting = 4,
     }
 
-    /// <summary>
-    /// This is true in situations where there can be absolutely no write operations.
-    /// This is for polling. Ideally, a client will use the Events SignalR Hub.
-    /// </summary>
-    public ServerState.DatabaseBlockedInfo DatabaseBlocked { get; set; }
+    public class DatabaseBlockedInfo
+    {
+        /// <summary>
+        /// Whether the system is blocked or not
+        /// </summary>
+        public required bool Blocked { get; init; }
+
+        /// <summary>
+        /// A message about the blocked state
+        /// </summary>
+        public required string? Reason { get; set; }
+    }
 }

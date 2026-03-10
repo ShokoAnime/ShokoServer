@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -11,9 +12,7 @@ using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NLog.Extensions.Logging;
 using Quartz;
-using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -22,7 +21,7 @@ namespace Shoko.TrayService;
 
 public partial class App : Application
 {
-    private ILogger _logger = null!;
+    private ILogger? _logger;
 
     private TrayIcon? _trayIcon;
 
@@ -36,38 +35,30 @@ public partial class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-        }
 
         Console.CancelKeyPress += OnConsoleOnCancelKeyPress;
         InitialiseTrayIcon();
 
-        try
+        _systemService = new SystemService();
+        _systemService.Shutdown += (_, _) => DispatchShutdown();
+        var host = _systemService.StartAsync()
+            .ConfigureAwait(true)
+            .GetAwaiter()
+            .GetResult();
+        if (host is null)
         {
-            UnhandledExceptionManager.AddHandler();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.ToString());
-        }
-
-        Utils.SetInstance();
-        Utils.InitLogger();
-        var logFactory = LoggerFactory.Create(o => o.AddNLog());
-        _logger = logFactory.CreateLogger("Main");
-
-        try
-        {
-            _systemService = new SystemService(logFactory);
-            _systemService.Shutdown += (_, _) => DispatchShutdown();
-            if (!_systemService.StartAsync().ConfigureAwait(true).GetAwaiter().GetResult())
+            // Exit after 1s if we failed to start properly.
+            Task.Run(() =>
+            {
+                Thread.Sleep(1000);
                 DispatchShutdown();
+            });
         }
-        catch (Exception exception)
+        else
         {
-            _logger.LogCritical(exception, "The server has failed to start");
-            DispatchShutdown();
+            var loggerFactory = host.Services.GetRequiredService<ILoggerFactory>();
+            _logger = loggerFactory.CreateLogger("Main");
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -113,15 +104,12 @@ public partial class App : Application
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to Open WebUI");
+            _logger?.LogError(e, "Failed to Open WebUI");
         }
     }
 
     private void OnTrayExit(object? sender, EventArgs args)
-    {
-        var lifetime = Utils.ServiceContainer.GetRequiredService<IHostApplicationLifetime>();
-        Task.Run(lifetime.StopApplication);
-    }
+        => DispatchShutdown();
 
     /// <summary>
     /// Signal to Quartz to shutdown, since it's not ran properly signalled by the application's lifetime
@@ -132,7 +120,7 @@ public partial class App : Application
         var quartz = Utils.ServiceContainer.GetServices<IHostedService>().FirstOrDefault(a => a is QuartzHostedService);
         if (quartz == null)
         {
-            _logger.LogError("Could not get QuartzHostedService");
+            _logger?.LogError("Could not get QuartzHostedService");
             return;
         }
 
@@ -154,10 +142,17 @@ public partial class App : Application
         {
             Dispatcher.UIThread.Invoke(() =>
             {
+                if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
+                    return;
+
                 _trayIcon?.IsVisible = false;
 
-                if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-                    desktop.Shutdown(_systemService?.RestartPending ?? false ? 140 /* Custom restart exit code */ : 0);
+                var exitCode = 0;
+                if (_systemService?.RestartPending ?? false)
+                    exitCode = 140; // Custom restart exit code
+                else if (_systemService?.StartupFailedException is not null)
+                    exitCode = 1;
+                desktop.Shutdown(exitCode);
             });
         }
         catch (TaskCanceledException)

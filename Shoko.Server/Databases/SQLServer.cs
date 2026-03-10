@@ -13,13 +13,14 @@ using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
 
 namespace Shoko.Server.Databases;
 
-public class SQLServer : BaseDatabase<SqlConnection>
+public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection>(systemService)
 {
     public override string Name { get; } = "SQLServer";
 
@@ -144,7 +145,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
         var settings = Utils.SettingsProvider.GetSettings();
         return Fluently.Configure()
             .Database(MsSqlConfiguration.MsSql2012.ConnectionString(GetConnectionString()).Driver<MicrosoftDataSqlClientDriver>())
-            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ServerState>())
+            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<SystemService>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
                 prop.Batcher<NonBatchingBatcherFactory>();
@@ -197,7 +198,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
             var create = ExecuteScalar(myConn, "Select count(*) from sysobjects where name = 'Versions'") is 0;
             if (create)
             {
-                ServerState.Instance.ServerStartingStatus = "Database - Creating Initial Schema...";
+                SystemService.StartupMessage = "Database - Creating Initial Schema...";
                 ExecuteWithException(myConn, _createVersionTable);
             }
             var updateVersionTable = ExecuteScalar(myConn, "SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE [TABLE_NAME] = 'Versions' and [COLUMN_NAME]='VersionRevision'") is 0;
@@ -211,7 +212,7 @@ public class SQLServer : BaseDatabase<SqlConnection>
             if (create)
                 ExecuteWithException(myConn, _createTables);
 
-            ServerState.Instance.ServerStartingStatus = "Database - Applying Schema Patches...";
+            SystemService.StartupMessage = "Database - Applying Schema Patches...";
 
             ExecuteWithException(myConn, _patchCommands);
         });

@@ -1,8 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,12 +13,15 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
 using NLog.Web;
 using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Events;
+using Shoko.Abstractions.Core.Exceptions;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Utilities;
@@ -64,52 +67,28 @@ public class SystemService : ISystemService
 
     private readonly SettingsProvider _settingsProvider;
 
-    private readonly CancellationTokenSource _shutdownTokenSource;
-
     private Timer? _autoUpdateTimer;
 
     private IHost? _webHost;
 
-    public bool IsStarted => StartedAt.HasValue;
-
-    public bool CanShutdown { get; private init; }
-
-    public bool CanRestart { get; private init; }
-
-    public bool ShutdownPending { get; private set; }
-
-    public bool RestartPending { get; private set; }
-
-    public VersionInformation Version { get; }
-
-    public DateTime BootstrappedAt { get; private set; }
-
-    public DateTime? StartedAt { get; private set; }
-
-    public event EventHandler<ServerAboutToStartEventArgs>? AboutToStart;
-
-    public event EventHandler? Started;
-
-    public event EventHandler<CancelEventArgs>? ShutdownOrRestartRequested;
-
-    public event EventHandler? Shutdown;
-
-    public SystemService(ILoggerFactory loggerFactory)
+    public SystemService()
     {
         var now = DateTime.UtcNow;
         var args = Environment.GetCommandLineArgs();
         var extraVersionDict = Utils.GetApplicationExtraVersion();
 
+        Utils.SetInstance();
+        Utils.InitLogger();
+        var loggerFactory = LoggerFactory.Create(o => o.AddNLog());
+
         _logger = loggerFactory.CreateLogger<SystemService>();
         _pluginManager = new(loggerFactory.CreateLogger<PluginManager>(), ApplicationPaths.Instance);
         _configurationService = new(loggerFactory, ApplicationPaths.Instance, _pluginManager);
         _settingsProvider = new(loggerFactory.CreateLogger<SettingsProvider>(), this, _configurationService.CreateProvider<ServerSettings>());
-        _shutdownTokenSource = new();
+        _databaseBlockingTasks.Add(_startupTaskSource.Task);
 
         CanShutdown = args.Contains("--shutdown-enabled");
         CanRestart = args.Contains("--restart-enabled");
-        ShutdownPending = false;
-        RestartPending = false;
         Version = new()
         {
             Version = Utils.GetApplicationVersion(),
@@ -124,26 +103,112 @@ public class SystemService : ISystemService
                 ? date.ToUniversalTime() : null,
         };
         BootstrappedAt = now;
-        StartedAt = null;
+
+        // Set the singleton instance for the settings provider.
+        Utils.SettingsProvider = _settingsProvider;
     }
+
+    #region General
+
+    /// <inheritdoc/>
+    public DateTime BootstrappedAt { get; private set; }
+
+    /// <inheritdoc/>
+    public TimeSpan Uptime => DateTime.UtcNow - BootstrappedAt;
+
+    /// <inheritdoc/>
+    public TimeSpan? StartupTime => StartedAt.HasValue ? StartedAt.Value - BootstrappedAt : null;
+
+    /// <inheritdoc/>
+    public VersionInformation Version { get; }
+
+    #endregion
 
     #region Startup
 
-    public async Task<bool> StartAsync()
+    private TaskCompletionSource? _startupTaskSource = new();
+
+    public event EventHandler<StartupFailedEventArgs>? StartupFailed;
+
+    public event EventHandler<StartupMessageChangedEventArgs>? StartupMessageChanged;
+
+    public event EventHandler<ServerAboutToStartEventArgs>? AboutToStart;
+
+    public event EventHandler? Started;
+
+    /// <inheritdoc/>
+    public bool IsStarted { get => StartedAt.HasValue; }
+
+    /// <inheritdoc/>
+    public DateTime? StartedAt { get; private set; }
+
+    private string? _startupMessage = string.Empty;
+
+    /// <inheritdoc/>
+    public string? StartupMessage
     {
+        get => _startupMessage;
+        internal set
+        {
+            // We only allow setting it during startup.
+            if (_startupMessage is null && StartedAt.HasValue)
+                return;
+
+            var changed = !string.Equals(_startupMessage, value);
+            _startupMessage = value;
+            if (value is { Length: > 0 } && changed)
+            {
+                _logger.LogInformation("Starting Server: {Message}", value);
+                Task.Run(() => StartupMessageChanged?.Invoke(this, new() { Message = value }));
+            }
+        }
+    }
+
+    private StartupFailedException? _startupFailedException;
+
+    /// <inheritdoc/>
+    public StartupFailedException? StartupFailedException
+    {
+        get => _startupFailedException;
+        private set
+        {
+            if (value is null) return;
+            lock (_logger)
+            {
+                _startupFailedException = value;
+                InSetupMode = false;
+                // Always allow shutdown if we failed to start.
+                CanShutdown = true;
+            }
+
+            Task.Run(() => StartupFailed?.Invoke(this, new(value)));
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<IHost?> StartAsync()
+    {
+        if (_startupTaskSource is null)
+            return null;
+
         try
         {
             // Check if any of the DLL are blocked, common issue with daily builds.
             if (!CheckBlockedFiles())
             {
-                Utils.ShowErrorMessage("Blocked DLL files found in server directory!");
-                return false;
+                StartupFailedException = new("Blocked DLL files found in server directory!");
+                _startupTaskSource.SetException(StartupFailedException);
+                _startupTaskSource = null;
+                return null;
             }
 
-            Utils.SettingsProvider = _settingsProvider;
+            var settings = _settingsProvider.GetSettings();
+
+            // Set the setup mode flag before proceeding.
+            InSetupMode = settings.FirstRun;
 
             // Set default culture.
-            var culture = CultureInfo.GetCultureInfo(_settingsProvider.GetSettings().Culture);
+            var culture = CultureInfo.GetCultureInfo(settings.Culture);
             CultureInfo.DefaultThreadCurrentCulture = culture;
             CultureInfo.DefaultThreadCurrentUICulture = culture;
 
@@ -152,13 +217,6 @@ public class SystemService : ISystemService
                 .WithCompression(MessagePackCompression.Lz4BlockArray);
             MessagePackSerializer.Typeless.DefaultOptions = MessagePackSerializer.Typeless.DefaultOptions.WithAllowAssemblyVersionMismatch(true)
                 .WithCompression(MessagePackCompression.Lz4BlockArray);
-
-            // Initialize the server state with new fields for the field tracking.
-            ServerState.Instance.DatabaseAvailable = false;
-            ServerState.Instance.ServerOnline = false;
-            ServerState.Instance.StartupFailed = false;
-            ServerState.Instance.StartupFailedMessage = string.Empty;
-            ServerState.Instance.ServerStarting = false;
 
             // Log some basic information about the server before we start.
             _logger.LogInformation(
@@ -173,7 +231,7 @@ public class SystemService : ISystemService
             try
             {
                 var mediaInfoVersion = MediaInfoUtility.GetVersion();
-                mediaInfoVersion ??= "MediaInfo program NOT found";
+                mediaInfoVersion ??= "Program NOT found";
                 _logger.LogInformation("MediaInfo: {version}", mediaInfoVersion);
             }
             catch (Exception ex)
@@ -184,7 +242,7 @@ public class SystemService : ISystemService
             try
             {
                 var version = CoreHashProvider.GetRhashVersion();
-                version ??= "RHash library NOT found";
+                version ??= "Library NOT found";
                 _logger.LogInformation("RHash: {version}", version);
             }
             catch (Exception ex)
@@ -192,36 +250,41 @@ public class SystemService : ISystemService
                 _logger.LogError("Unable to read RHash version: {Message}", ex.Message);
             }
 
-            try
-            {
-                _webHost = InitWebHost();
+            StartupMessage = "Initializing Web Host & Services.";
 
-                _logger.LogInformation("Starting Web Host.");
-                ServerState.Instance.ServerStartingStatus = "Starting Web Hosts.";
-                await _webHost.StartAsync();
-                _logger.LogInformation("Web Host started.");
-            }
-            catch (Exception e)
-            {
-                Utils.ShowErrorMessage(e, "Unable to start hosting. Check the logs");
-                if (_webHost is not null)
-                {
-                    var lifetime = _webHost.Services.GetRequiredService<IHostApplicationLifetime>();
-                    _ = Task.Run(lifetime.StopApplication);
-                }
-                _webHost = null;
-                return false;
-            }
+            _webHost = InitWebHost(settings);
 
-            var settings = _settingsProvider.GetSettings();
+            Utils.ServiceContainer = _webHost.Services;
+
+            StartupMessage = "Web Host & Services initialized.";
+
+            StartupMessage = "Starting Log Rotator.";
+
+            _webHost.Services.GetRequiredService<LogRotator>().Start();
+
+            StartupMessage = "Log Rotator initialized.";
+
+            StartupMessage = "Initializing Plugins.";
+
+            // Init. plugins before starting the IHostedService services.
+            _pluginManager.InitPlugins();
+
+            StartupMessage = "Plugins initialized.";
+
+            StartupMessage = "Starting Web Hosts.";
+
+            // Start the web server and all IHostedService services.
+            await _webHost.StartAsync();
+
+            StartupMessage = "Web Host started.";
+
             if (settings.DumpSettingsOnStart)
                 _settingsProvider.DebugSettingsToLog();
 
-            if (!settings.FirstRun)
-            {
-                LateStart();
-            }
-            else
+            // Start the database unblock loop.
+            _ = Task.Factory.StartNew(DatabaseUnblockLoop, TaskCreationOptions.LongRunning);
+
+            if (InSetupMode)
             {
                 // In case the server is not fully started we need to check the
                 // connectivity manually once, since Quartz is not up and
@@ -229,16 +292,31 @@ public class SystemService : ISystemService
                 // internet access.
                 _ = Task.Run(_webHost.Services.GetRequiredService<IConnectivityService>().CheckAvailability);
 
-                _logger.LogWarning("The Server is NOT STARTED. It needs to be configured via webui or the server-settings.json");
+                _logger.LogWarning("The server is in Setup Mode and is NOT STARTED. It needs to be configured via the Web UI or the server-settings.json before use!");
+
+                _ = Task.Run(() => SetupRequired?.Invoke(this, EventArgs.Empty));
+            }
+            else
+            {
+                _ = Task.Factory.StartNew(LateStart, TaskCreationOptions.LongRunning);
             }
 
-            return true;
+            _startupTaskSource.SetResult();
+            _startupTaskSource = null;
+            return _webHost;
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            _logger.LogError(e, "An error occurred starting the server");
-            return false;
+            StartupFailedException = new(innerException: ex);
+            _startupTaskSource?.SetException(StartupFailedException);
+            _startupTaskSource = null;
+            return null;
         }
+    }
+
+    public Task WaitForStartupAsync()
+    {
+        throw new NotImplementedException();
     }
 
     private bool CheckBlockedFiles()
@@ -272,20 +350,13 @@ public class SystemService : ISystemService
         return result;
     }
 
-    #region Startup | Init. Web Host & Services
+    #region Startup | Services
 
-    private IHost InitWebHost()
-    {
-        _logger.LogInformation("Initializing Web Host & Services.");
-        ServerState.Instance.ServerStartingStatus = "Initializing Web Host & Services.";
-        var settings = _settingsProvider.GetSettings();
-        var builder = new HostBuilder()
+    private IHost InitWebHost(IServerSettings settings)
+        => new HostBuilder()
             .ConfigureWebHost(webHostBuilder =>
                 webHostBuilder
-                    .UseKestrel(options =>
-                    {
-                        options.ListenAnyIP(settings.Web.Port);
-                    })
+                    .UseKestrel(options => options.ListenAnyIP(settings.Web.Port))
                     .ConfigureApp()
                     .ConfigureServiceProvider()
                     .UseStartup(_ => new Startup(this, _configurationService, _settingsProvider, _pluginManager))
@@ -301,28 +372,14 @@ public class SystemService : ISystemService
                     })
                     .UseNLog()
                     .UseSentryConfig()
-            );
-
-        var webHost = builder.Build();
-
-        Utils.ServiceContainer = webHost.Services;
-
-        // Initialize and start the log rotator.
-        webHost.Services.GetRequiredService<LogRotator>()
-            .Start();
-
-        // Init. plugins before starting the IHostedService services.
-        _pluginManager.InitPlugins();
-
-        _logger.LogInformation("Web Host & Services initialized.");
-
-        return webHost;
-    }
+            )
+            .Build();
 
     private class Startup(SystemService systemService, IConfigurationService configurationService, ISettingsProvider settingsProvider, IPluginManager pluginManager)
     {
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton(systemService);
             services.AddSingleton<ISystemService>(systemService);
             services.AddSingleton(configurationService);
             services.AddSingleton(settingsProvider);
@@ -334,8 +391,11 @@ public class SystemService : ISystemService
             services.AddSingleton<TraktTVHelper>();
             services.AddSingleton<TmdbImageService>();
             services.AddSingleton<TmdbLinkingService>();
+            services.AddSingleton<ITmdbLinkingService>(sp => sp.GetRequiredService<TmdbLinkingService>());
             services.AddSingleton<TmdbMetadataService>();
+            services.AddSingleton<ITmdbMetadataService>(sp => sp.GetRequiredService<TmdbMetadataService>());
             services.AddSingleton<TmdbSearchService>();
+            services.AddSingleton<ITmdbSearchService>(sp => sp.GetRequiredService<TmdbSearchService>());
             services.AddSingleton<IFilterEvaluator, FilterEvaluator>();
             services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();
@@ -377,22 +437,47 @@ public class SystemService : ISystemService
 
     #endregion
 
+    #region Startup | Setup
+
+    /// <inheritdoc/>
+    public event EventHandler? SetupRequired;
+
+    /// <inheritdoc/>
+    public event EventHandler? SetupCompleted;
+
+    public bool InSetupMode { get; private set; }
+
+    /// <inheritdoc/>
+    public bool CompleteSetup()
+    {
+        if (!InSetupMode)
+            return false;
+
+        lock (_logger)
+        {
+            if (!InSetupMode)
+                return false;
+
+            InSetupMode = false;
+        }
+
+        Task.Factory.StartNew(LateStart, TaskCreationOptions.LongRunning);
+        return true;
+    }
+
+    #endregion
+
     #region Startup | Late Start
 
-    internal bool LateStart()
+    /// <summary>
+    ///   Responsible for the late start of the application after the initial
+    ///   setup is complete.
+    /// </summary>
+    private void LateStart()
     {
-        if (StartedAt.HasValue || ServerState.Instance.ServerStarting || ServerState.Instance.StartupFailed)
-            return true;
-        ServerState.Instance.ServerStarting = true;
-
         var settings = _settingsProvider.GetSettings();
         try
         {
-            ServerState.Instance.ServerOnline = false;
-            ServerState.Instance.StartupFailed = false;
-            ServerState.Instance.StartupFailedMessage = string.Empty;
-            ServerState.Instance.ServerStartingStatus = "Cleaning up...";
-
             var schedulerFactory = _webHost!.Services.GetRequiredService<ISchedulerFactory>();
             var databaseFactory = _webHost.Services.GetRequiredService<DatabaseFactory>();
             var repoFactory = _webHost.Services.GetRequiredService<RepoFactory>();
@@ -400,43 +485,23 @@ public class SystemService : ISystemService
             var lifetime = _webHost.Services.GetRequiredService<IHostApplicationLifetime>();
             var cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(lifetime.ApplicationStopping, _shutdownTokenSource.Token).Token;
             if (cancellationToken.IsCancellationRequested)
-                return false;
+                return;
 
-            _logger.LogInformation("Setting up database...");
-            ServerState.Instance.ServerStartingStatus = "Setting up database...";
-            if (!InitializeDatabase(databaseFactory, repoFactory, out var errorMessage, cancellationToken) && !cancellationToken.IsCancellationRequested)
-            {
-                ServerState.Instance.DatabaseAvailable = false;
-                ServerState.Instance.StartupFailed = true;
-                ServerState.Instance.StartupFailedMessage = errorMessage;
-                return false;
-            }
+            StartupMessage = "Setting up database...";
+            if (!InitializeDatabase(databaseFactory, repoFactory, cancellationToken) && !cancellationToken.IsCancellationRequested)
+                return;
 
             if (cancellationToken.IsCancellationRequested)
-                return false;
+                return;
 
-            //init session factory
-            _logger.LogInformation("Initializing Session Factory...");
-            ServerState.Instance.ServerStartingStatus = "Initializing Session Factory...";
-            var _ = databaseFactory.SessionFactory;
-            ServerState.Instance.DatabaseAvailable = true;
+            StartupMessage = "Initializing Session Factory...";
+            databaseFactory.CloseSessionFactory();
+            _ = databaseFactory.SessionFactory;
 
             if (cancellationToken.IsCancellationRequested)
-                return false;
+                return;
 
-            // timer for automatic updates
-            _autoUpdateTimer = new Timer
-            {
-                AutoReset = true,
-                Interval = 5 * 60 * 1000, // 5 * 60 seconds (5 minutes)
-            };
-            _autoUpdateTimer.Elapsed += AutoUpdateTimer_Elapsed;
-            _autoUpdateTimer.Start();
-
-            if (cancellationToken.IsCancellationRequested)
-                return false;
-
-            ServerState.Instance.ServerStartingStatus = "Initializing UDP Connection Handler...";
+            StartupMessage = "Initializing UDP Connection Handler...";
             var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
             try
             {
@@ -448,84 +513,97 @@ public class SystemService : ISystemService
             }
 
             if (cancellationToken.IsCancellationRequested)
-                return false;
+                return;
 
-
-            ServerState.Instance.ServerStartingStatus = "Initializing File Watchers...";
+            StartupMessage = "Initializing File Watchers...";
             fileWatcherService.StartWatchingFiles();
 
-            if (cancellationToken.IsCancellationRequested)
-                return false;
-
+            StartupMessage = "About to start...";
             AboutToStart?.Invoke(this, new() { ServiceProvider = _webHost.Services });
 
+            if (cancellationToken.IsCancellationRequested)
+                return;
+
+            if (settings.FirstRun)
+            {
+                settings.FirstRun = false;
+                _settingsProvider.SaveSettings(settings);
+
+                Task.Run(() => SetupCompleted?.Invoke(this, EventArgs.Empty));
+            }
+
+            // Start the timer for automatic updates now.
+            _autoUpdateTimer = new Timer
+            {
+                AutoReset = true,
+                Interval = TimeSpan.FromMinutes(5).TotalMilliseconds,
+            };
+            _autoUpdateTimer.Elapsed += AutoUpdateTimer_Elapsed;
+            _autoUpdateTimer.Start();
+
             StartedAt = DateTime.UtcNow;
+
+            Task.Run(() => Started?.Invoke(this, EventArgs.Empty));
+
+            StartupMessage = "Startup Complete!";
+            StartupMessage = null;
 
             var scheduler = schedulerFactory.GetScheduler().Result;
             if (settings.Import.ScanDropFoldersOnStart)
                 scheduler.StartJob<ScanDropFoldersJob>().GetAwaiter().GetResult();
             if (settings.Import.RunOnStart)
                 scheduler.StartJob<ImportJob>().GetAwaiter().GetResult();
-
-            _logger.LogInformation("Starting Server: Complete!");
-            ServerState.Instance.ServerStartingStatus = "Complete!";
-            ServerState.Instance.ServerOnline = true;
-            ServerState.Instance.ServerStarting = false;
-            if (settings.FirstRun)
-            {
-                settings.FirstRun = false;
-                _settingsProvider.SaveSettings(settings);
-            }
-
-            if (cancellationToken.IsCancellationRequested)
-                return false;
-
-            Started?.Invoke(this, new());
-
-            return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, ex.ToString());
-            ServerState.Instance.ServerStartingStatus = ex.Message;
-            ServerState.Instance.StartupFailed = true;
-            ServerState.Instance.StartupFailedMessage = $"Startup Failed: {ex}";
-            return false;
+            StartupMessage = "Failed to start.";
+            StartupFailedException = new(innerException: ex);
         }
     }
 
     #endregion
 
-    #region Startup | Database & Repositories
+    #region Startup | Database
 
-    private bool InitializeDatabase(DatabaseFactory databaseFactory, RepoFactory repoFactory, out string errorMessage, CancellationToken cancellationToken)
+    /// <summary>
+    /// Initialize the database and repositories.
+    /// </summary>
+    /// <param name="databaseFactory">The database factory.</param>
+    /// <param name="repositoryFactory">The repository factory.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns><see langword="true"/> if the database and repositories were initialized successfully; otherwise, <see langword="false"/>.</returns>
+    private bool InitializeDatabase(DatabaseFactory databaseFactory, RepoFactory repositoryFactory, CancellationToken cancellationToken)
     {
-        errorMessage = string.Empty;
         try
         {
             databaseFactory.Instance = null;
             var instance = databaseFactory.Instance;
-            if (instance == null)
+            if (instance is null)
             {
-                errorMessage = "Could not initialize database factory instance";
+                StartupMessage = "Failed to start. Could not initialize database factory instance!";
+                StartupFailedException = new(StartupMessage);
                 return false;
             }
 
-            for (var i = 0; i < 60; i++)
+            for (var attempt = 1; attempt <= 60; attempt++)
             {
                 if (instance.TestConnection())
                 {
-                    _logger.LogInformation("Database Connection OK!");
+                    StartupMessage = "Database Connection OK!";
                     break;
                 }
 
-                if (i == 59)
+                if (attempt is 60)
                 {
-                    _logger.LogError(errorMessage = "Unable to connect to database!");
+                    StartupMessage = "Failed to start. Could not connect to database!";
+                    StartupFailedException = new(StartupMessage);
                     return false;
                 }
 
-                _logger.LogInformation("Waiting for database connection...");
+                if (cancellationToken.IsCancellationRequested)
+                    return false;
+
+                StartupMessage = $"Waiting for database connection... ({attempt}/60)";
                 Thread.Sleep(1000);
             }
 
@@ -540,57 +618,48 @@ public class SystemService : ISystemService
 
             databaseFactory.CloseSessionFactory();
 
-            var message = "Initializing Session Factory...";
-            _logger.LogInformation("Starting Server: {Message}", message);
-            ServerState.Instance.ServerStartingStatus = message;
+            StartupMessage = "Initializing Session Factory...";
 
             instance.Init();
             var version = instance.GetDatabaseVersion();
             if (version > instance.RequiredVersion)
             {
-                message = "The Database Version is bigger than the supported version by Shoko Server. You should upgrade Shoko Server.";
-                _logger.LogInformation("Starting Server: {Message}", message);
-                ServerState.Instance.ServerStartingStatus = message;
-                errorMessage = message;
+                StartupMessage = "The database version is bigger than the supported version by Shoko Server. You should upgrade Shoko Server or manually restore your database from a backup.";
+                StartupFailedException = new(StartupMessage);
                 return false;
             }
 
-            if (version != 0 && version < instance.RequiredVersion)
+            if (version is not 0 && version < instance.RequiredVersion)
             {
-                message = "New Version detected. Database Backup in progress...";
-                _logger.LogInformation("Starting Server: {Message}", message);
-                ServerState.Instance.ServerStartingStatus = message;
+                StartupMessage = "New database version detected. Database backup in progress...";
                 instance.BackupDatabase(instance.GetDatabaseBackupName(version));
             }
 
             try
             {
-                _logger.LogInformation("Starting Server: {Type} - CreateAndUpdateSchema()", instance.GetType());
+                StartupMessage = $"Creating and updating database schema for {instance.GetType().Name}...";
                 instance.CreateAndUpdateSchema();
 
-                _logger.LogInformation("Starting Server: RepoFactory.Init()");
-                repoFactory.Init(cancellationToken);
+                StartupMessage = "RepoFactory.PostInit()";
+                repositoryFactory.Init(cancellationToken);
                 if (cancellationToken.IsCancellationRequested)
                     return false;
 
                 instance.ExecuteDatabaseFixes();
                 instance.PopulateInitialData();
-                repoFactory.PostInit();
+                repositoryFactory.PostInit();
             }
             catch (DatabaseCommandException ex)
             {
-                _logger.LogError(ex, ex.ToString());
-                Utils.ShowErrorMessage(ex, "Database Error :\n\r " + ex + "\n\rNotify developers about this error, it will be logged in your logs");
-                ServerState.Instance.ServerStartingStatus = "Failed to start. Please review database settings.";
-                errorMessage = "Database Error :\n\r " + ex +
-                               "\n\rNotify developers about this error, it will be logged in your logs";
+                _logger.LogError(ex, ex.Message);
+                StartupMessage = "Failed to start. Please review database settings. Notify developers about this error, it will be logged in your logs!";
+                StartupFailedException = new($"{StartupMessage} Error Message: {ex.Message}", innerException: ex);
                 return false;
             }
             catch (TimeoutException ex)
             {
-                _logger.LogError(ex, $"Database Timeout: {ex}");
-                ServerState.Instance.ServerStartingStatus = "Database timeout:";
-                errorMessage = "Database timeout:\n\r" + ex;
+                StartupMessage = "Failed to start. Database timed out!";
+                StartupFailedException = new($"{StartupMessage} Error Message: {ex.Message}", innerException: ex);
                 return false;
             }
 
@@ -598,9 +667,9 @@ public class SystemService : ISystemService
         }
         catch (Exception ex)
         {
-            errorMessage = $"Could not init database: {ex}";
-            _logger.LogError(ex, errorMessage);
-            ServerState.Instance.ServerStartingStatus = "Failed to start. Please review database settings.";
+            _logger.LogError(ex, ex.Message);
+            StartupMessage = "Failed to start. Please review database settings.";
+            StartupFailedException = new($"{StartupMessage} Error Message: {ex.Message}", innerException: ex);
             return false;
         }
     }
@@ -611,43 +680,19 @@ public class SystemService : ISystemService
 
     #region Shutdown
 
-    public Task WaitForShutdown()
-        => _webHost?.WaitForShutdownAsync() ?? Task.CompletedTask;
+    private readonly CancellationTokenSource _shutdownTokenSource = new();
 
-    internal void OnShutdown()
-    {
-        // Mark the server as shutting down.
-        lock (_logger)
-        {
-            if (!RestartPending && !ShutdownPending)
-                ShutdownPending = true;
-        }
+    /// <inheritdoc/>
+    public event EventHandler<CancelEventArgs>? ShutdownOrRestartRequested;
 
-        _shutdownTokenSource.Cancel();
-        if (_webHost is not null)
-        {
-            _autoUpdateTimer?.Stop();
+    /// <inheritdoc/>
+    public event EventHandler? Shutdown;
 
-            var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
-            fileWatcherService.StopWatchingFiles();
+    /// <inheritdoc/>
+    public bool CanShutdown { get; private set; }
 
-            var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
-            udpConnectionHandler.ForceLogout();
-            udpConnectionHandler.CloseConnections();
-        }
-
-        try
-        {
-            Shutdown?.Invoke(this, EventArgs.Empty);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error while invoking Shutdown");
-        }
-    }
-
-    #region Shutdown | Request Handlers
-
+    /// <inheritdoc/>
+    public bool ShutdownPending { get; private set; }
 
     /// <inheritdoc/>
     public bool RequestShutdown()
@@ -684,6 +729,49 @@ public class SystemService : ISystemService
             return true;
         }
     }
+
+    /// <inheritdoc/>
+    public Task WaitForShutdownAsync()
+        => _webHost?.WaitForShutdownAsync() ?? Task.CompletedTask;
+
+    /// <inheritdoc/>
+    internal void OnShutdown()
+    {
+        // Mark the server as shutting down.
+        lock (_logger)
+        {
+            if (!RestartPending && !ShutdownPending)
+                ShutdownPending = true;
+        }
+
+        _shutdownTokenSource.Cancel();
+        if (_webHost is not null)
+        {
+            _autoUpdateTimer?.Stop();
+
+            var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
+            fileWatcherService.StopWatchingFiles();
+
+            var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
+            udpConnectionHandler.ForceLogout();
+            udpConnectionHandler.CloseConnections();
+        }
+
+        try
+        {
+            Shutdown?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while invoking Shutdown");
+        }
+    }
+
+    #region Shutdown | Restart
+
+    public bool CanRestart { get; private init; }
+
+    public bool RestartPending { get; private set; }
 
     /// <inheritdoc/>
     public bool RequestRestart()
@@ -740,6 +828,100 @@ public class SystemService : ISystemService
         actionService.CheckForAnimeUpdate().GetAwaiter().GetResult();
         actionService.CheckForMyListSyncUpdate(false).GetAwaiter().GetResult();
         actionService.CheckForAniDBFileUpdate(false).GetAwaiter().GetResult();
+    }
+
+    #endregion
+
+    #region Database
+
+    private readonly List<Task> _databaseBlockingTasks = [];
+
+    private CancellationTokenSource? _databaseTasksChangedCTS;
+
+    private TaskCompletionSource? _databaseTaskSource = null;
+
+    /// <inheritdoc/>
+    public event EventHandler<DatabaseBlockedChangedEventArgs>? DatabaseBlockedChanged;
+
+    /// <inheritdoc/>
+    public bool IsDatabaseBlocked => _databaseTaskSource is not null;
+
+    /// <inheritdoc/>
+    public Task WaitForDatabaseUnblockedAsync()
+        => _databaseTaskSource?.Task ?? Task.CompletedTask;
+
+    /// <inheritdoc/>
+    public void AddDatabaseBlockingTask(Task task)
+    {
+        lock (_databaseBlockingTasks)
+        {
+            _databaseBlockingTasks.Add(task);
+
+            // Signal to the loop that we have a new task to wait for.
+            _databaseTasksChangedCTS?.Cancel();
+
+            // Start the loop if it's not already running.
+            if (_databaseTaskSource is null)
+            {
+                _databaseTaskSource = new TaskCompletionSource();
+                Task.Factory.StartNew(DatabaseUnblockLoop, TaskCreationOptions.LongRunning);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Waits for all database blocking tasks to complete.
+    /// </summary>
+    private void DatabaseUnblockLoop()
+    {
+        Task[] tasks;
+        TaskCompletionSource taskSource;
+        CancellationTokenSource changedSignal;
+        lock (_databaseBlockingTasks)
+        {
+            taskSource = _databaseTaskSource!;
+            changedSignal = _databaseTasksChangedCTS = new();
+            tasks = _databaseBlockingTasks.ToArray();
+        }
+
+        Task.Run(() => DatabaseBlockedChanged?.Invoke(this, new() { IsBlocked = true }));
+
+        while (tasks.Length > 0)
+        {
+            int task;
+            try
+            {
+                task = Task.WaitAny(tasks, changedSignal.Token);
+            }
+            // If the operation was cancelled, we need to get the new list of tasks since
+            // the list of tasks may have changed.
+            catch (OperationCanceledException)
+            {
+                lock (_databaseBlockingTasks)
+                {
+                    changedSignal = _databaseTasksChangedCTS = new();
+                    tasks = _databaseBlockingTasks.ToArray();
+                }
+                continue;
+            }
+
+            lock (_databaseBlockingTasks)
+            {
+                _databaseBlockingTasks.Remove(tasks[task]);
+                if (_databaseBlockingTasks.Count is 0)
+                {
+                    taskSource.TrySetResult();
+                    _databaseTaskSource = null;
+                    _databaseTasksChangedCTS = null;
+
+                    Task.Run(() => DatabaseBlockedChanged?.Invoke(this, new() { IsBlocked = false }));
+                    return;
+                }
+
+                changedSignal = _databaseTasksChangedCTS = new();
+                tasks = _databaseBlockingTasks.ToArray();
+            }
+        }
     }
 
     #endregion

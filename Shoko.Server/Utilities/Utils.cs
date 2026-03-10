@@ -145,18 +145,6 @@ public static partial class Utils
         LogManager.ReconfigExistingLoggers();
     }
 
-    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
-
-    public static void ShowErrorMessage(Exception ex, string message = null)
-    {
-        _logger.Error(ex, message);
-    }
-
-    public static void ShowErrorMessage(string msg)
-    {
-        _logger.Error(msg);
-    }
-
     public static string GetApplicationVersion()
     {
         var version = Assembly.GetExecutingAssembly().GetName().Version!;

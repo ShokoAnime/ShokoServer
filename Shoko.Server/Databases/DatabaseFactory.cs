@@ -1,10 +1,11 @@
 ﻿using NHibernate;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Databases;
 
-public class DatabaseFactory
+public class DatabaseFactory(SystemService systemService)
 {
     private readonly object _sessionLock = new();
     private ISessionFactory _sessionFactory;
@@ -35,11 +36,11 @@ public class DatabaseFactory
 
             var settings = Utils.SettingsProvider.GetSettings();
             if (settings.Database.Type is Constants.DatabaseType.SQLServer)
-                _instance = new SQLServer();
+                _instance = new SQLServer(systemService);
             else if (settings.Database.Type is Constants.DatabaseType.MySQL)
-                _instance = new MySQL();
+                _instance = new MySQL(systemService);
             else
-                _instance = new SQLite();
+                _instance = new SQLite(systemService);
 
             return _instance;
         }

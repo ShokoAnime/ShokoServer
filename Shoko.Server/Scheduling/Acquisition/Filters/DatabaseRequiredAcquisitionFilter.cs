@@ -5,27 +5,26 @@ using Quartz;
 using Quartz.Util;
 using Shoko.Abstractions.Core;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.Scheduling.Acquisition.Filters;
 
 public class DatabaseRequiredAcquisitionFilter : IAcquisitionFilter
 {
-    private readonly ISystemService _server;
+    private readonly ISystemService _systemService;
 
     private readonly Type[] _types;
 
-    public DatabaseRequiredAcquisitionFilter(ISystemService server)
+    public DatabaseRequiredAcquisitionFilter(ISystemService systemService)
     {
-        _server = server;
-        _server.AboutToStart += ServerOnDBSetupCompleted;
+        _systemService = systemService;
+        _systemService.DatabaseBlockedChanged += ServerOnDBSetupCompleted;
         _types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a =>
             typeof(IJob).IsAssignableFrom(a) && !a.IsAbstract && ObjectUtils.IsAttributePresent(a, typeof(DatabaseRequiredAttribute))).ToArray();
     }
 
     ~DatabaseRequiredAcquisitionFilter()
     {
-        _server.AboutToStart -= ServerOnDBSetupCompleted;
+        _systemService.DatabaseBlockedChanged -= ServerOnDBSetupCompleted;
     }
 
     private void ServerOnDBSetupCompleted(object sender, EventArgs e)
@@ -33,7 +32,7 @@ public class DatabaseRequiredAcquisitionFilter : IAcquisitionFilter
         StateChanged?.Invoke(null, EventArgs.Empty);
     }
 
-    public IEnumerable<Type> GetTypesToExclude() => ServerState.Instance.ServerOnline && !ServerState.Instance.DatabaseBlocked.Blocked ? Array.Empty<Type>() : _types;
+    public IEnumerable<Type> GetTypesToExclude() => _systemService.IsDatabaseBlocked ? _types : [];
 
     public event EventHandler StateChanged;
 }

@@ -6,17 +6,26 @@ using Microsoft.Extensions.Options;
 using Quartz;
 using Quartz.Simpl;
 using Quartz.Spi;
+using Shoko.Abstractions.Core;
 using Shoko.Server.Scheduling.GenericJobBuilder;
 using Shoko.Server.Scheduling.Jobs;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.Scheduling;
 
 public class JobFactory : MicrosoftDependencyInjectionJobFactory
 {
+    private readonly ISystemService _systemService;
     private readonly IServiceProvider _serviceProvider;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<JobFactory> _logger;
+
+    public JobFactory(IServiceProvider serviceProvider, IOptions<QuartzOptions> options, ISystemService systemService, ILoggerFactory loggerFactory, ILogger<JobFactory> logger) : base(serviceProvider, options)
+    {
+        _systemService = systemService;
+        _serviceProvider = serviceProvider;
+        _loggerFactory = loggerFactory;
+        _logger = logger;
+    }
 
     // Used by Quartz
     public override IJob NewJob(TriggerFiredBundle bundle, IScheduler scheduler)
@@ -30,7 +39,7 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
             {
                 // This is used to make a logger with a useful name
                 baseJob._logger = _loggerFactory.CreateLogger(bundle.JobDetail.Key.Name.Replace(".", "․"));
-                if (ServerState.Instance.DatabaseAvailable) baseJob.PostInit();
+                if (_systemService.IsStarted) baseJob.PostInit();
             }
             else if (job.GetType().Name.Equals("ScopedJob"))
             {
@@ -39,7 +48,7 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
                 var innerJob = innerJobProperty.GetValue(job) as IJob;
                 if (innerJob is not BaseJob innerBaseJob) return job;
                 innerBaseJob._logger = _loggerFactory.CreateLogger(bundle.JobDetail.Key.Name.Replace(".", "․"));
-                if (ServerState.Instance.DatabaseAvailable) innerBaseJob.PostInit();
+                if (_systemService.IsStarted) innerBaseJob.PostInit();
             }
             return job;
         }
@@ -63,7 +72,7 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
             {
                 // This is used to make a logger with a useful name
                 baseJob._logger = _loggerFactory.CreateLogger(jobKey.Name.Replace(".", "․"));
-                if (ServerState.Instance.DatabaseAvailable) baseJob.PostInit();
+                if (_systemService.IsStarted) baseJob.PostInit();
             }
             return job;
         }
@@ -83,19 +92,12 @@ public class JobFactory : MicrosoftDependencyInjectionJobFactory
             if (_serviceProvider.GetService(type) is not BaseJob job) return null;
             SetObjectProperties(job, jobDetails.JobDataMap);
             job._logger = _loggerFactory.CreateLogger(jobDetails.Key.Name);
-            if (ServerState.Instance.DatabaseAvailable) job.PostInit();
+            if (_systemService.IsStarted) job.PostInit();
             return job;
         }
         catch
         {
             return null;
         }
-    }
-
-    public JobFactory(IServiceProvider serviceProvider, IOptions<QuartzOptions> options, ILoggerFactory loggerFactory, ILogger<JobFactory> logger) : base(serviceProvider, options)
-    {
-        _serviceProvider = serviceProvider;
-        _loggerFactory = loggerFactory;
-        _logger = logger;
     }
 }

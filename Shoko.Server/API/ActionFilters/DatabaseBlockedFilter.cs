@@ -1,17 +1,17 @@
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Web.Attributes;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.API.ActionFilters;
 
-public class DatabaseBlockedFilter : IActionFilter
+public class DatabaseBlockedFilter(ISystemService systemService) : IActionFilter
 {
     public void OnActionExecuting(ActionExecutingContext context)
     {
         var exempt = context.ActionDescriptor.EndpointMetadata.OfType<DatabaseBlockedExemptAttribute>().Any();
-        if (ServerState.Instance.DatabaseBlocked.Blocked && !exempt)
+        if (systemService.IsDatabaseBlocked && !exempt)
         {
             context.Result = new BadRequestObjectResult("Database is Blocked");
         }

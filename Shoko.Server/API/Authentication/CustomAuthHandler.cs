@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
@@ -6,21 +6,25 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Shoko.Abstractions.Core;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.API.Authentication;
 
 public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
 {
+    private readonly ISystemService _systemService;
+
     private readonly AuthTokensRepository _authTokens;
+
     private readonly JMMUserRepository _users;
 
-    public CustomAuthHandler(IOptionsMonitor<CustomAuthOptions> options, ILoggerFactory logger, UrlEncoder encoder, AuthTokensRepository authTokens, JMMUserRepository users)
+    public CustomAuthHandler(IOptionsMonitor<CustomAuthOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemService systemService, AuthTokensRepository authTokens, JMMUserRepository users)
         : base(options, logger, encoder)
     {
+        _systemService = systemService;
         _authTokens = authTokens;
         _users = users;
     }
@@ -29,19 +33,22 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!ServerState.Instance.ServerOnline)
+        if (!_systemService.IsStarted)
         {
-            var initPrincipal = new ClaimsPrincipal(new ClaimsIdentity(
-                new[]
-                {
-                    new Claim(ClaimTypes.Role, "init"),
-                    new Claim(ClaimTypes.NameIdentifier, InitUser.Instance.JMMUserID.ToString()),
-                    new Claim(ClaimTypes.AuthenticationMethod, "init")
-                }, CustomAuthOptions.DefaultScheme));
-            initPrincipal.AddIdentity(new ClaimsIdentity(InitUser.Instance));
+            // In setup mode or if setup fails, give access to any APIs with the setup role.
+            if (_systemService.InSetupMode || _systemService.StartupFailedException is not null)
+            {
+                var initPrincipal = new ClaimsPrincipal(new ClaimsIdentity(
+                    [
+                        new(ClaimTypes.Role, "init"),
+                        new(ClaimTypes.NameIdentifier, InitUser.Instance.JMMUserID.ToString()),
+                        new(ClaimTypes.AuthenticationMethod, "init")
+                    ], CustomAuthOptions.DefaultScheme));
+                initPrincipal.AddIdentity(new(InitUser.Instance));
+                return Task.FromResult(AuthenticateResult.Success(new(initPrincipal, Options.Scheme)));
+            }
 
-            return Task.FromResult(AuthenticateResult.Success(
-                new AuthenticationTicket(initPrincipal, Options.Scheme)));
+            return Task.FromResult(AuthenticateResult.Fail("Server not fully started yet"));
         }
 
         // Get Authorization header value and join with the query
@@ -92,7 +99,7 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
 
     private (JMMUser user, AuthTokens apikey) GetUserForKey(string ctx)
     {
-        if (!(ServerState.Instance?.ServerOnline ?? false))
+        if (!_systemService.IsStarted)
         {
             return (null, null);
         }

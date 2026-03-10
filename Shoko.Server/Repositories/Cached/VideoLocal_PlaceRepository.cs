@@ -6,7 +6,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
@@ -44,7 +43,7 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place,
 
     public override void RegenerateDb()
     {
-        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal_Place)} Removing orphaned VideoLocal_Places...";
+        SystemService.StartupMessage = $"Database - Validating - {nameof(VideoLocal_Place)} Removing orphaned VideoLocal_Places...";
         var entries = Cache.Values.Where(a => a is { VideoID: 0 } or { ManagedFolderID: 0 } or { RelativePath: null or "" }).ToList();
         var total = entries.Count;
         var current = 0;
@@ -56,7 +55,7 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place,
             {
                 DeleteWithOpenTransaction(session, entry);
                 current++;
-                ServerState.Instance.ServerStartingStatus =
+                SystemService.StartupMessage =
                     $"Database - Validating - {nameof(VideoLocal_Place)} Removing Orphaned VideoLocal_Places - {current}/{total}...";
             }
 

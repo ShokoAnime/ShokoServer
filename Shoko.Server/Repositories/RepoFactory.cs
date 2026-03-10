@@ -10,7 +10,7 @@ using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Repositories.Direct.TMDB;
 using Shoko.Server.Repositories.Direct.TMDB.Optional;
 using Shoko.Server.Repositories.Direct.TMDB.Text;
-using Shoko.Server.Server;
+using Shoko.Server.Services;
 
 // ReSharper disable InconsistentNaming
 
@@ -20,6 +20,7 @@ namespace Shoko.Server.Repositories;
 public class RepoFactory
 {
     private readonly ILogger<RepoFactory> _logger;
+    private readonly SystemService _systemService;
     private readonly ICachedRepository[] _cachedRepositories;
 
     public static AniDB_Anime_CharacterRepository AniDB_Anime_Character;
@@ -96,6 +97,7 @@ public class RepoFactory
 
     public RepoFactory(
         ILogger<RepoFactory> logger,
+        SystemService systemService,
         IEnumerable<ICachedRepository> repositories,
         AniDB_Anime_CharacterRepository anidbAnimeCharacter,
         AniDB_Anime_Character_CreatorRepository anidbAnimeCharacterCreator,
@@ -171,6 +173,7 @@ public class RepoFactory
     )
     {
         _logger = logger;
+        _systemService = systemService;
         _cachedRepositories = repositories.ToArray();
         AniDB_Anime = anidbAnime;
         AniDB_Anime_Character = anidbAnimeCharacter;
@@ -270,10 +273,10 @@ public class RepoFactory
         // Update Contracts if necessary
         try
         {
-            _logger.LogInformation("Starting Server: RepoFactory.PostInit()");
+            _systemService.StartupMessage = "RepoFactory.PostInit()";
             foreach (var repo in _cachedRepositories)
             {
-                ServerState.Instance.ServerStartingStatus = $"Database - Validating - {repo.GetType().Name.Replace("Repository", "")} Database Regeneration...";
+                _systemService.StartupMessage = $"Database - Validating - {repo.GetType().Name.Replace("Repository", "")} Database Regeneration...";
                 repo.RegenerateDb();
             }
 

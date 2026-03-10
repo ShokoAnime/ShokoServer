@@ -49,7 +49,7 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
     public override void PostProcess()
     {
         // Clean up. This will populate empty conditions and remove duplicate filters
-        ServerState.Instance.ServerStartingStatus = "Database - Validating - FilterPreset Cleaning Up Group Filters...";
+        SystemService.StartupMessage = "Database - Validating - FilterPreset Cleaning Up Group Filters...";
         var all = GetAll();
         var set = new HashSet<FilterPreset>(all);
         var notIn = all.Except(set).ToList();
@@ -60,7 +60,7 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
     {
         var lockedGFs = GetLockedGroupFilters();
 
-        ServerState.Instance.ServerStartingStatus = $"Database - Validating - FilterPreset Validating Filters...";
+        SystemService.StartupMessage = $"Database - Validating - FilterPreset Validating Filters...";
 
         if (!lockedGFs.Any(a => a.Name == Constants.GroupFilterName.ContinueWatching))
         {

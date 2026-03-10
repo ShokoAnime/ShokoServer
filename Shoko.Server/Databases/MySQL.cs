@@ -10,6 +10,7 @@ using NHibernate.Driver.MySqlConnector;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
@@ -17,7 +18,7 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Databases;
 
-public class MySQL : BaseDatabase<MySqlConnection>
+public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(systemService)
 {
     public override string Name { get; } = "MySQL";
 
@@ -171,7 +172,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
 
         return Fluently.Configure()
             .Database(connectionConfig)
-            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ServerState>())
+            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<SystemService>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
                 prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
@@ -256,7 +257,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
 
             if (create)
             {
-                ServerState.Instance.ServerStartingStatus = "Database - Creating Initial Schema...";
+                SystemService.StartupMessage = "Database - Creating Initial Schema...";
                 ExecuteWithException(myConn, _createVersionTable);
             }
 
@@ -278,7 +279,7 @@ public class MySQL : BaseDatabase<MySqlConnection>
                 ExecuteWithException(myConn, _linuxTableFixes);
             }
 
-            ServerState.Instance.ServerStartingStatus = "Database - Applying Schema Patches...";
+            SystemService.StartupMessage = "Database - Applying Schema Patches...";
 
             ExecuteWithException(myConn, _patchCommands);
         });

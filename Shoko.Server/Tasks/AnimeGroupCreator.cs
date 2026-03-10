@@ -15,7 +15,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Scheduling;
-using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
@@ -27,6 +26,7 @@ public class AnimeGroupCreator
     private const int DefaultBatchSize = 50;
     public const string TempGroupName = "AAA Migrating Groups AAA";
     private static readonly Regex _truncateYearRegex = new(@"\s*\(\d{4}\)$");
+    private readonly SystemService _systemService;
     private readonly QueueHandler _queueHandler;
     private readonly AnimeGroupService _groupService;
     private readonly AniDB_AnimeRepository _aniDbAnimeRepo;
@@ -42,10 +42,20 @@ public class AnimeGroupCreator
     /// <remarks>
     /// Uses the current server configuration to determine if auto grouping series is enabled.
     /// </remarks>
-    public AnimeGroupCreator(ISettingsProvider settingsProvider, QueueHandler queueHandler, ILogger<AnimeGroupCreator> logger, DatabaseFactory databaseFactory,
-        AniDB_AnimeRepository aniDbAnimeRepo, AnimeSeriesRepository animeSeriesRepo, AnimeGroupRepository animeGroupRepo,
-        AnimeGroup_UserRepository animeGroupUserRepo, AnimeGroupService groupService)
+    public AnimeGroupCreator(
+        SystemService systemService,
+        ISettingsProvider settingsProvider,
+        QueueHandler queueHandler,
+        ILogger<AnimeGroupCreator> logger,
+        DatabaseFactory databaseFactory,
+        AniDB_AnimeRepository aniDbAnimeRepo,
+        AnimeSeriesRepository animeSeriesRepo,
+        AnimeGroupRepository animeGroupRepo,
+        AnimeGroup_UserRepository animeGroupUserRepo,
+        AnimeGroupService groupService
+    )
     {
+        _systemService = systemService;
         _queueHandler = queueHandler;
         _logger = logger;
         _databaseFactory = databaseFactory;
@@ -91,11 +101,6 @@ public class AnimeGroupCreator
     /// <param name="tempGroupId">The ID of the temporary anime group to use for migration.</param>
     private async Task ClearGroupsAndDependencies(ISessionWrapper session, int tempGroupId)
     {
-        ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo
-        {
-            Blocked = true,
-            Status = "Removing existing AnimeGroups and resetting GroupFilters"
-        };
         _logger.LogInformation("Removing existing AnimeGroups and resetting GroupFilters");
 
         await _animeGroupUserRepo.DeleteAll(session);
@@ -116,9 +121,6 @@ public class AnimeGroupCreator
     private async Task UpdateAnimeSeriesContractsAndSave(ISessionWrapper session,
         IReadOnlyCollection<AnimeSeries> series)
     {
-        ServerState.Instance.DatabaseBlocked =
-            new ServerState.DatabaseBlockedInfo { Blocked = true, Status = "Updating contracts for AnimeSeries" };
-
         await _animeSeriesRepo.UpdateBatch(session, series);
         _logger.LogInformation("AnimeSeries contracts have been updated");
     }
@@ -146,22 +148,6 @@ public class AnimeGroupCreator
     }
 
     /// <summary>
-    /// Updates all Group Filters. This should be done as the last step.
-    /// </summary>
-    /// <remarks>
-    /// Assumes that all caches are up to date.
-    /// </remarks>
-    private void UpdateGroupFilters()
-    {
-        _logger.LogInformation("Updating Group Filters");
-        _logger.LogInformation("Calculating Tag Filters");
-        ServerState.Instance.DatabaseBlocked =
-            new ServerState.DatabaseBlockedInfo { Blocked = true, Status = "Calculating Tag Filters" };
-
-        _logger.LogInformation("Group Filters updated");
-    }
-
-    /// <summary>
     /// Creates a single <see cref="AnimeGroup"/> for each <see cref="AnimeSeries"/> in <paramref name="seriesList"/>.
     /// </summary>
     /// <param name="session"></param>
@@ -169,11 +155,6 @@ public class AnimeGroupCreator
     /// <returns>A sequence of the created <see cref="AnimeGroup"/>s.</returns>
     private async Task<IEnumerable<AnimeGroup>> CreateGroupPerSeries(ISessionWrapper session, IReadOnlyList<AnimeSeries> seriesList)
     {
-        ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo
-        {
-            Blocked = true,
-            Status = "Auto-generating Groups with 1 group per series"
-        };
         _logger.LogInformation("Generating AnimeGroups for {Count} AnimeSeries", seriesList.Count);
 
         var now = DateTime.Now;
@@ -214,11 +195,6 @@ public class AnimeGroupCreator
     /// <returns>A sequence of the created <see cref="AnimeGroup"/>s.</returns>
     private async Task<IEnumerable<AnimeGroup>> AutoCreateGroupsWithRelatedSeries(ISessionWrapper session, IReadOnlyCollection<AnimeSeries> seriesList)
     {
-        ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo
-        {
-            Blocked = true,
-            Status = "Auto-generating Groups based on Relation Trees"
-        };
         _logger.LogInformation("Auto-generating AnimeGroups for {Count} AnimeSeries based on aniDB relationships", seriesList.Count);
 
         var now = DateTime.Now;
@@ -445,14 +421,13 @@ public class AnimeGroupCreator
         }
 
         var paused = _queueHandler.Paused;
+        var taskSource = new TaskCompletionSource();
+        _systemService.AddDatabaseBlockingTask(taskSource.Task);
 
         try
         {
             // Pause queues
             if (!paused) await _queueHandler.Pause();
-
-            ServerState.Instance.DatabaseBlocked =
-                new ServerState.DatabaseBlockedInfo { Blocked = true, Status = "Beginning re-creation of all groups" };
             _logger.LogInformation("Beginning re-creation of all groups");
 
             var animeSeries = _animeSeriesRepo.GetAll();
@@ -490,9 +465,8 @@ public class AnimeGroupCreator
             _animeGroupRepo.Populate(session, false);
             _animeGroupUserRepo.Populate(session, false);
 
-            UpdateGroupFilters();
-
             _logger.LogInformation("Successfully completed re-creating all groups");
+            taskSource.SetResult();
         }
         catch (Exception e)
         {
@@ -510,11 +484,11 @@ public class AnimeGroupCreator
                 _logger.LogWarning(ie, "Failed to re-populate caches");
             }
 
+            taskSource.SetException(e);
             throw;
         }
         finally
         {
-            ServerState.Instance.DatabaseBlocked = new ServerState.DatabaseBlockedInfo();
             // Un-pause queues (if they were previously running)
             if (!paused) await _queueHandler.Resume();
         }
@@ -557,10 +531,6 @@ public class AnimeGroupCreator
         _animeGroupRepo.Cache.Update(group);
         var groupsUsers = _animeGroupUserRepo.GetByGroupID(group.AnimeGroupID);
         groupsUsers.ForEach(_animeGroupUserRepo.Cache.Update);
-
-        // update filters
-        _logger.LogInformation("Recalculating Filters for Group: {Name} ({ID})", group.GroupName, group.AnimeGroupID);
-        UpdateGroupFilters();
 
         _logger.LogInformation("Done Recalculating Stats and Contracts for Group: {Name} ({ID})", group.GroupName, group.AnimeGroupID);
     }

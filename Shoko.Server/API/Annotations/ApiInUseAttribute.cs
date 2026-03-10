@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Timers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.API.Annotations;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
 public class ApiInUseAttribute : Attribute, IAlwaysRunResultFilter
 {
+    internal static bool IsInUse { get; private set; }
+
     static ApiInUseAttribute()
     {
         ConnectionTimer.Elapsed += TimerElapsed;
@@ -31,7 +32,7 @@ public class ApiInUseAttribute : Attribute, IAlwaysRunResultFilter
         lock (OpenConnections)
         {
             OpenConnections.Add(ctx.Connection.Id);
-            ServerState.Instance.ApiInUse = OpenConnections.Count > 0;
+            IsInUse = OpenConnections.Count > 0;
         }
     }
 
@@ -58,7 +59,7 @@ public class ApiInUseAttribute : Attribute, IAlwaysRunResultFilter
     {
         lock (OpenConnections)
         {
-            ServerState.Instance.ApiInUse = OpenConnections.Count > 0;
+            IsInUse = OpenConnections.Count > 0;
         }
     }
 

@@ -1,22 +1,21 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NLog.Extensions.Logging;
+using Shoko.Abstractions.Core.Events;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
 
 namespace Shoko.CLI;
 
 public static class Program
 {
     private static ILogger _logger = null!;
-    public static async Task<int> Main(string[] args)
+
+    public static async Task<int> Main()
     {
         try
         {
@@ -26,31 +25,26 @@ public static class Program
         {
             Console.WriteLine(ex.ToString());
         }
-        Utils.SetInstance();
-        Utils.InitLogger();
-        var logFactory = LoggerFactory.Create(o => o.AddNLog());
-        _logger = logFactory.CreateLogger("Main");
 
-        try
-        {
-            var startup = new SystemService(logFactory);
-            startup.AboutToStart += (_, args) => AddEventHandlers(args.ServiceProvider);
-            await startup.StartAsync();
-            await startup.WaitForShutdown();
-            if (startup.RestartPending)
-                return 140; // Custom restart exit code.
-            return 0;
-        }
-        catch (Exception e)
-        {
-            _logger.LogCritical(e, "The server failed to start");
-            return -1;
-        }
+        var systemService = new SystemService();
+        systemService.StartupFailed += OnStartupFailed;
+        systemService.AboutToStart += (_, args) => AddEventHandlers(args.ServiceProvider);
+        var host = await systemService.StartAsync();
+        if (host is null)
+            return 1;
+
+        await systemService.WaitForShutdownAsync();
+        if (systemService.RestartPending)
+            return 140; // Custom restart exit code.
+        if (systemService.StartupFailedException is not null)
+            return 1;
+        return 0;
     }
 
     private static void AddEventHandlers(IServiceProvider provider)
     {
-        ServerState.Instance.PropertyChanged += OnInstanceOnPropertyChanged;
+        var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+        _logger = loggerFactory.CreateLogger("Main");
         var queueStateEventHandler = provider.GetRequiredService<QueueStateEventHandler>();
         queueStateEventHandler.QueueItemsAdded += QueueStateEventHandlerOnQueueItemAdded;
         queueStateEventHandler.ExecutingJobsChanged += ExecutingJobsStateEventHandlerOnExecutingJobsChanged;
@@ -96,9 +90,8 @@ public static class Program
             e.BlockedJobsCount, e.ExecutingItems?.Count ?? 0, e.ThreadCount, e.TotalJobsCount);
     }
 
-    private static void OnInstanceOnPropertyChanged(object? _, PropertyChangedEventArgs e)
+    private static void OnStartupFailed(object? _, StartupFailedEventArgs args)
     {
-        if (e.PropertyName == "StartupFailedMessage" && ServerState.Instance.StartupFailed)
-            Console.WriteLine(@"Startup failed! Error message: " + ServerState.Instance.StartupFailedMessage);
+        Console.WriteLine(@"Startup failed! Error message: " + args.Exception.Message);
     }
 }

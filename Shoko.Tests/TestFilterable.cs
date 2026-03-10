@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Filtering;
-using Shoko.Server.Server;
 
 namespace Shoko.Tests;
 

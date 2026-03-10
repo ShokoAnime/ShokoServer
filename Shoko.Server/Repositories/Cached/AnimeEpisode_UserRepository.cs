@@ -3,7 +3,6 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
@@ -34,7 +33,7 @@ public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : Base
         var current = 0;
         var records = Cache.Values.Where(a => a.AnimeEpisode_UserID == 0).ToList();
         var total = records.Count;
-        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(AnimeEpisode_User)} Database Regeneration...";
+        SystemService.StartupMessage = $"Database - Validating - {nameof(AnimeEpisode_User)} Database Regeneration...";
         if (total is 0)
             return;
 
@@ -43,11 +42,11 @@ public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : Base
             Save(record);
             current++;
             if (current % 10 == 0)
-                ServerState.Instance.ServerStartingStatus =
+                SystemService.StartupMessage =
                     $"Database - Validating - {nameof(AnimeEpisode_User)} Database Regeneration - {current}/{total}...";
         }
 
-        ServerState.Instance.ServerStartingStatus =
+        SystemService.StartupMessage =
             $"Database - Validating - {nameof(AnimeEpisode_User)} Database Regeneration - {total}/{total}...";
     }
 

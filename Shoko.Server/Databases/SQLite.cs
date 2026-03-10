@@ -12,13 +12,14 @@ using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Databases.SqliteFixes;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
 
 namespace Shoko.Server.Databases;
 
-public class SQLite : BaseDatabase<SqliteConnection>
+public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection>(systemService)
 {
     public override string Name => "SQLite";
 
@@ -128,7 +129,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
                 .Dialect<SqliteDialectFix>()
                 .Driver<SqliteDriverFix>()
             )
-            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<ServerState>())
+            .Mappings(m => m.FluentMappings.AddFromAssemblyOf<SystemService>())
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
                 prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
@@ -175,7 +176,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
                 ExecuteScalar(myConn, "SELECT count(*) as NumTables FROM sqlite_master WHERE name='Versions'") == 0;
             if (create)
             {
-                ServerState.Instance.ServerStartingStatus = "Database - Creating Initial Schema...";
+                SystemService.StartupMessage = "Database - Creating Initial Schema...";
                 ExecuteWithException(myConn, _createVersionTable);
             }
 
@@ -191,7 +192,7 @@ public class SQLite : BaseDatabase<SqliteConnection>
                 ExecuteWithException(myConn, _createTables);
             }
 
-            ServerState.Instance.ServerStartingStatus = "Database - Applying Schema Patches...";
+            SystemService.StartupMessage = "Database - Applying Schema Patches...";
             ExecuteWithException(myConn, _patchCommands);
         });
     }

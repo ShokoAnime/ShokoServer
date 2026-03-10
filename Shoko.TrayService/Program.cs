@@ -1,16 +1,25 @@
 using System;
 using Avalonia;
+using Shoko.Server.Server;
 
 namespace Shoko.TrayService;
 
 public static class Program
 {
     [STAThread]
-    public static void Main(string[] args) =>
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
-
-    public static AppBuilder BuildAvaloniaApp() =>
-        AppBuilder.Configure<App>()
+    public static int Main(string[] args)
+    {
+        try
+        {
+            UnhandledExceptionManager.AddHandler();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+        }
+        return AppBuilder.Configure<App>()
             .UsePlatformDetect()
-            .LogToTrace();
+            .LogToTrace()
+            .StartWithClassicDesktopLifetime(args);
+    }
 }

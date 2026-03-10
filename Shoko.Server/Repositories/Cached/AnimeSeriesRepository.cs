@@ -13,7 +13,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Server;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 
@@ -70,7 +69,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
     {
         try
         {
-            ServerState.Instance.ServerStartingStatus =
+            SystemService.StartupMessage =
                 $"Database - Validating - {nameof(AnimeSeries)} Database Regeneration - Caching Titles & Overview...";
             foreach (var series in Cache.Values.ToList())
             {
@@ -81,7 +80,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
 
             var sers = Cache.Values.Where(a => a.AnimeGroupID == 0 || RepoFactory.AnimeGroup.GetByID(a.AnimeGroupID) == null).ToList();
             var max = sers.Count;
-            ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(AnimeSeries)} Database Regeneration - Ensuring Groups Exist...";
+            SystemService.StartupMessage = $"Database - Validating - {nameof(AnimeSeries)} Database Regeneration - Ensuring Groups Exist...";
 
             var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
             for (var i = 0; i < max; i++)
@@ -99,11 +98,11 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
                 }
 
                 if (i % 10 != 0) continue;
-                ServerState.Instance.ServerStartingStatus =
+                SystemService.StartupMessage =
                     $"Database - Validating - {nameof(AnimeSeries)} DbRegen - Ensuring Groups Exist - {i}/{max}...";
             }
 
-            ServerState.Instance.ServerStartingStatus =
+            SystemService.StartupMessage =
                 $"Database - Validating - {nameof(AnimeSeries)} DbRegen - Ensuring Groups Exist - {max}/{max}...";
         }
         catch (Exception e)

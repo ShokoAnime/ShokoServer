@@ -15,7 +15,6 @@ using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
-using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
@@ -63,7 +62,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
 
     public override void RegenerateDb()
     {
-        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Checking Media Info...";
+        SystemService.StartupMessage = $"Database - Validating - {nameof(VideoLocal)} Checking Media Info...";
         var count = 0;
         int max;
         IReadOnlyList<VideoLocal> list;
@@ -79,7 +78,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
                 {
                     scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = a.VideoLocalID).GetAwaiter().GetResult();
                     count++;
-                    ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Queuing Media Info Commands - {count}/{max}...";
+                    SystemService.StartupMessage = $"Database - Validating - {nameof(VideoLocal)} Queuing Media Info Commands - {count}/{max}...";
                 }
             );
         }
@@ -92,7 +91,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
             .GroupBy(a => a.Hash)
             .ToDictionary(g => g.Key, g => g.ToList());
-        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Cleaning Empty Records...";
+        SystemService.StartupMessage = $"Database - Validating - {nameof(VideoLocal)} Cleaning Empty Records...";
         using var session = _databaseFactory.SessionFactory.OpenSession();
         using (var transaction = session.BeginTransaction())
         {
@@ -103,7 +102,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             {
                 RepoFactory.VideoLocal.DeleteWithOpenTransaction(session, remove);
                 count++;
-                ServerState.Instance.ServerStartingStatus =
+                SystemService.StartupMessage =
                     $"Database - Validating - {nameof(VideoLocal)} Cleaning Empty Records - {count}/{max}...";
             }
 
@@ -113,7 +112,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
         var toRemove = new List<VideoLocal>();
         var comparer = new VideoLocalComparer();
 
-        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Checking for Duplicate Records...";
+        SystemService.StartupMessage = $"Database - Validating - {nameof(VideoLocal)} Checking for Duplicate Records...";
 
         foreach (var hash in locals.Keys)
         {
@@ -150,7 +149,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             foreach (var remove in batch)
             {
                 count++;
-                ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(VideoLocal)} Cleaning Duplicate Records - {count}/{max}...";
+                SystemService.StartupMessage = $"Database - Validating - {nameof(VideoLocal)} Cleaning Duplicate Records - {count}/{max}...";
                 DeleteWithOpenTransaction(session, remove);
             }
 

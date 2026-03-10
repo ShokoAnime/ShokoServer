@@ -35,7 +35,6 @@ using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
@@ -147,6 +146,7 @@ public class DatabaseFixes
 
     public static void RefreshAniDBInfoFromXML()
     {
+        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
         var i = 0;
         var list = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.Description))
             .Select(a => a.AnimeID).Distinct().ToList();
@@ -156,7 +156,7 @@ public class DatabaseFixes
         {
             if (i % 10 == 0)
             {
-                ServerState.Instance.ServerStartingStatus = $"Database - Validating - Populating AniDB Info from Cache {i}/{list.Count}...";
+                systemService.StartupMessage = $"Database - Validating - Populating AniDB Info from Cache {i}/{list.Count}...";
             }
 
             i++;
@@ -654,12 +654,13 @@ public class DatabaseFixes
 
     public static void RepairMissingTMDBPersons()
     {
+        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
         var service = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
         var missingIds = new HashSet<int>();
         var updateCount = 0;
         var skippedCount = 0;
         var peopleIds = RepoFactory.TMDB_Person.GetAll().Select(person => person.TmdbPersonID).ToHashSet();
-        var str = ServerState.Instance.ServerStartingStatus;
+        var str = systemService.StartupMessage ?? "";
         foreach (var person in RepoFactory.TMDB_Episode_Cast.GetAll())
             if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
         foreach (var person in RepoFactory.TMDB_Episode_Crew.GetAll())
@@ -670,7 +671,7 @@ public class DatabaseFixes
         foreach (var person in RepoFactory.TMDB_Movie_Crew.GetAll())
             if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
 
-        ServerState.Instance.ServerStartingStatus = $"{str} - 0 / {missingIds.Count}";
+        systemService.StartupMessage = $"{str} - 0 / {missingIds.Count}";
         _logger.Debug("Found {Count} unique missing TMDB People for Episode & Movie staff", missingIds.Count);
         foreach (var personId in missingIds)
         {
@@ -679,7 +680,7 @@ public class DatabaseFixes
                 updateCount++;
             else
                 skippedCount++;
-            ServerState.Instance.ServerStartingStatus = $"{str} - {updateCount + skippedCount} / {missingIds.Count}";
+            systemService.StartupMessage = $"{str} - {updateCount + skippedCount} / {missingIds.Count}";
         }
 
         _logger.Info("Updated missing TMDB People: Found/Updated/Skipped {Found}/{Updated}/{Skipped}",
@@ -688,13 +689,14 @@ public class DatabaseFixes
 
     public static void RecreateAnimeCharactersAndCreators()
     {
+        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
         var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
         var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
         var animeCreator = Utils.ServiceContainer.GetRequiredService<AnimeCreator>();
         var anidbService = Utils.ServiceContainer.GetRequiredService<IAnidbService>();
         var animeList = RepoFactory.AniDB_Anime.GetAll();
-        var str = ServerState.Instance.ServerStartingStatus;
-        ServerState.Instance.ServerStartingStatus = $"{str} - 0 / {animeList.Count}";
+        var str = systemService.StartupMessage ?? "";
+        systemService.StartupMessage = $"{str} - 0 / {animeList.Count}";
         _logger.Info($"Recreating characters and creator relations for {animeList.Count} anidb anime entries...");
 
         var count = 0;
@@ -703,7 +705,7 @@ public class DatabaseFixes
             if (++count % 10 == 0)
             {
                 _logger.Info($"Recreating characters and creator relations for anidb anime entries... ({count}/{animeList.Count})");
-                ServerState.Instance.ServerStartingStatus = $"{str} - {count} / {animeList.Count}";
+                systemService.StartupMessage = $"{str} - {count} / {animeList.Count}";
             }
 
             var xml = xmlUtils.LoadAnimeHTTPFromFile(anime.AnimeID).Result;
@@ -744,13 +746,14 @@ public class DatabaseFixes
 
     public static void ScheduleTmdbImageUpdates()
     {
+        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
         var tmdbMetadataService = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
         var tmdbMovies = RepoFactory.TMDB_Movie.GetAll();
         var tmdbShows = RepoFactory.TMDB_Show.GetAll();
         var movies = tmdbMovies.Count;
         var shows = tmdbShows.Count;
-        var str = ServerState.Instance.ServerStartingStatus;
-        ServerState.Instance.ServerStartingStatus = $"{str} - 0 / {movies} movies - 0 / {shows} shows";
+        var str = systemService.StartupMessage ?? string.Empty;
+        systemService.StartupMessage = $"{str} - 0 / {movies} movies - 0 / {shows} shows";
         _logger.Info($"Scheduling tmdb image updates for {movies} tmdb movies and {shows} tmdb shows...");
 
         var count = 0;
@@ -759,7 +762,7 @@ public class DatabaseFixes
             if (++count % 10 == 0 || count == movies)
             {
                 _logger.Info($"Scheduling tmdb image updates for tmdb movies... ({count}/{movies})");
-                ServerState.Instance.ServerStartingStatus = $"{str} - {count} / {movies} movies - 0 / {shows} shows";
+                systemService.StartupMessage = $"{str} - {count} / {movies} movies - 0 / {shows} shows";
             }
 
             tmdbMetadataService.ScheduleDownloadAllMovieImages(tmdbMovie.Id)
@@ -773,7 +776,7 @@ public class DatabaseFixes
             if (++count % 10 == 0 || count == shows)
             {
                 _logger.Info($"Scheduling tmdb image updates for tmdb shows... ({count}/{shows})");
-                ServerState.Instance.ServerStartingStatus = $"{str} - {movies} / {movies} movies - {count} / {shows} shows";
+                systemService.StartupMessage = $"{str} - {movies} / {movies} movies - {count} / {shows} shows";
             }
 
             tmdbMetadataService.ScheduleDownloadAllShowImages(tmdbShow.Id)
@@ -786,13 +789,14 @@ public class DatabaseFixes
 
     public static void MoveTmdbImagesOnDisc()
     {
+        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
         var imageDir = Path.Join(ImageUtils.BaseImagesPath, "TMDB");
         if (!Directory.Exists(imageDir))
             return;
 
         var total = 0;
         var skipped = 0;
-        var str = ServerState.Instance.ServerStartingStatus;
+        var str = systemService.StartupMessage ?? string.Empty;
         var folders = Directory.GetDirectories(imageDir)
             .Where(a => a[(imageDir.Length + 1)..].Length == 2)
             .ToArray();
@@ -812,13 +816,13 @@ public class DatabaseFixes
 
                 total += files.Length;
                 _logger.Info($"Moving TMDb images on disc for folder {folderCount} out of {folders.Length}: {count}/{files.Length} ({total} total, {skipped} skipped)");
-                ServerState.Instance.ServerStartingStatus = $"{str} - {folderCount} / {folders.Length} folders - 0 / {files.Length} images - {total} total, {skipped} skipped";
+                systemService.StartupMessage = $"{str} - {folderCount} / {folders.Length} folders - 0 / {files.Length} images - {total} total, {skipped} skipped";
                 foreach (var file in files)
                 {
                     if (++count % 10 == 0 || count == files.Length)
                     {
                         _logger.Info($"Moving TMDb images on disc for folder {folderCount} out of {folders.Length}: {count}/{files.Length} ({total} total, {skipped} skipped)");
-                        ServerState.Instance.ServerStartingStatus = $"{str} - {folderCount} / {folders.Length} folders - {count} / {files.Length} images - {total} total, {skipped} skipped";
+                        systemService.StartupMessage = $"{str} - {folderCount} / {folders.Length} folders - {count} / {files.Length} images - {total} total, {skipped} skipped";
                     }
 
                     var fileExt = Path.GetExtension(file);
@@ -861,13 +865,13 @@ public class DatabaseFixes
 
             total += files.Length;
             _logger.Info($"Moving TMDb {imageType} images on disc: 0/{files.Length}");
-            ServerState.Instance.ServerStartingStatus = $"{str} - 0 / {files.Length} {imageType} images";
+            systemService.StartupMessage = $"{str} - 0 / {files.Length} {imageType} images";
             foreach (var file in files)
             {
                 if (++count % 10 == 0 || count == files.Length)
                 {
                     _logger.Info($"Moving TMDb {imageType} images on disc: {count}/{files.Length}");
-                    ServerState.Instance.ServerStartingStatus = $"{str} - {count} / {files.Length} {imageType} images";
+                    systemService.StartupMessage = $"{str} - {count} / {files.Length} {imageType} images";
                 }
 
                 var fileExt = Path.GetExtension(file);
@@ -1083,6 +1087,7 @@ public class DatabaseFixes
         RepoFactory.VideoLocalHashDigest.Save(videoLocalHashDigests);
 
         // create the releases using the above info
+        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
         var anidbProvider = Utils.ServiceContainer.GetRequiredService<IVideoReleaseService>().GetProviderInfo<AnidbReleaseProvider>();
         var potentialReleases = RepoFactory.CrossRef_File_Episode.GetAll()
             .GroupBy(x => (x.Hash, x.FileSize, crossRefTypes[x.CrossRef_File_EpisodeID]))
@@ -1092,14 +1097,14 @@ public class DatabaseFixes
         var storedReleaseInfos = new List<StoredReleaseInfo>();
         var storedReleaseInfoAttempts = new List<StoredReleaseInfo_MatchAttempt>();
         var count = 0;
-        var str = ServerState.Instance.ServerStartingStatus;
+        var str = systemService.StartupMessage ?? string.Empty;
         var creditlessRegex = AnidbReleaseProvider.CreditlessRegex;
         foreach (var groupBy in potentialReleases)
         {
             if (++count % 10000 == 0 || count == 1 || count == potentialReleases.Count)
             {
                 _logger.Info($"Converting releases: {count}/{potentialReleases.Count}");
-                ServerState.Instance.ServerStartingStatus = $"{str} - {count} / {potentialReleases.Count}";
+                systemService.StartupMessage = $"{str} - {count} / {potentialReleases.Count}";
             }
 
             var (ed2k, fileSize, source) = groupBy.Key;

@@ -2,12 +2,14 @@
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Enums;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API;
 
@@ -35,7 +37,13 @@ public static class APIHelper
 
     public static JMMUser GetUser(this ClaimsPrincipal identity)
     {
-        if (!ServerState.Instance.ServerOnline) return InitUser.Instance;
+        var systemService = Utils.ServiceContainer.GetRequiredService<ISystemService>();
+        if (!systemService.IsStarted)
+        {
+            if (systemService.InSetupMode || systemService.StartupFailedException is not null)
+                return InitUser.Instance;
+            return null;
+        }
 
         var authenticated = identity?.Identity?.IsAuthenticated ?? false;
         if (!authenticated) return null;

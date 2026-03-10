@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
@@ -11,7 +10,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Databases;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
@@ -38,7 +36,7 @@ public class InitController : BaseController
 
     public InitController(
         ILogger<InitController> logger,
-        ISystemService systemService,
+        SystemService systemService,
         ISettingsProvider settingsProvider,
         IConnectivityService connectivityService,
         IUDPConnectionHandler udpHandler,
@@ -46,7 +44,7 @@ public class InitController : BaseController
     ) : base(settingsProvider)
     {
         _logger = logger;
-        _systemService = (SystemService)systemService;
+        _systemService = systemService;
         _connectivityService = connectivityService;
         _udpHandler = udpHandler;
         _httpHandler = httpHandler;
@@ -100,41 +98,39 @@ public class InitController : BaseController
     /// This will work after init
     /// </summary>
     /// <returns></returns>
-    [Authorize(Roles = "admin,init")]
     [HttpGet("Status")]
     public ServerStatus GetServerStatus()
     {
-        var uptime = _systemService.StartedAt.HasValue
-            ? DateTime.Now - _systemService.StartedAt.Value
-            : (TimeSpan?)null;
-
         var message = (string)null;
         var state = ServerStatus.StartupState.Waiting;
-        if (ServerState.Instance.StartupFailed)
-        {
-            message = ServerState.Instance.StartupFailedMessage;
-            state = ServerStatus.StartupState.Failed;
-        }
-        else if (ServerState.Instance.ServerStarting)
-        {
-            message = ServerState.Instance.ServerStartingStatus;
-            if (message.Equals("Complete!")) message = null;
-            state = ServerStatus.StartupState.Starting;
-        }
-        else if (ServerState.Instance.ServerOnline)
+        if (_systemService.IsStarted)
         {
             state = ServerStatus.StartupState.Started;
         }
-        ServerStatus status = new ServerStatus
+        else if (_systemService.StartupFailedException is { } ex)
+        {
+            message = ex.Message;
+            state = ServerStatus.StartupState.Failed;
+        }
+        else if (!_systemService.InSetupMode)
+        {
+            message = _systemService.StartupMessage;
+            if (message.Equals("Complete!")) message = null;
+            state = ServerStatus.StartupState.Starting;
+        }
+        return new()
         {
             State = state,
             StartupMessage = message,
-            Uptime = uptime,
+            Uptime = _systemService.Uptime,
             CanShutdown = _systemService.CanShutdown,
             CanRestart = _systemService.CanRestart,
-            DatabaseBlocked = ServerState.Instance.DatabaseBlocked
+            DatabaseBlocked = new()
+            {
+                Blocked = _systemService.IsDatabaseBlocked,
+                Reason = string.Empty,
+            },
         };
-        return status;
     }
 
     /// <summary>
@@ -161,7 +157,7 @@ public class InitController : BaseController
     /// <returns></returns>
     [Authorize(Roles = "admin,init")]
     [HttpPost("Connectivity")]
-    public async Task<ActionResult<object>> CheckNetworkAvailability()
+    public async Task<ActionResult<ConnectivityDetails>> CheckNetworkAvailability()
     {
         await _connectivityService.CheckAvailability();
 
@@ -173,10 +169,7 @@ public class InitController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("InUse")]
-    public bool ApiInUse()
-    {
-        return ServerState.Instance.ApiInUse;
-    }
+    public bool ApiInUse() => ApiInUseAttribute.IsInUse;
 
     /// <summary>
     /// Gets the Default user's credentials. Will only return on first run
@@ -219,17 +212,30 @@ public class InitController : BaseController
     /// Starts the server unless it's already running.
     /// </summary>
     /// <returns></returns>
+    [Obsolete("This is now deprecated, please use CompleteSetup instead.")]
+    [Authorize("init")]
     [HttpGet("StartServer")]
-    [HttpPost("LateStart")]
     public ActionResult StartServer()
+        => CompleteSetup();
+
+    /// <summary>
+    /// Tells the server that the setup process is complete and it can start
+    /// now.
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("init")]
+    [HttpPost("CompleteSetup")]
+    public ActionResult CompleteSetup()
     {
         if (_systemService.IsStarted)
             return BadRequest("Already Running");
-        if (ServerState.Instance.ServerStarting)
+        if (_systemService.StartupFailedException is not null)
+            return BadRequest("Startup Failed");
+        if (!_systemService.InSetupMode)
             return BadRequest("Already Starting");
         try
         {
-            _systemService.LateStart();
+            _systemService.CompleteSetup();
         }
         catch (Exception e)
         {
@@ -284,9 +290,9 @@ public class InitController : BaseController
         var settings = SettingsProvider.GetSettings();
         return settings.Database.Type switch
         {
-            Constants.DatabaseType.MySQL when new MySQL().TestConnection() => Ok(),
-            Constants.DatabaseType.SQLServer when new SQLServer().TestConnection() => Ok(),
-            Constants.DatabaseType.SQLite => Ok(),
+            Constants.DatabaseType.MySQL when new MySQL(_systemService).TestConnection() => Ok(),
+            Constants.DatabaseType.SQLServer when new SQLServer(_systemService).TestConnection() => Ok(),
+            Constants.DatabaseType.SQLite when new SQLite(_systemService).TestConnection() => Ok(),
             _ => BadRequest("Failed to Connect")
         };
     }

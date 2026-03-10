@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Repositories.NHibernate;
-using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
+
 
 namespace Shoko.Server.Repositories;
 
@@ -18,20 +20,32 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     where T : class, new()
 {
     private readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.SupportsRecursion);
+
     protected readonly DatabaseFactory _databaseFactory;
+
+    private SystemService _systemService;
+
+    // A hack to not have to pass the system service to every cached repository.
+    protected SystemService SystemService => _systemService ??= Utils.ServiceContainer.GetRequiredService<SystemService>();
+
     public PocoCache<S, T> Cache;
+
+    public Action<T> BeginDeleteCallback { get; set; }
+
+    public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
+
+    public Action<T> EndDeleteCallback { get; set; }
+
+    public Action<T> BeginSaveCallback { get; set; }
+
+    public Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
+
+    public Action<T> EndSaveCallback { get; set; }
 
     protected BaseCachedRepository(DatabaseFactory databaseFactory)
     {
         _databaseFactory = databaseFactory;
     }
-
-    public Action<T> BeginDeleteCallback { get; set; }
-    public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
-    public Action<T> EndDeleteCallback { get; set; }
-    public Action<T> BeginSaveCallback { get; set; }
-    public Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
-    public Action<T> EndSaveCallback { get; set; }
 
     public virtual void Populate(ISessionWrapper session, bool displayName = true, CancellationToken cancellationToken = default)
     {
@@ -40,7 +54,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
         if (displayName)
         {
-            ServerState.Instance.ServerStartingStatus = $"Database Cache - Caching  - {typeof(T).Name}...";
+            SystemService.StartupMessage = $"Database Cache - Caching  - {typeof(T).Name}...";
         }
 
         // This is only called from main thread, so we don't need to lock

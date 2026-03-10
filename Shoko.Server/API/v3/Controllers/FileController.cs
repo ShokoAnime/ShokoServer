@@ -579,6 +579,7 @@ public class FileController(
     /// This is not a good way to scrobble, but it allows for players without plugin support to have an option to scrobble.
     /// The read-ahead buffer on the player would determine the required percentage to scrobble.</param>
     /// <returns>A file stream for the specified file.</returns>
+    [ApiInUse]
     [AllowAnonymous]
     [HttpGet("{fileID}/Stream")]
     [HttpHead("{fileID}/Stream")]
@@ -594,6 +595,7 @@ public class FileController(
     /// This is not a good way to scrobble, but it allows for players without plugin support to have an option to scrobble.
     /// The read-ahead buffer on the player would determine the required percentage to scrobble.</param>
     /// <returns>A file stream for the specified file.</returns>
+    [ApiInUse]
     [AllowAnonymous]
     [HttpGet("{fileID}/StreamDirectory/{filename}")]
     [HttpHead("{fileID}/StreamDirectory/{filename}")]

@@ -3,7 +3,6 @@ using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Cached.AniDB;
@@ -23,7 +22,7 @@ public class AniDB_Anime_TitleRepository(DatabaseFactory databaseFactory) : Base
     public override void RegenerateDb()
     {
         // Don't need lock in init
-        ServerState.Instance.ServerStartingStatus = $"Database - Validating - {nameof(AniDB_Anime_Title)} DbRegen...";
+        SystemService.StartupMessage = $"Database - Validating - {nameof(AniDB_Anime_Title)} DbRegen...";
         var titles = Cache.Values.Where(title => title.Title.Contains('`')).ToList();
         foreach (var title in titles)
         {
