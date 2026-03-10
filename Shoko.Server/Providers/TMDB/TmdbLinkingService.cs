@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
+using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
@@ -26,7 +28,7 @@ using Shoko.Server.Utilities;
 #nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
-public class TmdbLinkingService
+public class TmdbLinkingService : ITmdbLinkingService
 {
     private static readonly Dictionary<char, char> _characterReplacementDict = new()
     {
@@ -457,7 +459,7 @@ public class TmdbLinkingService
         return true;
     }
 
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false, bool? useExistingOtherShows = null)
+    public IReadOnlyList<ITmdbEpisodeCrossReference> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false, bool? useExistingOtherShows = null)
     {
         var anime = _anidbAnime.GetByAnimeID(anidbAnimeId);
         if (anime == null)

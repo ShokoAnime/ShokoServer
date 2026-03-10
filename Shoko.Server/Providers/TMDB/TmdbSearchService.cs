@@ -9,13 +9,16 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Tmdb;
+using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Server.Models.AniDB;
 using TMDbLib.Objects.Search;
 
 #nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
-public partial class TmdbSearchService
+public partial class TmdbSearchService : ITmdbSearchService
 {
 
     /// <summary>
@@ -39,6 +42,13 @@ public partial class TmdbSearchService
         _tmdbService = tmdbService;
     }
 
+    async Task<IReadOnlyList<ITmdbAutoSearchResult>> ITmdbSearchService.SearchForAutoMatch(IAnidbAnime anime)
+    {
+        if (anime is not AniDB_Anime anidbAnime)
+            return [];
+        return await SearchForAutoMatch(anidbAnime).ConfigureAwait(false);
+    }
+
     public async Task<IReadOnlyList<TmdbAutoSearchResult>> SearchForAutoMatch(AniDB_Anime anime)
         => anime.AnimeType switch
         {
@@ -50,7 +60,13 @@ public partial class TmdbSearchService
 
     #region Movie
 
-    public async Task<(List<SearchMovie> Page, int TotalCount)> SearchMovies(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
+    public async Task<(IReadOnlyList<ITmdbMovieSearchResult> Page, int TotalCount)> SearchMovies(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
+    {
+        var (results, total) = await SearchMoviesRaw(query, includeRestricted, year, page, pageSize).ConfigureAwait(false);
+        return (results.Select(m => new TmdbMovieSearchResult(m)).ToList<ITmdbMovieSearchResult>(), total);
+    }
+
+    internal async Task<(List<SearchMovie> Page, int TotalCount)> SearchMoviesRaw(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
     {
         var results = new List<SearchMovie>();
         var firstPage = await _tmdbService.UseClient(c => c.SearchMovieAsync(query, 1, includeRestricted, year), $"Searching{(includeRestricted ? " all" : string.Empty)} movies for \"{query}\"{(year > 0 ? $" at year {year}" : string.Empty)}").ConfigureAwait(false) ??
@@ -210,7 +226,7 @@ public partial class TmdbSearchService
     private async Task<TmdbAutoSearchResult?> AutoSearchMovieUsingTitle(AniDB_Anime anime, AniDB_Episode episode, string query, bool includeRestricted = false, int year = 0)
     {
         // Brute force attempt #1: With the original title and earliest known aired year.
-        var (results, totalCount) = await SearchMovies(query, includeRestricted: includeRestricted, year: year).ConfigureAwait(false);
+        var (results, totalCount) = await SearchMoviesRaw(query, includeRestricted: includeRestricted, year: year).ConfigureAwait(false);
         var firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
         if (firstViableResult is not null)
         {
@@ -220,7 +236,7 @@ public partial class TmdbSearchService
         }
 
         // Brute force attempt #2: With the original title but without the earliest known aired year.
-        (results, totalCount) = await SearchMovies(query, includeRestricted: includeRestricted).ConfigureAwait(false);
+        (results, totalCount) = await SearchMoviesRaw(query, includeRestricted: includeRestricted).ConfigureAwait(false);
         firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
         if (firstViableResult is not null)
         {
@@ -234,7 +250,7 @@ public partial class TmdbSearchService
             ? query[..^regexResult.Length].TrimEnd() : null;
         if (!string.IsNullOrEmpty(strippedTitle))
         {
-            (results, totalCount) = await SearchMovies(strippedTitle, includeRestricted: includeRestricted, year: year).ConfigureAwait(false);
+            (results, totalCount) = await SearchMoviesRaw(strippedTitle, includeRestricted: includeRestricted, year: year).ConfigureAwait(false);
             firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
             if (firstViableResult is not null)
             {
@@ -242,7 +258,7 @@ public partial class TmdbSearchService
 
                 return new(anime, episode, firstViableResult) { IsRemote = true };
             }
-            (results, totalCount) = await SearchMovies(strippedTitle, includeRestricted: includeRestricted).ConfigureAwait(false);
+            (results, totalCount) = await SearchMoviesRaw(strippedTitle, includeRestricted: includeRestricted).ConfigureAwait(false);
             firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
             if (firstViableResult is not null)
             {
@@ -259,7 +275,13 @@ public partial class TmdbSearchService
 
     #region Show
 
-    public async Task<(List<SearchTv> Page, int TotalCount)> SearchShows(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
+    public async Task<(IReadOnlyList<ITmdbShowSearchResult> Page, int TotalCount)> SearchShows(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
+    {
+        var (results, total) = await SearchShowsRaw(query, includeRestricted, year, page, pageSize).ConfigureAwait(false);
+        return (results.Select(s => new TmdbShowSearchResult(s)).ToList<ITmdbShowSearchResult>(), total);
+    }
+
+    internal async Task<(List<SearchTv> Page, int TotalCount)> SearchShowsRaw(string query, bool includeRestricted = false, int year = 0, int page = 1, int pageSize = 6)
     {
         var results = new List<SearchTv>();
         var firstPage = await _tmdbService.UseClient(c => c.SearchTvShowAsync(query, 1, includeRestricted, year), $"Searching{(includeRestricted ? " all" : "")} shows for \"{query}\"{(year > 0 ? $" at year {year}" : "")}").ConfigureAwait(false) ??
@@ -418,7 +440,7 @@ public partial class TmdbSearchService
                 remoteSeries.Insert(0, match);
 
             return remoteSeries
-                .GroupBy(x => (x.IsMovie, x.IsMovie ? x.TmdbMovie.Id : x.TmdbShow.Id))
+                .GroupBy(x => (x.IsMovie, x.IsMovie ? x.TmdbMovie!.ID : x.TmdbShow!.ID))
                 .Select(x => new TmdbAutoSearchResult(x.First()) { IsLocal = x.Any(y => y.IsLocal), IsRemote = x.Any(y => y.IsRemote) })
                 .ToList();
         }
@@ -429,7 +451,7 @@ public partial class TmdbSearchService
     private async Task<TmdbAutoSearchResult?> AutoSearchForShowUsingTitle(AniDB_Anime anime, string originalTitle, DateTime airDate, bool restricted, bool isJapanese)
     {
         // Brute force attempt #1: With the original title and earliest known aired year.
-        var (results, totalFound) = await SearchShows(originalTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
+        var (results, totalFound) = await SearchShowsRaw(originalTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
         var firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
         if (firstViableResult is not null)
         {
@@ -443,7 +465,7 @@ public partial class TmdbSearchService
             ? originalTitle[..^regexResult.Length].TrimEnd() : null;
         if (!string.IsNullOrEmpty(strippedTitle))
         {
-            (results, totalFound) = await SearchShows(strippedTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
+            (results, totalFound) = await SearchShowsRaw(strippedTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
             firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
             if (firstViableResult is not null)
             {
@@ -459,7 +481,7 @@ public partial class TmdbSearchService
         if (columIndex > 0)
         {
             titleWithoutSubTitle = titleWithoutSubTitle[..columIndex];
-            (results, totalFound) = await SearchShows(titleWithoutSubTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
+            (results, totalFound) = await SearchShowsRaw(titleWithoutSubTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
             firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
             if (firstViableResult is not null)
             {
@@ -470,7 +492,7 @@ public partial class TmdbSearchService
         }
 
         // Brute force attempt #4: With the original title but without the earliest known aired year.
-        (results, totalFound) = await SearchShows(originalTitle, includeRestricted: restricted).ConfigureAwait(false);
+        (results, totalFound) = await SearchShowsRaw(originalTitle, includeRestricted: restricted).ConfigureAwait(false);
         firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
         if (firstViableResult is not null)
         {
@@ -482,7 +504,7 @@ public partial class TmdbSearchService
         // Brute force attempt #5: Same as above, but after stripping the title of common "sequel endings"
         if (!string.IsNullOrEmpty(strippedTitle))
         {
-            (results, totalFound) = await SearchShows(strippedTitle, includeRestricted: restricted).ConfigureAwait(false);
+            (results, totalFound) = await SearchShowsRaw(strippedTitle, includeRestricted: restricted).ConfigureAwait(false);
             firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
             if (firstViableResult is not null)
             {
@@ -498,7 +520,7 @@ public partial class TmdbSearchService
         if (columIndex > 0)
         {
             titleWithoutSubTitle = titleWithoutSubTitle[..columIndex];
-            (results, totalFound) = await SearchShows(titleWithoutSubTitle, includeRestricted: restricted).ConfigureAwait(false);
+            (results, totalFound) = await SearchShowsRaw(titleWithoutSubTitle, includeRestricted: restricted).ConfigureAwait(false);
             firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
             if (firstViableResult is not null)
             {

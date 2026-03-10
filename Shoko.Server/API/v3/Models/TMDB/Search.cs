@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
+using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Server.Extensions;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.TMDB;
@@ -82,11 +83,11 @@ public static class Search
             {
                 IsMovie = true;
                 EpisodeID = result.AnidbEpisode.EpisodeID;
-                Movie = new(result.TmdbMovie);
+                Movie = new(result.TmdbMovieRaw);
             }
             else
             {
-                Show = new(result.TmdbShow);
+                Show = new(result.TmdbShowRaw);
             }
         }
     }
@@ -244,6 +245,31 @@ public static class Search
             };
             Genres = movie.GetGenres();
         }
+
+        public RemoteSearchMovie(ITmdbMovieSearchResult movie)
+        {
+            ID = movie.ID;
+            Title = movie.Title;
+            OriginalTitle = movie.OriginalTitle;
+            OriginalLanguage = movie.OriginalLanguage;
+            Overview = movie.Overview;
+            IsRestricted = movie.IsRestricted;
+            IsVideo = movie.IsVideo;
+            ReleasedAt = movie.ReleasedAt;
+            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
+                : null;
+            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
+                : null;
+            UserRating = new Rating()
+            {
+                Value = (double)movie.UserRating,
+                MaxValue = 10,
+                Source = "TMDB",
+                Type = "User",
+                Votes = movie.UserVotes,
+            };
+            Genres = movie.Genres;
+        }
     }
 
     /// <summary>
@@ -374,6 +400,31 @@ public static class Search
                 Votes = show.VoteCount,
             };
             Genres = show.GetGenres();
+        }
+
+        public RemoteSearchShow(ITmdbShowSearchResult show)
+        {
+            ID = show.ID;
+            Title = show.Title;
+            OriginalTitle = show.OriginalTitle;
+            OriginalLanguage = show.OriginalLanguage;
+            Overview = show.Overview;
+            FirstAiredAt = show.FirstAiredAt;
+            Poster = !string.IsNullOrEmpty(show.PosterPath)
+                ? $"{TmdbMetadataService.ImageServerUrl}original{show.PosterPath}"
+                : null;
+            Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
+                ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
+                : null;
+            UserRating = new Rating()
+            {
+                Value = (double)show.UserRating,
+                MaxValue = 10,
+                Source = "TMDB",
+                Type = "User",
+                Votes = show.UserVotes,
+            };
+            Genres = show.Genres;
         }
     }
 }

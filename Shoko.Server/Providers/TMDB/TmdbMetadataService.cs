@@ -14,6 +14,7 @@ using Polly.Retry;
 using Quartz;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories.Cached;
@@ -44,7 +45,7 @@ using MovieCredits = TMDbLib.Objects.Movies.Credits;
 #nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
-public class TmdbMetadataService
+public class TmdbMetadataService : ITmdbMetadataService
 {
     private static readonly int _maxConcurrency = Math.Min(6, Environment.ProcessorCount);
 

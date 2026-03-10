@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
@@ -353,6 +354,16 @@ public class TmdbEpisode
         public string Rating { get; init; }
 
         public CrossReference(CrossRef_AniDB_TMDB_Episode xref, int? index = null)
+        {
+            AnidbAnimeID = xref.AnidbAnimeID;
+            AnidbEpisodeID = xref.AnidbEpisodeID;
+            TmdbShowID = xref.TmdbShowID;
+            TmdbEpisodeID = xref.TmdbEpisodeID;
+            Index = index ?? xref.Ordering;
+            Rating = xref.MatchRating.ToString();
+        }
+
+        public CrossReference(ITmdbEpisodeCrossReference xref, int? index = null)
         {
             AnidbAnimeID = xref.AnidbAnimeID;
             AnidbEpisodeID = xref.AnidbEpisodeID;

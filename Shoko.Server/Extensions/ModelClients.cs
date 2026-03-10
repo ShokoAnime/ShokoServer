@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Server.API.v1.Models;
 using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Release;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
@@ -480,6 +481,15 @@ public static class ModelClients
         => new()
         {
             MovieID = movie.Id,
+            MovieName = movie.Title,
+            OriginalName = movie.OriginalTitle,
+            Overview = movie.Overview,
+        };
+
+    public static CL_MovieDBMovieSearch_Response ToClient(this ITmdbMovieSearchResult movie)
+        => new()
+        {
+            MovieID = movie.ID,
             MovieName = movie.Title,
             OriginalName = movie.OriginalTitle,
             Overview = movie.Overview,
