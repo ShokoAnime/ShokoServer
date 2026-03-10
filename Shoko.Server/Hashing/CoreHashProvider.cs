@@ -64,13 +64,13 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
             try
             {
                 var dllPath = Assembly.GetEntryAssembly()!.Location;
-                var fi = new FileInfo(dllPath);
-                dllPath = Path.Combine(fi.Directory!.FullName, Environment.Is64BitProcess ? "x64" : "x86", "librhash.dll");
+                var fileInfo = new FileInfo(dllPath);
+                dllPath = Path.Combine(fileInfo.Directory!.FullName, Environment.Is64BitProcess ? "x64" : "x86", "librhash.dll");
+                if (!File.Exists(dllPath))
+                    return null;
 
-                if (!File.Exists(dllPath)) return null;
-
-                var fvi = FileVersionInfo.GetVersionInfo(dllPath);
-                return $"RHash {fvi.FileMajorPart}.{fvi.FileMinorPart}.{fvi.FileBuildPart}.{fvi.FilePrivatePart} ({dllPath})";
+                var fileVersion = FileVersionInfo.GetVersionInfo(dllPath);
+                return $"{fileVersion.FileMajorPart}.{fileVersion.FileMinorPart}.{fileVersion.FileBuildPart}.{fileVersion.FilePrivatePart} ({dllPath})";
             }
             catch
             {
@@ -83,14 +83,15 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
         try
         {
             Native.rhash_library_init();
-            var xversion = Native.rhash_ctrl(IntPtr.Zero, RMSG_GET_LIBRHASH_VERSION, UIntPtr.Zero, IntPtr.Zero);
-            if (xversion == UIntPtr.Zero)
+            var versionPtr = Native.rhash_ctrl(IntPtr.Zero, RMSG_GET_LIBRHASH_VERSION, UIntPtr.Zero, IntPtr.Zero);
+            if (versionPtr == UIntPtr.Zero)
                 return null;
-            var v = (uint)(ulong)xversion;
-            var major = (v >> 24) & 0xFF;
-            var minor = (v >> 16) & 0xFF;
-            var patch = (v >> 8) & 0xFF;
-            return $"RHash {major}.{minor}.{patch}";
+
+            var version = (uint)(ulong)versionPtr;
+            var major = (version >> 24) & 0xFF;
+            var minor = (version >> 16) & 0xFF;
+            var patch = (version >> 8) & 0xFF;
+            return $"{major}.{minor}.{patch}";
         }
         catch
         {
