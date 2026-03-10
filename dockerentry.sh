@@ -99,9 +99,17 @@ Directory: \"$SHOKO_HOME\"
 -------------------------------------
 "
 
+# Allow/disallow the server to be shutdown/restarted from the web interface.
+ENABLE_SHUTDOWN=${ENABLE_SHUTDOWN:-false}
+ENABLE_RESTART=${ENABLE_RESTART:-true}
+
+ARGS=""
+[ "$ENABLE_SHUTDOWN" = "true" ] && ARGS="$ARGS --enabled-shutdown"
+[ "$ENABLE_RESTART" = "true" ] && ARGS="$ARGS --enable-restart"
+
 # Run the server, and restart it if it exits with code 140 (Custom restart exit code).
 while true; do
-  gosu $USER:$GROUP /usr/src/app/build/Shoko.CLI --restart-enabled
+  gosu $USER:$GROUP /usr/src/app/build/Shoko.CLI $ARGS
   EXIT_CODE=$?
   [ $EXIT_CODE -ne 140 ] && exit $EXIT_CODE
 done
