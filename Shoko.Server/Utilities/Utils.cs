@@ -166,57 +166,6 @@ public static partial class Utils
                 .ToDictionary(pair => pair[0], pair => pair[1]);
     }
 
-    // Returns the human-readable file size for an arbitrary, 64-bit file size
-    // The default format is "0.### XB", e.g. "4.2 KB" or "1.434 GB"
-    // http://www.somacon.com/p576.php
-    public static string FormatByteSize(long fileSize)
-    {
-        // Get absolute value
-        var absolute_i = fileSize < 0 ? -fileSize : fileSize;
-        // Determine the suffix and readable value
-        string suffix;
-        double readable;
-        if (absolute_i >= 0x1000000000000000) // Exabyte
-        {
-            suffix = "EB";
-            readable = fileSize >> 50;
-        }
-        else if (absolute_i >= 0x4000000000000) // Petabyte
-        {
-            suffix = "PB";
-            readable = fileSize >> 40;
-        }
-        else if (absolute_i >= 0x10000000000) // Terabyte
-        {
-            suffix = "TB";
-            readable = fileSize >> 30;
-        }
-        else if (absolute_i >= 0x40000000) // Gigabyte
-        {
-            suffix = "GB";
-            readable = fileSize >> 20;
-        }
-        else if (absolute_i >= 0x100000) // Megabyte
-        {
-            suffix = "MB";
-            readable = fileSize >> 10;
-        }
-        else if (absolute_i >= 0x400) // Kilobyte
-        {
-            suffix = "KB";
-            readable = fileSize;
-        }
-        else
-        {
-            return fileSize.ToString("0 B"); // Byte
-        }
-
-        // Divide by 1024 to get fractional value
-        readable = readable / 1024;
-        // Return formatted number with suffix
-        return readable.ToString("0.### ") + suffix;
-    }
-
     public static int GetScheduledHours(ScheduledUpdateFrequency freq)
     {
         return freq switch
