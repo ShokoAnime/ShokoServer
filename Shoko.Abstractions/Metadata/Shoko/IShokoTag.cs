@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Shoko.Abstractions.Metadata.Containers;
 
 namespace Shoko.Abstractions.Metadata.Shoko;
 

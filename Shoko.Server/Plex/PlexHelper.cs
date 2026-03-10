@@ -16,7 +16,6 @@ using Shoko.Server.Plex.Models.Connections;
 using Shoko.Server.Plex.Models.Login;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
 using Directory = Shoko.Server.Plex.Models.Libraries.Directory;

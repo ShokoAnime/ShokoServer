@@ -1,4 +1,3 @@
-using System;
 using Shoko.Abstractions.Metadata.Containers;
 
 namespace Shoko.Abstractions.Metadata.Anilist;
