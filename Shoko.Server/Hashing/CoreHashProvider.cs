@@ -78,12 +78,23 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
             }
         }
 
-        // On Linux/macOS, query the library version via rhash_ctrl.
+        // On Linux/macOS, query the library version natively.
+        // rhash_transmit is currently available in all librhash versions,
+        // but deprecated in 1.4.5, whereas rhash_ctrl was added in 1.4.5.
+        // Try both for maximum compat.
         // The version is encoded as 0xMMmmpp00 (major, minor, patch, 0).
         try
         {
             Native.rhash_library_init();
-            var versionPtr = Native.rhash_ctrl(IntPtr.Zero, RMSG_GET_LIBRHASH_VERSION, UIntPtr.Zero, IntPtr.Zero);
+            UIntPtr versionPtr;
+            try
+            {
+                versionPtr = Native.rhash_ctrl(IntPtr.Zero, RMSG_GET_LIBRHASH_VERSION, UIntPtr.Zero, IntPtr.Zero);
+            }
+            catch (EntryPointNotFoundException)
+            {
+                versionPtr = Native.rhash_transmit(RMSG_GET_LIBRHASH_VERSION, IntPtr.Zero, UIntPtr.Zero, UIntPtr.Zero);
+            }
             if (versionPtr == UIntPtr.Zero)
                 return null;
 
@@ -98,8 +109,6 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
             return null;
         }
     }
-
-    private const int RMSG_GET_LIBRHASH_VERSION = 20;
 
     #region IHashProvider Implementation
 
@@ -416,7 +425,12 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
 
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         internal static extern UIntPtr rhash_ctrl(IntPtr context, int cmd, UIntPtr size, IntPtr data);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern UIntPtr rhash_transmit(uint msg_id, IntPtr dst, UIntPtr ldata, UIntPtr rdata);
     }
+
+    private const int RMSG_GET_LIBRHASH_VERSION = 20;
 
     [Flags]
     private enum RhashPrintSumFlags
