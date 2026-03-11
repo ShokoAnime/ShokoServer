@@ -172,9 +172,10 @@ public class SystemService : ISystemService
         get => _startupFailedException;
         private set
         {
-            if (value is null) return;
+            if (value is null || _startupFailedException is not null) return;
             lock (_logger)
             {
+                if (_startupFailedException is not null) return;
                 _startupFailedException = value;
                 InSetupMode = false;
                 // Always allow shutdown if we failed to start.
@@ -182,15 +183,15 @@ public class SystemService : ISystemService
             }
 
             Task.Run(() => StartupFailed?.Invoke(this, new(value)));
+
+            _startupTaskSource?.SetException(value);
+            _startupTaskSource = null;
         }
     }
 
     /// <inheritdoc/>
     public async Task<IHost?> StartAsync()
     {
-        if (_startupTaskSource is null)
-            return null;
-
         try
         {
             // Check if any of the DLL are blocked, common issue with daily builds.
@@ -198,8 +199,6 @@ public class SystemService : ISystemService
             {
                 StartupMessage = "Failed to start. Check your logs for more information.";
                 StartupFailedException = new("Blocked DLL files found in server directory!");
-                _startupTaskSource.SetException(StartupFailedException);
-                _startupTaskSource = null;
                 return null;
             }
 
@@ -302,16 +301,12 @@ public class SystemService : ISystemService
                 _ = Task.Factory.StartNew(LateStart, TaskCreationOptions.LongRunning);
             }
 
-            _startupTaskSource.SetResult();
-            _startupTaskSource = null;
             return _webHost;
         }
         catch (Exception ex)
         {
             StartupMessage = "Failed to start. Check your logs for more information.";
             StartupFailedException = new(innerException: ex);
-            _startupTaskSource?.SetException(StartupFailedException);
-            _startupTaskSource = null;
             return null;
         }
     }
@@ -549,6 +544,9 @@ public class SystemService : ISystemService
 
             StartupMessage = "Startup Complete!";
             StartupMessage = null;
+
+            _startupTaskSource?.SetResult();
+            _startupTaskSource = null;
 
             var scheduler = schedulerFactory.GetScheduler().Result;
             if (settings.Import.ScanDropFoldersOnStart)
