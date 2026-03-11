@@ -929,6 +929,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(155, 16, "ALTER TABLE VideoLocal ALTER COLUMN DateTimeUpdated datetime2 NOT NULL;"),
         new(155, 17, "ALTER TABLE VideoLocal_User ALTER COLUMN WatchedDate datetime2 NULL;"),
         new(155, 17, "ALTER TABLE VideoLocal_User ALTER COLUMN LastUpdated datetime2 NOT NULL DEFAULT CURRENT_TIMESTAMP;"),
+        new(156,  1, "ALTER TABLE StoredRelocationPipe ALTER COLUMN Configuration VARBINARY(MAX) NULL;"),
     ];
 
     #endregion
