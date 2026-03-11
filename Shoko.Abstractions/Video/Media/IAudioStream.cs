@@ -33,9 +33,9 @@ public interface IAudioStream : IStream
     string CompressionMode { get; }
 
     /// <summary>
-    /// Dialog norm of the audio stream, if available.
+    /// Dial norm of the audio stream, if available.
     /// </summary>
-    double? DialogNorm { get; }
+    double? DialNorm { get; }
 
     /// <summary>
     /// Bit-rate of the audio-stream.
@@ -45,7 +45,7 @@ public interface IAudioStream : IStream
     /// <summary>
     /// Bit-rate mode of the audio stream.
     /// </summary>
-    string BitRateMode { get; }
+    string? BitRateMode { get; }
 
     /// <summary>
     /// Bit-depth of the audio stream.

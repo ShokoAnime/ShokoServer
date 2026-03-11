@@ -542,7 +542,7 @@ public class AudioStream : Stream, IAudioStream
 
     string IAudioStream.CompressionMode => Compression_Mode;
     string IAudioStream.BitRateMode => BitRate_Mode;
-    double? IAudioStream.DialogNorm => extra?.dialnorm;
+    double? IAudioStream.DialNorm => extra?.dialnorm;
 
     protected bool Equals(AudioStream other) =>
         base.Equals(other) && Channels == other.Channels && ChannelLayout == other.ChannelLayout && SamplesPerFrame == other.SamplesPerFrame && SamplingRate == other.SamplingRate

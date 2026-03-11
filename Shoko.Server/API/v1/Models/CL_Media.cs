@@ -214,7 +214,7 @@ public class CL_Media
                     SamplingRate = audioStream.SamplingRate,
                     Channels = (byte)audioStream.Channels,
                     BitrateMode = audioStream.BitRateMode?.ToLower(CultureInfo.InvariantCulture),
-                    DialogNorm = audioStream.DialogNorm?.ToString(),
+                    DialogNorm = audioStream.DialNorm?.ToString(),
                     Default = (byte)(audioStream.IsDefault ? 1 : 0),
                     Forced = (byte)(audioStream.IsForced ? 1 : 0)
                 };

@@ -15,7 +15,7 @@ public interface IStream
     /// <summary>
     /// Unique id for the stream.
     /// </summary>
-    string UID { get; }
+    string? UID { get; }
 
     /// <summary>
     /// Stream title, if available.
