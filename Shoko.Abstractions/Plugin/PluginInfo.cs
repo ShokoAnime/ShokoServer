@@ -41,7 +41,7 @@ public sealed class PluginInfo
 
     /// <summary>
     ///   Indicates the plugin is currently installed. Will be <c>false</c>
-    ///   if the plugin has be uninstalled in the current session, or if it's
+    ///   if the plugin has been uninstalled in the current session, or if it's
     ///   a remote plugin that has not yet been installed.
     /// </summary>
     public required bool IsInstalled { get; set; }
