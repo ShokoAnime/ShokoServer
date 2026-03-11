@@ -838,7 +838,7 @@ public class SystemService : ISystemService
 
     private CancellationTokenSource? _databaseTasksChangedCTS;
 
-    private TaskCompletionSource? _databaseTaskSource = null;
+    private TaskCompletionSource? _databaseTaskSource = new();
 
     /// <inheritdoc/>
     public event EventHandler<DatabaseBlockedChangedEventArgs>? DatabaseBlockedChanged;
