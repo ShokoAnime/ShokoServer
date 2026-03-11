@@ -196,6 +196,7 @@ public class SystemService : ISystemService
             // Check if any of the DLL are blocked, common issue with daily builds.
             if (!CheckBlockedFiles())
             {
+                StartupMessage = "Failed to start. Check your logs for more information.";
                 StartupFailedException = new("Blocked DLL files found in server directory!");
                 _startupTaskSource.SetException(StartupFailedException);
                 _startupTaskSource = null;
@@ -307,6 +308,7 @@ public class SystemService : ISystemService
         }
         catch (Exception ex)
         {
+            StartupMessage = "Failed to start. Check your logs for more information.";
             StartupFailedException = new(innerException: ex);
             _startupTaskSource?.SetException(StartupFailedException);
             _startupTaskSource = null;
@@ -556,7 +558,7 @@ public class SystemService : ISystemService
         }
         catch (Exception ex)
         {
-            StartupMessage = "Failed to start.";
+            StartupMessage = "Failed to start. Check your logs for more information.";
             StartupFailedException = new(innerException: ex);
         }
     }
