@@ -929,7 +929,10 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(155, 16, "ALTER TABLE VideoLocal ALTER COLUMN DateTimeUpdated datetime2 NOT NULL;"),
         new(155, 17, "ALTER TABLE VideoLocal_User ALTER COLUMN WatchedDate datetime2 NULL;"),
         new(155, 17, "ALTER TABLE VideoLocal_User ALTER COLUMN LastUpdated datetime2 NOT NULL DEFAULT CURRENT_TIMESTAMP;"),
-        new(156,  1, "ALTER TABLE StoredRelocationPipe ALTER COLUMN Configuration VARBINARY(MAX) NULL;"),
+        new(156,  1, "ALTER TABLE StoredRelocationPipe ADD temp [VARBINARY] (MAX) NULL;"),
+        new(156,  2, "UPDATE StoredRelocationPipe SET temp = CAST(Configuration AS VARBINARY(MAX));"),
+        new(156,  3, "ALTER TABLE StoredRelocationPipe DROP COLUMN Configuration;"),
+        new(156,  4, "EXEC sp_rename 'StoredRelocationPipe.temp', 'Configuration', 'COLUMN';"),
     ];
 
     #endregion
