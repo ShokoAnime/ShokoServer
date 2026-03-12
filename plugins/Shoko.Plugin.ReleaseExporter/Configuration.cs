@@ -95,7 +95,6 @@ public class Configuration : IReleaseInfoProviderConfiguration, IConfigurationWi
     /// <summary>
     /// Exports all releases.
     /// </summary>
-    /// <param name="context"></param>
     /// <param name="exporter"></param>
     /// <returns></returns>
     [CustomAction(
@@ -103,8 +102,21 @@ public class Configuration : IReleaseInfoProviderConfiguration, IConfigurationWi
         DisableWhenMemberIsSet = nameof(IsExporterEnabled),
         DisableWhenSetTo = false
     )]
-    public ConfigurationActionResult ExportAll(ConfigurationActionContext<Configuration> context, ReleaseExporter exporter)
+    public ConfigurationActionResult ExportAll(ReleaseExporter exporter)
         => exporter.ExportAll();
+
+    /// <summary>
+    /// Purges all exported release files.
+    /// </summary>
+    /// <param name="exporter"></param>
+    /// <returns></returns>
+    [CustomAction(
+        Theme = DisplayColorTheme.Danger,
+        DisableWhenMemberIsSet = nameof(IsExporterEnabled),
+        DisableWhenSetTo = false
+    )]
+    public ConfigurationActionResult PurgeAll(ReleaseExporter exporter)
+        => exporter.PurgeAll();
 
     /// <summary>
     /// Get the release file path for a video file.

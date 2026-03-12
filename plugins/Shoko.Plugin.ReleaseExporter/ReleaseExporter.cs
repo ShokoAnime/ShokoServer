@@ -31,7 +31,7 @@ public class ReleaseExporter : IHostedService
 
     private readonly ConfigurationProvider<Configuration> _configProvider;
 
-    private int _isExportingAll;
+    private int _isRunningBulkOperation;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ReleaseExporter"/> class.
@@ -333,8 +333,11 @@ public class ReleaseExporter : IHostedService
         if (!config.IsExporterEnabled)
             return new("Exporting is disabled!", DisplayColorTheme.Warning);
 
-        if (Interlocked.CompareExchange(ref _isExportingAll, 1, 0) == 1)
-            return new("Export all is already running!", DisplayColorTheme.Important);
+        var val = Interlocked.CompareExchange(ref _isRunningBulkOperation, 1, 0);
+        if (val is 1)
+            return new("An export operation is already running!", DisplayColorTheme.Important);
+        else if (val is 2)
+            return new("A purge operation is already running!", DisplayColorTheme.Important);
 
         Task.Factory.StartNew(ExportAllInternal).ConfigureAwait(false);
         return new("Export Started!");
@@ -406,7 +409,83 @@ public class ReleaseExporter : IHostedService
         }
         finally
         {
-            Interlocked.Exchange(ref _isExportingAll, 0);
+            Interlocked.Exchange(ref _isRunningBulkOperation, 0);
+        }
+    }
+
+    /// <summary>
+    /// Purges all exported release info files from the file system. Only one
+    /// bulk operation can run at a time; concurrent calls will be skipped.
+    /// </summary>
+    public ConfigurationActionResult PurgeAll()
+    {
+        var config = _configProvider.Load();
+        if (!config.IsExporterEnabled)
+            return new("Exporting is disabled!", DisplayColorTheme.Warning);
+
+        var val = Interlocked.CompareExchange(ref _isRunningBulkOperation, 2, 0);
+        if (val is 1)
+            return new("An export operation is already running!", DisplayColorTheme.Important);
+        else if (val is 2)
+            return new("A purge operation is already running!", DisplayColorTheme.Important);
+
+        Task.Factory.StartNew(PurgeAllInternal).ConfigureAwait(false);
+        return new("Purge Started!");
+    }
+
+    private void PurgeAllInternal()
+    {
+        try
+        {
+            _logger.LogInformation("Started purging release info for all videos.");
+            var config = _configProvider.Load();
+            var totalDeleted = 0;
+            var totalSkipped = 0;
+            var totalErrored = 0;
+            var stops = new HashSet<string>([
+                _applicationPaths.DataPath,
+                .. _videoService.GetAllManagedFolders().Select(m => m.Path)
+            ]);
+            foreach (var video in _videoService.GetAllVideos())
+            {
+                if (video.Files is not { Count: > 0 } locations)
+                    continue;
+
+                var releaseLocations = locations.SelectMany(l => config.GetReleaseFilePaths(_applicationPaths, l.ManagedFolder, video, l.RelativePath)).ToHashSet();
+                foreach (var releasePath in releaseLocations)
+                {
+                    try
+                    {
+                        if (!File.Exists(releasePath))
+                        {
+                            totalSkipped++;
+                            continue;
+                        }
+
+                        File.Delete(releasePath);
+                        _logger.LogInformation("Deleted release info for {VideoID} at {Path}", video.ID, releasePath);
+                        totalDeleted++;
+
+                        var releaseDirectory = Path.GetDirectoryName(releasePath);
+                        while (!string.IsNullOrEmpty(releaseDirectory) && !stops.Contains(releaseDirectory) && Directory.Exists(releaseDirectory) && !Directory.EnumerateFileSystemEntries(releaseDirectory).Any())
+                        {
+                            Directory.Delete(releaseDirectory);
+                            releaseDirectory = Path.GetDirectoryName(releaseDirectory);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Encountered an unexpected error deleting release file: {ReleasePath}", releasePath);
+                        totalErrored++;
+                    }
+                }
+            }
+
+            _logger.LogInformation("Purge all completed. Deleted: {Deleted}, Skipped: {Skipped}, Errored: {Errored}", totalDeleted, totalSkipped, totalErrored);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _isRunningBulkOperation, 0);
         }
     }
 }
