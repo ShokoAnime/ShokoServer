@@ -96,11 +96,10 @@ public class SystemService : ISystemService
                 ? tag : null,
             SourceRevision = extraVersionDict.TryGetValue("commit", out var commit) && commit is { Length: > 0 }
                 ? commit : null,
-            Channel = extraVersionDict.TryGetValue("channel", out var rawChannel) &&
-            Enum.TryParse<AbstractReleaseChannel>(rawChannel, true, out var channel)
+            Channel = extraVersionDict.TryGetValue("channel", out var rawChannel) && Enum.TryParse<AbstractReleaseChannel>(rawChannel, true, out var channel)
                 ? channel : AbstractReleaseChannel.Debug,
             ReleasedAt = extraVersionDict.TryGetValue("date", out var rawDate) && DateTime.TryParse(rawDate, out var date)
-                ? date.ToUniversalTime() : null,
+                ? date.ToUniversalTime() : File.GetCreationTimeUtc(Assembly.GetExecutingAssembly().Location!),
         };
         BootstrappedAt = now;
 

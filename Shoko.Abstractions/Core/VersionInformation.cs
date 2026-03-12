@@ -30,7 +30,7 @@ public record VersionInformation
     public required ReleaseChannel Channel { get; init; }
 
     /// <summary>
-    /// The date and time the server was built, if available.
+    /// The date and time the server was built.
     /// </summary>
-    public required DateTime? ReleasedAt { get; init; }
+    public required DateTime ReleasedAt { get; init; }
 }
