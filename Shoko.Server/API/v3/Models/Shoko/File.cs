@@ -137,7 +137,9 @@ public partial class File
         Size = file.FileSize;
         IsVariation = file.IsVariation;
         IsIgnored = file.IsIgnored;
-        Hashes = file.Hashes.Select(h => new HashDigest(h)).ToList();
+        Hashes = file.Hashes is { Count: > 0 } hashes
+            ? hashes.Select(h => new HashDigest(h)).ToList()
+            : [new() { Type = "ED2K", Value = file.Hash }];
         Resolution = mediaInfo?.VideoStream?.Resolution;
         Locations = file.Places.Select(location => new Location(location, includeAbsolutePaths)).ToList();
         AVDump = new AVDumpInfo(file);
