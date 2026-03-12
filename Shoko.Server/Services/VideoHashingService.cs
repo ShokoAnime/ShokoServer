@@ -58,6 +58,8 @@ public class VideoHashingService(
 
     private const string ED2K = "ED2K";
 
+    private const string CRC32 = "CRC32";
+
     private IContentInspector? _contentInspector;
 
     private Dictionary<Guid, HashProviderInfo> _hashProviderInfos = [];
@@ -103,11 +105,17 @@ public class VideoHashingService(
         lock (_lock)
         {
             if (_loaded) return;
+            _coreProviderID = GetID(typeof(CoreHashProvider), pluginManager.GetPluginInfo<CorePlugin>()!);
 
             logger.LogInformation("Initializing providers.");
             var config = configurationProvider.Load();
             var enabled = config.EnabledHashes;
-            _coreProviderID = GetID(typeof(CoreHashProvider), pluginManager.GetPluginInfo<CorePlugin>()!);
+            // Initialize the enabled hashes dict with the default values if it are empty.
+            if (enabled.Count is 0)
+            {
+                enabled[ED2K] = _coreProviderID;
+                enabled[CRC32] = _coreProviderID;
+            }
             _hashProviderInfos = providers
                 .Select((provider, priority) =>
                 {
