@@ -5,7 +5,7 @@ namespace Shoko.Abstractions.Plugin;
 /// <summary>
 /// Information about a plugin thumbnail.
 /// </summary>
-public class PluginThumbnailInfo
+public sealed class PluginThumbnailInfo
 {
     /// <summary>
     /// The mime type of the thumbnail image.

@@ -44,7 +44,7 @@ public class HashProviderInfo
     /// <summary>
     /// Information about the plugin that the hash provider belongs to.
     /// </summary>
-    public required PluginInfo PluginInfo { get; init; }
+    public required LocalPluginInfo PluginInfo { get; init; }
 
     /// <summary>
     /// The enabled hash types.

@@ -16,8 +16,12 @@ public interface IPluginManager
     #region Setup
 
     /// <summary>
-    ///   Search for and register plugin related services to the service
-    ///   collection.
+    ///   Searches for plugins.
+    /// </summary>
+    void ScanForPlugins();
+
+    /// <summary>
+    ///   Register plugin related services to the service collection.
     /// </summary>
     /// <param name="serviceCollection">
     ///   The service collection.
@@ -40,9 +44,9 @@ public interface IPluginManager
     ///   Gets information about all registered plugins.
     /// </summary>
     /// <returns>
-    ///   A list of all registered <see cref="PluginInfo"/>s.
+    ///   A list of all registered <see cref="LocalPluginInfo"/>s.
     /// </returns>
-    IReadOnlyList<PluginInfo> GetPluginInfos();
+    IReadOnlyList<LocalPluginInfo> GetPluginInfos();
 
     /// <summary>
     ///   Gets information about all registered versions of a plugin by its ID.
@@ -51,10 +55,10 @@ public interface IPluginManager
     ///   The ID of the plugin.
     /// </param>
     /// <returns>
-    ///   The <see cref="PluginInfo"/> for the plugin if registered and
+    ///   The <see cref="LocalPluginInfo"/> for the plugin if registered and
     ///   available, <c>null</c> otherwise.
     /// </returns>
-    IReadOnlyList<PluginInfo> GetPluginInfos(Guid pluginId);
+    IReadOnlyList<LocalPluginInfo> GetPluginInfos(Guid pluginId);
 
     /// <summary>
     ///   Gets information about the currently active version or otherwise
@@ -70,10 +74,10 @@ public interface IPluginManager
     ///   and you want to get a specific one.
     /// </param>
     /// <returns>
-    ///   The <see cref="PluginInfo"/> for the plugin if registered and
+    ///   The <see cref="LocalPluginInfo"/> for the plugin if registered and
     ///   available, <c>null</c> otherwise.
     /// </returns>
-    PluginInfo? GetPluginInfo(Guid pluginId, Version? pluginVersion = null);
+    LocalPluginInfo? GetPluginInfo(Guid pluginId, Version? pluginVersion = null);
 
     /// <summary>
     ///   Gets information about a registered plugin by its instance, if
@@ -81,10 +85,10 @@ public interface IPluginManager
     /// </summary>
     /// <param name="plugin">The instance of the plugin.</param>
     /// <returns>
-    ///   The <see cref="PluginInfo"/> for the plugin if registered and
+    ///   The <see cref="LocalPluginInfo"/> for the plugin if registered and
     ///   available, <c>null</c> otherwise.
     /// </returns>
-    PluginInfo? GetPluginInfo(IPlugin plugin);
+    LocalPluginInfo? GetPluginInfo(IPlugin plugin);
 
     /// <summary>
     ///   Gets information about a plugin by its type as a type parameter, if
@@ -94,10 +98,10 @@ public interface IPluginManager
     ///   The plugin type.
     /// </typeparam>
     /// <returns>
-    ///   The <see cref="PluginInfo"/> for the plugin if registered and
+    ///   The <see cref="LocalPluginInfo"/> for the plugin if registered and
     ///   available, <c>null</c> otherwise.
     /// </returns>
-    PluginInfo? GetPluginInfo<TPlugin>() where TPlugin : IPlugin;
+    LocalPluginInfo? GetPluginInfo<TPlugin>() where TPlugin : IPlugin;
 
     /// <summary>
     ///   Gets information about a registered plugin by its type, if registered
@@ -107,10 +111,10 @@ public interface IPluginManager
     ///   The type of the plugin.
     /// </param>
     /// <returns>
-    ///   The <see cref="PluginInfo"/> for the plugin if registered and
+    ///   The <see cref="LocalPluginInfo"/> for the plugin if registered and
     ///   available, <c>null</c> otherwise.
     /// </returns>
-    PluginInfo? GetPluginInfo(Type type);
+    LocalPluginInfo? GetPluginInfo(Type type);
 
     /// <summary>
     ///   Gets information about a plugin by its assembly, if registered and
@@ -120,10 +124,10 @@ public interface IPluginManager
     ///   The assembly to check.
     /// </param>
     /// <returns>
-    ///   The <see cref="PluginInfo"/> for the plugin if registered and
+    ///   The <see cref="LocalPluginInfo"/> for the plugin if registered and
     ///   available, <c>null</c> otherwise.
     /// </returns>
-    PluginInfo? GetPluginInfo(Assembly assembly);
+    LocalPluginInfo? GetPluginInfo(Assembly assembly);
 
     #endregion
 
@@ -142,9 +146,9 @@ public interface IPluginManager
     ///   if it lies within the mentioned directory.
     /// </param>
     /// <returns>
-    ///   The loaded <see cref="PluginInfo"/> for the plugin.
+    ///   The loaded <see cref="LocalPluginInfo"/> for the plugin.
     /// </returns>
-    PluginInfo? LoadFromPath(string path);
+    LocalPluginInfo? LoadFromPath(string path);
 
     /// <summary>
     ///   Enables the plugin for the next session onwards.
@@ -156,9 +160,9 @@ public interface IPluginManager
     ///   Thrown if the plugin has been uninstalled.
     /// </exception>
     /// <returns>
-    ///   The updated <see cref="PluginInfo"/> for the plugin.
+    ///   The updated <see cref="LocalPluginInfo"/> for the plugin.
     /// </returns>
-    PluginInfo EnablePlugin(PluginInfo pluginInfo);
+    LocalPluginInfo EnablePlugin(LocalPluginInfo pluginInfo);
 
     /// <summary>
     ///   Disables the plugin for the next session onwards.
@@ -167,9 +171,9 @@ public interface IPluginManager
     ///   The plugin info to disable.
     /// </param>
     /// <returns>
-    ///   The updated <see cref="PluginInfo"/> for the plugin.
+    ///   The updated <see cref="LocalPluginInfo"/> for the plugin.
     /// </returns>
-    PluginInfo DisablePlugin(PluginInfo pluginInfo);
+    LocalPluginInfo DisablePlugin(LocalPluginInfo pluginInfo);
 
     /// <summary>
     ///   Disables and uninstalls the plugin. The plugin will still be active in
@@ -186,9 +190,9 @@ public interface IPluginManager
     ///   filesystem.
     /// </exception>
     /// <returns>
-    ///   The updated <see cref="PluginInfo"/> for the plugin.
+    ///   The updated <see cref="LocalPluginInfo"/> for the plugin.
     /// </returns>
-    PluginInfo UninstallPlugin(PluginInfo pluginInfo, bool purgeConfiguration = true);
+    LocalPluginInfo UninstallPlugin(LocalPluginInfo pluginInfo, bool purgeConfiguration = true);
 
     #endregion
 

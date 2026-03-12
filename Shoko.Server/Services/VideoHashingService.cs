@@ -806,7 +806,7 @@ public class VideoHashingService(
             ? GetID(providerType, pluginInfo)
             : Guid.Empty;
 
-    private static Guid GetID(Type type, PluginInfo pluginInfo)
+    private static Guid GetID(Type type, LocalPluginInfo pluginInfo)
         => UuidUtility.GetV5($"HashProvider={type.FullName!}", pluginInfo.ID);
 
     #endregion

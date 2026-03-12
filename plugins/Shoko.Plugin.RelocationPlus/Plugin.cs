@@ -8,7 +8,7 @@ namespace Shoko.Plugin.RelocationPlus;
 /// <summary>
 /// Responsible for relocating video extra files near the video files.
 /// </summary>
-public class Plugin : IPlugin
+public class Plugin : IPlugin, IPluginServiceRegistration
 {
     /// <inheritdoc/>
     public Guid ID { get => UuidUtility.GetV5(GetType().FullName!); }
@@ -20,13 +20,9 @@ public class Plugin : IPlugin
     public string Description { get; private set; } = """
         Responsible for relocating video extra files near the video files.
     """;
-}
 
-/// <inheritdoc/>
-public class PluginServiceRegistration : IPluginServiceRegistration
-{
     /// <inheritdoc/>
-    public void RegisterServices(IServiceCollection serviceCollection, IApplicationPaths applicationPaths)
+    public static void RegisterServices(IServiceCollection serviceCollection, IApplicationPaths applicationPaths)
     {
         serviceCollection.AddHostedService<RelocationPlusService>();
     }

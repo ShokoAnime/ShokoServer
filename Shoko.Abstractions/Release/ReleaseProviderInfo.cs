@@ -42,7 +42,7 @@ public class ReleaseProviderInfo
     /// <summary>
     /// Information about the plugin that the release info provider belongs to.
     /// </summary>
-    public required PluginInfo PluginInfo { get; init; }
+    public required LocalPluginInfo PluginInfo { get; init; }
 
     /// <summary>
     /// Whether or not the provider is enabled for automatic usage.

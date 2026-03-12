@@ -8,12 +8,14 @@ using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Hashing;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Release;
 using Shoko.Abstractions.Relocation;
 using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -21,44 +23,110 @@ using Shoko.Server.Utilities;
 #nullable enable
 namespace Shoko.Server.Plugin;
 
-public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPaths applicationPaths) : IPluginManager
+public partial class PluginManager(ILogger<PluginManager> logger, ISystemService systemService, IApplicationPaths applicationPaths) : IPluginManager
 {
     private readonly List<Type> _exportedTypes = [];
 
-    private readonly List<PluginInfo> _pluginTypes = [];
+    private readonly List<LocalPluginInfo> _pluginTypes = [];
 
     private readonly Guid _coreID = typeof(CorePlugin).FullName!.ToUuidV5();
 
     private readonly Version _invalidVersion = new(0, 0, 0, 0);
 
+    private readonly Version _currentAbiVersion = typeof(IPlugin).Assembly.GetName().Version is { Major: var major, Minor: var minor, Build: var build }
+        ? new Version(major, minor, build)
+        : new(0, 0, 0);
+
     #region Setup
 
-    private sealed class BasicPluginInfo
+    /// <summary>
+    ///   Basic information about a plugin, used during initial loading before
+    ///   the full <see cref="LocalPluginInfo"/> is available.
+    /// </summary>
+    private sealed class InternalPluginInfo
     {
+        /// <summary>
+        ///   The unique identifier for the plugin.
+        /// </summary>
         public required Guid ID { get; init; }
 
-        public required string DllName { get; init; }
-
+        /// <summary>
+        ///   The name of the plugin.
+        /// </summary>
         public required string Name { get; init; }
 
+        /// <summary>
+        ///   The description of the plugin.
+        /// </summary>
         public required string Description { get; init; }
 
+        /// <summary>
+        ///   The version of the plugin.
+        /// </summary>
         public required Version Version { get; init; }
 
+        /// <summary>
+        ///   The version of the plugin abstractions that the plugin was built against.
+        /// </summary>
+        public required Version AbiVersion { get; init; }
+
+        /// <summary>
+        ///   The priority of the plugin for loading order. Lower values load first.
+        /// </summary>
+        /// <remarks>
+        ///   Will be <c>-1</c> if the plugin is not yet loaded.
+        /// </remarks>
         public required int Priority { get; init; }
 
+        /// <summary>
+        /// When the plugin was installed locally, or <c>null</c> if the plugin is
+        /// not installed locally.
+        /// </summary>
+        public required DateTime InstalledAt { get; init; }
+
+        /// <summary>
+        ///   Indicates the plugin is pinned and should not be automatically updated
+        ///   or reordered based on version.
+        /// </summary>
         public required bool IsPinned { get; init; }
 
+        /// <summary>
+        ///   Indicates the plugin is enabled and should be loaded.
+        /// </summary>
         public required bool IsEnabled { get; init; }
 
-        public required bool HasServices { get; init; }
+        /// <summary>
+        ///   Indicates the plugin can be loaded by the current runtime. Missing
+        ///   assemblies or incompatible ABI versions will prevent loading.
+        /// </summary>
+        public required bool CanLoad { get; init; }
 
+        /// <summary>
+        ///   Indicates if the plugin can be uninstalled by the user. System plugins
+        ///   cannot be uninstalled.
+        /// </summary>
         public required bool CanUninstall { get; init; }
 
+        /// <summary>
+        ///   The name of the DLL file containing the plugin implementation.
+        /// </summary>
+        public required string DllName { get; init; }
+
+        /// <summary>
+        ///   The directory containing the plugin DLLs, if the plugin is not placed
+        ///   in the root of the plugins directory.
+        /// </summary>
         public required string? ContainingDirectory { get; init; }
 
+        /// <summary>
+        ///   All DLLs for the plugin. The first path will always be the main DLL
+        ///   which contains the plugin implementation.
+        /// </summary>
         public required string[] DLLs { get; init; }
 
+        /// <summary>
+        ///   The raw thumbnail image byte array for the plugin, if available.
+        /// </summary>
         public byte[]? Thumbnail { get; set; }
     }
 
@@ -89,13 +157,13 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
         }
     }
 
-    public void RegisterPlugins(IServiceCollection serviceCollection)
+    public void ScanForPlugins()
     {
         if (_pluginTypes.Count > 0)
             throw new InvalidOperationException("Plugins have already been registered.");
 
         // Add the core plugin to register it's plugin providers.
-        var basicPlugins = new List<BasicPluginInfo>()
+        var internalPlugins = new List<InternalPluginInfo>()
         {
             new()
             {
@@ -104,9 +172,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
                 DllName = Path.GetFileNameWithoutExtension(Assembly.GetCallingAssembly().Location!),
                 Description = string.Empty,
                 Version = Assembly.GetCallingAssembly().GetName().Version ?? new(1, 0, 0),
+                AbiVersion = _currentAbiVersion,
+                InstalledAt = systemService.Version.ReleasedAt,
                 IsPinned = true,
                 IsEnabled = true,
-                HasServices = false,
+                CanLoad = true,
                 Priority = -1,
                 CanUninstall = false,
                 ContainingDirectory = null,
@@ -115,12 +185,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
         };
 
         var directories = GetPluginDirectories().ToArray();
-        logger.LogTrace("Scanning {Count} directories for IPlugin and IPluginServiceRegistration implementations", directories.Length);
+        logger.LogTrace("Scanning {Count} directories for plugins...", directories.Length);
         var settingsChanged = false;
         var settings = Utils.SettingsProvider.GetSettings();
         foreach (var (dirPath, dlls, isSystem) in directories)
-            if (LoadBasicPluginInfo(dirPath, dlls, isSystem, settings, ref settingsChanged) is { } basicPluginInfo)
-                basicPlugins.Add(basicPluginInfo);
+            if (LoadInternalPluginInfo(dirPath, dlls, isSystem, settings, ref settingsChanged) is { } internalPluginInfo)
+                internalPlugins.Add(internalPluginInfo);
 
         GC.Collect();
         GC.WaitForPendingFinalizers();
@@ -128,11 +198,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
         if (settingsChanged)
             Utils.SettingsProvider.SaveSettings();
 
-        // Register the plugins in order of priority & then register their services.
-        if (basicPlugins.Any(a => a.HasServices))
-            logger.LogTrace("Registering services for {Count} plugins.", basicPlugins.Count(a => a.HasServices));
-
-        foreach (var grouping in basicPlugins.OrderBy(a => a.Priority).GroupBy(a => a.ID))
+        foreach (var grouping in internalPlugins.OrderBy(a => a.Priority).GroupBy(a => a.ID))
         {
             var orderedInfo = grouping
                 .OrderByDescending(a => a.IsPinned)
@@ -142,63 +208,82 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
                 .ThenBy(a => a.DLLs[0])
                 .ToList();
             var enabled = true;
-            foreach (var basicPluginInfo in orderedInfo)
+            foreach (var internalPluginInfo in orderedInfo)
             {
-                if (!basicPluginInfo.IsEnabled || !enabled)
+                if (!internalPluginInfo.IsEnabled || !enabled)
                 {
                     _pluginTypes.Add(new()
                     {
-                        ID = basicPluginInfo.ID,
-                        Version = basicPluginInfo.Version,
-                        Name = basicPluginInfo.Name,
-                        Description = basicPluginInfo.Description,
+                        ID = internalPluginInfo.ID,
+                        Name = internalPluginInfo.Name,
+                        Description = internalPluginInfo.Description,
+                        Version = internalPluginInfo.Version,
+                        AbiVersion = internalPluginInfo.AbiVersion,
                         LoadOrder = _pluginTypes.Count,
+                        InstalledAt = internalPluginInfo.InstalledAt,
                         IsInstalled = true,
                         IsEnabled = false,
                         IsActive = false,
-                        CanUninstall = basicPluginInfo.CanUninstall,
+                        CanLoad = internalPluginInfo.CanLoad,
+                        CanUninstall = internalPluginInfo.CanUninstall,
                         Plugin = null,
                         PluginType = null,
-                        ContainingDirectory = basicPluginInfo.ContainingDirectory,
-                        DLLs = basicPluginInfo.DLLs,
+                        ServiceRegistrationType = null,
+                        ApplicationRegistrationType = null,
+                        ContainingDirectory = internalPluginInfo.ContainingDirectory,
+                        DLLs = internalPluginInfo.DLLs,
                         Types = [],
-                        Thumbnail = LoadPluginThumbnailInfo(basicPluginInfo.ContainingDirectory, basicPluginInfo.DLLs[0], basicPluginInfo.Thumbnail),
+                        Thumbnail = LoadPluginThumbnailInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail),
                     });
                     continue;
                 }
 
                 enabled = false;
-                var mainDllPath = basicPluginInfo.DLLs[0];
+                var mainDllPath = internalPluginInfo.DLLs[0];
                 var assembly = mainDllPath is null ? Assembly.GetCallingAssembly() : Assembly.LoadFrom(mainDllPath);
-                var types = assembly.GetExportedTypes()
-                    .Where(type => type.IsClass && !type.IsAbstract && !type.IsInterface && !type.IsGenericType)
-                    .ToArray();
+                var types = assembly.GetExportedTypes();
                 _pluginTypes.Add(new()
                 {
-                    ID = basicPluginInfo.ID,
-                    Version = basicPluginInfo.Version,
-                    Name = basicPluginInfo.Name,
-                    Description = basicPluginInfo.Description,
+                    ID = internalPluginInfo.ID,
+                    Name = internalPluginInfo.Name,
+                    Description = internalPluginInfo.Description,
+                    Version = internalPluginInfo.Version,
+                    AbiVersion = internalPluginInfo.AbiVersion,
                     LoadOrder = _pluginTypes.Count,
+                    InstalledAt = internalPluginInfo.InstalledAt,
                     IsInstalled = true,
                     IsEnabled = true,
                     IsActive = false,
-                    CanUninstall = basicPluginInfo.CanUninstall,
+                    CanLoad = internalPluginInfo.CanLoad,
+                    CanUninstall = internalPluginInfo.CanUninstall,
                     Plugin = null,
-                    PluginType = types.Where(a => a.GetInterfaces().Contains(typeof(IPlugin))).First(),
-                    ContainingDirectory = basicPluginInfo.ContainingDirectory,
-                    DLLs = basicPluginInfo.DLLs,
+                    PluginType = types.First(a => a.GetInterfaces().Contains(typeof(IPlugin))),
+                    ServiceRegistrationType = types.FirstOrDefault(a => a.GetInterfaces().Contains(typeof(IPluginServiceRegistration))),
+                    ApplicationRegistrationType = types.FirstOrDefault(a => a.GetInterfaces().Contains(typeof(IPluginApplicationRegistration))),
+                    ContainingDirectory = internalPluginInfo.ContainingDirectory,
+                    DLLs = internalPluginInfo.DLLs,
                     Types = types,
-                    Thumbnail = LoadPluginThumbnailInfo(basicPluginInfo.ContainingDirectory, basicPluginInfo.DLLs[0], basicPluginInfo.Thumbnail),
+                    Thumbnail = LoadPluginThumbnailInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail),
                 });
-                var registrationType = basicPluginInfo.HasServices ? assembly.GetExportedTypes().First(a => a.GetInterfaces().Contains(typeof(IPluginServiceRegistration))) : null;
-                if (registrationType is not null)
-                {
-                    logger.LogTrace("Registering plugin services. ({DllName}, v{Version})", basicPluginInfo.DllName, basicPluginInfo.Version);
-                    var instance = (IPluginServiceRegistration)Activator.CreateInstance(registrationType)!;
-                    instance.RegisterServices(serviceCollection, applicationPaths);
-                }
             }
+        }
+    }
+
+    public void RegisterPlugins(IServiceCollection serviceCollection)
+    {
+        // Register the plugins in order of priority & then register their services.
+        var registrationPlugins = _pluginTypes
+            .Where(a => a.ServiceRegistrationType is not null)
+            .ToList();
+        if (registrationPlugins.Count > 0)
+            logger.LogTrace("Registering services for {Count} plugins.", registrationPlugins.Count);
+
+        foreach (var pluginInfo in registrationPlugins)
+        {
+            logger.LogTrace("Registering plugin services. ({DllName}, v{Version})", Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]), pluginInfo.Version);
+            pluginInfo.ServiceRegistrationType!
+                .GetMethod(nameof(IPluginServiceRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static)!
+                .Invoke(null, [serviceCollection, applicationPaths]);
         }
     }
 
@@ -208,38 +293,44 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
             throw new InvalidOperationException("Plugins have already been initialized.");
 
         logger.LogInformation("Initializing {Count} plugins. ({Disabled} disabled)", _pluginTypes.Count(a => a.IsEnabled), _pluginTypes.Count(a => !a.IsEnabled));
-        foreach (var basicPluginInfo in _pluginTypes.ToArray())
+        foreach (var localPluginInfo in _pluginTypes.ToArray())
         {
-            var dllName = Path.GetFileNameWithoutExtension(basicPluginInfo.DLLs[0]);
-            if (!basicPluginInfo.IsEnabled)
+            var dllName = Path.GetFileNameWithoutExtension(localPluginInfo.DLLs[0]);
+            if (!localPluginInfo.IsEnabled)
             {
-                logger.LogInformation("Skipping disabled plugin \"{Name}\". ({DllName}, v{Version})", basicPluginInfo.Name, dllName, basicPluginInfo.Version);
+                if (localPluginInfo.CanLoad)
+                    logger.LogInformation("Skipping disabled plugin \"{Name}\". ({DllName}, v{Version})", localPluginInfo.Name, dllName, localPluginInfo.Version);
                 continue;
             }
 
-            var pluginType = basicPluginInfo.PluginType!;
-            var plugin = (IPlugin)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, pluginType);
-            _pluginTypes[basicPluginInfo.LoadOrder] = new()
+            var pluginType = localPluginInfo.PluginType!;
+            var pluginInstance = (IPlugin)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, pluginType);
+            _pluginTypes[localPluginInfo.LoadOrder] = new()
             {
-                ID = plugin.ID,
-                Name = plugin.Name,
-                Description = plugin.Description?.CleanDescription() ?? string.Empty,
-                Version = basicPluginInfo.Version,
-                LoadOrder = basicPluginInfo.LoadOrder,
+                ID = pluginInstance.ID,
+                Name = pluginInstance.Name,
+                Description = pluginInstance.Description?.CleanDescription() ?? string.Empty,
+                Version = localPluginInfo.Version,
+                AbiVersion = localPluginInfo.AbiVersion,
+                LoadOrder = localPluginInfo.LoadOrder,
+                InstalledAt = localPluginInfo.InstalledAt,
                 IsInstalled = true,
                 IsEnabled = true,
                 IsActive = true,
-                CanUninstall = basicPluginInfo.CanUninstall,
-                Plugin = plugin,
+                CanLoad = localPluginInfo.CanLoad,
+                CanUninstall = localPluginInfo.CanUninstall,
+                Plugin = pluginInstance,
                 PluginType = pluginType,
-                ContainingDirectory = basicPluginInfo.ContainingDirectory,
-                DLLs = basicPluginInfo.DLLs,
-                Types = basicPluginInfo.Types,
-                Thumbnail = basicPluginInfo.Thumbnail,
+                ServiceRegistrationType = localPluginInfo.ServiceRegistrationType,
+                ApplicationRegistrationType = localPluginInfo.ApplicationRegistrationType,
+                ContainingDirectory = localPluginInfo.ContainingDirectory,
+                DLLs = localPluginInfo.DLLs,
+                Types = localPluginInfo.Types,
+                Thumbnail = localPluginInfo.Thumbnail,
             };
-            _exportedTypes.AddRange(basicPluginInfo.Types);
+            _exportedTypes.AddRange(localPluginInfo.Types);
 
-            logger.LogInformation("Initialized plugin \"{Name}\". ({DllName}, v{Version})", plugin.Name, dllName, basicPluginInfo.Version);
+            logger.LogInformation("Initialized plugin \"{Name}\". ({DllName}, v{Version})", pluginInstance.Name, dllName, localPluginInfo.Version);
         }
 
         var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
@@ -354,20 +445,20 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
         }
     }
 
-    private BasicPluginInfo? LoadBasicPluginInfo(string? containingDirectory, string[] dlls)
+    private InternalPluginInfo? LoadInternalPluginInfo(string? containingDirectory, string[] dlls)
     {
         var settingsChanged = false;
         var settings = Utils.SettingsProvider.GetSettings();
-        var basicPluginInfo = LoadBasicPluginInfo(containingDirectory, dlls, false, settings, ref settingsChanged);
+        var internalPluginInfo = LoadInternalPluginInfo(containingDirectory, dlls, false, settings, ref settingsChanged);
         if (settingsChanged)
             Utils.SettingsProvider.SaveSettings();
 
-        if (basicPluginInfo is not null)
-            logger.LogInformation("Loaded inactive plugin \"{Name}\". ({DllName}, v{Version})", basicPluginInfo.Name, Path.GetFileNameWithoutExtension(basicPluginInfo.DLLs[0]), basicPluginInfo.Version);
-        return basicPluginInfo;
+        if (internalPluginInfo is not null)
+            logger.LogInformation("Loaded inactive plugin \"{Name}\". ({DllName}, v{Version})", internalPluginInfo.Name, Path.GetFileNameWithoutExtension(internalPluginInfo.DLLs[0]), internalPluginInfo.Version);
+        return internalPluginInfo;
     }
 
-    private BasicPluginInfo? LoadBasicPluginInfo(string? dirPath, string[] dlls, bool isSystem, IServerSettings settings, ref bool settingsChanged)
+    private InternalPluginInfo? LoadInternalPluginInfo(string? dirPath, string[] dlls, bool isSystem, IServerSettings settings, ref bool settingsChanged)
     {
         var selfResolvingPluginPath = dlls.FirstOrDefault(dll => Path.Exists(Path.ChangeExtension(dll, ".deps.json")));
         var dllsToLoad = dirPath is not null && selfResolvingPluginPath is not null ? [selfResolvingPluginPath] : dlls;
@@ -387,14 +478,118 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
                         continue;
                     }
 
-                    var version = assembly.GetName().Version is { } assVer ? new Version(assVer.Major, assVer.Minor, assVer.Build, assVer.Revision) : new(0, 0, 0, 0);
+                    var version = assembly.GetName().Version is { Major: var assMajor, Minor: var assMinor, Build: var assBuild, Revision: var assRevision }
+                        ? new Version(assMajor, assMinor, assBuild, assRevision)
+                        : new(0, 0, 0, 0);
                     if (version <= _invalidVersion)
                     {
                         logger.LogInformation("Skipping {DllName} because the loaded assembly has a version below or equal to v0.0.0.0.", dllPath);
                         continue;
                     }
 
-                    var pluginTypes = assembly.GetExportedTypes();
+                    var createdAt = File.GetCreationTimeUtc(dllPath);
+                    var referencedAssemblies = assembly.GetReferencedAssemblies();
+                    var legacyRef = referencedAssemblies.FirstOrDefault(r => r.Name is "Shoko.Plugin.Abstractions");
+                    var newRef = referencedAssemblies.FirstOrDefault(r => r.Name is "Shoko.Abstractions");
+                    var isLegacyNamespace = legacyRef is not null && newRef is null;
+                    var abiVersion = (isLegacyNamespace ? legacyRef : newRef)?.Version is { Major: var abiMajor, Minor: var abiMinor, Build: var abiBuild }
+                        ? new Version(abiMajor, abiMinor, abiBuild)
+                        : new(0, 0, 0);
+                    // Silently skip DLLs which doesn't reference the abstraction.
+                    if (abiVersion <= _invalidVersion)
+                        continue;
+
+                    // TryAdd, because if it made it this far, then it's missing or true.
+                    if (settings.Plugins.EnabledPlugins.TryAdd(name, true))
+                        settingsChanged = true;
+
+                    if (isLegacyNamespace)
+                    {
+                        logger.LogWarning("Found plugin using deprecated Shoko.Plugin.Abstractions namespace. This plugin is incompatible and needs to be updated. ({DllName}, v{Version}, ABI v{AbiVersion})", name, version, abiVersion);
+
+                        return new()
+                        {
+                            // Create an unique ID for this specific version that failed to load.
+                            ID = UuidUtility.GetV5($"{name}@{version}"),
+                            DllName = name,
+                            Name = name,
+                            Description = isLegacyNamespace
+                                ? "This plugin uses the deprecated Shoko.Plugin.Abstractions namespace and is incompatible with this version of Shoko Server. Please update the plugin to use Shoko.Abstractions."
+                                : "The plugin failed to load due to missing dependencies.",
+                            Version = version,
+                            AbiVersion = abiVersion,
+                            InstalledAt = createdAt,
+                            IsPinned = string.IsNullOrEmpty(dirPath)
+                                ? File.Exists(Path.ChangeExtension(dllPath, ".pinned"))
+                                : File.Exists(Path.Join(dirPath, ".pinned")),
+                            IsEnabled = false,
+                            ContainingDirectory = dirPath,
+                            Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
+                            CanLoad = false,
+                            CanUninstall = !isSystem,
+                            DLLs = [dllPath, .. dlls.Except([dllPath])],
+                            Thumbnail = null,
+                        };
+                    }
+
+                    if (abiVersion > _currentAbiVersion)
+                    {
+                        logger.LogInformation("Skipping {DllName} because the loaded assembly references a newer version of Shoko.Abstractions than what this server supports.", dllPath);
+                        return new()
+                        {
+                            // Create an unique ID for this specific version that failed to load.
+                            ID = UuidUtility.GetV5($"{name}@{version}"),
+                            DllName = name,
+                            Name = name,
+                            Description = "The plugin failed to load because it references a newer version of Shoko.Abstractions than what this server supports.",
+                            Version = version,
+                            AbiVersion = abiVersion,
+                            InstalledAt = createdAt,
+                            IsPinned = string.IsNullOrEmpty(dirPath)
+                                ? File.Exists(Path.ChangeExtension(dllPath, ".pinned"))
+                                : File.Exists(Path.Join(dirPath, ".pinned")),
+                            IsEnabled = false,
+                            ContainingDirectory = dirPath,
+                            Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
+                            CanLoad = false,
+                            CanUninstall = !isSystem,
+                            DLLs = [dllPath, .. dlls.Except([dllPath])],
+                            Thumbnail = null,
+                        };
+                    }
+
+                    Type[] pluginTypes;
+                    try
+                    {
+                        pluginTypes = assembly.GetExportedTypes();
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogError(e, "Failed to get exported types from {DllName}. Ensure all dependencies are available.", dllPath);
+
+                        return new()
+                        {
+                            // Create an unique ID for this specific version that failed to load.
+                            ID = UuidUtility.GetV5($"{name}@{version}"),
+                            DllName = name,
+                            Name = name,
+                            Description = "The plugin failed to load due to missing dependencies.",
+                            Version = version,
+                            AbiVersion = abiVersion,
+                            InstalledAt = createdAt,
+                            IsPinned = string.IsNullOrEmpty(dirPath)
+                                ? File.Exists(Path.ChangeExtension(dllPath, ".pinned"))
+                                : File.Exists(Path.Join(dirPath, ".pinned")),
+                            IsEnabled = false,
+                            ContainingDirectory = dirPath,
+                            Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
+                            CanLoad = false,
+                            CanUninstall = !isSystem,
+                            DLLs = [dllPath, .. dlls.Except([dllPath])],
+                            Thumbnail = null,
+                        };
+                    }
+
                     var pluginImpl = pluginTypes
                         .Where(a => a.GetInterfaces().Contains(typeof(IPlugin)))
                         .ToList();
@@ -423,21 +618,15 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
                     }
 
                     if (registrationImpl.Count > 0)
-                        logger.LogInformation("Found IPlugin & IPluginServiceRegistration implementations. ({DllName}, v{Version})", name, version);
+                        logger.LogInformation("Found plugin with services. ({DllName}, v{Version})", name, version);
                     else
-                        logger.LogInformation("Found IPlugin implementation. ({DllName}, v{Version})", name, version);
-
-                    // TryAdd, because if it made it this far, then it's missing or true.
-                    if (settings.Plugins.EnabledPlugins.TryAdd(name, true))
-                        settingsChanged = true;
+                        logger.LogInformation("Found plugin. ({DllName}, v{Version})", name, version);
 
                     if (!settings.Plugins.Priority.Contains(name))
                     {
                         settings.Plugins.Priority.Add(name);
                         settingsChanged = true;
                     }
-
-
                     var instance = (IPlugin)Activator.CreateInstance(pluginImpl[0])!;
                     if (instance.ID == _coreID)
                     {
@@ -473,13 +662,15 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
                         Name = instance.Name,
                         Description = instance.Description?.CleanDescription() ?? string.Empty,
                         Version = version,
+                        AbiVersion = abiVersion,
+                        InstalledAt = createdAt,
                         IsPinned = string.IsNullOrEmpty(dirPath)
                             ? File.Exists(Path.ChangeExtension(dllPath, ".pinned"))
                             : File.Exists(Path.Join(dirPath, ".pinned")),
                         IsEnabled = settings.Plugins.EnabledPlugins[name],
-                        HasServices = registrationImpl.Count > 0,
                         ContainingDirectory = dirPath,
                         Priority = settings.Plugins.Priority.IndexOf(name),
+                        CanLoad = true,
                         CanUninstall = !isSystem,
                         DLLs = [dllPath, .. dlls.Except([dllPath])],
                         Thumbnail = thumbnailImage,
@@ -504,27 +695,27 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
 
     #region Plugin Info
 
-    public IReadOnlyList<PluginInfo> GetPluginInfos()
+    public IReadOnlyList<LocalPluginInfo> GetPluginInfos()
         => _pluginTypes;
 
-    public IReadOnlyList<PluginInfo> GetPluginInfos(Guid pluginId)
+    public IReadOnlyList<LocalPluginInfo> GetPluginInfos(Guid pluginId)
         => _pluginTypes.Where(p => p.ID == pluginId).ToList();
 
-    public PluginInfo? GetPluginInfo(Guid pluginId, Version? pluginVersion = null)
+    public LocalPluginInfo? GetPluginInfo(Guid pluginId, Version? pluginVersion = null)
         => pluginVersion is not null
             ? _pluginTypes.FirstOrDefault(p => p.ID == pluginId && p.Version == pluginVersion)
             : _pluginTypes.FirstOrDefault(p => p.ID == pluginId && p.IsActive) ?? _pluginTypes.Where(p => p.ID == pluginId).OrderByDescending(p => p.Version).FirstOrDefault();
 
-    public PluginInfo? GetPluginInfo(IPlugin plugin)
+    public LocalPluginInfo? GetPluginInfo(IPlugin plugin)
         => _pluginTypes.FirstOrDefault(p => p.Plugin is not null && ReferenceEquals(plugin, p.Plugin));
 
-    public PluginInfo? GetPluginInfo<TPlugin>() where TPlugin : IPlugin
+    public LocalPluginInfo? GetPluginInfo<TPlugin>() where TPlugin : IPlugin
         => _pluginTypes.FirstOrDefault(p => typeof(TPlugin) == p.PluginType);
 
-    public PluginInfo? GetPluginInfo(Type type)
+    public LocalPluginInfo? GetPluginInfo(Type type)
         => _pluginTypes.FirstOrDefault(p => type == p.PluginType);
 
-    public PluginInfo? GetPluginInfo(Assembly assembly)
+    public LocalPluginInfo? GetPluginInfo(Assembly assembly)
         => assembly.GetTypes().Where(type => typeof(IPlugin).IsAssignableFrom(type)).FirstOrDefault() is { } pluginType
             ? GetPluginInfo(pluginType)
             : null;
@@ -533,7 +724,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
 
     #region Plugin Management
 
-    public PluginInfo? LoadFromPath(string path)
+    public LocalPluginInfo? LoadFromPath(string path)
     {
         var userPluginDir = applicationPaths.PluginsPath;
         if (path.StartsWith("%PluginsPath%"))
@@ -546,13 +737,13 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
         return LoadFromPathInternal(path);
     }
 
-    public PluginInfo EnablePlugin(PluginInfo pluginInfo)
+    public LocalPluginInfo EnablePlugin(LocalPluginInfo pluginInfo)
         => TogglePlugin(pluginInfo, true);
 
-    public PluginInfo DisablePlugin(PluginInfo pluginInfo)
+    public LocalPluginInfo DisablePlugin(LocalPluginInfo pluginInfo)
         => TogglePlugin(pluginInfo, false);
 
-    public PluginInfo UninstallPlugin(PluginInfo pluginInfo, bool purgeConfiguration = true)
+    public LocalPluginInfo UninstallPlugin(LocalPluginInfo pluginInfo, bool purgeConfiguration = true)
     {
         if (!pluginInfo.CanUninstall || !pluginInfo.IsInstalled)
             return pluginInfo;
@@ -618,7 +809,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
         return pluginInfo;
     }
 
-    private PluginInfo? LoadFromPathInternal(string path)
+    private LocalPluginInfo? LoadFromPathInternal(string path)
     {
         if (Directory.Exists(path))
         {
@@ -632,7 +823,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
         return LoadFromDirectoryOrDLL(null, [path]);
     }
 
-    private PluginInfo? LoadFromDirectoryOrDLL(string? containingDirectory, string[] dlls)
+    private LocalPluginInfo? LoadFromDirectoryOrDLL(string? containingDirectory, string[] dlls)
     {
         if (!string.IsNullOrEmpty(containingDirectory))
         {
@@ -649,26 +840,31 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
             return null;
         }
 
-        if (LoadBasicPluginInfo(containingDirectory, dlls) is not { } basicPluginInfo)
+        if (LoadInternalPluginInfo(containingDirectory, dlls) is not { } internalPluginInfo)
             return null;
 
-        var pluginInfo = new PluginInfo()
+        var pluginInfo = new LocalPluginInfo()
         {
-            ID = basicPluginInfo.ID,
-            Version = basicPluginInfo.Version,
-            Name = basicPluginInfo.Name,
-            Description = basicPluginInfo.Description,
+            ID = internalPluginInfo.ID,
+            Name = internalPluginInfo.Name,
+            Description = internalPluginInfo.Description,
+            Version = internalPluginInfo.Version,
+            AbiVersion = internalPluginInfo.AbiVersion,
             LoadOrder = _pluginTypes.Count,
+            InstalledAt = internalPluginInfo.InstalledAt,
             IsInstalled = true,
-            IsEnabled = basicPluginInfo.IsEnabled,
+            IsEnabled = internalPluginInfo.IsEnabled,
             IsActive = false,
-            CanUninstall = basicPluginInfo.CanUninstall,
+            CanLoad = internalPluginInfo.CanLoad,
+            CanUninstall = internalPluginInfo.CanUninstall,
             Plugin = null,
             PluginType = null,
-            ContainingDirectory = basicPluginInfo.ContainingDirectory,
-            DLLs = basicPluginInfo.DLLs,
+            ServiceRegistrationType = null,
+            ApplicationRegistrationType = null,
+            ContainingDirectory = internalPluginInfo.ContainingDirectory,
+            DLLs = internalPluginInfo.DLLs,
             Types = [],
-            Thumbnail = LoadPluginThumbnailInfo(basicPluginInfo.ContainingDirectory, basicPluginInfo.DLLs[0], basicPluginInfo.Thumbnail),
+            Thumbnail = LoadPluginThumbnailInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail),
         };
         _pluginTypes.Add(pluginInfo);
         return pluginInfo;
@@ -764,7 +960,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, IApplicationPa
             _ => null,
         };
 
-    private PluginInfo TogglePlugin(PluginInfo pluginInfo, bool enabled)
+    private LocalPluginInfo TogglePlugin(LocalPluginInfo pluginInfo, bool enabled)
     {
         var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
         var settings = Utils.SettingsProvider.GetSettings();

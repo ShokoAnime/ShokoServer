@@ -9,7 +9,7 @@ namespace Shoko.Plugin.ReleaseExporter;
 /// Plugin responsible for importing releases to and exporting releases from the
 /// file system near the video files.
 /// </summary>
-public class Plugin : IPlugin
+public class Plugin : IPlugin, IPluginServiceRegistration
 {
     /// <inheritdoc/>
     public Guid ID { get => UuidUtility.GetV5(GetType().FullName!); }
@@ -22,13 +22,9 @@ public class Plugin : IPlugin
         Responsible for importing releases to and exporting releases from the
         file system near the video files.
     """;
-}
 
-/// <inheritdoc />
-public class PluginServiceRegistration : IPluginServiceRegistration
-{
     /// <inheritdoc />
-    public void RegisterServices(IServiceCollection serviceCollection, IApplicationPaths applicationPaths)
+    public static void RegisterServices(IServiceCollection serviceCollection, IApplicationPaths applicationPaths)
     {
         serviceCollection.AddSingleton<ReleaseExporter>();
         serviceCollection.AddHostedService(sp => sp.GetRequiredService<ReleaseExporter>());

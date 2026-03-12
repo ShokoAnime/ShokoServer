@@ -1279,7 +1279,7 @@ public class RelocationService(
             ? GetID(providerType, pluginInfo)
             : Guid.Empty;
 
-    private static Guid GetID(Type type, PluginInfo pluginInfo)
+    private static Guid GetID(Type type, LocalPluginInfo pluginInfo)
         => UuidUtility.GetV5($"RelocationProvider={type.FullName!}", pluginInfo.ID);
 
     #endregion ID Helpers

@@ -478,9 +478,12 @@ public static class APIExtensions
             conf.MapHub<AggregateHub>("/signalr/aggregate").RequireAuthorization();
         });
 
-        var appRegistrations = pluginManager.GetExports<IPluginApplicationRegistration>().ToList();
-        foreach (var appRegistration in appRegistrations)
-            appRegistration.RegisterServices(app, ApplicationPaths.Instance);
+        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsActive && p.ApplicationRegistrationType is not null))
+        {
+            pluginInfo.ApplicationRegistrationType!
+                .GetMethod(nameof(IPluginApplicationRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static)!
+                .Invoke(null, [app, ApplicationPaths.Instance]);
+        }
 
         app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 

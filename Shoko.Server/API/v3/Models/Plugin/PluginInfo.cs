@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Server.Services;
 
-using AbstractPluginInfo = Shoko.Abstractions.Plugin.PluginInfo;
+using AbstractPluginInfo = Shoko.Abstractions.Plugin.LocalPluginInfo;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Plugin;
@@ -34,6 +34,12 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     public Version Version { get; init; } = pluginInfo.Version;
 
     /// <summary>
+    ///   The version of the plugin abstractions that the plugin was built
+    ///   against.
+    /// </summary>
+    public Version AbiVersion { get; init; } = pluginInfo.AbiVersion;
+
+    /// <summary>
     ///   The order in which the plugin was loaded.
     /// </summary>
     public int LoadOrder { get; init; } = pluginInfo.LoadOrder;
@@ -42,6 +48,11 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     ///   The thumbnail for the plugin, if it is available for the plugin.
     /// </summary>
     public PluginThumbnailInfo? Thumbnail { get; init; } = pluginInfo.Thumbnail is null ? null : new PluginThumbnailInfo(pluginInfo.Thumbnail);
+
+    /// <summary>
+    /// When the plugin was installed locally.
+    /// </summary>
+    public DateTime InstalledAt { get; init; } = pluginInfo.InstalledAt;
 
     /// <summary>
     ///   Indicates the plugin is currently installed. Will only be <c>false</c>
@@ -64,6 +75,12 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     ///   Indicates the plugin requires a restart for changes to take effect.
     /// </summary>
     public bool RestartPending { get; init; } = pluginInfo.RestartPending;
+
+    /// <summary>
+    ///   Indicates the plugin can be loaded by the current runtime. Missing
+    ///   assemblies or incompatible ABI versions will prevent loading.
+    /// </summary>
+    public bool CanLoad { get; init; } = pluginInfo.CanLoad;
 
     /// <summary>
     ///   Indicates if the plugin can be uninstalled by the user.

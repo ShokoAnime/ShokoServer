@@ -7,7 +7,7 @@ namespace Shoko.Abstractions.Plugin;
 /// <summary>
 ///   Information about a plugin.
 /// </summary>
-public sealed class PluginInfo
+public sealed class LocalPluginInfo
 {
     /// <summary>
     ///   The unique identifier for the plugin.
@@ -30,6 +30,12 @@ public sealed class PluginInfo
     public required Version Version { get; init; }
 
     /// <summary>
+    ///   The version of the plugin abstractions that the plugin was built
+    ///   against.
+    /// </summary>
+    public required Version AbiVersion { get; init; }
+
+    /// <summary>
     ///   The order in which the plugin was loaded.
     /// </summary>
     public required int LoadOrder { get; init; }
@@ -38,6 +44,11 @@ public sealed class PluginInfo
     ///   The thumbnail for the plugin, if it is available for the plugin.
     /// </summary>
     public required PluginThumbnailInfo? Thumbnail { get; init; }
+
+    /// <summary>
+    /// When the plugin was installed locally.
+    /// </summary>
+    public required DateTime InstalledAt { get; init; }
 
     /// <summary>
     ///   Indicates the plugin is currently installed. Will be <c>false</c>
@@ -64,6 +75,12 @@ public sealed class PluginInfo
     public bool RestartPending => IsEnabled != IsActive;
 
     /// <summary>
+    ///   Indicates the plugin can be loaded by the current runtime. Missing
+    ///   assemblies or incompatible ABI versions will prevent loading.
+    /// </summary>
+    public required bool CanLoad { get; init; }
+
+    /// <summary>
     ///   Indicates if the plugin can be uninstalled by the user.
     /// </summary>
     public required bool CanUninstall { get; init; }
@@ -74,9 +91,20 @@ public sealed class PluginInfo
     public required IPlugin? Plugin { get; init; }
 
     /// <summary>
-    /// The type of the plugin, if it has been loaded.
+    ///   The type of the plugin, if it has been loaded.
     /// </summary>
     public required Type? PluginType { get; init; }
+
+    /// <summary>
+    ///   The type used for the plugin to register its services with the core.
+    /// </summary>
+    public required Type? ServiceRegistrationType { get; init; }
+
+    /// <summary>
+    ///   The type used for the plugin to register it's application options with 
+    ///   the core.
+    /// </summary>
+    public required Type? ApplicationRegistrationType { get; init; }
 
     /// <summary>
     ///   The directory containing the plugin DLLs, if the plugin is not placed

@@ -117,5 +117,5 @@ public class ConfigurationInfo(IConfigurationService configurationService)
     /// <summary>
     /// Information about the plugin that the configuration belongs to.
     /// </summary>
-    public required PluginInfo PluginInfo { get; init; }
+    public required LocalPluginInfo PluginInfo { get; init; }
 }

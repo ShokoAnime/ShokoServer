@@ -17,5 +17,5 @@ public interface IPluginServiceRegistration
     /// <param name="applicationPaths">
     ///   The application paths.
     /// </param>
-    void RegisterServices(IServiceCollection serviceCollection, IApplicationPaths applicationPaths);
+    abstract static void RegisterServices(IServiceCollection serviceCollection, IApplicationPaths applicationPaths);
 }

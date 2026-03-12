@@ -1095,7 +1095,7 @@ public partial class ConfigurationService : IConfigurationService
             ? GetID(type, pluginInfo)
             : Guid.Empty;
 
-    private static Guid GetID(Type type, PluginInfo pluginInfo)
+    private static Guid GetID(Type type, LocalPluginInfo pluginInfo)
         => UuidUtility.GetV5($"Configuration={type.FullName!}", pluginInfo.ID);
 
     #endregion

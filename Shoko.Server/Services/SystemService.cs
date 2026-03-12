@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -82,7 +83,7 @@ public class SystemService : ISystemService
         var loggerFactory = LoggerFactory.Create(o => o.AddNLog());
 
         _logger = loggerFactory.CreateLogger<SystemService>();
-        _pluginManager = new(loggerFactory.CreateLogger<PluginManager>(), ApplicationPaths.Instance);
+        _pluginManager = new(loggerFactory.CreateLogger<PluginManager>(), this, ApplicationPaths.Instance);
         _configurationService = new(loggerFactory, ApplicationPaths.Instance, _pluginManager);
         _settingsProvider = new(loggerFactory.CreateLogger<SettingsProvider>(), this, _configurationService.CreateProvider<ServerSettings>());
         _databaseBlockingTasks.Add(_startupTaskSource.Task);
@@ -248,6 +249,12 @@ public class SystemService : ISystemService
             {
                 _logger.LogError("Unable to read RHash version: {Message}", ex.Message);
             }
+
+            StartupMessage = "Scanning for Plugins...";
+
+            _pluginManager.ScanForPlugins();
+
+            StartupMessage = "Scan for plugins completed.";
 
             StartupMessage = "Initializing Web Host & Services.";
 
