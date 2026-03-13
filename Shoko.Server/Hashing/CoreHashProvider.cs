@@ -34,7 +34,7 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
     """;
 
     /// <inheritdoc/>
-    public IReadOnlySet<string> AvailableHashTypes => new HashSet<string>() { "ED2K", "MD5", "CRC32", "SHA1", "SHA256", "SHA512" };
+    public IReadOnlySet<string> AvailableHashTypes => new HashSet<string>() { "ED2K", "CRC32", "MD5", "SHA1", "SHA256", "SHA512" };
 
     static CoreHashProvider()
     {
