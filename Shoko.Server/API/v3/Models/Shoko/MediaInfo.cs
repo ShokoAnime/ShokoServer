@@ -115,7 +115,7 @@ public class MediaInfo
         /// <summary>
         /// Unique id for the stream.
         /// </summary>
-        public string UID { get; set; }
+        public string? UID { get; set; }
 
         /// <summary>
         /// Stream title, if available.
@@ -440,7 +440,7 @@ public class MediaInfo
         /// <summary>
         /// Bit-rate mode of the audio stream.
         /// </summary>
-        public string BitRateMode { get; }
+        public string? BitRateMode { get; }
 
         /// <summary>
         /// Bit-depth of the audio stream.
