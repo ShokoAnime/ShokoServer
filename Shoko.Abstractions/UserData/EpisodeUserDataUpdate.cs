@@ -86,4 +86,10 @@ public class EpisodeUserDataUpdate
     ///   time will be used.
     /// </summary>
     public DateTime? LastUpdatedAt { get; set; }
+
+    /// <summary>
+    ///   When set to <c>true</c>, will prevent the watch status from
+    ///   propagating to any videos associated with the episode.
+    /// </summary>
+    public bool NoVideoPropagation { get; set; }
 }

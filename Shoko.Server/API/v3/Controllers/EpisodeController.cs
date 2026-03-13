@@ -967,13 +967,7 @@ public class EpisodeController : BaseController
         if (!user.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        if (updateFiles)
-        {
-            foreach (var file in episode.VideoLocals)
-                await _userDataService.SetVideoWatchedStatus(file, user, watched);
-        }
-
-        await _userDataService.SetEpisodeWatchedStatus(episode, user, watched);
+        await _userDataService.SetEpisodeWatchedStatus(episode, user, watched, noVideoPropagation: !updateFiles);
 
         return Ok();
     }

@@ -235,7 +235,7 @@ public class UserDataService(
                         if (updateStatsNow && episode.Series is AnimeSeries series)
                             toUpdateSeries.TryAdd(series.AnimeSeriesID, series);
 
-                        await SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = userDataUpdate.LastPlayedAt, LastUpdatedAt = episodeLastUpdated }, importSource, videoReason, updateStatsNow: false);
+                        await SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = userDataUpdate.LastPlayedAt, LastUpdatedAt = episodeLastUpdated, NoVideoPropagation = true }, importSource, videoReason, updateStatsNow: false);
                     }
                 }
                 else
@@ -266,7 +266,7 @@ public class UserDataService(
                         if (updateStatsNow && episode.Series is AnimeSeries series)
                             toUpdateSeries.TryAdd(series.AnimeSeriesID, series);
 
-                        await SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = null, LastUpdatedAt = episodeLastUpdated }, importSource, videoReason, updateStatsNow: false);
+                        await SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = null, LastUpdatedAt = episodeLastUpdated, NoVideoPropagation = true }, importSource, videoReason, updateStatsNow: false);
                     }
                 }
             }
@@ -385,8 +385,8 @@ public class UserDataService(
     public Task<IEpisodeUserData> SetUserTagsForEpisode(IShokoEpisode episode, IUser user, IEnumerable<string>? tags)
         => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { UserTags = tags });
 
-    public Task<IEpisodeUserData> SetEpisodeWatchedStatus(IShokoEpisode episode, IUser user, bool watched = true, DateTime? watchedAt = null, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, bool updateStatsNow = true)
-        => SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = watched ? watchedAt ?? DateTime.Now : null }, updateStatsNow: updateStatsNow);
+    public Task<IEpisodeUserData> SetEpisodeWatchedStatus(IShokoEpisode episode, IUser user, bool watched = true, DateTime? watchedAt = null, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, bool noVideoPropagation = false, bool updateStatsNow = true)
+        => SaveEpisodeUserDataInternal(episode, user, new() { LastPlayedAt = watched ? watchedAt ?? DateTime.Now : null, NoVideoPropagation = noVideoPropagation }, updateStatsNow: updateStatsNow);
 
     public Task<IEpisodeUserData> SaveEpisodeUserData(IShokoEpisode episode, IUser user, EpisodeUserDataUpdate userDataUpdate, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None, bool updateStatsNow = true)
         => SaveEpisodeUserDataInternal(episode, user, userDataUpdate, null, videoReason, updateStatsNow);
@@ -495,6 +495,23 @@ public class UserDataService(
 
         if (watchedStatusChanged)
         {
+            // Propagate watch status to videos.
+            if (!userDataUpdate.NoVideoPropagation)
+            {
+                foreach (var video in episode.VideoList)
+                {
+                    await SetVideoWatchedStatus(
+                        video,
+                        user,
+                        watched: userDataUpdate.LastPlayedAt.HasValue,
+                        watchedAt: userDataUpdate.LastPlayedAt,
+                        reason: videoReason,
+                        noEpisodePropagation: true,
+                        updateStatsNow: false
+                    );
+                }
+            }
+
             var settings = settingsProvider.GetSettings();
             var syncTrakt =
                 !(reason.HasFlag(EpisodeUserDataSaveReason.Import) && importSource is "Trakt") &&

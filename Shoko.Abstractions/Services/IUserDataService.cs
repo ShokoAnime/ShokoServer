@@ -240,6 +240,10 @@ public interface IUserDataService
     ///   Optional. The video reason why the episode watch status was updated.
     ///   If this update was caused by a video update, this should be set.
     /// </param>
+    /// <param name="noVideoPropagation">
+    ///   Optional. When set to <c>true</c>, will prevent the watch status from
+    ///   propagating to any videos associated with the episode.
+    /// </param>
     /// <param name="updateStatsNow">
     ///   Optional. When set to <c>true</c> will update the series stats after
     ///   saving. If doing multiple updates on the same series at once, it is
@@ -252,7 +256,7 @@ public interface IUserDataService
     /// <returns>
     ///   The user data for the episode and user.
     /// </returns>
-    Task<IEpisodeUserData> SetEpisodeWatchedStatus(IShokoEpisode episode, IUser user, bool isWatched = true, DateTime? lastPlayedAt = null, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None, bool updateStatsNow = true);
+    Task<IEpisodeUserData> SetEpisodeWatchedStatus(IShokoEpisode episode, IUser user, bool isWatched = true, DateTime? lastPlayedAt = null, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None, bool noVideoPropagation = false, bool updateStatsNow = true);
 
     /// <summary>
     ///   Toggles the favorite status of a episode.
