@@ -1,7 +1,6 @@
 using System;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
-using Nancy.Rest.Annotations.Attributes;
 
 namespace Shoko.Server.API.v1.Models;
 
@@ -106,10 +105,6 @@ public class CL_MediaStream
     [XmlAttribute("index")]
     public byte Index { get; set; }
 
-    [XmlIgnore]
-    [Ignore]
-    public byte idx;
-
     [DataMember(EmitDefaultValue = false, Order = 25)]
     [XmlAttribute("codec")]
     public string Codec { get; set; }
@@ -175,6 +170,5 @@ public class CL_MediaStream
     public string PixelAspectRatio { get; set; }
 
     [XmlIgnore]
-    [Ignore]
     public float PA { get; set; }
 }

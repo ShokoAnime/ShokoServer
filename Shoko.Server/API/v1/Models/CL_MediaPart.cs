@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
-using Nancy.Rest.Annotations.Attributes;
 
 namespace Shoko.Server.API.v1.Models;
 
@@ -55,7 +54,6 @@ public class CL_MediaPart
     [XmlAttribute("optimizedForStreaming")]
     public byte OptimizedForStreaming { get; set; }
 
-    [Ignore]
     [XmlIgnore]
     public string Extension { get; set; }
 
