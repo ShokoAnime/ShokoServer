@@ -203,7 +203,7 @@ public class ConfigurationProvider<TConfig> : IDisposable where TConfig : class,
     ///   The loaded configuration.
     /// </returns>
     public TConfig Load(bool copy = false)
-        => _service.Load<TConfig>(copy);
+        => (TConfig)_service.Load(ConfigurationInfo, copy);
 
     /// <summary>
     ///   Saves the current in-memory configuration instance. Also triggers the
