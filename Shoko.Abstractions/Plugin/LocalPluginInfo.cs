@@ -46,16 +46,32 @@ public sealed class LocalPluginInfo
     public required PluginThumbnailInfo? Thumbnail { get; init; }
 
     /// <summary>
-    /// When the plugin was installed locally.
+    /// When the plugin was installed to the local system.
     /// </summary>
     public required DateTime InstalledAt { get; init; }
+
+    private DateTime? _uninstalledAt;
+
+    /// <summary>
+    /// When the plugin was uninstalled from the local system.
+    /// </summary>
+    public DateTime? UninstalledAt
+    {
+        get => _uninstalledAt;
+        set
+        {
+            if (value is null || _uninstalledAt is not null)
+                return;
+            _uninstalledAt = value;
+        }
+    }
 
     /// <summary>
     ///   Indicates the plugin is currently installed. Will be <c>false</c>
     ///   if the plugin has been uninstalled in the current session, or if it's
     ///   a remote plugin that has not yet been installed.
     /// </summary>
-    public required bool IsInstalled { get; set; }
+    public bool IsInstalled => !UninstalledAt.HasValue;
 
     /// <summary>
     ///   Indicates the plugin is currently enabled for use in the current

@@ -221,7 +221,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         AbiVersion = internalPluginInfo.AbiVersion,
                         LoadOrder = _pluginTypes.Count,
                         InstalledAt = internalPluginInfo.InstalledAt,
-                        IsInstalled = true,
                         IsEnabled = false,
                         IsActive = false,
                         CanLoad = internalPluginInfo.CanLoad,
@@ -251,7 +250,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     AbiVersion = internalPluginInfo.AbiVersion,
                     LoadOrder = _pluginTypes.Count,
                     InstalledAt = internalPluginInfo.InstalledAt,
-                    IsInstalled = true,
                     IsEnabled = true,
                     IsActive = false,
                     CanLoad = internalPluginInfo.CanLoad,
@@ -314,7 +312,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 AbiVersion = localPluginInfo.AbiVersion,
                 LoadOrder = localPluginInfo.LoadOrder,
                 InstalledAt = localPluginInfo.InstalledAt,
-                IsInstalled = true,
                 IsEnabled = true,
                 IsActive = true,
                 CanLoad = localPluginInfo.CanLoad,
@@ -772,7 +769,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         }
 
         // Disable it and marked it as not installed.
-        pluginInfo.IsInstalled = false;
+        pluginInfo.UninstalledAt = DateTime.UtcNow;
         pluginInfo.IsEnabled = false;
 
         // Remove it from the enabled plugins dictionary.
@@ -852,7 +849,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             AbiVersion = internalPluginInfo.AbiVersion,
             LoadOrder = _pluginTypes.Count,
             InstalledAt = internalPluginInfo.InstalledAt,
-            IsInstalled = true,
             IsEnabled = internalPluginInfo.IsEnabled,
             IsActive = false,
             CanLoad = internalPluginInfo.CanLoad,
