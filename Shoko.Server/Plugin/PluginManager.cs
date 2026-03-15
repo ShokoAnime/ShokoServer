@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,7 @@ using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Hashing;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Events;
 using Shoko.Abstractions.Release;
 using Shoko.Abstractions.Relocation;
 using Shoko.Abstractions.Services;
@@ -721,6 +723,13 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     #region Plugin Management
 
+    /// <inheritdoc/>
+    public event EventHandler<PluginInstallationEventArgs>? PluginInstalled;
+
+    /// <inheritdoc/>
+    public event EventHandler<PluginInstallationEventArgs>? PluginUninstalled;
+
+    /// <inheritdoc/>
     public LocalPluginInfo? LoadFromPath(string path)
     {
         var userPluginDir = applicationPaths.PluginsPath;
@@ -731,7 +740,19 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         if (!path.StartsWith(userPluginDir + Path.DirectorySeparatorChar))
             return null;
 
-        return LoadFromPathInternal(path);
+        lock (_pluginTypes)
+        {
+            if (LoadFromPathInternal(path) is not { } pluginInfo)
+                return null;
+
+            Task.Run(() => PluginInstalled?.Invoke(null, new()
+            {
+                Plugin = pluginInfo,
+                OccurredAt = DateTime.UtcNow,
+            }));
+
+            return pluginInfo;
+        }
     }
 
     public LocalPluginInfo EnablePlugin(LocalPluginInfo pluginInfo)
@@ -745,65 +766,77 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         if (!pluginInfo.CanUninstall || !pluginInfo.IsInstalled)
             return pluginInfo;
 
-        // Mark the plugin for removal upon next startup.
-        if (!string.IsNullOrEmpty(pluginInfo.ContainingDirectory))
+        lock (_pluginTypes)
         {
-            if (Directory.Exists(pluginInfo.ContainingDirectory))
+            if (!pluginInfo.CanUninstall || !pluginInfo.IsInstalled)
+                return pluginInfo;
+
+            // Mark the plugin for removal upon next startup.
+            if (!string.IsNullOrEmpty(pluginInfo.ContainingDirectory))
             {
-                var removalFile = Path.Join(pluginInfo.ContainingDirectory, ".remove");
-                var pinnedFile = Path.Join(pluginInfo.ContainingDirectory, ".pinned");
-                if (!File.Exists(removalFile))
+                if (Directory.Exists(pluginInfo.ContainingDirectory))
+                {
+                    var removalFile = Path.Join(pluginInfo.ContainingDirectory, ".remove");
+                    var pinnedFile = Path.Join(pluginInfo.ContainingDirectory, ".pinned");
+                    if (!File.Exists(removalFile))
+                        File.WriteAllText(removalFile, string.Empty);
+                    if (File.Exists(pinnedFile))
+                        File.Delete(pinnedFile);
+                }
+            }
+            else if (pluginInfo.DLLs.Count is 1)
+            {
+                var removalFile = Path.ChangeExtension(pluginInfo.DLLs[0], ".remove");
+                var pinnedFile = Path.ChangeExtension(pluginInfo.DLLs[0], ".pinned");
+                if (File.Exists(pluginInfo.DLLs[0]) && !File.Exists(removalFile))
                     File.WriteAllText(removalFile, string.Empty);
                 if (File.Exists(pinnedFile))
                     File.Delete(pinnedFile);
             }
-        }
-        else if (pluginInfo.DLLs.Count is 1)
-        {
-            var removalFile = Path.ChangeExtension(pluginInfo.DLLs[0], ".remove");
-            var pinnedFile = Path.ChangeExtension(pluginInfo.DLLs[0], ".pinned");
-            if (File.Exists(pluginInfo.DLLs[0]) && !File.Exists(removalFile))
-                File.WriteAllText(removalFile, string.Empty);
-            if (File.Exists(pinnedFile))
-                File.Delete(pinnedFile);
-        }
 
-        // Disable it and marked it as not installed.
-        pluginInfo.UninstalledAt = DateTime.UtcNow;
-        pluginInfo.IsEnabled = false;
+            // Disable it and marked it as not installed.
+            pluginInfo.UninstalledAt = DateTime.UtcNow;
+            pluginInfo.IsEnabled = false;
 
-        // Remove it from the enabled plugins dictionary.
-        var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
-        var settings = Utils.SettingsProvider.GetSettings();
-        if (settings.Plugins.EnabledPlugins.Remove(dllName))
-            Utils.SettingsProvider.SaveSettings(settings);
+            // Remove it from the enabled plugins dictionary.
+            var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
+            var settings = Utils.SettingsProvider.GetSettings();
+            if (settings.Plugins.EnabledPlugins.Remove(dllName))
+                Utils.SettingsProvider.SaveSettings(settings);
 
-        // Purge configuration if requested.
-        if (purgeConfiguration)
-        {
-            // Remove the default plugin config directory if it exists.
-            var pluginConfigDir = Path.Join(applicationPaths.ConfigurationsPath, pluginInfo.ID.ToString());
-            if (Directory.Exists(pluginConfigDir))
-                Directory.Delete(pluginConfigDir, true);
-
-            // Remove any configuration files outside the default plugin config directory if we have the plugin loaded.
-            if (pluginInfo.Plugin is not null)
+            // Purge configuration if requested.
+            if (purgeConfiguration)
             {
-                pluginConfigDir += Path.DirectorySeparatorChar;
-                var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
-                var configInfos = configurationService.GetConfigurationInfo(pluginInfo.Plugin);
-                foreach (var configInfo in configInfos)
-                {
-                    if (string.IsNullOrEmpty(configInfo.Path) || configInfo.Path.StartsWith(pluginConfigDir))
-                        continue;
+                // Remove the default plugin config directory if it exists.
+                var pluginConfigDir = Path.Join(applicationPaths.ConfigurationsPath, pluginInfo.ID.ToString());
+                if (Directory.Exists(pluginConfigDir))
+                    Directory.Delete(pluginConfigDir, true);
 
-                    if (File.Exists(configInfo.Path))
-                        File.Delete(configInfo.Path);
+                // Remove any configuration files outside the default plugin config directory if we have the plugin loaded.
+                if (pluginInfo.Plugin is not null)
+                {
+                    pluginConfigDir += Path.DirectorySeparatorChar;
+                    var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
+                    var configInfos = configurationService.GetConfigurationInfo(pluginInfo.Plugin);
+                    foreach (var configInfo in configInfos)
+                    {
+                        if (string.IsNullOrEmpty(configInfo.Path) || configInfo.Path.StartsWith(pluginConfigDir))
+                            continue;
+
+                        if (File.Exists(configInfo.Path))
+                            File.Delete(configInfo.Path);
+                    }
                 }
             }
-        }
 
-        return pluginInfo;
+            Task.Run(() => PluginUninstalled?.Invoke(null, new()
+            {
+                Plugin = pluginInfo,
+                OccurredAt = DateTime.UtcNow,
+            }));
+
+            return pluginInfo;
+        }
     }
 
     private LocalPluginInfo? LoadFromPathInternal(string path)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Plugin.Events;
 
 namespace Shoko.Abstractions.Plugin;
 
@@ -132,6 +133,16 @@ public interface IPluginManager
     #endregion
 
     #region Plugin Management
+
+    /// <summary>
+    ///   Dispatched when a local plugin is installed to the local system.
+    /// </summary>
+    event EventHandler<PluginInstallationEventArgs>? PluginInstalled;
+
+    /// <summary>
+    ///   Dispatched when a local plugin is uninstalled from the local system.
+    /// </summary>
+    event EventHandler<PluginInstallationEventArgs>? PluginUninstalled;
 
     /// <summary>
     ///   Loads a new plugin info from the given path.
