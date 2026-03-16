@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Plugin.Events;
+using Shoko.Abstractions.Plugin.Models;
 
 namespace Shoko.Abstractions.Plugin;
 

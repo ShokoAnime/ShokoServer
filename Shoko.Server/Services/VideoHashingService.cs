@@ -20,6 +20,7 @@ using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Hashing;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;

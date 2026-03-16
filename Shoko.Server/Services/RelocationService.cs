@@ -17,6 +17,7 @@ using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.Relocation;
 using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Utilities;

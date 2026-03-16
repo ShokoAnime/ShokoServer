@@ -1,6 +1,6 @@
 using System;
 using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 
 namespace Shoko.Abstractions.Relocation;
 

@@ -14,6 +14,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Hashing;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Events;
+using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.Release;
 using Shoko.Abstractions.Relocation;
 using Shoko.Abstractions.Services;
@@ -900,7 +901,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         return pluginInfo;
     }
 
-    private PluginThumbnailInfo? LoadPluginThumbnailInfo(string? containingDirectory, string dll, byte[]? thumbnailBytes)
+    private PackageThumbnailInfo? LoadPluginThumbnailInfo(string? containingDirectory, string dll, byte[]? thumbnailBytes)
     {
         if (!string.IsNullOrEmpty(containingDirectory))
         {

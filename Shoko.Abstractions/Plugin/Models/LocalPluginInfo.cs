@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Shoko.Abstractions.Plugin;
+namespace Shoko.Abstractions.Plugin.Models;
 
 /// <summary>
 ///   Information about a plugin.
@@ -43,7 +43,7 @@ public sealed class LocalPluginInfo
     /// <summary>
     ///   The thumbnail for the plugin, if it is available for the plugin.
     /// </summary>
-    public required PluginThumbnailInfo? Thumbnail { get; init; }
+    public required PackageThumbnailInfo? Thumbnail { get; init; }
 
     /// <summary>
     /// When the plugin was installed to the local system.

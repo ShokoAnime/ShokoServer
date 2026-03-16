@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Server.Services;
 
-using AbstractPluginInfo = Shoko.Abstractions.Plugin.LocalPluginInfo;
+using AbstractPluginInfo = Shoko.Abstractions.Plugin.Models.LocalPluginInfo;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Plugin;
@@ -47,7 +47,7 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     /// <summary>
     ///   The thumbnail for the plugin, if it is available for the plugin.
     /// </summary>
-    public PluginThumbnailInfo? Thumbnail { get; init; } = pluginInfo.Thumbnail is null ? null : new PluginThumbnailInfo(pluginInfo.Thumbnail);
+    public PackageThumbnailInfo? Thumbnail { get; init; } = pluginInfo.Thumbnail is null ? null : new PackageThumbnailInfo(pluginInfo.Thumbnail);
 
     /// <summary>
     /// When the plugin was installed locally.

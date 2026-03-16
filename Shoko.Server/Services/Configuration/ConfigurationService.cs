@@ -22,6 +22,7 @@ using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.Services;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Utilities;

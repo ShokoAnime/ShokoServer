@@ -13,7 +13,7 @@ using Shoko.Server.API.v3.Models.Plugin.Input;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-using AbstractPluginInfo = Shoko.Abstractions.Plugin.LocalPluginInfo;
+using AbstractPluginInfo = Shoko.Abstractions.Plugin.Models.LocalPluginInfo;
 using PluginInfo = Shoko.Server.API.v3.Models.Plugin.PluginInfo;
 
 #nullable enable

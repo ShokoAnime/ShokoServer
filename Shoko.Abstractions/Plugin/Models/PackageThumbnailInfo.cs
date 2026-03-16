@@ -1,11 +1,11 @@
 using System.IO;
 
-namespace Shoko.Abstractions.Plugin;
+namespace Shoko.Abstractions.Plugin.Models;
 
 /// <summary>
-/// Information about a plugin thumbnail.
+/// Information about a package or plugin thumbnail.
 /// </summary>
-public sealed class PluginThumbnailInfo
+public sealed class PackageThumbnailInfo
 {
     /// <summary>
     /// The mime type of the thumbnail image.

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Namotion.Reflection;
 using NJsonSchema;
-using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.Services;
 
 namespace Shoko.Abstractions.Config;

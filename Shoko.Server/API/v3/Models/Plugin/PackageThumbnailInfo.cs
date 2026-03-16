@@ -1,4 +1,4 @@
-using AbstractPluginThumbnailInfo = Shoko.Abstractions.Plugin.PluginThumbnailInfo;
+using AbstractPluginThumbnailInfo = Shoko.Abstractions.Plugin.Models.PackageThumbnailInfo;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Plugin;
@@ -6,7 +6,7 @@ namespace Shoko.Server.API.v3.Models.Plugin;
 /// <summary>
 /// A plugin thumbnail definition.
 /// </summary>
-public class PluginThumbnailInfo(AbstractPluginThumbnailInfo thumbnailInfo)
+public class PackageThumbnailInfo(AbstractPluginThumbnailInfo thumbnailInfo)
 {
     /// <summary>
     /// The mime type of the thumbnail image.

@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 
 namespace Shoko.Abstractions.Hashing;
 
