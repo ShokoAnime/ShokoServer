@@ -17,6 +17,11 @@ public interface IPluginManager
     #region Setup
 
     /// <summary>
+    ///   Gets the current plugin abstraction ABI in use.
+    /// </summary>
+    Version AbstractionVersion { get; }
+
+    /// <summary>
     ///   Searches for plugins.
     /// </summary>
     void ScanForPlugins();

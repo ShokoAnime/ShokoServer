@@ -35,11 +35,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     private readonly Version _invalidVersion = new(0, 0, 0, 0);
 
-    private readonly Version _currentAbiVersion = typeof(IPlugin).Assembly.GetName().Version is { Major: var major, Minor: var minor, Build: var build }
+    #region Setup
+
+    /// <inheritdoc/>
+    public Version AbstractionVersion { get; private init; } = typeof(IPlugin).Assembly.GetName().Version is { Major: var major, Minor: var minor, Build: var build }
         ? new Version(major, minor, build)
         : new(0, 0, 0);
-
-    #region Setup
 
     /// <summary>
     ///   Basic information about a plugin, used during initial loading before
@@ -174,7 +175,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 DllName = Path.GetFileNameWithoutExtension(Assembly.GetCallingAssembly().Location!),
                 Description = string.Empty,
                 Version = Assembly.GetCallingAssembly().GetName().Version ?? new(1, 0, 0),
-                AbiVersion = _currentAbiVersion,
+                AbiVersion = AbstractionVersion,
                 InstalledAt = systemService.Version.ReleasedAt,
                 IsPinned = true,
                 IsEnabled = true,
@@ -531,7 +532,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         };
                     }
 
-                    if (abiVersion > _currentAbiVersion)
+                    if (abiVersion > AbstractionVersion)
                     {
                         logger.LogInformation("Skipping {DllName} because the loaded assembly references a newer version of Shoko.Abstractions than what this server supports.", dllPath);
                         return new()
