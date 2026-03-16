@@ -10,6 +10,7 @@ using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Plugin.Input;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -167,7 +168,7 @@ public class PluginController(ISettingsProvider settingsProvider, IPluginManager
     [HttpGet("{pluginID}/Thumbnail")]
     public ActionResult GetThumbnailForPluginByID([FromRoute] Guid pluginID)
         => pluginManager.GetPluginInfo(pluginID) is { Thumbnail: { } } pluginInfo
-            ? File(pluginInfo.Thumbnail.GetStream(), pluginInfo.Thumbnail.MimeType)
+            ? File(pluginInfo.Thumbnail.GetStream(ApplicationPaths.Instance), pluginInfo.Thumbnail.MimeType)
             : NotFound("Plugin not found");
 
     /// <summary>
@@ -291,7 +292,7 @@ public class PluginController(ISettingsProvider settingsProvider, IPluginManager
     [HttpGet("{pluginID}/{pluginVersion}/Thumbnail")]
     public ActionResult GetThumbnailForPluginByIDAndVersion([FromRoute] Guid pluginID, [FromRoute] Version pluginVersion)
         => pluginManager.GetPluginInfo(pluginID, pluginVersion) is { Thumbnail: { } } pluginInfo
-            ? File(pluginInfo.Thumbnail.GetStream(), pluginInfo.Thumbnail.MimeType)
+            ? File(pluginInfo.Thumbnail.GetStream(ApplicationPaths.Instance), pluginInfo.Thumbnail.MimeType)
             : NotFound("Plugin not found");
 
     /// <summary>

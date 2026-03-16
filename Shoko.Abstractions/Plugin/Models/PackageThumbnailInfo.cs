@@ -30,5 +30,9 @@ public sealed class PackageThumbnailInfo
     /// <summary>
     /// Get the thumbnail image stream.
     /// </summary>
-    public Stream GetStream() => File.OpenRead(FilePath);
+    public Stream GetStream(IApplicationPaths applicationPaths) => File.OpenRead(
+        FilePath
+            .Replace("%PluginsPath%", applicationPaths.PluginsPath)
+            .Replace("%ApplicationPaths%", applicationPaths.ApplicationPath)
+    );
 }

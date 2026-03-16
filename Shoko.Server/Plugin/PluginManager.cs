@@ -919,7 +919,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     {
                         Height = imageInfo.Height,
                         Width = imageInfo.Width,
-                        FilePath = fileName,
+                        FilePath = fileName
+                            .Replace(applicationPaths.PluginsPath, "%PluginsPath%")
+                            .Replace(applicationPaths.ApplicationPath, "%ApplicationPaths%"),
                         MimeType = mime,
                     };
                 }
@@ -942,7 +944,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     {
                         Height = imageInfo.Height,
                         Width = imageInfo.Width,
-                        FilePath = fileName,
+                        FilePath = fileName
+                            .Replace(applicationPaths.PluginsPath, "%PluginsPath%")
+                            .Replace(applicationPaths.ApplicationPath, "%ApplicationPaths%"),
                         MimeType = mime,
                     };
                 }
@@ -967,7 +971,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             {
                 Height = imageInfo.Height,
                 Width = imageInfo.Width,
-                FilePath = fileName,
+                FilePath = fileName
+                    .Replace(applicationPaths.PluginsPath, "%PluginsPath%")
+                    .Replace(applicationPaths.ApplicationPath, "%ApplicationPaths%"),
                 MimeType = mime,
             };
         }
