@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -143,27 +142,6 @@ public static partial class Utils
         }
 
         LogManager.ReconfigExistingLoggers();
-    }
-
-    public static string GetApplicationVersion()
-    {
-        var version = Assembly.GetExecutingAssembly().GetName().Version!;
-        var isStable = version.Revision is 0;
-        return isStable
-            ? $"{version.Major}.{version.Minor}.{version.Build}"
-            : $"{version.Major}.{version.Minor}.{version.Build}-dev.{version.Revision}";
-    }
-
-    public static Dictionary<string, string> GetApplicationExtraVersion(Assembly assembly = null)
-    {
-        assembly ??= Assembly.GetExecutingAssembly();
-        if (assembly.GetCustomAttribute(typeof(AssemblyInformationalVersionAttribute)) is not AssemblyInformationalVersionAttribute version)
-            return [];
-
-        return version.InformationalVersion.Split(",")
-                .Select(raw => raw.Split("="))
-                .Where(pair => pair.Length == 2 && !string.IsNullOrEmpty(pair[1]))
-                .ToDictionary(pair => pair[0], pair => pair[1]);
     }
 
     public static int GetScheduledHours(ScheduledUpdateFrequency freq)

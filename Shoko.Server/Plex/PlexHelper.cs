@@ -11,10 +11,12 @@ using System.Threading.Tasks;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 using NLog;
+using Shoko.Abstractions.Extensions;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plex.Models;
 using Shoko.Server.Plex.Models.Connections;
 using Shoko.Server.Plex.Models.Login;
-using Shoko.Server.Models.Shoko;
+using Shoko.Server.Plugin;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
@@ -33,6 +35,8 @@ public class PlexHelper
 
     private readonly int _userId;
     private JMMUser _user => RepoFactory.JMMUser.GetByID(_userId);
+
+    private readonly string _version = PluginManager.GetVersionInformation().Version.ToSemanticVersioningString();
 
     internal readonly JsonSerializerSettings SerializerSettings = new();
 
@@ -276,7 +280,7 @@ public class PlexHelper
         var assemblyName = Assembly.GetEntryAssembly()?.GetName();
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Add("X-Plex-Client-Identifier", ClientIdentifier);
-        client.DefaultRequestHeaders.Add("X-Plex-Platform-Version", Utils.GetApplicationVersion());
+        client.DefaultRequestHeaders.Add("X-Plex-Platform-Version", _version);
         client.DefaultRequestHeaders.Add("X-Plex-Platform", "Shoko Server");
         client.DefaultRequestHeaders.Add("X-Plex-Device-Name", "Shoko Server Sync");
         client.DefaultRequestHeaders.Add("X-Plex-Product", "Shoko Server Sync");

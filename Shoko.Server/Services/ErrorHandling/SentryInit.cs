@@ -12,8 +12,10 @@ using NHibernate.Exceptions;
 using Quartz;
 using Sentry;
 using Sentry.AspNetCore;
+using Shoko.Abstractions.Core;
+using Shoko.Abstractions.Extensions;
+using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using Constants = Shoko.Server.Server.Constants;
 
@@ -45,13 +47,13 @@ public static class SentryInit
             return webHost;
 
         // Get the release and extra info from the assembly.
-        var extraInfo = Utils.GetApplicationExtraVersion();
+        var versionInfo = PluginManager.GetVersionInformation();
 
         // Only initialize the SDK if we're not on a debug build.
         //
         // If the release channel is not set or if it's set to "stable" or "dev" then
         // it's considered to be a debug build.
-        if (!extraInfo.TryGetValue("channel", out var environment) || !Enum.TryParse<ReleaseChannel>(environment, true, out var channel) || channel is not ReleaseChannel.Stable and not ReleaseChannel.Dev)
+        if (versionInfo.Channel is not ReleaseChannel.Stable and not ReleaseChannel.Dev)
             return webHost;
 
         return webHost.UseSentry(Action);
@@ -60,12 +62,12 @@ public static class SentryInit
         {
             // Assign the DSN key and release version.
             opts.Dsn = Constants.SentryDsn;
-            opts.Environment = environment;
-            opts.Release = Utils.GetApplicationVersion();
+            opts.Environment = versionInfo.Channel is ReleaseChannel.Stable ? "stable" : "dev";
+            opts.Release = versionInfo.Version.ToSemanticVersioningString();
 
             // Conditionally assign the extra info if they're included in the assembly.
-            if (extraInfo.TryGetValue("commit", out var gitCommit)) opts.DefaultTags.Add("commit", gitCommit);
-            if (extraInfo.TryGetValue("tag", out var gitTag)) opts.DefaultTags.Add("commit.tag", gitTag);
+            if (versionInfo.SourceRevision is { Length: > 0 } gitCommit) opts.DefaultTags.Add("commit", gitCommit);
+            if (versionInfo.ReleaseTag is { Length: > 0 } gitTag) opts.DefaultTags.Add("commit.tag", gitTag);
 
             opts.SampleRate = 0.5f;
 

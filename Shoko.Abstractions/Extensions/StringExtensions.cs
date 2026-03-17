@@ -442,4 +442,14 @@ public static class StringExtensions
     /// <returns>The new UUID.</returns>
     public static Guid ToUuidV5(this string input, Guid namespaceGuid = default)
         => UuidUtility.GetV5(input, namespaceGuid);
+
+    /// <summary>
+    /// Converts the Version object to a sematic versioning compatible string.
+    /// </summary>
+    /// <param name="version">The version.</param>
+    /// <returns>The version stringified in a semantic versioning compatible manner.</returns>
+    public static string ToSemanticVersioningString(this Version version)
+        => version.Revision is <= 0
+            ? $"{version.Major}.{version.Minor}.{version.Build}"
+            : $"{version.Major}.{version.Minor}.{version.Build}-dev.{version.Revision}";
 }

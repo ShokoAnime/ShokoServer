@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;
 using NLog;
 using Sentry;
-using Shoko.Server.Utilities;
+using Shoko.Server.Plugin;
 
 namespace Shoko.Server.Server;
 
@@ -88,12 +88,8 @@ public sealed class UnhandledExceptionManager
     //--
     private static DateTime AssemblyBuildDate(Assembly objAssembly, bool blnForceFileDate = false)
     {
-        if (!blnForceFileDate)
-        {
-            var extraVersionDict = Utils.GetApplicationExtraVersion(objAssembly);
-            if (extraVersionDict.TryGetValue("date", out var dateText) && DateTime.TryParse(dateText, out var releaseDate))
-                return releaseDate.ToLocalTime();
-        }
+        if (!blnForceFileDate && PluginManager.GetVersionInformation(objAssembly) is { } info)
+            return info.ReleasedAt;
         return AssemblyFileTime(objAssembly);
     }
 

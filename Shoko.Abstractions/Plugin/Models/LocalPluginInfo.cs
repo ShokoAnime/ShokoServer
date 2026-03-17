@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using Shoko.Abstractions.Core;
 
 namespace Shoko.Abstractions.Plugin.Models;
 
@@ -27,13 +28,7 @@ public sealed class LocalPluginInfo
     /// <summary>
     ///   The version of the plugin.
     /// </summary>
-    public required Version Version { get; init; }
-
-    /// <summary>
-    ///   The version of the plugin abstractions that the plugin was built
-    ///   against.
-    /// </summary>
-    public required Version AbiVersion { get; init; }
+    public required VersionInformation Version { get; init; }
 
     /// <summary>
     ///   The order in which the plugin was loaded.

@@ -6,6 +6,7 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Internal;
@@ -111,7 +112,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
             VersionValue = version,
             VersionRevision = revision,
             VersionCommand = command,
-            VersionProgram = Utils.GetApplicationVersion(),
+            VersionProgram = SystemService.Version.Version.ToSemanticVersioningString(),
         };
         RepoFactory.Versions.Save(v);
 

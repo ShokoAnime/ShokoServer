@@ -1,7 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Server.Server;
+using Shoko.Abstractions.Core;
 
 # nullable enable
 namespace Shoko.Server.API.v3.Models.Common;

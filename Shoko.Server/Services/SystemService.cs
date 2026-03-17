@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -51,7 +50,6 @@ using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 using Trinet.Core.IO.Ntfs;
 
-using AbstractReleaseChannel = Shoko.Abstractions.Core.ReleaseChannel;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 using Timer = System.Timers.Timer;
 
@@ -76,11 +74,12 @@ public class SystemService : ISystemService
     {
         var now = DateTime.UtcNow;
         var args = Environment.GetCommandLineArgs();
-        var extraVersionDict = Utils.GetApplicationExtraVersion();
 
         Utils.SetInstance();
         Utils.InitLogger();
         var loggerFactory = LoggerFactory.Create(o => o.AddNLog());
+
+        Version = PluginManager.GetVersionInformation();
 
         _logger = loggerFactory.CreateLogger<SystemService>();
         _pluginManager = new(loggerFactory.CreateLogger<PluginManager>(), this, ApplicationPaths.Instance);
@@ -90,18 +89,6 @@ public class SystemService : ISystemService
 
         CanShutdown = args.Contains("--shutdown-enabled");
         CanRestart = args.Contains("--restart-enabled");
-        Version = new()
-        {
-            Version = Utils.GetApplicationVersion(),
-            Tag = extraVersionDict.TryGetValue("tag", out var tag) && tag is { Length: > 0 }
-                ? tag : null,
-            SourceRevision = extraVersionDict.TryGetValue("commit", out var commit) && commit is { Length: > 0 }
-                ? commit : null,
-            Channel = extraVersionDict.TryGetValue("channel", out var rawChannel) && Enum.TryParse<AbstractReleaseChannel>(rawChannel, true, out var channel)
-                ? channel : AbstractReleaseChannel.Debug,
-            ReleasedAt = extraVersionDict.TryGetValue("date", out var rawDate) && DateTime.TryParse(rawDate, out var date)
-                ? date.ToUniversalTime() : File.GetCreationTimeUtc(Assembly.GetExecutingAssembly().Location!),
-        };
         BootstrappedAt = now;
 
         // Set the singleton instance for the settings provider.
@@ -219,13 +206,7 @@ public class SystemService : ISystemService
                 .WithCompression(MessagePackCompression.Lz4BlockArray);
 
             // Log some basic information about the server before we start.
-            _logger.LogInformation(
-                "Shoko Server: {ApplicationVersion}, Channel: {Channel}, Tag: {Tag}, Commit: {Commit}",
-                Version.Version,
-                Version.Channel,
-                Version.Tag ?? "null",
-                Version.SourceRevision ?? "null"
-            );
+            _logger.LogInformation("Shoko Server: {Version}", Version);
             _logger.LogInformation("Operating System: {OSInfo}", RuntimeInformation.OSDescription);
 
             try

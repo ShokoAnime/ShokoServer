@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -28,20 +29,22 @@ namespace Shoko.Server.Plugin;
 
 public partial class PluginManager(ILogger<PluginManager> logger, ISystemService systemService, IApplicationPaths applicationPaths) : IPluginManager
 {
+    private const string Remove = ".remove";
+
+    private const string Pinned = ".pinned";
+
     private readonly List<Type> _exportedTypes = [];
 
     private readonly List<LocalPluginInfo> _pluginTypes = [];
 
     private readonly Guid _coreID = typeof(CorePlugin).FullName!.ToUuidV5();
 
-    private readonly Version _invalidVersion = new(0, 0, 0, 0);
+    private static readonly Version _invalidVersion = new(0, 0, 0, 0);
 
     #region Setup
 
     /// <inheritdoc/>
-    public Version AbstractionVersion { get; private init; } = typeof(IPlugin).Assembly.GetName().Version is { Major: var major, Minor: var minor, Build: var build }
-        ? new Version(major, minor, build)
-        : new(0, 0, 0);
+    public Version AbstractionVersion { get; private init; } = systemService.Version.AbstractionVersion;
 
     /// <summary>
     ///   Basic information about a plugin, used during initial loading before
@@ -67,12 +70,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         /// <summary>
         ///   The version of the plugin.
         /// </summary>
-        public required Version Version { get; init; }
-
-        /// <summary>
-        ///   The version of the plugin abstractions that the plugin was built against.
-        /// </summary>
-        public required Version AbiVersion { get; init; }
+        public required VersionInformation Version { get; init; }
 
         /// <summary>
         ///   The priority of the plugin for loading order. Lower values load first.
@@ -175,8 +173,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 Name = "Shoko Core",
                 DllName = Path.GetFileNameWithoutExtension(Assembly.GetCallingAssembly().Location!),
                 Description = string.Empty,
-                Version = Assembly.GetCallingAssembly().GetName().Version ?? new(1, 0, 0),
-                AbiVersion = AbstractionVersion,
+                Version =  systemService.Version,
                 InstalledAt = systemService.Version.ReleasedAt,
                 IsPinned = true,
                 IsEnabled = true,
@@ -222,7 +219,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         Name = internalPluginInfo.Name,
                         Description = internalPluginInfo.Description,
                         Version = internalPluginInfo.Version,
-                        AbiVersion = internalPluginInfo.AbiVersion,
                         LoadOrder = _pluginTypes.Count,
                         InstalledAt = internalPluginInfo.InstalledAt,
                         IsEnabled = false,
@@ -251,7 +247,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     Name = internalPluginInfo.Name,
                     Description = internalPluginInfo.Description,
                     Version = internalPluginInfo.Version,
-                    AbiVersion = internalPluginInfo.AbiVersion,
                     LoadOrder = _pluginTypes.Count,
                     InstalledAt = internalPluginInfo.InstalledAt,
                     IsEnabled = true,
@@ -313,7 +308,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 Name = pluginInstance.Name,
                 Description = pluginInstance.Description?.CleanDescription() ?? string.Empty,
                 Version = localPluginInfo.Version,
-                AbiVersion = localPluginInfo.AbiVersion,
                 LoadOrder = localPluginInfo.LoadOrder,
                 InstalledAt = localPluginInfo.InstalledAt,
                 IsEnabled = true,
@@ -359,7 +353,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         {
             foreach (var filePath in Directory.GetFiles(systemPluginDir, "*.dll", new EnumerationOptions() { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System }))
             {
-                var removeFile = Path.ChangeExtension(filePath, ".remove");
+                var removeFile = Path.ChangeExtension(filePath, Remove);
                 if (File.Exists(removeFile))
                 {
                     logger.LogInformation("Removing plugin DLL file marked for removal: {Path}", filePath);
@@ -380,7 +374,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
             foreach (var directoryPath in Directory.GetDirectories(systemPluginDir, "*", new EnumerationOptions() { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System }))
             {
-                var removeFile = Path.Join(directoryPath, ".remove");
+                var removeFile = Path.Join(directoryPath, Remove);
                 if (File.Exists(removeFile))
                 {
                     logger.LogInformation("Removing plugin directory marked for removal: {Path}", directoryPath);
@@ -405,7 +399,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         {
             foreach (var filePath in Directory.GetFiles(userPluginDir, "*.dll", new EnumerationOptions() { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System }))
             {
-                var removeFile = Path.ChangeExtension(filePath, ".remove");
+                var removeFile = Path.ChangeExtension(filePath, Remove);
                 if (File.Exists(removeFile))
                 {
                     logger.LogInformation("Removing plugin DLL file marked for removal: {Path}", filePath);
@@ -426,7 +420,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
             foreach (var directoryPath in Directory.GetDirectories(userPluginDir, "*", new EnumerationOptions() { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System }))
             {
-                var removeFile = Path.Join(directoryPath, ".remove");
+                // Skip repositories metadata directory.
+                if (Path.GetFileName(directoryPath) is "repositories")
+                    continue;
+
+                var removeFile = Path.Join(directoryPath, Remove);
                 if (File.Exists(removeFile))
                 {
                     logger.LogInformation("Removing plugin directory marked for removal: {Path}", directoryPath);
@@ -475,38 +473,22 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     var assemblyName = assembly.GetName().Name;
                     if (string.IsNullOrEmpty(assemblyName) || !string.Equals(assemblyName, name, StringComparison.Ordinal))
                     {
-                        logger.LogInformation("Skipping {DllName} because the loaded assembly does not have the same name as the file.", dllPath);
+                        logger.LogInformation("Skipping DLL because the loaded assembly does not have the same name as the file; {DllPath}", dllPath);
                         continue;
                     }
 
-                    var version = assembly.GetName().Version is { Major: var assMajor, Minor: var assMinor, Build: var assBuild, Revision: var assRevision }
-                        ? new Version(assMajor, assMinor, assBuild, assRevision)
-                        : new(0, 0, 0, 0);
-                    if (version <= _invalidVersion)
-                    {
-                        logger.LogInformation("Skipping {DllName} because the loaded assembly has a version below or equal to v0.0.0.0.", dllPath);
-                        continue;
-                    }
-
-                    var createdAt = File.GetCreationTimeUtc(dllPath);
-                    var referencedAssemblies = assembly.GetReferencedAssemblies();
-                    var legacyRef = referencedAssemblies.FirstOrDefault(r => r.Name is "Shoko.Plugin.Abstractions");
-                    var newRef = referencedAssemblies.FirstOrDefault(r => r.Name is "Shoko.Abstractions");
-                    var isLegacyNamespace = legacyRef is not null && newRef is null;
-                    var abiVersion = (isLegacyNamespace ? legacyRef : newRef)?.Version is { Major: var abiMajor, Minor: var abiMinor, Build: var abiBuild }
-                        ? new Version(abiMajor, abiMinor, abiBuild)
-                        : new(0, 0, 0);
-                    // Silently skip DLLs which doesn't reference the abstraction.
-                    if (abiVersion <= _invalidVersion)
+                    var version = ReadVersionInformationFromAssembly(assembly, out var isLegacyNamespace);
+                    if (version is null)
                         continue;
 
                     // TryAdd, because if it made it this far, then it's missing or true.
                     if (settings.Plugins.EnabledPlugins.TryAdd(name, true))
                         settingsChanged = true;
 
+                    var createdAt = File.GetCreationTimeUtc(dllPath);
                     if (isLegacyNamespace)
                     {
-                        logger.LogWarning("Found plugin using deprecated Shoko.Plugin.Abstractions namespace. This plugin is incompatible and needs to be updated. ({DllName}, v{Version}, ABI v{AbiVersion})", name, version, abiVersion);
+                        logger.LogWarning("Found plugin using deprecated Shoko.Plugin.Abstractions namespace. This plugin is incompatible and needs to be updated. ({DllName}, {Version})", name, version);
 
                         return new()
                         {
@@ -518,11 +500,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                                 ? "This plugin uses the deprecated Shoko.Plugin.Abstractions namespace and is incompatible with this version of Shoko Server. Please update the plugin to use Shoko.Abstractions."
                                 : "The plugin failed to load due to missing dependencies.",
                             Version = version,
-                            AbiVersion = abiVersion,
                             InstalledAt = createdAt,
                             IsPinned = string.IsNullOrEmpty(dirPath)
-                                ? File.Exists(Path.ChangeExtension(dllPath, ".pinned"))
-                                : File.Exists(Path.Join(dirPath, ".pinned")),
+                                ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
+                                : File.Exists(Path.Join(dirPath, Pinned)),
                             IsEnabled = false,
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
@@ -533,9 +514,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         };
                     }
 
-                    if (abiVersion > AbstractionVersion)
+                    if (version.AbstractionVersion > AbstractionVersion)
                     {
-                        logger.LogInformation("Skipping {DllName} because the loaded assembly references a newer version of Shoko.Abstractions than what this server supports.", dllPath);
+                        logger.LogInformation("Skipping DLL because the loaded assembly references a newer version of Shoko.Abstractions than what this server supports; {DllPath}", dllPath);
                         return new()
                         {
                             // Create an unique ID for this specific version that failed to load.
@@ -544,11 +525,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             Name = name,
                             Description = "The plugin failed to load because it references a newer version of Shoko.Abstractions than what this server supports.",
                             Version = version,
-                            AbiVersion = abiVersion,
                             InstalledAt = createdAt,
                             IsPinned = string.IsNullOrEmpty(dirPath)
-                                ? File.Exists(Path.ChangeExtension(dllPath, ".pinned"))
-                                : File.Exists(Path.Join(dirPath, ".pinned")),
+                                ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
+                                : File.Exists(Path.Join(dirPath, Pinned)),
                             IsEnabled = false,
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
@@ -566,7 +546,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     }
                     catch (Exception e)
                     {
-                        logger.LogError(e, "Failed to get exported types from {DllName}. Ensure all dependencies are available.", dllPath);
+                        logger.LogError(e, "Failed to get exported types from DLL. Ensure all dependencies are available; {DllPath}", dllPath);
 
                         return new()
                         {
@@ -576,11 +556,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             Name = name,
                             Description = "The plugin failed to load due to missing dependencies.",
                             Version = version,
-                            AbiVersion = abiVersion,
                             InstalledAt = createdAt,
                             IsPinned = string.IsNullOrEmpty(dirPath)
-                                ? File.Exists(Path.ChangeExtension(dllPath, ".pinned"))
-                                : File.Exists(Path.Join(dirPath, ".pinned")),
+                                ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
+                                : File.Exists(Path.Join(dirPath, Pinned)),
                             IsEnabled = false,
                             ContainingDirectory = dirPath,
                             Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
@@ -619,9 +598,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     }
 
                     if (registrationImpl.Count > 0)
-                        logger.LogInformation("Found plugin with services. ({DllName}, v{Version})", name, version);
+                        logger.LogInformation("Found plugin with services. ({DllName}, {Version})", name, version);
                     else
-                        logger.LogInformation("Found plugin. ({DllName}, v{Version})", name, version);
+                        logger.LogInformation("Found plugin. ({DllName}, {Version})", name, version);
 
                     if (!settings.Plugins.Priority.Contains(name))
                     {
@@ -631,7 +610,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     var instance = (IPlugin)Activator.CreateInstance(pluginImpl[0])!;
                     if (instance.ID == _coreID)
                     {
-                        logger.LogInformation("Skipping {DllName} because it has the same ID as the core plugin.", dllPath);
+                        logger.LogWarning("Skipping {DllName} because it has the same ID as the core plugin.", dllPath);
                         continue;
                     }
                     var thumbnailImage = (byte[]?)null;
@@ -663,11 +642,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         Name = instance.Name,
                         Description = instance.Description?.CleanDescription() ?? string.Empty,
                         Version = version,
-                        AbiVersion = abiVersion,
                         InstalledAt = createdAt,
                         IsPinned = string.IsNullOrEmpty(dirPath)
-                            ? File.Exists(Path.ChangeExtension(dllPath, ".pinned"))
-                            : File.Exists(Path.Join(dirPath, ".pinned")),
+                            ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
+                            : File.Exists(Path.Join(dirPath, Pinned)),
                         IsEnabled = settings.Plugins.EnabledPlugins[name],
                         ContainingDirectory = dirPath,
                         Priority = settings.Plugins.Priority.IndexOf(name),
@@ -692,6 +670,121 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         return null;
     }
 
+    #region Setup | Version
+
+    private const string RuntimeIdentifier = "RuntimeIdentifier";
+
+    private const string ReleaseTag = "ReleaseTag";
+
+    private const string SourceRevision = "SourceRevision";
+
+    private const string ReleaseDate = "ReleaseDate";
+
+    private const string LegacyRuntimeIdentifier = "runtime";
+
+    private const string LegacyReleaseTag = "tag";
+
+    private const string LegacySourceRevision = "commit";
+
+    public const string LegacyReleaseDate = "date";
+
+    private static VersionInformation? _serverVersionInformation;
+
+    internal static VersionInformation GetVersionInformation()
+        => _serverVersionInformation ??= ReadVersionInformationFromAssembly(Assembly.GetExecutingAssembly(), out _)!;
+
+    internal static VersionInformation? GetVersionInformation(Assembly assembly)
+        => ReadVersionInformationFromAssembly(assembly, out _)!;
+
+    private static VersionInformation? ReadVersionInformationFromAssembly(Assembly assembly, out bool isLegacyNamespace)
+    {
+        var dllPath = assembly.Location!;
+        var referencedAssemblies = assembly.GetReferencedAssemblies();
+        var legacyRef = referencedAssemblies.FirstOrDefault(r => r.Name is "Shoko.Plugin.Abstractions");
+        var newRef = referencedAssemblies.FirstOrDefault(r => r.Name is "Shoko.Abstractions");
+        isLegacyNamespace = legacyRef is not null && newRef is null;
+        var abstractionVersion = (isLegacyNamespace ? legacyRef : newRef)?.Version is { Major: var abiMajor, Minor: var abiMinor, Build: var abiBuild }
+            ? new Version(abiMajor, abiMinor, abiBuild)
+            : new(0, 0, 0);
+        // Silently skip DLLs which doesn't reference the abstraction.
+        if (abstractionVersion <= _invalidVersion)
+            return null;
+
+        var version = assembly.GetName().Version is { Major: var assMajor, Minor: var assMinor, Build: var assBuild, Revision: var assRevision }
+            ? assRevision is <= 0 ? new(assMajor, assMinor, assBuild) : new(assMajor, assMinor, assBuild, assRevision)
+            : new Version(0, 0, 0, 0);
+        if (version <= _invalidVersion)
+            return null;
+
+        var metadataAttributeDict = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .Select(a => KeyValuePair.Create(a.Key, a.Value))
+            .DistinctBy(kp => kp.Key)
+            .ToDictionary();
+        var extraVersionDict = GetApplicationExtraVersion(assembly);
+
+        string runtime;
+        if (metadataAttributeDict.ContainsKey(RuntimeIdentifier) && !string.IsNullOrEmpty(metadataAttributeDict[RuntimeIdentifier]))
+            runtime = metadataAttributeDict[RuntimeIdentifier]!;
+        else if (extraVersionDict.ContainsKey(RuntimeIdentifier) && !string.IsNullOrEmpty(extraVersionDict[RuntimeIdentifier]))
+            runtime = extraVersionDict[RuntimeIdentifier];
+        else if (extraVersionDict.ContainsKey(LegacyRuntimeIdentifier) && !string.IsNullOrEmpty(extraVersionDict[LegacyRuntimeIdentifier]))
+            runtime = extraVersionDict[LegacyRuntimeIdentifier];
+        else
+            runtime = "any";
+
+        var tag = (string?)null;
+        if (metadataAttributeDict.ContainsKey(ReleaseTag) && !string.IsNullOrEmpty(metadataAttributeDict[ReleaseTag]))
+            tag = metadataAttributeDict[ReleaseTag];
+        else if (extraVersionDict.ContainsKey(ReleaseTag) && !string.IsNullOrEmpty(extraVersionDict[ReleaseTag]))
+            tag = extraVersionDict[ReleaseTag];
+        else if (extraVersionDict.ContainsKey(LegacyReleaseTag) && !string.IsNullOrEmpty(extraVersionDict[LegacyReleaseTag]))
+            tag = extraVersionDict[LegacyReleaseTag];
+
+        var sourceRevision = (string?)null;
+        if (metadataAttributeDict.ContainsKey(SourceRevision) && !string.IsNullOrEmpty(metadataAttributeDict[SourceRevision]))
+            sourceRevision = metadataAttributeDict[SourceRevision];
+        else if (extraVersionDict.ContainsKey(SourceRevision) && !string.IsNullOrEmpty(extraVersionDict[SourceRevision]))
+            sourceRevision = extraVersionDict[SourceRevision];
+        else if (extraVersionDict.ContainsKey(LegacySourceRevision) && !string.IsNullOrEmpty(extraVersionDict[LegacySourceRevision]))
+            sourceRevision = extraVersionDict[LegacySourceRevision];
+
+        DateTime releasedAt;
+        if (metadataAttributeDict.ContainsKey(ReleaseDate) && DateTime.TryParse(metadataAttributeDict[ReleaseDate], out var metaReleasedAt))
+            releasedAt = metaReleasedAt.ToUniversalTime();
+        else if (extraVersionDict.ContainsKey(ReleaseDate) && DateTime.TryParse(extraVersionDict[ReleaseDate], out var extraReleasedAt0))
+            releasedAt = extraReleasedAt0.ToUniversalTime();
+        else if (extraVersionDict.ContainsKey(LegacyReleaseDate) && DateTime.TryParse(extraVersionDict[LegacyReleaseDate], out var extraReleasedAt1))
+            releasedAt = extraReleasedAt1.ToUniversalTime();
+        else
+            releasedAt = File.GetCreationTimeUtc(dllPath);
+
+        var isDebug = assembly.GetCustomAttribute<DebuggableAttribute>() is { DebuggingFlags: > DebuggableAttribute.DebuggingModes.IgnoreSymbolStoreSequencePoints };
+        var releaseChannel = isDebug ? ReleaseChannel.Debug : version.Revision > 0 ? ReleaseChannel.Dev : ReleaseChannel.Stable;
+        return new()
+        {
+            Version = version,
+            RuntimeIdentifier = runtime,
+            AbstractionVersion = abstractionVersion,
+            SourceRevision = sourceRevision,
+            ReleaseTag = tag,
+            Channel = releaseChannel,
+            ReleasedAt = releasedAt,
+        };
+    }
+
+    private static Dictionary<string, string> GetApplicationExtraVersion(Assembly assembly)
+    {
+        if (assembly.GetCustomAttribute(typeof(AssemblyInformationalVersionAttribute)) is not AssemblyInformationalVersionAttribute version)
+            return [];
+
+        return version.InformationalVersion.Split(",")
+                .Select(raw => raw.Split("="))
+                .Where(pair => pair.Length == 2 && !string.IsNullOrEmpty(pair[1]))
+                .ToDictionary(pair => pair[0], pair => pair[1]);
+    }
+
+    #endregion
+
     #endregion
 
     #region Plugin Info
@@ -704,7 +797,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     public LocalPluginInfo? GetPluginInfo(Guid pluginId, Version? pluginVersion = null)
         => pluginVersion is not null
-            ? _pluginTypes.FirstOrDefault(p => p.ID == pluginId && p.Version == pluginVersion)
+            ? _pluginTypes.FirstOrDefault(p => p.ID == pluginId && p.Version.Version == pluginVersion)
             : _pluginTypes.FirstOrDefault(p => p.ID == pluginId && p.IsActive) ?? _pluginTypes.Where(p => p.ID == pluginId).OrderByDescending(p => p.Version).FirstOrDefault();
 
     public LocalPluginInfo? GetPluginInfo(IPlugin plugin)
@@ -778,8 +871,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             {
                 if (Directory.Exists(pluginInfo.ContainingDirectory))
                 {
-                    var removalFile = Path.Join(pluginInfo.ContainingDirectory, ".remove");
-                    var pinnedFile = Path.Join(pluginInfo.ContainingDirectory, ".pinned");
+                    var removalFile = Path.Join(pluginInfo.ContainingDirectory, Remove);
+                    var pinnedFile = Path.Join(pluginInfo.ContainingDirectory, Pinned);
                     if (!File.Exists(removalFile))
                         File.WriteAllText(removalFile, string.Empty);
                     if (File.Exists(pinnedFile))
@@ -788,8 +881,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             }
             else if (pluginInfo.DLLs.Count is 1)
             {
-                var removalFile = Path.ChangeExtension(pluginInfo.DLLs[0], ".remove");
-                var pinnedFile = Path.ChangeExtension(pluginInfo.DLLs[0], ".pinned");
+                var removalFile = Path.ChangeExtension(pluginInfo.DLLs[0], Remove);
+                var pinnedFile = Path.ChangeExtension(pluginInfo.DLLs[0], Pinned);
                 if (File.Exists(pluginInfo.DLLs[0]) && !File.Exists(removalFile))
                     File.WriteAllText(removalFile, string.Empty);
                 if (File.Exists(pinnedFile))
@@ -881,7 +974,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             Name = internalPluginInfo.Name,
             Description = internalPluginInfo.Description,
             Version = internalPluginInfo.Version,
-            AbiVersion = internalPluginInfo.AbiVersion,
             LoadOrder = _pluginTypes.Count,
             InstalledAt = internalPluginInfo.InstalledAt,
             IsEnabled = internalPluginInfo.IsEnabled,
@@ -1029,8 +1121,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         if (enabled && highestVersion != pluginInfo)
         {
             var pinnedFile = string.IsNullOrEmpty(pluginInfo.ContainingDirectory)
-                ? Path.ChangeExtension(pluginInfo.DLLs[0], ".pinned")
-                : Path.Join(pluginInfo.ContainingDirectory, ".pinned");
+                ? Path.ChangeExtension(pluginInfo.DLLs[0], Pinned)
+                : Path.Join(pluginInfo.ContainingDirectory, Pinned);
             if (!File.Exists(pinnedFile))
                 File.WriteAllText(pinnedFile, string.Empty);
             foreach (var plugin in pluginInfos)
@@ -1040,8 +1132,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
                 plugin.IsEnabled = false;
                 pinnedFile = string.IsNullOrEmpty(plugin.ContainingDirectory)
-                    ? Path.ChangeExtension(plugin.DLLs[0], ".pinned")
-                    : Path.Join(plugin.ContainingDirectory, ".pinned");
+                    ? Path.ChangeExtension(plugin.DLLs[0], Pinned)
+                    : Path.Join(plugin.ContainingDirectory, Pinned);
                 if (File.Exists(pinnedFile))
                     File.Delete(pinnedFile);
             }
@@ -1054,8 +1146,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     plugin.IsEnabled = false;
 
                 var pinnedFile = string.IsNullOrEmpty(plugin.ContainingDirectory)
-                    ? Path.ChangeExtension(plugin.DLLs[0], ".pinned")
-                    : Path.Join(plugin.ContainingDirectory, ".pinned");
+                    ? Path.ChangeExtension(plugin.DLLs[0], Pinned)
+                    : Path.Join(plugin.ContainingDirectory, Pinned);
                 if (File.Exists(pinnedFile))
                     File.Delete(pinnedFile);
             }

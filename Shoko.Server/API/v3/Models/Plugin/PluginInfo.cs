@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Abstractions.Core;
 using Shoko.Server.Services;
 
 using AbstractPluginInfo = Shoko.Abstractions.Plugin.Models.LocalPluginInfo;
@@ -31,13 +32,38 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     /// <summary>
     ///   The version of the plugin.
     /// </summary>
-    public Version Version { get; init; } = pluginInfo.Version;
+    public Version Version { get; init; } = pluginInfo.Version.Version;
+
+    /// <summary>
+    ///   The .NET runtime identifier (e.g. <c>"win-64"</c>, <c>"linux-x64"</c>, etc.) the component was built for.
+    /// </summary>
+    public string RuntimeIdentifier { get; init; } = pluginInfo.Version.RuntimeIdentifier;
 
     /// <summary>
     ///   The version of the plugin abstractions that the plugin was built
     ///   against.
     /// </summary>
-    public Version AbiVersion { get; init; } = pluginInfo.AbiVersion;
+    public Version AbstractionVersion { get; init; } = pluginInfo.Version.AbstractionVersion;
+
+    /// <summary>
+    ///   The source revision of the component, if available.
+    /// </summary>
+    public string? SourceRevision { get; init; } = pluginInfo.Version.SourceRevision;
+
+    /// <summary>
+    ///   The release tag tied to the source revision, if available.
+    /// </summary>
+    public string? ReleaseTag { get; init; } = pluginInfo.Version.ReleaseTag;
+
+    /// <summary>
+    /// The release channel of the component.
+    /// </summary>
+    public ReleaseChannel Channel { get; init; } = pluginInfo.Version.Channel;
+
+    /// <summary>
+    /// The date and time the component was released.
+    /// </summary>
+    public DateTime ReleasedAt { get; init; } = pluginInfo.Version.ReleasedAt;
 
     /// <summary>
     ///   The order in which the plugin was loaded.

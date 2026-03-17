@@ -7,6 +7,7 @@ using System.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Shoko;
@@ -14,7 +15,6 @@ using Shoko.Abstractions.Video;
 using Shoko.Server.API;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Utilities;
 
 using FileCrossReference = Shoko.Server.API.v3.Models.Shoko.FileCrossReference;
 
@@ -22,30 +22,16 @@ using FileCrossReference = Shoko.Server.API.v3.Models.Shoko.FileCrossReference;
 #nullable enable
 namespace Shoko.Server.Services;
 
-public class GeneratedPlaylistService
+public class GeneratedPlaylistService(
+    ISystemService systemService,
+    IHttpContextAccessor contextAccessor,
+    AnimeSeriesService animeSeriesService,
+    AnimeSeriesRepository seriesRepository,
+    AnimeEpisodeRepository episodeRepository,
+    VideoLocalRepository videoRepository,
+    AuthTokensRepository authTokensRepository
+)
 {
-    private readonly HttpContext _context;
-
-    private readonly AnimeSeriesService _animeSeriesService;
-
-    private readonly AnimeSeriesRepository _seriesRepository;
-
-    private readonly AnimeEpisodeRepository _episodeRepository;
-
-    private readonly VideoLocalRepository _videoRepository;
-
-    private readonly AuthTokensRepository _authTokensRepository;
-
-    public GeneratedPlaylistService(IHttpContextAccessor contentAccessor, AnimeSeriesService animeSeriesService, AnimeSeriesRepository seriesRepository, AnimeEpisodeRepository episodeRepository, VideoLocalRepository videoRepository, AuthTokensRepository authTokensRepository)
-    {
-        _context = contentAccessor.HttpContext!;
-        _animeSeriesService = animeSeriesService;
-        _seriesRepository = seriesRepository;
-        _episodeRepository = episodeRepository;
-        _videoRepository = videoRepository;
-        _authTokensRepository = authTokensRepository;
-    }
-
     public bool TryParsePlaylist(string[] items, out IReadOnlyList<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> playlist, ModelStateDictionary? modelState = null, string fieldName = "playlist")
     {
         modelState ??= new();
@@ -99,7 +85,7 @@ public class GeneratedPlaylistService
                     modelState?.AddModelError($"{fieldName}[{index}]", $"Invalid series ID \"{item}\".");
                     continue;
                 }
-                if (_seriesRepository.GetByAnimeID(seriesID) is not { } series)
+                if (seriesRepository.GetByAnimeID(seriesID) is not { } series)
                 {
                     modelState?.AddModelError($"{fieldName}[{index}]", $"Unknown series ID \"{item}\".");
                     continue;
@@ -170,7 +156,7 @@ public class GeneratedPlaylistService
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Invalid episode ID \"{rawValue}\" at index {index} at offset {offset}");
                             continue;
                         }
-                        if (_episodeRepository.GetByAniDBEpisodeID(episodeID) is not { } extraEpisode)
+                        if (episodeRepository.GetByAniDBEpisodeID(episodeID) is not { } extraEpisode)
                         {
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown episode ID \"{rawValue}\" at index {index} at offset {offset}");
                             continue;
@@ -198,7 +184,7 @@ public class GeneratedPlaylistService
                                     continue;
                                 }
                             }
-                            if ((fileSize > 0 ? _videoRepository.GetByEd2kAndSize(ed2kHash, fileSize) : _videoRepository.GetByEd2k(ed2kHash)) is not { } video0)
+                            if ((fileSize > 0 ? videoRepository.GetByEd2kAndSize(ed2kHash, fileSize) : videoRepository.GetByEd2k(ed2kHash)) is not { } video0)
                             {
                                 if (fileSize == 0)
                                     modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown hash \"{rawValue}\" at index {index} at offset {offset}");
@@ -216,7 +202,7 @@ public class GeneratedPlaylistService
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Invalid file ID \"{rawValue}\".");
                             continue;
                         }
-                        if (_videoRepository.GetByID(fileID) is not { } video)
+                        if (videoRepository.GetByID(fileID) is not { } video)
                         {
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown file ID \"{rawValue}\".");
                             continue;
@@ -308,8 +294,8 @@ public class GeneratedPlaylistService
         options ??= new();
         options.IncludeMissing = false;
         options.IncludeUnaired = false;
-        var user = _context.GetUser();
-        var episodes = _animeSeriesService.GetNextUpEpisodes((series as AnimeSeries)!, user.JMMUserID, options);
+        var user = contextAccessor.HttpContext.GetUser();
+        var episodes = animeSeriesService.GetNextUpEpisodes((series as AnimeSeries)!, user.JMMUserID, options);
 
         // Make sure the release group is in the list, otherwise pick the most used group.
         var xrefs = FileCrossReference.From(series.CrossReferences).FirstOrDefault(seriesXRef => seriesXRef.SeriesID.ID == series.ID)?.EpisodeIDs ?? [];
@@ -342,7 +328,7 @@ public class GeneratedPlaylistService
         xrefs = xrefs
             .Where(xref => xref.ReleaseGroup == releaseGroupID)
             .ToList();
-        var videos = xrefs.Select(xref => _videoRepository.GetByEd2kAndSize(xref.ED2K, xref.FileSize))
+        var videos = xrefs.Select(xref => videoRepository.GetByEd2kAndSize(xref.ED2K, xref.FileSize))
             .WhereNotNull()
             .ToList();
         yield return ([episode], videos);
@@ -388,7 +374,7 @@ public class GeneratedPlaylistService
     )
     {
         var m3U8 = new StringBuilder("#EXTM3U\n");
-        var request = _context.Request;
+        var request = contextAccessor.HttpContext!.Request;
         var uri = new UriBuilder(
             request.Scheme,
             request.Host.Host,
@@ -400,8 +386,8 @@ public class GeneratedPlaylistService
         var apiKey = request.Query["apikey"].FirstOrDefault() ?? request.Headers["apikey"].FirstOrDefault();
         if (string.IsNullOrEmpty(apiKey))
         {
-            var user = _context.GetUser();
-            apiKey = _authTokensRepository.CreateNewApiKey(user, "playlist");
+            var user = contextAccessor.HttpContext.GetUser();
+            apiKey = authTokensRepository.CreateNewApiKey(user, "playlist");
         }
         foreach (var (episodes, videos) in playlist)
         {
@@ -422,7 +408,7 @@ public class GeneratedPlaylistService
         };
     }
 
-    private static string GetEpisodeEntry(UriBuilder uri, IShokoSeries series, IShokoEpisode episode, IVideo video, int part, int totalParts, int episodeRange, string apiKey)
+    private string GetEpisodeEntry(UriBuilder uri, IShokoSeries series, IShokoEpisode episode, IVideo video, int part, int totalParts, int episodeRange, string apiKey)
     {
         var poster = series.GetPreferredImageForType(ImageEntityType.Poster) ?? series.DefaultPoster;
         var parts = totalParts > 1 ? $" ({part}/{totalParts})" : string.Empty;
@@ -431,7 +417,7 @@ public class GeneratedPlaylistService
             : $"{episode.Type.ToString()[0]}{episode.EpisodeNumber}";
         var episodePartNumber = totalParts > 1 ? $".{part}" : string.Empty;
         var queryString = HttpUtility.ParseQueryString(string.Empty);
-        queryString.Add("shokoVersion", Utils.GetApplicationVersion());
+        queryString.Add("shokoVersion", systemService.Version.Version.ToSemanticVersioningString());
         queryString.Add("apikey", apiKey);
 
         // These fields are for media player plugins to consume.
