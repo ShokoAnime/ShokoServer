@@ -7,6 +7,11 @@ namespace Shoko.Abstractions.Core;
 public enum ReleaseChannel
 {
     /// <summary>
+    /// Automatically determine the release channel based on the current version.
+    /// </summary>
+    Auto = -1,
+
+    /// <summary>
     /// The debug channel.
     /// </summary>
     Debug = 0,

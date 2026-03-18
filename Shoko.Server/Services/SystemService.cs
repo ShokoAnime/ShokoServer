@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Net;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,6 +22,7 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Events;
 using Shoko.Abstractions.Core.Exceptions;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Abstractions.Plugin;
@@ -370,6 +373,7 @@ public class SystemService : ISystemService
             services.AddSingleton(pluginManager);
             services.AddSingleton(ApplicationPaths.Instance);
 
+            services.AddSingleton<IPluginInstallationManager, PluginInstallationManager>();
             services.AddSingleton<FileWatcherService>();
             services.AddSingleton<LogRotator>();
             services.AddSingleton<TraktTVHelper>();
@@ -386,7 +390,7 @@ public class SystemService : ISystemService
             services.AddSingleton<AnimeSeriesService>();
             services.AddSingleton<AnimeGroupService>();
             services.AddSingleton<CssThemeService>();
-            services.AddSingleton<WebUIUpdateService>();
+            services.AddSingleton<ISystemUpdateService, SystemUpdateService>();
             services.AddSingleton<IMetadataService, AbstractMetadataService>();
             services.AddSingleton<IVideoService, VideoService>();
             services.AddSingleton<IVideoReleaseService, VideoReleaseService>();
@@ -403,6 +407,21 @@ public class SystemService : ISystemService
             services.AddSentryConfig();
             services.AddQuartz(systemService);
 
+            services.AddHttpClient("GitHub", client =>
+                {
+                    client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
+                    client.DefaultRequestHeaders.Add("User-Agent", $"ShokoServer/{systemService.Version.Version.ToSemanticVersioningString()} (https://github.com/{settingsProvider.GetSettings().Web.ServerRepoName})");
+                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip");
+                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("deflate");
+                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("br");
+                    if (Environment.GetEnvironmentVariable("GITHUB_TOKEN") is { Length: > 0 } githubToken)
+                        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {githubToken}");
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = true,
+                    AutomaticDecompression = DecompressionMethods.All,
+                });
             services.AddAniDB();
             services.AddSingleton<IAnidbService, AnidbService>();
 

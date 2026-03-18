@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Core;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
@@ -14,7 +16,6 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 using Constants = Shoko.Server.Server.Constants;
-using ReleaseChannel = Shoko.Server.Server.ReleaseChannel;
 using ServerStatus = Shoko.Server.API.v3.Models.Shoko.ServerStatus;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -33,6 +34,7 @@ public class InitController : BaseController
     private readonly IConnectivityService _connectivityService;
     private readonly IUDPConnectionHandler _udpHandler;
     private readonly IHttpConnectionHandler _httpHandler;
+    private readonly ISystemUpdateService _webUIUpdateService;
 
     public InitController(
         ILogger<InitController> logger,
@@ -40,7 +42,8 @@ public class InitController : BaseController
         ISettingsProvider settingsProvider,
         IConnectivityService connectivityService,
         IUDPConnectionHandler udpHandler,
-        IHttpConnectionHandler httpHandler
+        IHttpConnectionHandler httpHandler,
+        ISystemUpdateService webUIUpdateService
     ) : base(settingsProvider)
     {
         _logger = logger;
@@ -48,6 +51,7 @@ public class InitController : BaseController
         _connectivityService = connectivityService;
         _udpHandler = udpHandler;
         _httpHandler = httpHandler;
+        _webUIUpdateService = webUIUpdateService;
     }
 
     /// <summary>
@@ -62,10 +66,10 @@ public class InitController : BaseController
         {
             Server = new()
             {
-                Version = _systemService.Version.Version,
+                Version = _systemService.Version.Version.ToSemanticVersioningString(),
                 ReleaseChannel = Enum.Parse<ReleaseChannel>(_systemService.Version.Channel.ToString()),
                 Commit = _systemService.Version.SourceRevision,
-                Tag = _systemService.Version.Tag,
+                Tag = _systemService.Version.ReleaseTag,
                 ReleaseDate = _systemService.Version.ReleasedAt,
             },
         };
@@ -77,16 +81,17 @@ public class InitController : BaseController
         }
         catch { }
 
-        var webuiVersion = WebUIUpdateService.LoadWebUIVersionInfo();
+        var webuiVersion = _webUIUpdateService.LoadWebComponentVersionInformation();
         if (webuiVersion != null)
         {
             versionSet.WebUI = new()
             {
-                Version = webuiVersion.Version,
-                Tag = webuiVersion.Tag,
+                Version = webuiVersion.Version.ToSemanticVersioningString(),
+                MinimumServerVersion = webuiVersion.MinimumServerVersion?.ToSemanticVersioningString(),
+                Tag = webuiVersion.ReleaseTag,
                 ReleaseChannel = webuiVersion.Channel,
-                Commit = webuiVersion.Commit,
-                ReleaseDate = webuiVersion.Date,
+                Commit = webuiVersion.SourceRevision,
+                ReleaseDate = webuiVersion.ReleasedAt,
             };
         }
 

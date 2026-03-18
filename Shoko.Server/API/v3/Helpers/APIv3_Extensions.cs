@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Abstractions.Core.Models;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
-using Shoko.Server.Services;
 
 using AbstractAnimeType = Shoko.Abstractions.Enums.AnimeType;
 using AbstractEpisodeType = Shoko.Abstractions.Enums.EpisodeType;
@@ -71,16 +72,27 @@ public static class APIv3_Extensions
             .Select(season => new SeasonWithYear(season.Year, season.Season))
             .ToList();
 
-    public static ComponentVersion ToDto(this WebUIUpdateService.ComponentVersion componentVersion)
+    public static ComponentVersion ToDto(this ReleaseVersionInformation componentVersion)
         => new()
         {
-            Commit = componentVersion.Commit,
+            Commit = componentVersion.SourceRevision,
             Description = componentVersion.Description,
-            ReleaseChannel = componentVersion.ReleaseChannel,
-            ReleaseDate = componentVersion.ReleaseDate,
-            Tag = componentVersion.Tag,
-            Version = componentVersion.Version,
-            MinimumServerVersion = componentVersion.MinimumServerVersion,
+            ReleaseChannel = componentVersion.Channel,
+            ReleaseDate = componentVersion.ReleasedAt,
+            Tag = componentVersion.ReleaseTag,
+            Version = componentVersion.Version.ToSemanticVersioningString(),
+        };
+
+    public static ComponentVersion ToDto(this WebReleaseVersionInformation componentVersion)
+        => new()
+        {
+            Commit = componentVersion.SourceRevision,
+            Description = componentVersion.Description,
+            ReleaseChannel = componentVersion.Channel,
+            ReleaseDate = componentVersion.ReleasedAt,
+            Tag = componentVersion.ReleaseTag,
+            Version = componentVersion.Version.ToSemanticVersioningString(),
+            MinimumServerVersion = componentVersion.MinimumServerVersion?.ToSemanticVersioningString(),
         };
 
     public static IEnumerable<IImage> InLanguage(this IEnumerable<IImage> imageList, IReadOnlySet<TitleLanguage>? language = null)

@@ -14,9 +14,11 @@ using Microsoft.OpenApi;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Sentry;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.API.ActionFilters;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.FileProviders;
@@ -117,7 +119,6 @@ public static class APIExtensions
                     .Concat([
                         typeof(DayOfWeek),
                         typeof(DriveType),
-                        typeof(ReleaseChannel),
                         typeof(CreatorRoleType),
                     ])
                     .ToList();
@@ -377,6 +378,7 @@ public static class APIExtensions
         // Create web ui directory and add the boot-strapper.
         var webUIDir = new DirectoryInfo(ApplicationPaths.Instance.WebPath);
         var backupDir = new DirectoryInfo(Path.Combine(ApplicationPaths.Instance.ApplicationPath, "webui"));
+        var webUIUpdateService = app.ApplicationServices.GetRequiredService<ISystemUpdateService>();
         if (!webUIDir.Exists)
         {
             if (backupDir.Exists)
@@ -387,11 +389,11 @@ public static class APIExtensions
         else if (
             backupDir.Exists &&
             webSettings.AutoReplaceWebUIWithIncluded &&
-            WebUIUpdateService.LoadIncludedWebUIVersionInfo() is { } includedVersion &&
+            webUIUpdateService.LoadIncludedWebComponentVersionInformation() is { } includedVersion &&
             (
-                WebUIUpdateService.LoadWebUIVersionInfo() is not { } currentVersion ||
+                webUIUpdateService.LoadWebComponentVersionInformation() is not { } currentVersion ||
                 (
-                    new WebUIUpdateService.SemverVersionComparer().Compare(includedVersion.VersionAsVersion, currentVersion.VersionAsVersion) > 0 &&
+                    new SemverVersionComparer().Compare(includedVersion.Version, currentVersion.Version) > 0 &&
                     (
                         (includedVersion.Channel is not ReleaseChannel.Debug && currentVersion.Channel is not ReleaseChannel.Debug) ||
                         (includedVersion.Channel is ReleaseChannel.Debug && currentVersion.Channel is ReleaseChannel.Debug)
@@ -449,7 +451,7 @@ public static class APIExtensions
         {
             app.UseStaticFiles(new StaticFileOptions
             {
-                FileProvider = new WebUiFileProvider(app.ApplicationServices.GetRequiredService<WebUIUpdateService>(), webSettings.WebUIPublicPath, webUIDir.FullName),
+                FileProvider = new WebUiFileProvider(webUIUpdateService, webSettings.WebUIPublicPath, webUIDir.FullName),
                 RequestPath = webSettings.WebUIPublicPath,
                 ServeUnknownFileTypes = true,
                 DefaultContentType = "text/html",

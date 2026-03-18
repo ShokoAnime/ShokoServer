@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Web.Attributes;
@@ -20,7 +21,6 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
 using Shoko.Server.Services;
 
 using FileSummaryGroupByCriteria = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary.FileSummaryGroupByCriteria;
@@ -44,7 +44,14 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public partial class WebUIController(ISettingsProvider settingsProvider, IApplicationPaths applicationPaths, WebUIUpdateService updateService, CssThemeService themeService, WebUIFactory webUIFactory, ILogger<WebUIController> logger) : BaseController(settingsProvider)
+public partial class WebUIController(
+    ISettingsProvider settingsProvider,
+    IApplicationPaths applicationPaths,
+    ISystemUpdateService updateService,
+    CssThemeService themeService,
+    WebUIFactory webUIFactory,
+    ILogger<WebUIController> logger
+) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Retrieves the list of available themes.
@@ -363,7 +370,7 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpPost("Install")]
-    public ActionResult InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
+    public async Task<ActionResult> InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
     {
         var indexLocation = Path.Join(applicationPaths.WebPath, "index.html");
         if (System.IO.File.Exists(indexLocation))
@@ -376,7 +383,7 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
 
         try
         {
-            updateService.InstallUpdateForChannel(channel, allowIncompatible);
+            await updateService.UpdateWebComponent(channel, allowIncompatible);
         }
         catch (WebException ex)
         {
@@ -397,7 +404,7 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
     [InitFriendly]
     [HttpGet("Install")]
     [Obsolete("Post is correct, but we want legacy versions of the webui boot-strapper to be able to install. We can remove this later™.")]
-    public ActionResult UpdateWebUILegacy([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
+    public Task<ActionResult> UpdateWebUILegacy([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
         => InstallWebUI(channel, allowIncompatible);
 
     /// <summary>
@@ -410,11 +417,11 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpPost("Update")]
-    public ActionResult UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
+    public async Task<ActionResult> UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
     {
         try
         {
-            updateService.InstallUpdateForChannel(channel, allowIncompatible);
+            await updateService.UpdateWebComponent(channel, allowIncompatible);
         }
         catch (WebException ex)
         {
@@ -439,7 +446,7 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
     [HttpPost("Update/ReportManualUpdate")]
     public ActionResult UpdateWebUIManualRefresh()
     {
-        updateService.ReactToManualUpdate();
+        updateService.ReactToManualWebComponentUpdate();
         return NoContent();
     }
 
@@ -448,7 +455,7 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
     [InitFriendly]
     [HttpGet("Update")]
     [Obsolete("Post is correct, but we want old versions of the webui to be able to update. We can remove this later™.")]
-    public ActionResult UpdateWebUIOld([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
+    public Task<ActionResult> UpdateWebUIOld([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
         => UpdateWebUI(channel, allowIncompatible);
 
     /// <summary>
@@ -463,11 +470,12 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("LatestVersion")]
-    public ActionResult<ComponentVersion> LatestWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool force = false, [FromQuery] bool allowIncompatible = false)
+    public async Task<ActionResult<ComponentVersion>> LatestWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool force = false, [FromQuery] bool allowIncompatible = false)
     {
         try
         {
-            return updateService.GetLatestVersion(channel, force, allowIncompatible).ToDto();
+            var version = await updateService.GetLatestWebComponentVersion(channel, force, allowIncompatible).ConfigureAwait(false);
+            return version.ToDto();
         }
         catch (WebException ex)
         {
@@ -488,11 +496,11 @@ public partial class WebUIController(ISettingsProvider settingsProvider, IApplic
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpGet("LatestServerVersion")]
-    public ActionResult<ComponentVersion> LatestServerWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool force = false)
+    public async Task<ActionResult<ComponentVersion>> LatestServerWebUIVersion([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool force = false)
     {
         try
         {
-            var version = updateService.GetLatestServerVersion(channel, force);
+            var version = await updateService.GetLatestServerVersion(channel, force).ConfigureAwait(false);
             if (version is null)
                 return BadRequest("Unable to locate the latest release to use.");
             return version.ToDto();
