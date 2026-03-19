@@ -178,6 +178,19 @@ public static class APIExtensions
                 json.SerializerSettings.DefaultValueHandling = DefaultValueHandling.Populate;
                 // json.SerializerSettings.DateFormatString = "yyyy-MM-dd";
             })
+            .ConfigureApplicationPartManager(manager =>
+            {
+                // Remove the default ControllerFeatureProvider and replace with our custom one
+                // that respects API version kill-switch settings.
+                var defaultProvider = manager.FeatureProviders
+                    .OfType<Microsoft.AspNetCore.Mvc.Controllers.ControllerFeatureProvider>()
+                    .FirstOrDefault();
+                if (defaultProvider is not null)
+                    manager.FeatureProviders.Remove(defaultProvider);
+
+                var webSettings = Utils.SettingsProvider.GetSettings().Web;
+                manager.FeatureProviders.Add(new ApiVersionControllerFeatureProvider(webSettings));
+            })
             .AddPluginControllers(pluginManager)
             .AddControllersAsServices();
 
