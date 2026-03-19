@@ -21,6 +21,7 @@ jobs:
       date: ${{ steps.commit_date_iso8601.outputs.date }}
       sha: ${{ github.sha }}
       sha_short: ${{ steps.release_info.outputs.commit_short }}
+      changelog: ${{ steps.generate_changelog.outputs.CHANGELOG }}
 
     steps:
       - name: Checkout "${{ github.ref }}"
@@ -147,6 +148,17 @@ jobs:
         with:
           script: |
             core.setOutput("version_semver", '${{ steps.release_info.outputs.tag }}'.replace(/^[vV]/g, ''));
+
+      - name: Generate Changelog
+        id: generate_changelog
+        env:
+          PREVIOUS_COMMIT: ${{ steps.tagged_release_info.outputs.commit }}
+          NEXT_COMMIT: ${{ github.sha }}
+        run: |
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "CHANGELOG<<$EOF" >> "$GITHUB_OUTPUT"
+          node .github/workflows/git-log-json.mjs $PREVIOUS_COMMIT..$NEXT_COMMIT | jq -r '.[] | "\n`\(.type)`: **\(.subject)**" + if .body != null and .body != "" then if .isSkipCI then ": (_Skip CI_)\n\n\(.body)" else ":\n\n\(.body)" end else if .isSkipCI then ". (_Skip CI_)" else "." end end' >> "$GITHUB_OUTPUT"
+          echo -e "\n$EOF" >> "$GITHUB_OUTPUT"
 
   webui:
     runs-on: ubuntu-latest
@@ -703,22 +715,6 @@ jobs:
       - sentry-upload
 
     steps:
-      - name: Generate Changelog from Sentry Release
-        id: generate_changelog
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-          RELEASE_VERSION: ${{ needs.current_info.outputs.version }}
-        run: |
-          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "CHANGELOG<<$EOF" >> "$GITHUB_OUTPUT"
-          curl -s "https://sentry.io/api/0/projects/$SENTRY_ORG/$SENTRY_PROJECT/releases/$RELEASE_VERSION/commits/" \
-            -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
-            -H "Content-Type: application/json" \
-            | jq -r '.[].message + "\n"' >> "$GITHUB_OUTPUT"
-          echo "$EOF" >> "$GITHUB_OUTPUT"
-
       - name: Notify Discord Users
         uses: tsickert/discord-webhook@v6.0.0
         with:
@@ -734,7 +730,7 @@ jobs:
             Update by grabbing the latest daily from [our site](https://shokoanime.com/downloads/shoko-server) or through Docker using the `ghcr.io/shokoanime/server:daily` tag!
 
             **Changes since last build**:
-            ${{ steps.generate_changelog.outputs.CHANGELOG }}
+            ${{ needs.current_info.outputs.changelog }}
 
   cleanup-webui:
     runs-on: ubuntu-latest
