@@ -287,7 +287,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
         foreach (var pluginInfo in registrationPlugins)
         {
-            logger.LogTrace("Registering plugin services. ({DllName}, v{Version})", Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]), pluginInfo.Version);
+            logger.LogTrace("Registering plugin services. ({DllName}, {Version})", Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]), pluginInfo.Version);
             pluginInfo.ServiceRegistrationType!
                 .GetMethod(nameof(IPluginServiceRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static)!
                 .Invoke(null, [serviceCollection, applicationPaths]);
@@ -306,7 +306,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             if (!localPluginInfo.IsEnabled)
             {
                 if (localPluginInfo.CanLoad)
-                    logger.LogInformation("Skipping disabled plugin \"{Name}\". ({DllName}, v{Version})", localPluginInfo.Name, dllName, localPluginInfo.Version);
+                    logger.LogInformation("Skipping disabled plugin \"{Name}\". ({DllName}, {Version})", localPluginInfo.Name, dllName, localPluginInfo.Version);
                 continue;
             }
 
@@ -336,7 +336,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             };
             _exportedTypes.AddRange(localPluginInfo.Types);
 
-            logger.LogInformation("Initialized plugin \"{Name}\". ({DllName}, v{Version})", pluginInstance.Name, dllName, localPluginInfo.Version);
+            logger.LogInformation("Initialized plugin \"{Name}\". ({DllName}, {Version})", pluginInstance.Name, dllName, localPluginInfo.Version);
         }
 
         var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
@@ -464,7 +464,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             Utils.SettingsProvider.SaveSettings();
 
         if (internalPluginInfo is not null)
-            logger.LogInformation("Loaded inactive plugin \"{Name}\". ({DllName}, v{Version})", internalPluginInfo.Name, Path.GetFileNameWithoutExtension(internalPluginInfo.DLLs[0]), internalPluginInfo.Version);
+            logger.LogInformation("Loaded inactive plugin \"{Name}\". ({DllName}, {Version})", internalPluginInfo.Name, Path.GetFileNameWithoutExtension(internalPluginInfo.DLLs[0]), internalPluginInfo.Version);
         return internalPluginInfo;
     }
 
