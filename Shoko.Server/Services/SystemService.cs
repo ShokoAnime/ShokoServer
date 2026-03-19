@@ -373,7 +373,7 @@ public class SystemService : ISystemService
             services.AddSingleton(pluginManager);
             services.AddSingleton(ApplicationPaths.Instance);
 
-            services.AddSingleton<IPluginInstallationManager, PluginInstallationManager>();
+            services.AddSingleton<IPluginPackageManager, PluginPackageManager>();
             services.AddSingleton<FileWatcherService>();
             services.AddSingleton<LogRotator>();
             services.AddSingleton<TraktTVHelper>();
@@ -834,6 +834,7 @@ public class SystemService : ISystemService
         actionService.CheckForAnimeUpdate().GetAwaiter().GetResult();
         actionService.CheckForMyListSyncUpdate(false).GetAwaiter().GetResult();
         actionService.CheckForAniDBFileUpdate(false).GetAwaiter().GetResult();
+        actionService.CheckForPluginUpdates(false).GetAwaiter().GetResult();
     }
 
     #endregion

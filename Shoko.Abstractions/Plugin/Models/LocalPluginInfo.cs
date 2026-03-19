@@ -31,6 +31,11 @@ public sealed class LocalPluginInfo
     public required VersionInformation Version { get; init; }
 
     /// <summary>
+    ///   The author(s) of the plugin.
+    /// </summary>
+    public required string? Authors { get; init; }
+
+    /// <summary>
     ///   The order in which the plugin was loaded.
     /// </summary>
     public required int LoadOrder { get; init; }

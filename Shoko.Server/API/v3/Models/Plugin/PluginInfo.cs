@@ -66,6 +66,11 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     public DateTime ReleasedAt { get; init; } = pluginInfo.Version.ReleasedAt;
 
     /// <summary>
+    ///   The author(s) of the plugin.
+    /// </summary>
+    public string? Authors { get; set; } = pluginInfo.Authors;
+
+    /// <summary>
     ///   The order in which the plugin was loaded.
     /// </summary>
     public int LoadOrder { get; init; } = pluginInfo.LoadOrder;

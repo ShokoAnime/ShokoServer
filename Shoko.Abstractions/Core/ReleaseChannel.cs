@@ -4,6 +4,8 @@ namespace Shoko.Abstractions.Core;
 /// <summary>
 /// The release channel of the currently running server.
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
+[Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
 public enum ReleaseChannel
 {
     /// <summary>

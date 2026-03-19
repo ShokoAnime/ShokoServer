@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -53,6 +54,8 @@ public class ActionService
 
     private readonly HttpXmlUtils _xmlUtils;
 
+    private readonly IPluginPackageManager _pluginPackageManager;
+
     private readonly BackgroundWorker _downloadImagesWorker;
 
     public ActionService(
@@ -65,7 +68,8 @@ public class ActionService
         IVideoService videoService,
         TmdbMetadataService tmdbService,
         DatabaseFactory databaseFactory,
-        HttpXmlUtils xmlUtils
+        HttpXmlUtils xmlUtils,
+        IPluginPackageManager pluginPackageManager
     )
     {
         _logger = logger;
@@ -78,6 +82,7 @@ public class ActionService
         _tmdbService = tmdbService;
         _databaseFactory = databaseFactory;
         _xmlUtils = xmlUtils;
+        _pluginPackageManager = pluginPackageManager;
         _downloadImagesWorker = new();
         _downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
         _downloadImagesWorker.WorkerSupportsCancellation = true;
@@ -1011,5 +1016,38 @@ public class ActionService
             await _anidbService.ScheduleRefresh(aniDBAnime, methods, prioritize: false);
 
         _logger.LogInformation("Queued Creation of {Count} Series that were missing.", missingSeries.Count);
+    }
+
+    /// <summary>
+    ///   Schedules a plugin update check job.
+    /// </summary>
+    /// <param name="forceRefresh">
+    ///   Force sync even if not stale.
+    /// </param>
+    public async Task CheckForPluginUpdates(bool forceRefresh)
+    {
+        var settings = _settingsProvider.GetSettings();
+
+        // Check if auto-sync is enabled (must be enabled unless forcing)
+        if (!settings.Plugins.Updates.IsAutoSyncEnabled && !forceRefresh)
+            return;
+
+        // Check frequency setting (skip schedule check if forcing)
+        if (!forceRefresh)
+        {
+            if (settings.Plugins.Updates.AutoUpdateFrequency is ScheduledUpdateFrequency.Never)
+                return;
+
+            var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.PluginUpdates);
+            if (schedule != null)
+            {
+                var freqHours = Utils.GetScheduledHours(settings.Plugins.Updates.AutoUpdateFrequency);
+                var tsLastRun = DateTime.Now - schedule.LastUpdate;
+                if (tsLastRun.TotalHours < freqHours)
+                    return;
+            }
+        }
+
+        await _pluginPackageManager.ScheduleCheckForUpdates(forceSync: forceRefresh ? true : null).ConfigureAwait(false);
     }
 }

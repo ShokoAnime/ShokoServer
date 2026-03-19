@@ -62,6 +62,7 @@ public enum ScheduledUpdateType
     TraktGetWatchStates = 7,
     AniDBFileUpdates = 10,
     AniDBNotify = 15,
+    PluginUpdates = 16,
 }
 
 public enum AniDBNotifyType

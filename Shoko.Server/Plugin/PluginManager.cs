@@ -73,6 +73,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         public required VersionInformation Version { get; init; }
 
         /// <summary>
+        ///   The author(s) of the plugin.
+        /// </summary>
+        public required string? Authors { get; init; }
+
+        /// <summary>
         ///   The priority of the plugin for loading order. Lower values load first.
         /// </summary>
         /// <remarks>
@@ -175,6 +180,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 Description = string.Empty,
                 Version =  systemService.Version,
                 InstalledAt = systemService.Version.ReleasedAt,
+                Authors = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyCompanyAttribute>() is { Company: { Length: > 0 } companyName }
+                    ? companyName
+                    : null,
                 IsPinned = true,
                 IsEnabled = true,
                 CanLoad = true,
@@ -219,6 +227,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         Name = internalPluginInfo.Name,
                         Description = internalPluginInfo.Description,
                         Version = internalPluginInfo.Version,
+                        Authors = internalPluginInfo.Authors,
                         LoadOrder = _pluginTypes.Count,
                         InstalledAt = internalPluginInfo.InstalledAt,
                         IsEnabled = false,
@@ -247,6 +256,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     Name = internalPluginInfo.Name,
                     Description = internalPluginInfo.Description,
                     Version = internalPluginInfo.Version,
+                    Authors = internalPluginInfo.Authors,
                     LoadOrder = _pluginTypes.Count,
                     InstalledAt = internalPluginInfo.InstalledAt,
                     IsEnabled = true,
@@ -308,6 +318,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 Name = pluginInstance.Name,
                 Description = pluginInstance.Description?.CleanDescription() ?? string.Empty,
                 Version = localPluginInfo.Version,
+                Authors = localPluginInfo.Authors,
                 LoadOrder = localPluginInfo.LoadOrder,
                 InstalledAt = localPluginInfo.InstalledAt,
                 IsEnabled = true,
@@ -421,7 +432,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             foreach (var directoryPath in Directory.GetDirectories(userPluginDir, "*", new EnumerationOptions() { RecurseSubdirectories = false, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.System }))
             {
                 // Skip repositories metadata directory.
-                if (Path.GetFileName(directoryPath) is "repositories")
+                if (Path.GetFileName(directoryPath) is PluginPackageManager.Repositories)
                     continue;
 
                 var removeFile = Path.Join(directoryPath, Remove);
@@ -481,6 +492,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     if (version is null)
                         continue;
 
+                    var authors = assembly.GetCustomAttribute<AssemblyCompanyAttribute>() is { Company: { Length: > 0 } companyName }
+                        ? companyName
+                        : null;
+
                     // TryAdd, because if it made it this far, then it's missing or true.
                     if (settings.Plugins.EnabledPlugins.TryAdd(name, true))
                         settingsChanged = true;
@@ -500,6 +515,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                                 ? "This plugin uses the deprecated Shoko.Plugin.Abstractions namespace and is incompatible with this version of Shoko Server. Please update the plugin to use Shoko.Abstractions."
                                 : "The plugin failed to load due to missing dependencies.",
                             Version = version,
+                            Authors = authors,
                             InstalledAt = createdAt,
                             IsPinned = string.IsNullOrEmpty(dirPath)
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
@@ -525,6 +541,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             Name = name,
                             Description = "The plugin failed to load because it references a newer version of Shoko.Abstractions than what this server supports.",
                             Version = version,
+                            Authors = authors,
                             InstalledAt = createdAt,
                             IsPinned = string.IsNullOrEmpty(dirPath)
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
@@ -556,6 +573,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             Name = name,
                             Description = "The plugin failed to load due to missing dependencies.",
                             Version = version,
+                            Authors = authors,
                             InstalledAt = createdAt,
                             IsPinned = string.IsNullOrEmpty(dirPath)
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
@@ -642,6 +660,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         Name = instance.Name,
                         Description = instance.Description?.CleanDescription() ?? string.Empty,
                         Version = version,
+                        Authors = authors,
                         InstalledAt = createdAt,
                         IsPinned = string.IsNullOrEmpty(dirPath)
                             ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
@@ -974,6 +993,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             Name = internalPluginInfo.Name,
             Description = internalPluginInfo.Description,
             Version = internalPluginInfo.Version,
+            Authors = internalPluginInfo.Authors,
             LoadOrder = _pluginTypes.Count,
             InstalledAt = internalPluginInfo.InstalledAt,
             IsEnabled = internalPluginInfo.IsEnabled,
@@ -1073,7 +1093,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         return null;
     }
 
-    private string? GetMimeFromFormat(MagickImageInfo imageInfo)
+    internal static string? GetMimeFromFormat(MagickImageInfo imageInfo)
         => imageInfo.Format switch
         {
             MagickFormat.Png => "image/png",
