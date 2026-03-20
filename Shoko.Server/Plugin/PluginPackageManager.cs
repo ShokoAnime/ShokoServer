@@ -454,7 +454,7 @@ public partial class PluginPackageManager(
 
     private async Task DownloadAndVerifyArchiveAsync(string downloadUrl, string destinationPath, string expectedChecksum, CancellationToken cancellationToken)
     {
-        using var httpClient = httpClientFactory.CreateClient("GitHub");
+        using var httpClient = httpClientFactory.CreateClient("PluginPackages");
 
         var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
@@ -773,7 +773,7 @@ public partial class PluginPackageManager(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            using var httpClient = httpClientFactory.CreateClient("GitHub");
+            using var httpClient = httpClientFactory.CreateClient("PluginPackages");
             var remoteManifests = await GetRemoteManifestAsync(httpClient, repositoryInfo.Url, allowArray: true, cancellationToken: cancellationToken).ConfigureAwait(false);
             var lastFetchedAt = DateTime.UtcNow;
             var manifests = new List<PackageManifestInfo>();
@@ -894,7 +894,7 @@ public partial class PluginPackageManager(
 
         response.EnsureSuccessStatusCode();
         var contentType = response.Content.Headers.ContentType?.MediaType;
-        if (contentType is not ("application/json" or "text/plain" or "text/json"))
+        if (contentType is not ("application/json" or "text/plain"))
             throw new InvalidOperationException($"Invalid content type: \"{contentType}\". Expected \"application/json.\" or \"text/plain\" or \"text/json\"");
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -979,7 +979,7 @@ public partial class PluginPackageManager(
 
         try
         {
-            using var httpClient = httpClientFactory.CreateClient("GitHub");
+            using var httpClient = httpClientFactory.CreateClient("PluginPackages");
             var response = await httpClient.GetAsync(imageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 

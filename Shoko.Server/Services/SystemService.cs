@@ -422,6 +422,19 @@ public class SystemService : ISystemService
                     AllowAutoRedirect = true,
                     AutomaticDecompression = DecompressionMethods.All,
                 });
+            services.AddHttpClient("PluginPackages", client =>
+                {
+                    client.DefaultRequestHeaders.Add("Accept", "application/json, text/plain");
+                    client.DefaultRequestHeaders.Add("User-Agent", $"ShokoServer/{systemService.Version.Version.ToSemanticVersioningString()} (https://github.com/{settingsProvider.GetSettings().Web.ServerRepoName})");
+                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip");
+                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("deflate");
+                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("br");
+                })
+                .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = true,
+                    AutomaticDecompression = DecompressionMethods.All,
+                });
             services.AddAniDB();
             services.AddSingleton<IAnidbService, AnidbService>();
 
