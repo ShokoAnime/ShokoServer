@@ -456,7 +456,7 @@ public partial class PluginPackageManager(
     {
         using var httpClient = httpClientFactory.CreateClient("PluginPackages");
 
-        var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        using var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         if (cancellationToken.IsCancellationRequested)
@@ -826,42 +826,50 @@ public partial class PluginPackageManager(
 
     private async Task<IReadOnlyList<(RemotePackageManifestInfo Manifest, DateTime fetchedAt)>> GetRemoteManifestAsync(HttpClient httpClient, string manifestUrl, bool allowArray, CancellationToken cancellationToken)
     {
-        var (rootElement, lastFetchedAt) = await FetchManifestAsync(httpClient, manifestUrl, cancellationToken).ConfigureAwait(false);
+        var (document, lastFetchedAt) = await FetchManifestAsync(httpClient, manifestUrl, cancellationToken).ConfigureAwait(false);
         var manifests = new List<(RemotePackageManifestInfo Manifest, DateTime fetchedAt)>();
-        if (rootElement.ValueKind == JsonValueKind.Array)
+        try
         {
-            if (!allowArray)
-                throw new InvalidOperationException("A referenced single-repository manifest cannot contain multiple manifests.");
-
-            foreach (var element in rootElement.EnumerateArray())
+            var rootElement = document.RootElement;
+            if (rootElement.ValueKind == JsonValueKind.Array)
             {
-                try
+                if (!allowArray)
+                    throw new InvalidOperationException("A referenced single-repository manifest cannot contain multiple manifests.");
+
+                foreach (var element in rootElement.EnumerateArray())
                 {
-                    var manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(element.GetRawText());
-                    if (manifest is { IsReference: true })
+                    try
                     {
-                        var subManifests = await GetRemoteManifestAsync(httpClient, manifest.ManifestUrl, allowArray: false, cancellationToken: cancellationToken).ConfigureAwait(false);
-                        manifests.AddRange(subManifests);
+                        var manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(element.GetRawText());
+                        if (manifest is { IsReference: true })
+                        {
+                            var subManifests = await GetRemoteManifestAsync(httpClient, manifest.ManifestUrl, allowArray: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+                            manifests.AddRange(subManifests);
+                        }
+                        else if (manifest is not null)
+                            manifests.Add((manifest, lastFetchedAt));
                     }
-                    else if (manifest is not null)
-                        manifests.Add((manifest, lastFetchedAt));
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to parse package manifest from repository.");
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to parse package manifest from repository.");
+                    }
                 }
             }
+            else if (rootElement.ValueKind == JsonValueKind.Object)
+            {
+                var manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(rootElement.GetRawText())
+                    ?? throw new InvalidOperationException("Failed to parse repository manifest as object.");
+                if (manifest.IsReference)
+                    throw new InvalidOperationException("A single-repository manifest cannot reference another manifest.");
+                manifests.Add((manifest, lastFetchedAt));
+            }
+            else
+                throw new InvalidOperationException($"Unexpected JSON structure in repository manifest: {rootElement.ValueKind}.");
         }
-        else if (rootElement.ValueKind == JsonValueKind.Object)
+        finally
         {
-            var manifest = JsonConvert.DeserializeObject<RemotePackageManifestInfo>(rootElement.GetRawText())
-                ?? throw new InvalidOperationException("Failed to parse repository manifest as object.");
-            if (manifest.IsReference)
-                throw new InvalidOperationException("A single-repository manifest cannot reference another manifest.");
-            manifests.Add((manifest, lastFetchedAt));
+            document.Dispose();
         }
-        else
-            throw new InvalidOperationException($"Unexpected JSON structure in repository manifest: {rootElement.ValueKind}.");
 
         if (cancellationToken.IsCancellationRequested)
             throw new OperationCanceledException("Repository sync cancelled during manifest processing.");
@@ -869,7 +877,7 @@ public partial class PluginPackageManager(
         return manifests;
     }
 
-    private async Task<(JsonElement RootElement, DateTime LastFetchedAt)> FetchManifestAsync(HttpClient httpClient, string manifestUrl, CancellationToken cancellationToken)
+    private async Task<(JsonDocument Document, DateTime LastFetchedAt)> FetchManifestAsync(HttpClient httpClient, string manifestUrl, CancellationToken cancellationToken)
     {
         var lastFetchedAt = DateTime.UtcNow;
         var request = new HttpRequestMessage(HttpMethod.Get, manifestUrl);
@@ -885,11 +893,11 @@ public partial class PluginPackageManager(
                 request.Headers.IfNoneMatch.ParseAdd(cachedEtag);
         }
 
-        var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         if (cacheExists && response.StatusCode is HttpStatusCode.NotModified)
         {
-            var jsonCache = await JsonDocument.ParseAsync(File.OpenRead(jsonPath), default, cancellationToken).ConfigureAwait(false);
-            return (jsonCache.RootElement, lastFetchedAt);
+            var jsonCachedDoc = await JsonDocument.ParseAsync(File.OpenRead(jsonPath), default, cancellationToken).ConfigureAwait(false);
+            return (jsonCachedDoc, lastFetchedAt);
         }
 
         response.EnsureSuccessStatusCode();
@@ -900,7 +908,7 @@ public partial class PluginPackageManager(
         cancellationToken.ThrowIfCancellationRequested();
 
         var jsonDoc = await JsonDocument.ParseAsync(response.Content.ReadAsStream(), default, cancellationToken).ConfigureAwait(false);
-        return (jsonDoc.RootElement, lastFetchedAt);
+        return (jsonDoc, lastFetchedAt);
     }
 
     private async Task<PackageManifestInfo?> ConvertRemoteToLocalAsync(RemotePackageManifestInfo manifestInfo, Guid repositoryId, DateTime lastFetchedAt, CancellationToken cancellationToken)
@@ -980,7 +988,7 @@ public partial class PluginPackageManager(
         try
         {
             using var httpClient = httpClientFactory.CreateClient("PluginPackages");
-            var response = await httpClient.GetAsync(imageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            using var response = await httpClient.GetAsync(imageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
             var contentType = response.Content.Headers.ContentType?.MediaType;

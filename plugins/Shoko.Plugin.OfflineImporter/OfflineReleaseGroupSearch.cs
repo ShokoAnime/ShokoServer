@@ -125,14 +125,13 @@ public static class OfflineReleaseGroupSearch
     {
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.Add("User-Agent", "Shoko.Plugin.OfflineImporter/1.0");
-        var response = httpClient.GetAsync(System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(GroupUrl))).GetAwaiter().GetResult();
-        var stream = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
-        if (response.Content.Headers.ContentEncoding.FirstOrDefault()?.ToLowerInvariant() is "gzip")
-        {
-            stream = new GZipStream(stream, CompressionMode.Decompress);
-        }
+        using var response = httpClient.GetAsync(System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(GroupUrl))).GetAwaiter().GetResult();
+        using var stream = response.Content.Headers.ContentEncoding.FirstOrDefault()?.ToLowerInvariant() is "gzip"
+            ? new GZipStream(response.Content.ReadAsStream(), CompressionMode.Decompress)
+            : response.Content.ReadAsStream();
         var path = Path.Combine(applicationPaths.DataPath, "groups.json");
-        stream.CopyTo(File.Create(path));
+        using var fileStream = File.Create(path);
+        stream.CopyTo(fileStream);
     }
 
     /// <summary>

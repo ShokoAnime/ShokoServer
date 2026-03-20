@@ -101,7 +101,7 @@ public partial class CssThemeService
 
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromMinutes(1);
-        var response = await httpClient.GetAsync(updateUrl.AbsoluteUri);
+        using var response = await httpClient.GetAsync(updateUrl.AbsoluteUri);
 
         // Check if the response was a success.
         if (response.StatusCode != HttpStatusCode.OK)
@@ -147,7 +147,7 @@ public partial class CssThemeService
             if (!string.IsNullOrEmpty(theme.CssContent))
                 throw new ValidationException("Theme already has CSS overrides inlined. Remove URL or inline CSS first before proceeding.");
 
-            var cssResponse = await httpClient.GetAsync(theme.CssUrl);
+            using var cssResponse = await httpClient.GetAsync(theme.CssUrl);
             if (cssResponse.StatusCode != HttpStatusCode.OK)
                 throw new HttpRequestException($"Failed to retrieve CSS file with status code {cssResponse.StatusCode}.", null, cssResponse.StatusCode);
 
@@ -201,7 +201,7 @@ public partial class CssThemeService
 
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromMinutes(1);
-        var response = await httpClient.GetAsync(updateUrl.AbsoluteUri);
+        using var response = await httpClient.GetAsync(updateUrl.AbsoluteUri);
 
         // Check if the response was a success.
         if (response.StatusCode != HttpStatusCode.OK)
@@ -254,7 +254,7 @@ public partial class CssThemeService
 
             using var httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromMinutes(1);
-            var cssResponse = await httpClient.GetAsync(theme.CssUrl);
+            using var cssResponse = await httpClient.GetAsync(theme.CssUrl);
             if (cssResponse.StatusCode != HttpStatusCode.OK)
                 throw new HttpRequestException($"Failed to retrieve CSS file with status code {cssResponse.StatusCode}.", null, cssResponse.StatusCode);
 

@@ -221,7 +221,7 @@ public class ConnectivityService : IConnectivityService
         var sw = Stopwatch.StartNew();
         try
         {
-            var result = await _httpClient.SendAsync(request, token);
+            using var result = await _httpClient.SendAsync(request, token);
             sw.Stop();
             if (result.IsSuccessStatusCode)
             {

@@ -288,7 +288,7 @@ public class PlexHelper
         client.DefaultRequestHeaders.Add("User-Agent", $"{assemblyName?.Name} v${assemblyName?.Version}");
         client.Timeout = TimeSpan.FromSeconds(10);
 
-        var resp = await client.SendAsync(req).ConfigureAwait(false);
+        using var resp = await client.SendAsync(req).ConfigureAwait(false);
         Logger.Trace($"Got response: {resp.StatusCode}");
         return (resp.StatusCode, await resp.Content.ReadAsStringAsync().ConfigureAwait(false));
     }
