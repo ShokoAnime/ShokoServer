@@ -108,8 +108,13 @@ ARGS=""
 [ "$ENABLE_RESTART" = "true" ] && ARGS="$ARGS --enable-restart"
 
 # Run the server, and restart it if it exits with code 140 (Custom restart exit code).
+# Set up signal forwarding to the dotnet process
+trap 'kill -TERM $DOTNET_PID 2>/dev/null; exit 143' TERM INT
+
 while true; do
-  gosu $USER:$GROUP /usr/src/app/build/Shoko.CLI $ARGS
+  gosu $USER:$GROUP /usr/src/app/build/Shoko.CLI $ARGS &
+  DOTNET_PID=$!
+  wait $DOTNET_PID
   EXIT_CODE=$?
   [ $EXIT_CODE -ne 140 ] && exit $EXIT_CODE
 done
