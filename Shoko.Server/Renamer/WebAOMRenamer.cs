@@ -5,10 +5,11 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Relocation;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Media;
+using Shoko.Abstractions.Video.Relocation;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
@@ -19,7 +20,7 @@ using Shoko.Server.Server;
 #nullable enable
 namespace Shoko.Server.Renamer;
 
-public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IRelocationService _relocationService) : IRelocationProvider<WebAOMSettings>
+public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationService _relocationService) : IRelocationProvider<WebAOMSettings>
 {
     private static readonly char[] _validTests = "AGFEHXRTYDSCIZJWUMN".ToCharArray();
 

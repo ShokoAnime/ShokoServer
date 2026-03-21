@@ -18,12 +18,13 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Hashing;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
+using Shoko.Abstractions.Video.Enums;
+using Shoko.Abstractions.Video.Hashing;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Legacy;
@@ -1246,7 +1247,7 @@ public class DatabaseFixes
     {
         var factory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
         var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
-        var renamerService = Utils.ServiceContainer.GetRequiredService<IRelocationService>();
+        var renamerService = Utils.ServiceContainer.GetRequiredService<IVideoRelocationService>();
         var settingsProvider = Utils.SettingsProvider;
 
         var sessionFactory = factory.CreateSessionFactory();

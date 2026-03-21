@@ -12,7 +12,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;

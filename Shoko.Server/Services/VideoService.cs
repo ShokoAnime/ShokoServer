@@ -8,12 +8,12 @@ using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.Logging;
 using NHibernate;
 using Quartz;
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Video.Enums;
+using Shoko.Abstractions.Video.Events;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.MediaInfo.Subtitles;
@@ -62,7 +62,7 @@ public class VideoService : IVideoService
 
     private readonly IVideoReleaseService _videoReleaseService;
 
-    private readonly IRelocationService _relocationService;
+    private readonly IVideoRelocationService _relocationService;
 
     private readonly ISchedulerFactory _schedulerFactory;
 
@@ -71,16 +71,16 @@ public class VideoService : IVideoService
     private readonly DatabaseFactory _databaseFactory;
 
     /// <inheritdoc/>
-    public event EventHandler<FileDetectedEventArgs>? VideoFileDetected;
+    public event EventHandler<VideoFileDetectedEventArgs>? VideoFileDetected;
 
     /// <inheritdoc/>
-    public event EventHandler<FileEventArgs>? VideoFileDeleted;
+    public event EventHandler<VideoFileEventArgs>? VideoFileDeleted;
 
     /// <inheritdoc/>
-    public event EventHandler<FileHashedEventArgs>? VideoFileHashed;
+    public event EventHandler<VideoFileHashedEventArgs>? VideoFileHashed;
 
     /// <inheritdoc/>
-    public event EventHandler<FileRelocatedEventArgs>? VideoFileRelocated;
+    public event EventHandler<VideoFileRelocatedEventArgs>? VideoFileRelocated;
 
     /// <inheritdoc/>
     public event EventHandler<ManagedFolderChangedEventArgs>? ManagedFolderAdded;
@@ -104,7 +104,7 @@ public class VideoService : IVideoService
         StoredReleaseInfoRepository storedReleaseInfoRepository,
         IVideoHashingService videoHashingService,
         IVideoReleaseService videoReleaseService,
-        IRelocationService relocationService,
+        IVideoRelocationService relocationService,
         ISchedulerFactory schedulerFactory,
         ISettingsProvider settingsProvider,
         DatabaseFactory databaseFactory
@@ -128,7 +128,7 @@ public class VideoService : IVideoService
         _databaseFactory = databaseFactory;
 
         ShokoEventHandler.Instance.FileDeleted += OnFileDeleted;
-        _videoHashingService.FileHashed += OnFileHashed;
+        _videoHashingService.VideoFileHashed += OnVideoFileHashed;
         _relocationService.FileRelocated += OnFileRelocated;
         _managedFolderRepository.ManagedFolderAdded += OnManagedFolderAdded;
         _managedFolderRepository.ManagedFolderUpdated += OnManagedFolderUpdated;
@@ -138,7 +138,7 @@ public class VideoService : IVideoService
     ~VideoService()
     {
         ShokoEventHandler.Instance.FileDeleted -= OnFileDeleted;
-        _videoHashingService.FileHashed -= OnFileHashed;
+        _videoHashingService.VideoFileHashed -= OnVideoFileHashed;
         _relocationService.FileRelocated -= OnFileRelocated;
         _managedFolderRepository.ManagedFolderAdded -= OnManagedFolderAdded;
         _managedFolderRepository.ManagedFolderUpdated -= OnManagedFolderUpdated;
@@ -147,17 +147,17 @@ public class VideoService : IVideoService
 
     #region Event Forwarding
 
-    private void OnFileDeleted(object? sender, FileEventArgs eventArgs)
+    private void OnFileDeleted(object? sender, VideoFileEventArgs eventArgs)
     {
         VideoFileDeleted?.Invoke(this, eventArgs);
     }
 
-    private void OnFileHashed(object? sender, FileHashedEventArgs eventArgs)
+    private void OnVideoFileHashed(object? sender, VideoFileHashedEventArgs eventArgs)
     {
         VideoFileHashed?.Invoke(this, eventArgs);
     }
 
-    private void OnFileRelocated(object? sender, FileRelocatedEventArgs eventArgs)
+    private void OnFileRelocated(object? sender, VideoFileRelocatedEventArgs eventArgs)
     {
         VideoFileRelocated?.Invoke(this, eventArgs);
     }

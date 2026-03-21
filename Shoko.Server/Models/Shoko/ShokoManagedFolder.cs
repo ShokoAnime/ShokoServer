@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Repositories;
 
 #nullable enable

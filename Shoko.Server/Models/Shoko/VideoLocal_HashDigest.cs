@@ -1,5 +1,5 @@
 using System;
-using Shoko.Abstractions.Hashing;
+using Shoko.Abstractions.Video.Hashing;
 
 #nullable enable
 namespace Shoko.Server.Models.Shoko;

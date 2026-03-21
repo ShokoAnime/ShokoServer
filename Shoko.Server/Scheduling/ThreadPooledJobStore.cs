@@ -5,14 +5,13 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Core;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Delegates;
@@ -811,7 +810,7 @@ public class ThreadPooledJobStore : JobStoreTX
         _logger.LogTrace("OnJobStoring took {Time:0.####}ms", stopwatch.ElapsedTicks / 10000D);
     }
 
-    private async ValueTask OnJobsStoring(ConnectionAndTransactionHolder conn, [ItemCanBeNull] IEnumerable<IJobDetail> jobs, CancellationToken cancellationToken)
+    private async ValueTask OnJobsStoring(ConnectionAndTransactionHolder conn, IEnumerable<IJobDetail> jobs, CancellationToken cancellationToken)
     {
         var stopwatch = new Stopwatch();
         stopwatch.Start();

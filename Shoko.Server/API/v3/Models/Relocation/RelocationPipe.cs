@@ -1,5 +1,5 @@
 using System;
-using Shoko.Abstractions.Relocation;
+using Shoko.Abstractions.Video.Relocation;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Relocation;

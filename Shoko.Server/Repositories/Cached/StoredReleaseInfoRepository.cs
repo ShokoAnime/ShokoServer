@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Release;
+using Shoko.Abstractions.Video.Release;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Release;
 

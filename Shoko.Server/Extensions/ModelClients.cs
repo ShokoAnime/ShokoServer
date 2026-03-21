@@ -4,7 +4,7 @@ using System.Linq;
 using Shoko.Server.API.v1.Models;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Metadata.Tmdb;
-using Shoko.Abstractions.Release;
+using Shoko.Abstractions.Video.Release;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;

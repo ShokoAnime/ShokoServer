@@ -8,7 +8,7 @@ using System.Net.Http;
 using System.Threading;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.Release;
+using Shoko.Abstractions.Video.Release;
 
 namespace Shoko.Plugin.OfflineImporter;
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
@@ -19,7 +20,7 @@ namespace Shoko.Server;
 
 public class ShokoEventHandler
 {
-    public event EventHandler<FileEventArgs>? FileDeleted;
+    public event EventHandler<VideoFileEventArgs>? FileDeleted;
 
     public event EventHandler<SeriesInfoUpdatedEventArgs>? SeriesUpdated;
 

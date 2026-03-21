@@ -1,7 +1,7 @@
 using System;
 using Microsoft.AspNetCore.SignalR;
-using Shoko.Abstractions.Events;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Events;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.SignalR.Models;
 
 #nullable enable

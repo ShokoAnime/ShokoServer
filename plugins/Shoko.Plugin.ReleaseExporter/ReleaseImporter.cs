@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.Release;
+using Shoko.Abstractions.Video.Release;
 
 namespace Shoko.Plugin.ReleaseExporter;
 

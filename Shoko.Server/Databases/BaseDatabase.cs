@@ -8,7 +8,7 @@ using NHibernate;
 using NLog;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Models.Shoko;
@@ -316,7 +316,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
             return;
 
         var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
-        var relocationService = Utils.ServiceContainer.GetRequiredService<IRelocationService>();
+        var relocationService = Utils.ServiceContainer.GetRequiredService<IVideoRelocationService>();
         var provider = relocationService.GetProviderInfo<WebAOMRenamer>();
         var configuration = provider.ConfigurationInfo is null ? null : Encoding.UTF8.GetBytes(
             configurationService.Serialize(

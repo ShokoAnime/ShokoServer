@@ -8,14 +8,14 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
-using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
-using Shoko.Abstractions.Release;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Release;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
@@ -50,7 +50,7 @@ public class VideoReleaseService(
     IUserService userService,
     IServiceProvider serviceProvider,
     IPluginManager pluginManager,
-    IRelocationService relocationService,
+    IVideoRelocationService relocationService,
     VideoLocalRepository videoRepository,
     StoredReleaseInfoRepository releaseInfoRepository,
     StoredReleaseInfo_MatchAttemptRepository releaseInfoMatchAttemptRepository,

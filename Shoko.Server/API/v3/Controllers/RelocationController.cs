@@ -13,8 +13,8 @@ using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.Relocation;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Relocation;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Relocation;
@@ -26,13 +26,13 @@ using Shoko.Server.Settings;
 
 using ApiRelocationPipe = Shoko.Server.API.v3.Models.Relocation.RelocationPipe;
 using ApiRelocationResult = Shoko.Server.API.v3.Models.Relocation.RelocationResult;
-using RelocationPipe = Shoko.Abstractions.Relocation.RelocationPipe;
+using RelocationPipe = Shoko.Abstractions.Video.Relocation.RelocationPipe;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>
-///   Controller responsible for handling file relocation. Interacts with the <see cref="IRelocationService"/>.
+///   Controller responsible for handling file relocation. Interacts with the <see cref="IVideoRelocationService"/>.
 /// </summary>
 /// <param name="settingsProvider">
 ///   Settings provider.
@@ -53,7 +53,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class RelocationController(ISettingsProvider settingsProvider, IPluginManager pluginManager, IConfigurationService configurationService, IVideoService videoService, IRelocationService relocationService) : BaseController(settingsProvider)
+public class RelocationController(ISettingsProvider settingsProvider, IPluginManager pluginManager, IConfigurationService configurationService, IVideoService videoService, IVideoRelocationService relocationService) : BaseController(settingsProvider)
 {
     #region Settings
 
@@ -260,7 +260,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
             RelocationResponse response;
             try
             {
-                response = ((RelocationService)relocationService).ProcessPipe(videoFile, config, move, rename, allowRelocationInsideDestination, HttpContext.RequestAborted);
+                response = ((VideoRelocationService)relocationService).ProcessPipe(videoFile, config, move, rename, allowRelocationInsideDestination, HttpContext.RequestAborted);
             }
             catch (Exception ex)
             {

@@ -21,15 +21,16 @@ using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Hashing;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.Release;
 using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Video.Hashing;
+using Shoko.Abstractions.Video.Release;
+using Shoko.Abstractions.Video.Services;
 
 namespace Shoko.Plugin.OfflineImporter;
 

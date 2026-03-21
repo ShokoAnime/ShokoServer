@@ -6,8 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Events;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Events;
+using Shoko.Abstractions.Video.Services;
 
 namespace Shoko.Plugin.RelocationPlus;
 
@@ -51,7 +51,7 @@ public class RelocationPlusService : IHostedService
     public Task StopAsync(CancellationToken cancellationToken)
         => Task.CompletedTask;
 
-    private void OnVideoRelocated(object? sender, FileRelocatedEventArgs eventArgs)
+    private void OnVideoRelocated(object? sender, VideoFileRelocatedEventArgs eventArgs)
     {
         var file = eventArgs.PreviousPath;
         var newPath = eventArgs.File.Path;
@@ -95,7 +95,7 @@ public class RelocationPlusService : IHostedService
         }
     }
 
-    private void OnVideoDeleted(object? sender, FileEventArgs eventArgs)
+    private void OnVideoDeleted(object? sender, VideoFileEventArgs eventArgs)
     {
         var file = Path.Join(eventArgs.ManagedFolder.Path, eventArgs.RelativePath);
         if (string.IsNullOrEmpty(file))

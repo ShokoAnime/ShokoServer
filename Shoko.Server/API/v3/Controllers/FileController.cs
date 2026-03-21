@@ -12,10 +12,10 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.StaticFiles;
 using Quartz;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -33,8 +33,8 @@ using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-using AbstractReleaseInfo = Shoko.Abstractions.Release.ReleaseInfo;
-using AbstractReleaseVideoCrossReference = Shoko.Abstractions.Release.ReleaseVideoCrossReference;
+using AbstractReleaseInfo = Shoko.Abstractions.Video.Release.ReleaseInfo;
+using AbstractReleaseVideoCrossReference = Shoko.Abstractions.Video.Release.ReleaseVideoCrossReference;
 using AVDump = Shoko.Server.API.v3.Models.Shoko.AVDump;
 using EpisodeType = Shoko.Abstractions.Enums.EpisodeType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
@@ -52,7 +52,7 @@ public class FileController(
     IVideoService _videoService,
     IVideoReleaseService _videoReleaseService,
     IUserDataService _userDataService,
-    IRelocationService _relocationService,
+    IVideoRelocationService _relocationService,
     ISettingsProvider settingsProvider
 ) : BaseController(settingsProvider)
 {

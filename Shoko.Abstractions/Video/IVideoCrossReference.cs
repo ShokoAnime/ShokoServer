@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
-using Shoko.Abstractions.Release;
+using Shoko.Abstractions.Video.Release;
 
 namespace Shoko.Abstractions.Video;
 

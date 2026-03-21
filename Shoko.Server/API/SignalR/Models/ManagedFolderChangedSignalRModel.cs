@@ -1,5 +1,5 @@
 
-using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Video.Events;
 
 namespace Shoko.Server.API.SignalR.Models;
 

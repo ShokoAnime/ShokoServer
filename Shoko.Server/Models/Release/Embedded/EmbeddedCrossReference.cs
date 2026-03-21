@@ -1,4 +1,4 @@
-using Shoko.Abstractions.Release;
+using Shoko.Abstractions.Video.Release;
 
 #nullable enable
 namespace Shoko.Server.Models.Release;

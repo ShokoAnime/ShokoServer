@@ -1,7 +1,7 @@
 using System;
 using Microsoft.AspNetCore.SignalR;
-using Shoko.Abstractions.Events;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Events;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.SignalR.Models;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
@@ -29,7 +29,7 @@ public class ReleaseEventEmitter : BaseEventEmitter, IDisposable
 
     private async void OnReleaseSaved(object sender, VideoReleaseSavedEventArgs e)
     {
-        await SendAsync("saved", new ReleaseSavedSignalRModel(e));
+        await SendAsync("saved", new VideoReleaseSavedSignalRModel(e));
     }
 
     private async void OnReleaseDeleted(object sender, VideoReleaseDeletedEventArgs e)
@@ -39,11 +39,11 @@ public class ReleaseEventEmitter : BaseEventEmitter, IDisposable
 
     private async void OnSearchStarted(object sender, VideoReleaseSearchStartedEventArgs e)
     {
-        await SendAsync("search.started", new ReleaseSearchStartedSignalRModel(e));
+        await SendAsync("search.started", new VideoReleaseSearchStartedSignalRModel(e));
     }
 
     private async void OnSearchCompleted(object sender, VideoReleaseSearchCompletedEventArgs e)
     {
-        await SendAsync("search.completed", new ReleaseSearchCompletedSignalRModel(e));
+        await SendAsync("search.completed", new VideoReleaseSearchCompletedSignalRModel(e));
     }
 }

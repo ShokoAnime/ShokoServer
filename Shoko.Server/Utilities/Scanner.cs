@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Quartz;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Hashing;

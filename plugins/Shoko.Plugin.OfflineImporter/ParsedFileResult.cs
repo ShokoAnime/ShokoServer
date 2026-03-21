@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Video.Enums;
 
 #pragma warning disable SYSLIB1045 // Convert to 'GeneratedRegexAttribute'.
 namespace Shoko.Plugin.OfflineImporter;

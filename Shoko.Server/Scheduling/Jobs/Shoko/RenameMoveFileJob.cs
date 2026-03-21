@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -17,7 +17,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [JobKeyGroup(JobKeyGroup.Import)]
 public class RenameMoveFileJob : BaseJob
 {
-    private readonly IRelocationService _relocationService;
+    private readonly IVideoRelocationService _relocationService;
 
     private VideoLocal? _vlocal;
 
@@ -73,7 +73,7 @@ public class RenameMoveFileJob : BaseJob
         }
     }
 
-    public RenameMoveFileJob(IRelocationService relocationService)
+    public RenameMoveFileJob(IVideoRelocationService relocationService)
     {
         _relocationService = relocationService;
     }

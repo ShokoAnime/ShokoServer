@@ -1,4 +1,4 @@
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Video.Enums;
 
 namespace Shoko.Abstractions.Video;
 

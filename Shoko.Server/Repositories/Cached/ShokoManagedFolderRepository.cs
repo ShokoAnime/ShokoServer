@@ -2,7 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;

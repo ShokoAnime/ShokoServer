@@ -1,5 +1,5 @@
 ﻿using System;
-using Shoko.Abstractions.Relocation;
+using Shoko.Abstractions.Video.Relocation;
 using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.API.v3.Models.Plugin;
 

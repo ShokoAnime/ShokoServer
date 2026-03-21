@@ -4,9 +4,10 @@ using System.Linq;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Hashing;
-using Shoko.Abstractions.Release;
 using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Video.Enums;
+using Shoko.Abstractions.Video.Hashing;
+using Shoko.Abstractions.Video.Release;
 
 #nullable enable
 namespace Shoko.Server.Models.Release;

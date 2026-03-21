@@ -5,9 +5,9 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Hashing;
-using Shoko.Abstractions.Release;
+using Shoko.Abstractions.Video.Enums;
+using Shoko.Abstractions.Video.Hashing;
+using Shoko.Abstractions.Video.Release;
 
 #nullable enable
 namespace Shoko.Server.API.SignalR.Models;

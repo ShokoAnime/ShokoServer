@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Release;
+using Shoko.Abstractions.Video.Release;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;

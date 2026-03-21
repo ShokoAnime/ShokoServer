@@ -13,15 +13,15 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Hashing;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Events;
 using Shoko.Abstractions.Plugin.Models;
-using Shoko.Abstractions.Release;
-using Shoko.Abstractions.Relocation;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Video.Hashing;
+using Shoko.Abstractions.Video.Release;
+using Shoko.Abstractions.Video.Relocation;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -353,7 +353,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         var videoHashingService = Utils.ServiceContainer.GetRequiredService<IVideoHashingService>();
         videoHashingService.AddParts(GetExports<IHashProvider>());
 
-        var relocationService = Utils.ServiceContainer.GetRequiredService<IRelocationService>();
+        var relocationService = Utils.ServiceContainer.GetRequiredService<IVideoRelocationService>();
         relocationService.AddParts(GetExports<IRelocationProvider>());
     }
 

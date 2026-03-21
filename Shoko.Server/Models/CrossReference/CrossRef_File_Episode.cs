@@ -5,7 +5,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
-using Shoko.Abstractions.Release;
+using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Release;

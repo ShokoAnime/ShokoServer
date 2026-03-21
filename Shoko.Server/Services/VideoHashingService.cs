@@ -17,14 +17,14 @@ using Polly;
 using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Events;
-using Shoko.Abstractions.Hashing;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Video.Enums;
+using Shoko.Abstractions.Video.Events;
+using Shoko.Abstractions.Video.Hashing;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Hashing;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plugin;
@@ -45,7 +45,7 @@ public class VideoHashingService(
     IVideoReleaseService videoReleaseService,
     IPluginManager pluginManager,
     ISettingsProvider settingsProvider,
-    IRelocationService relocationService,
+    IVideoRelocationService relocationService,
     ConfigurationProvider<VideoHashingServiceSettings> configurationProvider,
     ShokoManagedFolderRepository managedFolderRepository,
     VideoLocalRepository videoRepository,
@@ -72,7 +72,7 @@ public class VideoHashingService(
 
     private Guid _coreProviderID = Guid.Empty;
 
-    public event EventHandler<FileHashedEventArgs>? FileHashed;
+    public event EventHandler<VideoFileHashedEventArgs>? VideoFileHashed;
 
     public event EventHandler? ProvidersUpdated;
 
@@ -488,7 +488,7 @@ public class VideoHashingService(
             throw new InvalidOperationException($"File is not a known video file format: {resolvedPath}");
 
         var existingHashes = !useExistingHashes ? [] : video.Hashes;
-        var hashes = await GetHashesForFile(new FileInfo(resolvedPath), existingHashes, cancellationToken).ConfigureAwait(false);
+        var hashes = await GetHashesForFileInternal(new FileInfo(resolvedPath), existingHashes, cancellationToken).ConfigureAwait(false);
         var ed2k = hashes.FirstOrDefault(x => x.Type is ED2K);
         if (ed2k is not { Type: ED2K, Value.Length: 32 })
             throw new InvalidOperationException($"Could not get ED2K hash for {originalPath}");
@@ -544,7 +544,7 @@ public class VideoHashingService(
 
         try
         {
-            FileHashed?.Invoke(null, new(videoLocation.RelativePath, folder, videoLocation, video)
+            VideoFileHashed?.Invoke(null, new(videoLocation.RelativePath, folder, videoLocation, video)
             {
                 IsNewFile = isNewFile,
                 IsNewVideo = isNewVideo,
@@ -554,7 +554,7 @@ public class VideoHashingService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error occurred in 'FileHashed' event");
+            logger.LogError(ex, "Error occurred in 'VideoFileHashed' event");
         }
 
         var settings = settingsProvider.GetSettings();
@@ -679,7 +679,7 @@ public class VideoHashingService(
 
     #region Get Hashes for FileInfo
 
-    public async Task<IReadOnlyList<IHashDigest>> GetHashesForFile(FileInfo fileInfo, IReadOnlyList<IHashDigest>? existingHashes = null, CancellationToken cancellationToken = default)
+    private async Task<IReadOnlyList<IHashDigest>> GetHashesForFileInternal(FileInfo fileInfo, IReadOnlyList<IHashDigest>? existingHashes = null, CancellationToken cancellationToken = default)
     {
         if (!_loaded)
             return [];

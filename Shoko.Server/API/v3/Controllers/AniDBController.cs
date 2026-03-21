@@ -77,7 +77,7 @@ public class AniDBController(
     [HttpGet("ReleaseGroup/{id}")]
     public ActionResult<ReleaseGroup> GetReleaseGroup(int id)
     {
-        if (storedReleaseInfos.GetByGroupAndProviderIDs(id.ToString(), "AniDB") is not Shoko.Abstractions.Release.IReleaseInfo { Group.Source: "AniDB" } releaseInfo)
+        if (storedReleaseInfos.GetByGroupAndProviderIDs(id.ToString(), "AniDB") is not Abstractions.Video.Release.IReleaseInfo { Group.Source: "AniDB" } releaseInfo)
             return NotFound();
 
         return new ReleaseGroup(releaseInfo.Group);

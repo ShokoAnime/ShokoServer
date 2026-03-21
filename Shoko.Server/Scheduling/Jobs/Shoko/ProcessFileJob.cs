@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
@@ -23,7 +23,7 @@ public class ProcessFileJob : BaseJob
 {
     private readonly IVideoReleaseService _videoReleaseService;
 
-    private readonly IRelocationService _relocationService;
+    private readonly IVideoRelocationService _relocationService;
 
     private VideoLocal _vlocal;
 
@@ -84,7 +84,7 @@ public class ProcessFileJob : BaseJob
     }
 
 
-    public ProcessFileJob(IVideoReleaseService videoReleaseService, IRelocationService relocationService)
+    public ProcessFileJob(IVideoReleaseService videoReleaseService, IVideoRelocationService relocationService)
     {
         _videoReleaseService = videoReleaseService;
         _relocationService = relocationService;

@@ -1,5 +1,5 @@
 using System;
-using Shoko.Abstractions.Release;
+using Shoko.Abstractions.Video.Release;
 using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.API.v3.Models.Plugin;
 

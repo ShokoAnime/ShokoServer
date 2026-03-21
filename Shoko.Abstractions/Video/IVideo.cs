@@ -2,12 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Shoko.Abstractions.Hashing;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Shoko;
-using Shoko.Abstractions.Release;
 using Shoko.Abstractions.User;
+using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Media;
+using Shoko.Abstractions.Video.Release;
 
 namespace Shoko.Abstractions.Video;
 

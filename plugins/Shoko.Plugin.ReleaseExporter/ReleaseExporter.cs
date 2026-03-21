@@ -9,10 +9,10 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Enums;
-using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.Release;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Events;
+using Shoko.Abstractions.Video.Release;
+using Shoko.Abstractions.Video.Services;
 
 namespace Shoko.Plugin.ReleaseExporter;
 
@@ -160,7 +160,7 @@ public class ReleaseExporter : IHostedService
         }
     }
 
-    private void OnVideoRelocated(object? sender, FileRelocatedEventArgs eventArgs)
+    private void OnVideoRelocated(object? sender, VideoFileRelocatedEventArgs eventArgs)
     {
         var config = _configProvider.Load();
         if (!config.IsExporterEnabled || !config.IsRelocationEnabled)
@@ -272,7 +272,7 @@ public class ReleaseExporter : IHostedService
         }
     }
 
-    private void OnVideoDeleted(object? sender, FileEventArgs eventArgs)
+    private void OnVideoDeleted(object? sender, VideoFileEventArgs eventArgs)
     {
         var config = _configProvider.Load();
         if (!config.IsRelocationEnabled)

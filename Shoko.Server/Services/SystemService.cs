@@ -32,6 +32,7 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Services;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Utilities;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -399,7 +400,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IVideoService, VideoService>();
             services.AddSingleton<IVideoReleaseService, VideoReleaseService>();
             services.AddSingleton<IVideoHashingService, VideoHashingService>();
-            services.AddSingleton<IRelocationService, RelocationService>();
+            services.AddSingleton<IVideoRelocationService, VideoRelocationService>();
             services.AddSingleton(typeof(ConfigurationProvider<>));
             services.AddSingleton<IUserService, UserService>();
             services.AddSingleton<IUserDataService, UserDataService>();

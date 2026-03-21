@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NutzCode.InMemoryIndex;
 using Quartz;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Extensions;

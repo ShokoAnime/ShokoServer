@@ -1,7 +1,7 @@
 using System;
 using Microsoft.AspNetCore.SignalR;
-using Shoko.Abstractions.Events;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Events;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.SignalR.Models;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
@@ -14,7 +14,7 @@ public class FileEventEmitter : BaseEventEmitter, IDisposable
     {
         _videoService = videoService;
         _videoService.VideoFileDetected += OnFileDetected;
-        _videoService.VideoFileHashed += OnFileHashed;
+        _videoService.VideoFileHashed += OnVideoFileHashed;
         _videoService.VideoFileRelocated += OnFileRelocated;
         _videoService.VideoFileDeleted += OnFileDeleted;
     }
@@ -22,28 +22,28 @@ public class FileEventEmitter : BaseEventEmitter, IDisposable
     public void Dispose()
     {
         _videoService.VideoFileDetected -= OnFileDetected;
-        _videoService.VideoFileHashed -= OnFileHashed;
+        _videoService.VideoFileHashed -= OnVideoFileHashed;
         _videoService.VideoFileRelocated -= OnFileRelocated;
         _videoService.VideoFileDeleted -= OnFileDeleted;
     }
 
-    private async void OnFileDetected(object sender, FileDetectedEventArgs e)
+    private async void OnFileDetected(object sender, VideoFileDetectedEventArgs e)
     {
-        await SendAsync("detected", new FileDetectedEventSignalRModel(e));
+        await SendAsync("detected", new VideoFileDetectedEventSignalRModel(e));
     }
 
-    private async void OnFileHashed(object sender, FileHashedEventArgs e)
+    private async void OnVideoFileHashed(object sender, VideoFileHashedEventArgs e)
     {
-        await SendAsync("hashed", new FileHashedEventSignalRModel(e));
+        await SendAsync("hashed", new VideoFileHashedEventSignalRModel(e));
     }
 
-    private async void OnFileRelocated(object sender, FileRelocatedEventArgs e)
+    private async void OnFileRelocated(object sender, VideoFileRelocatedEventArgs e)
     {
-        await SendAsync("relocated", new FileRelocatedEventSignalRModel(e));
+        await SendAsync("relocated", new VideoFileRelocatedEventSignalRModel(e));
     }
 
-    private async void OnFileDeleted(object sender, FileEventArgs e)
+    private async void OnFileDeleted(object sender, VideoFileEventArgs e)
     {
-        await SendAsync("deleted", new FileEventSignalRModel(e));
+        await SendAsync("deleted", new VideoFileEventSignalRModel(e));
     }
 }

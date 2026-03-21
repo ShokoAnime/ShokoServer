@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;

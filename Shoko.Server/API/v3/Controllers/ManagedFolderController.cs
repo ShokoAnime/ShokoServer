@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Quartz;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -21,7 +21,7 @@ using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 
-using AbstractDropFolderType = Shoko.Abstractions.Enums.DropFolderType;
+using AbstractDropFolderType = Shoko.Abstractions.Video.Enums.DropFolderType;
 using Directory = System.IO.Directory;
 using Path = System.IO.Path;
 
