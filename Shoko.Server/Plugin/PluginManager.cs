@@ -1193,13 +1193,35 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     public IEnumerable<T> GetExports<T>()
         => GetTypes<T>()
-            .Select(t => ActivatorUtilities.GetServiceOrCreateInstance(Utils.ServiceContainer, t))
+            .Select(t =>
+            {
+                try
+                {
+                    return ActivatorUtilities.GetServiceOrCreateInstance(Utils.ServiceContainer, t);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Unable to initialize instance of type {TypeName}", t.FullName);
+                    return null;
+                }
+            })
             .WhereNotNull()
             .Cast<T>();
 
     public IEnumerable<T> GetExports<T>(IPlugin plugin)
         => GetTypes<T>(plugin)
-            .Select(t => ActivatorUtilities.GetServiceOrCreateInstance(Utils.ServiceContainer, t))
+            .Select(t =>
+            {
+                try
+                {
+                    return ActivatorUtilities.GetServiceOrCreateInstance(Utils.ServiceContainer, t);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Unable to initialize instance of type {TypeName}", t.FullName);
+                    return null;
+                }
+            })
             .WhereNotNull()
             .Cast<T>();
 
