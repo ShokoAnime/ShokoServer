@@ -9,6 +9,8 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Services;
 using Shoko.Server.Databases;
@@ -430,7 +432,7 @@ public class ActionService
     {
         var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate;
         foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
-            await _anidbService.ScheduleRefresh(anime, refreshMethod).ConfigureAwait(false);
+            await _anidbService.ScheduleRefreshOfAnime(anime, refreshMethod).ConfigureAwait(false);
     }
 
     public async Task RemoveRecordsWithoutPhysicalFiles(bool removeMyList = true)
@@ -889,7 +891,7 @@ public class ActionService
         {
             try
             {
-                return await _anidbService.RefreshByID(animeID, refreshMethod).ConfigureAwait(false) is not null;
+                return await _anidbService.RefreshAnimeByID(animeID, refreshMethod).ConfigureAwait(false) is not null;
             }
             catch
             {
@@ -897,7 +899,7 @@ public class ActionService
             }
         }
 
-        await _anidbService.ScheduleRefreshByID(animeID, refreshMethod).ConfigureAwait(false);
+        await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod).ConfigureAwait(false);
         return false;
     }
 
@@ -969,7 +971,7 @@ public class ActionService
             if (++index % 10 == 1 || index == missingAnimeSet.Count)
                 _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
 
-            await _anidbService.ScheduleRefreshByID(animeID, refreshMethod);
+            await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod);
         }
     }
 
@@ -1013,7 +1015,7 @@ public class ActionService
 
         var methods = AnidbRefreshMethod.Cache | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.CreateShokoSeries;
         foreach (var aniDBAnime in missingSeries)
-            await _anidbService.ScheduleRefresh(aniDBAnime, methods, prioritize: false);
+            await _anidbService.ScheduleRefreshOfAnime(aniDBAnime, methods, prioritize: false);
 
         _logger.LogInformation("Queued Creation of {Count} Series that were missing.", missingSeries.Count);
     }

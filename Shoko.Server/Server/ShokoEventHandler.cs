@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Events;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Models.AniDB;
@@ -27,7 +29,7 @@ public class ShokoEventHandler
 
     public event EventHandler<MovieInfoUpdatedEventArgs>? MovieUpdated;
 
-    public event EventHandler<AvdumpEventArgs>? AVDumpEvent;
+    public event EventHandler<AnidbAvdumpEventArgs>? AvdumpEvent;
 
     private static ShokoEventHandler? _instance;
 
@@ -116,19 +118,19 @@ public class ShokoEventHandler
         MovieUpdated?.Invoke(null, new(movie, reason));
     }
 
-    public void OnAVDumpMessage(AVDumpEventType messageType, string? message = null)
+    public void OnAVDumpMessage(AnidbAvdumpEventType messageType, string? message = null)
     {
-        AVDumpEvent?.Invoke(null, new(messageType, message));
+        AvdumpEvent?.Invoke(null, new(messageType, message));
     }
 
     public void OnAVDumpInstallException(Exception ex)
     {
-        AVDumpEvent?.Invoke(null, new(AVDumpEventType.InstallException, ex));
+        AvdumpEvent?.Invoke(null, new(AnidbAvdumpEventType.InstallException, ex));
     }
 
     public void OnAVDumpStart(AVDumpHelper.AVDumpSession session)
     {
-        AVDumpEvent?.Invoke(null, new(AVDumpEventType.Started)
+        AvdumpEvent?.Invoke(null, new(AnidbAvdumpEventType.Started)
         {
             SessionID = session.SessionID,
             VideoIDs = session.VideoIDs,
@@ -143,7 +145,7 @@ public class ShokoEventHandler
 
     public void OnAVDumpEnd(AVDumpHelper.AVDumpSession session)
     {
-        AVDumpEvent?.Invoke(null, new(session.IsSuccess ? AVDumpEventType.Success : AVDumpEventType.Failure)
+        AvdumpEvent?.Invoke(null, new(session.IsSuccess ? AnidbAvdumpEventType.Success : AnidbAvdumpEventType.Failure)
         {
             SessionID = session.SessionID,
             VideoIDs = session.VideoIDs,
@@ -160,9 +162,9 @@ public class ShokoEventHandler
         });
     }
 
-    public void OnAVDumpMessage(AVDumpHelper.AVDumpSession session, AVDumpEventType messageType, string? message = null)
+    public void OnAVDumpMessage(AVDumpHelper.AVDumpSession session, AnidbAvdumpEventType messageType, string? message = null)
     {
-        AVDumpEvent?.Invoke(null, new(messageType, message)
+        AvdumpEvent?.Invoke(null, new(messageType, message)
         {
             SessionID = session.SessionID,
         });
@@ -170,7 +172,7 @@ public class ShokoEventHandler
 
     public void OnAVDumpProgress(AVDumpHelper.AVDumpSession session, double progress)
     {
-        AVDumpEvent?.Invoke(null, new(AVDumpEventType.Progress)
+        AvdumpEvent?.Invoke(null, new(AnidbAvdumpEventType.Progress)
         {
             SessionID = session.SessionID,
             Progress = progress,
@@ -179,7 +181,7 @@ public class ShokoEventHandler
 
     public void OnAVDumpCreqUpdate(AVDumpHelper.AVDumpSession session, int succeeded, int failed, int pending)
     {
-        AVDumpEvent?.Invoke(null, new(AVDumpEventType.CreqUpdate)
+        AvdumpEvent?.Invoke(null, new(AnidbAvdumpEventType.CreqUpdate)
         {
             SessionID = session.SessionID,
             SucceededCreqCount = succeeded,
@@ -190,7 +192,7 @@ public class ShokoEventHandler
 
     public void OnAVDumpGenericException(AVDumpHelper.AVDumpSession session, Exception ex)
     {
-        AVDumpEvent?.Invoke(null, new(AVDumpEventType.GenericException, ex)
+        AvdumpEvent?.Invoke(null, new(AnidbAvdumpEventType.GenericException, ex)
         {
             SessionID = session.SessionID,
             Message = session.StandardOutput,

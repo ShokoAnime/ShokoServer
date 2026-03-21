@@ -23,6 +23,8 @@ using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Hashing;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Release;
 using Shoko.Abstractions.Services;
@@ -220,7 +222,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
             releaseInfo is not null &&
             releaseInfo.CrossReferences.Any(xref => xref.AnidbAnimeID is null or <= 0) &&
             animeId is > 0 &&
-            _anidbService.SearchByID(animeId.Value) is not null
+            _anidbService.SearchAnimeByID(animeId.Value) is not null
         )
         {
             foreach (var xref in releaseInfo.CrossReferences)
@@ -263,7 +265,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
         if (animeId is > 0)
         {
             _logger.LogDebug("Found anime ID in folder name to use: {AnimeID}.", animeId);
-            if (_anidbService.SearchByID(animeId.Value) is not { } searchResult)
+            if (_anidbService.SearchAnimeByID(animeId.Value) is not { } searchResult)
             {
                 _logger.LogDebug("No search result found for anime ID {AnimeID}.", animeId);
                 return null;
@@ -280,7 +282,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
             return null;
         }
 
-        var searchResults = _anidbService.Search(match.SeriesName!, fuzzy: true);
+        var searchResults = _anidbService.SearchAnime(match.SeriesName!, fuzzy: true);
         if (searchResults.Count == 0)
         {
             _logger.LogDebug("No search results found for {ShowName}.", match.SeriesName);
@@ -320,7 +322,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
             _logger.LogDebug("Refreshing AniDB Anime {AnimeName} (Anime={AnimeID},Method={Method})", searchResult.DefaultTitle.Value, searchResult.ID, method.ToString());
             try
             {
-                anime = await _anidbService.RefreshByID(searchResult.ID, method, cancellationToken).ConfigureAwait(false);
+                anime = await _anidbService.RefreshAnimeByID(searchResult.ID, method, cancellationToken).ConfigureAwait(false);
             }
             catch (AnidbHttpBannedException ex)
             {
@@ -383,7 +385,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
                 var shouldContinue = true;
                 foreach (var prequel in prequels)
                 {
-                    var prequelSearch = _anidbService.SearchByID(prequel.RelatedID);
+                    var prequelSearch = _anidbService.SearchAnimeByID(prequel.RelatedID);
                     if (prequelSearch is null)
                     {
                         _logger.LogDebug("Unknown prequel for {AnimeName}. (Anime={AnimeID},PrequelAnime={PrequelAnimeID})", anime.DefaultTitle.Value, anime.ID, prequel.RelatedID);
@@ -437,7 +439,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
                     .ToList();
                 foreach (var sequel in sequels)
                 {
-                    var sequelSearch = _anidbService.SearchByID(sequel.RelatedID);
+                    var sequelSearch = _anidbService.SearchAnimeByID(sequel.RelatedID);
                     if (sequelSearch is null)
                     {
                         _logger.LogDebug("Unknown sequel for {AnimeName}. (Anime={AnimeID},SequelAnime={SequelAnimeID})", anime.DefaultTitle.Value, anime.ID, sequel.RelatedID);
@@ -467,7 +469,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
                     .ToList();
                 foreach (var sequel in sequels)
                 {
-                    var sequelSearch = _anidbService.SearchByID(sequel.RelatedID);
+                    var sequelSearch = _anidbService.SearchAnimeByID(sequel.RelatedID);
                     if (sequelSearch is null)
                     {
                         _logger.LogDebug("Unknown sequel for {AnimeName}. (Anime={AnimeID},SequelAnime={SequelAnimeID})", anime.DefaultTitle.Value, anime.ID, sequel.RelatedID);
@@ -623,7 +625,7 @@ public partial class OfflineImporter : IReleaseInfoProvider<OfflineImporter.Conf
 
                 foreach (var sequel in sequels)
                 {
-                    var sequelSearch = _anidbService.SearchByID(sequel.RelatedID);
+                    var sequelSearch = _anidbService.SearchAnimeByID(sequel.RelatedID);
                     if (sequelSearch is null)
                     {
                         _logger.LogDebug("Unknown sequel for {AnimeName}. (Anime={AnimeID},SequelAnime={SequelAnimeID})", anime.DefaultTitle.Value, anime.ID, sequel.RelatedID);

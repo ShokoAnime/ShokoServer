@@ -7,12 +7,12 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 
-public class AniDBEventEmitter : BaseEventEmitter, IDisposable
+public class AnidbEventEmitter : BaseEventEmitter, IDisposable
 {
     private IUDPConnectionHandler UDPHandler { get; set; }
     private IHttpConnectionHandler HttpHandler { get; set; }
 
-    public AniDBEventEmitter(IHubContext<AggregateHub> hub, IUDPConnectionHandler udp, IHttpConnectionHandler http) : base(hub)
+    public AnidbEventEmitter(IHubContext<AggregateHub> hub, IUDPConnectionHandler udp, IHttpConnectionHandler http) : base(hub)
     {
         HttpHandler = http;
         UDPHandler = udp;

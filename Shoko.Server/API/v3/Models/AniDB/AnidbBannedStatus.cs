@@ -1,8 +1,8 @@
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Events;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.AniDB;

@@ -119,14 +119,18 @@ public class AniDBTitleHelper
 
     private void CreateCache()
     {
-        if (_cache != null && _nextUpdate.HasValue && DateTime.Now < _nextUpdate.Value)
+        if (_cache is not null && _nextUpdate.HasValue && DateTime.Now < _nextUpdate.Value)
             return;
 
         _accessLock.EnterWriteLock();
+        if (_cache is not null && _nextUpdate.HasValue && DateTime.Now < _nextUpdate.Value)
+            return;
+
         if (!File.Exists(_cacheFilePath))
         {
             // first check if there's a temp file
-            if (File.Exists(_cacheFilePathTemp)) File.Move(_cacheFilePathTemp, _cacheFilePath);
+            if (File.Exists(_cacheFilePathTemp))
+                File.Move(_cacheFilePathTemp, _cacheFilePath);
 
             if (!File.Exists(_cacheFilePath)) DownloadCache();
         }
@@ -139,7 +143,8 @@ public class AniDBTitleHelper
 
         // If data is stale, then re-download
         var lastWriteTime = File.GetLastWriteTime(_cacheFilePath);
-        if (DateTime.Now - lastWriteTime > TimeSpan.FromHours(24)) DownloadCache();
+        if (DateTime.Now - lastWriteTime > TimeSpan.FromHours(24))
+            DownloadCache();
 
         try
         {

@@ -9,13 +9,14 @@ using Polly;
 using Polly.Bulkhead;
 using Quartz;
 using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Events;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Shoko;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
@@ -38,7 +39,7 @@ using Shoko.Server.Utilities;
 #nullable enable
 namespace Shoko.Server.Services;
 
-public class AnidbService : IAnidbService
+public class AnidbService : IAnidbService, IAnidbAvdumpService
 {
     private readonly ILogger<AnidbService> _logger;
 
@@ -139,7 +140,7 @@ public class AnidbService : IAnidbService
         _udpConnectionHandler.BanOccurred += OnAnidbBanOccurred;
         _httpConnectionHandler.BanExpired += OnAnidbBanExpired;
         _httpConnectionHandler.BanOccurred += OnAnidbBanOccurred;
-        ShokoEventHandler.Instance.AVDumpEvent += OnAVDumpEvent;
+        ShokoEventHandler.Instance.AvdumpEvent += OnAVDumpEvent;
     }
 
     ~AnidbService()
@@ -148,7 +149,7 @@ public class AnidbService : IAnidbService
         _udpConnectionHandler.BanOccurred -= OnAnidbBanOccurred;
         _httpConnectionHandler.BanExpired -= OnAnidbBanExpired;
         _httpConnectionHandler.BanOccurred -= OnAnidbBanOccurred;
-        ShokoEventHandler.Instance.AVDumpEvent -= OnAVDumpEvent;
+        ShokoEventHandler.Instance.AvdumpEvent -= OnAVDumpEvent;
     }
 
     #region Banned Status
@@ -217,13 +218,13 @@ public class AnidbService : IAnidbService
     #region "Remote" Search
 
     /// <inheritdoc/>
-    public IReadOnlyList<IAnidbAnimeSearchResult> Search(string query, bool fuzzy)
+    public IReadOnlyList<IAnidbAnimeSearchResult> SearchAnime(string query, bool fuzzy)
         => _titleHelper.SearchTitle(query, fuzzy)
             .Select(a => new AbstractAnidbAnimeSearchResult(a, _anidbAnimeRepository, _seriesRepository))
             .ToList();
 
     /// <inheritdoc/>
-    public IAnidbAnimeSearchResult? SearchByID(int anidbID)
+    public IAnidbAnimeSearchResult? SearchAnimeByID(int anidbID)
         => _titleHelper.SearchAnimeID(anidbID) is { } result
             ? new AbstractAnidbAnimeSearchResult(new() { Result = result, Match = result.DefaultTitle.Value, ExactMatch = true }, _anidbAnimeRepository, _seriesRepository)
             : null;
@@ -235,7 +236,7 @@ public class AnidbService : IAnidbService
     #region By AniDB Anime ID
 
     /// <inheritdoc/>
-    public async Task<IAnidbAnime?> RefreshByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
+    public async Task<IAnidbAnime?> RefreshAnimeByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
     {
         if (anidbAnimeID <= 0)
             return null;
@@ -245,19 +246,15 @@ public class AnidbService : IAnidbService
     }
 
     /// <inheritdoc/>
-    public async Task ScheduleRefresh(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false)
-    {
-        ArgumentNullException.ThrowIfNull(anidbAnime);
-
-        await ScheduleRefreshInternal(anidbAnime.ID, refreshMethod, prioritize).ConfigureAwait(false);
-    }
+    public Task ScheduleRefreshOfAnimeByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false)
+        => ScheduleRefreshInternal(anidbAnimeID, refreshMethod, prioritize);
 
     #endregion
 
     #region By AniDB Anime
 
     /// <inheritdoc/>
-    public async Task<IAnidbAnime> Refresh(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
+    public async Task<IAnidbAnime> RefreshAnime(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(anidbAnime);
 
@@ -265,8 +262,12 @@ public class AnidbService : IAnidbService
     }
 
     /// <inheritdoc/>
-    public Task ScheduleRefreshByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false)
-        => ScheduleRefreshInternal(anidbAnimeID, refreshMethod, prioritize);
+    public async Task ScheduleRefreshOfAnime(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false)
+    {
+        ArgumentNullException.ThrowIfNull(anidbAnime);
+
+        await ScheduleRefreshInternal(anidbAnime.ID, refreshMethod, prioritize).ConfigureAwait(false);
+    }
 
     #endregion
 
@@ -693,7 +694,7 @@ public class AnidbService : IAnidbService
     #region AVDump
 
     /// <inheritdoc/>
-    public event EventHandler<AvdumpEventArgs>? AvdumpEvent;
+    public event EventHandler<AnidbAvdumpEventArgs>? AvdumpEvent;
 
     /// <inheritdoc/>
     public bool IsAvdumpInstalled => AVDumpHelper.IsAVDumpInstalled;
@@ -718,7 +719,7 @@ public class AnidbService : IAnidbService
         return AVDumpHelper.UpdateAVDump();
     }
 
-    private void OnAVDumpEvent(object? sender, AvdumpEventArgs eventArgs)
+    private void OnAVDumpEvent(object? sender, AnidbAvdumpEventArgs eventArgs)
     {
         AvdumpEvent?.Invoke(this, eventArgs);
     }

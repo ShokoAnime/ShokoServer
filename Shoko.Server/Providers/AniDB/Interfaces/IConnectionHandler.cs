@@ -1,6 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Metadata.Anidb.Events;
 
 #nullable enable
 namespace Shoko.Server.Providers.AniDB.Interfaces;

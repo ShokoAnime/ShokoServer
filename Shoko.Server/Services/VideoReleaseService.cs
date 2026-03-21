@@ -7,9 +7,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.Release;
@@ -892,13 +893,13 @@ public class VideoReleaseService(
             {
                 logger.LogInformation("Queuing immediate GET for AniDB_Anime: {AnimeID}", animeID);
                 _anidbService ??= serviceProvider.GetRequiredService<IAnidbService>();
-                await _anidbService.ScheduleRefreshByID(animeID, refreshMethod, prioritize: true);
+                await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod, prioritize: true);
             }
             else if (!animeRecentlyUpdated)
             {
                 logger.LogInformation("Queuing GET for AniDB_Anime: {AnimeID}", animeID);
                 _anidbService ??= serviceProvider.GetRequiredService<IAnidbService>();
-                await _anidbService.ScheduleRefreshByID(animeID, refreshMethod);
+                await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod);
             }
             else
             {

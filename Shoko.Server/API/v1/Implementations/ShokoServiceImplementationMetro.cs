@@ -5,8 +5,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
-using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Services;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v1.Models.Metro;
@@ -45,7 +46,13 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
 
     public HttpContext HttpContext { get; set; }
 
-    public ShokoServiceImplementationMetro(ISettingsProvider settingsProvider, ShokoServiceImplementation service, IUserDataService userDataService, ShokoServiceImplementationService legacyV1Service, IAnidbService anidbService)
+    public ShokoServiceImplementationMetro(
+        ISettingsProvider settingsProvider,
+        ShokoServiceImplementation service,
+        IUserDataService userDataService,
+        ShokoServiceImplementationService legacyV1Service,
+        IAnidbService anidbService
+    )
     {
         _settingsProvider = settingsProvider;
         _service = service;

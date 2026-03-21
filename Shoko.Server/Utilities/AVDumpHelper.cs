@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using NLog;
 using SharpCompress.Common;
 using SharpCompress.Readers;
-using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
@@ -151,7 +151,7 @@ public static partial class AVDumpHelper
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey) || string.IsNullOrWhiteSpace(settings.AniDb.Username))
         {
             var message = "Missing AVDump API Key in the settings.";
-            ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.MissingApiKey);
+            ShokoEventHandler.Instance.OnAVDumpMessage(AnidbAvdumpEventType.MissingApiKey);
             logger.Warn(message);
             return new(message);
         }
@@ -281,7 +281,7 @@ public static partial class AVDumpHelper
             return;
 
         stdErrBuilder.Append(eventArgs.Data.Trim() + "\n");
-        ShokoEventHandler.Instance.OnAVDumpMessage(session, AVDumpEventType.Error, eventArgs.Data);
+        ShokoEventHandler.Instance.OnAVDumpMessage(session, AnidbAvdumpEventType.Error, eventArgs.Data);
     }
 
     private static void OnStdOutMessage(DataReceivedEventArgs eventArgs, AVDumpSession session, StringBuilder stdOutBuilder)
@@ -322,23 +322,23 @@ public static partial class AVDumpHelper
 
         // Emit an invalid credentials event if we couldn't authenticate with AniDB.
         if (InvalidCredentialsRegex().IsMatch(eventArgs.Data))
-            ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.InvalidCredentials);
+            ShokoEventHandler.Instance.OnAVDumpMessage(AnidbAvdumpEventType.InvalidCredentials);
 
         // Emit a timeout event if the connection to anidb timed out.
         if (TimeoutRegex().IsMatch(eventArgs.Data))
-            ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.Timeout);
+            ShokoEventHandler.Instance.OnAVDumpMessage(AnidbAvdumpEventType.Timeout);
 
         if (eventArgs.Data.Trim().StartsWith("ed2k://|file|"))
         {
             var ed2kLink = eventArgs.Data.Trim();
             session.ED2Ks.Add(ed2kLink);
-            ShokoEventHandler.Instance.OnAVDumpMessage(session, AVDumpEventType.ED2KLink, ed2kLink);
+            ShokoEventHandler.Instance.OnAVDumpMessage(session, AnidbAvdumpEventType.ED2KLink, ed2kLink);
             return;
         }
 
         // Append everything else to the outputs. We use \r\n for v1 compatibility.
         stdOutBuilder.Append(eventArgs.Data + "\n");
-        ShokoEventHandler.Instance.OnAVDumpMessage(session, AVDumpEventType.Message, eventArgs.Data);
+        ShokoEventHandler.Instance.OnAVDumpMessage(session, AnidbAvdumpEventType.Message, eventArgs.Data);
     }
 
     #endregion
@@ -369,7 +369,7 @@ public static partial class AVDumpHelper
                 return true;
             }
 
-            ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.InstallingAVDump);
+            ShokoEventHandler.Instance.OnAVDumpMessage(AnidbAvdumpEventType.InstallingAVDump);
 
             if (string.IsNullOrEmpty(expectedVersion))
             {
@@ -443,7 +443,7 @@ public static partial class AVDumpHelper
 
             ReplaceNet6And8();
 
-            ShokoEventHandler.Instance.OnAVDumpMessage(AVDumpEventType.InstalledAVDump);
+            ShokoEventHandler.Instance.OnAVDumpMessage(AnidbAvdumpEventType.InstalledAVDump);
             return true;
         }
     }

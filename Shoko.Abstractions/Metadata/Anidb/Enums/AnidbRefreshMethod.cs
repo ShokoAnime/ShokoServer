@@ -1,7 +1,7 @@
 using System;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 
-namespace Shoko.Abstractions.Enums;
+namespace Shoko.Abstractions.Metadata.Anidb.Enums;
 
 /// <summary>
 /// Determines how to refresh an AniDB anime in the <see cref="IAnidbService"/>.

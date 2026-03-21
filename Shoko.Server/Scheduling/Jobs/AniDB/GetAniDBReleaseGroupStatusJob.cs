@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
@@ -116,7 +116,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
                 var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
                 if (settings.AniDb.AutomaticallyImportSeries)
                     refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
-                await _anidbService.ScheduleRefreshByID(AnimeID, refreshMethod).ConfigureAwait(false);
+                await _anidbService.ScheduleRefreshOfAnimeByID(AnimeID, refreshMethod).ConfigureAwait(false);
             }
 
             // update the missing episode stats on groups and children

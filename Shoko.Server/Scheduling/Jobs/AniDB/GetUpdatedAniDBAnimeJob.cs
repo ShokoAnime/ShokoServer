@@ -1,8 +1,8 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
@@ -115,7 +115,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
                 if (settings.AniDb.AutomaticallyImportSeries)
                 {
                     _logger.LogInformation("Scheduling update for anime: {AnimeTitle} ({AnimeID})", name, animeID);
-                    await _anidbService.ScheduleRefreshByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.CreateShokoSeries).ConfigureAwait(false);
+                    await _anidbService.ScheduleRefreshOfAnimeByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.CreateShokoSeries).ConfigureAwait(false);
                     countAnime++;
                 }
                 else
@@ -135,7 +135,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
                 var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
                 if (settings.AniDb.AutomaticallyImportSeries)
                     refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
-                await _anidbService.ScheduleRefreshByID(animeID, refreshMethod).ConfigureAwait(false);
+                await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod).ConfigureAwait(false);
                 countAnime++;
             }
 
@@ -145,7 +145,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
             var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
             if (ser is null) continue;
 
-            await _anidbService.ScheduleRefreshByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
+            await _anidbService.ScheduleRefreshOfAnimeByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
             countSeries++;
         }
 

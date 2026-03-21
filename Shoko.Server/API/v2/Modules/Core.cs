@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using NLog;
 using Quartz;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Server.API.v1.Implementations;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.core;
@@ -47,7 +47,13 @@ public class Core : BaseController
 
     private IServerSettings _settings => _settingsProvider.GetSettings();
 
-    public Core(ShokoServiceImplementation service, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IAnidbService anidbService, ActionService actionService) : base(settingsProvider)
+    public Core(
+        ShokoServiceImplementation service,
+        ISettingsProvider settingsProvider,
+        ISchedulerFactory schedulerFactory,
+        IAnidbService anidbService,
+        ActionService actionService
+    ) : base(settingsProvider)
     {
         _service = service;
         _settingsProvider = settingsProvider;

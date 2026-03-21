@@ -1,5 +1,5 @@
 
-namespace Shoko.Abstractions.Enums;
+namespace Shoko.Abstractions.Metadata.Anidb.Enums;
 
 /// <summary>
 /// Represents the types of AniDB ban that can occur.

@@ -41,8 +41,8 @@ public static class APIExtensions
     public static IServiceCollection AddAPI(this IServiceCollection services, IPluginManager pluginManager)
     {
         services.AddSingleton<LoggingEmitter>();
-        services.AddSingleton<IEventEmitter, AniDBEventEmitter>();
-        services.AddSingleton<IEventEmitter, AVDumpEventEmitter>();
+        services.AddSingleton<IEventEmitter, AnidbEventEmitter>();
+        services.AddSingleton<IEventEmitter, AvdumpEventEmitter>();
         services.AddSingleton<IEventEmitter, ConfigurationEventEmitter>();
         services.AddSingleton<IEventEmitter, FileEventEmitter>();
         services.AddSingleton<IEventEmitter, ManagedFolderEventEmitter>();

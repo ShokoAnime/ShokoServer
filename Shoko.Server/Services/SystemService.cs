@@ -24,6 +24,7 @@ using Shoko.Abstractions.Core.Events;
 using Shoko.Abstractions.Core.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Services;
@@ -436,7 +437,9 @@ public class SystemService : ISystemService
                     AutomaticDecompression = DecompressionMethods.All,
                 });
             services.AddAniDB();
-            services.AddSingleton<IAnidbService, AnidbService>();
+            services.AddSingleton<AnidbService>();
+            services.AddSingleton<IAnidbService>(sp => sp.GetRequiredService<AnidbService>());
+            services.AddSingleton<IAnidbAvdumpService>(sp => sp.GetRequiredService<AnidbService>());
 
             pluginManager.RegisterPlugins(services);
 

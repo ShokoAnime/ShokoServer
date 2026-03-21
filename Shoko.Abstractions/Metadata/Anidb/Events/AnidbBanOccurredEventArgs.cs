@@ -1,7 +1,7 @@
 using System;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
 
-namespace Shoko.Abstractions.Events;
+namespace Shoko.Abstractions.Metadata.Anidb.Events;
 
 /// <summary>
 /// Dispatched when an AniDB ban has occurred.

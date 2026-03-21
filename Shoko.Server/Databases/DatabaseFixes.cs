@@ -18,6 +18,8 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Hashing;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Services;
 using Shoko.Abstractions.UserData.Enums;
 using Shoko.Server.API.v1.Models;
@@ -162,7 +164,7 @@ public class DatabaseFixes
             i++;
             try
             {
-                anidbService.RefreshByID(animeID, AnidbRefreshMethod.Cache | AnidbRefreshMethod.SkipTmdbUpdate).GetAwaiter().GetResult();
+                anidbService.RefreshAnimeByID(animeID, AnidbRefreshMethod.Cache | AnidbRefreshMethod.SkipTmdbUpdate).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
@@ -500,7 +502,7 @@ public class DatabaseFixes
         // Queue an update for the anime entries that needs it, hopefully fixing
         // the faulty episodes after the update.
         foreach (var animeID in animeToUpdateSet)
-            anidbService.ScheduleRefreshByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful)
+            anidbService.ScheduleRefreshOfAnimeByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful)
                 .GetAwaiter()
                 .GetResult();
 
@@ -712,7 +714,7 @@ public class DatabaseFixes
             if (string.IsNullOrEmpty(xml))
             {
                 _logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
-                anidbService.ScheduleRefresh(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate)
+                anidbService.ScheduleRefreshOfAnime(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate)
                     .GetAwaiter()
                     .GetResult();
                 continue;
@@ -727,7 +729,7 @@ public class DatabaseFixes
             catch (Exception e)
             {
                 _logger.Error(e, $"Unable to parse cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
-                anidbService.ScheduleRefresh(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate)
+                anidbService.ScheduleRefreshOfAnime(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate)
                     .GetAwaiter()
                     .GetResult();
                 continue;

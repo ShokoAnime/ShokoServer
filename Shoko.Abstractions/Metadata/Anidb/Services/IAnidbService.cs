@@ -1,15 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Exceptions;
-using Shoko.Abstractions.Metadata.Anidb;
-using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Events;
 
-namespace Shoko.Abstractions.Services;
+namespace Shoko.Abstractions.Metadata.Anidb.Services;
 
 /// <summary>
 /// AniDB service.
@@ -65,14 +62,14 @@ public interface IAnidbService
     /// <param name="query">Query to search for.</param>
     /// <param name="fuzzy">Indicates fuzzy-matching should be used for the search.</param>
     /// <returns>Search results.</returns>
-    IReadOnlyList<IAnidbAnimeSearchResult> Search(string query, bool fuzzy = false);
+    IReadOnlyList<IAnidbAnimeSearchResult> SearchAnime(string query, bool fuzzy = false);
 
     /// <summary>
     /// Searches the locally cached AniDB title database for the given <paramref name="anidbID"/>.
     /// </summary>
     /// <param name="anidbID">AniDB ID to search for.</param>
     /// <returns>Search result, if found by ID.</returns>
-    IAnidbAnimeSearchResult? SearchByID(int anidbID);
+    IAnidbAnimeSearchResult? SearchAnimeByID(int anidbID);
 
     #endregion
 
@@ -90,7 +87,7 @@ public interface IAnidbService
     /// Indicates that the AniDB user has been temporarily (or permanently) banned.
     /// </exception>
     /// <returns>The refreshed AniDB anime, or <c>null</c> if the anime doesn't exist on AniDB.</returns>
-    Task<IAnidbAnime?> RefreshByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default);
+    Task<IAnidbAnime?> RefreshAnimeByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Schedules a refresh of the AniDB anime with the given <paramref name="anidbAnimeID"/> in the queue.
@@ -102,7 +99,7 @@ public interface IAnidbService
     /// Indicates that the AniDB user has been temporarily (or permanently) banned.
     /// </exception>
     /// <returns>The refreshed AniDB anime, or <c>null</c> if the anime doesn't exist on AniDB.</returns>
-    Task ScheduleRefreshByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false);
+    Task ScheduleRefreshOfAnimeByID(int anidbAnimeID, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false);
 
     #endregion
 
@@ -118,7 +115,7 @@ public interface IAnidbService
     /// Indicates that the AniDB user has been temporarily (or permanently) banned.
     /// </exception>
     /// <returns>The refreshed AniDB anime.</returns>
-    Task<IAnidbAnime> Refresh(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default);
+    Task<IAnidbAnime> RefreshAnime(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Schedules a refresh of the AniDB anime represented by <paramref name="anidbAnime"/> in the queue.
@@ -130,7 +127,7 @@ public interface IAnidbService
     /// Indicates that the AniDB user has been temporarily (or permanently) banned.
     /// </exception>
     /// <returns>The refreshed AniDB anime.</returns>
-    Task ScheduleRefresh(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false);
+    Task ScheduleRefreshOfAnime(IAnidbAnime anidbAnime, AnidbRefreshMethod refreshMethod = AnidbRefreshMethod.Auto, bool prioritize = false);
 
     #endregion
 
@@ -148,93 +145,6 @@ public interface IAnidbService
     ///   All tags or all top-level tags in the local database.
     /// </returns>
     IEnumerable<IAnidbTag> GetAllTags(bool topLevelOnly = false);
-
-    #endregion
-
-    #region AVDump
-
-    /// <summary>
-    /// Dispatched when an AVDump event occurs.
-    /// </summary>
-    event EventHandler<AvdumpEventArgs> AvdumpEvent;
-
-    /// <summary>
-    /// Indicates that some version of AVDump is installed.
-    /// </summary>
-    [MemberNotNullWhen(true, nameof(InstalledAvdumpVersion))]
-    bool IsAvdumpInstalled { get; }
-
-    /// <summary>
-    /// The version of AVDump that is installed.
-    /// </summary>
-    string? InstalledAvdumpVersion { get; }
-
-    /// <summary>
-    /// The version of AVDump that is Shoko knows is available to be installed.
-    /// </summary>
-    string? AvailableAvdumpVersion { get; }
-
-    /// <summary>
-    /// Update the installed AVDump component.
-    /// </summary>
-    /// <param name="force">
-    /// Forcefully update the AVDump component regardless
-    /// of the version previously installed, if any.
-    /// </param>
-    /// <returns>If the AVDump component was updated.</returns>
-    bool UpdateAvdump(bool force = false);
-
-    /// <summary>
-    /// Start a new AVDump3 session for one or more <paramref name="videos"/>.
-    /// </summary>
-    /// <remarks>
-    /// To get updates from the AVDump session, use the <see cref="AvdumpEvent"/> event.
-    /// </remarks>
-    /// <param name="videos">The videos to dump.</param>
-    /// <returns>
-    ///   A <see cref="Task"/> representing the asynchronous operation of dumping
-    ///   the videos.
-    /// </returns>
-    Task AvdumpVideos(params IVideo[] videos);
-
-    /// <summary>
-    /// Schedule an AVDump3 session to be ran on in the queue for one or more <paramref name="videos"/>.
-    /// </summary>
-    /// <remarks>
-    /// To get updates from the AVDump session, use the <see cref="AvdumpEvent"/> event.
-    /// </remarks>
-    /// <param name="videos">The videos to dump.</param>
-    /// <returns>
-    ///   A <see cref="Task"/> representing the asynchronous operation of scheduling
-    ///   the job in the queue.
-    /// </returns>
-    Task ScheduleAvdumpVideos(params IVideo[] videos);
-
-    /// <summary>
-    /// Start a new AVDump3 session for one or more <paramref name="videoFiles"/>.
-    /// </summary>
-    /// <remarks>
-    /// To get updates from the AVDump session, use the <see cref="AvdumpEvent"/> event.
-    /// </remarks>
-    /// <param name="videoFiles">The video files to dump.</param>
-    /// <returns>
-    ///   A <see cref="Task"/> representing the asynchronous operation of dumping
-    ///   the files.
-    /// </returns>
-    Task AvdumpVideoFiles(params IVideoFile[] videoFiles);
-
-    /// <summary>
-    /// Schedule an AVDump3 session to be ran on in the queue for one or more <paramref name="videoFiles"/>.
-    /// </summary>
-    /// <remarks>
-    /// To get updates from the AVDump session, use the <see cref="AvdumpEvent"/> event.
-    /// </remarks>
-    /// <param name="videoFiles">The video files to dump.</param>
-    /// <returns>
-    ///   A <see cref="Task"/> representing the asynchronous operation of scheduling
-    ///   the job in the queue.
-    /// </returns>
-    Task ScheduleAvdumpVideoFiles(params IVideoFile[] videoFiles);
 
     #endregion
 }

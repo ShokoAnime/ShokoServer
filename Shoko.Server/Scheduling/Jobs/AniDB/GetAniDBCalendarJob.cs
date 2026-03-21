@@ -1,8 +1,8 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
@@ -97,7 +97,7 @@ public class GetAniDBCalendarJob : BaseJob
             var ts = DateTime.Now - update.UpdatedAt;
             if (ts.TotalDays >= 2)
             {
-                await _anidbService.ScheduleRefreshByID(cal.AnimeID, refreshMethod).ConfigureAwait(false);
+                await _anidbService.ScheduleRefreshOfAnimeByID(cal.AnimeID, refreshMethod).ConfigureAwait(false);
             }
             else
             {
@@ -112,7 +112,7 @@ public class GetAniDBCalendarJob : BaseJob
         }
         else
         {
-            await _anidbService.ScheduleRefreshByID(cal.AnimeID, refreshMethod).ConfigureAwait(false);
+            await _anidbService.ScheduleRefreshOfAnimeByID(cal.AnimeID, refreshMethod).ConfigureAwait(false);
         }
     }
 

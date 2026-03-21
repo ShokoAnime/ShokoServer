@@ -4,7 +4,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB;
@@ -16,7 +17,6 @@ using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
 
-using AnidbRefreshMethod = Shoko.Abstractions.Enums.AnidbRefreshMethod;
 using ImageEntityType = Shoko.Abstractions.Enums.ImageEntityType;
 
 #pragma warning disable CS8618
@@ -88,7 +88,7 @@ public class GetAniDBCreatorJob : BaseJob
             {
                 _logger.LogInformation("Scheduling {Count} AniDB Anime for a refresh due to removal of creator: {CreatorID}", anidbAnime.Count, CreatorID);
                 foreach (var anime in anidbAnime)
-                    await _anidbService.ScheduleRefresh(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
+                    await _anidbService.ScheduleRefreshOfAnime(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
             }
 
             return;

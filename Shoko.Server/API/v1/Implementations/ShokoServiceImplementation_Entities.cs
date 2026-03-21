@@ -9,6 +9,7 @@ using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Services;
 using Shoko.Abstractions.UserData.Enums;
 using Shoko.Server.API.v1.Models;
@@ -1898,7 +1899,7 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            _anidbService.ScheduleRefreshByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).GetAwaiter().GetResult();
+            _anidbService.ScheduleRefreshOfAnimeByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {

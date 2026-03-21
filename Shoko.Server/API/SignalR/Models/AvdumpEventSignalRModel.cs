@@ -3,16 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Events;
 using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
-public class AVDumpEventSignalRModel
+public class AvdumpEventSignalRModel
 {
     [JsonConverter(typeof(StringEnumConverter))]
-    public AVDumpEventType Type { get; set; }
+    public AnidbAvdumpEventType Type { get; set; }
 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public int? SessionID { get; set; }
@@ -50,7 +51,7 @@ public class AVDumpEventSignalRModel
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public DateTime? EndedAt { get; set; }
 
-    public AVDumpEventSignalRModel(AvdumpEventArgs eventArgs)
+    public AvdumpEventSignalRModel(AnidbAvdumpEventArgs eventArgs)
     {
         SessionID = eventArgs.SessionID;
         VideoIDs = eventArgs.VideoIDs;
@@ -67,11 +68,11 @@ public class AVDumpEventSignalRModel
         EndedAt = eventArgs.EndedAt?.ToUniversalTime();
     }
 
-    public AVDumpEventSignalRModel(AVDumpHelper.AVDumpSession session)
+    public AvdumpEventSignalRModel(AVDumpHelper.AVDumpSession session)
     {
         SessionID = session.SessionID;
         VideoIDs = session.VideoIDs;
-        Type = AVDumpEventType.Restore;
+        Type = AnidbAvdumpEventType.Restore;
         Progress = session.Progress;
         SucceededCreqCount = session.SucceededCreqCount;
         FailedCreqCount = session.FailedCreqCount;

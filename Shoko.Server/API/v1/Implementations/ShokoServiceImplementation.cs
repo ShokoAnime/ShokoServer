@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using Quartz;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.v1.Models;
