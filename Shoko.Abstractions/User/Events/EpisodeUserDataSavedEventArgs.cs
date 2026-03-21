@@ -1,19 +1,17 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using Shoko.Abstractions.Metadata.Shoko;
-using Shoko.Abstractions.User;
-using Shoko.Abstractions.UserData;
-using Shoko.Abstractions.UserData.Enums;
+using Shoko.Abstractions.User.Enums;
 
-namespace Shoko.Abstractions.Events;
+namespace Shoko.Abstractions.User.Events;
 
 /// <summary>
-/// Dispatched when series user data was updated.
+/// Dispatched when episode user data was updated.
 /// </summary>
-public class SeriesUserDataSavedEventArgs : EventArgs
+public class EpisodeUserDataSavedEventArgs : EventArgs
 {
     /// <summary>
-    /// The video reason why the series user data was updated, if this update
+    /// The video reason why the episode user data was updated, if this update
     /// was caused by a video update.
     /// </summary>
     public required VideoUserDataSaveReason VideoReason { get; init; }
@@ -21,17 +19,17 @@ public class SeriesUserDataSavedEventArgs : EventArgs
     /// <summary>
     /// The reason why the user data was updated.
     /// </summary>
-    public required SeriesUserDataSaveReason Reason { get; init; }
+    public required EpisodeUserDataSaveReason Reason { get; init; }
 
     /// <summary>
     /// Indicates that the user data was imported from another source.
     /// </summary>
     [MemberNotNullWhen(true, nameof(ImportSource))]
-    public bool IsImport => Reason.HasFlag(SeriesUserDataSaveReason.Import) && !string.IsNullOrEmpty(ImportSource);
+    public bool IsImport => Reason.HasFlag(EpisodeUserDataSaveReason.Import) && !string.IsNullOrEmpty(ImportSource);
 
     /// <summary>
     /// The source if the <see cref="Reason"/> has the
-    /// <see cref="SeriesUserDataSaveReason.Import">Import flag</see> set.
+    /// <see cref="EpisodeUserDataSaveReason.Import">Import flag</see> set.
     /// </summary>
     public string? ImportSource { get; init; }
 
@@ -41,12 +39,12 @@ public class SeriesUserDataSavedEventArgs : EventArgs
     public required IUser User { get; init; }
 
     /// <summary>
-    /// The series which had its user data updated.
+    /// The episode which had its user data updated.
     /// </summary>
-    public required IShokoSeries Series { get; init; }
+    public required IShokoEpisode Episode { get; init; }
 
     /// <summary>
-    /// The updated series user data.
+    /// The updated episode user data.
     /// </summary>
-    public required ISeriesUserData UserData { get; init; }
+    public required IEpisodeUserData UserData { get; init; }
 }

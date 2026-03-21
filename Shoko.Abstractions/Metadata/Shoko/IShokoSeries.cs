@@ -7,7 +7,6 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.User;
-using Shoko.Abstractions.UserData;
 
 namespace Shoko.Abstractions.Metadata.Shoko;
 

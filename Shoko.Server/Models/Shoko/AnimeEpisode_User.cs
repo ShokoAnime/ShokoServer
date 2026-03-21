@@ -5,7 +5,6 @@ using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
-using Shoko.Abstractions.UserData;
 using Shoko.Server.Repositories;
 
 #nullable enable

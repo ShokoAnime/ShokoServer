@@ -3,8 +3,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.User;
+using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.v0.Models;
 using Shoko.Server.Settings;
 

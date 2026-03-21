@@ -1,7 +1,7 @@
 using System;
 using Shoko.Abstractions.Video;
 
-namespace Shoko.Abstractions.UserData;
+namespace Shoko.Abstractions.User;
 
 /// <summary>
 /// Represents user-specific data associated with a video.

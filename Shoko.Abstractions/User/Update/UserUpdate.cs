@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using Shoko.Abstractions.Metadata.Anidb;
 
-namespace Shoko.Abstractions.User;
+namespace Shoko.Abstractions.User.Update;
 
 /// <summary>
 ///   Represents an update to a user.
 /// </summary>
-public class UserUpdateData
+public class UserUpdate
 {
     /// <summary>
     ///   The user's new username. Will cause the service to throw if set to an
@@ -88,15 +88,15 @@ public class UserUpdateData
     public List<IAnidbTag>? RestrictedTags { get; set; }
 
     /// <summary>
-    ///   Initializes a new instance of the <see cref="UserUpdateData"/> class.
+    ///   Initializes a new instance of the <see cref="UserUpdate"/> class.
     /// </summary>
-    public UserUpdateData() { }
+    public UserUpdate() { }
 
     /// <summary>
-    ///   Initializes a new instance of the <see cref="UserUpdateData"/> class.
+    ///   Initializes a new instance of the <see cref="UserUpdate"/> class.
     /// </summary>
     /// <param name="user">The user.</param>
-    public UserUpdateData(IUser user)
+    public UserUpdate(IUser user)
     {
         Username = user.Username;
         IsAdmin = user.IsAdmin;

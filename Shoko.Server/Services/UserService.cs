@@ -5,11 +5,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.User;
+using Shoko.Abstractions.User.Events;
+using Shoko.Abstractions.User.Services;
+using Shoko.Abstractions.User.Update;
 using Shoko.Server.API;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
@@ -52,7 +53,7 @@ public class UserService(
     public IUser? GetUserFromHttpContext(HttpContext context)
         => context.GetUser();
 
-    public Task<IUser> CreateUser(UserUpdateData initialData)
+    public Task<IUser> CreateUser(UserUpdate initialData)
         => UpdateUserInternal(new JMMUser(), initialData);
 
     public Task ResetUserPassword(IUser user)
@@ -61,10 +62,10 @@ public class UserService(
     public Task ChangeUserPassword(IUser user, string newPassword)
         => UpdateUser(user, new() { Password = newPassword });
 
-    public Task<IUser> UpdateUser(IUser user, UserUpdateData updateData)
+    public Task<IUser> UpdateUser(IUser user, UserUpdate updateData)
         => UpdateUserInternal((JMMUser)user, updateData);
 
-    private async Task<IUser> UpdateUserInternal(JMMUser user, UserUpdateData updateData)
+    private async Task<IUser> UpdateUserInternal(JMMUser user, UserUpdate updateData)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(updateData);

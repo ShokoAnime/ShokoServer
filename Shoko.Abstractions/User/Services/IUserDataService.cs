@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Metadata.Shoko;
-using Shoko.Abstractions.User;
-using Shoko.Abstractions.UserData;
-using Shoko.Abstractions.UserData.Enums;
+using Shoko.Abstractions.User.Enums;
+using Shoko.Abstractions.User.Events;
+using Shoko.Abstractions.User.Update;
 using Shoko.Abstractions.Video;
 
-namespace Shoko.Abstractions.Services;
+namespace Shoko.Abstractions.User.Services;
 
 /// <summary>
 ///   Responsible for everything related to user data across videos, episodes

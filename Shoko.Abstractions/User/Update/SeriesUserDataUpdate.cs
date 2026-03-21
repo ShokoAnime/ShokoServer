@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using Shoko.Abstractions.UserData.Enums;
+using Shoko.Abstractions.User.Enums;
 
-namespace Shoko.Abstractions.UserData;
+namespace Shoko.Abstractions.User.Update;
 
 /// <summary>
 ///   Represents an update to the user-specific data associated with a series.

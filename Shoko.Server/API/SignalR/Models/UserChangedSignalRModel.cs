@@ -1,5 +1,4 @@
-
-using Shoko.Abstractions.Events;
+using Shoko.Abstractions.User.Events;
 
 namespace Shoko.Server.API.SignalR.Models;
 

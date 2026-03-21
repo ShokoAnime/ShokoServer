@@ -1,8 +1,8 @@
 using Shoko.Abstractions.Video;
-using Shoko.Abstractions.Services;
-using Shoko.Abstractions.User;
+using Shoko.Abstractions.User.Services;
+using Shoko.Abstractions.User.Update;
 
-namespace Shoko.Abstractions.UserData.Enums;
+namespace Shoko.Abstractions.User.Enums;
 
 /// <summary>
 /// The reason the user data for the video and user is being saved.

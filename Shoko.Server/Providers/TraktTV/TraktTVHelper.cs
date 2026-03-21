@@ -8,14 +8,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.User.Services;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TraktTV.Contracts;
 using Shoko.Server.Providers.TraktTV.Contracts.Sync;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-using Shoko.Abstractions.Extensions;
 
 #pragma warning disable SYSLIB0014
 #nullable enable

@@ -12,6 +12,7 @@ using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Services;
+using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v1.Services;

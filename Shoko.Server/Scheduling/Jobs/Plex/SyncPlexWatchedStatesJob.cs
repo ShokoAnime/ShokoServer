@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.User.Services;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plex;
 using Shoko.Server.Plex.Collection;

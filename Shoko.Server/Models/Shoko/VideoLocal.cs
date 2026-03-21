@@ -9,7 +9,6 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Release;
 using Shoko.Abstractions.User;
-using Shoko.Abstractions.UserData;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Media;
 using Shoko.Server.Models.CrossReference;

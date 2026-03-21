@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
-using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Exceptions;
-using Shoko.Abstractions.User;
+using Shoko.Abstractions.User.Events;
+using Shoko.Abstractions.User.Update;
 
-namespace Shoko.Abstractions.Services;
+namespace Shoko.Abstractions.User.Services;
 
 /// <summary>
 /// User manager.
@@ -86,7 +86,7 @@ public interface IUserService
     /// <returns>
     ///   The newly created user.
     /// </returns>
-    Task<IUser> CreateUser(UserUpdateData initialData);
+    Task<IUser> CreateUser(UserUpdate initialData);
 
     /// <summary>
     ///   Resets the user's password back to an empty password.
@@ -140,7 +140,7 @@ public interface IUserService
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
-    Task<IUser> UpdateUser(IUser user, UserUpdateData updateData);
+    Task<IUser> UpdateUser(IUser user, UserUpdate updateData);
 
     /// <summary>
     ///   Delete a user.

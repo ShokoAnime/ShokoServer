@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
-using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.API.v1.Models;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Services;
-using Shoko.Abstractions.UserData.Enums;
+using Shoko.Abstractions.User.Enums;
+using Shoko.Abstractions.User.Services;
+using Shoko.Server.API.v1.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
@@ -59,7 +58,7 @@ public class AnimeGroupService
         }
     }
 
-    public void SetMainSeries(AnimeGroup group, [CanBeNull] AnimeSeries series)
+    public void SetMainSeries(AnimeGroup group, AnimeSeries? series)
     {
         // Set the id before potentially resetting the fields, so the getter uses
         // the new id instead of the old.

@@ -1,6 +1,6 @@
 using System;
 
-namespace Shoko.Abstractions.UserData.Enums;
+namespace Shoko.Abstractions.User.Enums;
 
 /// <summary>
 ///   The reason the user data for the series and user is being saved.

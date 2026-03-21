@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Shoko.Abstractions.Metadata.Shoko;
 
-namespace Shoko.Abstractions.UserData;
+namespace Shoko.Abstractions.User;
 
 /// <summary>
 ///   Represents user-specific data associated with a Shoko episode.

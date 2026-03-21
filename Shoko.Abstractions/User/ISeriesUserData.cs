@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Shoko.Abstractions.Metadata.Shoko;
-using Shoko.Abstractions.UserData.Enums;
+using Shoko.Abstractions.User.Enums;
 
-namespace Shoko.Abstractions.UserData;
+namespace Shoko.Abstractions.User;
 
 /// <summary>
 ///   Represents user-specific data associated with a Shoko series.

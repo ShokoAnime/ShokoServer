@@ -1,8 +1,8 @@
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Abstractions.Events;
-using Shoko.Abstractions.UserData.Enums;
+using Shoko.Abstractions.User.Enums;
+using Shoko.Abstractions.User.Events;
 
 #nullable enable
 namespace Shoko.Server.API.SignalR.Models;

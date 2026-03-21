@@ -1,11 +1,9 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using Shoko.Abstractions.Video;
-using Shoko.Abstractions.UserData;
-using Shoko.Abstractions.UserData.Enums;
-using Shoko.Abstractions.User;
+using Shoko.Abstractions.User.Enums;
 
-namespace Shoko.Abstractions.Events;
+namespace Shoko.Abstractions.User.Events;
 
 /// <summary>
 /// Dispatched when video user data was updated.

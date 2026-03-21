@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.UserData.Enums;
+using Shoko.Abstractions.User.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Models.Shoko;

@@ -1,6 +1,6 @@
 using System;
 
-namespace Shoko.Abstractions.UserData;
+namespace Shoko.Abstractions.User.Update;
 
 /// <summary>
 ///   Represents an update to the user-specific data associated with a video.

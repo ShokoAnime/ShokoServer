@@ -1,5 +1,5 @@
 
-namespace Shoko.Abstractions.UserData.Enums;
+namespace Shoko.Abstractions.User.Enums;
 
 /// <summary>
 /// Type of vote submitted for content.

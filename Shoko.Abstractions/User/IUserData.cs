@@ -1,7 +1,6 @@
 using System;
-using Shoko.Abstractions.User;
 
-namespace Shoko.Abstractions.UserData;
+namespace Shoko.Abstractions.User;
 
 /// <summary>
 /// Represents user-specific data.

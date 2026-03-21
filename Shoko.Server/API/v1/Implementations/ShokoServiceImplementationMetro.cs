@@ -8,7 +8,7 @@ using NLog;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v1.Models.Metro;
 using Shoko.Server.API.v1.Services;

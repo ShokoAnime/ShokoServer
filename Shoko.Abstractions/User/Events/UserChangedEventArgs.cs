@@ -1,7 +1,6 @@
 using System;
-using Shoko.Abstractions.User;
 
-namespace Shoko.Abstractions.Events;
+namespace Shoko.Abstractions.User.Events;
 
 /// <summary>
 /// Dispatched when video user data is added, updated, or removed.

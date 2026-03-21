@@ -1,6 +1,5 @@
 using System;
 using Shoko.Abstractions.User;
-using Shoko.Abstractions.UserData;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Repositories;
 

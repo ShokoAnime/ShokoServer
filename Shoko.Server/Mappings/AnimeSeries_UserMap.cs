@@ -1,5 +1,5 @@
 ﻿using FluentNHibernate.Mapping;
-using Shoko.Abstractions.UserData.Enums;
+using Shoko.Abstractions.User.Enums;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Shoko;
 

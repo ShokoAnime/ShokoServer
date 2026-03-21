@@ -7,9 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Services;
-using Shoko.Abstractions.UserData;
-using Shoko.Abstractions.UserData.Enums;
+using Shoko.Abstractions.User;
+using Shoko.Abstractions.User.Enums;
+using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
@@ -21,8 +21,8 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
-using EpisodeType = Shoko.Abstractions.Enums.EpisodeType;
 using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
+using EpisodeType = Shoko.Abstractions.Enums.EpisodeType;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;

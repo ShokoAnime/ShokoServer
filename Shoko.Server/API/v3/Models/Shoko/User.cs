@@ -10,8 +10,9 @@ using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.User;
+using Shoko.Abstractions.User.Services;
+using Shoko.Abstractions.User.Update;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
@@ -119,7 +120,7 @@ public class User
                 try
                 {
                     var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
-                    var initialData = new UserUpdateData();
+                    var initialData = new UserUpdate();
                     if (Username is not null)
                         initialData.Username = Username;
                     if (Password is not null)
@@ -256,7 +257,7 @@ public class User
                 try
                 {
                     var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
-                    var updateData = new UserUpdateData();
+                    var updateData = new UserUpdate();
                     if (Username is not null)
                         updateData.Username = Username;
                     if (IsAdmin.HasValue)

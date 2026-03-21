@@ -17,6 +17,7 @@ using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Services;
+using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.v1.Implementations;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.common;
