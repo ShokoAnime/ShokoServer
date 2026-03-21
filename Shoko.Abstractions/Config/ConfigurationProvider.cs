@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Shoko.Abstractions.Config.Exceptions;
-using Shoko.Abstractions.Events;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.Config.Enums;
+using Shoko.Abstractions.Config.Events;
+using Shoko.Abstractions.Config.Exceptions;
+using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Config;

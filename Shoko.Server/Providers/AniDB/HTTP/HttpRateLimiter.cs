@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Config.Events;
 using Shoko.Server.Settings;
 
 #nullable enable

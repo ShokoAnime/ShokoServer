@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
-using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Enums;
+using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Config.Exceptions;
-using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User;
 
-namespace Shoko.Abstractions.Services;
+namespace Shoko.Abstractions.Config.Services;
 
 /// <summary>
 /// Service responsible for managing configurations implementing the

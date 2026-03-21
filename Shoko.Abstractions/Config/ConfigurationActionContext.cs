@@ -3,8 +3,8 @@ using Microsoft.Extensions.Logging;
 using Namotion.Reflection;
 using NJsonSchema;
 using Shoko.Abstractions.Config.Enums;
+using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Config;

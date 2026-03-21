@@ -1,6 +1,6 @@
 using System.Collections.Generic;
+using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.Services;
 
 namespace Shoko.Abstractions.Config;
 

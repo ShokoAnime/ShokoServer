@@ -19,6 +19,7 @@ using NLog.Extensions.Logging;
 using NLog.Web;
 using Quartz;
 using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Events;
 using Shoko.Abstractions.Core.Exceptions;

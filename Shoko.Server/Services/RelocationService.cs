@@ -13,6 +13,7 @@ using Polly;
 using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Exceptions;
+using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Events;
 using Shoko.Abstractions.Extensions;

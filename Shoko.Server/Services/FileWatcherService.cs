@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Services;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;

@@ -1,7 +1,6 @@
 using System;
-using Shoko.Abstractions.Config;
 
-namespace Shoko.Abstractions.Events;
+namespace Shoko.Abstractions.Config.Events;
 
 /// <summary>
 /// Dispatched when a configuration is saved.

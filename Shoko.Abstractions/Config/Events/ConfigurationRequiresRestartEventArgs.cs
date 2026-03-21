@@ -1,6 +1,6 @@
 using System;
 
-namespace Shoko.Abstractions.Events;
+namespace Shoko.Abstractions.Config.Events;
 
 /// <summary>
 /// Dispatched when a configuration that requires a restart is saved, and when

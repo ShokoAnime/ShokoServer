@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Config.Events;
 using Shoko.Server.Settings;
 
 #nullable enable

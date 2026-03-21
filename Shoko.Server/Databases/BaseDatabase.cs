@@ -6,6 +6,7 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
+using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Services;
 using Shoko.Server.Extensions;

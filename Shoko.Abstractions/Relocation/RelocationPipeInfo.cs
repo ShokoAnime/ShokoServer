@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Exceptions;
+using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Services;
 
 namespace Shoko.Abstractions.Relocation;
