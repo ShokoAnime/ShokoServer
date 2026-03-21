@@ -1,3 +1,4 @@
+using Shoko.Abstractions.Connectivity.Enums;
 
 namespace Shoko.Abstractions.Connectivity;
 

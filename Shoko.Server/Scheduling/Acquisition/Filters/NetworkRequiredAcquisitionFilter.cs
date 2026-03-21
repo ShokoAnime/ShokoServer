@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Quartz;
 using Quartz.Util;
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Connectivity.Enums;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 
 #nullable enable

@@ -2,11 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Shoko.Abstractions.Connectivity;
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Connectivity.Enums;
+using Shoko.Abstractions.Connectivity.Events;
 
-namespace Shoko.Abstractions.Services;
+namespace Shoko.Abstractions.Connectivity.Services;
 
 /// <summary>
 /// A service used to check or monitor the current network availability.
@@ -14,12 +13,12 @@ namespace Shoko.Abstractions.Services;
 public interface IConnectivityService
 {
     /// <summary>
-    /// Dispatched when the network availibility has changed.
+    /// Dispatched when the network availability has changed.
     /// </summary>
     event EventHandler<NetworkAvailabilityChangedEventArgs> NetworkAvailabilityChanged;
 
     /// <summary>
-    /// Current network availibility.
+    /// Current network availability.
     /// </summary>
     public NetworkAvailability NetworkAvailability { get; }
 

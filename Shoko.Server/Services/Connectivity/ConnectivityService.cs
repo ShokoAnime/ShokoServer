@@ -9,9 +9,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Connectivity;
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Events;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Connectivity.Enums;
+using Shoko.Abstractions.Connectivity.Events;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Server.Settings;
 
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;

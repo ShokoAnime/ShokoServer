@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Connectivity;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
+using Shoko.Abstractions.Connectivity.Enums;
 
 namespace Shoko.Server.Settings;
 

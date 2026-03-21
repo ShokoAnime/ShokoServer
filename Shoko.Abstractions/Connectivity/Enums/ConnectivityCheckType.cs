@@ -1,7 +1,6 @@
-
 using System.Runtime.Serialization;
 
-namespace Shoko.Abstractions.Connectivity;
+namespace Shoko.Abstractions.Connectivity.Enums;
 
 /// <summary>
 /// The type of HTTP request to use for a connectivity check.

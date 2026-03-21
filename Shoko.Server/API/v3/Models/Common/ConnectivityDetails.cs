@@ -2,14 +2,14 @@
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Connectivity.Enums;
 
 namespace Shoko.Server.API.v3.Models.Common;
 
 public class ConnectivityDetails
 {
     /// <summary>
-    /// Current network availibility.
+    /// Current network availability.
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
     public NetworkAvailability NetworkAvailability { get; init; }
