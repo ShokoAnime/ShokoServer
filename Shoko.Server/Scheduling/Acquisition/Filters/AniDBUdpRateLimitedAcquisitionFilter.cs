@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using Quartz;
 using Quartz.Util;
-using Shoko.Abstractions.Core;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Abstractions.Video.Services;
+using Shoko.Abstractions.Core.Services;
 
 namespace Shoko.Server.Scheduling.Acquisition.Filters;
 

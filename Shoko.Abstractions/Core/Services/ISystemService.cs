@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Shoko.Abstractions.Core.Events;
 using Shoko.Abstractions.Core.Exceptions;
 
-namespace Shoko.Abstractions.Core;
+namespace Shoko.Abstractions.Core.Services;
 
 /// <summary>
 ///   System service. Contains information about the state of the server, and

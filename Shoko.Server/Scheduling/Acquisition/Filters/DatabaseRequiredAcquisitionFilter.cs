@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Quartz;
 using Quartz.Util;
-using Shoko.Abstractions.Core;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 
 namespace Shoko.Server.Scheduling.Acquisition.Filters;

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Core.Models;
+using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.v3.Models.Common;

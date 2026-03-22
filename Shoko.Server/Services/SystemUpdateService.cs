@@ -11,7 +11,7 @@ using Newtonsoft.Json.Converters;
 using SharpCompress.Common;
 using SharpCompress.Readers;
 using Shoko.Abstractions.Core;
-using Shoko.Abstractions.Core.Models;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Utilities;

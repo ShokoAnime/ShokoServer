@@ -1,8 +1,7 @@
 using System;
 using System.Threading.Tasks;
-using Shoko.Abstractions.Core.Models;
 
-namespace Shoko.Abstractions.Core;
+namespace Shoko.Abstractions.Core.Services;
 
 /// <summary>
 ///   Service checking and managing updates of the server and web component.

@@ -1,5 +1,6 @@
 using System;
 using Shoko.Abstractions.Core.Exceptions;
+using Shoko.Abstractions.Core.Services;
 
 namespace Shoko.Abstractions.Core.Events;
 

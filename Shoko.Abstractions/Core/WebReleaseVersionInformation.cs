@@ -1,6 +1,6 @@
 using System;
 
-namespace Shoko.Abstractions.Core.Models;
+namespace Shoko.Abstractions.Core;
 
 /// <summary>
 ///   Release information for the Web UI.

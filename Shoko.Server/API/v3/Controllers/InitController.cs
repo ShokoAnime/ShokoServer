@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Core;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;

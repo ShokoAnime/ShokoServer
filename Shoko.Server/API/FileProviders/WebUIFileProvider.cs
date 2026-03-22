@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using Microsoft.Extensions.FileProviders;
-using Shoko.Abstractions.Core;
+using Shoko.Abstractions.Core.Services;
 
 #nullable enable
 namespace Shoko.Server.API.FileProviders;

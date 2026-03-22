@@ -7,7 +7,7 @@ using System.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Shoko.Abstractions.Core;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Shoko;

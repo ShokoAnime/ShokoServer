@@ -24,6 +24,7 @@ using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Events;
 using Shoko.Abstractions.Core.Exceptions;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata.Anidb.Services;

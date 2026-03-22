@@ -11,7 +11,7 @@ using MySqlConnector;
 using Quartz;
 using Quartz.Spi;
 using Quartz.Util;
-using Shoko.Abstractions.Core;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Delegates;

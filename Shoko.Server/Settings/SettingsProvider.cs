@@ -9,12 +9,11 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Events;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
-
-using ISystemService = Shoko.Abstractions.Core.ISystemService;
 
 #nullable enable
 namespace Shoko.Server.Settings;

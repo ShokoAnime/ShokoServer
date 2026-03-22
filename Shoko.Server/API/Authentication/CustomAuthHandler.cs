@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Shoko.Abstractions.Core;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;

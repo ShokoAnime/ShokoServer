@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
-using Shoko.Abstractions.Core;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Abstractions.Core;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Enums;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.v3.Models.Common;
