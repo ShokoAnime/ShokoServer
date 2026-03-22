@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -8,12 +9,15 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Plugin;
 using Shoko.Server.API.v3.Models.Plugin.Input;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+using AbstractPackageInfo = Shoko.Abstractions.Plugin.Models.PackageInfo;
 using PluginInfo = Shoko.Server.API.v3.Models.Plugin.PluginInfo;
 
 #nullable enable
@@ -60,16 +64,24 @@ public class PluginPackageController(
     ///   Whether to forcefully sync the repositories.
     ///   Defaults to <c>false</c>.
     /// </param>
+    /// <param name="pageSize">
+    ///     The page size. Set to <code>0</code> to disable pagination.
+    /// </param>
+    /// <param name="page">
+    ///   The page index.
+    /// </param>
     /// <returns>
     ///   A list of <see cref="PackageInfo"/> for all available packages.
     /// </returns>
     [HttpGet]
-    public async Task<ActionResult<List<PackageInfo>>> GetAvailablePackages(
+    public async Task<ActionResult<ListResult<PackageInfo>>> GetAvailablePackages(
         [FromQuery] string? query = null,
         [FromQuery] bool onlyCompatible = true,
         [FromQuery] bool onlyLatest = true,
         [FromQuery] bool allowSync = false,
-        [FromQuery] bool forceSyncNow = false
+        [FromQuery] bool forceSyncNow = false,
+        [FromQuery, Range(0, 1000)] int pageSize = 20,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
         var manifests = await packageManager.GetAvailablePackageManifests(
@@ -85,25 +97,43 @@ public class PluginPackageController(
 
         if (!string.IsNullOrEmpty(query))
             packages = packages
-                .Search(query, p => [p.Manifest.Name, p.Manifest.Overview])
+                .Search(query, p => [p.Manifest.Name, p.Manifest.Overview, .. p.Manifest.Tags])
                 .Select(p => p.Result);
 
-        return packages
-            .Select(p => new PackageInfo(p))
-            .ToList();
+        return packages.ToListResult(p => new PackageInfo(p), page, pageSize);
     }
 
     /// <summary>
     ///   Gets all locally installed packages as <see cref="PackageInfo"/>.
     /// </summary>
+    /// <param name="query">
+    ///   An optional query to filter packages by name.
+    /// </param>
+    /// <param name="pageSize">
+    ///     The page size. Set to <code>0</code> to disable pagination.
+    /// </param>
+    /// <param name="page">
+    ///   The page index.
+    /// </param>
     /// <returns>
     ///   A list of all packages installed locally in the system.
     /// </returns>
     [HttpGet("Local")]
-    public ActionResult<List<PackageInfo>> GetLocalPackages()
-        => packageManager.GetLocalPackages()
-            .Select(p => new PackageInfo(p))
-            .ToList();
+    public ActionResult<ListResult<PackageInfo>> GetLocalPackages(
+        [FromQuery] string? query = null,
+        [FromQuery, Range(0, 1000)] int pageSize = 20,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var packages = (IEnumerable<AbstractPackageInfo>)packageManager.GetLocalPackages();
+
+        if (!string.IsNullOrEmpty(query))
+            packages = packages
+                .Search(query, p => [p.Manifest.Name, p.Manifest.Overview, .. p.Manifest.Tags])
+                .Select(p => p.Result);
+
+        return packages.ToListResult(p => new PackageInfo(p), page, pageSize);
+    }
 
     /// <summary>
     ///   Gets all packages installed since the server startup.
