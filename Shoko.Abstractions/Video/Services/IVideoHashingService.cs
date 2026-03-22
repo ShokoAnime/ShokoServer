@@ -149,7 +149,7 @@ public interface IVideoHashingService
     ///   after the hashing is completed. 
     /// </param>
     /// <param name="skipMylist">
-    ///   When set to <c>true</c>, then the file will not be added to the the
+    ///   When set to <c>true</c>, then the file will not be added to the
     ///   user's MyList if a release is found and saved.
     /// </param>
     /// <exception cref="InvalidOperationException">
@@ -181,7 +181,7 @@ public interface IVideoHashingService
     ///   after the hashing is completed. 
     /// </param>
     /// <param name="skipMylist">
-    ///   When set to <c>true</c>, then the file will not be added to the the
+    ///   When set to <c>true</c>, then the file will not be added to the
     ///   user's MyList if a release is found and saved.
     /// </param>
     /// <param name="prioritize">
@@ -212,7 +212,7 @@ public interface IVideoHashingService
     ///   after the hashing is completed. 
     /// </param>
     /// <param name="skipMylist">
-    ///   When set to <c>true</c>, then the file will not be added to the the
+    ///   When set to <c>true</c>, then the file will not be added to the
     ///   user's MyList if a release is found and saved.
     /// </param>
     /// <param name="cancellationToken">
@@ -242,7 +242,7 @@ public interface IVideoHashingService
     ///   after the hashing is completed. 
     /// </param>
     /// <param name="skipMylist">
-    ///   When set to <c>true</c>, then the file will not be added to the the
+    ///   When set to <c>true</c>, then the file will not be added to the
     ///   user's MyList if a release is found and saved.
     /// </param>
     /// <param name="prioritize">

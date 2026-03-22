@@ -89,7 +89,7 @@ public class RelocationResult
     /// Initializes a new instance of the <see cref="RelocationResult"/> class from an
     /// exception.
     /// </summary>
-    /// <param name="exception ">The exception that caused the relocation operation to fail.</param>
+    /// <param name="exception">The exception that caused the relocation operation to fail.</param>
     /// <returns>A <see cref="RelocationResult"/> with the exception set.</returns>
     public static RelocationResult FromError(Exception exception)
         => new() { Error = new(exception) };

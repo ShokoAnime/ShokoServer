@@ -13,7 +13,7 @@ public interface IWithDescriptions
     IText? DefaultDescription { get; }
 
     /// <summary>
-    /// The preferred description according to the the language preference in
+    /// The preferred description according to the language preference in
     /// the settings, and/or any description overrides.
     /// </summary>
     IText? PreferredDescription { get; }

@@ -154,7 +154,7 @@ public interface IShokoSeries : ISeries, IWithCreationDate, IWithUpdateDate
     new IReadOnlyList<IShokoSeason> Seasons { get; }
 
     /// <summary>
-    /// All episodes for the the Shoko series.
+    /// All episodes for the Shoko series.
     /// </summary>
     new IReadOnlyList<IShokoEpisode> Episodes { get; }
 

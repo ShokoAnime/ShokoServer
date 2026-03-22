@@ -864,7 +864,7 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
     }
 
     /// <summary>
-    /// Takes the the test parameters and checks for numerical operators
+    /// Takes the test parameters and checks for numerical operators
     /// Removes the operators from the test string passed
     /// </summary>
     /// <param name="test"></param>

@@ -350,7 +350,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     {
         _logger.LogInformation("Processing {Job}: {AnimeID}", nameof(GetAniDBAnimeJob), job.AnimeID);
 
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+        var scheduler = await _schedulerFactory.GetScheduler(cancellationToken).ConfigureAwait(false);
         var anime = _anidbAnimeRepository.GetByAnimeID(job.AnimeID);
         var update = _anidbAnimeUpdateRepository.GetByAnimeID(job.AnimeID);
         var animeRecentlyUpdated = AnimeRecentlyUpdated(anime, update);

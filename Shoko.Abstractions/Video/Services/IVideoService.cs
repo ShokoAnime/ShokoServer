@@ -105,7 +105,7 @@ public interface IVideoService
     ///   The relative path of the video file.
     /// </param>
     /// <param name="managedFolder">
-    ///   The the managed folder.
+    ///   The managed folder.
     /// </param>
     /// <returns>
     ///   The video file if found, otherwise <see langword="null"/>.
@@ -118,7 +118,7 @@ public interface IVideoService
     ///   <see langword="null"/>, all files in the managed folder are returned.
     /// </summary>
     /// <param name="managedFolder">
-    ///   The the managed folder.
+    ///   The managed folder.
     /// </param>
     /// <param name="relativePath">
     ///   The relative path to filter by.

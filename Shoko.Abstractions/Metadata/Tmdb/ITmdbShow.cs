@@ -50,7 +50,7 @@ public interface ITmdbShow : ISeries, IWithCreationDate, IWithUpdateDate
     new IReadOnlyList<ITmdbSeason> Seasons { get; }
 
     /// <summary>
-    /// All episodes for the the TMDB show.
+    /// All episodes for the TMDB show.
     /// </summary>
     new IReadOnlyList<ITmdbEpisode> Episodes { get; }
 
