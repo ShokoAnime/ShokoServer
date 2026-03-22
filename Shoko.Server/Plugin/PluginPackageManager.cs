@@ -5,7 +5,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -50,16 +49,6 @@ public partial class PluginPackageManager(
     private const string RepoInfoFile = "info.json";
 
     private const string ManifestFile = "manifest.json";
-
-    private const string AnyRuntimeIdentifier = "any";
-
-    private static readonly string _runtimeIdentifier = true switch
-    {
-        true when OperatingSystem.IsWindows() => $"win-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
-        true when OperatingSystem.IsLinux() => $"linux-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
-        true when OperatingSystem.IsMacOS() => $"osx-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
-        _ => "any",
-    };
 
     private static readonly PackageRepositoryInfo _localRepositoryInfo = new()
     {
@@ -194,7 +183,7 @@ public partial class PluginPackageManager(
                                     ) ||
                                     r.Archives.Any(archive =>
                                         plugin.Version.AbstractionVersion == archive.AbstractionVersion &&
-                                        archive.RuntimeIdentifier == AnyRuntimeIdentifier
+                                        archive.RuntimeIdentifier == PluginManager.AnyRuntimeIdentifier
                                     )
                                 )
                             )
@@ -203,7 +192,7 @@ public partial class PluginPackageManager(
                 {
                     var archive = release.Archives.First(archive =>
                         archive.RuntimeIdentifier == plugin.Version.RuntimeIdentifier ||
-                        archive.RuntimeIdentifier is AnyRuntimeIdentifier
+                        archive.RuntimeIdentifier is PluginManager.AnyRuntimeIdentifier
                     );
                     var repository = repositories.FirstOrDefault(r => r.ID == release.RepositoryID);
                     localPackages.Add(new PackageInfo
@@ -626,7 +615,7 @@ public partial class PluginPackageManager(
                 var repository = repositories.FirstOrDefault(r => r.ID == release.RepositoryID);
                 foreach (var archive in release.Archives)
                 {
-                    if (onlyCompatible && archive.RuntimeIdentifier is not AnyRuntimeIdentifier && archive.RuntimeIdentifier != _runtimeIdentifier)
+                    if (onlyCompatible && archive.RuntimeIdentifier is not PluginManager.AnyRuntimeIdentifier && archive.RuntimeIdentifier != _pluginManager.RuntimeIdentifier)
                         continue;
 
                     yield return new()

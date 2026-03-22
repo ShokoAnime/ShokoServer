@@ -23,6 +23,11 @@ public interface IPluginManager
     Version AbstractionVersion { get; }
 
     /// <summary>
+    ///   Gets the current runtime identifier for the platform in use.
+    /// </summary>
+    string RuntimeIdentifier { get; }
+
+    /// <summary>
     ///   Searches for plugins.
     /// </summary>
     void ScanForPlugins();

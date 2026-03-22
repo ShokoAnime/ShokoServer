@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Threading.Tasks;
 using ImageMagick;
@@ -46,6 +47,17 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     /// <inheritdoc/>
     public Version AbstractionVersion { get; private init; } = systemService.Version.AbstractionVersion;
+
+    /// <inheritdoc/>
+    public string RuntimeIdentifier { get; private init; } = true switch
+    {
+        true when OperatingSystem.IsWindows() => $"win-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
+        true when OperatingSystem.IsLinux() => $"linux-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
+        true when OperatingSystem.IsMacOS() => $"osx-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
+        _ => "any",
+    };
+
+    internal const string AnyRuntimeIdentifier = "any";
 
     /// <summary>
     ///   Basic information about a plugin, used during initial loading before
@@ -669,7 +681,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         IsEnabled = settings.Plugins.EnabledPlugins[name],
                         ContainingDirectory = dirPath,
                         Priority = settings.Plugins.Priority.IndexOf(name),
-                        CanLoad = true,
+                        CanLoad = version.RuntimeIdentifier is AnyRuntimeIdentifier || version.RuntimeIdentifier == RuntimeIdentifier,
                         CanUninstall = !isSystem,
                         DLLs = [dllPath, .. dlls.Except([dllPath])],
                         Thumbnail = thumbnailImage,
@@ -692,13 +704,13 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     #region Setup | Version
 
-    private const string RuntimeIdentifier = "RuntimeIdentifier";
+    private const string NewRuntimeIdentifier = "RuntimeIdentifier";
 
-    private const string ReleaseTag = "ReleaseTag";
+    private const string NewReleaseTag = "ReleaseTag";
 
-    private const string SourceRevision = "SourceRevision";
+    private const string NewSourceRevision = "SourceRevision";
 
-    private const string ReleaseDate = "ReleaseDate";
+    private const string NewReleaseDate = "ReleaseDate";
 
     private const string LegacyRuntimeIdentifier = "runtime";
 
@@ -743,35 +755,35 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         var extraVersionDict = GetApplicationExtraVersion(assembly);
 
         string runtime;
-        if (metadataAttributeDict.ContainsKey(RuntimeIdentifier) && !string.IsNullOrEmpty(metadataAttributeDict[RuntimeIdentifier]))
-            runtime = metadataAttributeDict[RuntimeIdentifier]!;
-        else if (extraVersionDict.ContainsKey(RuntimeIdentifier) && !string.IsNullOrEmpty(extraVersionDict[RuntimeIdentifier]))
-            runtime = extraVersionDict[RuntimeIdentifier];
+        if (metadataAttributeDict.ContainsKey(NewRuntimeIdentifier) && !string.IsNullOrEmpty(metadataAttributeDict[NewRuntimeIdentifier]))
+            runtime = metadataAttributeDict[NewRuntimeIdentifier]!;
+        else if (extraVersionDict.ContainsKey(NewRuntimeIdentifier) && !string.IsNullOrEmpty(extraVersionDict[NewRuntimeIdentifier]))
+            runtime = extraVersionDict[NewRuntimeIdentifier];
         else if (extraVersionDict.ContainsKey(LegacyRuntimeIdentifier) && !string.IsNullOrEmpty(extraVersionDict[LegacyRuntimeIdentifier]))
             runtime = extraVersionDict[LegacyRuntimeIdentifier];
         else
             runtime = "any";
 
         var tag = (string?)null;
-        if (metadataAttributeDict.ContainsKey(ReleaseTag) && !string.IsNullOrEmpty(metadataAttributeDict[ReleaseTag]))
-            tag = metadataAttributeDict[ReleaseTag];
-        else if (extraVersionDict.ContainsKey(ReleaseTag) && !string.IsNullOrEmpty(extraVersionDict[ReleaseTag]))
-            tag = extraVersionDict[ReleaseTag];
+        if (metadataAttributeDict.ContainsKey(NewReleaseTag) && !string.IsNullOrEmpty(metadataAttributeDict[NewReleaseTag]))
+            tag = metadataAttributeDict[NewReleaseTag];
+        else if (extraVersionDict.ContainsKey(NewReleaseTag) && !string.IsNullOrEmpty(extraVersionDict[NewReleaseTag]))
+            tag = extraVersionDict[NewReleaseTag];
         else if (extraVersionDict.ContainsKey(LegacyReleaseTag) && !string.IsNullOrEmpty(extraVersionDict[LegacyReleaseTag]))
             tag = extraVersionDict[LegacyReleaseTag];
 
         var sourceRevision = (string?)null;
-        if (metadataAttributeDict.ContainsKey(SourceRevision) && !string.IsNullOrEmpty(metadataAttributeDict[SourceRevision]))
-            sourceRevision = metadataAttributeDict[SourceRevision];
-        else if (extraVersionDict.ContainsKey(SourceRevision) && !string.IsNullOrEmpty(extraVersionDict[SourceRevision]))
-            sourceRevision = extraVersionDict[SourceRevision];
+        if (metadataAttributeDict.ContainsKey(NewSourceRevision) && !string.IsNullOrEmpty(metadataAttributeDict[NewSourceRevision]))
+            sourceRevision = metadataAttributeDict[NewSourceRevision];
+        else if (extraVersionDict.ContainsKey(NewSourceRevision) && !string.IsNullOrEmpty(extraVersionDict[NewSourceRevision]))
+            sourceRevision = extraVersionDict[NewSourceRevision];
         else if (extraVersionDict.ContainsKey(LegacySourceRevision) && !string.IsNullOrEmpty(extraVersionDict[LegacySourceRevision]))
             sourceRevision = extraVersionDict[LegacySourceRevision];
 
         DateTime releasedAt;
-        if (metadataAttributeDict.ContainsKey(ReleaseDate) && DateTime.TryParse(metadataAttributeDict[ReleaseDate], out var metaReleasedAt))
+        if (metadataAttributeDict.ContainsKey(NewReleaseDate) && DateTime.TryParse(metadataAttributeDict[NewReleaseDate], out var metaReleasedAt))
             releasedAt = metaReleasedAt.ToUniversalTime();
-        else if (extraVersionDict.ContainsKey(ReleaseDate) && DateTime.TryParse(extraVersionDict[ReleaseDate], out var extraReleasedAt0))
+        else if (extraVersionDict.ContainsKey(NewReleaseDate) && DateTime.TryParse(extraVersionDict[NewReleaseDate], out var extraReleasedAt0))
             releasedAt = extraReleasedAt0.ToUniversalTime();
         else if (extraVersionDict.ContainsKey(LegacyReleaseDate) && DateTime.TryParse(extraVersionDict[LegacyReleaseDate], out var extraReleasedAt1))
             releasedAt = extraReleasedAt1.ToUniversalTime();
