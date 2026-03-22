@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build:cli",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/Shoko.Server/bin/Debug/net10.0/Shoko.CLI",
+            "program": "${workspaceFolder}/Shoko.Server/bin/Debug/net10.0/Shoko.CLI.dll",
             "args": [
               "--shutdown-enabled",
               "--restart-enabled",
@@ -32,7 +32,7 @@
             "request": "launch",
             "preLaunchTask": "build:tray-service",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/Shoko.Server/bin/Debug/net10.0/ShokoServer",
+            "program": "${workspaceFolder}/Shoko.Server/bin/Debug/net10.0/ShokoServer.dll",
             "args": [
               "--shutdown-enabled",
               "--restart-enabled",
