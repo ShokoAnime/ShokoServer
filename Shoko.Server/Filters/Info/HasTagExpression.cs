@@ -16,7 +16,7 @@ public class HasTagExpression : FilterExpression<bool>, IWithStringParameter
 
     public string Parameter { get; set; }
     public override string HelpDescription => "This condition passes if any of the anime have the specified AniDB tag";
-    public override string[] HelpPossibleParameters => RepoFactory.AniDB_Tag.GetAllForLocalSeries().Select(a => a.TagName.Replace('`', '\'')).ToArray();
+    public override string[] HelpPossibleParameters => RepoFactory.AniDB_Tag?.GetAllForLocalSeries().Select(a => a.TagName.Replace('`', '\'')).ToArray() ?? [];
 
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {

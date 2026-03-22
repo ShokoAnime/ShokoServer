@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Settings;
 
 namespace Shoko.Tests;

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Shoko.Server.API.v1.Models;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Filters.Info;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Filters.Logic.Expressions;
