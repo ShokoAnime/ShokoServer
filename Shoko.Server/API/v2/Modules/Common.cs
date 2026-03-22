@@ -18,7 +18,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Services;
-using Shoko.Server.API.v1.Implementations;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
@@ -49,7 +48,6 @@ namespace Shoko.Server.API.v2.Modules;
 [ApiController]
 public class Common : BaseController
 {
-    private readonly ShokoServiceImplementation _service;
     private readonly AnimeSeriesService _seriesService;
     private readonly AnimeGroupService _groupService;
     private readonly ISchedulerFactory _schedulerFactory;
@@ -65,7 +63,6 @@ public class Common : BaseController
         ActionService actionService,
         ISettingsProvider settingsProvider,
         QueueHandler queueHandler,
-        ShokoServiceImplementation service,
         AnimeSeriesService seriesService,
         AnimeGroupService groupService,
         IUserDataService userDataService,
@@ -76,7 +73,6 @@ public class Common : BaseController
         _schedulerFactory = schedulerFactory;
         _actionService = actionService;
         _queueHandler = queueHandler;
-        _service = service;
         _seriesService = seriesService;
         _groupService = groupService;
         _userDataService = userDataService;
@@ -96,7 +92,7 @@ public class Common : BaseController
     [HttpGet("folder/list")]
     public ActionResult<IEnumerable<CL_ImportFolder>> GetFolders()
     {
-        return _service.GetImportFolders();
+        return RepoFactory.ShokoManagedFolder.GetAll().Select(a => a.ToClient()).ToList();
     }
 
     /// <summary>
@@ -106,7 +102,7 @@ public class Common : BaseController
     [HttpGet("folder/count")]
     public ActionResult<Counter> CountFolders()
     {
-        var count = new Counter { count = _service.GetImportFolders().Count };
+        var count = new Counter { count = RepoFactory.ShokoManagedFolder.GetAll().Count };
         return count;
     }
 
@@ -1339,27 +1335,7 @@ public class Common : BaseController
             // progres 0-100
             // type 1-movie, 2-episode
             if ((id > 0) & (progress >= 0) & (status > 0))
-            {
-                var type = 2;
-                if (ismovie)
-                {
-                    type = 2;
-                }
-                else
-                {
-                    type = 1;
-                }
-
-                switch (_service.TraktScrobble(id, type, progress, status))
-                {
-                    case 200:
-                        return Ok();
-                    case 404:
-                        return NotFound();
-                    default:
-                        return InternalError();
-                }
-            }
+                return Ok();
 
             return BadRequest();
         }

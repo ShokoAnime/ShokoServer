@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -11,11 +12,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using NLog;
 using Quartz;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Anidb.Services;
-using Shoko.Server.API.v1.Implementations;
+using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -35,31 +40,32 @@ public class Core : BaseController
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    private readonly ShokoServiceImplementation _service;
-
     private readonly ISchedulerFactory _schedulerFactory;
+
+    private readonly IUserService _userService;
 
     private readonly IAnidbService _anidbService;
 
     private readonly ActionService _actionService;
 
-    private readonly ISettingsProvider _settingsProvider;
+    private readonly TraktTVHelper _traktHelper;
 
-    private IServerSettings _settings => _settingsProvider.GetSettings();
+    private IServerSettings _settings => SettingsProvider.GetSettings();
 
     public Core(
-        ShokoServiceImplementation service,
         ISettingsProvider settingsProvider,
         ISchedulerFactory schedulerFactory,
+        IUserService userService,
         IAnidbService anidbService,
-        ActionService actionService
+        ActionService actionService,
+        TraktTVHelper traktHelper
     ) : base(settingsProvider)
     {
-        _service = service;
-        _settingsProvider = settingsProvider;
         _schedulerFactory = schedulerFactory;
+        _userService = userService;
         _anidbService = anidbService;
         _actionService = actionService;
+        _traktHelper = traktHelper;
     }
 
     #region 01.Settings
@@ -304,15 +310,15 @@ public class Core : BaseController
     [HttpGet("trakt/code")]
     public ActionResult<Dictionary<string, object>> GetTraktCode()
     {
-        var code = _service.GetTraktDeviceCode();
+        var code = _traktHelper.GetTraktDeviceCode();
         if (code.UserCode == string.Empty)
-        {
             return APIStatus.InternalError("Trakt code doesn't exist on the server");
-        }
 
-        var result = new Dictionary<string, object>();
-        result.Add("usercode", code.UserCode);
-        result.Add("url", code.VerificationUrl);
+        var result = new Dictionary<string, object>
+        {
+            { "usercode", code.UserCode },
+            { "url", code.VerificationUrl }
+        };
         return result;
     }
 
@@ -464,14 +470,61 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/create")]
-    public ActionResult CreateUser(CL_JMMUser user)
+    public async Task<ActionResult> CreateUser(CL_JMMUser body)
     {
-        user.Password = Digest.Hash(user.Password);
-        user.HideCategories = string.Empty;
-        user.PlexUsers = string.Empty;
-        return _service.SaveUser(user) == string.Empty
-            ? APIStatus.OK()
-            : APIStatus.InternalError();
+        var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+        JMMUser user = null;
+        var tags = body.HideCategories?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .SelectMany(RepoFactory.AniDB_Tag.GetByName)
+            .WhereNotNull()
+            .OrderBy(tag => tag.TagID)
+            .Cast<IAnidbTag>()
+            .ToList();
+        if (body.JMMUserID != 0)
+        {
+            user = RepoFactory.JMMUser.GetByID(body.JMMUserID);
+            if (user is null)
+                return APIStatus.NotFound();
+
+            await service.UpdateUser(user, new()
+            {
+                Username = body.Username,
+                Password = body.Password is not "**SECRET**" ? body.Password : null,
+                IsAdmin = body.IsAdmin == 1,
+                IsAnidbUser = body.IsAniDBUser == 1,
+                RestrictedTags = tags,
+            });
+        }
+        else
+        {
+            user = (JMMUser)await service.CreateUser(new()
+            {
+                Username = body.Username,
+                Password = body.Password is not "**SECRET**" ? body.Password : string.Empty,
+                IsAdmin = body.IsAdmin == 1,
+                IsAnidbUser = body.IsAniDBUser == 1,
+                RestrictedTags = tags,
+            }).ConfigureAwait(false);
+        }
+
+        // Extra handling for things not exposed to the plugin API and
+        // probably never will.
+        if (
+            !string.Equals(user.PlexUsers, body.PlexUsers, StringComparison.InvariantCultureIgnoreCase) ||
+            !string.Equals(user.PlexToken, body.PlexToken, StringComparison.InvariantCultureIgnoreCase) ||
+            user.IsTraktUser != body.IsTraktUser
+        )
+        {
+            user.IsTraktUser = body.IsTraktUser;
+            user.PlexUsers = body.PlexUsers;
+            if (body.PlexToken is not "**SECRET**")
+            {
+                user.PlexToken = body.PlexToken;
+            }
+
+            RepoFactory.JMMUser.Save(user);
+        }
+        return APIStatus.OK();
     }
 
     /// <summary>
@@ -479,11 +532,16 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/password")]
-    public ActionResult ChangePassword(CL_JMMUser user)
+    public async Task<ActionResult> ChangePassword(CL_JMMUser body)
     {
-        return _service.ChangePassword(user.JMMUserID, user.Password) == string.Empty
-            ? APIStatus.OK()
-            : APIStatus.InternalError();
+        var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+        var user = service.GetUserByID(body.JMMUserID);
+        if (user is null)
+            return APIStatus.NotFound();
+
+        await service.ChangeUserPassword(user, body.Password).ConfigureAwait(false);
+        await service.InvalidateRestApiTokensForUser(user).ConfigureAwait(false);
+        return APIStatus.OK();
     }
 
     /// <summary>
@@ -491,11 +549,16 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/password/{uid}")]
-    public ActionResult ChangePassword(int uid, CL_JMMUser user)
+    public async Task<ActionResult> ChangePassword(int uid, CL_JMMUser body)
     {
-        return _service.ChangePassword(uid, user.Password) == string.Empty
-            ? APIStatus.OK()
-            : APIStatus.InternalError();
+        var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+        var user = service.GetUserByID(uid);
+        if (user is null)
+            return APIStatus.NotFound();
+
+        await service.ChangeUserPassword(user, body.Password).ConfigureAwait(false);
+        await service.InvalidateRestApiTokensForUser(user).ConfigureAwait(false);
+        return APIStatus.OK();
     }
 
     /// <summary>
@@ -503,11 +566,15 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost("user/delete")]
-    public ActionResult DeleteUser(CL_JMMUser user)
+    public async Task<ActionResult> DeleteUser(CL_JMMUser body)
     {
-        return _service.DeleteUser(user.JMMUserID) == string.Empty
-            ? APIStatus.OK()
-            : APIStatus.InternalError();
+        var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+        var user = service.GetUserByID(body.JMMUserID);
+        if (user is null)
+            return APIStatus.NotFound();
+
+        await service.DeleteUser(user).ConfigureAwait(false);
+        return APIStatus.OK();
     }
 
     #endregion

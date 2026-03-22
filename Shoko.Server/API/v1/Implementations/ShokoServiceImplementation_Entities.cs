@@ -3155,7 +3155,10 @@ public partial class ShokoServiceImplementation
                     IsAdmin = user.IsAdmin == 1,
                     IsAnidbUser = user.IsAniDBUser == 1,
                     RestrictedTags = tags,
-                });
+                })
+                    .ConfigureAwait(false)
+                    .GetAwaiter()
+                    .GetResult();
             }
             else
             {
