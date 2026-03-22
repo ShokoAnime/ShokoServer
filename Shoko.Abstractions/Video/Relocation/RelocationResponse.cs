@@ -112,7 +112,7 @@ public record RelocationResponse
     /// Initializes a new instance of the <see cref="RelocationResponse"/> class from an
     /// exception.
     /// </summary>
-    /// <param name="exception ">The exception that caused the relocation operation to fail.</param>
+    /// <param name="exception">The exception that caused the relocation operation to fail.</param>
     /// <returns>A <see cref="RelocationResponse"/> with the exception set.</returns>
     public static RelocationResponse FromError(Exception exception)
         => new() { Success = false, Error = new(exception) };

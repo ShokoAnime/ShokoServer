@@ -184,7 +184,7 @@ public class EpisodeController : BaseController
                 if (includeWatched != IncludeOnlyFilter.True)
                 {
                     // If we should hide watched episodes and the episode is watched, then hide it.
-                    // Or if we should only show watched episodes and the the episode is not watched, then hide it.
+                    // Or if we should only show watched episodes and the episode is not watched, then hide it.
                     var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
                     var isWatched = shoko.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
                     if (shouldHideWatched == isWatched)
@@ -195,7 +195,7 @@ public class EpisodeController : BaseController
                 if (includeVoted != IncludeOnlyFilter.True)
                 {
                     // If we should hide voted episodes and the episode is voted, then hide it.
-                    // Or if we should only show voted episodes and the the episode is not voted, then hide it.
+                    // Or if we should only show voted episodes and the episode is not voted, then hide it.
                     var shouldHideVoted = includeVoted == IncludeOnlyFilter.False;
                     var isVoted = RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(user.JMMUserID, shoko.AniDB_EpisodeID) is { HasUserRating: true };
                     if (shouldHideVoted == isVoted)

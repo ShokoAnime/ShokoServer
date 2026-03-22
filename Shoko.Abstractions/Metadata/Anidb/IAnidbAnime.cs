@@ -24,7 +24,7 @@ public interface IAnidbAnime : ISeries, IWithUpdateDate
     new IReadOnlyList<IAnidbSeason> Seasons { get; }
 
     /// <summary>
-    /// All episodes for the the AniDB anime.
+    /// All episodes for the AniDB anime.
     /// </summary>
     new IReadOnlyList<IAnidbEpisode> Episodes { get; }
 }

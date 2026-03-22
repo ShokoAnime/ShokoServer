@@ -12,7 +12,7 @@ namespace Shoko.Abstractions.Config;
 public interface IConfiguration { }
 
 /// <summary>
-/// Interface for signaling that the the configuration is a base configuration
+/// Interface for signaling that the configuration is a base configuration
 /// for other configurations, and should not be saved or loaded directly.
 /// </summary>
 /// <remarks>

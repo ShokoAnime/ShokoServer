@@ -15,7 +15,7 @@ public class AVDumpSettings
     public int MaxConcurrency { get; set; } = 1;
 
     /// <summary>
-    /// Sets the the timeout for a creq upload before retrying or bailing.
+    /// Sets the timeout for a creq upload before retrying or bailing.
     /// </summary>
     [Badge("Debug", Theme = DisplayColorTheme.Warning)]
     [Visibility(Advanced = true)]

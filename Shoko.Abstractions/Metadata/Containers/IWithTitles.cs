@@ -18,7 +18,7 @@ public interface IWithTitles
     ITitle DefaultTitle { get; }
 
     /// <summary>
-    /// The preferred title according to the the language preference in the
+    /// The preferred title according to the language preference in the
     /// settings, and/or any title overrides.
     /// </summary>
     ITitle? PreferredTitle { get; }

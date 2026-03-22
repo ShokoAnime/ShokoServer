@@ -29,7 +29,7 @@ public interface ISeason : IWithTitles, IWithDescriptions, IWithImages, IWithCas
     ISeries? Series { get; }
 
     /// <summary>
-    /// All episodes for the the season.
+    /// All episodes for the season.
     /// </summary>
     IReadOnlyList<IEpisode> Episodes { get; }
 }

@@ -194,7 +194,7 @@ public class SeriesController : BaseController
     /// Delete a Series
     /// </summary>
     /// <param name="seriesID">The ID of the Series</param>
-    /// <param name="deleteFiles">Whether to delete all of the files in the series from the disk.</param>
+    /// <param name="deleteFiles">Whether to delete all the files in the series from the disk.</param>
     /// <param name="completelyRemove">Removes all records relating to the series. Use with caution, as you may get banned if it's abused.</param>
     /// <returns></returns>
     [Authorize("admin")]
@@ -504,7 +504,7 @@ public class SeriesController : BaseController
     /// </summary>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
-    /// <param name="startsWith">Search only for anime with a main title that start with the given query.</param>
+    /// <param name="startsWith">Search only for anime with a main title that starts with the given query.</param>
     /// <returns></returns>
     [HttpGet("AniDB")]
     public ActionResult<ListResult<AnidbAnime>> GetAllAnime([FromQuery, Range(0, 100)] int pageSize = 50,
@@ -957,7 +957,7 @@ public class SeriesController : BaseController
     /// </summary>
     /// <param name="anidbID">AniDB ID</param>
     /// <param name="force">Try to forcefully retrieve updated data from AniDB if
-    /// we're not banned and if the the last update is outside the no-update
+    /// we're not banned and if the last update is outside the no-update
     /// window (configured in the settings).</param>
     /// <param name="downloadRelations">Download relations for the series</param>
     /// <param name="createSeriesEntry">Also create the Series entries if
@@ -989,7 +989,7 @@ public class SeriesController : BaseController
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
     /// <param name="force">Try to forcefully retrieve updated data from AniDB if
-    /// we're not banned and if the the last update is outside the no-update
+    /// we're not banned and if the last update is outside the no-update
     /// window (configured in the settings).</param>
     /// <param name="downloadRelations">Download relations for the series</param>
     /// <param name="createSeriesEntry">Also create the Series entries if
@@ -2161,7 +2161,7 @@ public class SeriesController : BaseController
                 if (includeWatched != IncludeOnlyFilter.True)
                 {
                     // If we should hide watched episodes and the episode is watched, then hide it.
-                    // Or if we should only show watched episodes and the the episode is not watched, then hide it.
+                    // Or if we should only show watched episodes and the episode is not watched, then hide it.
                     var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
                     var isWatched = shoko.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
                     if (shouldHideWatched == isWatched)
@@ -2172,7 +2172,7 @@ public class SeriesController : BaseController
                 if (includeVoted != IncludeOnlyFilter.True)
                 {
                     // If we should hide voted episodes and the episode is voted, then hide it.
-                    // Or if we should only show voted episodes and the the episode is not voted, then hide it.
+                    // Or if we should only show voted episodes and the episode is not voted, then hide it.
                     var shouldHideVoted = includeVoted == IncludeOnlyFilter.False;
                     var isVoted = RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(user.JMMUserID, shoko.AniDB_EpisodeID) is { HasUserRating: true };
                     if (shouldHideVoted == isVoted)
@@ -2303,7 +2303,7 @@ public class SeriesController : BaseController
                 if (includeWatched != IncludeOnlyFilter.True)
                 {
                     // If we should hide watched episodes and the episode is watched, then hide it.
-                    // Or if we should only show watched episodes and the the episode is not watched, then hide it.
+                    // Or if we should only show watched episodes and the episode is not watched, then hide it.
                     var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
                     var isWatched = shoko?.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
                     if (shouldHideWatched == isWatched)

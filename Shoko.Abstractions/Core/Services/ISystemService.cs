@@ -57,7 +57,7 @@ public interface ISystemService
     event EventHandler<ServerAboutToStartEventArgs>? AboutToStart;
 
     /// <summary>
-    ///   Dispatched when the the server has fully started and all services are
+    ///   Dispatched when the server has fully started and all services are
     ///   usable.
     /// </summary>
     event EventHandler? Started;

@@ -25,7 +25,7 @@ public interface ITmdbSeason : ISeason, IWithCreationDate, IWithUpdateDate
     new ITmdbShow? Series { get; }
 
     /// <summary>
-    /// All episodes for the the TMDB season.
+    /// All episodes for the TMDB season.
     /// </summary>
     new IReadOnlyList<ITmdbEpisode> Episodes { get; }
 

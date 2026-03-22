@@ -24,7 +24,7 @@ public class ConfigurationInfo(IConfigurationService configurationService)
     public required Guid ID { get; init; }
 
     /// <summary>
-    /// The absolute path to where the the configuration is saved on disk.
+    /// The absolute path to where the configuration is saved on disk.
     /// </summary>
     /// <remarks>
     /// The settings file may not necessarily exist if it has never been saved.

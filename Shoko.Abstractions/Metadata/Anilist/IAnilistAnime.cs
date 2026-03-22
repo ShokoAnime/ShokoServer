@@ -50,7 +50,7 @@ public interface IAnilistAnime : ISeries, IWithCreationDate, IWithUpdateDate
     new IReadOnlyList<IAnilistSeason> Seasons { get; }
 
     /// <summary>
-    /// All episodes for the the AniList anime.
+    /// All episodes for the AniList anime.
     /// </summary>
     new IReadOnlyList<IAnilistEpisode> Episodes { get; }
 }
