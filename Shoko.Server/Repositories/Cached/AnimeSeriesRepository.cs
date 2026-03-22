@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;

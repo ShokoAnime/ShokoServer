@@ -16,7 +16,7 @@ using Newtonsoft.Json.Serialization;
 using Sentry;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Services;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Utilities;

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using FluentNHibernate.Utils;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;

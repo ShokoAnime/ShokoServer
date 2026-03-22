@@ -17,7 +17,7 @@ using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
 
-using ImageEntityType = Shoko.Abstractions.Enums.ImageEntityType;
+using ImageEntityType = Shoko.Abstractions.Metadata.Enums.ImageEntityType;
 
 #pragma warning disable CS8618
 #nullable enable

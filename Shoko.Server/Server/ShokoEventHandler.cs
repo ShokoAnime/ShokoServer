@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Events;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;

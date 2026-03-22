@@ -5,7 +5,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v1.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;

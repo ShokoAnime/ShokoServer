@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Bulkhead;
 using Quartz;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;

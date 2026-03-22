@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Extensions;
@@ -26,8 +26,8 @@ using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-using AbstractAnimeType = Shoko.Abstractions.Enums.AnimeType;
-using AbstractEpisodeType = Shoko.Abstractions.Enums.EpisodeType;
+using AbstractAnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
+using AbstractEpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
 

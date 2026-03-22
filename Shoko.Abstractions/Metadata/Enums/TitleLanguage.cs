@@ -1,6 +1,6 @@
 using System;
 
-namespace Shoko.Abstractions.Enums;
+namespace Shoko.Abstractions.Metadata.Enums;
 
 /// <summary>
 /// The language of a title.

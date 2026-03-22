@@ -1,8 +1,8 @@
 using System;
 using Microsoft.AspNetCore.SignalR;
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Events;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Events;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.SignalR.Models;
 
 namespace Shoko.Server.API.SignalR.Aggregate;

@@ -1,6 +1,6 @@
 using System.Xml.Serialization;
 
-namespace Shoko.Abstractions.Enums;
+namespace Shoko.Abstractions.Metadata.Enums;
 
 /// <summary>
 /// Represents the type of a title.

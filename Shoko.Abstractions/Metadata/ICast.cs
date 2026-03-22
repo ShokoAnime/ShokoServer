@@ -1,4 +1,4 @@
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Containers;
 
 namespace Shoko.Abstractions.Metadata;

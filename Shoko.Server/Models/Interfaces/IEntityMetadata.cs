@@ -1,6 +1,6 @@
 
 using System;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Server;
 
 #nullable enable

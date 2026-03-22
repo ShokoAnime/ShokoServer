@@ -7,7 +7,7 @@ namespace Shoko.Server.API.v3.Models.Common;
 /// Available data sources to chose from.
 /// </summary>
 /// <remarks>
-/// Should be in sync with <see cref="global::Shoko.Abstractions.Enums.DataSource"/>.
+/// Should be in sync with <see cref="global::Shoko.Abstractions.Metadata.Enums.DataSource"/>.
 /// </remarks>
 [JsonConverter(typeof(StringEnumConverter))]
 public enum DataSourceType

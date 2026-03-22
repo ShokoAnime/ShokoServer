@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using Quartz;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
-using Shoko.Abstractions.Services;
 using Shoko.Abstractions.User;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories.Cached;

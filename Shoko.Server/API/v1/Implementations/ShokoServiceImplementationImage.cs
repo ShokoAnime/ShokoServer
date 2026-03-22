@@ -3,7 +3,7 @@ using System.IO;
 using ImageMagick;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Properties;

@@ -3,7 +3,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.General;

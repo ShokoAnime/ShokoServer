@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using NHibernate;
 using NutzCode.InMemoryIndex;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;

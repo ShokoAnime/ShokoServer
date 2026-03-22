@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 

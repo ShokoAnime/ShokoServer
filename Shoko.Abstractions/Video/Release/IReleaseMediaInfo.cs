@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Video.Release;
 

@@ -1,6 +1,6 @@
 using System;
 using System.Text.Json.Serialization;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 

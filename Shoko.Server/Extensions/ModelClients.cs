@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Server.API.v1.Models;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.Models.AniDB;

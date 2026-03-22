@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ImageMagick;
 using Newtonsoft.Json;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;

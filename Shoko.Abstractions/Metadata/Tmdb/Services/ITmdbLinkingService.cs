@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 
 namespace Shoko.Abstractions.Metadata.Tmdb.Services;

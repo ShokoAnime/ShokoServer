@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using Shoko.Abstractions.Events;
-using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Shoko;
 
-namespace Shoko.Abstractions.Services;
+namespace Shoko.Abstractions.Metadata.Services;
 
 /// <summary>
 /// Provides functionality for interacting with metadata from various providers,

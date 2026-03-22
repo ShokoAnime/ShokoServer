@@ -9,13 +9,13 @@ using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
 
-using AbstractAnimeType = Shoko.Abstractions.Enums.AnimeType;
-using AbstractEpisodeType = Shoko.Abstractions.Enums.EpisodeType;
-using AbstractYearlySeason = Shoko.Abstractions.Enums.YearlySeason;
+using AbstractAnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
+using AbstractEpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
+using AbstractYearlySeason = Shoko.Abstractions.Metadata.Enums.YearlySeason;
 using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
 using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
-using ImageEntityType = Shoko.Abstractions.Enums.ImageEntityType;
-using TitleLanguage = Shoko.Abstractions.Enums.TitleLanguage;
+using ImageEntityType = Shoko.Abstractions.Metadata.Enums.ImageEntityType;
+using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Helpers;

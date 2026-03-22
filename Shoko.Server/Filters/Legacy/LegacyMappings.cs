@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Filters.Files;
 using Shoko.Server.Filters.Functions;
 using Shoko.Server.Filters.Info;

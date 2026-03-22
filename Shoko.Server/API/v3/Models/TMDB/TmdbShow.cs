@@ -10,7 +10,7 @@ using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 
-using TitleLanguage = Shoko.Abstractions.Enums.TitleLanguage;
+using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;

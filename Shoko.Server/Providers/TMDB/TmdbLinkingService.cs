@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Server.Extensions;

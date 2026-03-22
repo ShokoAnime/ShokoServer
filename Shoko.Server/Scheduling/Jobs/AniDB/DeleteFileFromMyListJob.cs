@@ -10,7 +10,7 @@ using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Settings;
 
-using EpisodeType = Shoko.Abstractions.Enums.EpisodeType;
+using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Void;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;

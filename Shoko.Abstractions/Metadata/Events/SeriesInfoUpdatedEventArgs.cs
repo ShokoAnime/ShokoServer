@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 
-namespace Shoko.Abstractions.Events;
+namespace Shoko.Abstractions.Metadata.Events;
 
 /// <summary>
 /// Dispatched when a series metadata update occurs.

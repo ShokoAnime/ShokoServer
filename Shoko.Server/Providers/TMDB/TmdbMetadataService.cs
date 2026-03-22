@@ -12,7 +12,7 @@ using Polly.Bulkhead;
 using Polly.RateLimit;
 using Polly.Retry;
 using Quartz;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Server.Models.Interfaces;
@@ -35,7 +35,7 @@ using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.People;
 using TMDbLib.Objects.TvShows;
 
-using TitleLanguage = Shoko.Abstractions.Enums.TitleLanguage;
+using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 using MovieCredits = TMDbLib.Objects.Movies.Credits;
 
 // Suggestions we don't need in this file.

@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;

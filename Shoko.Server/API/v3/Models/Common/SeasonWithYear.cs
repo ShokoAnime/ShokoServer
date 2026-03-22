@@ -1,7 +1,7 @@
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 
 
 namespace Shoko.Server.API.v3.Models.Common;

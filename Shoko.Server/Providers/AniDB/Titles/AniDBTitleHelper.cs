@@ -8,7 +8,7 @@ using System.Net.Http;
 using System.Net.Security;
 using System.Threading;
 using System.Xml.Serialization;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;

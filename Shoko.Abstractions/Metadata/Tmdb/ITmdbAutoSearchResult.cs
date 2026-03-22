@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Anidb;
 
 namespace Shoko.Abstractions.Metadata.Tmdb;

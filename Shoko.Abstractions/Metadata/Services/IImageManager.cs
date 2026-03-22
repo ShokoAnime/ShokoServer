@@ -1,9 +1,7 @@
-
-using Shoko.Abstractions.Enums;
-using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 
-namespace Shoko.Abstractions.Services;
+namespace Shoko.Abstractions.Metadata.Services;
 
 /// <summary>
 ///   Responsible for managing images.

@@ -3,7 +3,7 @@ using System.Globalization;
 using System.IO;
 using ImageMagick;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Abstractions.Services;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.core;

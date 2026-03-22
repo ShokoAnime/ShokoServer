@@ -29,10 +29,10 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-using AnimeType = Shoko.Abstractions.Enums.AnimeType;
-using EpisodeType = Shoko.Abstractions.Enums.EpisodeType;
-using MatchRating = Shoko.Abstractions.Enums.MatchRating;
-using TitleLanguage = Shoko.Abstractions.Enums.TitleLanguage;
+using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
+using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
+using MatchRating = Shoko.Abstractions.Metadata.Enums.MatchRating;
+using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 

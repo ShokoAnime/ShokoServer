@@ -6,7 +6,7 @@ using System.Net;
 using System.Web;
 using System.Xml;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;

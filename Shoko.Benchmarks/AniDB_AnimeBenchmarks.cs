@@ -1,5 +1,5 @@
 using BenchmarkDotNet.Attributes;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.TestData;

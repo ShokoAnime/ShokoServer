@@ -10,7 +10,7 @@ using F23.StringSimilarity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.API.v1.Models;
@@ -84,7 +84,7 @@ public partial class ShokoServiceImplementation
         languages.UnionWith(languagePreference.Select(b => b.ToLower()));
 
         foreach (var title in RepoFactory.AniDB_Anime_Title.GetByAnimeID(a.AniDB_ID)
-                     .Where(b => b.TitleType != Shoko.Abstractions.Enums.TitleType.Short && languages.Contains(b.LanguageCode))
+                     .Where(b => b.TitleType != Shoko.Abstractions.Metadata.Enums.TitleType.Short && languages.Contains(b.LanguageCode))
                      .Select(b => b.Title?.ToLowerInvariant()).ToList())
         {
             if (string.IsNullOrEmpty(title)) continue;

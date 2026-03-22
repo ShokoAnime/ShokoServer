@@ -1,5 +1,5 @@
 
-namespace Shoko.Abstractions.Enums;
+namespace Shoko.Abstractions.Metadata.Enums;
 
 /// <summary>
 /// Types of creators.

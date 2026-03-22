@@ -23,7 +23,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 using Constants = Shoko.Server.Server.Constants;
-using EpisodeType = Shoko.Abstractions.Enums.EpisodeType;
+using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 namespace Shoko.Server.API.v1.Implementations;
 

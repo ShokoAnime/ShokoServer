@@ -16,7 +16,7 @@ using NLog;
 using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;

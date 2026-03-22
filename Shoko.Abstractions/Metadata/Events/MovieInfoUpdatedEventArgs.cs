@@ -1,8 +1,7 @@
 using System;
-using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 
-namespace Shoko.Abstractions.Events;
+namespace Shoko.Abstractions.Metadata.Events;
 
 /// <summary>
 /// Dispatched when movie data was updated.

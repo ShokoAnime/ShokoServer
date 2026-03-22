@@ -1,5 +1,5 @@
 using Quartz;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 
 #nullable enable
 namespace Shoko.Server.Scheduling.Jobs;

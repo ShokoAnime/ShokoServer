@@ -1,7 +1,7 @@
 using System.IO;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;

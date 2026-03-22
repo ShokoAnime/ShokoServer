@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Server;

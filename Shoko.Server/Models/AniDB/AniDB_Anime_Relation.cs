@@ -1,10 +1,10 @@
 ﻿using System;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.Repositories;
 
-using AbstractRelationType = Shoko.Abstractions.Enums.RelationType;
+using AbstractRelationType = Shoko.Abstractions.Metadata.Enums.RelationType;
 
 #nullable enable
 namespace Shoko.Server.Models.AniDB;

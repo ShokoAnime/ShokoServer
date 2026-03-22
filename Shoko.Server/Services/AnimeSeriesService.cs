@@ -7,7 +7,7 @@ using Force.DeepCloner;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Services;
@@ -21,8 +21,8 @@ using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Utilities;
 
-using AnimeType = Shoko.Abstractions.Enums.AnimeType;
-using EpisodeType = Shoko.Abstractions.Enums.EpisodeType;
+using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
+using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #nullable enable
 namespace Shoko.Server.Services;

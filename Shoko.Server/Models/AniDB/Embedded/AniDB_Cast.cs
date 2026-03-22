@@ -1,5 +1,5 @@
 using System;
-using Shoko.Abstractions.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;

@@ -1,4 +1,4 @@
-namespace Shoko.Abstractions.Enums;
+namespace Shoko.Abstractions.Metadata.Enums;
 
 /// <summary>
 /// Types of roles an actor can have in a cast.

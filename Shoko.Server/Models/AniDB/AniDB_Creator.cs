@@ -8,8 +8,8 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 
-using AbstractCreatorType = Shoko.Abstractions.Enums.CreatorType;
-using DataSource = Shoko.Abstractions.Enums.DataSource;
+using AbstractCreatorType = Shoko.Abstractions.Metadata.Enums.CreatorType;
+using DataSource = Shoko.Abstractions.Metadata.Enums.DataSource;
 
 #nullable enable
 namespace Shoko.Server.Models.AniDB;
