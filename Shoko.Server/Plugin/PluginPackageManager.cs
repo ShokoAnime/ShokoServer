@@ -232,9 +232,11 @@ public partial class PluginPackageManager(
                         Name = plugin.Name,
                         Overview = plugin.Description,
                         Authors = plugin.Authors ?? "Unknown",
+                        RepositoryUrl = plugin.RepositoryUrl,
+                        HomepageUrl = plugin.HomepageUrl,
+                        Tags = plugin.Tags,
                         Thumbnail = plugin.Thumbnail,
                         Releases = [release],
-                        Tags = [],
                         LastFetchedAt = plugin.InstalledAt,
                     };
                     localPackages.Add(new()
@@ -555,6 +557,8 @@ public partial class PluginPackageManager(
                 PackageID = list[0].PackageID,
                 Overview = list[0].Overview,
                 Authors = list[0].Authors,
+                RepositoryUrl = list[0].RepositoryUrl,
+                HomepageUrl = list[0].HomepageUrl,
                 Thumbnail = list.FirstOrDefault(m => m.Thumbnail is not null)?.Thumbnail,
                 Name = list[0].Name,
                 Releases = list.SelectMany(m => m.Releases)
@@ -912,7 +916,12 @@ public partial class PluginPackageManager(
             Name = manifestInfo.Name,
             Overview = manifestInfo.Overview,
             Authors = manifestInfo.Authors,
-            Tags = manifestInfo.Tags,
+            RepositoryUrl = manifestInfo.RepositoryUrl,
+            HomepageUrl = manifestInfo.HomepageUrl,
+            Tags = manifestInfo.Tags
+                .Select(tag => tag.ToLowerInvariant())
+                .Distinct()
+                .ToArray(),
             Thumbnail = thumbnail,
             Releases = manifestInfo.Releases
                 .Select(remoteRelease => new PackageReleaseInfo

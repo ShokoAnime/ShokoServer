@@ -74,6 +74,22 @@ public sealed class RemotePackageManifestInfo
     public string? Authors { get; set; }
 
     /// <summary>
+    ///   The repository URL for the package and plugin releases contained
+    ///   within it, if provided.
+    /// </summary>
+    [JsonPropertyName("repository_url")]
+    [JsonProperty("repository_url")]
+    public string? RepositoryUrl { get; set; }
+
+    /// <summary>
+    ///   The home-page URL for the package and plugin releases contained within
+    ///   it, if provided.
+    /// </summary>
+    [JsonPropertyName("homepage_url")]
+    [JsonProperty("homepage_url")]
+    public string? HomepageUrl { get; set; }
+
+    /// <summary>
     /// Search tags.
     /// </summary>
     [MaxLength(10)]

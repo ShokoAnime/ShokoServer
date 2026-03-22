@@ -92,6 +92,24 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         public required string? Authors { get; init; }
 
         /// <summary>
+        ///   The repository URL for the package and plugin releases contained
+        ///   within it, if provided.
+        /// </summary>
+        public required string? RepositoryUrl { get; init; }
+
+        /// <summary>
+        ///   The home-page URL for the package and plugin releases contained
+        ///   within it, if provided.
+        /// </summary>
+        public required string? HomepageUrl { get; init; }
+
+        /// <summary>
+        ///   The search tags for the plugin. A maximum of 10 tags will be
+        ///   loaded if provided.
+        /// </summary>
+        public required IReadOnlyList<string> Tags { get; init; }
+
+        /// <summary>
         ///   The priority of the plugin for loading order. Lower values load first.
         /// </summary>
         /// <remarks>
@@ -197,6 +215,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 Authors = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyCompanyAttribute>() is { Company: { Length: > 0 } companyName }
                     ? companyName
                     : null,
+                RepositoryUrl = null,
+                HomepageUrl = null,
+                Tags = [],
                 IsPinned = true,
                 IsEnabled = true,
                 CanLoad = true,
@@ -242,6 +263,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         Description = internalPluginInfo.Description,
                         Version = internalPluginInfo.Version,
                         Authors = internalPluginInfo.Authors,
+                        RepositoryUrl = internalPluginInfo.RepositoryUrl,
+                        HomepageUrl = internalPluginInfo.HomepageUrl,
+                        Tags = internalPluginInfo.Tags,
                         LoadOrder = _pluginTypes.Count,
                         InstalledAt = internalPluginInfo.InstalledAt,
                         IsEnabled = false,
@@ -271,6 +295,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     Description = internalPluginInfo.Description,
                     Version = internalPluginInfo.Version,
                     Authors = internalPluginInfo.Authors,
+                    RepositoryUrl = internalPluginInfo.RepositoryUrl,
+                    HomepageUrl = internalPluginInfo.HomepageUrl,
+                    Tags = internalPluginInfo.Tags,
                     LoadOrder = _pluginTypes.Count,
                     InstalledAt = internalPluginInfo.InstalledAt,
                     IsEnabled = true,
@@ -333,6 +360,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 Description = pluginInstance.Description?.CleanDescription() ?? string.Empty,
                 Version = localPluginInfo.Version,
                 Authors = localPluginInfo.Authors,
+                RepositoryUrl = localPluginInfo.RepositoryUrl,
+                HomepageUrl = localPluginInfo.HomepageUrl,
+                Tags = localPluginInfo.Tags,
                 LoadOrder = localPluginInfo.LoadOrder,
                 InstalledAt = localPluginInfo.InstalledAt,
                 IsEnabled = true,
@@ -502,13 +532,19 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         continue;
                     }
 
-                    var version = ReadVersionInformationFromAssembly(assembly, out var isLegacyNamespace);
+                    var version = ReadVersionInformationFromAssembly(assembly, out var isLegacyNamespace, out var metadataAttributeDict);
                     if (version is null)
                         continue;
 
                     var authors = assembly.GetCustomAttribute<AssemblyCompanyAttribute>() is { Company: { Length: > 0 } companyName }
                         ? companyName
                         : null;
+                    var repositoryUrl = metadataAttributeDict.ContainsKey(RepositoryUrl) && metadataAttributeDict[RepositoryUrl] is { Length: > 0 } ? metadataAttributeDict[RepositoryUrl] : null;
+                    var homepageUrl = metadataAttributeDict.ContainsKey(PackageProjectUrl) && metadataAttributeDict[PackageProjectUrl] is { Length: > 0 } ? metadataAttributeDict[PackageProjectUrl] : null;
+                    var tags = metadataAttributeDict.ContainsKey(PackageTags) &&
+                        metadataAttributeDict[PackageTags]?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) is { Length: > 0 } packageTags
+                        ? packageTags.Select(tag => tag.ToLowerInvariant()).Distinct().ToArray()
+                        : [];
 
                     // TryAdd, because if it made it this far, then it's missing or true.
                     if (settings.Plugins.EnabledPlugins.TryAdd(name, true))
@@ -530,6 +566,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                                 : "The plugin failed to load due to missing dependencies.",
                             Version = version,
                             Authors = authors,
+                            RepositoryUrl = repositoryUrl,
+                            HomepageUrl = homepageUrl,
+                            Tags = tags,
                             InstalledAt = createdAt,
                             IsPinned = string.IsNullOrEmpty(dirPath)
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
@@ -556,6 +595,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             Description = "The plugin failed to load because it references a newer version of Shoko.Abstractions than what this server supports.",
                             Version = version,
                             Authors = authors,
+                            RepositoryUrl = repositoryUrl,
+                            HomepageUrl = homepageUrl,
+                            Tags = tags,
                             InstalledAt = createdAt,
                             IsPinned = string.IsNullOrEmpty(dirPath)
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
@@ -588,6 +630,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             Description = "The plugin failed to load due to missing dependencies.",
                             Version = version,
                             Authors = authors,
+                            RepositoryUrl = repositoryUrl,
+                            HomepageUrl = homepageUrl,
+                            Tags = tags,
                             InstalledAt = createdAt,
                             IsPinned = string.IsNullOrEmpty(dirPath)
                                 ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
@@ -675,6 +720,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         Description = instance.Description?.CleanDescription() ?? string.Empty,
                         Version = version,
                         Authors = authors,
+                        RepositoryUrl = repositoryUrl,
+                        HomepageUrl = homepageUrl,
+                        Tags = tags,
                         InstalledAt = createdAt,
                         IsPinned = string.IsNullOrEmpty(dirPath)
                             ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
@@ -705,6 +753,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     #region Setup | Version
 
+    private const string RepositoryUrl = "RepositoryUrl";
+
+    private const string PackageProjectUrl = "PackageProjectUrl";
+
+    private const string PackageTags = "PackageTags";
+
     private const string NewRuntimeIdentifier = "RuntimeIdentifier";
 
     private const string NewReleaseTag = "ReleaseTag";
@@ -724,18 +778,19 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     private static VersionInformation? _serverVersionInformation;
 
     internal static VersionInformation GetVersionInformation()
-        => _serverVersionInformation ??= ReadVersionInformationFromAssembly(Assembly.GetExecutingAssembly(), out _)!;
+        => _serverVersionInformation ??= ReadVersionInformationFromAssembly(Assembly.GetExecutingAssembly(), out _, out _)!;
 
     internal static VersionInformation? GetVersionInformation(Assembly assembly)
-        => ReadVersionInformationFromAssembly(assembly, out _)!;
+        => ReadVersionInformationFromAssembly(assembly, out _, out _)!;
 
-    private static VersionInformation? ReadVersionInformationFromAssembly(Assembly assembly, out bool isLegacyNamespace)
+    private static VersionInformation? ReadVersionInformationFromAssembly(Assembly assembly, out bool isLegacyNamespace, out Dictionary<string, string?> metadataAttributeDict)
     {
         var dllPath = assembly.Location!;
         var referencedAssemblies = assembly.GetReferencedAssemblies();
         var legacyRef = referencedAssemblies.FirstOrDefault(r => r.Name is "Shoko.Plugin.Abstractions");
         var newRef = referencedAssemblies.FirstOrDefault(r => r.Name is "Shoko.Abstractions");
         isLegacyNamespace = legacyRef is not null && newRef is null;
+        metadataAttributeDict = [];
         var abstractionVersion = (isLegacyNamespace ? legacyRef : newRef)?.Version is { Major: var abiMajor, Minor: var abiMinor, Build: var abiBuild }
             ? new Version(abiMajor, abiMinor, abiBuild)
             : new(0, 0, 0);
@@ -749,7 +804,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         if (version <= _invalidVersion)
             return null;
 
-        var metadataAttributeDict = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+        metadataAttributeDict = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
             .Select(a => KeyValuePair.Create(a.Key, a.Value))
             .DistinctBy(kp => kp.Key)
             .ToDictionary();
@@ -1008,6 +1063,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             Description = internalPluginInfo.Description,
             Version = internalPluginInfo.Version,
             Authors = internalPluginInfo.Authors,
+            RepositoryUrl = internalPluginInfo.RepositoryUrl,
+            HomepageUrl = internalPluginInfo.HomepageUrl,
+            Tags = internalPluginInfo.Tags,
             LoadOrder = _pluginTypes.Count,
             InstalledAt = internalPluginInfo.InstalledAt,
             IsEnabled = internalPluginInfo.IsEnabled,

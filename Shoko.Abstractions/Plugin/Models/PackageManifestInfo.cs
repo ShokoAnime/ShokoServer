@@ -32,11 +32,27 @@ public sealed class PackageManifestInfo
     public required string Overview { get; init; }
 
     /// <summary>
-    ///   The author(s) of the package and plugins contained within it.
+    ///   The author(s) of the package and plugin releases contained within it.
     /// </summary>
     [JsonPropertyName("authors")]
     [JsonProperty("authors")]
     public required string Authors { get; init; }
+
+    /// <summary>
+    ///   The repository URL for the package and plugin releases contained
+    ///   within it, if provided.
+    /// </summary>
+    [JsonPropertyName("repository_url")]
+    [JsonProperty("repository_url")]
+    public required string? RepositoryUrl { get; init; }
+
+    /// <summary>
+    ///   The home-page URL for the package and plugin releases contained within
+    ///   it, if provided.
+    /// </summary>
+    [JsonPropertyName("homepage_url")]
+    [JsonProperty("homepage_url")]
+    public required string? HomepageUrl { get; init; }
 
     /// <summary>
     ///   Search tags.

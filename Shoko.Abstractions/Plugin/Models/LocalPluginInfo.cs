@@ -36,6 +36,22 @@ public sealed class LocalPluginInfo
     public required string? Authors { get; init; }
 
     /// <summary>
+    ///   The repository URL for the plugin, if provided.
+    /// </summary>
+    public required string? RepositoryUrl { get; init; }
+
+    /// <summary>
+    ///   The home-page URL for the plugin, if provided.
+    /// </summary>
+    public required string? HomepageUrl { get; init; }
+
+    /// <summary>
+    ///   The search tags for the plugin. A maximum of 10 tags will be loaded if
+    ///   provided.
+    /// </summary>
+    public required IReadOnlyList<string> Tags { get; init; }
+
+    /// <summary>
     ///   The order in which the plugin was loaded.
     /// </summary>
     public required int LoadOrder { get; init; }
