@@ -23,7 +23,7 @@ public class AniDB_AnimeRepository : Server.Repositories.Cached.AniDB.AniDB_Anim
 
     public override void Populate(bool displayName = true, CancellationToken cancellationToken = default)
     {
-        Populate(null!, displayName);
+        Populate(null!, displayName, cancellationToken);
     }
 
     public AniDB_AnimeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)

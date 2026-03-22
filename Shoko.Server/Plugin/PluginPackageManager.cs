@@ -896,7 +896,7 @@ public partial class PluginPackageManager(
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var jsonDoc = await JsonDocument.ParseAsync(response.Content.ReadAsStream(), default, cancellationToken).ConfigureAwait(false);
+        var jsonDoc = await JsonDocument.ParseAsync(response.Content.ReadAsStream(cancellationToken), default, cancellationToken).ConfigureAwait(false);
         return (jsonDoc, lastFetchedAt);
     }
 
