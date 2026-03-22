@@ -173,14 +173,22 @@
       <Copy SourceFiles="@(PublishedPlugins)" DestinationFolder="$(PublishDir)plugins" />
       <Message Text="[MovePluginReferencesOutputForPublish] Finished publish plugin move" Importance="high" />
   </Target>
-  <Target Name="PluginAssemblyVersion" BeforeTargets="GetAssemblyVersion;GenerateAssemblyInfo">
-    <Exec Command="git log -1 --format=%aI" ConsoleToMsBuild="true" Condition="Exists('../.git')">
+  <Target Name="PluginAssemblyVersion" BeforeTargets="GetAssemblyVersion;GenerateAssemblyInfo" Condition="Exists('../.git')">
+    <PropertyGroup Condition="$(OS) == 'Windows_NT'">
+      <GitDateFormat>%%aI</GitDateFormat>
+      <NullStdErr>NUL</NullStdErr>
+    </PropertyGroup>
+    <PropertyGroup Condition="$(OS) != 'Windows_NT'">
+      <GitDateFormat>%aI</GitDateFormat>
+      <NullStdErr>/dev/null</NullStdErr>
+    </PropertyGroup>
+    <Exec Command="git log -1 --format=$(GitDateFormat)" ConsoleToMsBuild="true">
       <Output TaskParameter="ConsoleOutput" PropertyName="_GitAuthorDateRaw" />
     </Exec>
-    <Exec Command="git rev-parse HEAD" ConsoleToMsBuild="true" Condition="Exists('../.git')">
+    <Exec Command="git rev-parse HEAD" ConsoleToMsBuild="true">
       <Output TaskParameter="ConsoleOutput" PropertyName="_GitCommitRaw" />
     </Exec>
-    <Exec Command='git describe --exact-match --tags --match "v[0-9]*.[0-9]*.[0-9]*" 2>/dev/null || echo' ConsoleToMsBuild="true" IgnoreExitCode="true" Condition="Exists('../.git')">
+    <Exec Command='git describe --exact-match --tags --match "v[0-9]*.[0-9]*.[0-9]*" 2>$(NullStdErr)' ConsoleToMsBuild="true" IgnoreExitCode="true">
       <Output TaskParameter="ConsoleOutput" PropertyName="_GitTagRaw" />
     </Exec>
     <PropertyGroup>
@@ -189,26 +197,10 @@
       <ReleaseTag>$([System.String]::Copy('$(_GitTagRaw)').Trim())</ReleaseTag>
     </PropertyGroup>
     <ItemGroup>
-      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(RuntimeIdentifier)' != ''" >
-        <_Parameter1>RuntimeIdentifier</_Parameter1>
-        <_Parameter2>$(RuntimeIdentifier)</_Parameter2>
-      </AssemblyAttribute>
-      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(ReleaseDate)' != ''">
-        <_Parameter1>ReleaseDate</_Parameter1>
-        <_Parameter2>$(ReleaseDate)</_Parameter2>
-      </AssemblyAttribute>
-      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(ReleaseTag)' != ''">
-        <_Parameter1>ReleaseTag</_Parameter1>
-        <_Parameter2>$(ReleaseTag)</_Parameter2>
-      </AssemblyAttribute>
-      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(ReleaseChannel)' != ''">
-        <_Parameter1>ReleaseChannel</_Parameter1>
-        <_Parameter2>$(ReleaseChannel)</_Parameter2>
-      </AssemblyAttribute>
-      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(SourceRevision)' != ''">
-        <_Parameter1>SourceRevision</_Parameter1>
-        <_Parameter2>$(SourceRevision)</_Parameter2>
-      </AssemblyAttribute>
+      <AssemblyMetadata Include="RuntimeIdentifier" Value="$(RuntimeIdentifier)" Condition="'$(RuntimeIdentifier)' != ''"/>
+      <AssemblyMetadata Include="ReleaseDate" Value="$(ReleaseDate)" Condition="'$(ReleaseDate)' != ''"/>
+      <AssemblyMetadata Include="ReleaseTag" Value="$(ReleaseTag)" Condition="'$(ReleaseTag)' != ''"/>
+      <AssemblyMetadata Include="SourceRevision" Value="$(SourceRevision)" Condition="'$(SourceRevision)' != ''"/>
     </ItemGroup>
   </Target>
 </Project>
