@@ -35,6 +35,16 @@ public interface ISystemService
     /// </summary>
     VersionInformation Version { get; }
 
+    /// <summary>
+    ///   The version of the MediaInfo executable we use, if available.
+    /// </summary>
+    string? MediaInfoVersion { get; }
+
+    /// <summary>
+    ///   The version of the RHash library we use, if available.
+    /// </summary>
+    string? RHashVersion { get; }
+
     #endregion
 
     #region Startup

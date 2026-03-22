@@ -118,6 +118,12 @@ public class SystemService : ISystemService
     /// <inheritdoc/>
     public VersionInformation Version { get; }
 
+    /// <inheritdoc/>
+    public string? MediaInfoVersion { get; private set; }
+
+    /// <inheritdoc/>
+    public string? RHashVersion { get; private set; }
+
     #endregion
 
     #region Startup
@@ -214,31 +220,14 @@ public class SystemService : ISystemService
             MessagePackSerializer.Typeless.DefaultOptions = MessagePackSerializer.Typeless.DefaultOptions.WithAllowAssemblyVersionMismatch(true)
                 .WithCompression(MessagePackCompression.Lz4BlockArray);
 
+            MediaInfoVersion = MediaInfoUtility.GetVersion();
+            RHashVersion = CoreHashProvider.GetRhashVersion();
+
             // Log some basic information about the server before we start.
             _logger.LogInformation("Shoko Server: {Version}", Version);
             _logger.LogInformation("Operating System: {OSInfo}", RuntimeInformation.OSDescription);
-
-            try
-            {
-                var mediaInfoVersion = MediaInfoUtility.GetVersion();
-                mediaInfoVersion ??= "Program NOT found";
-                _logger.LogInformation("MediaInfo: {version}", mediaInfoVersion);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Unable to read MediaInfo version: {Message}", ex.Message);
-            }
-
-            try
-            {
-                var version = CoreHashProvider.GetRhashVersion();
-                version ??= "Library NOT found";
-                _logger.LogInformation("RHash: {version}", version);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Unable to read RHash version: {Message}", ex.Message);
-            }
+            _logger.LogInformation("MediaInfo: {Version}", MediaInfoVersion ?? "Program NOT found");
+            _logger.LogInformation("RHash: {Version}", RHashVersion ?? "Library NOT found");
 
             StartupMessage = "Scanning for Plugins...";
 

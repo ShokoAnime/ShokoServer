@@ -617,12 +617,10 @@ public static class MediaInfoUtility
             var version = index > 0 ? output[index..] : output.Split('\n').Skip(1).FirstOrDefault();
             return version;
         }
-        catch (Exception e)
+        catch
         {
-            Logger.Error(e, "Unable to get MediaInfo version");
+            return null;
         }
-
-        return null;
     }
 
     #endregion
