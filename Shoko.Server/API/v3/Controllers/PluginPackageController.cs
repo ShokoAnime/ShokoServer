@@ -302,11 +302,11 @@ public class PluginPackageController(
             onlyLatest: parsedReleaseVersion is null
         );
         if (runtimeIdentifier is { Length: > 0 })
-            packages.Where(p => string.Equals(p.Archive.RuntimeIdentifier, runtimeIdentifier));
+            packages = packages.Where(p => string.Equals(p.Archive.RuntimeIdentifier, runtimeIdentifier));
         if (parsedAbstractionVersion is not null)
-            packages.Where(p => p.Archive.AbstractionVersion == parsedAbstractionVersion);
+            packages = packages.Where(p => p.Archive.AbstractionVersion == parsedAbstractionVersion);
         if (parsedReleaseVersion is not null)
-            packages.Where(p => p.Release.Version == parsedReleaseVersion);
+            packages = packages.Where(p => p.Release.Version == parsedReleaseVersion);
         if (packages.FirstOrDefault() is not { } package)
             return ValidationProblem("Package not found or no compatible version available");
 
