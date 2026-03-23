@@ -1,5 +1,6 @@
 ﻿using FluentNHibernate.Mapping;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Mappings;
@@ -12,7 +13,7 @@ public class AniDB_AnimeMap : ClassMap<AniDB_Anime>
         Not.LazyLoad();
         Id(x => x.AniDB_AnimeID);
 
-        Map(x => x.AirDate);
+        Map(x => x.AirDate).CustomType<PartialDateOnlyConverter>();
         Map(x => x.AllCinemaID);
         Map(x => x.AllTitles);
         Map(x => x.AllTags);
@@ -38,7 +39,7 @@ public class AniDB_AnimeMap : ClassMap<AniDB_Anime>
         Map(x => x.DateTimeUpdated).Not.Nullable();
 #pragma warning restore CS0618
         Map(x => x.Description).CustomType("StringClob").Not.Nullable();
-        Map(x => x.EndDate);
+        Map(x => x.EndDate).CustomType<PartialDateOnlyConverter>();
         Map(x => x.EndYear).Not.Nullable();
         Map(x => x.EpisodeCount).Not.Nullable();
         Map(x => x.EpisodeCountNormal).Not.Nullable();

@@ -332,7 +332,7 @@ public class AnimeSeriesService
             var airdate = ep.AniDB_Episode?.GetAirDateAsDate();
 
             // If episode air date is unknown, air date of the anime is used instead
-            airdate ??= series.AniDB_Anime?.AirDate;
+            airdate ??= series.AniDB_Anime?.AirDate?.ToDateTime();
 
             // Only count episodes that have already aired
             // airdate could, in theory, only be null here if AniDB neither has information on the episode

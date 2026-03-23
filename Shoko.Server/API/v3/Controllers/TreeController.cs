@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -471,7 +472,9 @@ public class TreeController(ISettingsProvider settingsProvider, FilterFactory _f
             .Where(a => user.AllowedSeries(a))
             .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
             .Where(series => series.Size > 0 || includeMissing)
-            .OrderBy(a => a.AniDB?.AirDate ?? DateOnly.MaxValue)
+            .OrderByDescending(a => a?.AniDB.AirDate.HasValue ?? false)
+            .ThenByDescending(a => a?.AniDB.AirDate?.IsComplete ?? false)
+            .ThenBy(a => a?.AniDB.AirDate ?? PartialDateOnly.MaxValue)
             .ToList();
     }
 

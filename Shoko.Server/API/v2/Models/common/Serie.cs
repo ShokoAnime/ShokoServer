@@ -72,11 +72,7 @@ public class Serie : BaseDirectory, IComparable
         if (anime.AirDate.HasValue)
         {
             sr.year = anime.AirDate.Value.Year.ToString();
-            var airdate = anime.AirDate.Value;
-            if (airdate != DateTime.MinValue)
-            {
-                sr.air = airdate.ToISO8601Date();
-            }
+            sr.air = anime.AirDate.Value.ToDateTime().ToISO8601Date();
         }
 
         if (

@@ -8,16 +8,18 @@ using NHibernate;
 using NHibernate.Engine;
 using NHibernate.SqlTypes;
 using NHibernate.UserTypes;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Extensions;
 
 #nullable enable
 namespace Shoko.Server.Databases.NHibernate;
 
-public class DateOnlyConverter : TypeConverter, IUserType
+public class PartialDateOnlyConverter : TypeConverter, IUserType
 {
     public override bool CanConvertFrom(ITypeDescriptorContext? context, Type? sourceType)
         => sourceType?.FullName switch
         {
+            "Shoko.Abstractions.Metadata.PartialDateOnly" => true,
             "System.DateOnly" => true,
             "System.DateTime" => true,
             "System.String" => true,
@@ -29,21 +31,20 @@ public class DateOnlyConverter : TypeConverter, IUserType
     public override bool CanConvertTo(ITypeDescriptorContext? context, Type? destinationType)
         => destinationType?.FullName switch
         {
-            "System.DateTime" => true,
+            "Shoko.Abstractions.Metadata.PartialDateOnly" => true,
             "System.String" => true,
-            "System.Int32" => true,
-            "System.Int64" => true,
             _ => false,
         };
 
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object? value)
         => value switch
         {
-            DateOnly i => i,
-            DateTime i => i.ToDateOnly(),
+            PartialDateOnly i => i,
+            DateOnly i => new PartialDateOnly(i),
+            DateTime i => new PartialDateOnly(i),
             int i => new DateTime(i).ToDateOnly(),
             long i => new DateTime(i).ToDateOnly(),
-            string i => DateTime.Parse(i).ToDateOnly(),
+            string i => PartialDateOnly.Parse(i),
             null => null,
             _ => throw new ArgumentException("DestinationType must be System.DateOnly.")
         };
@@ -51,27 +52,12 @@ public class DateOnlyConverter : TypeConverter, IUserType
     public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type? destinationType)
         => destinationType?.FullName switch
         {
-            "System.Int32" => value switch
-            {
-                DateOnly i => (int)i.ToDateTime(TimeOnly.MinValue).Ticks,
-                _ => null,
-            },
-            "System.Int64" => value switch
-            {
-                DateOnly i => (long)i.ToDateTime(TimeOnly.MinValue).Ticks,
-                _ => null,
-            },
             "System.String" => value switch
             {
-                DateOnly i => i.ToLongDateString(),
+                PartialDateOnly i => i.ToString(),
                 _ => null,
             },
-            "System.DateTime" => value switch
-            {
-                DateOnly i => i.ToDateTime(TimeOnly.MinValue),
-                _ => null,
-            },
-            _ => throw new ArgumentException("DestinationType must be System.Int32, System.Int64, System.String, or System.DateTime."),
+            _ => throw new ArgumentException("DestinationType must be System.String."),
         };
 
     public override object CreateInstance(ITypeDescriptorContext? context, IDictionary? propertyValues)
@@ -98,14 +84,14 @@ public class DateOnlyConverter : TypeConverter, IUserType
         => ConvertFrom(null, null, NHibernateUtil.String.NullSafeGet(rs, names[0], impl));
 
     public void NullSafeSet(DbCommand cmd, object value, int index, ISessionImplementor session)
-        => ((IDataParameter)cmd.Parameters[index]).Value = value == null ? DBNull.Value : ConvertTo(null, null, value, typeof(DateTime));
+        => ((IDataParameter)cmd.Parameters[index]).Value = value == null ? DBNull.Value : ConvertTo(null, null, value, typeof(string));
 
     public object Replace(object original, object target, object owner)
         => original;
 
-    public Type ReturnedType => typeof(DateOnly);
+    public Type ReturnedType => typeof(PartialDateOnly);
 
-    public SqlType[] SqlTypes => [NHibernateUtil.Date.SqlType];
+    public SqlType[] SqlTypes => [NHibernateUtil.String.SqlType];
 
     bool IUserType.Equals(object x, object y)
         => ReferenceEquals(x, y) || (x != null && y != null && x.Equals(y));

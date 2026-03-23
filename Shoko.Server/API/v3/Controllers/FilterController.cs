@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -528,7 +529,9 @@ public class FilterController(ISettingsProvider settingsProvider, FilterFactory 
         if (!filterPreset.ApplyAtSeriesLevel)
             return (recursive ? group.AllSeries : group.Series)
                 .Where(a => User.AllowedSeries(a))
-                .OrderBy(series => series.AniDB_Anime?.AirDate ?? DateTime.MaxValue)
+                .OrderByDescending(a => a.AirDate.HasValue)
+                .ThenByDescending(a => a.AirDate?.IsComplete ?? false)
+                .ThenBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
                 .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
                 .Where(series => series.Size > 0 || includeMissing)
                 .ToList();

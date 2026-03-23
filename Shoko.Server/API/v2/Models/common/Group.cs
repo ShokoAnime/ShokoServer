@@ -5,9 +5,10 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
@@ -57,9 +58,9 @@ public class Group : BaseDirectory
                 .Select(ser => ser.AniDB_Anime)
                 .WhereNotNull()
                 .OrderBy(a => a.BeginYear)
-                .ThenBy(a => a.AirDate ?? DateTime.MaxValue)
+                .ThenBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
                 .ToList()
-            : ag.Anime?.OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? DateTime.MaxValue).ToList();
+            : ag.Anime?.OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? PartialDateOnly.MaxValue).ToList();
 
         if (allAnime is not { Count: > 0 }) return g;
 
@@ -89,7 +90,7 @@ public class Group : BaseDirectory
 
         GenerateSizes(g, ael, uid);
 
-        g.air = anime.AirDate?.ToISO8601Date() ?? string.Empty;
+        g.air = anime.AirDate?.ToDateTime().ToISO8601Date() ?? string.Empty;
 
         g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
         g.summary = anime.Description ?? string.Empty;

@@ -6,6 +6,7 @@ using System.Net;
 using System.Web;
 using System.Xml;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 
@@ -130,73 +131,13 @@ public class HttpAnimeParser
     {
         var dateString = TryGetProperty(docAnime, "anime", "startdate");
         anime.AirDate = null;
-        if (!string.IsNullOrEmpty(dateString))
-        {
-            if (DateTime.TryParseExact(
-                    dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
-                    DateTimeStyles.None, out var date
-                ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
-            {
-                anime.AirDate = date;
-            }
-            else if (DateTime.TryParseExact(
-                         dateString, "yyyy-MM", CultureInfo.InvariantCulture,
-                         DateTimeStyles.None, out date
-                     ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
-            {
-                anime.AirDate = date;
-            }
-            else if (DateTime.TryParseExact(
-                         dateString, "yyyy", CultureInfo.InvariantCulture,
-                         DateTimeStyles.None, out date
-                     ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
-            {
-                anime.AirDate = date;
-            }
-
-            if (anime.AirDate != null)
-            {
-                // define datetimeoffset to make anime.AirDate timezone aware
-                var dto = new DateTimeOffset(anime.AirDate.Value, _japanTime.GetUtcOffset(anime.AirDate.Value));
-                anime.AirDate = TimeZoneInfo.ConvertTimeFromUtc(dto.UtcDateTime, _japanTime);
-            }
-        }
+        if (PartialDateOnly.TryParse(dateString, out var date))
+            anime.AirDate = date;
 
         dateString = TryGetProperty(docAnime, "anime", "enddate");
         anime.EndDate = null;
-        if (!string.IsNullOrEmpty(dateString))
-        {
-            if (DateTime.TryParseExact(
-                    dateString, "yyyy-MM-dd", CultureInfo.InvariantCulture,
-                    DateTimeStyles.None, out var date
-                ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
-            {
-                anime.EndDate = date;
-            }
-            else if (DateTime.TryParseExact(
-                         dateString, "yyyy-MM", CultureInfo.InvariantCulture,
-                         DateTimeStyles.None, out date
-                     ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
-            {
-                anime.EndDate = date;
-            }
-            else if (DateTime.TryParseExact(
-                         dateString, "yyyy", CultureInfo.InvariantCulture,
-                         DateTimeStyles.None, out date
-                     ) && date != DateTime.UnixEpoch && date != DateTime.MinValue)
-            {
-                anime.EndDate = date;
-            }
-
-            if (anime.EndDate != null)
-            {
-                // define datetimeoffset to make anime.EndDate timezone aware
-                var dto = new DateTimeOffset(anime.EndDate.Value, _japanTime.GetUtcOffset(anime.EndDate.Value));
-                anime.EndDate = TimeZoneInfo.ConvertTimeFromUtc(dto.UtcDateTime, _japanTime);
-            }
-
-            if (anime.EndDate != null && anime.AirDate != null && anime.EndDate < anime.AirDate) anime.EndDate = anime.AirDate;
-        }
+        if (PartialDateOnly.TryParse(dateString, out date))
+            anime.EndDate = date;
 
         anime.BeginYear = anime.AirDate?.Year ?? 0;
         anime.EndYear = anime.EndDate?.Year ?? 0;

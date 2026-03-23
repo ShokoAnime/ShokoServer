@@ -1544,9 +1544,9 @@ public class Common : BaseController
             {
                 var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
                 // It might end today, but that's okay
-                if (anime.EndDate != null)
+                if (anime.EndDate is { } endDate)
                 {
-                    if (now > anime.EndDate.Value && now - anime.EndDate.Value > new TimeSpan(16, 0, 0))
+                    if (now > endDate && now - endDate > new TimeSpan(16, 0, 0))
                     {
                         return false;
                     }

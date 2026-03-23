@@ -108,6 +108,8 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
 
     public DateOnly? GetAirDateAsDateOnly() => Providers.AniDB.AniDBExtensions.GetAniDBDateAsDateOnly(AirDate);
 
+    public PartialDateOnly? GetAirDateAsPartialDateOnly() => Providers.AniDB.AniDBExtensions.GetAniDBDateAsPartialDateOnly(AirDate);
+
     public bool HasAired
     {
         get

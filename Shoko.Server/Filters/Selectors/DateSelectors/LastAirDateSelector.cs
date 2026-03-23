@@ -10,7 +10,7 @@ public class LastAirDateSelector : FilterExpression<DateTime?>
 
     public override DateTime? Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return filterable.LastAirDate;
+        return filterable.LastAirDate?.ToDateTime();
     }
 
     protected bool Equals(LastAirDateSelector other)

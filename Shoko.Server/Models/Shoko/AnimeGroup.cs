@@ -174,7 +174,9 @@ public class AnimeGroup : IShokoGroup
         {
             var seriesList = RepoFactory.AnimeSeries
                 .GetByGroupID(AnimeGroupID)
-                .OrderBy(a => a.AirDate ?? DateTime.MaxValue)
+                .OrderByDescending(a => a.AirDate.HasValue)
+                .ThenByDescending(a => a.AirDate?.IsComplete ?? false)
+                .ThenBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
                 .ToList();
 
             // Make sure the default/main series is the first, if it's directly
@@ -211,7 +213,9 @@ public class AnimeGroup : IShokoGroup
             }
 
             seriesList = seriesList
-                .OrderBy(a => a.AirDate ?? DateTime.MaxValue)
+                .OrderByDescending(a => a.AirDate.HasValue)
+                .ThenByDescending(a => a.AirDate?.IsComplete ?? false)
+                .ThenBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
                 .ToList();
 
             // Make sure the default/main series is the first if it's somewhere

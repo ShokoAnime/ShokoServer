@@ -10,6 +10,6 @@ public class AirDateSortingSelector : SortingExpression
 
     public override object Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
-        return filterable.AirDate ?? DefaultValue;
+        return filterable.AirDate?.ToDateTime() ?? DefaultValue;
     }
 }

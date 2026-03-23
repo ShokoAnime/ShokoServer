@@ -616,7 +616,7 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
 
                 var summary = new Metro_Anime_Summary
                 {
-                    AirDateAsSeconds = AniDBExtensions.GetAniDBDateAsSeconds(anidb_anime.AirDate),
+                    AirDateAsSeconds = AniDBExtensions.GetAniDBDateAsSeconds(anidb_anime.AirDate?.ToDateTime()),
                     AnimeID = anidb_anime.AnimeID
                 };
                 if (ser is not null)
@@ -676,7 +676,7 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
                 var imgDet = anidb_anime.PreferredOrDefaultPoster;
                 var summary = new Metro_Anime_Summary
                 {
-                    AirDateAsSeconds = AniDBExtensions.GetAniDBDateAsSeconds(anidb_anime.AirDate),
+                    AirDateAsSeconds = AniDBExtensions.GetAniDBDateAsSeconds(anidb_anime.AirDate?.ToDateTime()),
                     AnimeID = anidb_anime.AnimeID,
                     AnimeName = ser.Title,
                     AnimeSeriesID = ser.AnimeSeriesID,
@@ -746,8 +746,8 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
             ret.EpisodeCountSpecial = anime.EpisodeCountSpecial;
 
 
-            ret.AirDate = anime.AirDate;
-            ret.EndDate = anime.EndDate;
+            ret.AirDate = anime.AirDate?.ToDateTime();
+            ret.EndDate = anime.EndDate?.ToDateTime();
 
             ret.OverallRating = anime.GetAniDBRating();
             ret.TotalVotes = anime.GetAniDBTotalVotes();

@@ -1,4 +1,4 @@
-﻿using System;
+﻿using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 
@@ -6,8 +6,8 @@ public class ResponseAnime
 {
     public int AnimeID { get; set; }
     public int EpisodeCount { get; set; }
-    public DateTime? AirDate { get; set; }
-    public DateTime? EndDate { get; set; }
+    public PartialDateOnly? AirDate { get; set; }
+    public PartialDateOnly? EndDate { get; set; }
     public string URL { get; set; }
     public string Picname { get; set; }
     public int BeginYear { get; set; }

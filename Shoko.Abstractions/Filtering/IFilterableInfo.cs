@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Filtering;
@@ -178,12 +179,12 @@ public interface IFilterableInfo
     /// <summary>
     /// First Air Date
     /// </summary>
-    DateTime? AirDate { get; }
+    PartialDateOnly? AirDate { get; }
 
     /// <summary>
     /// Latest Air Date
     /// </summary>
-    DateTime? LastAirDate { get; }
+    PartialDateOnly? LastAirDate { get; }
 
     /// <summary>
     /// When it was first added to the collection

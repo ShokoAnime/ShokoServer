@@ -7,8 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
@@ -416,17 +417,17 @@ GROUP BY
 
     public IEnumerable<int> GetAllYears()
     {
-        var anime = RepoFactory.AnimeSeries.GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
+        var anime = RepoFactory.AnimeSeries.GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate is not null).ToList();
         if (anime.Count == 0) yield break;
         var minDate = anime.Min(a => a!.AirDate!.Value);
-        var maxDate = anime.Max(o => o!.EndDate ?? DateTime.Today);
+        var maxDate = anime.Max(o => o!.EndDate ?? PartialDateOnly.Today);
 
         for (var year = minDate.Year; year <= maxDate.Year; year++)
         {
-            var yearStart = new DateTime(year, 1, 1);
-            var yearEnd = new DateTime(year, 12, 31);
+            var yearStart = new PartialDateOnly(year, 1, 1);
+            var yearEnd = new PartialDateOnly(year, 12, 31);
 
-            if (anime.Any(o => o!.AirDate <= yearEnd && (o.EndDate >= yearStart || o.EndDate == null)))
+            if (anime.Any(o => o!.AirDate <= yearEnd && (o.EndDate >= yearStart || o.EndDate is null)))
             {
                 yield return year;
             }
@@ -435,7 +436,7 @@ GROUP BY
 
     public SortedSet<(int Year, YearlySeason Season)> GetAllSeasons()
     {
-        var anime = GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate != null).ToList();
+        var anime = GetAll().Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AniDB_ID)).Where(a => a?.AirDate is not null).ToList();
         return GetAllSeasons(anime!);
     }
 

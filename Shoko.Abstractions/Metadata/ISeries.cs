@@ -23,15 +23,15 @@ public interface ISeries : IWithTitles, IWithDescriptions, IWithImages, IWithCas
     AnimeType Type { get; }
 
     /// <summary>
-    /// The first aired date, if known.
+    /// The first aired date, if fully or partially known.
     /// </summary>
     /// <value></value>
-    DateTime? AirDate { get; }
+    PartialDateOnly? AirDate { get; }
 
     /// <summary>
-    /// The end date of the series. Null means that it's still airing.
+    /// The end date of the series, if fully or partially known.
     /// </summary>
-    DateTime? EndDate { get; }
+    PartialDateOnly? EndDate { get; }
 
     /// <summary>
     /// Overall user rating for the show, normalized on a scale of 1-10.

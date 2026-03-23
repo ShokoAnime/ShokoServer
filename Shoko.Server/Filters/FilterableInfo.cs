@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Server.Filters;
 
 public class Filterable : IFilterableInfo
 {
     private readonly Lazy<DateTime> _addedDate;
-    private readonly Lazy<DateTime?> _airDate;
+    private readonly Lazy<PartialDateOnly?> _airDate;
     private readonly Lazy<IReadOnlySet<AnimeType>> _animeTypes;
     private readonly Lazy<IReadOnlySet<string>> _audioLanguages;
     private readonly Lazy<double> _averageAniDBRating;
@@ -23,7 +24,7 @@ public class Filterable : IFilterableInfo
     private readonly Lazy<double> _highestAniDBRating;
     private readonly Lazy<bool> _isFinished;
     private readonly Lazy<DateTime> _lastAddedDate;
-    private readonly Lazy<DateTime?> _lastAirDate;
+    private readonly Lazy<PartialDateOnly?> _lastAirDate;
     private readonly Lazy<double> _lowestAniDBRating;
     private readonly Lazy<int> _missingEpisodes;
     private readonly Lazy<int> _missingEpisodesCollecting;
@@ -318,18 +319,18 @@ public class Filterable : IFilterableInfo
         init => _isFinished = new Lazy<bool>(value);
     }
 
-    public DateTime? AirDate => _airDate.Value;
+    public PartialDateOnly? AirDate => _airDate.Value;
 
-    public required Func<DateTime?> AirDateDelegate
+    public required Func<PartialDateOnly?> AirDateDelegate
     {
-        init => _airDate = new Lazy<DateTime?>(value);
+        init => _airDate = new Lazy<PartialDateOnly?>(value);
     }
 
-    public DateTime? LastAirDate => _lastAirDate.Value;
+    public PartialDateOnly? LastAirDate => _lastAirDate.Value;
 
-    public required Func<DateTime?> LastAirDateDelegate
+    public required Func<PartialDateOnly?> LastAirDateDelegate
     {
-        init => _lastAirDate = new Lazy<DateTime?>(value);
+        init => _lastAirDate = new Lazy<PartialDateOnly?>(value);
     }
 
     public DateTime AddedDate => _addedDate.Value;

@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -102,9 +103,10 @@ public class GetAniDBCalendarJob : BaseJob
             else
             {
                 // update the release date even if we don't update the anime record
-                if (anime.AirDate == cal.ReleaseDate) return;
+                var releaseDate = PartialDateOnly.FromDateTime(cal.ReleaseDate);
+                if (anime.AirDate == releaseDate) return;
 
-                anime.AirDate = cal.ReleaseDate;
+                anime.AirDate = releaseDate;
                 RepoFactory.AniDB_Anime.Save(anime);
                 var ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
                 if (ser is not null) RepoFactory.AnimeSeries.Save(ser, true, false);

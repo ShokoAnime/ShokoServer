@@ -651,9 +651,9 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
 
     AnimeType ISeries.Type => AnimeType.TVSeries;
 
-    DateTime? ISeries.AirDate => FirstAiredAt?.ToDateTime();
+    PartialDateOnly? ISeries.AirDate => PartialDateOnly.FromDateOnly(FirstAiredAt);
 
-    DateTime? ISeries.EndDate => LastAiredAt?.ToDateTime();
+    PartialDateOnly? ISeries.EndDate => PartialDateOnly.FromDateOnly(LastAiredAt);
 
     double ISeries.Rating => UserRating;
 

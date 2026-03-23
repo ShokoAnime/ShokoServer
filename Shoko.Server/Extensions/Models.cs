@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
@@ -30,7 +31,7 @@ public static class Models
         // - ends well into the year
         // - airs all throughout the year (starts in 2015, ends in 2017, 2016 counts)
 
-        DateTime startDate = anime.AirDate.Value;
+        var startDate = anime.AirDate.Value;
 
         // started after the year has ended
         if (startDate.Year > year) return false;
@@ -60,6 +61,12 @@ public static class Models
 
     public static IEnumerable<(int Year, YearlySeason Season)> GetYearlySeasons(this DateTime? startDate, DateTime? endDate = null)
         => GetYearlySeasons(startDate?.ToDateOnly(), endDate?.ToDateOnly());
+
+    public static IEnumerable<(int Year, YearlySeason Season)> GetYearlySeasons(this PartialDateOnly? startDate, PartialDateOnly? endDate)
+        => GetYearlySeasons(startDate?.ToDateOnly(), endDate?.ToDateOnly());
+
+    public static IEnumerable<(int Year, YearlySeason Season)> GetYearlySeasons(this PartialDateOnly startDate, PartialDateOnly endDate)
+        => GetYearlySeasons((DateOnly?)startDate.ToDateOnly(), (DateOnly?)endDate.ToDateOnly());
 
     public static IEnumerable<(int Year, YearlySeason Season)> GetYearlySeasons(this DateOnly startDate, DateOnly endDate)
         => GetYearlySeasons((DateOnly?)startDate, (DateOnly?)endDate);

@@ -137,7 +137,7 @@ public partial class TmdbSearchService : ITmdbSearchService
         if (episodes.Count is 1)
         {
             // Abort if the movie have not aired within the _maxDaysIntoTheFuture limit.
-            var airDate = anime.AirDate ?? episodes[0].GetAirDateAsDate() ?? null;
+            var airDate = anime.AirDate?.ToDateTime() ?? episodes[0].GetAirDateAsDate() ?? null;
             if (!airDate.HasValue || (airDate.Value > now && airDate.Value - now > _maxDaysIntoTheFuture))
                 return [];
             await AutoSearchForMovie(list, anime, episodes[0], officialTitle, englishTitle, title, airDate.Value.Year, anime.IsRestricted).ConfigureAwait(false);
@@ -152,14 +152,14 @@ public partial class TmdbSearchService : ITmdbSearchService
             var isCompleteMovie = allEpisodeTitles.Any(title => title.Title.Contains("Complete Movie", StringComparison.InvariantCultureIgnoreCase));
             if (isCompleteMovie)
             {
-                var airDateForAnime = anime.AirDate ?? episodes[0].GetAirDateAsDate() ?? null;
+                var airDateForAnime = anime.AirDate?.ToDateTime() ?? episodes[0].GetAirDateAsDate() ?? null;
                 if (!airDateForAnime.HasValue || (airDateForAnime.Value > now && airDateForAnime.Value - now > _maxDaysIntoTheFuture))
                     continue;
                 await AutoSearchForMovie(list, anime, episode, officialTitle, englishTitle, title, airDateForAnime.Value.Year, anime.IsRestricted).ConfigureAwait(false);
                 continue;
             }
 
-            var airDateForEpisode = episode.GetAirDateAsDate() ?? anime.AirDate ?? null;
+            var airDateForEpisode = episode.GetAirDateAsDate() ?? anime.AirDate?.ToDateTime() ?? null;
             if (!airDateForEpisode.HasValue || (airDateForEpisode.Value > now && airDateForEpisode.Value - now > _maxDaysIntoTheFuture))
                 continue;
 
@@ -323,7 +323,7 @@ public partial class TmdbSearchService : ITmdbSearchService
         // TODO: Improve this logic to take tmdb seasons into account, and maybe also take better anidb series relations into account in cases where the tmdb show name and anidb series name are too different.
 
         // Get the first or second episode to get the aired date if the anime is missing a date.
-        var airDate = anime.AirDate;
+        var airDate = anime.AirDate?.ToDateTime();
         if (!airDate.HasValue)
         {
             airDate = anime.AniDBEpisodes
@@ -368,7 +368,7 @@ public partial class TmdbSearchService : ITmdbSearchService
                     continue;
 
                 series = prequelSeries;
-                currentDate = prequelDate;
+                currentDate = prequelDate.ToDateTime();
                 currentRelations = prequelSeries.RelatedSeries;
                 goto continuePrequelWhileLoop;
             }

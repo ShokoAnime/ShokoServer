@@ -1,4 +1,5 @@
 ﻿using System;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Server.Providers.AniDB;
 
@@ -14,6 +15,9 @@ public static class AniDBExtensions
 
     public static DateOnly? GetAniDBDateAsDateOnly(int secs)
         => GetAniDBDateAsDate(secs) is { } date ? DateOnly.FromDateTime(date) : null;
+
+    public static PartialDateOnly? GetAniDBDateAsPartialDateOnly(int secs)
+        => GetAniDBDateAsDate(secs) is { } date ? PartialDateOnly.FromDateTime(date) : null;
 
     public static int GetAniDBDateAsSeconds(DateTime? dtDate)
     {

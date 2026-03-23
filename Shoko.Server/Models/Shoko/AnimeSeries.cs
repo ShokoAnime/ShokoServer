@@ -607,34 +607,30 @@ public class AnimeSeries : IShokoSeries
 
     #endregion
 
-    private DateTime? _airDate;
+    private PartialDateOnly? _airDate;
 
-    public DateTime? AirDate
+    public PartialDateOnly? AirDate
     {
         get
         {
-            if (_airDate != null) return _airDate;
+            if (_airDate is not null)
+                return _airDate;
+
             var anime = AniDB_Anime;
-            if (anime?.AirDate != null)
-                return _airDate = anime.AirDate.Value;
+            if (anime?.AirDate is { } airDate)
+                return _airDate = airDate;
 
             // This will be slower, but hopefully more accurate
             var ep = RepoFactory.AniDB_Episode.GetByAnimeID(AniDB_ID)
                 .Where(a => a.EpisodeType is EpisodeType.Episode && a.LengthSeconds > 0 && a.AirDate != 0)
                 .MinBy(a => a.AirDate);
-            return _airDate = ep?.GetAirDateAsDate();
+            return _airDate = ep?.GetAirDateAsPartialDateOnly();
         }
     }
 
-    private DateTime? _endDate;
-    public DateTime? EndDate
-    {
-        get
-        {
-            if (_endDate != null) return _endDate;
-            return _endDate = AniDB_Anime?.EndDate;
-        }
-    }
+    private PartialDateOnly? _endDate;
+
+    public PartialDateOnly? EndDate => _endDate ??= AniDB_Anime?.EndDate;
 
     public HashSet<int> Years
     {

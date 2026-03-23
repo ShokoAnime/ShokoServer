@@ -66,12 +66,12 @@ public class AnidbAnime
     /// <summary>
     /// Indicates when the AniDB anime first started airing, if it's known. In the 'yyyy-MM-dd' format, or null.
     /// </summary>
-    public DateOnly? AirDate { get; set; }
+    public PartialDateOnly? AirDate { get; set; }
 
     /// <summary>
     /// Indicates when the AniDB anime stopped airing. It will be null if it's still airing or haven't aired yet. In the 'yyyy-MM-dd' format, or null.
     /// </summary>
-    public DateOnly? EndDate { get; set; }
+    public PartialDateOnly? EndDate { get; set; }
 
     /// <summary>
     /// Restricted content. Mainly porn.
@@ -134,8 +134,8 @@ public class AnidbAnime
             };
             UserApproval = null;
             Relation = null;
-            AirDate = anime.AirDate?.ToDateOnly();
-            EndDate = anime.EndDate?.ToDateOnly();
+            AirDate = anime.AirDate;
+            EndDate = anime.EndDate;
         }
         else if ((result ??= TitleHelper.SearchAnimeID(animeId)) is not null)
         {
