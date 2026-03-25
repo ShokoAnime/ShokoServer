@@ -71,7 +71,7 @@ public partial class SystemUpdateService : ISystemUpdateService
     private async Task<dynamic> DownloadApiResponse(string endpoint, string repoName)
     {
         repoName ??= ClientRepositoryName;
-        using var client = _httpClientFactory.CreateClient("GitHub");
+        var client = _httpClientFactory.CreateClient("GitHub");
         var response = await client.GetStringAsync(new Uri($"https://api.github.com/repos/{repoName}/{endpoint}")).ConfigureAwait(false);
         return JsonConvert.DeserializeObject(response)!;
     }
@@ -294,7 +294,7 @@ public partial class SystemUpdateService : ISystemUpdateService
             Directory.CreateDirectory(webuiDir);
 
         // Download the zip file.
-        using var client = _httpClientFactory.CreateClient("GitHub");
+        var client = _httpClientFactory.CreateClient("GitHub");
         var zipContent = await client.GetByteArrayAsync(url).ConfigureAwait(false);
 
         // Remove any old lingering backups.

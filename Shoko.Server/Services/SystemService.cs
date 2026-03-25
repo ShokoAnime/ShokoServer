@@ -412,10 +412,12 @@ public class SystemService : ISystemService
                     if (Environment.GetEnvironmentVariable("GITHUB_TOKEN") is { Length: > 0 } githubToken)
                         client.DefaultRequestHeaders.Add("Authorization", $"Bearer {githubToken}");
                 })
-                .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
+                .UseSocketsHttpHandler((handler, _) =>
                 {
-                    AllowAutoRedirect = true,
-                    AutomaticDecompression = DecompressionMethods.All,
+                    handler.AllowAutoRedirect = true;
+                    handler.AutomaticDecompression = DecompressionMethods.All;
+                    handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2);
                 });
             services.AddHttpClient("PluginPackages", client =>
                 {
@@ -425,10 +427,12 @@ public class SystemService : ISystemService
                     client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("deflate");
                     client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("br");
                 })
-                .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
+                .UseSocketsHttpHandler((handler, _) =>
                 {
-                    AllowAutoRedirect = true,
-                    AutomaticDecompression = DecompressionMethods.All,
+                    handler.AllowAutoRedirect = true;
+                    handler.AutomaticDecompression = DecompressionMethods.All;
+                    handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2);
                 });
             services.AddAniDB();
             services.AddSingleton<AnidbService>();

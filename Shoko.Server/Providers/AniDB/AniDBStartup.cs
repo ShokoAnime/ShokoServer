@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Net.Security;
+using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -52,13 +52,15 @@ public static class AniDBStartup
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1");
                 client.BaseAddress = new Uri(Utils.SettingsProvider.GetSettings().AniDb.HTTPServerUrl);
             })
-            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
+            .UseSocketsHttpHandler((handler, _) =>
             {
-                AutomaticDecompression = DecompressionMethods.All,
-                SslOptions = new SslClientAuthenticationOptions
+                handler.AutomaticDecompression = DecompressionMethods.All;
+                handler.SslOptions = new SslClientAuthenticationOptions
                 {
                     RemoteCertificateValidationCallback = delegate { return true; }
-                }
+                };
+                handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2);
             });
 
         return services;

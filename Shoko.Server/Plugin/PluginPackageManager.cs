@@ -445,7 +445,7 @@ public partial class PluginPackageManager(
 
     private async Task DownloadAndVerifyArchiveAsync(string downloadUrl, string destinationPath, string expectedChecksum, CancellationToken cancellationToken)
     {
-        using var httpClient = httpClientFactory.CreateClient("PluginPackages");
+        var httpClient = httpClientFactory.CreateClient("PluginPackages");
 
         using var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
@@ -766,7 +766,7 @@ public partial class PluginPackageManager(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            using var httpClient = httpClientFactory.CreateClient("PluginPackages");
+            var httpClient = httpClientFactory.CreateClient("PluginPackages");
             var remoteManifests = await GetRemoteManifestAsync(httpClient, repositoryInfo.Url, allowArray: true, cancellationToken: cancellationToken).ConfigureAwait(false);
             var lastFetchedAt = DateTime.UtcNow;
             var manifests = new List<PackageManifestInfo>();
@@ -985,7 +985,7 @@ public partial class PluginPackageManager(
 
         try
         {
-            using var httpClient = httpClientFactory.CreateClient("PluginPackages");
+            var httpClient = httpClientFactory.CreateClient("PluginPackages");
             using var response = await httpClient.GetAsync(imageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
