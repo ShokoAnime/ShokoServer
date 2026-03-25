@@ -36,7 +36,7 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
 
         var response = await _rateLimiter.EnsureRate(async () =>
         {
-            using var httpClient = _httpClientFactory.CreateClient("AniDB");
+            var httpClient = _httpClientFactory.CreateClient("AniDB");
             var baseAddress = new Uri(Utils.SettingsProvider.GetSettings().AniDb.HTTPServerUrl);
             if (httpClient.BaseAddress == null || !httpClient.BaseAddress.Equals(baseAddress))
                 httpClient.BaseAddress = baseAddress;
