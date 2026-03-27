@@ -790,13 +790,13 @@ public class FileController : BaseController
             if (playPosition >= file.DurationTimeSpan)
             {
                 watched = true;
-                playPosition = null;
+                playPosition = TimeSpan.Zero;
                 playPositionWasAdjusted = true;
             }
-            else if (watched is true && playPosition == TimeSpan.Zero)
-            {
-                playPosition = null;
-            }
+        }
+        else if (watched is true)
+        {
+            playPosition = TimeSpan.Zero;
         }
 
         var reason = eventName switch
