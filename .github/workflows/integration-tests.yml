@@ -100,14 +100,6 @@ jobs:
         with:
           dotnet-version: '10.x'
 
-      - name: Create SQL Server database
-        run: |
-          for i in $(seq 1 10); do
-            sqlcmd -S 127.0.0.1 -U sa -P 'ShokoTest1!' -Q "CREATE DATABASE shoko" -No && break
-            echo "Attempt $i failed, retrying..."
-            sleep 5
-          done
-
       - name: Run integration tests
         env:
           DB_TYPE: SQLServer
