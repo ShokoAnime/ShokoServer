@@ -1,0 +1,114 @@
+name: Integration Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test-sqlite:
+    runs-on: ubuntu-latest
+    name: Integration Tests — SQLite
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: sudo apt-get install -y mediainfo librhash-dev
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.x'
+
+      - name: Run integration tests
+        env:
+          DB_TYPE: SQLite
+        run: dotnet test Shoko.IntegrationTests/Shoko.IntegrationTests.csproj -c Release --logger "console;verbosity=normal"
+
+  test-mysql:
+    runs-on: ubuntu-latest
+    name: Integration Tests — MySQL (MariaDB)
+
+    services:
+      mariadb:
+        image: mariadb:lts
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: shoko
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: sudo apt-get install -y mediainfo librhash-dev
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.x'
+
+      - name: Run integration tests
+        env:
+          DB_TYPE: MySQL
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASS: root
+          DB_NAME: shoko
+        run: dotnet test Shoko.IntegrationTests/Shoko.IntegrationTests.csproj -c Release --logger "console;verbosity=normal"
+
+  test-mssql:
+    runs-on: ubuntu-latest
+    name: Integration Tests — SQL Server
+
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          SA_PASSWORD: "ShokoTest1!"
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: Express
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd="/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'ShokoTest1!' -Q 'SELECT 1' -No"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: sudo apt-get install -y mediainfo librhash-dev
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.x'
+
+      - name: Create SQL Server database
+        run: |
+          /opt/mssql-tools18/bin/sqlcmd -S 127.0.0.1 -U sa -P 'ShokoTest1!' -Q "CREATE DATABASE shoko" -No
+
+      - name: Run integration tests
+        env:
+          DB_TYPE: SQLServer
+          DB_HOST: 127.0.0.1
+          DB_USER: sa
+          DB_PASS: "ShokoTest1!"
+          DB_NAME: shoko
+        run: dotnet test Shoko.IntegrationTests/Shoko.IntegrationTests.csproj -c Release --logger "console;verbosity=normal"
