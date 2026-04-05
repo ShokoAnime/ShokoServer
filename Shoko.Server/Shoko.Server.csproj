@@ -26,11 +26,6 @@
     <!-- Define plugin names here -->
     <PluginNames>ReleaseExporter;OfflineImporter;RelocationPlus</PluginNames>
   </PropertyGroup>
-  <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>Shoko.IntegrationTests</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'ApiLogging' ">
     <DefineConstants>LOGWEB;DEBUG</DefineConstants>
   </PropertyGroup>

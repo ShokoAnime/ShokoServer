@@ -592,7 +592,7 @@ public class SystemService : ISystemService
     /// <param name="repositoryFactory">The repository factory.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><see langword="true"/> if the database and repositories were initialized successfully; otherwise, <see langword="false"/>.</returns>
-    internal bool InitializeDatabase(DatabaseFactory databaseFactory, RepoFactory repositoryFactory, CancellationToken cancellationToken)
+    private bool InitializeDatabase(DatabaseFactory databaseFactory, RepoFactory repositoryFactory, CancellationToken cancellationToken)
     {
         try
         {

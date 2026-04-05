@@ -2,83 +2,107 @@
 using System;
 using System.IO;
 using System.Threading;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using NLog.Extensions.Logging;
-using Quartz;
-using Shoko.Abstractions.Core.Services;
-using Shoko.Server.Databases;
-using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
+using Microsoft.Extensions.Hosting;
 using Shoko.Server.Services;
+using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.IntegrationTests;
 
 /// <summary>
-/// Bootstraps a minimal DI container and runs the full database initialization
-/// (schema creation + all migrations + initial data) against whichever database
-/// backend is selected via environment variables.
+/// Starts the full Shoko Server bootstrap against an isolated temp directory,
+/// then waits for database initialization to complete.
 ///
-/// Environment variables (mirrors <see cref="Shoko.Server.Settings.DatabaseSettings"/>):
-///   DB_TYPE              – SQLite (default), SQLServer, MySQL
-///   DB_SQLITE_DIRECTORY  – directory for the SQLite file (auto-set to a temp dir when not provided)
-///   DB_HOST              – hostname[:port] for SQL Server / MySQL
-///   DB_USER              – username
-///   DB_PASS              – password
-///   DB_NAME              – database / schema name
+/// Database backend is selected via environment variables that mirror
+/// <see cref="DatabaseSettings"/>:
+///   DB_TYPE   – SQLite (default), SQLServer, MySQL
+///   DB_HOST   – hostname[:port] for SQL Server / MySQL
+///   DB_USER   – username
+///   DB_PASS   – password
+///   DB_NAME   – database / schema name
 /// </summary>
 public sealed class DatabaseMigrationFixture : IDisposable
 {
     public bool Success { get; private set; }
     public string? FailureMessage { get; private set; }
 
-    private readonly string? _tempSqliteDir;
+    private readonly string _tempDir;
+    private IHost? _host;
 
     public DatabaseMigrationFixture()
     {
-        var dbType = Environment.GetEnvironmentVariable("DB_TYPE") ?? "SQLite";
-        var isSqlite = dbType is "SQLite" or "0";
+        // Isolated data directory so this run doesn't touch a real Shoko install.
+        _tempDir = Path.Combine(Path.GetTempPath(), $"shoko-integration-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_tempDir);
 
-        if (isSqlite && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DB_SQLITE_DIRECTORY")))
-        {
-            _tempSqliteDir = Path.Combine(Path.GetTempPath(), $"shoko-integration-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(_tempSqliteDir);
-            Environment.SetEnvironmentVariable("DB_SQLITE_DIRECTORY", _tempSqliteDir);
-        }
+        // SHOKO_HOME controls Utils.ApplicationPath. Must be set before SystemService() reads it.
+        // Forward slashes avoid bad JSON escape sequences when the config service parses env vars.
+        Environment.SetEnvironmentVariable("SHOKO_HOME", _tempDir.Replace('\\', '/'));
 
-        // SystemService() constructor bootstraps Utils.SettingsProvider, NLog, ApplicationPaths,
-        // and PluginManager — all of which must exist before the repositories are resolved.
+        // SystemService() bootstraps Utils.SettingsProvider with default settings (FirstRun=true).
+        // No settings file yet — defaults are valid and pass schema validation.
         var systemService = new SystemService();
 
-        var services = new ServiceCollection();
-        services.AddLogging(b =>
+        // Mutate the live settings: disable first-run, inject fake AniDB credentials so the
+        // settings custom-validator is satisfied, and move the web port away from 8111 so this
+        // doesn't conflict with a real Shoko instance.
+        var settings = Utils.SettingsProvider.GetSettings();
+        settings.FirstRun = false;
+        settings.AniDb.Username = "integration-test";
+        settings.AniDb.Password = "integration-test";
+        settings.Web.Port = 28111;
+        Utils.SettingsProvider.SaveSettings(settings);
+
+        var started = new ManualResetEventSlim(false);
+        systemService.Started += (_, _) =>
         {
-            b.ClearProviders();
-            b.SetMinimumLevel(LogLevel.Trace);
-            b.AddNLog();
-        });
-        services.AddSingleton(systemService);
-        services.AddSingleton<ISystemService>(_ => systemService);
-        // JobFactory is needed by CrossRef_File_EpisodeRepository and AniDB_GroupStatusRepository.
-        // Register a minimal QuartzOptions and the factory itself without the full Quartz stack.
-        services.AddSingleton<IOptions<QuartzOptions>>(_ => Options.Create(new QuartzOptions()));
-        services.AddSingleton<JobFactory>();
-        // Registers DatabaseFactory, RepoFactory, and all 50+ repository singletons.
-        services.AddRepositories();
+            Success = true;
+            started.Set();
+        };
+        systemService.StartupFailed += (_, args) =>
+        {
+            Success = false;
+            FailureMessage = args.Exception?.Message ?? "Startup failed";
+            started.Set();
+        };
 
-        var sp = services.BuildServiceProvider();
-        var databaseFactory = sp.GetRequiredService<DatabaseFactory>();
-        var repoFactory = sp.GetRequiredService<RepoFactory>();
+        // StartAsync builds the full DI container (including all services used by database fixes)
+        // and sets Utils.ServiceContainer before LateStart triggers InitializeDatabase.
+        _host = systemService.StartAsync().GetAwaiter().GetResult();
+        if (_host is null)
+        {
+            Success = false;
+            FailureMessage = systemService.StartupFailedException?.Message ?? "StartAsync returned null host";
+            return;
+        }
 
-        Success = systemService.InitializeDatabase(databaseFactory, repoFactory, CancellationToken.None);
-        if (!Success)
-            FailureMessage = systemService.StartupFailedException?.Message ?? "InitializeDatabase returned false";
+        // LateStart runs InitializeDatabase as a fire-and-forget task; wait for its completion event.
+        if (!started.Wait(TimeSpan.FromMinutes(10)))
+        {
+            Success = false;
+            FailureMessage = "Database initialization timed out after 10 minutes";
+        }
     }
 
     public void Dispose()
     {
-        if (_tempSqliteDir is not null && Directory.Exists(_tempSqliteDir))
-            Directory.Delete(_tempSqliteDir, recursive: true);
+        try
+        {
+            _host?.StopAsync(TimeSpan.FromSeconds(30)).GetAwaiter().GetResult();
+        }
+        catch
+        {
+            // Best-effort shutdown; don't mask test failures.
+        }
+
+        try
+        {
+            if (Directory.Exists(_tempDir))
+                Directory.Delete(_tempDir, recursive: true);
+        }
+        catch
+        {
+            // SQLite connections may still be draining; ignore cleanup errors.
+        }
     }
 }
