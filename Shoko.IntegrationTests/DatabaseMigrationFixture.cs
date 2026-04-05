@@ -51,6 +51,7 @@ public sealed class DatabaseMigrationFixture : IDisposable
         settings.AniDb.Username = "integration-test";
         settings.AniDb.Password = "integration-test";
         settings.Web.Port = 28111;
+        settings.WebUI_Settings = "{}"; // prevent empty-string JSON schema validation failure on fresh install
         Utils.SettingsProvider.SaveSettings(settings);
 
         var started = new ManualResetEventSlim(false);
