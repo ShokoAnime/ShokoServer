@@ -4,10 +4,13 @@ using System.IO;
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NLog.Extensions.Logging;
+using Quartz;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Services;
 
 namespace Shoko.IntegrationTests;
@@ -57,6 +60,10 @@ public sealed class DatabaseMigrationFixture : IDisposable
         });
         services.AddSingleton(systemService);
         services.AddSingleton<ISystemService>(_ => systemService);
+        // JobFactory is needed by CrossRef_File_EpisodeRepository and AniDB_GroupStatusRepository.
+        // Register a minimal QuartzOptions and the factory itself without the full Quartz stack.
+        services.AddSingleton<IOptions<QuartzOptions>>(_ => Options.Create(new QuartzOptions()));
+        services.AddSingleton<JobFactory>();
         // Registers DatabaseFactory, RepoFactory, and all 50+ repository singletons.
         services.AddRepositories();
 

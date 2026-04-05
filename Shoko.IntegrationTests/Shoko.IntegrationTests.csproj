@@ -27,4 +27,10 @@
     <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="Quartz">
+      <HintPath>..\Dependencies\Quartz\Quartz.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
