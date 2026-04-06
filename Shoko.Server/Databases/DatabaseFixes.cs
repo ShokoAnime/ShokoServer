@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using MessagePack;
 using Microsoft.CodeAnalysis;
@@ -1317,7 +1318,7 @@ public class DatabaseFixes
                                 continue;
                             }
 
-                            _logger.Warn("A RenameScript could not be converted to StoredRelocationPipe. Renamer name: " + renamerScript.ScriptName + " Renamer type: " + renamerScript.RenamerType + Environment.NewLine + "Script: " + renamerScript.Script);
+                            _logger.Warn("A RenameScript could not be converted to StoredRelocationPipe. Renamer name: " + renamerScript.ScriptName + " Renamer type: " + renamerScript.RenamerType + Environment.NewLine + "Script: " + Environment.NewLine + renamerScript.Script);
 
                             continue;
                         }
@@ -1335,7 +1336,7 @@ public class DatabaseFixes
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warn(ex, "A RenameScript could not be converted to StoredRelocationPipe. Renamer name: " + renamerScript.ScriptName + " Renamer type: " + renamerScript.RenamerType + Environment.NewLine + "Script: " + renamerScript.Script);
+                        _logger.Warn(ex, "A RenameScript could not be converted to StoredRelocationPipe. Renamer name: " + renamerScript.ScriptName + " Renamer type: " + renamerScript.RenamerType + Environment.NewLine + "Script: " + Environment.NewLine + renamerScript.Script);
                         continue;
                     }
                 }
@@ -1362,15 +1363,27 @@ public class DatabaseFixes
                         Type = (string)fields[1],
                         Settings = (byte[])fields[2],
                     };
+                    var settingsString = Environment.NewLine + "Settings (base64): " + Convert.ToBase64String(renamerConfig.Settings ?? []);
+                    var scriptString = string.Empty;
                     try
                     {
                         byte[] configuration = null;
                         var providerInfo = renamersByKey.ContainsKey(renamerConfig.Type)
                             ? renamersByKey[renamerConfig.Type]
                             : null;
+                        try
+                        {
+                            var settingsJson = MessagePackSerializer.ConvertToJson(renamerConfig.Settings,MessagePackSerializer.DefaultOptions.WithCompression(MessagePackCompression.Lz4BlockArray));
+                            settingsString = Environment.NewLine + "Settings (JSON): " + settingsJson;
+                            scriptString = Environment.NewLine + "Script: " + Environment.NewLine + JsonNode.Parse(settingsJson)?["Script"] ?? string.Empty;
+                        }
+                        catch (MessagePackSerializationException)
+                        {
+                            _logger.Warn("A RenamerInstance Settings object could not be converted to JSON. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
+                        }
                         if (providerInfo is null)
                         {
-                            _logger.Warn("A RenamerConfig could not be converted to StoredRelocationPipe. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type);
+                            _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPipe. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
                             continue;
                         }
 
@@ -1379,7 +1392,7 @@ public class DatabaseFixes
                             var config = MessagePackSerializer.Typeless.Deserialize(renamerConfig.Settings);
                             if (config.GetType() != providerInfo.ConfigurationInfo.Type)
                             {
-                                _logger.Warn("A RenamerConfig could not be converted to StoredRelocationPipe. Mismatched config type. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type);
+                                _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPipe. Mismatched config type. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type +  settingsString + scriptString);
                                 continue;
                             }
                             configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(config as IConfiguration));
@@ -1389,7 +1402,7 @@ public class DatabaseFixes
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warn(ex, "A RenamerConfig could not be converted to StoredRelocationPipe. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type);
+                        _logger.Warn(ex, "A RenamerInstance could not be converted to StoredRelocationPipe. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
 
                         continue;
                     }
