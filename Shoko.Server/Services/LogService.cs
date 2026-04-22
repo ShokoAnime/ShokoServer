@@ -72,10 +72,12 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         foreach (var file in EnsureLogDirectory().GetFiles("*.jsonl").Where(file => !string.Equals(file.FullName, currentLog, StringComparison.OrdinalIgnoreCase)))
         {
             var destination = file.FullName + ".gz";
-            using var source = File.Open(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            using var destinationStream = File.Open(destination, FileMode.Create, FileAccess.Write, FileShare.Read);
-            using var gzip = new GZipStream(destinationStream, CompressionLevel.Optimal);
-            source.CopyTo(gzip);
+            using (var source = File.Open(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                using var destinationStream = File.Open(destination, FileMode.Create, FileAccess.Write, FileShare.Read);
+                using var gzip = new GZipStream(destinationStream, CompressionLevel.Optimal);
+                source.CopyTo(gzip);
+            }
             file.Delete();
         }
     }
