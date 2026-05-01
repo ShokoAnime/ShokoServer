@@ -135,7 +135,6 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             if (skipped < options.Offset)
             {
                 skipped++;
-                nextOffset++;
                 continue;
             }
             if (options.Limit > 0 && entries.Count >= options.Limit)
@@ -143,6 +142,9 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             entries.Add(entry);
             nextOffset++;
         }
+        if (entries.Count == 0)
+            return new() { NextOffset = null, Entries = [] };
+
         return new() { NextOffset = nextOffset, Entries = entries };
     }
 
@@ -338,7 +340,6 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
                 if (skipped < options.Offset)
                 {
                     skipped++;
-                    nextOffset++;
                     continue;
                 }
 
@@ -349,6 +350,9 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
                 nextOffset++;
             }
         }
+        if (entries.Count == 0)
+            return new() { NextOffset = null, Entries = [] };
+
         return new() { NextOffset = nextOffset, Entries = entries };
     }
 
