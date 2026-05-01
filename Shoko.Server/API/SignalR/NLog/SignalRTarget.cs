@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using NLog;
 using NLog.Targets;
+using Shoko.Abstractions.Extensions;
 
 namespace Shoko.Server.API.SignalR.NLog;
 
@@ -18,8 +20,8 @@ public class SignalRTarget : TargetWithLayout
     /// Gets or sets the max number of items to have in memory. If set to 0, then no backlog will be kept.
     /// </summary>
     /// <docgen category="Buffering Options" order="10" />
-    [DefaultValue(10)]
-    public int MaxLogsCount { get; set; }
+    [DefaultValue(20)]
+    public int MaxLogsCount { get; set; } = 20;
 
     /// <summary>
     /// A list of the previous Log messages, up to <see cref="MaxLogsCount"/>. This is sent to the client on connection
@@ -32,18 +34,13 @@ public class SignalRTarget : TargetWithLayout
 
     public SignalRTarget()
     {
-        LogMethodName = "Log";
-        ConnectMethodName = "GetBacklog";
-        MaxLogsCount = 10;
         Logs = new List<LogEvent>(MaxLogsCount);
     }
 
     protected override void Write(LogEventInfo logEvent)
     {
-        var renderedMessage = RenderLogEvent(Layout, logEvent);
-
-        // Memory Target. Used for a bit of backlog to send on connection
-        var item = new LogEvent(logEvent, renderedMessage);
+        var (threadId, processId) = RenderLogEvent(Layout, logEvent).Split(',').Select(seg => int.Parse(seg));
+        var item = new LogEvent(logEvent, threadId, processId);
         if (MaxLogsCount > 0)
         {
             if (Logs.Count >= MaxLogsCount)

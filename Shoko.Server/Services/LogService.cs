@@ -460,7 +460,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
 
             entry = new()
             {
-                Timestamp = timestamp,
+                TimeStamp = timestamp,
                 Level = parsedLevel,
                 Logger = root.TryGetProperty("logger", out var loggerElement) ? loggerElement.GetString() ?? string.Empty : string.Empty,
                 Caller = root.TryGetProperty("caller", out var callerElement) ? callerElement.GetString() ?? string.Empty : string.Empty,
@@ -600,9 +600,9 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             return false;
         if (options is not null)
         {
-            if (options.From.HasValue && parsedEntry.Timestamp < options.From.Value)
+            if (options.From.HasValue && parsedEntry.TimeStamp < options.From.Value)
                 return false;
-            if (options.To.HasValue && parsedEntry.Timestamp > options.To.Value)
+            if (options.To.HasValue && parsedEntry.TimeStamp > options.To.Value)
                 return false;
             if (options.Levels is { Count: > 0 } && !options.Levels.Contains(parsedEntry.Level))
                 return false;
@@ -1033,8 +1033,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         => new()
         {
             Name = "signalr",
-            MaxLogsCount = 5000,
-            Layout = "${message}${onexception:\\: ${exception:format=tostring}}",
+            Layout = "${threadid},${processid}",
         };
 
     private static IReadOnlyList<LogLevelRuleConfiguration> GetDefaultLogLevelRules()

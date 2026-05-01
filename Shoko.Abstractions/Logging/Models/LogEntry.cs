@@ -16,7 +16,7 @@ public class LogEntry
     /// <summary>
     ///   Entry timestamp in UTC.
     /// </summary>
-    public required DateTime Timestamp { get; init; }
+    public required DateTime TimeStamp { get; init; }
 
     /// <summary>
     ///   Log level.
@@ -74,11 +74,11 @@ public class LogEntry
     public string ToString(LogSerializeFormat format)
         => format switch
         {
-            LogSerializeFormat.Simple => $"[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level.ToShortString()}] {Logger.Split('.').Last()}: {Message}{(Exception is { Length: > 0 } ? $": {Exception}" : string.Empty)}",
-            LogSerializeFormat.Full => $"[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level.ToShortString()}] [{ThreadId:000}] {Logger}: {Message}{(Exception is { Length: > 0 } ? Environment.NewLine + Exception : string.Empty)}",
+            LogSerializeFormat.Simple => $"[{TimeStamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level.ToShortString()}] {Logger.Split('.').Last()}: {Message}{(Exception is { Length: > 0 } ? $": {Exception}" : string.Empty)}",
+            LogSerializeFormat.Full => $"[{TimeStamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level.ToShortString()}] [{ThreadId:000}] {Logger}: {Message}{(Exception is { Length: > 0 } ? Environment.NewLine + Exception : string.Empty)}",
             LogSerializeFormat.Json => System.Text.Json.JsonSerializer.Serialize(this),
-            LogSerializeFormat.Legacy => $"[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}] {Level.ToNLogString()}|{Logger} > {Message}{(Exception is { Length: > 0 } ? $": {Exception}" : string.Empty)}",
-            LogSerializeFormat.Console => $"[{Timestamp:HH:mm:ss}| {Logger.Split('.').Last()} --- {Message}{(Exception is { Length: > 0 } ? $": {Exception}" : string.Empty)}",
+            LogSerializeFormat.Legacy => $"[{TimeStamp:yyyy-MM-dd HH:mm:ss.fff}] {Level.ToNLogString()}|{Logger} > {Message}{(Exception is { Length: > 0 } ? $": {Exception}" : string.Empty)}",
+            LogSerializeFormat.Console => $"[{TimeStamp:HH:mm:ss}| {Logger.Split('.').Last()} --- {Message}{(Exception is { Length: > 0 } ? $": {Exception}" : string.Empty)}",
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, null),
         };
 }

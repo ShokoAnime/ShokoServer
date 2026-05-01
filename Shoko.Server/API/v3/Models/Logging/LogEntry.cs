@@ -15,7 +15,7 @@ public class LogEntry
     /// <summary>
     /// Entry timestamp in UTC.
     /// </summary>
-    public DateTime Timestamp { get; }
+    public DateTime TimeStamp { get; }
 
     /// <summary>
     /// Log level.
@@ -55,7 +55,7 @@ public class LogEntry
 
     public LogEntry(AbstractLogEntry entry)
     {
-        Timestamp = entry.Timestamp;
+        TimeStamp = entry.TimeStamp;
         Level = entry.Level.ToString();
         Logger = entry.Logger;
         Caller = entry.Caller;
