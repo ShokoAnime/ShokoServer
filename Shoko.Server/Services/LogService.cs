@@ -79,6 +79,18 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         foreach (var file in EnsureLogDirectory().GetFiles("*.jsonl").Where(file => !string.Equals(file.FullName, currentLog, StringComparison.OrdinalIgnoreCase)))
         {
             var destination = file.FullName + ".gz";
+            var existingCompressed = new FileInfo(destination);
+            if (existingCompressed.Exists)
+            {
+                if (existingCompressed.LastWriteTimeUtc >= file.LastWriteTimeUtc)
+                {
+                    file.Delete();
+                    continue;
+                }
+
+                existingCompressed.Delete();
+            }
+
             using (var source = File.Open(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 using var destinationStream = File.Open(destination, FileMode.Create, FileAccess.Write, FileShare.Read);
