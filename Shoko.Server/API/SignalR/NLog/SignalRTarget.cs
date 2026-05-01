@@ -13,8 +13,8 @@ public class SignalRTarget : TargetWithLayout
     [DefaultValue("Log")]
     public string LogMethodName { get; set; } = "Log";
 
-    [DefaultValue("GetBacklogs")]
-    public string ConnectMethodName { get; set; } = "GetBacklogs";
+    [DefaultValue("GetBacklog")]
+    public string ConnectMethodName { get; set; } = "GetBacklog";
 
     /// <summary>
     /// Gets or sets the max number of items to have in memory. If set to 0, then no backlog will be kept.
