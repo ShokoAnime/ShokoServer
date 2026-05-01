@@ -43,7 +43,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
 
     #region Maintenance
 
-    private readonly Timer _timer = new(TimeSpan.FromDays(1));
+    private readonly Timer _timer = new(TimeSpan.FromHours(12));
 
     public void StartMaintenance()
     {
