@@ -1044,6 +1044,8 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             new() { LoggerNamePattern = "Shoko.Server.Scheduling.ThreadPooledJobStore", MaxLevel = ELogLevel.Information, Final = true },
             new() { LoggerNamePattern = "Shoko.Server.Scheduling.Delegates.*", MaxLevel = ELogLevel.Information, Final = true },
             new() { LoggerNamePattern = "Shoko.Server.API.Authentication.CustomAuthHandler", MaxLevel = ELogLevel.Information, Final = true },
+            new() { LoggerNamePattern = "Microsoft.Extensions.Http.Logging.*", MaxLevel = ELogLevel.Warning, Final = true },
+            new() { LoggerNamePattern = "System.Net.Http.HttpClient.*", MaxLevel = ELogLevel.Warning, Final = true },
         ];
 
     private static IReadOnlyList<LogLevelRuleConfiguration> MergeLogLevelRules(IEnumerable<LogLevelRuleConfiguration>? userRules)
