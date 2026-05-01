@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -111,7 +112,9 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             .Select(ToLogFileInfo)
             .WhereNotNull()
             .OrderByDescending(fileInfo => fileInfo.IsCurrent)
-            .ThenByDescending(file => file.LastModifiedAt)
+            .ThenByDescending(file => file.Date)
+            .ThenByDescending(file => file.DailyNumber is 0)
+            .ThenByDescending(file => file.DailyNumber)
             .ToList();
 
     public LogFileInfo GetCurrentLogFile()
@@ -225,10 +228,24 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             return null;
 
         var fileName = ToDisplayFileName(file.Name, format, isCompressed);
+        var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+        var dailyNumber = 0u;
+        if (fileNameWithoutExtension.Contains('_'))
+        {
+            var (a, b) = fileNameWithoutExtension.Split('_');
+            if (!uint.TryParse(b, out dailyNumber))
+                return null;
+            fileNameWithoutExtension = a;
+        }
+        if (!DateOnly.TryParse(fileNameWithoutExtension, out var date))
+            return null;
+
         var currentPath = GetCurrentLogFilePath();
         return new()
         {
             ID = UuidUtility.GetV5(file.FullName),
+            Date = date,
+            DailyNumber = dailyNumber,
             FileName = fileName,
             FullPath = file.FullName,
             Size = file.Length,

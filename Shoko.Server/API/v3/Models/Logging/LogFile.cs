@@ -15,6 +15,17 @@ public class LogFile
     public Guid ID { get; }
 
     /// <summary>
+    /// Date of the log file.
+    /// </summary>
+    public DateOnly Date { get; }
+
+    /// <summary>
+    /// Daily number of the log file. Will be 0 for the latest log file of the
+    /// day, then ascending order starting at 1, from oldest to newest.
+    /// </summary>
+    public uint DailyNumber { get; }
+
+    /// <summary>
     /// File name.
     /// </summary>
     public string Name { get; }
@@ -47,6 +58,8 @@ public class LogFile
     public LogFile(LogFileInfo file)
     {
         ID = file.ID;
+        Date = file.Date;
+        DailyNumber = file.DailyNumber;
         Name = file.FileName;
         Size = file.Size;
         IsCurrent = file.IsCurrent;

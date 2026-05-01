@@ -13,6 +13,17 @@ public class LogFileInfo
     public required Guid ID { get; init; }
 
     /// <summary>
+    ///   Date of the log file.
+    /// </summary>
+    public required DateOnly Date { get; init; }
+
+    /// <summary>
+    ///   Daily number of the log file. Will be 0 for the latest log file of the
+    ///   day, then ascending order starting at 1, from oldest to newest.
+    /// </summary>
+    public required uint DailyNumber { get; init; }
+
+    /// <summary>
     ///   Display file name.
     /// </summary>
     public required string FileName { get; init; }
