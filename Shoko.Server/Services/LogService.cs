@@ -76,7 +76,10 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         if (!settings.RotationCompress)
             return;
         var currentLog = GetCurrentLogFilePath();
-        foreach (var file in EnsureLogDirectory().GetFiles("*.jsonl").Where(file => !string.Equals(file.FullName, currentLog, StringComparison.OrdinalIgnoreCase)))
+        var logDir = EnsureLogDirectory();
+
+        // Compress .jsonl → .jsonl.gz
+        foreach (var file in logDir.GetFiles("*.jsonl").Where(file => !string.Equals(file.FullName, currentLog, StringComparison.OrdinalIgnoreCase)))
         {
             var destination = file.FullName + ".gz";
             var existingCompressed = new FileInfo(destination);
@@ -97,6 +100,69 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
                 using var gzip = new GZipStream(destinationStream, CompressionLevel.Optimal);
                 source.CopyTo(gzip);
             }
+            file.Delete();
+        }
+
+        // Compress legacy .log → .log.gz
+        foreach (var file in logDir.GetFiles("*.log"))
+        {
+            var destination = file.FullName + ".gz";
+            var existingCompressed = new FileInfo(destination);
+            if (existingCompressed.Exists)
+            {
+                if (existingCompressed.LastWriteTimeUtc >= file.LastWriteTimeUtc)
+                {
+                    file.Delete();
+                    continue;
+                }
+
+                existingCompressed.Delete();
+            }
+
+            using (var source = File.Open(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                using var destinationStream = File.Open(destination, FileMode.Create, FileAccess.Write, FileShare.Read);
+                using var gzip = new GZipStream(destinationStream, CompressionLevel.Optimal);
+                source.CopyTo(gzip);
+            }
+            file.Delete();
+        }
+
+        // Migrate legacy .zip (containing .log) → .log.gz
+        foreach (var file in logDir.GetFiles("*.zip"))
+        {
+            var baseName = Path.GetFileNameWithoutExtension(file.FullName);
+            var destination = Path.Combine(file.DirectoryName!, baseName + ".log.gz");
+            var existingCompressed = new FileInfo(destination);
+            if (existingCompressed.Exists && existingCompressed.LastWriteTimeUtc >= file.LastWriteTimeUtc)
+            {
+                file.Delete();
+                continue;
+            }
+
+            try
+            {
+                using var zipArchive = new ZipArchive(File.Open(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read), ZipArchiveMode.Read);
+                var entry = zipArchive.Entries.FirstOrDefault(e => !string.IsNullOrEmpty(e.Name));
+                if (entry is null)
+                {
+                    file.Delete();
+                    continue;
+                }
+
+                if (existingCompressed.Exists)
+                    existingCompressed.Delete();
+
+                using var destinationStream = File.Open(destination, FileMode.Create, FileAccess.Write, FileShare.Read);
+                using var gzip = new GZipStream(destinationStream, CompressionLevel.Optimal);
+                using var entryStream = entry.Open();
+                entryStream.CopyTo(gzip);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to migrate zip log file: {File}", file.FullName);
+            }
+
             file.Delete();
         }
     }
@@ -169,12 +235,22 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         {
             if (fileInfo.IsCompressed)
             {
-                var stream = OpenZipEntryStream(fileInfo.FullPath, out var entryName);
+                if (fileInfo.FullPath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                {
+                    var stream = OpenZipEntryStream(fileInfo.FullPath, out var entryName);
+                    return new()
+                    {
+                        ContentType = "text/plain",
+                        FileName = entryName,
+                        Stream = stream,
+                    };
+                }
+
                 return new()
                 {
                     ContentType = "text/plain",
-                    FileName = entryName,
-                    Stream = stream,
+                    FileName = Path.ChangeExtension(fileInfo.FileName, ".log"),
+                    Stream = OpenGZipStream(fileInfo.FullPath),
                 };
             }
 
@@ -276,6 +352,8 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             return (LogFileFormat.JsonL, true);
         if (file.Name.EndsWith(".log", StringComparison.OrdinalIgnoreCase))
             return (LogFileFormat.Legacy, false);
+        if (file.Name.EndsWith(".log.gz", StringComparison.OrdinalIgnoreCase))
+            return (LogFileFormat.Legacy, true);
         if (file.Extension.Equals(".zip", StringComparison.OrdinalIgnoreCase))
             return (LogFileFormat.Legacy, true);
         return default;
