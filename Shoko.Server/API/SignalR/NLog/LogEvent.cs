@@ -50,7 +50,7 @@ public class LogEvent : EventArgs
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string? Exception { get; init; }
 
-    internal LogEvent(global::NLog.LogEventInfo eventInfo, int threadId, int processId)
+    internal LogEvent(global::NLog.LogEventInfo eventInfo, string renderedMessage, int threadId, int processId)
     {
         Level = eventInfo.Level.Ordinal switch
         {
@@ -67,7 +67,7 @@ public class LogEvent : EventArgs
         Caller = $"{eventInfo.CallerClassName}.{eventInfo.CallerMemberName}";
         ProcessId = processId;
         ThreadId = threadId;
-        Message = eventInfo.Message;
+        Message = renderedMessage;
         Exception = eventInfo.Exception?.ToString();
     }
 }

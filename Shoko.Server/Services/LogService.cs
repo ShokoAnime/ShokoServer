@@ -1140,7 +1140,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         => new()
         {
             Name = "signalr",
-            Layout = "${threadid},${processid}",
+            Layout = "${threadid},${processid},${message}",
         };
 
     private static IReadOnlyList<LogLevelRuleConfiguration> GetDefaultLogLevelRules()

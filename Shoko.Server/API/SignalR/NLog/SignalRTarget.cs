@@ -39,8 +39,8 @@ public class SignalRTarget : TargetWithLayout
 
     protected override void Write(LogEventInfo logEvent)
     {
-        var (threadId, processId) = RenderLogEvent(Layout, logEvent).Split(',').Select(seg => int.Parse(seg));
-        var item = new LogEvent(logEvent, threadId, processId);
+        var (threadId, processId, renderedMessage) = RenderLogEvent(Layout, logEvent).Split(',', 3);
+        var item = new LogEvent(logEvent, renderedMessage, int.Parse(threadId), int.Parse(processId));
         if (MaxLogsCount > 0)
         {
             if (Logs.Count >= MaxLogsCount)
