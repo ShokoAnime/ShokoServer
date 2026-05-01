@@ -501,7 +501,7 @@ public static class APIExtensions
         foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsActive && p.ApplicationRegistrationType is not null))
         {
             pluginInfo.ApplicationRegistrationType!
-                .GetMethod(nameof(IPluginApplicationRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static)!
+                .GetMethod(nameof(IPluginApplicationRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static, [typeof(IApplicationBuilder), typeof(IApplicationPaths)])!
                 .Invoke(null, [app, ApplicationPaths.Instance]);
         }
 

@@ -330,7 +330,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         {
             logger.LogTrace("Registering plugin services. ({DllName}, {Version})", Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]), pluginInfo.Version);
             pluginInfo.ServiceRegistrationType!
-                .GetMethod(nameof(IPluginServiceRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static)!
+                .GetMethod(nameof(IPluginServiceRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static, [typeof(IServiceCollection), typeof(IApplicationPaths)])!
                 .Invoke(null, [serviceCollection, applicationPaths]);
         }
     }
