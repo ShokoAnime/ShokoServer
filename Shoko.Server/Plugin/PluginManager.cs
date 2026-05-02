@@ -52,9 +52,17 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     /// <inheritdoc/>
     public string RuntimeIdentifier { get; private init; } = true switch
     {
-        true when OperatingSystem.IsWindows() => $"win-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
         true when OperatingSystem.IsLinux() => $"linux-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
-        true when OperatingSystem.IsMacOS() => $"osx-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
+        true when OperatingSystem.IsWindows() => $"win-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
+        true when OperatingSystem.IsFreeBSD() => $"freebsd-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
+        true when OperatingSystem.IsAndroid() => $"android-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
+        true when OperatingSystem.IsMacCatalyst() => $"macos-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
+        true when OperatingSystem.IsMacOS() => $"macos-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
+        true when OperatingSystem.IsIOS() => $"ios-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
+        true when OperatingSystem.IsTvOS() => $"tvos-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
+        true when OperatingSystem.IsWatchOS() => $"watchos-{RuntimeInformation.OSArchitecture.ToString().ToLowerInvariant()}",
+        true when OperatingSystem.IsBrowser() => $"browser-any",
+        true when OperatingSystem.IsWasi() => $"wasi-any",
         _ => "any",
     };
 
