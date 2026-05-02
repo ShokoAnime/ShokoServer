@@ -1,12 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Formatters;
-using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
@@ -16,8 +18,8 @@ using Newtonsoft.Json.Serialization;
 using Sentry;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Services;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.API.ActionFilters;
@@ -37,7 +39,7 @@ using File = System.IO.File;
 
 namespace Shoko.Server.API;
 
-public static class APIExtensions
+public static partial class APIExtensions
 {
     public static IServiceCollection AddAPI(this IServiceCollection services, IPluginManager pluginManager)
     {
@@ -76,16 +78,47 @@ public static class APIExtensions
         services.AddSwaggerGen(
             options =>
             {
-                // resolve the IApiVersionDescriptionProvider service
-                // note: that we have to build a temporary service provider here because one has not been created yet
-                var provider = services.BuildServiceProvider().GetRequiredService<IApiVersionDescriptionProvider>();
+                // Resolve the services we'll need from the static service provider
+                // since the app is running at this point.
+                var provider = Utils.ServiceContainer.GetRequiredService<IApiVersionDescriptionProvider>();
+                var webSettings = Utils.SettingsProvider.GetSettings().Web;
 
-                // add a swagger document for each discovered API version
-                // note: you might choose to skip or document deprecated API versions differently
+                // Add a swagger document for each discovered API version (server-only).
                 foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
                 {
-                    options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description));
+                    if (description.GroupName is "v1" && !webSettings.EnableAPIv1)
+                        continue;
+                    if (description.GroupName is "v2" or "v2.1" && !webSettings.EnableAPIv2)
+                        continue;
+                    if (description.GroupName is "v3" && !webSettings.EnableAPIv3)
+                        continue;
+                    if (description.GroupName is not ("v1" or "v2" or "v2.1" or "v3"))
+                        continue;
+                    options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description, "Shoko Server"));
                 }
+
+                // Add a swagger document for each plugin's API versions, but only if the plugin
+                // actually has controllers targeting that version.
+                foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
+                {
+                    var assembly = pluginInfo.PluginType!.Assembly;
+                    if (assembly == typeof(APIExtensions).Assembly)
+                        continue; //Skip the current assembly, as these are added above.
+
+                    var pluginVersions = GetPluginApiVersions(assembly);
+                    var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
+
+                    foreach (var description in provider.ApiVersionDescriptions
+                                 .Where(d => pluginVersions.Contains(d.GroupName))
+                                 .OrderByDescending(a => a.ApiVersion))
+                    {
+                        var docName = $"{dllName}-{description.GroupName}";
+                        options.SwaggerDoc(docName, CreateInfoForApiVersion(description, pluginInfo.Name));
+                    }
+                }
+
+                // Use document inclusion predicate to separate server and plugin controllers.
+                options.DocInclusionPredicate(new PluginDocumentInclusionPredicate(pluginManager).Include);
 
                 options.AddSecurityDefinition("ApiKey",
                     new OpenApiSecurityScheme()
@@ -199,11 +232,8 @@ public static class APIExtensions
         {
             o.ReportApiVersions = true;
             o.AssumeDefaultVersionWhenUnspecified = true;
-            o.ApiVersionReader = ApiVersionReader.Combine(
-                new QueryStringApiVersionReader(),
-                new HeaderApiVersionReader("api-version"),
-                new ShokoApiReader()
-            );
+            o.DefaultApiVersion = new ApiVersion(1, 0);
+            o.ApiVersionReader = new ShokoApiReader();
         });
         services.AddVersionedApiExplorer(options =>
         {
@@ -224,10 +254,8 @@ public static class APIExtensions
         foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
         {
             var assembly = pluginInfo.PluginType!.Assembly;
-            if (assembly == Assembly.GetCallingAssembly())
-            {
+            if (assembly == typeof(APIExtensions).Assembly)
                 continue; //Skip the current assembly, this is implicitly added by ASP.
-            }
 
             mvc.AddApplicationPart(assembly);
         }
@@ -240,6 +268,9 @@ public static class APIExtensions
         foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
         {
             var assembly = pluginInfo.PluginType!.Assembly;
+            if (assembly == typeof(APIExtensions).Assembly)
+                continue; //Skip the current assembly, as these are added earlier.
+
             var location = assembly.Location;
             var xml = Path.ChangeExtension(location, "xml");
             if (File.Exists(xml))
@@ -271,6 +302,12 @@ public static class APIExtensions
             title = fullName.Split('.').Skip(3).Join('.');
         else if (fullName.StartsWith("System.") || fullName.StartsWith("Microsoft."))
             title = fullName.Split('.').Skip(1).Join('.');
+
+        // Plugin schemas
+        else if (!fullName.StartsWith("Shoko.Server.") && !fullName.StartsWith("Shoko.Abstractions."))
+            title = fullName
+                .Replace("Shoko.Plugin.", "API.")
+                .Replace(PluginApiVersionRegex(), e => $"APIv{e.Groups["version"].Value}.");
 
         // APIv0 (API independent plugin abstraction) schemas
         else if (fullName.StartsWith("Shoko.Abstractions."))
@@ -338,13 +375,13 @@ public static class APIExtensions
         return title;
     }
 
-    private static OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description)
+    private static OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description, string title)
     {
         var info = new OpenApiInfo
         {
-            Title = $"Shoko API {description.ApiVersion}",
+            Title = $"{title} API {description.ApiVersion}",
             Version = description.ApiVersion.ToString(),
-            Description = "Shoko Server API."
+            Description = $"{title} API."
         };
 
         if (description.IsDeprecated)
@@ -427,22 +464,30 @@ public static class APIExtensions
                     c.RouteTemplate = c.RouteTemplate.Replace("/swagger/", $"/{webSettings.SwaggerUIPrefix}/");
                 c.PreSerializeFilters.Add((swaggerDoc, _) =>
                 {
-                    var version = double.Parse(swaggerDoc.Info.Version);
-                    swaggerDoc.Servers.Add(new() { Url = $"/api/v{version:0}/" });
-
-                    var basepathInt = $"/api/v{version:0}/";
-                    var basepathDecimal = $"/api/v{version:0.0}/";
+                    var commonPrefix = LongestCommonPathPrefix(swaggerDoc.Paths.Keys);
+                    if (commonPrefix.Length > 0 && commonPrefix != "/")
+                        swaggerDoc.Servers.Add(new() { Url = commonPrefix });
+                    else
+                        swaggerDoc.Servers.Add(new() { Url = "/" });
                     var paths = new OpenApiPaths();
                     foreach (var path in swaggerDoc.Paths)
                     {
-                        if (!path.Key.Contains(basepathInt) && !path.Key.Contains(basepathDecimal) && path.Value is OpenApiPathItem pathValue)
+                        if (commonPrefix.Length > 0 && path.Key.StartsWith(commonPrefix))
                         {
-                            pathValue.Servers ??= [];
-                            pathValue.Servers.Clear();
-                            pathValue.Servers.Add(new() { Url = "/" });
+                            var stripped = "/" + path.Key[commonPrefix.Length..].TrimStart('/');
+                            paths.Add(stripped, path.Value);
                         }
+                        else
+                        {
+                            if (path.Value is OpenApiPathItem pathValue)
+                            {
+                                pathValue.Servers ??= [];
+                                pathValue.Servers.Clear();
+                                pathValue.Servers.Add(new() { Url = "/" });
+                            }
 
-                        paths.Add(path.Key.Replace(basepathInt, "/").Replace(basepathDecimal, "/"), path.Value);
+                            paths.Add(path.Key, path.Value);
+                        }
                     }
                     swaggerDoc.Paths = paths;
                 });
@@ -451,11 +496,44 @@ public static class APIExtensions
                 options =>
                 {
                     options.RoutePrefix = webSettings.SwaggerUIPrefix;
-                    // build a swagger endpoint for each discovered API version
                     var provider = app.ApplicationServices.GetRequiredService<IApiVersionDescriptionProvider>();
+
+                    // Server API bundles (listed first)
                     foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
                     {
-                        options.SwaggerEndpoint($"/{webSettings.SwaggerUIPrefix}/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
+                        if (description.GroupName is "v1" && !webSettings.EnableAPIv1)
+                            continue;
+                        if (description.GroupName is "v2" or "v2.1" && !webSettings.EnableAPIv2)
+                            continue;
+                        if (description.GroupName is "v3" && !webSettings.EnableAPIv3)
+                            continue;
+
+                        options.SwaggerEndpoint(
+                            $"/{webSettings.SwaggerUIPrefix}/{description.GroupName}/swagger.json",
+                            $"Server {description.GroupName.ToUpperInvariant()}"
+                        );
+                    }
+
+                    // Plugin API bundles (grouped by plugin) — only versions with actual controllers
+                    foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
+                    {
+                        var assembly = pluginInfo.PluginType!.Assembly;
+                        if (assembly == typeof(APIExtensions).Assembly)
+                            continue; //Skip the current assembly, as these are added above.
+
+                        var pluginVersions = GetPluginApiVersions(assembly);
+                        var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
+
+                        foreach (var description in provider.ApiVersionDescriptions
+                                     .Where(d => pluginVersions.Contains(d.GroupName))
+                                     .OrderByDescending(a => a.ApiVersion))
+                        {
+                            var docName = $"{dllName}-{description.GroupName}";
+                            options.SwaggerEndpoint(
+                                $"/{webSettings.SwaggerUIPrefix}/{docName}/swagger.json",
+                                $"{pluginInfo.Name} {description.GroupName.ToUpperInvariant()}"
+                            );
+                        }
                     }
                     options.EnablePersistAuthorization();
                 });
@@ -528,4 +606,84 @@ public static class APIExtensions
             file.CopyTo(Path.Combine(target.FullName, file.Name));
         }
     }
+
+    private static string LongestCommonPathPrefix(IEnumerable<string> paths)
+    {
+        var arr = paths.ToArray();
+        if (arr.Length == 0)
+            return string.Empty;
+
+        // Build a map of every segment-bounded prefix → how many paths share it.
+        var prefixCounts = new Dictionary<string, int>();
+        foreach (var path in arr)
+        {
+            var pos = 1; // skip leading '/'
+            while (pos < path.Length)
+            {
+                var slash = path.IndexOf('/', pos);
+                if (slash < 0)
+                    break;
+                var prefix = path[..(slash + 1)];
+                prefixCounts.TryGetValue(prefix, out var count);
+                prefixCounts[prefix] = count + 1;
+                pos = slash + 1;
+            }
+        }
+
+        // Pick the longest prefix that covers ≥90% of paths.
+        var threshold = (int)(arr.Length * 0.9);
+        var best = string.Empty;
+        foreach (var (prefix, count) in prefixCounts)
+        {
+            if (count >= threshold && prefix.Length > best.Length)
+                best = prefix;
+        }
+
+        // If no majority prefix, fall back to strict LCP of all paths.
+        if (best.Length == 0)
+        {
+            best = arr[0];
+            for (var i = 1; i < arr.Length; i++)
+            {
+                while (!arr[i].StartsWith(best, StringComparison.Ordinal))
+                    best = best[..^1];
+                if (best.Length == 0)
+                    return string.Empty;
+            }
+
+            var lastSlash = best.LastIndexOf('/');
+            return lastSlash > 0 ? best[..(lastSlash + 1)] : string.Empty;
+        }
+
+        return best;
+    }
+
+    private static HashSet<string> GetPluginApiVersions(Assembly assembly)
+    {
+        var versions = new HashSet<string>();
+        var controllerTypes = assembly.GetExportedTypes()
+            .Where(t => typeof(Microsoft.AspNetCore.Mvc.ControllerBase).IsAssignableFrom(t) && !t.IsAbstract);
+
+        foreach (var type in controllerTypes)
+        {
+            var attr = type.GetCustomAttribute<ApiVersionAttribute>();
+            if (attr is not null)
+            {
+                foreach (var v in attr.Versions)
+                {
+                    versions.Add($"v{v}");
+                }
+            }
+            else
+            {
+                // No attribute → defaults to v1
+                versions.Add("v1");
+            }
+        }
+
+        return versions;
+    }
+
+    [GeneratedRegex(@"(?:[^ ]+\.)?API\.(?:v(?<version>\d+(?:\.\d+)?)\.(?:Models\.|DTOs\.)?)?", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.ECMAScript)]
+    private static partial Regex PluginApiVersionRegex();
 }
