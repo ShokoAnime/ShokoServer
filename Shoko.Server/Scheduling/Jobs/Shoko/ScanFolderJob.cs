@@ -27,6 +27,8 @@ internal class ScanFolderJob : BaseJob
 
     public bool CleanUpStructure { get; set; }
 
+    public bool CheckFileSize { get; set; }
+
     public override string TypeName => "Scan Managed Folder";
 
     public override string Title => "Scanning Managed Folder";
@@ -58,7 +60,7 @@ internal class ScanFolderJob : BaseJob
         if (managedFolder == null)
             return;
 
-        await _videoService.ScanManagedFolder(managedFolder, relativePath: RelativePath, onlyNewFiles: OnlyNewFiles, skipMylist: SkipMyList, cleanUpStructure: CleanUpStructure);
+        await _videoService.ScanManagedFolder(managedFolder, relativePath: RelativePath, onlyNewFiles: OnlyNewFiles, skipMylist: SkipMyList, cleanUpStructure: CleanUpStructure, checkFileSize: CheckFileSize);
     }
 
     public ScanFolderJob(IVideoService videoService)

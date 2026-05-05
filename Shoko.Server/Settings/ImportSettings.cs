@@ -121,6 +121,14 @@ public class ImportSettings
     public bool CleanUpStructure { get; set; } = false;
 
     /// <summary>
+    /// Check the file size when scanning managed folders. This has a higher
+    /// cost than not checking the file size, as it will check the file size on
+    /// EVERY file in the folder at the path to scan.
+    /// </summary>
+    [Display(Name = "Check File Size on Managed Folder Scan")]
+    public bool CheckFileSize { get; set; } = false;
+
+    /// <summary>
     /// Max auto-scan attempts per file for unrecognized files.
     /// </summary>
     [Badge("Advanced", Theme = DisplayColorTheme.Primary)]

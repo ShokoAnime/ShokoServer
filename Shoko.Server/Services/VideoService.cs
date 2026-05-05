@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -908,12 +909,13 @@ public class VideoService : IVideoService
         await Task.WhenAll(affectedSeries.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
-    public async Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null)
-        => await ScanManagedFolder((ShokoManagedFolder)folder, relativePath, onlyNewFiles, skipMylist, cleanUpStructure);
+    public async Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null)
+        => await ScanManagedFolder((ShokoManagedFolder)folder, relativePath, onlyNewFiles, skipMylist, cleanUpStructure, checkFileSize);
 
-    private async Task ScanManagedFolder(ShokoManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null)
+    private async Task ScanManagedFolder(ShokoManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null)
     {
         cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
+        checkFileSize ??= _settingsProvider.GetSettings().Import.CheckFileSize;
 
         var startedAt = DateTime.Now;
         var files = GetFilesInImportFolder(folder);
@@ -937,7 +939,7 @@ public class VideoService : IVideoService
 
         var filesAt = DateTime.Now - startedAt;
         _logger.LogInformation("Managed folder scan started; {Path} (ManagedFolder={ManagedFolderID}RelativePath={RelativePath},Files={FilesCount},FilesScanTime={FilesAt})", folder.Path, folder.ID, relativePath, files.Length, filesAt);
-        var existingFiles = new HashSet<string>();
+        var existingFiles = new ConcurrentDictionary<string, long>();
         foreach (var location in folder.Places)
         {
             try
@@ -956,7 +958,14 @@ public class VideoService : IVideoService
                     continue;
                 }
 
-                existingFiles.Add(path);
+                if (location.VideoLocal is not { } video)
+                {
+                    _logger.LogInformation("Removing orphaned VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
+                    await RemoveRecord(location, updateMyListStatus: false);
+                    continue;
+                }
+
+                existingFiles.TryAdd(path, video.FileSize);
             }
             catch (Exception ex)
             {
@@ -973,10 +982,20 @@ public class VideoService : IVideoService
             .ToList();
         var settings = _settingsProvider.GetSettings();
         var scheduler = await _schedulerFactory.GetScheduler();
-        files = files
-            .Where(filePath => !onlyNewFiles || !existingFiles.Contains(filePath))
-            .Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase)
-            .ToArray();
+        if (checkFileSize.Value && !onlyNewFiles)
+        {
+            files = files
+                .Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase)
+                .Where(filePath => !existingFiles.ContainsKey(filePath) || existingFiles[filePath] != new FileInfo(filePath).Length)
+                .ToArray();
+        }
+        else
+        {
+            files = files
+                .Where(filePath => !onlyNewFiles || !existingFiles.ContainsKey(filePath))
+                .Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase)
+                .ToArray();
+        }
         var total = files.Length;
         var parallelism = Math.Min(settings.Quartz.MaxThreadPoolSize > 0 ? settings.Quartz.MaxThreadPoolSize : Environment.ProcessorCount, Environment.ProcessorCount);
         var actionBlock = new ActionBlock<int>(
@@ -1031,12 +1050,13 @@ public class VideoService : IVideoService
         return FileSystemHelpers.GetFilePaths(folder.Path, recursive: true, filter: IsMatch);
     }
 
-    public async Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true)
+    public async Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool prioritize = true)
     {
         cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
+        checkFileSize ??= _settingsProvider.GetSettings().Import.CheckFileSize;
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipMyList, j.CleanUpStructure) = (folder.ID, relativePath, onlyNewFiles, skipMylist, cleanUpStructure.Value), prioritize);
+        await scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipMyList, j.CleanUpStructure, j.CheckFileSize) = (folder.ID, relativePath, onlyNewFiles, skipMylist, cleanUpStructure.Value, checkFileSize.Value), prioritize);
     }
 
     public async Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true)

@@ -464,7 +464,14 @@ public interface IVideoService
     ///   from the bottom up. If not provided then it will follow the global
     ///   configuration.
     /// </param>
-    Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null);
+    /// <param name="checkFileSize">
+    ///   Whether to check the file size. If not provided then it will follow
+    ///   the global configuration. If set to <c>false</c>, the file size will
+    ///   not be checked. IF set to <c>true</c>, the file size for EVERY file
+    ///   in the existing collection will be checked. Incompatible with and not
+    ///   used if <paramref name="onlyNewFiles"/> is <c>true</c>.
+    /// </param>
+    Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null);
 
     /// <summary>
     ///   Schedules a scan of a managed folder, scheduling pre-processing jobs
@@ -488,13 +495,20 @@ public interface IVideoService
     ///   from the bottom up. If not provided then it will follow the global
     ///   configuration.
     /// </param>
+    /// <param name="checkFileSize">
+    ///   Whether to check the file size. If not provided then it will follow
+    ///   the global configuration. If set to <c>false</c>, the file size will
+    ///   not be checked. IF set to <c>true</c>, the file size for EVERY file
+    ///   in the existing collection will be checked. Incompatible with and not
+    ///   used if <paramref name="onlyNewFiles"/> is <c>true</c>.
+    /// </param>
     /// <param name="prioritize">
     ///   Whether to prioritize this job in the queue.
     /// </param>
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
-    Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true);
+    Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool prioritize = true);
 
     /// <summary>
     ///   Scans all managed folders, scheduling pre-processing jobs for new or
