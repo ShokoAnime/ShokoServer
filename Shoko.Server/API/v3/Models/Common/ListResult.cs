@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
 #nullable enable
@@ -43,10 +44,12 @@ public class ListResult<T>
     /// Total number of <typeparamref name="T"/> entries that matched the
     /// applied filter.
     /// </summary>
+    [Required]
     public int Total { get; set; }
 
     /// <summary>
     /// A sliced page or the whole list of <typeparamref name="T"/> entries.
     /// </summary>
+    [Required]
     public IReadOnlyList<T> List { get; set; }
 }

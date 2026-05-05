@@ -17,12 +17,14 @@ public class SeriesRelation
     /// <summary>
     /// The IDs of the series.
     /// </summary>
-    public RelationIDs IDs;
+    [Required]
+    public RelationIDs IDs { get; set; }
 
     /// <summary>
     /// The IDs of the related series.
     /// </summary>
-    public RelationIDs RelatedIDs;
+    [Required]
+    public RelationIDs RelatedIDs { get; set; }
 
     /// <summary>
     /// The relation between <see cref="SeriesRelation.IDs"/> and <see cref="SeriesRelation.RelatedIDs"/>.

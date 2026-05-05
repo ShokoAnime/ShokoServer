@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Config.Enums;
 
@@ -22,10 +23,12 @@ public class ConfigurationActionResultMessage(AbstractConfigurationActionResultM
     /// <summary>
     /// The message to display to the user.
     /// </summary>
+    [Required]
     public string Message { get; init; } = message.Message;
 
     /// <summary>
     /// The color theme to use.
     /// </summary>
+    [Required]
     public DisplayColorTheme Theme { get; init; } = message.Theme;
 }

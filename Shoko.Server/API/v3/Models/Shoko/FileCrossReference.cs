@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Models.Shoko;
@@ -15,11 +16,13 @@ public class FileCrossReference
     /// <summary>
     /// The Series IDs.
     /// </summary>
+    [Required]
     public SeriesCrossReferenceIDs SeriesID { get; set; } = new();
 
     /// <summary>
     /// The Episode IDs.
     /// </summary>
+    [Required]
     public List<EpisodeCrossReferenceIDs> EpisodeIDs { get; set; } = [];
 
     /// <summary>
@@ -35,11 +38,13 @@ public class FileCrossReference
         /// <summary>
         /// The AniDB ID.
         /// </summary>
+        [Required]
         public int AniDB { get; set; }
 
         /// <summary>
         /// The Movie DataBase (TMDB) Cross-Reference IDs.
         /// </summary>
+        [Required]
         public Episode.EpisodeIDs.TmdbEpisodeIDs TMDB { get; set; } = new();
 
         /// <summary>
@@ -51,21 +56,25 @@ public class FileCrossReference
         /// <summary>
         /// ED2K hash to look up the file by hash + file size.
         /// </summary>
+        [Required]
         public string ED2K { get; set; } = string.Empty;
 
         /// <summary>
         /// File size to look up the file by hash + file size.
         /// </summary>
+        [Required]
         public long FileSize { get; set; }
 
         /// <summary>
         /// Percentage file is matched to the episode.
         /// </summary>
+        [Required]
         public CrossReferencePercentage Percentage { get; set; } = new();
 
         /// <summary>
         /// The cross-reference source.
         /// </summary>
+        [Required]
         public string Source { get; set; } = string.Empty;
     }
 
@@ -74,22 +83,26 @@ public class FileCrossReference
         /// <summary>
         /// File/episode cross-reference percentage range end.
         /// </summary>
+        [Required]
         public int Start { get; set; }
 
         /// <summary>
         /// File/episode cross-reference percentage range end.
         /// </summary>
+        [Required]
         public int End { get; set; }
 
         /// <summary>
         /// The raw percentage to "group" the cross-references by.
         /// </summary>
+        [Required]
         public int Size { get; set; }
 
         /// <summary>
         /// The assumed number of groups in the release, to group the
         /// cross-references by.
         /// </summary>
+        [Required]
         public int Group { get; set; }
     }
 
@@ -106,11 +119,13 @@ public class FileCrossReference
         /// <summary>
         /// The AniDB ID.
         /// </summary>
+        [Required]
         public int AniDB { get; set; }
 
         /// <summary>
         /// The Movie DataBase (TMDB) Cross-Reference IDs.
         /// </summary>
+        [Required]
         public Series.SeriesIDs.TmdbSeriesIDs TMDB { get; set; } = new();
     }
 

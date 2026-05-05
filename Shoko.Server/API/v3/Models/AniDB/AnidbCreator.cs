@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Enums;
@@ -17,11 +18,13 @@ public class AnidbCreator
     /// <summary>
     /// The global ID of the creator.
     /// </summary>
+    [Required]
     public int ID { get; set; }
 
     /// <summary>
     /// The name of the creator, transcribed to use the latin alphabet.
     /// </summary>
+    [Required]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
@@ -32,7 +35,7 @@ public class AnidbCreator
     /// <summary>
     /// The type of creator.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
+    [Required, JsonConverter(typeof(StringEnumConverter))]
     public CreatorType Type { get; set; }
 
     /// <summary>
@@ -58,6 +61,7 @@ public class AnidbCreator
     /// <summary>
     /// The date that the creator was last updated on AniDB.
     /// </summary>
+    [Required]
     public DateTime LastUpdatedAt { get; set; }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 using AbstractPackageRepositoryInfo = Shoko.Abstractions.Plugin.Models.PackageRepositoryInfo;
 
@@ -13,16 +14,19 @@ public class PackageRepositoryInfo(AbstractPackageRepositoryInfo repositoryInfo)
     /// <summary>
     /// Unique repository identifier based on the URL.
     /// </summary>
+    [Required]
     public Guid ID { get; init; } = repositoryInfo.ID;
 
     /// <summary>
     /// Repository identifier/name.
     /// </summary>
+    [Required]
     public string Name { get; init; } = repositoryInfo.Name;
 
     /// <summary>
     /// Repository API endpoint URL.
     /// </summary>
+    [Required]
     public string Url { get; init; } = repositoryInfo.Url;
 
     /// <summary>

@@ -26,39 +26,46 @@ public class User
     /// <summary>
     /// The UserID, this is used in a lot of v1 and v2 endpoints, and it's needed for editing or removing a user
     /// </summary>
+    [Required]
     public int ID { get; set; }
 
     /// <summary>
     /// Pretty Self-explanatory. It's the Username of the user
     /// </summary>
+    [Required]
     public string Username { get; set; }
 
     /// <summary>
     /// Is the user an admin. Admins can perform all operations, including modification of users
     /// </summary>
+    [Required]
     public bool IsAdmin { get; set; }
 
     /// <summary>
     /// This is a list of services that the user is set to use. AniDB, Trakt, and Plex, for example
     /// </summary>
     [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
+    [Required]
     public List<CommunitySite> CommunitySites { get; set; }
 
     /// <summary>
     /// Restricted tags. Any group/series containing any of these tags will be
     /// rendered inaccessible to the user.
     /// </summary>
+    [Required]
     public List<int> RestrictedTags { get; set; }
 
     /// <summary>
     /// The user's avatar as a base64 encoded data url if available. Otherwise
     /// an empty string.
     /// </summary>
+    [Required]
     public string Avatar { get; set; }
 
     /// <summary>
     /// The user's Plex usernames.
     /// </summary>
+    [Required]
     public string PlexUsernames { get; set; }
 
     public User(IUser user) : this((JMMUser)user) { }

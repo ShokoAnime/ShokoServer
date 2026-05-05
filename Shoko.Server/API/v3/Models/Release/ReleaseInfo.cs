@@ -25,6 +25,7 @@ public class ReleaseInfo : IReleaseInfo
     /// intentionally be set to anything to allow importing/exporting/remixing
     /// data from other providers.
     /// </summary>
+    [Required]
     public string ProviderName { get; init; }
 
     /// <summary>
@@ -38,6 +39,7 @@ public class ReleaseInfo : IReleaseInfo
     /// <see cref="Group"/> releases a new version for the same release.
     /// The value is not guaranteed to be unique.
     /// </summary>
+    [Required]
     public int Version { get; init; }
 
     /// <summary>
@@ -77,12 +79,13 @@ public class ReleaseInfo : IReleaseInfo
     /// <summary>
     /// Indicates that the released file is corrupted.
     /// </summary>
+    [Required]
     public bool IsCorrupted { get; init; }
 
     /// <summary>
     /// The source of the release. What the video file was created from.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
+    [Required, JsonConverter(typeof(StringEnumConverter))]
     public ReleaseSource Source { get; init; }
 
     /// <summary>
@@ -124,12 +127,14 @@ public class ReleaseInfo : IReleaseInfo
     /// locally. Up to the provider to decide how to set this, but it should
     /// always be set.
     /// </summary>
+    [Required]
     public DateTime Updated { get; init; }
 
     /// <summary>
     /// When the release information was locally saved in Shoko for the first
     /// time.
     /// </summary>
+    [Required]
     public DateTime Created { get; init; }
 
     public ReleaseInfo()

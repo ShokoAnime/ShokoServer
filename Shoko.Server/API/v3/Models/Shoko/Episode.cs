@@ -29,31 +29,37 @@ public class Episode : BaseModel
     /// <summary>
     /// The relevant IDs for the Episode: Shoko, AniDB, TMDB.
     /// </summary>
+    [Required]
     public EpisodeIDs IDs { get; set; }
 
     /// <summary>
     /// Indicates that the episode have a custom name set.
     /// </summary>
+    [Required]
     public bool HasCustomName { get; set; }
 
     /// <summary>
     /// Preferred episode description based on the language preference.
     /// </summary>
+    [Required]
     public string Description { get; set; }
 
     /// <summary>
     /// Indicates that the episode is marked as favorite by the user.
     /// </summary>
+    [Required]
     public bool IsFavorite { get; set; }
 
     /// <summary>
     /// The preferred images for the episode.
     /// </summary>
+    [Required]
     public Images Images { get; set; }
 
     /// <summary>
     /// The duration of the episode.
     /// </summary>
+    [Required]
     public TimeSpan Duration { get; set; }
 
     /// <summary>
@@ -67,6 +73,7 @@ public class Episode : BaseModel
     /// Total number of times the episode have been watched (till completion) by
     /// the user across all files.
     /// </summary>
+    [Required]
     public int WatchCount { get; set; }
 
     /// <summary>
@@ -74,6 +81,7 @@ public class Episode : BaseModel
     /// api unless explicitly requested, and will not count against the unwatched
     /// counts and missing counts for the series.
     /// </summary>
+    [Required]
     public bool IsHidden { get; set; }
 
     /// <summary>
@@ -93,12 +101,14 @@ public class Episode : BaseModel
     /// The time when the episode was created.
     /// </summary>
     [JsonConverter(typeof(IsoDateTimeConverter))]
+    [Required]
     public DateTime Created { get; set; }
 
     /// <summary>
     /// The time when the episode was last updated,
     /// </summary>
     [JsonConverter(typeof(IsoDateTimeConverter))]
+    [Required]
     public DateTime Updated { get; set; }
 
     /// <summary>
@@ -246,6 +256,7 @@ public class Episode : BaseModel
         /// <summary>
         /// The id of the parent <see cref="Series"/>.
         /// </summary>
+        [Required]
         public int ParentSeries { get; set; }
 
         #endregion
@@ -263,33 +274,41 @@ public class Episode : BaseModel
         /// <summary>
         /// The TvDB Episode IDs.
         /// </summary>
+        [Required]
         public List<int> TvDB { get; set; } = [];
 
         /// <summary>
         /// The IMDB Movie IDs.
         /// </summary>
+        [Required]
         public List<string> IMDB { get; set; } = [];
 
         #endregion
         /// <summary>
         /// The Movie DataBase (TMDB) Cross-Reference IDs.
         /// </summary>
+        [Required]
         public TmdbEpisodeIDs TMDB { get; init; } = new();
 
         public class TmdbEpisodeIDs
         {
+            [Required]
             public List<int> Episode { get; init; } = [];
 
+            [Required]
             public List<int> Movie { get; init; } = [];
 
+            [Required]
             public List<int> Show { get; init; } = [];
         }
     }
 
     public class TmdbData
     {
+        [Required]
         public IEnumerable<TmdbEpisode> Episodes { get; init; } = [];
 
+        [Required]
         public IEnumerable<TmdbMovie> Movies { get; init; } = [];
     }
 
@@ -302,6 +321,7 @@ public class Episode : BaseModel
         ///   Gets the number of times the episode has been played for the user,
         ///   locally or otherwise.
         /// </summary>
+        [Required]
         public int PlaybackCount { get; set; }
 
         /// <summary>
@@ -314,11 +334,13 @@ public class Episode : BaseModel
         /// <summary>
         ///   Indicates that the user has marked the episode as favorite.
         /// </summary>
+        [Required]
         public bool IsFavorite { get; set; }
 
         /// <summary>
         ///   The unique tags assigned to the episode by the user.
         /// </summary>
+        [Required]
         public IReadOnlyList<string> UserTags { get; set; }
 
         /// <summary>
@@ -330,6 +352,7 @@ public class Episode : BaseModel
         /// When the entry was last updated.
         /// </summary>
         [JsonConverter(typeof(IsoDateTimeConverter))]
+        [Required]
         public DateTime LastUpdatedAt { get; set; }
 
         public EpisodeUserData()

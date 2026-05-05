@@ -36,27 +36,32 @@ public class Series : BaseModel
     /// <summary>
     /// The relevant IDs for the series, Shoko Internal, AniDB, etc
     /// </summary>
+    [Required]
     public SeriesIDs IDs { get; set; }
 
     /// <summary>
     /// Indicates that the series have a custom name set.
     /// </summary>
+    [Required]
     public bool HasCustomName { get; set; }
 
     /// <summary>
     /// Preferred description for series.
     /// </summary>
+    [Required]
     public string Description { get; set; }
 
     /// <summary>
     /// Indicates that the episode is marked as favorite by the user.
     /// </summary>
+    [Required]
     public bool IsFavorite { get; set; }
 
     /// <summary>
     /// The default or random pictures for a series. This allows the client to not need to get all images and pick one.
     /// There should always be a poster, but no promises on the rest.
     /// </summary>
+    [Required]
     public Images Images { get; set; }
 
     /// <summary>
@@ -72,34 +77,37 @@ public class Series : BaseModel
     /// <see cref="AnimeType.Web"/>.
     /// </remarks>
     /// <value>Each weekday</value>
-    [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
+    [Required, JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     public List<DayOfWeek> AirsOn { get; set; }
 
     /// <summary>
     /// The yearly seasons this series belongs to.
     /// </summary>
+    [Required]
     public List<SeasonWithYear> YearlySeasons { get; set; }
 
     /// <summary>
     /// links to series pages on various sites
     /// </summary>
+    [Required]
     public List<Resource> Links { get; set; }
 
     /// <summary>
     /// Sizes object, has totals
     /// </summary>
+    [Required]
     public SeriesSizes Sizes { get; set; }
 
     /// <summary>
     /// The time when the series was created, during the process of the first file being added
     /// </summary>
-    [JsonConverter(typeof(IsoDateTimeConverter))]
+    [Required, JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime Created { get; set; }
 
     /// <summary>
     /// The time when the series was last updated
     /// </summary>
-    [JsonConverter(typeof(IsoDateTimeConverter))]
+    [Required, JsonConverter(typeof(IsoDateTimeConverter))]
     public DateTime Updated { get; set; }
 
     /// <summary>
@@ -409,11 +417,13 @@ public class Series : BaseModel
         /// <summary>
         /// The ID of the direct parent group, if it has one.
         /// </summary>
+        [Required]
         public int ParentGroup { get; set; }
 
         /// <summary>
         /// The ID of the top-level (ancestor) group this series belongs to.
         /// </summary>
+        [Required]
         public int TopLevelGroup { get; set; }
 
         #endregion
@@ -431,37 +441,45 @@ public class Series : BaseModel
         /// <summary>
         /// The TvDB IDs
         /// </summary>
+        [Required]
         public List<int> TvDB { get; set; } = [];
 
         /// <summary>
         /// The IMDB Movie IDs.
         /// </summary>
+        [Required]
         public List<string> IMDB { get; set; } = [];
 
         /// <summary>
         /// The Movie Database (TMDB) IDs.
         /// </summary>
+        [Required]
         public TmdbSeriesIDs TMDB { get; set; } = new();
 
         /// <summary>
         /// The MyAnimeList IDs
         /// </summary>
+        [Required]
         public List<int> MAL { get; set; } = [];
 
         #endregion
 
         public class TmdbSeriesIDs
         {
+            [Required]
             public List<int> Movie { get; init; } = [];
 
+            [Required]
             public List<int> Show { get; init; } = [];
         }
     }
 
     public class TmdbData
     {
+        [Required]
         public IEnumerable<TmdbMovie> Movies { get; init; } = [];
 
+        [Required]
         public IEnumerable<TmdbShow> Shows { get; init; } = [];
     }
 
@@ -475,11 +493,13 @@ public class Series : BaseModel
         /// <summary>
         ///   Indicates that the user has marked the series as favorite.
         /// </summary>
+        [Required]
         public bool IsFavorite { get; set; }
 
         /// <summary>
         ///   The unique tags assigned to the series by the user.
         /// </summary>
+        [Required]
         public IReadOnlyList<string> UserTags { get; set; }
 
         private double? _userRating;
@@ -725,6 +745,7 @@ public class Series : BaseModel
         /// <summary>
         /// Indicates whether the search result is an exact match to the query.
         /// </summary>
+        [Required]
         public bool ExactMatch { get; set; }
 
         /// <summary>
@@ -732,6 +753,7 @@ public class Series : BaseModel
         /// This property is only applicable when ExactMatch is set to true.
         /// A lower value indicates a match that occurs earlier in the string.
         /// </summary>
+        [Required]
         public int Index { get; set; }
 
         /// <summary>
@@ -739,17 +761,20 @@ public class Series : BaseModel
         /// This may be the sorensen-dice distance or the tag weight when comparing tags for a series.
         /// A lower value indicates a more similar match.
         /// </summary>
+        [Required]
         public double Distance { get; set; }
 
         /// <summary>
         /// Represents the absolute difference in length between the sanitized query and the sanitized matched result.
         /// A lower value indicates a match with a more similar length to the query.
         /// </summary>
+        [Required]
         public int LengthDifference { get; set; }
 
         /// <summary>
         /// Contains the original matched substring from the original string.
         /// </summary>
+        [Required]
         public string Match { get; set; } = string.Empty;
 
         public SearchResult(SeriesSearch.SearchResult<AnimeSeries> result, int userId = 0, bool randomizeImages = false, HashSet<DataSourceType>? includeDataFrom = null)
@@ -771,6 +796,7 @@ public class Series : BaseModel
         /// <summary>
         /// Number of episodes in the series which have multiple releases.
         /// </summary>
+        [Required]
         public int EpisodeCount { get; set; }
 
         public WithEpisodeCount(int episodeCount, AnimeSeries ser, int userId = 0, HashSet<DataSourceType>? includeDataFrom = null)
@@ -799,11 +825,13 @@ public class SeriesSizes
     /// <summary>
     /// Count of hidden episodes, be it available or missing.
     /// </summary>
+    [Required]
     public int Hidden { get; set; }
 
     /// <summary>
     /// Count of manually linked files.
     /// </summary>
+    [Required]
     public int ManualLinks { get; set; }
 
     /// <summary>
@@ -821,11 +849,13 @@ public class SeriesSizes
     /// <summary>
     /// What is local and watched.
     /// </summary>
+    [Required]
     public EpisodeTypeCounts Watched { get; set; }
 
     /// <summary>
     /// Count of missing episodes that are not hidden.
     /// </summary>
+    [Required]
     public ReducedEpisodeTypeCounts Missing { get; set; }
 
     /// <summary>
@@ -839,8 +869,10 @@ public class SeriesSizes
     /// </summary>
     public class ReducedEpisodeTypeCounts
     {
+        [Required]
         public int Episodes { get; set; }
 
+        [Required]
         public int Specials { get; set; }
     }
 
@@ -849,41 +881,58 @@ public class SeriesSizes
     /// </summary>
     public class EpisodeTypeCounts
     {
+        [Required]
         public int Unknown { get; set; }
 
+        [Required]
         public int Episodes { get; set; }
 
+        [Required]
         public int Specials { get; set; }
 
+        [Required]
         public int Credits { get; set; }
 
+        [Required]
         public int Trailers { get; set; }
 
+        [Required]
         public int Parodies { get; set; }
 
+        [Required]
         public int Others { get; set; }
     }
 
     public class FileSourceCounts
     {
+        [Required]
         public int Unknown { get; set; }
 
+        [Required]
         public int Other { get; set; }
 
+        [Required]
         public int TV { get; set; }
 
+        [Required]
         public int DVD { get; set; }
 
+        [Required]
         public int BluRay { get; set; }
 
+        [Required]
         public int Web { get; set; }
 
+        [Required]
         public int VHS { get; set; }
 
+        [Required]
         public int VCD { get; set; }
 
+        [Required]
         public int LaserDisc { get; set; }
 
+        [Required]
         public int Camera { get; set; }
     }
 }

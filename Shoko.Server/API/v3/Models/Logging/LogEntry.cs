@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Newtonsoft.Json;
 
@@ -15,36 +16,43 @@ public class LogEntry
     /// <summary>
     /// Entry timestamp in UTC.
     /// </summary>
+    [Required]
     public DateTime TimeStamp { get; }
 
     /// <summary>
     /// Log level.
     /// </summary>
+    [Required]
     public string Level { get; }
 
     /// <summary>
     /// Logger category or name.
     /// </summary>
+    [Required]
     public string Logger { get; }
 
     /// <summary>
     /// Caller information.
     /// </summary>
+    [Required]
     public string Caller { get; }
 
     /// <summary>
     /// Thread ID for the entry.
     /// </summary>
+    [Required]
     public int ThreadId { get; }
 
     /// <summary>
     /// Process ID for the entry.
     /// </summary>
+    [Required]
     public int ProcessId { get; }
 
     /// <summary>
     /// Rendered log message.
     /// </summary>
+    [Required]
     public string Message { get; }
 
     /// <summary>

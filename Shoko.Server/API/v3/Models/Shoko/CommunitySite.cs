@@ -1,7 +1,7 @@
-
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 /// <summary>

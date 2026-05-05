@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Server.Models.TMDB;
@@ -13,28 +14,32 @@ public class Network
     /// <summary>
     /// Network ID relative to the <see cref="Source"/>.
     /// </summary>
+    [Required]
     public int ID { get; init; }
 
     /// <summary>
     /// The name of the studio.
     /// </summary>
+    [Required]
     public string Name { get; init; }
 
     /// <summary>
     /// The country the studio originates from.
     /// </summary>
+    [Required]
     public string CountryOfOrigin { get; init; }
 
     /// <summary>
     /// Entities produced by the studio in the local collection, both movies
     /// and/or shows.
     /// </summary>
+    [Required]
     public int Size { get; init; }
 
     /// <summary>
     /// The source of which the studio metadata belongs to.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
+    [Required, JsonConverter(typeof(StringEnumConverter))]
     public DataSourceType Source { get; init; }
 
     public Network(TMDB_Network company)

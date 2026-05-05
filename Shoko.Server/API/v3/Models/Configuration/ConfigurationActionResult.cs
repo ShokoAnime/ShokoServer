@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using JsonDiffPatchDotNet;
 using JsonDiffPatchDotNet.Formatters.JsonPatch;
@@ -19,12 +20,14 @@ public class ConfigurationActionResult
     /// <summary>
     /// Indicates that the default save message should be shown to the user.
     /// </summary>
+    [Required]
     public bool ShowSaveMessage { get; init; } = false;
 
     /// <summary>
     /// Indicates that the configuration should be refreshed by the client
     /// because we've modified it.
     /// </summary>
+    [Required]
     public bool Refresh { get; init; } = false;
 
     /// <summary>
@@ -35,6 +38,7 @@ public class ConfigurationActionResult
     /// <summary>
     /// Any additional messages to show to the user.
     /// </summary>
+    [Required]
     public IReadOnlyList<ConfigurationActionResultMessage> Messages { get; init; } = [];
 
     /// <summary>
@@ -45,6 +49,7 @@ public class ConfigurationActionResult
     /// <summary>
     /// Indicates that existing validation errors should be kept.
     /// </summary>
+    [Required]
     public bool KeepExistingValidationErrors { get; init; }
 
     /// <summary>

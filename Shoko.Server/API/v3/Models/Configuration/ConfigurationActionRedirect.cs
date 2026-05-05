@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 using AbstractConfigurationActionRedirect = Shoko.Abstractions.Config.ConfigurationActionRedirect;
 
 namespace Shoko.Server.API.v3.Models.Configuration;
@@ -13,11 +15,13 @@ public class ConfigurationActionRedirect(AbstractConfigurationActionRedirect red
     ///   not contain a leading http:// or https:// prefix. If it's a path, then
     ///   it will redirect within the web UI.
     /// </summary>
+    [Required]
     public string Location { get; init; } = redirect.Location;
 
     /// <summary>
     ///   Open the location in a new tab. Defaults to <c>false</c> if the
     ///   location is a path, and to <c>true</c> if it's an absolute URL.
     /// </summary>
+    [Required]
     public bool OpenInNewTab { get; init; } = redirect.OpenInNewTab;
 }

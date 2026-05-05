@@ -18,11 +18,13 @@ public class Filter : BaseModel
     /// <summary>
     /// The Filter ID.
     /// </summary>
+    [Required]
     public FilterIDs IDs { get; set; } = new();
 
     /// <summary>
     /// Indicates the filter cannot be edited by a user.
     /// </summary>
+    [Required]
     public bool IsLocked { get; set; }
 
     /// <summary>
@@ -32,17 +34,20 @@ public class Filter : BaseModel
     /// A directory filter cannot have any conditions and/or sorting
     /// attached to it. And changing an existing filter
     /// </remarks>
+    [Required]
     public bool IsDirectory { get; set; }
 
     /// <summary>
     /// Indicates the filter should be hidden unless explicitly requested. This will hide the filter from the normal UIs.
     /// </summary>
+    [Required]
     public bool IsHidden { get; set; }
 
     /// <summary>
     /// Indicates the filter should be applied at the series level.
     /// Filter conditions like like Seasons, Years, Tags, etc only count series individually, rather than by group.
     /// </summary>
+    [Required]
     public bool ApplyAtSeriesLevel { get; set; }
 
     /// <summary>

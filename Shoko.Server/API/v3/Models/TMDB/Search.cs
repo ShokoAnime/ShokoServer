@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Metadata.Tmdb;
@@ -35,6 +36,7 @@ public static class Search
         /// <summary>
         /// AniDB Anime ID.
         /// </summary>
+        [Required]
         public int AnimeID { get; set; }
 
         /// <summary>
@@ -47,16 +49,19 @@ public static class Search
         /// Indicates that this is a local match using existing data instead of a
         /// remote match.
         /// </summary>
+        [Required]
         public bool IsLocal { get; set; }
 
         /// <summary>
         /// Indicates that this is a remote match.
         /// </summary>
+        [Required]
         public bool IsRemote { get; set; }
 
         /// <summary>
         /// Indicates that the result is for a movie auto-magic match.
         /// </summary>
+        [Required]
         [MemberNotNullWhen(true, nameof(EpisodeID))]
         [MemberNotNullWhen(true, nameof(Movie))]
         [MemberNotNullWhen(false, nameof(Show))]
@@ -100,32 +105,38 @@ public static class Search
         /// <summary>
         /// TMDB Movie ID.
         /// </summary>
+        [Required]
         public int ID { get; init; }
 
         /// <summary>
         /// English title.
         /// </summary>
+        [Required]
         public string Title { get; init; }
 
         /// <summary>
         /// Title in the original language.
         /// </summary>
+        [Required]
         public string OriginalTitle { get; init; }
 
         /// <summary>
         /// Original language the movie was shot in.
         /// </summary>
+        [Required]
         public string OriginalLanguage { get; init; }
 
         /// <summary>
         /// Preferred overview based upon description preference.
         /// </summary>
+        [Required]
         public string Overview { get; init; }
 
         /// <summary>
         /// Indicates the movie is restricted to an age group above the legal age,
         /// because it's a pornography.
         /// </summary>
+        [Required]
         public bool IsRestricted { get; init; }
 
         /// <summary>
@@ -144,6 +155,7 @@ public static class Search
         ///
         /// among others.
         /// </summary>
+        [Required]
         public bool IsVideo { get; init; }
 
         /// <summary>
@@ -164,11 +176,13 @@ public static class Search
         /// <summary>
         /// User rating of the movie from TMDB users.
         /// </summary>
+        [Required]
         public Rating UserRating { get; init; }
 
         /// <summary>
         /// Genres.
         /// </summary>
+        [Required]
         public IReadOnlyList<string> Genres { get; init; }
 
         public RemoteSearchMovie(TMDB_Movie movie)
@@ -280,26 +294,31 @@ public static class Search
         /// <summary>
         /// TMDB Show ID.
         /// </summary>
+        [Required]
         public int ID { get; init; }
 
         /// <summary>
         /// English title.
         /// </summary>
+        [Required]
         public string Title { get; init; }
 
         /// <summary>
         /// Title in the original language.
         /// </summary>
+        [Required]
         public string OriginalTitle { get; init; }
 
         /// <summary>
         /// Original language the show was shot in.
         /// </summary>
+        [Required]
         public string OriginalLanguage { get; init; }
 
         /// <summary>
         /// Preferred overview based upon description preference.
         /// </summary>
+        [Required]
         public string Overview { get; init; }
 
         /// <summary>
@@ -320,11 +339,13 @@ public static class Search
         /// <summary>
         /// User rating of the movie from TMDB users.
         /// </summary>
+        [Required]
         public Rating UserRating { get; init; }
 
         /// <summary>
         /// Genres.
         /// </summary>
+        [Required]
         public IReadOnlyList<string> Genres { get; init; }
 
         public RemoteSearchShow(TMDB_Show show)

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Shoko.Server.Models.TMDB;
 
 #nullable enable
@@ -8,21 +9,25 @@ public class ContentRating
     /// <summary>
     /// The content rating for the specified language.
     /// </summary>
+    [Required]
     public string Rating { get; init; }
 
     /// <summary>
     /// The country code the rating applies for.
     /// </summary>
+    [Required]
     public string Country { get; init; }
 
     /// <summary>
     /// The language code the rating applies for.
     /// </summary>
+    [Required]
     public string Language { get; init; }
 
     /// <summary>
     /// The source of the content rating.
     /// </summary>
+    [Required]
     public string Source { get; init; }
 
     public ContentRating(string rating, string countryCode, string languageCode, DataSourceType source)

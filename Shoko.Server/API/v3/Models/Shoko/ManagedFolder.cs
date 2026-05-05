@@ -16,28 +16,33 @@ public class ManagedFolder : BaseModel
     /// <summary>
     ///   Managed Folder ID.
     /// </summary>
+    [Required]
     public int ID { get; set; }
 
     /// <summary>
     ///   Determines if the filesystem watcher to watch for new files on the
     ///   managed folder is enabled.
     /// </summary>
+    [Required]
     public bool WatchForNewFiles { get; set; }
 
     /// <summary>
     ///   Indicates if the managed folder is a drop destination, a drop source,
     ///   both, or neither.
     /// </summary>
+    [Required]
     public DropFolderType DropFolderType { get; set; }
 
     /// <summary>
     ///   Path on the server where the managed folder exists.
     /// </summary>
+    [Required]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>
     ///   Total FileSize of the contents of the managed folder.
     /// </summary>
+    [Required]
     public long FileSize { get; set; }
 
     public ManagedFolder() { }

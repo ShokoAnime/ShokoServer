@@ -28,10 +28,12 @@ public class Rating
     /// <summary>
     /// number of votes
     /// </summary>
+    [Required]
     public int Votes { get; set; }
 
     /// <summary>
     /// for temporary vs permanent, or any other situations that may arise later
     /// </summary>
+    [Required]
     public string Type { get; set; }
 }

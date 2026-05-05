@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json.Converters;
 
@@ -11,26 +12,31 @@ public class Queue
     /// <summary>
     /// The number of jobs waiting to execute, but nothing is blocking it except available threads
     /// </summary>
+    [Required]
     public int WaitingCount { get; set; }
 
     /// <summary>
     /// The number of jobs that can't run due to various circumstances, such as concurrency limits or bans
     /// </summary>
+    [Required]
     public int BlockedCount { get; set; }
 
     /// <summary>
     /// The total number of jobs waiting to execute, regardless of state
     /// </summary>
+    [Required]
     public int TotalCount { get; set; }
 
     /// <summary>
     /// The number of threads that the queue will use. This is the maximum number of concurrent jobs
     /// </summary>
+    [Required]
     public int ThreadCount { get; set; }
 
     /// <summary>
     /// The currently executing jobs and their details
     /// </summary>
+    [Required]
     public List<QueueItem> CurrentlyExecuting { get; set; } = [];
 
     public class QueueItem
@@ -40,26 +46,31 @@ public class Queue
         /// queue items over the life span of the queue, but only one item will
         /// exist with the same name at any given time.
         /// </summary>
+        [Required]
         public string Key { get; init; } = string.Empty;
 
         /// <summary>
         /// The queue item type.
         /// </summary>
+        [Required]
         public string Type { get; init; } = string.Empty;
 
         /// <summary>
         /// The Title line of a Queue Item, e.g. Hashing File
         /// </summary>
+        [Required]
         public string Title { get; init; } = string.Empty;
 
         /// <summary>
         /// The details of the queue item. e.g. { "File Path": "/mnt/Drop/Steins Gate/Episode 1.mkv" }
         /// </summary>
+        [Required]
         public Dictionary<string, object> Details { get; init; } = [];
 
         /// <summary>
         /// Indicates the item is currently actively running in the queue.
         /// </summary>
+        [Required]
         public bool IsRunning { get; init; }
 
         /// <summary>
@@ -72,6 +83,7 @@ public class Queue
         /// Indicates the item is currently disabled because it cannot run under
         /// the current conditions (e.g. a UDP or HTTP ban is active, etc.).
         /// </summary>
+        [Required]
         public bool IsBlocked { get; init; }
     }
 }

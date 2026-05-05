@@ -87,6 +87,7 @@ public class WebUI
         /// <summary>
         /// Shoko Group ID.
         /// </summary>
+        [Required]
         public int ID { get; set; }
 
         /// <summary>
@@ -99,6 +100,7 @@ public class WebUI
         /// <summary>
         /// The overall rating from AniDB.
         /// </summary>
+        [Required]
         public Rating Rating { get; set; } = new();
 
         /// <summary>
@@ -136,17 +138,20 @@ public class WebUI
         /// <summary>
         /// A pre-filtered list of studios for the show.
         /// </summary>
+        [Required]
         public List<Role.Person> Studios { get; set; } = [];
 
         /// <summary>
         /// A pre-filtered list of producers for the show.
         /// </summary>
         /// <value></value>
+        [Required]
         public List<Role.Person> Producers { get; set; } = [];
 
         /// <summary>
         /// The inferred source material for the series.
         /// </summary>
+        [Required]
         public string SourceMaterial { get; set; } = string.Empty;
     }
 
@@ -645,6 +650,7 @@ public class WebUI
             /// <summary>
             /// Total number of episodes for the type in the range.
             /// </summary>
+            [Required]
             public int Count { get; set; }
 
             /// <summary>
@@ -653,11 +659,13 @@ public class WebUI
             /// <example>
             /// "01-03, 05, 07-134, 342-432"
             /// </example>
+            [Required]
             public string Range { get; set; } = string.Empty;
 
             /// <summary>
             /// The accumulated file size in bytes across all files in this range.
             /// </summary>
+            [Required]
             public long FileSize { get; set; }
 
             /// <summary>
@@ -922,16 +930,19 @@ public class WebUI
             /// <summary>
             /// The total size of all locally available files for a series
             /// </summary>
+            [Required]
             public long TotalFileSize { get; set; }
 
             /// <summary>
             /// A summarized list of all the locally available release groups for a series.
             /// </summary>
+            [Required]
             public List<string> ReleaseGroups { get; set; } = [];
 
             /// <summary>
             /// The list of all AniDB episode sources, and their associated file counts
             /// </summary>
+            [Required]
             public List<SourcesByType> SourcesByType { get; set; } = [];
         }
 
@@ -941,11 +952,13 @@ public class WebUI
             /// The type of episode.
             /// </summary>
             [JsonConverter(typeof(StringEnumConverter))]
+            [Required]
             public EpisodeType Type { get; set; }
 
             /// <summary>
             /// The source of the file for the episode
             /// </summary>
+            [Required]
             public List<SourceGrouping> Sources { get; set; } = [];
         }
 
@@ -955,11 +968,13 @@ public class WebUI
             /// The file source.
             /// </summary>
             [JsonConverter(typeof(StringEnumConverter))]
+            [Required]
             public ReleaseSource Type { get; set; }
 
             /// <summary>
             /// Amount of files with this file source.
             /// </summary>
+            [Required]
             public int Count { get; set; }
         }
 

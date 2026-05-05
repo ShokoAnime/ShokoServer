@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Server.API.v3.Helpers;
@@ -19,71 +20,85 @@ public static class Dashboard
         /// <summary>
         /// Number of Files in the collection (visible to the current user)
         /// </summary>
+        [Required]
         public int FileCount { get; set; }
 
         /// <summary>
         /// Number of Series in the Collection (visible to the current user)
         /// </summary>
+        [Required]
         public int SeriesCount { get; set; }
 
         /// <summary>
         /// The number of Groups in the Collection (visible to the current user)
         /// </summary>
+        [Required]
         public int GroupCount { get; set; }
 
         /// <summary>
         /// Total amount of space the collection takes (of what's visible to the current user)
         /// </summary>
+        [Required]
         public long FileSize { get; set; }
 
         /// <summary>
         /// Number of Series Completely Watched
         /// </summary>
+        [Required]
         public int FinishedSeries { get; set; }
 
         /// <summary>
         /// Number of Episodes Watched
         /// </summary>
+        [Required]
         public int WatchedEpisodes { get; set; }
 
         /// <summary>
         /// Watched Hours, rounded to one place
         /// </summary>
+        [Required]
         public decimal WatchedHours { get; set; }
 
         /// <summary>
         /// The percentage of files that are either duplicates or belong to the same episode
         /// </summary>
+        [Required]
         public decimal PercentDuplicate { get; set; }
 
         /// <summary>
         /// The Number of missing episodes, regardless of where they are from or available
         /// </summary>
+        [Required]
         public int MissingEpisodes { get; set; }
 
         /// <summary>
         /// The number of missing episodes from groups we are collecting. This should not be used as a rule, as it's not very reliable
         /// </summary>
+        [Required]
         public int MissingEpisodesCollecting { get; set; }
 
         /// <summary>
         /// Number of Unrecognized Files
         /// </summary>
+        [Required]
         public int UnrecognizedFiles { get; set; }
 
         /// <summary>
         /// The number of series missing TMDB Links
         /// </summary>
+        [Required]
         public int SeriesWithMissingLinks { get; set; }
 
         /// <summary>
         /// The number of Episodes with more than one File (not marked as a variation)
         /// </summary>
+        [Required]
         public int EpisodesWithMultipleFiles { get; set; }
 
         /// <summary>
         /// The number of files that exist in more than one location
         /// </summary>
+        [Required]
         public int FilesWithDuplicateLocations { get; set; }
     }
 
@@ -92,46 +107,55 @@ public static class Dashboard
         /// <summary>
         /// The number of normal Series
         /// </summary>
+        [Required]
         public int Series { get; set; }
 
         /// <summary>
         /// The Number of OVAs
         /// </summary>
+        [Required]
         public int OVA { get; set; }
 
         /// <summary>
         /// The Number of Movies
         /// </summary>
+        [Required]
         public int Movie { get; set; }
 
         /// <summary>
         /// The Number of TV Specials
         /// </summary>
+        [Required]
         public int Special { get; set; }
 
         /// <summary>
         /// ONAs and the like, it's more of a new concept
         /// </summary>
+        [Required]
         public int Web { get; set; }
 
         /// <summary>
         /// Things marked on AniDB as Other, different from None
         /// </summary>
+        [Required]
         public int Other { get; set; }
 
         /// <summary>
         /// The Number of Music Videos
         /// </summary>
+        [Required]
         public int MusicVideo { get; set; }
 
         /// <summary>
         /// The entry have not yet been assigned a type.
         /// </summary>
+        [Required]
         public int Unknown { get; set; }
 
         /// <summary>
         /// Series that don't have AniDB Records. This is very bad, and usually means there was an error in the import process. It can also happen if the API is hit at just the right time.
         /// </summary>
+        [Required]
         public int None { get; set; }
     }
 
@@ -168,22 +192,25 @@ public static class Dashboard
         /// <summary>
         /// All ids that may be useful for navigating away from the dashboard.
         /// </summary>
+        [Required]
         public EpisodeDetailsIDs IDs { get; set; }
 
         /// <summary>
         /// Episode title.
         /// </summary>
+        [Required]
         public string Title { get; set; }
 
         /// <summary>
         /// Episode number.
         /// </summary>
+        [Required]
         public int Number { get; set; }
 
         /// <summary>
         /// Episode type.
         /// </summary>
-        [JsonConverter(typeof(StringEnumConverter))]
+        [Required, JsonConverter(typeof(StringEnumConverter))]
         public EpisodeType Type { get; set; }
 
         /// <summary>
@@ -195,6 +222,7 @@ public static class Dashboard
         /// <summary>
         /// The duration of the episode.
         /// </summary>
+        [Required]
         public TimeSpan Duration { get; set; }
 
         /// <summary>
@@ -211,11 +239,13 @@ public static class Dashboard
         /// <summary>
         /// Series title.
         /// </summary>
+        [Required]
         public string SeriesTitle { get; set; }
 
         /// <summary>
         /// Series poster.
         /// </summary>
+        [Required]
         public Image SeriesPoster { get; set; }
 
         /// <summary>
@@ -237,6 +267,7 @@ public static class Dashboard
         /// <summary>
         /// The related <see cref="Series.AniDB"/> id for the entry.
         /// </summary>
+        [Required]
         public int Series { get; set; }
 
         /// <summary>

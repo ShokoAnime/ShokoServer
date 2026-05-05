@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 using AbstractPackageInfo = Shoko.Abstractions.Plugin.Models.PackageInfo;
 
 #nullable enable
@@ -18,16 +20,19 @@ public class PackageInfo(AbstractPackageInfo packageInfo)
     /// <summary>
     ///   The package metadata.
     /// </summary>
+    [Required]
     public PackageManifestInfo Manifest { get; init; } = new(packageInfo.Manifest);
 
     /// <summary>
     ///   The specific version to install.
     /// </summary>
+    [Required]
     public PackageReleaseInfo Release { get; init; } = new(packageInfo.Release);
 
     /// <summary>
     ///   The archive information for downloading the package.
     /// </summary>
+    [Required]
     public PackageArchiveInfo Archive { get; init; } = new(packageInfo.Archive);
 
     /// <summary>

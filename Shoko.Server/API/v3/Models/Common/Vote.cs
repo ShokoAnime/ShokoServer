@@ -22,7 +22,7 @@ public class Vote
     public Vote() { }
 
     /// <summary>
-    /// The normalised user-submitted rating in the range [0, <paramref name="maxValue" />].
+    /// The normalized user-submitted rating in the range [0, <paramref name="maxValue" />].
     /// </summary>
     /// <param name="maxValue">The max value to use.</param>
     /// <returns></returns>
@@ -36,14 +36,13 @@ public class Vote
     /// <summary>
     /// The user-submitted rating relative to <see cref="Vote.MaxValue" />.
     /// </summary>
-    [Range(-1, int.MaxValue, ErrorMessage = "Value must be greater than or equal to 0. Or -1 to revoke a previously set rating.")]
-    [Required]
+    [Required, Range(-1, int.MaxValue, ErrorMessage = "Value must be greater than or equal to 0. Or -1 to revoke a previously set rating.")]
     public double Value { get; set; }
 
     /// <summary>
     /// Max allowed value for the user-submitted rating. Assumes 10 if not set.
     /// </summary>
-    [Range(0, int.MaxValue, ErrorMessage = "Max value must be an integer above 0.")]
+    [Required, Range(0, int.MaxValue, ErrorMessage = "Max value must be an integer above 0.")]
     [DefaultValue(10)]
     public int MaxValue { get; set; }
 

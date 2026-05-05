@@ -25,6 +25,7 @@ public partial class File
     /// <summary>
     /// The ID of the File. You'll need this to play it.
     /// </summary>
+    [Required]
     public int ID { get; set; }
 
     /// <summary>
@@ -38,32 +39,38 @@ public partial class File
     /// <summary>
     /// The Filesize in bytes
     /// </summary>
+    [Required]
     public long Size { get; set; }
 
     /// <summary>
     /// If this file is marked as a file variation.
     /// </summary>
+    [Required]
     public bool IsVariation { get; set; }
 
     /// <summary>
     /// If this file is marked as ignored.
     /// </summary>
+    [Required]
     public bool IsIgnored { get; set; }
 
     /// <summary>
     /// The calculated hashes of the file
     /// </summary>
     /// <returns></returns>
+    [Required]
     public List<HashDigest> Hashes { get; set; }
 
     /// <summary>
     /// All of the Locations that this file exists in
     /// </summary>
+    [Required]
     public List<Location> Locations { get; set; }
 
     /// <summary>
     /// AVDump info for the file.
     /// </summary>
+    [Required]
     public AVDumpInfo AVDump { get; set; }
 
     /// <summary>
@@ -74,6 +81,7 @@ public partial class File
     /// <summary>
     /// The duration of the file.
     /// </summary>
+    [Required]
     public TimeSpan Duration { get; set; }
 
     /// <summary>
@@ -107,12 +115,14 @@ public partial class File
     /// The file creation date of this file
     /// </summary>
     [JsonConverter(typeof(IsoDateTimeConverter))]
+    [Required]
     public DateTime Created { get; set; }
 
     /// <summary>
     /// When the file was last updated (e.g. the hashes were added/updated).
     /// </summary>
     [JsonConverter(typeof(IsoDateTimeConverter))]
+    [Required]
     public DateTime Updated { get; set; }
 
     /// <summary>
@@ -181,12 +191,14 @@ public partial class File
         /// <summary>
         /// The Managed Folder that this file resides in 
         /// </summary>
+        [Required]
         public int ManagedFolderID { get; set; }
 
         /// <summary>
         /// The relative path from the managed folder's path on the server. The
         /// file name can be easily extracted from this.
         /// </summary>
+        [Required]
         public string RelativePath { get; set; }
 
         /// <summary>
@@ -313,6 +325,7 @@ public partial class File
         /// <summary>
         /// Total number of times the file have been watched.
         /// </summary>
+        [Required]
         public int WatchedCount { get; set; }
 
         /// <summary>
@@ -326,6 +339,7 @@ public partial class File
         /// When the entry was last updated.
         /// </summary>
         [JsonConverter(typeof(IsoDateTimeConverter))]
+        [Required]
         public DateTime LastUpdatedAt { get; set; }
 
         public FileUserData()

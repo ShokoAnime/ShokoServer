@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -21,21 +22,25 @@ public class TmdbSeason
     /// <summary>
     /// TMDB Season ID.
     /// </summary>
+    [Required]
     public string ID { get; init; }
 
     /// <summary>
     /// TMDB Show ID.
     /// </summary>
+    [Required]
     public int ShowID { get; init; }
 
     /// <summary>
     /// The ID of the alternate ordering this season is associated with.
     /// </summary>
+    [Required]
     public string AlternateOrderingID { get; init; }
 
     /// <summary>
     /// Preferred title based upon episode title preference.
     /// </summary>
+    [Required]
     public string Title { get; init; }
 
     /// <summary>
@@ -47,6 +52,7 @@ public class TmdbSeason
     /// <summary>
     /// Preferred overview based upon episode title preference.
     /// </summary>
+    [Required]
     public string Overview { get; init; }
 
     /// <summary>
@@ -89,32 +95,38 @@ public class TmdbSeason
     /// <summary>
     /// The season number for the main ordering or alternate ordering in use.
     /// </summary>
+    [Required]
     public int SeasonNumber { get; init; }
 
     /// <summary>
     /// Count of episodes associated with the season.
     /// </summary>
+    [Required]
     public int EpisodeCount { get; init; }
 
     /// <summary>
     /// Count of hidden episodes associated with the season.
     /// </summary>
+    [Required]
     public int HiddenEpisodeCount { get; init; }
 
     /// <summary>
     /// Indicates the season is locked for edits in TMDB.
     /// </summary>
+    [Required]
     public bool IsLocked { get; init; }
 
     /// <summary>
     /// When the local metadata was first created.
     /// </summary>
+    [Required]
     public DateTime CreatedAt { get; init; }
 
     /// <summary>
     /// When the local metadata was last updated with new changes from the
     /// remote.
     /// </summary>
+    [Required]
     public DateTime LastUpdatedAt { get; init; }
 
     public TmdbSeason(TMDB_Season season, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)

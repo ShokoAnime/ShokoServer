@@ -293,12 +293,14 @@ public class Role
         /// Alternate Name, this can be any other name, whether kanji, an alias, etc
         /// ex. 澤野弘之
         /// </summary>
+        [Required]
         public string AlternateName { get; set; } = string.Empty;
 
         /// <summary>
         /// A description, bio, etc
         /// ex. Sawano Hiroyuki was born September 12, 1980 in Tokyo, Japan. He is a composer and arranger.
         /// </summary>
+        [Required]
         public string Description { get; set; } = string.Empty;
 
         /// <summary>

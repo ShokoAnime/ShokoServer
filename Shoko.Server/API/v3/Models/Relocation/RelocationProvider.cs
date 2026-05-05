@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Video.Relocation;
 using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.API.v3.Models.Plugin;
@@ -17,27 +18,32 @@ public class RelocationProvider(RelocationProviderInfo info)
     /// <summary>
     ///   The unique ID of the provider.
     /// </summary>
+    [Required]
     public Guid ID { get; init; } = info.ID;
 
     /// <summary>
     ///   The version of the release info provider.
     /// </summary>
+    [Required]
     public Version Version { get; init; } = info.Version;
 
     /// <summary>
     ///   The display name of the release info provider.
     /// </summary>
+    [Required]
     public string Name { get; init; } = info.Name;
 
     /// <summary>
     ///   Describes what the release info provider is for.
     /// </summary>
+    [Required]
     public string Description { get; init; } = string.IsNullOrEmpty(info.Description) ? string.Empty : info.Description;
 
     /// <summary>
     ///   This should be true if the renamer supports operating on unrecognized
     ///   files.
     /// </summary>
+    [Required]
     public bool SupportsUnrecognized { get; init; } = info.SupportsUnrecognized;
 
     /// <summary>
@@ -45,18 +51,21 @@ public class RelocationProvider(RelocationProviderInfo info)
     ///   all the metadata for the episodes and/or series linked to the video
     ///   is missing.
     /// </summary>
+    [Required]
     public bool SupportsIncompleteMetadata { get; init; } = info.SupportsIncompleteMetadata;
 
     /// <summary>
     ///   Indicates that the renamer supports moving files. That is, changing
     ///   the directory the file is in.
     /// </summary>
+    [Required]
     public bool SupportsMoving { get; init; } = info.SupportsMoving;
 
     /// <summary>
     ///   Indicates that the renamer supports renaming files. That is, changing
     ///   the name of the file itself.
     /// </summary>
+    [Required]
     public bool SupportsRenaming { get; init; } = info.SupportsRenaming;
 
     /// <summary>
@@ -67,5 +76,6 @@ public class RelocationProvider(RelocationProviderInfo info)
     /// <summary>
     ///   Information about the plugin that the release info provider belongs to.
     /// </summary>
+    [Required]
     public PluginInfo Plugin { get; init; } = new(info.PluginInfo);
 }

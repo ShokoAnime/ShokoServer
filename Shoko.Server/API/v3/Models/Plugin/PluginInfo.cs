@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Shoko.Abstractions.Core;
 using Shoko.Server.Services;
@@ -17,32 +18,38 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     /// <summary>
     ///   The unique identifier for the plugin.
     /// </summary>
+    [Required]
     public Guid ID { get; init; } = pluginInfo.ID;
 
     /// <summary>
     ///   The name of the plugin.
     /// </summary>
+    [Required]
     public string Name { get; init; } = pluginInfo.Name;
 
     /// <summary>
     ///   The description of the plugin.
     /// </summary>
+    [Required]
     public string Description { get; init; } = pluginInfo.Description;
 
     /// <summary>
     ///   The version of the plugin.
     /// </summary>
+    [Required]
     public Version Version { get; init; } = pluginInfo.Version.Version;
 
     /// <summary>
     ///   The .NET runtime identifier (e.g. <c>"win-64"</c>, <c>"linux-x64"</c>, etc.) the component was built for.
     /// </summary>
+    [Required]
     public string RuntimeIdentifier { get; init; } = pluginInfo.Version.RuntimeIdentifier;
 
     /// <summary>
     ///   The version of the plugin abstractions that the plugin was built
     ///   against.
     /// </summary>
+    [Required]
     public Version AbstractionVersion { get; init; } = pluginInfo.Version.AbstractionVersion;
 
     /// <summary>
@@ -58,11 +65,13 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     /// <summary>
     /// The release channel of the component.
     /// </summary>
+    [Required]
     public ReleaseChannel Channel { get; init; } = pluginInfo.Version.Channel;
 
     /// <summary>
     /// The date and time the component was released.
     /// </summary>
+    [Required]
     public DateTime ReleasedAt { get; init; } = pluginInfo.Version.ReleasedAt;
 
     /// <summary>
@@ -73,6 +82,7 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     /// <summary>
     ///   The order in which the plugin was loaded.
     /// </summary>
+    [Required]
     public int LoadOrder { get; init; } = pluginInfo.LoadOrder;
 
     /// <summary>
@@ -83,39 +93,46 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     /// <summary>
     /// When the plugin was installed locally.
     /// </summary>
+    [Required]
     public DateTime InstalledAt { get; init; } = pluginInfo.InstalledAt;
 
     /// <summary>
     ///   Indicates the plugin is currently installed. Will only be <c>false</c>
     ///   if the plugin has be uninstalled in the current session.
     /// </summary>
+    [Required]
     public bool IsInstalled { get; init; } = pluginInfo.IsInstalled;
 
     /// <summary>
     ///   Indicates the plugin is currently enabled for use in the current
     ///   session or for the next session.
     /// </summary>
+    [Required]
     public bool IsEnabled { get; init; } = pluginInfo.IsEnabled;
 
     /// <summary>
     ///   Indicates the plugin is currently loaded in the current session.
     /// </summary>
+    [Required]
     public bool IsActive { get; init; } = pluginInfo.IsActive;
 
     /// <summary>
     ///   Indicates the plugin requires a restart for changes to take effect.
     /// </summary>
+    [Required]
     public bool RestartPending { get; init; } = pluginInfo.RestartPending;
 
     /// <summary>
     ///   Indicates the plugin can be loaded by the current runtime. Missing
     ///   assemblies or incompatible ABI versions will prevent loading.
     /// </summary>
+    [Required]
     public bool CanLoad { get; init; } = pluginInfo.CanLoad;
 
     /// <summary>
     ///   Indicates if the plugin can be uninstalled by the user.
     /// </summary>
+    [Required]
     public bool CanUninstall { get; init; } = pluginInfo.CanUninstall;
 
     /// <summary>
@@ -130,6 +147,7 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     ///   All DLLs for the plugin. The first path will always be the main DLL
     ///   which contains the plugin implementation.
     /// </summary>
+    [Required]
     public IReadOnlyList<string> DLLs { get; init; } = pluginInfo.DLLs
         .Select(path => path.Replace(ApplicationPaths.Instance.PluginsPath, "%PluginsPath%").Replace(ApplicationPaths.Instance.ApplicationPath, "%ApplicationPath%"))
         .ToArray();

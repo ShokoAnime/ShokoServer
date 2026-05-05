@@ -55,18 +55,21 @@ public class Image
     /// Indicates the image is available locally and can be served through the
     /// API.
     /// </summary>
+    [Required]
     public bool Available { get; set; }
 
     /// <summary>
     /// Indicates this is the preferred image for the <see cref="Type"/> for the
     /// selected entity.
     /// </summary>
+    [Required]
     public bool Preferred { get; set; }
 
     /// <summary>
     /// Indicates the images is disabled. You must explicitly ask for these, for
     /// hopefully obvious reasons.
     /// </summary>
+    [Required]
     public bool Disabled { get; set; }
 
     /// <summary>
@@ -352,11 +355,13 @@ public class Image
         /// <summary>
         /// The shoko series id.
         /// </summary>
+        [Required]
         public int ID { get; set; }
 
         /// <summary>
         /// The preferred series name for the user.
         /// </summary>
+        [Required]
         public string Name { get; set; }
 
         public ImageSeriesInfo(int id, string name)

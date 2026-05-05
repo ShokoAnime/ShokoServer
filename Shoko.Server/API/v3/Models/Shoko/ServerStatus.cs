@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
@@ -10,6 +11,7 @@ public class ServerStatus
     /// <summary>
     /// The state of startup.
     /// </summary>
+    [Required, JsonConverter(typeof(StringEnumConverter))]
     public StartupState State { get; set; }
 
     /// <summary>

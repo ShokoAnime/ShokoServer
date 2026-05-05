@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.API.v3.Models.Plugin;
@@ -15,31 +16,37 @@ public class ReleaseInfoProvider(ReleaseProviderInfo info)
     /// <summary>
     /// The unique ID of the provider.
     /// </summary>
+    [Required]
     public Guid ID { get; init; } = info.ID;
 
     /// <summary>
     /// The version of the release info provider.
     /// </summary>
+    [Required]
     public Version Version { get; init; } = info.Version;
 
     /// <summary>
     /// The display name of the release info provider.
     /// </summary>
+    [Required]
     public string Name { get; init; } = info.Name;
 
     /// <summary>
     /// Describes what the release info provider is for.
     /// </summary>
+    [Required]
     public string Description { get; init; } = string.IsNullOrEmpty(info.Description) ? string.Empty : info.Description;
 
     /// <summary>
     /// The priority of the provider during automatic usage.
     /// </summary>
+    [Required]
     public int Priority { get; init; } = info.Priority;
 
     /// <summary>
     /// Whether or not the provider is enabled for automatic usage.
     /// </summary>
+    [Required]
     public bool IsEnabled { get; init; } = info.Enabled;
 
     /// <summary>
@@ -50,5 +57,6 @@ public class ReleaseInfoProvider(ReleaseProviderInfo info)
     /// <summary>
     /// Information about the plugin that the release info provider belongs to.
     /// </summary>
+    [Required]
     public PluginInfo Plugin { get; init; } = new(info.PluginInfo);
 }

@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
@@ -15,12 +16,13 @@ public class AnidbBannedStatus
     /// <summary>
     /// The type of update.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
+    [Required, JsonConverter(typeof(StringEnumConverter))]
     public AnidbBanType Type { get; set; }
 
     /// <summary>
     /// Whether the AniDB account is banned.
     /// </summary>
+    [Required]
     public bool IsBanned { get; set; }
 
     /// <summary>
@@ -31,6 +33,7 @@ public class AnidbBannedStatus
     /// <summary>
     /// The date and time the status was last updated.
     /// </summary>
+    [Required]
     public DateTime LastUpdatedAt { get; set; }
 
     /// <summary>

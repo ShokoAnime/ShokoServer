@@ -1,5 +1,6 @@
 
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -17,33 +18,38 @@ public class Studio
     /// <summary>
     /// Studio ID relative to the <see cref="Source"/>.
     /// </summary>
+    [Required]
     public int ID { get; init; }
 
     /// <summary>
     /// The name of the studio.
     /// </summary>
+    [Required]
     public string Name { get; init; }
 
     /// <summary>
     /// The country the studio originates from.
     /// </summary>
+    [Required]
     public string CountryOfOrigin { get; init; }
 
     /// <summary>
     /// Entities produced by the studio in the local collection, both movies
     /// and/or shows.
     /// </summary>
+    [Required]
     public int Size { get; init; }
 
     /// <summary>
     /// Logos used by the studio.
     /// </summary>
+    [Required]
     public IReadOnlyList<Image> Logos { get; init; }
 
     /// <summary>
     /// The source of which the studio metadata belongs to.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
+    [Required, JsonConverter(typeof(StringEnumConverter))]
     public DataSourceType Source { get; init; }
 
     public Studio(TMDB_Company company)

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
 using AbstractLogReadResult = Shoko.Abstractions.Logging.Models.LogReadResult;
@@ -20,6 +21,7 @@ public class LogReadResult
     /// <summary>
     /// Returned log entries.
     /// </summary>
+    [Required]
     public IReadOnlyList<LogEntry> Entries { get; }
 
     public LogReadResult(AbstractLogReadResult result)

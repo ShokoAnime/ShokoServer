@@ -940,7 +940,7 @@ public class FileController(
     /// <param name="immediate">Immediately run the AVDump, without adding the command to the queue.</param>
     /// <returns></returns>
     [HttpPost("{fileID}/AVDump")]
-    public async Task<ActionResult<AVDump.Result>> AvDumpFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = false,
+    public async Task<ActionResult> AvDumpFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = false,
         [FromQuery] bool immediate = true)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);

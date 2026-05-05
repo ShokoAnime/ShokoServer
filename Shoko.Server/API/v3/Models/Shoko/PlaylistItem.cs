@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 /// <summary>
@@ -11,16 +13,19 @@ public class PlaylistItem
     /// <summary>
     /// The main episode for the playlist item.
     /// </summary>
+    [Required]
     public Episode Episode { get; }
 
     /// <summary>
     /// Any additional episodes for the playlist item, if any.
     /// </summary>
+    [Required]
     public IReadOnlyList<Episode> AdditionalEpisodes { get; }
 
     /// <summary>
     /// All file parts for the playlist item.
     /// </summary>
+    [Required]
     public IReadOnlyList<File> Parts { get; }
 
     /// <summary>

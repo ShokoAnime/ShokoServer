@@ -29,28 +29,33 @@ public class Group : BaseModel
     /// <summary>
     /// IDs such as the group ID, default series, parent group, etc.
     /// </summary>
+    [Required]
     public GroupIDs IDs { get; set; }
 
     /// <summary>
     /// The sort name for the group. Cannot directly be set by the user.
     /// </summary>
+    [Required]
     public string SortName { get; set; }
 
     /// <summary>
     /// A short description of the group.
     /// </summary>
+    [Required]
     public string Description { get; set; }
 
     /// <summary>
     /// Indicates the group has a custom name set, different from the default
     /// name of the main series in the group.
     /// </summary>
+    [Required]
     public bool HasCustomName { get; set; }
 
     /// <summary>
     /// Indicates the group has a custom description set, different from the
     /// default description of the main series in the group.
     /// </summary>
+    [Required]
     public bool HasCustomDescription { get; set; }
 
     /// <summary>
@@ -59,23 +64,27 @@ public class Group : BaseModel
     ///
     /// There should always be a poster, but no promises on the rest.
     /// </summary>
+    [Required]
     public Images Images { get; set; }
 
     /// <summary>
     /// Sizes object, has totals
     /// </summary>
+    [Required]
     public GroupSizes Sizes { get; set; }
 
     /// <summary>
     /// The time when the group was created.
     /// </summary>
     [JsonConverter(typeof(IsoDateTimeConverter))]
+    [Required]
     public DateTime Created { get; set; }
 
     /// <summary>
     /// The time when the group was last updated
     /// </summary>
     [JsonConverter(typeof(IsoDateTimeConverter))]
+    [Required]
     public DateTime Updated { get; set; }
 
     #region Constructors
@@ -124,11 +133,13 @@ public class Group : BaseModel
         /// The ID of the main Shoko series for the group.
         /// </summary>
         /// <value></value>
+        [Required]
         public int MainSeries { get; set; }
 
         /// <summary>
         /// The ID of the main AniDB anime for the group.
         /// </summary>
+        [Required]
         public int MainAnime { get; set; }
 
         /// <summary>
@@ -141,6 +152,7 @@ public class Group : BaseModel
         /// If the current group is a top-level group then it refers to
         /// itself.
         /// </summary>
+        [Required]
         public int TopLevelGroup { get; set; }
     }
 
@@ -427,17 +439,26 @@ public class GroupSizes : SeriesSizes
     /// Number of direct sub-groups within the group.
     /// </summary>
     /// <value></value>
+    [Required]
     public int SubGroups { get; set; }
 
     public class SeriesTypeCounts
     {
+        [Required]
         public int Unknown { get; set; }
+        [Required]
         public int Other { get; set; }
+        [Required]
         public int TV { get; set; }
+        [Required]
         public int TVSpecial { get; set; }
+        [Required]
         public int Web { get; set; }
+        [Required]
         public int Movie { get; set; }
+        [Required]
         public int OVA { get; set; }
+        [Required]
         public int MusicVideo { get; set; }
     }
 }

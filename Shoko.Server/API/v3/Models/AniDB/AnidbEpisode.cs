@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -18,22 +19,25 @@ public class AnidbEpisode
     /// <summary>
     /// AniDB Episode ID
     /// </summary>
+    [Required]
     public int ID { get; set; }
 
     /// <summary>
     /// AniDB Anime ID
     /// </summary>
+    [Required]
     public int AnimeID { get; set; }
 
     /// <summary>
     /// Episode Type
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
+    [Required, JsonConverter(typeof(StringEnumConverter))]
     public EpisodeType Type { get; set; }
 
     /// <summary>
     /// Episode Number
     /// </summary>
+    [Required]
     public int EpisodeNumber { get; set; }
 
     /// <summary>
@@ -44,21 +48,25 @@ public class AnidbEpisode
     /// <summary>
     /// Preferred title for the episode.
     /// </summary>
+    [Required]
     public string Title { get; set; }
 
     /// <summary>
     /// All titles for the episode.
     /// </summary>
+    [Required]
     public List<Title> Titles { get; set; }
 
     /// <summary>
     /// AniDB Episode Summary
     /// </summary>
+    [Required]
     public string Description { get; set; }
 
     /// <summary>
     /// Episode Rating
     /// </summary>
+    [Required]
     public Rating Rating { get; set; }
 
     public AnidbEpisode(AniDB_Episode ep)

@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Enums;
@@ -8,9 +9,10 @@ namespace Shoko.Server.API.v3.Models.Common;
 
 public class SeasonWithYear(int year, YearlySeason animeSeason) : IComparable<SeasonWithYear>
 {
+    [Required]
     public int Year { get; } = year;
 
-    [JsonConverter(typeof(StringEnumConverter))]
+    [Required, JsonConverter(typeof(StringEnumConverter))]
     public YearlySeason AnimeSeason { get; } = animeSeason;
 
     public int CompareTo(SeasonWithYear other)

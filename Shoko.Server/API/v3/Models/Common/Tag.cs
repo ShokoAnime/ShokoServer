@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -47,6 +48,7 @@ public class Tag
     /// Tag id. Relative to it's source for now.
     /// </summary>
     /// <value></value>
+    [Required]
     public int ID { get; set; }
 
     /// <summary>
@@ -57,6 +59,7 @@ public class Tag
     /// <summary>
     /// The tag itself.
     /// </summary>
+    [Required]
     public string Name { get; set; }
 
     /// <summary>
@@ -79,6 +82,7 @@ public class Tag
     /// <summary>
     /// True if the tag is considered a spoiler for all series it appears on.
     /// </summary>
+    [Required]
     public bool IsSpoiler { get; set; }
 
     /// <summary>
@@ -111,6 +115,7 @@ public class Tag
     /// Source. Anidb, User, etc.
     /// </summary>
     /// <value></value>
+    [Required]
     public string Source { get; set; }
 
     public static class Input

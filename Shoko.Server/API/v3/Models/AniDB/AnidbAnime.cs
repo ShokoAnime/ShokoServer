@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
@@ -31,6 +32,7 @@ public class AnidbAnime
     /// <summary>
     /// AniDB ID
     /// </summary>
+    [Required]
     public int ID { get; set; }
 
     /// <summary>
@@ -41,12 +43,13 @@ public class AnidbAnime
     /// <summary>
     /// Series type. Series, OVA, Movie, etc
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
+    [Required, JsonConverter(typeof(StringEnumConverter))]
     public AnimeType Type { get; set; }
 
     /// <summary>
-    /// Main Title, usually matches x-jat
+    /// Preferred title.
     /// </summary>
+    [Required]
     public string Title { get; set; }
 
     /// <summary>
@@ -58,7 +61,6 @@ public class AnidbAnime
     /// <summary>
     /// Description.
     /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string? Description { get; set; }
 
     /// <summary>
@@ -74,6 +76,7 @@ public class AnidbAnime
     /// <summary>
     /// Restricted content. Mainly porn.
     /// </summary>
+    [Required]
     public bool Restricted { get; set; }
 
     /// <summary>
@@ -93,13 +96,13 @@ public class AnidbAnime
     public Rating? Rating { get; set; }
 
     /// <summary>
-    /// User approval rate for the similar submission. Only available for similar.
+    /// User approval rate for the similar submission. Only available for similar. Otherwise null.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public Rating? UserApproval { get; set; }
 
     /// <summary>
-    /// Relation type. Only available for relations.
+    /// Relation type. Only available for relations. Otherwise null.
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -22,6 +23,7 @@ public class TmdbMovie
     /// <summary>
     /// TMDB Movie ID.
     /// </summary>
+    [Required]
     public int ID { get; init; }
 
     /// <summary>
@@ -37,6 +39,7 @@ public class TmdbMovie
     /// <summary>
     /// Preferred title based upon series title preference.
     /// </summary>
+    [Required]
     public string Title { get; init; }
 
     /// <summary>
@@ -48,6 +51,7 @@ public class TmdbMovie
     /// <summary>
     /// Preferred overview based upon description preference.
     /// </summary>
+    [Required]
     public string Overview { get; init; }
 
     /// <summary>
@@ -59,12 +63,14 @@ public class TmdbMovie
     /// <summary>
     /// Original language the movie was shot in.
     /// </summary>
+    [Required]
     public string OriginalLanguage { get; init; }
 
     /// <summary>
     /// Indicates the movie is restricted to an age group above the legal age,
     /// because it's a pornography.
     /// </summary>
+    [Required]
     public bool IsRestricted { get; init; }
 
     /// <summary>
@@ -83,11 +89,13 @@ public class TmdbMovie
     ///
     /// among others.
     /// </summary>
+    [Required]
     public bool IsVideo { get; init; }
 
     /// <summary>
     /// User rating of the movie from TMDB users.
     /// </summary>
+    [Required]
     public Rating UserRating { get; init; }
 
     /// <summary>
@@ -98,6 +106,7 @@ public class TmdbMovie
     /// <summary>
     /// Genres.
     /// </summary>
+    [Required]
     public IReadOnlyList<string> Genres { get; init; }
 
     /// <summary>
@@ -168,12 +177,14 @@ public class TmdbMovie
     /// <summary>
     /// When the local metadata was first created.
     /// </summary>
+    [Required]
     public DateTime CreatedAt { get; init; }
 
     /// <summary>
     /// When the local metadata was last updated with new changes from the
     /// remote.
     /// </summary>
+    [Required]
     public DateTime LastUpdatedAt { get; init; }
 
     public TmdbMovie(TMDB_Movie movie, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
@@ -254,11 +265,13 @@ public class TmdbMovie
         /// <summary>
         /// TMDB Movie Collection ID.
         /// </summary>
+        [Required]
         public int ID { get; init; }
 
         /// <summary>
         /// Preferred title based upon series title preference.
         /// </summary>
+        [Required]
         public string Title { get; init; }
 
         /// <summary>
@@ -270,6 +283,7 @@ public class TmdbMovie
         /// <summary>
         /// Preferred overview based upon description preference.
         /// </summary>
+        [Required]
         public string Overview { get; init; }
 
         /// <summary>
@@ -278,6 +292,7 @@ public class TmdbMovie
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public IReadOnlyList<Overview>? Overviews { get; init; }
 
+        [Required]
         public int MovieCount { get; init; }
 
         /// <summary>
@@ -289,12 +304,14 @@ public class TmdbMovie
         /// <summary>
         /// When the local metadata was first created.
         /// </summary>
+        [Required]
         public DateTime CreatedAt { get; init; }
 
         /// <summary>
         /// When the local metadata was last updated with new changes from the
         /// remote.
         /// </summary>
+        [Required]
         public DateTime LastUpdatedAt { get; init; }
 
         public Collection(TMDB_Collection collection, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
@@ -340,21 +357,25 @@ public class TmdbMovie
         /// <summary>
         /// AniDB Anime ID.
         /// </summary>
+        [Required]
         public int AnidbAnimeID { get; init; }
 
         /// <summary>
         /// AniDB Episode ID.
         /// </summary>
+        [Required]
         public int AnidbEpisodeID { get; init; }
 
         /// <summary>
         /// TMDB Show ID.
         /// </summary>
+        [Required]
         public int TmdbMovieID { get; init; }
 
         /// <summary>
         /// The match rating.
         /// </summary>
+        [Required]
         public string Rating { get; init; }
 
         public CrossReference(CrossRef_AniDB_TMDB_Movie xref)

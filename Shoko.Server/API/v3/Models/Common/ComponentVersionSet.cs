@@ -1,5 +1,6 @@
 
 # nullable enable
+using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 
 namespace Shoko.Server.API.v3.Models.Common;
@@ -9,6 +10,7 @@ public class ComponentVersionSet
     /// <summary>
     /// Shoko.Server version.
     /// </summary>
+    [Required]
     public ComponentVersion Server { get; set; } = new();
 
     /// <summary>

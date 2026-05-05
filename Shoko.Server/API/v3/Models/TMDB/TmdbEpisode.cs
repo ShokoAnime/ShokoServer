@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -24,21 +25,25 @@ public class TmdbEpisode
     /// <summary>
     /// TMDB Episode ID.
     /// </summary>
+    [Required]
     public int ID { get; init; }
 
     /// <summary>
     /// TMDB Season ID.
     /// </summary>
+    [Required]
     public string SeasonID { get; init; }
 
     /// <summary>
     /// TMDB Show ID.
     /// </summary>
+    [Required]
     public int ShowID { get; init; }
 
     /// <summary>
     /// The ID of the alternate ordering currently in use for the episode.
     /// /// /// </summary>
+    [Required]
     public string AlternateOrderingID { get; init; }
 
     /// <summary>
@@ -49,6 +54,7 @@ public class TmdbEpisode
     /// <summary>
     /// Preferred title based upon episode title preference.
     /// </summary>
+    [Required]
     public string Title { get; init; }
 
     /// <summary>
@@ -60,6 +66,7 @@ public class TmdbEpisode
     /// <summary>
     /// Preferred overview based upon episode title preference.
     /// </summary>
+    [Required]
     public string Overview { get; init; }
 
     /// <summary>
@@ -72,21 +79,25 @@ public class TmdbEpisode
     /// Indicates that the episode should be hidden from view unless explicitly
     /// requested, and should now be used internally at all.
     /// </summary>
+    [Required]
     public bool IsHidden { get; init; }
 
     /// <summary>
     /// The episode number for the main ordering or alternate ordering in use.
     /// </summary>
+    [Required]
     public int EpisodeNumber { get; init; }
 
     /// <summary>
     /// The season number for the main ordering or alternate ordering in use.
     /// </summary>
+    [Required]
     public int SeasonNumber { get; init; }
 
     /// <summary>
     /// User rating of the episode from TMDB users.
     /// </summary>
+    [Required]
     public Rating UserRating { get; init; }
 
     /// <summary>
@@ -138,12 +149,14 @@ public class TmdbEpisode
     /// <summary>
     /// When the local metadata was first created.
     /// </summary>
+    [Required]
     public DateTime CreatedAt { get; init; }
 
     /// <summary>
     /// When the local metadata was last updated with new changes from the
     /// remote.
     /// </summary>
+    [Required]
     public DateTime LastUpdatedAt { get; init; }
 
     public TmdbEpisode(TMDB_Show show, TMDB_Episode episode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null) :
@@ -233,6 +246,7 @@ public class TmdbEpisode
         /// <summary>
         /// The ordering ID.
         /// </summary>
+        [Required]
         public string OrderingID { get; init; }
 
         /// <summary>
@@ -245,42 +259,50 @@ public class TmdbEpisode
         /// <summary>
         /// English name of the alternate ordering scheme.
         /// </summary>
+        [Required]
         public string OrderingName { get; init; }
 
         /// <summary>
         /// The season id. Will be a stringified integer for the main ordering,
         /// or a hex id any alternate ordering.
         /// </summary>
+        [Required]
         public string SeasonID { get; init; }
 
         /// <summary>
         /// English name of the season.
         /// </summary>
+        [Required]
         public string SeasonName { get; init; } = string.Empty;
 
         /// <summary>
         /// The season number for the ordering.
         /// </summary>
+        [Required]
         public int SeasonNumber { get; init; }
 
         /// <summary>
         /// The episode number for the ordering.
         /// </summary>
+        [Required]
         public int EpisodeNumber { get; init; }
 
         /// <summary>
         /// Indicates the current ordering is the default ordering for the episode.
         /// </summary>
+        [Required]
         public bool IsDefault { get; init; }
 
         /// <summary>
         /// Indicates the current ordering is the preferred ordering for the episode.
         /// </summary>
+        [Required]
         public bool IsPreferred { get; init; }
 
         /// <summary>
         /// Indicates the current ordering is in use for the episode.
         /// </summary>
+        [Required]
         public bool InUse { get; init; }
 
         public OrderingInformation(TMDB_Show show, TMDB_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisodeInUse)
@@ -324,33 +346,39 @@ public class TmdbEpisode
         /// <summary>
         /// AniDB Anime ID.
         /// </summary>
+        [Required]
         public int AnidbAnimeID { get; init; }
 
         /// <summary>
         /// AniDB Episode ID.
         /// </summary>
+        [Required]
         public int AnidbEpisodeID { get; init; }
 
         /// <summary>
         /// TMDB Show ID.
         /// </summary>
+        [Required]
         public int TmdbShowID { get; init; }
 
         /// <summary>
         /// TMDB Episode ID. Will be <c>0</c> if the <see cref="AnidbEpisodeID"/>
         /// is not mapped to a TMDB Episode yet.
         /// </summary>
+        [Required]
         public int TmdbEpisodeID { get; init; }
 
         /// <summary>
         /// The index to order the cross-references if multiple references
         /// exists for the same anidb or tmdb episode.
         /// </summary>
+        [Required]
         public int Index { get; init; }
 
         /// <summary>
         /// The match rating.
         /// </summary>
+        [Required]
         public string Rating { get; init; }
 
         public CrossReference(CrossRef_AniDB_TMDB_Episode xref, int? index = null)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Server.API.v3.Models.Configuration;
@@ -17,16 +18,19 @@ public class HashProvider(HashProviderInfo info)
     /// <summary>
     /// The unique ID of the provider.
     /// </summary>
+    [Required]
     public Guid ID { get; init; } = info.ID;
 
     /// <summary>
     /// The version of the hash provider.
     /// </summary>
+    [Required]
     public Version Version { get; init; } = info.Version;
 
     /// <summary>
     /// The display name of the hash provider.
     /// </summary>
+    [Required]
     public string Name { get; init; } = info.Name;
 
     /// <summary>
@@ -37,11 +41,13 @@ public class HashProvider(HashProviderInfo info)
     /// <summary>
     ///   Gets all available hash types for the provider.
     /// </summary>
+    [Required]
     public HashSet<string> AvailableHashTypes { get; init; } = info.Provider.AvailableHashTypes.ToHashSet();
 
     /// <summary>
     /// The enabled hash types.
     /// </summary>
+    [Required]
     public HashSet<string> EnabledHashTypes { get; init; } = info.EnabledHashTypes.ToHashSet();
 
     /// <summary>
@@ -52,5 +58,6 @@ public class HashProvider(HashProviderInfo info)
     /// <summary>
     /// Information about the plugin that the hash provider belongs to.
     /// </summary>
+    [Required]
     public PluginInfo Plugin { get; init; } = new(info.PluginInfo);
 }
