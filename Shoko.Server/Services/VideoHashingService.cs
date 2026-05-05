@@ -487,6 +487,14 @@ public class VideoHashingService(
         if (!IsVideoFile(resolvedPath))
             throw new InvalidOperationException($"File is not a known video file format: {resolvedPath}");
 
+        var isNewVideo = video.VideoLocalID is 0;
+        var isNewFile = video.FileSize is 0;
+        if (!isNewVideo && video.FileSize != fileSize)
+        {
+            logger.LogTrace("File size changed for {VideoID}: {OldFileSize}→{NewFileSize}", video.VideoLocalID, video.FileSize, fileSize);
+            useExistingHashes = false;
+        }
+
         var existingHashes = !useExistingHashes ? [] : video.Hashes;
         var hashes = await GetHashesForFileInternal(new FileInfo(resolvedPath), existingHashes, cancellationToken).ConfigureAwait(false);
         var ed2k = hashes.FirstOrDefault(x => x.Type is ED2K);
@@ -499,9 +507,25 @@ public class VideoHashingService(
             video = otherVideo;
         }
 
+        var originalVideo = video;
+        var ed2kChanged = !isNewVideo && ed2k.Value != video.Hash;
+        if (ed2kChanged)
+        {
+            var now = DateTime.Now;
+            logger.LogTrace("ED2K hash changed for {VideoID}: {OldED2K}→{NewED2K}", video.VideoLocalID, video.Hash, ed2k.Value);
+
+            video = new VideoLocal
+            {
+                DateTimeUpdated = now,
+                DateTimeCreated = now,
+#pragma warning disable CS0618 // Type or member is obsolete
+                FileName = Path.GetFileName(resolvedPath),
+#pragma warning restore CS0618 // Type or member is obsolete
+            };
+            isNewVideo = true;
+        }
+
         // Store the hashes
-        var isNewVideo = video.VideoLocalID is 0;
-        var isNewFile = video.FileSize is 0;
         logger.LogTrace("Saving Video: Filename: {FileName}, Hash: {Hash}", originalPath, video.Hash);
         video.Hash = ed2k.Value;
         video.FileSize = fileSize;
