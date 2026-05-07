@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -6,19 +5,21 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Extensions;
-using Shoko.Server.Utilities;
+using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Web;
+using Shoko.Abstractions.Web.Services;
 
 #nullable enable
 namespace Shoko.Server.Services;
 
-public partial class CssThemeService
+public partial class WebThemeService(IApplicationPaths applicationPaths) : IWebThemeService
 {
-    [GeneratedRegex(@"^\s*(?<major>\d+)(?:\.(?<minor>\d+)(?:\.(?<build>\d+)(?:\.(?<revision>\d+))?)?)?\s*$", RegexOptions.ECMAScript | RegexOptions.Compiled)]
+    [GeneratedRegex(@"^\s*(?<major>\d+)(?:\.(?<minor>\d+)(?:\.(?<build>\d+))?)?\s*$", RegexOptions.ECMAScript | RegexOptions.Compiled)]
     private static partial Regex VersionRegex();
 
     [GeneratedRegex(@"^\b[A-Za-z][A-Za-z0-9_\-]*\b$", RegexOptions.Compiled | RegexOptions.ECMAScript)]
@@ -37,41 +38,25 @@ public partial class CssThemeService
         if (_themeDict == null || forceRefresh || DateTime.UtcNow > _nextRefreshAfter)
         {
             _nextRefreshAfter = DateTime.UtcNow.AddMinutes(10);
-            _themeDict = ThemeDefinition.FromThemesDirectory().ToDictionary(theme => theme.ID);
+            _themeDict = ThemeDefinition.FromThemesDirectory(applicationPaths).ToDictionary(theme => theme.ID);
         }
         return _themeDict;
     }
 
-    /// <summary>
-    /// Get the themes from the theme folder.
-    /// </summary>
-    /// <param name="forceRefresh"></param>
-    /// <returns></returns>
-    public IEnumerable<ThemeDefinition> GetThemes(bool forceRefresh = false)
+    public IReadOnlyList<IWebThemeDefinition> GetThemes(bool forceRefresh = false)
     {
-        return RefreshThemes(forceRefresh).Values;
+        return RefreshThemes(forceRefresh).Values.ToList();
     }
 
-    /// <summary>
-    /// Get a specified theme from the theme folder.
-    /// </summary>
-    /// <param name="themeId">The id of the theme to get.</param>
-    /// <param name="forceRefresh">Forcefully refresh the theme dict. before checking for the theme.</param>
-    /// <returns></returns>
-    public ThemeDefinition? GetTheme(string themeId, bool forceRefresh)
+    public IWebThemeDefinition? GetTheme(string themeId, bool forceRefresh = false)
     {
         return RefreshThemes(forceRefresh).TryGetValue(themeId, out var themeDefinition) ? themeDefinition : null;
     }
 
-    /// <summary>
-    /// Remove a theme from the theme folder.
-    /// </summary>
-    /// <param name="theme">The theme to remove.</param>
-    /// <returns>A boolean indicating the success status of the operation.</returns>
-    public bool RemoveTheme(ThemeDefinition theme)
+    public bool RemoveTheme(IWebThemeDefinition theme)
     {
-        var jsonFilePath = Path.Combine(Utils.ApplicationPath, "themes", theme.JsonFileName);
-        var cssFilePath = Path.Combine(Utils.ApplicationPath, "themes", theme.CssFileName);
+        var jsonFilePath = Path.Combine(applicationPaths.ThemesPath, theme.JsonFileName);
+        var cssFilePath = Path.Combine(applicationPaths.ThemesPath, theme.CssFileName);
         if (!File.Exists(jsonFilePath) && !File.Exists(cssFilePath))
             return false;
 
@@ -84,13 +69,7 @@ public partial class CssThemeService
         return true;
     }
 
-    /// <summary>
-    /// Update an existing theme, or preview an update to an existing theme.
-    /// </summary>
-    /// <param name="theme">The theme to update.</param>
-    /// <param name="preview">Flag indicating whether to enable preview mode.</param>
-    /// <returns>The updated theme metadata.</returns>
-    public async Task<ThemeDefinition> UpdateThemeOnline(ThemeDefinition theme, bool preview = false)
+    public async Task<IWebThemeDefinition> UpdateThemeOnline(IWebThemeDefinition theme, bool preview = false, CancellationToken cancellationToken = default)
     {
         // Return the local theme if we don't have an update url.
         if (string.IsNullOrEmpty(theme.UpdateUrl))
@@ -101,7 +80,7 @@ public partial class CssThemeService
 
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromMinutes(1);
-        using var response = await httpClient.GetAsync(updateUrl.AbsoluteUri);
+        using var response = await httpClient.GetAsync(updateUrl.AbsoluteUri, cancellationToken);
 
         // Check if the response was a success.
         if (response.StatusCode != HttpStatusCode.OK)
@@ -113,13 +92,13 @@ public partial class CssThemeService
             throw new HttpRequestException("Invalid content-type. Expected JSON.");
 
         // Simple sanity check before parsing the response content.
-        var content = await response.Content.ReadAsStringAsync();
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
         content = content?.Trim();
         if (string.IsNullOrWhiteSpace(content) || content[0] != '{' || content[^1] != '}')
             throw new HttpRequestException("Invalid theme file format.");
 
         // Try to parse the updated theme.
-        var updatedTheme = ThemeDefinition.FromJson(content, theme.ID, preview) ??
+        var updatedTheme = ThemeDefinition.FromJson(applicationPaths, content, theme.ID, preview) ??
             throw new HttpRequestException("Failed to parse the updated theme.");
 
         if (updatedTheme.Version <= theme.Version)
@@ -147,7 +126,7 @@ public partial class CssThemeService
             if (!string.IsNullOrEmpty(theme.CssContent))
                 throw new ValidationException("Theme already has CSS overrides inlined. Remove URL or inline CSS first before proceeding.");
 
-            using var cssResponse = await httpClient.GetAsync(theme.CssUrl);
+            using var cssResponse = await httpClient.GetAsync(theme.CssUrl, cancellationToken);
             if (cssResponse.StatusCode != HttpStatusCode.OK)
                 throw new HttpRequestException($"Failed to retrieve CSS file with status code {cssResponse.StatusCode}.", null, cssResponse.StatusCode);
 
@@ -155,7 +134,7 @@ public partial class CssThemeService
             if (string.IsNullOrEmpty(cssContentType) || !_allowedCssMime.Contains(cssContentType))
                 throw new ValidationException("Invalid css content-type for resource. Expected \"text/css\" or \"text/plain\".");
 
-            var cssContent = (await cssResponse.Content.ReadAsStringAsync())?.Trim();
+            var cssContent = (await cssResponse.Content.ReadAsStringAsync(cancellationToken))?.Trim();
             if (string.IsNullOrEmpty(cssContent))
                 throw new ValidationException("The css url cannot resolve to an empty resource if it is provided in the theme definition.");
 
@@ -169,13 +148,7 @@ public partial class CssThemeService
         return updatedTheme;
     }
 
-    /// <summary>
-    /// Install a new theme, or preview a new theme before installation.
-    /// </summary>
-    /// <param name="url">The URL leading to where the theme lives online.</param>
-    /// <param name="preview">Flag indicating whether to enable preview mode.</param>
-    /// <returns>The new or updated theme metadata.</returns>
-    public async Task<ThemeDefinition> InstallThemeFromUrl(string url, bool preview = false)
+    public async Task<IWebThemeDefinition> InstallThemeFromUrl(string url, bool preview = false, CancellationToken cancellationToken = default)
     {
         if (!(Uri.TryCreate(url, UriKind.Absolute, out var updateUrl) && (updateUrl.Scheme == Uri.UriSchemeHttp || updateUrl.Scheme == Uri.UriSchemeHttps)))
             throw new ValidationException("Invalid repository URL.");
@@ -201,7 +174,7 @@ public partial class CssThemeService
 
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromMinutes(1);
-        using var response = await httpClient.GetAsync(updateUrl.AbsoluteUri);
+        using var response = await httpClient.GetAsync(updateUrl.AbsoluteUri, cancellationToken);
 
         // Check if the response was a success.
         if (response.StatusCode != HttpStatusCode.OK)
@@ -213,11 +186,11 @@ public partial class CssThemeService
             throw new HttpRequestException("Invalid content-type. Expected 'application/json', 'text/json', or 'text/plain.");
 
         // Simple sanity check before parsing the response content.
-        var content = await response.Content.ReadAsStringAsync();
-        return await InstallOrUpdateThemeFromJson(content, fileName, preview);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        return await InstallOrUpdateThemeFromJson(content, fileName, preview, cancellationToken);
     }
 
-    public async Task<ThemeDefinition> InstallOrUpdateThemeFromJson(string? content, string fileName, bool preview = false)
+    public async Task<IWebThemeDefinition> InstallOrUpdateThemeFromJson(string? content, string fileName, bool preview = false, CancellationToken cancellationToken = default)
     {
         fileName = Path.GetFileNameWithoutExtension(fileName);
         if (string.IsNullOrEmpty(fileName) || !FileNameRegex().IsMatch(fileName))
@@ -228,9 +201,16 @@ public partial class CssThemeService
             throw new HttpRequestException("Pre-validation failed. Resource is not a valid JSON object.");
 
         // Try to parse the new theme.
-        var id = FileNameToID(fileName);
-        var theme = ThemeDefinition.FromJson(content, id, preview) ??
+        var data = JsonConvert.DeserializeObject<WebThemeDefinitionData>(content) ??
             throw new HttpRequestException("Failed to parse the theme from resource.");
+        return await InstallOrUpdateThemeFromData(data, fileName, preview, cancellationToken);
+    }
+
+    public async Task<IWebThemeDefinition> InstallOrUpdateThemeFromData(WebThemeDefinitionData data, string? fileName = null, bool preview = false, CancellationToken cancellationToken = default)
+    {
+        fileName ??= data.Name ?? "unknown-theme";
+        var id = FileNameToID(fileName);
+        var theme = new ThemeDefinition(applicationPaths, data, id, preview);
 
         Uri? updateUrl = null;
         if (!string.IsNullOrEmpty(theme.UpdateUrl) && !(Uri.TryCreate(theme.UpdateUrl, UriKind.Absolute, out updateUrl) && (updateUrl.Scheme == Uri.UriSchemeHttp || updateUrl.Scheme == Uri.UriSchemeHttps)))
@@ -279,7 +259,7 @@ public partial class CssThemeService
         return theme;
     }
 
-    public async Task<ThemeDefinition> CreateOrUpdateThemeFromCss(string content, string fileName, bool preview = false)
+    public async Task<IWebThemeDefinition> CreateOrUpdateThemeFromCss(string content, string fileName, bool preview = false, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(fileName) || !FileNameRegex().IsMatch(fileName))
             throw new ValidationException("Invalid theme file name.");
@@ -288,7 +268,10 @@ public partial class CssThemeService
             throw new ValidationException("The theme definition cannot be empty.");
 
         var id = FileNameToID(fileName);
-        var theme = GetTheme(id, true) ?? new(id, preview);
+        var theme = RefreshThemes(true).TryGetValue(id, out var themeDefinition)
+            ? themeDefinition
+            : new(applicationPaths, id, preview);
+
         if (!string.IsNullOrEmpty(theme.UpdateUrl))
             throw new ValidationException("Unable to manually update a theme with an update URL set.");
         theme.CssContent = content;
@@ -302,7 +285,7 @@ public partial class CssThemeService
 
     private async Task SaveTheme(ThemeDefinition theme)
     {
-        var dirPath = Path.Combine(Utils.ApplicationPath, "themes");
+        var dirPath = applicationPaths.ThemesPath;
         if (!Directory.Exists(dirPath))
             Directory.CreateDirectory(dirPath);
 
@@ -316,7 +299,7 @@ public partial class CssThemeService
         var jsonContent = theme.ToJson();
         var jsonFilePath = Path.Combine(dirPath, theme.JsonFileName);
         if (!string.IsNullOrEmpty(jsonContent))
-            await File.WriteAllTextAsync(jsonFilePath, theme.ToJson());
+            await File.WriteAllTextAsync(jsonFilePath, jsonContent);
         else if (File.Exists(jsonFilePath))
             File.Delete(jsonFilePath);
 
@@ -324,211 +307,74 @@ public partial class CssThemeService
             _themeDict[theme.ID] = theme;
     }
 
-    public class ThemeDefinitionInput
+    internal class ThemeDefinition : IWebThemeDefinition
     {
-        /// <summary>
-        ///  The display name of the theme. Will be inferred from the filename if omitted.
-        /// </summary>
-        [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)]
-        public string? Name { get; set; } = null;
+        private readonly IApplicationPaths _applicationPaths;
 
-        /// <summary>
-        /// The theme version.
-        /// </summary>
-        [Required]
-        [MinLength(1)]
-        [RegularExpression(@"^(?<major>\d+)(?:\.(?<minor>\d+)(?:\.(?<build>\d+)(?:\.(?<revision>\d+))?)?)?$")]
-        [JsonProperty("version")]
-        public string Version { get; set; } = string.Empty;
+        public string ID { get; set; }
 
-        /// <summary>
-        /// Optional description for the theme, if any.
-        /// </summary>
-        [JsonProperty("description", NullValueHandling = NullValueHandling.Ignore)]
-        public string? Description { get; set; } = null;
+        public string JsonFileName => $"{ID}.json";
 
-        /// <summary>
-        /// Optional tags to make it easier to search for the theme.
-        /// </summary>
-        [JsonProperty("tags", NullValueHandling = NullValueHandling.Ignore)]
-        public IReadOnlyList<string>? Tags { get; set; } = null;
+        public string CssFileName => $"{ID}.css";
 
-        /// <summary>
-        /// The author's name.
-        /// </summary>
-        [Required]
-        [JsonProperty("author")]
-        public string Author { get; set; } = string.Empty;
+        public string Name { get; set; }
 
-        /// <summary>
-        /// The CSS variables defined in the theme.
-        /// </summary>
-        [JsonProperty("values", NullValueHandling = NullValueHandling.Ignore)]
-        public IReadOnlyDictionary<string, string>? Values { get; set; } = null;
+        public string? Description { get; set; }
 
-        /// <summary>
-        /// The CSS overrides defined in the theme, if any.
-        /// </summary>
-        [JsonProperty("css", NullValueHandling = NullValueHandling.Ignore)]
+        public IReadOnlyList<string> Tags { get; set; }
+
+        public string? Author { get; set; }
+
+        public Version Version { get; set; }
+
+        public IReadOnlyDictionary<string, string> Values { get; set; } = new Dictionary<string, string>();
+
         public string? CssContent { get; set; }
 
-        /// <summary>
-        /// The URL for where the theme CSS overrides file lives. Will be downloaded locally if provided. It must end in ".css" and the content type must be "text/plain" or "text/css".
-        /// </summary>
-        [Url]
-        [JsonProperty("cssUrl", NullValueHandling = NullValueHandling.Ignore)]
         public string? CssUrl { get; set; }
 
-        /// <summary>
-        /// The URL for where the theme definition lives. Used for updates.
-        /// </summary>
-        [Url]
-        [JsonProperty("updateUrl", NullValueHandling = NullValueHandling.Ignore)]
         public string? UpdateUrl { get; set; }
 
-    }
-
-    public class ThemeDefinition
-    {
-        /// <summary>
-        /// The theme id is inferred from the filename of the theme definition file.
-        /// </summary>
-        /// <remarks>
-        /// Only JSON-files with an alphanumerical filename will be checked if they're themes. All other files will be skipped outright.
-        /// </remarks>
-        public readonly string ID;
-
-        /// <summary>
-        /// The file name associated with the theme.
-        /// </summary>
-        public readonly string JsonFileName;
-
-        /// <summary>
-        /// The name of the CSS file associated with the theme.
-        /// </summary>
-        public string CssFileName => JsonFileName[..^Path.GetExtension(JsonFileName).Length] + ".css";
-
-        /// <summary>
-        /// The display name of the theme.
-        /// </summary>
-        public readonly string Name;
-
-        /// <summary>
-        /// A short description about the theme, if available.
-        /// </summary>
-        public readonly string? Description;
-
-        /// <summary>
-        /// Author-defined tags associated with the theme.
-        /// </summary>
-        public readonly IReadOnlyList<string> Tags;
-
-        /// <summary>
-        /// The name of the author of the theme definition.
-        /// </summary>
-        public readonly string? Author;
-
-        /// <summary>
-        /// The theme version.
-        /// </summary>
-        public readonly Version Version;
-
-        /// <summary>
-        /// The CSS variables to define for the theme.
-        /// </summary>
-        /// <remarks>
-        /// Not sent to the client as a dictionary. The user should hot-reload the `themes.css` file to load the CSS for the theme if it's not already available.
-        /// </remarks>
-        [JsonIgnore]
-        public readonly IReadOnlyDictionary<string, string> Values;
-
-        /// <summary>
-        /// The CSS content to define for the theme.
-        /// </summary>
-        [JsonIgnore]
-        public string? CssContent { get; internal set; } = string.Empty;
-
-        /// <summary>
-        /// The URL for where the theme CSS overrides file lives. Will be downloaded locally if provided. It must end in ".css" and the content type must be "text/plain" or "text/css".
-        /// </summary>
-        public string? CssUrl { get; internal set; }
-
-        /// <summary>
-        /// The URL for where the theme definition lives. Used for updates.
-        /// </summary>
-        public readonly string? UpdateUrl;
-
-        /// <summary>
-        /// Indicates this is only a preview of the theme metadata and the theme
-        /// might not actually be installed yet.
-        /// </summary>
-        public readonly bool IsPreview;
+        public bool IsPreview { get; set; }
 
         private bool? _isInstalled;
 
-        /// <summary>
-        /// Indicates the theme is installed locally.
-        /// </summary>
-        public bool IsInstalled => _isInstalled ??= File.Exists(Path.Combine(Utils.ApplicationPath, "themes", JsonFileName)) || File.Exists(Path.Combine(Utils.ApplicationPath, "themes", CssFileName));
+        public bool IsInstalled => _isInstalled ??= File.Exists(Path.Join(_applicationPaths.ThemesPath, JsonFileName)) || File.Exists(Path.Join(_applicationPaths.ThemesPath, CssFileName));
 
-        public ThemeDefinition(string id, bool preview = false)
+        public ThemeDefinition(IApplicationPaths applicationPaths, string id, bool preview = false)
         {
+            _applicationPaths = applicationPaths;
+
             ID = id;
-            JsonFileName = $"{id}.json";
-            Name = NameFromID(ID);
+            Name = NameFromID(id);
             Tags = [];
-            Version = new Version(1, 0, 0, 0);
+            Version = new(1, 0);
             Values = new Dictionary<string, string>();
             IsPreview = preview;
         }
 
-        public ThemeDefinition(ThemeDefinitionInput input, string id, bool preview = false)
+        public ThemeDefinition(IApplicationPaths applicationPaths, WebThemeDefinitionData data, string id, bool preview = false)
         {
             // We use a regex match and parse the result instead of using the built-in version parer
             // directly because the built-in parser is more rigged then what we want to support.
-            var versionMatch = VersionRegex().Match(input.Version);
-            var major = int.Parse(versionMatch.Groups["major"].Value);
-            var minor = versionMatch.Groups["minor"].Success ? int.Parse(versionMatch.Groups["minor"].Value) : 0;
-            var build = versionMatch.Groups["build"].Success ? int.Parse(versionMatch.Groups["build"].Value) : 0;
-            var revision = versionMatch.Groups["revision"].Success ? int.Parse(versionMatch.Groups["build"].Value) : 0;
+            var parsedVersion = ParseVersion(data.Version);
 
+            _applicationPaths = applicationPaths;
             ID = id;
-            JsonFileName = $"{id}.json";
-            Name = string.IsNullOrEmpty(input.Name) ? NameFromID(ID) : input.Name;
-            Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description;
-            Tags = input.Tags ?? [];
-            Author = input.Author;
-            Version = new Version(major, minor, build, revision);
-            Values = input.Values ?? new Dictionary<string, string>();
-            CssUrl = input.CssUrl;
-            CssContent = input.CssContent;
-            UpdateUrl = input.UpdateUrl;
+            Name = string.IsNullOrEmpty(data.Name) ? NameFromID(id) : data.Name;
+            Description = string.IsNullOrWhiteSpace(data.Description) ? null : data.Description;
+            Tags = data.Tags ?? [];
+            Author = data.Author;
+            Version = parsedVersion;
+            Values = data.Values ?? new Dictionary<string, string>();
+            CssContent = data.CssContent;
+            CssUrl = data.CssUrl;
+            UpdateUrl = data.UpdateUrl;
             IsPreview = preview;
         }
 
-        public string ToCSS()
-        {
-            var cssFile = Path.Combine(Utils.ApplicationPath, "themes", CssFileName);
-            var css = new StringBuilder()
-                .Append('\n')
-                .Append($".theme-{ID} {{\n");
-            if (Values.Count > 0)
-                css.Append("  " + Values.Select(pair => $" --{pair.Key}: {pair.Value};").Join("\n  ") + "\n");
-
-            if (Values.Count > 0 && !string.IsNullOrWhiteSpace(CssContent))
-                css.Append('\n');
-
-            if (!string.IsNullOrWhiteSpace(CssContent))
-                css
-                    .Append("  " + CssContent.Split(["\r\n", "\r", "\n"], StringSplitOptions.None).Select(line => string.IsNullOrWhiteSpace(line) ? string.Empty : $"  {line.TrimEnd()}").Join("\n  ") + "\n");
-
-            return css
-                .AppendLine("}\n")
-                .ToString();
-        }
-
-        public string? ToJson() => !string.IsNullOrEmpty(Author)
-            ? JsonConvert.SerializeObject(new ThemeDefinitionInput()
+        public string? ToJson() => !string.IsNullOrEmpty(Author) || Values.Count > 0 || Name != NameFromID(ID)
+            ? JsonConvert.SerializeObject(new WebThemeDefinitionData
             {
                 Name = Name,
                 Version = Version.ToString(),
@@ -541,19 +387,18 @@ public partial class CssThemeService
             })
             : null;
 
-        internal static ThemeDefinition? FromJson(string? json, string id, bool preview = false)
+        internal static ThemeDefinition? FromJson(IApplicationPaths applicationPaths, string? json, string id, bool preview = false)
         {
             try
             {
                 // Simple sanity check before parsing the file contents.
                 if (string.IsNullOrWhiteSpace(json) || json[0] != '{' || json[^1] != '}')
                     return null;
-                var input = JsonConvert.DeserializeObject<ThemeDefinitionInput>(json);
+                var input = JsonConvert.DeserializeObject<WebThemeDefinitionData>(json);
                 if (input == null)
                     return null;
 
-                var theme = new ThemeDefinition(input, id, preview);
-                return theme;
+                return new(applicationPaths, input, id, preview);
             }
             catch
             {
@@ -561,29 +406,29 @@ public partial class CssThemeService
             }
         }
 
-        internal static IReadOnlyList<ThemeDefinition> FromThemesDirectory()
+        internal static IReadOnlyList<ThemeDefinition> FromThemesDirectory(IApplicationPaths applicationPaths)
         {
-            var dirPath = Path.Combine(Utils.ApplicationPath, "themes");
+            var dirPath = applicationPaths.ThemesPath;
             if (!Directory.Exists(dirPath))
-                return new List<ThemeDefinition>();
+                return [];
 
-            var allowedExtensions = new HashSet<string>() { ".json", ".css" };
+            var allowedExtensions = new HashSet<string> { ".json", ".css" };
             return Directory.GetFiles(dirPath)
                 .GroupBy(a => Path.GetFileNameWithoutExtension(a))
                 .Where(a => !string.IsNullOrEmpty(a.Key) && FileNameRegex().IsMatch(a.Key) && a.Any(b => allowedExtensions.Contains(Path.GetExtension(b))))
-                .Select(FromPath)
+                .Select(fileDetails => FromPath(applicationPaths, fileDetails))
                 .WhereNotNull()
                 .DistinctBy(theme => theme.ID)
                 .OrderBy(theme => theme.ID)
                 .ToList();
         }
 
-        private static ThemeDefinition? FromPath(IGrouping<string, string> fileDetails)
+        private static ThemeDefinition? FromPath(IApplicationPaths applicationPaths, IGrouping<string, string> fileDetails)
         {
             // Check file extension.
             var id = FileNameToID(fileDetails.Key);
             var jsonFile = fileDetails.FirstOrDefault(a => string.Equals(Path.GetExtension(a), ".json", StringComparison.InvariantCultureIgnoreCase));
-            var theme = string.IsNullOrEmpty(jsonFile) ? new(id) : FromJson(File.ReadAllText(jsonFile)?.Trim(), id);
+            var theme = string.IsNullOrEmpty(jsonFile) ? new(applicationPaths, id) : FromJson(applicationPaths, File.ReadAllText(jsonFile)?.Trim(), id);
             if (theme is not null)
             {
                 var cssFileName = fileDetails.FirstOrDefault(a => string.Equals(Path.GetExtension(a), ".css", StringComparison.InvariantCultureIgnoreCase)) ??
@@ -597,14 +442,32 @@ public partial class CssThemeService
     }
 
     private static string FileNameToID(string fileName)
-        => fileName.ToLowerInvariant().Replace('_', '-');
+        => fileName.ToLowerInvariant()
+            .Replace(' ', '_')
+            .Replace('_', '-');
 
     private static string NameFromID(string id)
-        => string.Join(
-            ' ',
-            id.Replace('_', '-')
-                .Replace('-', ' ')
-                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(segment => segment[0..1].ToUpperInvariant() + segment[1..].ToLowerInvariant())
-        );
+        => id.Replace('_', '-')
+            .Replace('-', ' ')
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(segment => segment[0..1].ToUpperInvariant() + segment[1..].ToLowerInvariant())
+            .Join(' ');
+
+    private static Version ParseVersion(string versionString)
+    {
+        var match = VersionRegex().Match(versionString);
+        if (!match.Success)
+            return new(1, 0);
+
+        var major = int.Parse(match.Groups["major"].Value);
+        if (!match.Groups["minor"].Success)
+            return new(major, 0);
+
+        var minor = int.Parse(match.Groups["minor"].Value);
+        if (!match.Groups["build"].Success)
+            return new(major, minor);
+
+        var build = int.Parse(match.Groups["build"].Value);
+        return new(major, minor, build);
+    }
 }

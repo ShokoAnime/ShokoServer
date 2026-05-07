@@ -34,6 +34,7 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Services;
+using Shoko.Abstractions.Web.Services;
 using Shoko.Server.API;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -387,7 +388,7 @@ public class SystemService : ISystemService
             services.AddSingleton<ActionService>();
             services.AddSingleton<AnimeSeriesService>();
             services.AddSingleton<AnimeGroupService>();
-            services.AddSingleton<CssThemeService>();
+            services.AddSingleton<IWebThemeService, WebThemeService>();
             services.AddSingleton<ISystemUpdateService, SystemUpdateService>();
             services.AddSingleton<IMetadataService, AbstractMetadataService>();
             services.AddSingleton<IVideoService, VideoService>();

@@ -7,6 +7,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Release;
+using Shoko.Abstractions.Web;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
@@ -14,7 +15,6 @@ using Shoko.Server.MediaInfo;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
-using Shoko.Server.Services;
 
 using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
 using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
@@ -24,7 +24,7 @@ namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class WebUI
 {
-    public class WebUITheme(CssThemeService.ThemeDefinition definition, bool withCSS = false)
+    public class WebUITheme(IWebThemeDefinition definition, bool withCSS = false)
     {
         /// <summary>
         /// The theme id is inferred from the filename of the theme definition file.

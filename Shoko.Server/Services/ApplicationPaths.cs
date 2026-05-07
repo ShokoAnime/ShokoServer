@@ -43,6 +43,9 @@ public class ApplicationPaths : IApplicationPaths
     public string PluginsPath
         => Path.Combine(DataPath, "plugins");
 
+    public string ThemesPath
+        => Path.Combine(DataPath, "themes");
+
     /// <inheritdoc/>
     public string ConfigurationsPath
         => Path.Combine(DataPath, "configuration");
