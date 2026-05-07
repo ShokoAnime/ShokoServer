@@ -307,7 +307,8 @@ public static partial class APIExtensions
         else if (!fullName.StartsWith("Shoko.Server.") && !fullName.StartsWith("Shoko.Abstractions."))
             title = fullName
                 .Replace("Shoko.Plugin.", "API.")
-                .Replace(PluginApiVersionRegex(), e => $"APIv{e.Groups["version"].Value}.");
+                .Replace("API.API.", "API.")
+                .Replace(PluginApiVersionRegex(), e => $"APIv{(e.Groups["version"].Success ? e.Groups["version"].Value : "1")}.");
 
         // APIv0 (API independent plugin abstraction) schemas
         else if (fullName.StartsWith("Shoko.Abstractions."))
@@ -684,6 +685,6 @@ public static partial class APIExtensions
         return versions;
     }
 
-    [GeneratedRegex(@"(?:[^ ]+\.)?API\.(?:v(?<version>\d+(?:\.\d+)?)\.(?:Models\.|DTOs\.)?)?", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.ECMAScript)]
+    [GeneratedRegex(@"(?:[^ ]+\.)?v(?<version>\d+(?:\.\d+)?)?\.(?:Models?\.|DTOs?\.)|(?:[^ ]+\.)?API\.(?:Controllers?\.)?(?:v(?<version>\d+(?:\.\d+)?)\.(?:Models?\.|DTOs?\.)?)?", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.ECMAScript)]
     private static partial Regex PluginApiVersionRegex();
 }
