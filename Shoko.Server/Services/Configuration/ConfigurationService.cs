@@ -1029,7 +1029,7 @@ public partial class ConfigurationService : IConfigurationService
         var newLine = Environment.NewLine;
         if (json[0] == '{')
         {
-            var baseUri = JsonConvert.SerializeObject($"file://{Path.ChangeExtension(info.Path, ".schema.json")}", _newtonsoftJsonSerializerSettings);
+            var baseUri = JsonConvert.SerializeObject($"./{Path.GetFileName(Path.ChangeExtension(info.Path, ".schema.json"))}", _newtonsoftJsonSerializerSettings);
             if (json[1..(1 + newLine.Length)] == newLine)
             {
                 var nextIndex = 1 + newLine.Length;
