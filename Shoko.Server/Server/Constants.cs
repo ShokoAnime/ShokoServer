@@ -4,7 +4,11 @@ public static class Constants
 {
     public const string SentryDsn = "SENTRY_DSN_KEY_GOES_HERE";
 
-    public static readonly string AniDBTitlesURL = @"https://anidb.net/api/anime-titles.xml.gz";
+    public static readonly string AnidbHttpApiUrl = @"http://api.anidb.net:9001";
+
+    public static readonly string AnidbCdnUrl = @"https://cdn.anidb.net";
+
+    public static readonly string AnidbTitleCacheUrl = @"https://anidb.net/api/anime-titles.xml.gz";
 
     public const string DatabaseTypeKey = "Database";
 
@@ -97,12 +101,7 @@ public static class Constants
         public const string AniDB_SeriesDiscussion =
             @"https://anidb.net/perl-bin/animedb.pl?show=threads&do=anime&id={0}";
 
-        public const string AniDB_Images = @"https://{0}/images/main/{{0}}";
-
-        // This is the fallback if the API response does not work.
-        public const string AniDB_Images_Domain = @"cdn.anidb.net";
-
-        public const string Trakt_Series = @"https://trakt.tv/show/{0}";
+        public const string AniDB_Images = @"{0}/images/main/{{0}}";
     }
 
     public struct TMDB

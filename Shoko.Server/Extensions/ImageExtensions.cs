@@ -1,9 +1,11 @@
 using System.IO;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -13,8 +15,23 @@ namespace Shoko.Server.Extensions;
 
 public static class ImageExtensions
 {
+    private static IUDPConnectionHandler? _udpConnectionHandler = null;
+
     private static string ResolveAnidbImageUrl(string relativePath)
-        => string.Format(string.Format(Constants.URLS.AniDB_Images, Constants.URLS.AniDB_Images_Domain), relativePath.Split(Path.DirectorySeparatorChar).LastOrDefault());
+    {
+        // Setting override.
+        var setting = Utils.SettingsProvider.GetSettings().AniDb.ImageCdnUrl;
+        if (!string.IsNullOrWhiteSpace(setting) && !string.Equals(setting, Constants.AnidbCdnUrl) && (setting.StartsWith("http://") || setting.StartsWith("https://")))
+            return string.Format(string.Format(Constants.URLS.AniDB_Images, setting), relativePath.Split(Path.DirectorySeparatorChar).LastOrDefault());
+
+        // UDP API provided override.
+        _udpConnectionHandler ??= Utils.ServiceContainer?.GetRequiredService<IUDPConnectionHandler>();
+        if (_udpConnectionHandler is not null)
+            return string.Format(_udpConnectionHandler.ImageServerUrl, relativePath.Split(Path.DirectorySeparatorChar).LastOrDefault());
+
+        // Static fallback.
+        return string.Format(string.Format(Constants.URLS.AniDB_Images, Constants.AnidbCdnUrl), relativePath.Split(Path.DirectorySeparatorChar).LastOrDefault());
+    }
 
     public static IImage? GetImageMetadata(this AniDB_Character character, bool preferred = false)
         => !string.IsNullOrEmpty(character.ImagePath)

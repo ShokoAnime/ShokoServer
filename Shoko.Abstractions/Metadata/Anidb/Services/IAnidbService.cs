@@ -54,6 +54,31 @@ public interface IAnidbService
 
     #endregion
 
+    #region URLs
+
+    /// <summary>
+    ///   Get or set the AniDB HTTP API base URL override. If set to
+    ///   <code>null</code>, an empty string, or the default value, then the
+    ///   override will be removed.
+    /// </summary>
+    string? AnidbHttpApiBaseUrlOverride { get; set; }
+
+    /// <summary>
+    /// Get or set the AniDB CDN base URL override. If set to
+    /// <code>null</code>, an empty string, or the default value, then the
+    /// override will be removed.
+    /// </summary>
+    string? AnidbCdnBaseUrlOverride { get; set; }
+
+    /// <summary>
+    /// Get or set the AniDB title cache URL override. If set to
+    /// <code>null</code>, an empty string, or the default value, then the
+    /// override will be removed.
+    /// </summary>
+    string? AnidbTitleCacheUrlOverride { get; set; }
+
+    #endregion
+
     #region "Remote" Search
 
     /// <summary>

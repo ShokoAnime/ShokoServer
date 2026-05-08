@@ -214,7 +214,7 @@ public class AniDBTitleHelper
             httpClient.DefaultRequestHeaders.Add("Accept-Language", "de,en-US;q=0.7,en;q=0.3");
             httpClient.DefaultRequestHeaders.Add("Accept-Encoding", "gzip,deflate");
 
-            using var response = httpClient.GetAsync(Constants.AniDBTitlesURL).Result;
+            using var response = httpClient.GetAsync(GetTitleCacheUrl()).Result;
             if (response.IsSuccessStatusCode)
             {
                 using var responseStream = response.Content.ReadAsStream();
@@ -242,5 +242,14 @@ public class AniDBTitleHelper
         {
             Console.WriteLine(e);
         }
+    }
+
+    private string GetTitleCacheUrl()
+    {
+        var setting = Utils.SettingsProvider.GetSettings().AniDb.TitleCacheUrl;
+        if (!string.IsNullOrWhiteSpace(setting) && !string.Equals(setting, Constants.AnidbTitleCacheUrl) && (setting.StartsWith("http://") || setting.StartsWith("https://")))
+            return setting;
+
+        return Constants.AnidbTitleCacheUrl;
     }
 }

@@ -206,16 +206,36 @@ public class AniDbSettings
     public bool Notification_HandleMovedFiles { get; set; } = false;
 
     /// <summary>
+    /// The base URL for the image CDN to use.
+    /// </summary>
+    [Visibility(Size = DisplayElementSize.Large)]
+    [SectionName("URLs")]
+    [Display(Name = "Image CDN Base URL")]
+    [EnvironmentVariable("ANIDB_IMAGE_CDN_URL")]
+    [Url]
+    public string? ImageCdnUrl { get; set; }
+
+    /// <summary>
+    /// The full URL for where to fetch the title cache used for the "remote"
+    /// AniDB search capabilities within Shoko.
+    /// </summary>
+    [Visibility(Size = DisplayElementSize.Large)]
+    [SectionName("URLs")]
+    [Display(Name = "Title Cache URL")]
+    [EnvironmentVariable("ANIDB_TITLE_CACHE_URL")]
+    [Url]
+    public string? TitleCacheUrl { get; set; }
+
+    /// <summary>
     /// HTTP API server to communicate with.
     /// </summary>
     [Visibility(Size = DisplayElementSize.Large)]
     [SectionName("HTTP")]
-    [Display(Name = "Server URL")]
-    [RequiresRestart]
+    [Display(Name = "HTTP API Server URL")]
     [EnvironmentVariable("ANIDB_HTTP_API_URL")]
     [Url]
     [Required(AllowEmptyStrings = false)]
-    public string HTTPServerUrl { get; set; } = "http://api.anidb.net:9001";
+    public string HTTPServerUrl { get; set; } = Constants.AnidbHttpApiUrl;
 
     /// <summary>
     /// Settings for rate limiting the HTTP API.

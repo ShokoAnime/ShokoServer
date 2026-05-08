@@ -52,7 +52,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
     public string? SessionID { get; private set; }
     public bool IsAlive { get; private set; }
 
-    private string _cdnDomain = Constants.URLS.AniDB_Images_Domain;
+    private string _cdnDomain = Constants.AnidbCdnUrl;
 
     public string ImageServerUrl => string.Format(Constants.URLS.AniDB_Images, _cdnDomain);
 
@@ -498,7 +498,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
                 break;
             case UDPReturnCode.LOGIN_ACCEPTED:
                 SessionID = response.Response.SessionID;
-                _cdnDomain = response.Response.ImageServer;
+                _cdnDomain = $"https://{response.Response.ImageServer}";
                 _isLoggedOn = true;
                 IsInvalidSession = false;
                 return true;

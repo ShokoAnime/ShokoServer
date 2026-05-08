@@ -38,7 +38,7 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
         {
             var httpClient = _httpClientFactory.CreateClient("AniDB");
             var baseAddress = new Uri(Utils.SettingsProvider.GetSettings().AniDb.HTTPServerUrl);
-            if (httpClient.BaseAddress == null || !httpClient.BaseAddress.Equals(baseAddress))
+            if (httpClient.BaseAddress is null || !httpClient.BaseAddress.Equals(baseAddress))
                 httpClient.BaseAddress = baseAddress;
 
             using var response = await httpClient.GetAsync(url);

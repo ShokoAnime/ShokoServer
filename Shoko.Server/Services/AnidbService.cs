@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Bulkhead;
 using Quartz;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
@@ -16,6 +15,7 @@ using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Events;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Models.AniDB;
@@ -32,6 +32,7 @@ using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.TMDB;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
@@ -211,6 +212,55 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         }
 
         BanExpired?.Invoke(this, eventArgs);
+    }
+
+    #endregion
+
+    #region URLs
+
+    public string? AnidbHttpApiBaseUrlOverride
+    {
+        get => _settingsProvider.GetSettings().AniDb.HTTPServerUrl is { Length: > 0 } url && !string.Equals(url, Constants.AnidbHttpApiUrl)
+            ? url
+            : null;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value) || string.Equals(value, Constants.AnidbHttpApiUrl))
+                _settingsProvider.GetSettings().AniDb.HTTPServerUrl = Constants.AnidbHttpApiUrl;
+            else
+                _settingsProvider.GetSettings().AniDb.HTTPServerUrl = value;
+            _settingsProvider.SaveSettings();
+        }
+    }
+
+    public string? AnidbCdnBaseUrlOverride
+    {
+        get => _settingsProvider.GetSettings().AniDb.ImageCdnUrl is { Length: > 0 } url && !string.Equals(url, Constants.AnidbCdnUrl)
+            ? url
+            : null;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value) || string.Equals(value, Constants.AnidbCdnUrl))
+                _settingsProvider.GetSettings().AniDb.ImageCdnUrl = null;
+            else
+                _settingsProvider.GetSettings().AniDb.ImageCdnUrl = value;
+            _settingsProvider.SaveSettings();
+        }
+    }
+
+    public string? AnidbTitleCacheUrlOverride
+    {
+        get => _settingsProvider.GetSettings().AniDb.TitleCacheUrl is { Length: > 0 } url && !string.Equals(url, Constants.AnidbTitleCacheUrl)
+            ? url
+            : null;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value) || string.Equals(value, Constants.AnidbTitleCacheUrl))
+                _settingsProvider.GetSettings().AniDb.TitleCacheUrl = null;
+            else
+                _settingsProvider.GetSettings().AniDb.TitleCacheUrl = value;
+            _settingsProvider.SaveSettings();
+        }
     }
 
     #endregion
