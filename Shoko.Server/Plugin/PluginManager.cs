@@ -775,11 +775,15 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     private const string NewReleaseDate = "ReleaseDate";
 
+    private const string NewReleaseChannel = "ReleaseChannel";
+
     private const string LegacyRuntimeIdentifier = "runtime";
 
     private const string LegacyReleaseTag = "tag";
 
     private const string LegacySourceRevision = "commit";
+
+    private const string LegacyReleaseChannel = "channel";
 
     public const string LegacyReleaseDate = "date";
 
@@ -856,6 +860,16 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
         var isDebug = assembly.GetCustomAttribute<DebuggableAttribute>() is { DebuggingFlags: > DebuggableAttribute.DebuggingModes.IgnoreSymbolStoreSequencePoints };
         var releaseChannel = isDebug ? ReleaseChannel.Debug : version.Revision > 0 ? ReleaseChannel.Dev : ReleaseChannel.Stable;
+        if (!isDebug)
+        {
+            if (metadataAttributeDict.ContainsKey(NewReleaseChannel) && !string.IsNullOrEmpty(metadataAttributeDict[NewReleaseChannel]) && Enum.TryParse<ReleaseChannel>(metadataAttributeDict[NewReleaseChannel]!, true, out var metaReleaseChannel))
+                releaseChannel = metaReleaseChannel;
+            else if (extraVersionDict.ContainsKey(NewReleaseChannel) && !string.IsNullOrEmpty(extraVersionDict[NewReleaseChannel]) && Enum.TryParse<ReleaseChannel>(extraVersionDict[NewReleaseChannel]!, true, out var extraReleaseChannel0))
+                releaseChannel = extraReleaseChannel0;
+            else if (extraVersionDict.ContainsKey(LegacyReleaseChannel) && !string.IsNullOrEmpty(extraVersionDict[LegacyReleaseChannel]) && Enum.TryParse<ReleaseChannel>(extraVersionDict[LegacyReleaseChannel]!, true, out var extraReleaseChannel1))
+                releaseChannel = extraReleaseChannel1;
+        }
+
         return new()
         {
             Version = version,
