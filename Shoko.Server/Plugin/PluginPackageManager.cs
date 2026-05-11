@@ -358,6 +358,21 @@ public partial class PluginPackageManager(
                 _logger.LogInformation($"Extracting plugin to {extractPath}");
 
                 ZipFile.ExtractToDirectory(zipPath, extractPath);
+                if (Directory.GetFileSystemEntries(extractPath) is { Length: 1 } entries && Directory.Exists(entries[0]))
+                {
+                    _logger.LogDebug("Found inner directory, moving contents to root.");
+                    var innerPath = entries[0];
+                    foreach (var entryPath in Directory.GetFileSystemEntries(innerPath))
+                    {
+                        var destinationPath = Path.Join(extractPath, Path.GetFileName(entryPath));
+                        if (Directory.Exists(entryPath))
+                            Directory.Move(entryPath, destinationPath);
+                        else
+                            File.Move(entryPath, destinationPath, overwrite: true);
+                    }
+                    Directory.Delete(innerPath, true);
+                }
+
                 if (cancellationToken.IsCancellationRequested)
                     throw new OperationCanceledException("Installation cancelled during archive extraction.");
             }
