@@ -377,7 +377,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         }
     }
 
-    protected T5 ReadLock<T5>(Func<T5> action)
+    protected new T5 ReadLock<T5>(Func<T5> action)
     {
         _lock.EnterReadLock();
         try
@@ -390,7 +390,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         }
     }
 
-    protected void WriteLock(Action action)
+    protected new void WriteLock(Action action)
     {
         _lock.EnterWriteLock();
         try
@@ -403,7 +403,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         }
     }
 
-    protected T5 WriteLock<T5>(Func<T5> action)
+    protected new T5 WriteLock<T5>(Func<T5> action)
     {
         _lock.EnterWriteLock();
         try
