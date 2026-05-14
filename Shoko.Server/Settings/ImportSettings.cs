@@ -31,7 +31,6 @@ public class ImportSettings
     /// List of video file extensions to import.
     /// </summary>
     [Visibility(Size = DisplayElementSize.Large)]
-    [MinLength(1)]
     [DefaultValue(new string[] { "MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V" })]
     [List(UniqueItems = true, Sortable = true)]
     public List<string> VideoExtensions

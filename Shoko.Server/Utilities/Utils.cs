@@ -20,7 +20,4 @@ public static partial class Utils
         var parent = Path.GetDirectoryName(fullPath);
         return string.IsNullOrEmpty(parent) ? fullPath : Path.Combine(Path.GetFileName(parent), Path.GetFileName(fullPath));
     }
-
-    public static bool IsVideo(string fileName)
-        => SettingsProvider.GetSettings().Import.VideoExtensions.Any(extName => fileName.EndsWith(extName, StringComparison.OrdinalIgnoreCase));
 }

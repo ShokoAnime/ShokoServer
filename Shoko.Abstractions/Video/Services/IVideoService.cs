@@ -29,6 +29,19 @@ public interface IVideoService
     /// </summary>
     IReadOnlyList<IManagedFolderIgnoreRule> IgnoreRules { get; }
 
+    /// <summary>
+    ///   Gets or sets all video extensions that are allowed.
+    /// </summary>
+    IReadOnlySet<string> VideoExtensions { get; set; }
+
+    /// <summary>
+    ///   Checks if the extension is an allowed video extension.
+    /// </summary>
+    /// <param name="fileName">
+    /// </param>
+    /// <returns></returns>
+    bool IsAllowedVideoExtension(string fileName);
+
     #region Video File
 
     /// <summary>

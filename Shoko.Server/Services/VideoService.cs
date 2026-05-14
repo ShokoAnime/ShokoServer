@@ -194,6 +194,15 @@ public class VideoService : IVideoService
         _ignoreRules = rules.ToList();
     }
 
+    public IReadOnlySet<string> VideoExtensions
+    {
+        get => _settingsProvider.GetSettings().Import.VideoExtensions.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        set => _settingsProvider.GetSettings().Import.VideoExtensions = value.ToList();
+    }
+
+    public bool IsAllowedVideoExtension(string fileName)
+        => _settingsProvider.GetSettings().Import.VideoExtensions.Any(extName => fileName.EndsWith(extName, StringComparison.OrdinalIgnoreCase));
+
     #endregion
 
     #region Video File
@@ -416,7 +425,7 @@ public class VideoService : IVideoService
 
         if (videoLocation is null)
         {
-            if (!Utils.IsVideo(relativePath))
+            if (!IsAllowedVideoExtension(relativePath))
             {
                 _logger.LogInformation("File does not have an acceptable video extension, skipping: {Path}", relativePath);
                 return false;
@@ -1006,7 +1015,7 @@ public class VideoService : IVideoService
                 if (++filesFound % 100 == 0 || filesFound == 1 || filesFound == total)
                     _logger.LogTrace("Processing File {Count}/{Total} in folder {FolderName} --- {Name}", filesFound, total, folder.Name, fileName);
 
-                if (!Utils.IsVideo(fileName))
+                if (!IsAllowedVideoExtension(fileName))
                     return;
 
                 videosFound++;

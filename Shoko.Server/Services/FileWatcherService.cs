@@ -120,7 +120,7 @@ public class FileWatcherService
 
     private void FileAdded(object? sender, string path)
     {
-        if (!Utils.IsVideo(path)) return;
+        if (!_videoService!.IsAllowedVideoExtension(path)) return;
 
         _logger.LogInformation("Found file {Path}", path);
         var tuple = _managedFolders.GetFromAbsolutePath(path);
