@@ -27,7 +27,7 @@ public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRe
 
     public virtual T GetByID(S id)
     {
-        return Lock(() =>
+        return ReadLock(() =>
         {
             using var session = _databaseFactory.SessionFactory.OpenSession();
             return session.Get<T>(id);
@@ -36,17 +36,17 @@ public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRe
 
     public virtual T GetByID(ISession session, S id)
     {
-        return Lock(() => session.Get<T>(id));
+        return ReadLock(() => session.Get<T>(id));
     }
 
     public virtual T GetByID(ISessionWrapper session, S id)
     {
-        return Lock(() => session.Get<T>(id));
+        return ReadLock(() => session.Get<T>(id));
     }
 
     public virtual IReadOnlyList<T> GetAll()
     {
-        return Lock(() =>
+        return ReadLock(() =>
         {
             using var session = _databaseFactory.SessionFactory.OpenSession();
             return session.CreateCriteria(typeof(T)).List<T>().ToList();
@@ -55,12 +55,12 @@ public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRe
 
     public virtual IReadOnlyList<T> GetAll(ISession session)
     {
-        return Lock(() => session.CreateCriteria(typeof(T)).List<T>().ToList());
+        return ReadLock(() => session.CreateCriteria(typeof(T)).List<T>().ToList());
     }
 
     public virtual IReadOnlyList<T> GetAll(ISessionWrapper session)
     {
-        return Lock(() => session.CreateCriteria(typeof(T)).List<T>().ToList());
+        return ReadLock(() => session.CreateCriteria(typeof(T)).List<T>().ToList());
     }
 
 
