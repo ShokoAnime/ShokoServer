@@ -244,7 +244,7 @@ public class AniDBTitleHelper(ISettingsProvider settingsProvider, IApplicationPa
 
     private string GetTitleCacheUrl()
     {
-        var setting = Utils.SettingsProvider.GetSettings().AniDb.TitleCacheUrl;
+        var setting = settingsProvider.GetSettings().AniDb.TitleCacheUrl;
         if (!string.IsNullOrWhiteSpace(setting) && !string.Equals(setting, Constants.AnidbTitleCacheUrl) && (setting.StartsWith("http://") || setting.StartsWith("https://")))
             return setting;
 
