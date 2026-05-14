@@ -1,12 +1,12 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB.UDP;
 
@@ -76,7 +76,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         try
         {
             _aniDBSocket.Receive(result);
-            var decodedString = Utils.GetEncoding(result).GetString(result, 0, result.Length);
+            var decodedString = GetEncoding(result).GetString(result, 0, result.Length);
             if (decodedString[0] == 0xFEFF) // remove BOM
             {
                 decodedString = decodedString[1..];
@@ -204,5 +204,48 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         {
             IsConnected = false;
         }
+    }
+
+    /// <summary>
+    /// Determines an encoded string's encoding by analyzing its byte order mark (BOM).
+    /// Defaults to ASCII when detection of the text file's endianness fails.
+    /// </summary>
+    /// <param name="data">Byte array of the encoded string</param>
+    /// <returns>The detected encoding.</returns>
+    public static Encoding GetEncoding(byte[] data)
+    {
+        if (data.Length < 4)
+        {
+            return Encoding.ASCII;
+        }
+        // Analyze the BOM
+#pragma warning disable SYSLIB0001
+        if (data[0] == 0x2b && data[1] == 0x2f && data[2] == 0x76)
+        {
+            return Encoding.UTF7;
+        }
+
+        if (data[0] == 0xef && data[1] == 0xbb && data[2] == 0xbf)
+        {
+            return Encoding.UTF8;
+        }
+
+        if (data[0] == 0xff && data[1] == 0xfe)
+        {
+            return Encoding.Unicode; //UTF-16LE
+        }
+
+        if (data[0] == 0xfe && data[1] == 0xff)
+        {
+            return Encoding.BigEndianUnicode; //UTF-16BE
+        }
+
+        if (data[0] == 0 && data[1] == 0 && data[2] == 0xfe && data[3] == 0xff)
+        {
+            return Encoding.UTF32;
+        }
+
+        return Encoding.ASCII;
+#pragma warning restore SYSLIB0001
     }
 }

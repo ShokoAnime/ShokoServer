@@ -15,7 +15,7 @@ using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
+
 using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Providers.AniDB.UDP;
@@ -318,7 +318,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
                 }
 
                 // decode
-                var decodedString = Utils.GetEncoding(byReceivedAdd).GetString(byReceivedAdd, 0, byReceivedAdd.Length);
+                var decodedString = AniDBSocketHandler.GetEncoding(byReceivedAdd).GetString(byReceivedAdd, 0, byReceivedAdd.Length);
                 // remove BOM
                 if (decodedString[0] == 0xFEFF) decodedString = decodedString[1..];
 
