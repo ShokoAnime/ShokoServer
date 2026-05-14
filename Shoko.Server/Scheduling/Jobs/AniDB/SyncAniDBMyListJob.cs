@@ -284,7 +284,7 @@ public class SyncAniDBMyListJob : BaseJob
         }
         else
         {
-            var freqHours = Utils.GetScheduledHours(_settings.AniDb.MyList_UpdateFrequency);
+            var freqHours = _settings.AniDb.MyList_UpdateFrequency.Hours;
 
             // if we have run this in the last 24 hours and are not forcing it, then exit
             var lastRan = DateTime.Now - schedule.LastUpdate;

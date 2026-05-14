@@ -21,19 +21,6 @@ public static partial class Utils
         return string.IsNullOrEmpty(parent) ? fullPath : Path.Combine(Path.GetFileName(parent), Path.GetFileName(fullPath));
     }
 
-    public static int GetScheduledHours(ScheduledUpdateFrequency freq)
-    {
-        return freq switch
-        {
-            ScheduledUpdateFrequency.HoursSix => 6,
-            ScheduledUpdateFrequency.HoursTwelve => 12,
-            ScheduledUpdateFrequency.Daily => 24,
-            ScheduledUpdateFrequency.WeekOne => 24 * 7,
-            ScheduledUpdateFrequency.MonthOne => 24 * 30,
-            _ => int.MaxValue,
-        };
-    }
-
     public static bool IsVideo(string fileName)
         => SettingsProvider.GetSettings().Import.VideoExtensions.Any(extName => fileName.EndsWith(extName, StringComparison.OrdinalIgnoreCase));
 

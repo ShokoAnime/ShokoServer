@@ -53,6 +53,23 @@ public enum ScheduledUpdateFrequency
     MonthOne = 6,
 }
 
+public static class ScheduledUpdateFrequencyExtensions
+{
+    extension(ScheduledUpdateFrequency freq)
+    {
+        public int Hours
+            => freq switch
+            {
+                ScheduledUpdateFrequency.HoursSix => 6,
+                ScheduledUpdateFrequency.HoursTwelve => 12,
+                ScheduledUpdateFrequency.Daily => 24,
+                ScheduledUpdateFrequency.WeekOne => 24 * 7,
+                ScheduledUpdateFrequency.MonthOne => 24 * 30,
+                _ => int.MaxValue,
+            };
+    }
+}
+
 public enum ScheduledUpdateType
 {
     AniDBCalendar = 1,

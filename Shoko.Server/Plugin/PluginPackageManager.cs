@@ -26,7 +26,6 @@ using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 #nullable enable
 
@@ -1075,7 +1074,7 @@ public partial class PluginPackageManager(
             var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.PluginUpdates);
             if (schedule != null)
             {
-                var freqHours = Utils.GetScheduledHours(settings.Plugins.Updates.AutoUpdateFrequency);
+                var freqHours = settings.Plugins.Updates.AutoUpdateFrequency.Hours;
                 var tsLastRun = DateTime.Now - schedule.LastUpdate;
                 if (tsLastRun.TotalHours < freqHours)
                     return;

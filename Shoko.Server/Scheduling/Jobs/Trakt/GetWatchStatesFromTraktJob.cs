@@ -43,7 +43,7 @@ public class GetWatchStatesFromTraktJob : BaseJob
         }
         else
         {
-            var freqHours = Utils.GetScheduledHours(settings.TraktTv.SyncFrequency);
+            var freqHours = settings.TraktTv.SyncFrequency.Hours;
 
             // if we have run this in the last xxx hours then exit
             var tsLastRun = DateTime.Now - schedule.LastUpdate;

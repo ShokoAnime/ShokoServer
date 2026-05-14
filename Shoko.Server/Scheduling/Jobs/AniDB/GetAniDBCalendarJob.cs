@@ -48,7 +48,7 @@ public class GetAniDBCalendarJob : BaseJob
         }
         else
         {
-            var freqHours = Utils.GetScheduledHours(settings.AniDb.Calendar_UpdateFrequency);
+            var freqHours = settings.AniDb.Calendar_UpdateFrequency.Hours;
 
             // if we have run this in the last 12 hours and are not forcing it, then exit
             var tsLastRun = DateTime.Now - schedule.LastUpdate;

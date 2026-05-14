@@ -667,7 +667,7 @@ public class ActionService
         }
         else
         {
-            var freqHours = Utils.GetScheduledHours(settings.AniDb.Notification_UpdateFrequency);
+            var freqHours = settings.AniDb.Notification_UpdateFrequency.Hours;
             var tsLastRun = DateTime.Now - schedule.LastUpdate;
 
             // The NOTIFY command must not be issued more than once every 20 minutes according to the AniDB UDP API documentation:
@@ -712,7 +712,7 @@ public class ActionService
         if (settings.AniDb.Calendar_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
         var scheduler = await _schedulerFactory.GetScheduler();
 
-        var freqHours = Utils.GetScheduledHours(settings.AniDb.Calendar_UpdateFrequency);
+        var freqHours = settings.AniDb.Calendar_UpdateFrequency.Hours;
 
         // update the calendar every 12 hours
         // we will always assume that an anime was downloaded via http first
@@ -734,7 +734,7 @@ public class ActionService
         if (settings.AniDb.Anime_UpdateFrequency == ScheduledUpdateFrequency.Never) return;
         var scheduler = await _schedulerFactory.GetScheduler();
 
-        var freqHours = Utils.GetScheduledHours(settings.AniDb.Anime_UpdateFrequency);
+        var freqHours = settings.AniDb.Anime_UpdateFrequency.Hours;
 
         // check for any updated anime info every 12 hours
 
@@ -755,7 +755,7 @@ public class ActionService
         if (settings.AniDb.MyList_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
 
         var scheduler = await _schedulerFactory.GetScheduler();
-        var freqHours = Utils.GetScheduledHours(settings.AniDb.MyList_UpdateFrequency);
+        var freqHours = settings.AniDb.MyList_UpdateFrequency.Hours;
 
         // update the calendar every 24 hours
 
@@ -778,7 +778,7 @@ public class ActionService
             return;
 
         // check for any updated anime info every 12 hours
-        var freqHours = Utils.GetScheduledHours(settings.AniDb.File_UpdateFrequency);
+        var freqHours = settings.AniDb.File_UpdateFrequency.Hours;
         var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
         if (schedule != null)
         {
@@ -1043,7 +1043,7 @@ public class ActionService
             var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.PluginUpdates);
             if (schedule != null)
             {
-                var freqHours = Utils.GetScheduledHours(settings.Plugins.Updates.AutoUpdateFrequency);
+                var freqHours = settings.Plugins.Updates.AutoUpdateFrequency.Hours;
                 var tsLastRun = DateTime.Now - schedule.LastUpdate;
                 if (tsLastRun.TotalHours < freqHours)
                     return;
