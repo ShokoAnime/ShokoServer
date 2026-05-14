@@ -86,7 +86,8 @@ public class SystemService : ISystemService
         var now = DateTime.UtcNow;
         var args = Environment.GetCommandLineArgs();
 
-        Utils.SetInstance();
+        ApplicationPaths.SetHome(args);
+
         LogService.InitLogger(ApplicationPaths.Instance);
         var loggerFactory = LoggerFactory.Create(o => o.AddNLog());
 

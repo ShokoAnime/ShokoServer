@@ -11,6 +11,7 @@ using Newtonsoft.Json.Converters;
 using NLog;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.MediaInfo.Converters;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.MediaInfo;
@@ -542,7 +543,7 @@ public static class MediaInfoUtility
                 return envVar;
             // Resolve the path from the application's data directory if the
             // path is not an absolute path.
-            path = Path.Combine(Utils.ApplicationPath, envVar);
+            path = Path.Combine(ApplicationPaths.StaticDataPath, envVar);
             if (File.Exists(path)) return path;
         }
 

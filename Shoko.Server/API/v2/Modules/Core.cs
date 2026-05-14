@@ -103,7 +103,7 @@ public class Core : BaseController
     {
         if (imagepath.isdefault)
         {
-            _settings.ImagesPath = Utils.DefaultImagePath;
+            _settings.ImagesPath = ApplicationPaths.DefaultImagePath;
             return APIStatus.OK();
         }
 
@@ -131,7 +131,7 @@ public class Core : BaseController
         var imagepath = new ImagePath
         {
             path = _settings.ImagesPath,
-            isdefault = _settings.ImagesPath == Utils.DefaultImagePath
+            isdefault = _settings.ImagesPath == ApplicationPaths.DefaultImagePath
         };
         return imagepath;
     }

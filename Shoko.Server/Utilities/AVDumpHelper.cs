@@ -16,6 +16,7 @@ using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Utilities;
 
@@ -23,11 +24,11 @@ public static partial class AVDumpHelper
 {
     #region Private Variables
 
-    private static readonly string WorkingDirectory = Path.Combine(Utils.ApplicationPath, "AVDump");
+    private static string WorkingDirectory => Path.Combine(ApplicationPaths.StaticDataPath, "AVDump");
 
-    private static readonly string RuntimeConfigPath = Path.Combine(WorkingDirectory, "AVDump3CL.runtimeconfig.json");
+    private static string RuntimeConfigPath => Path.Combine(WorkingDirectory, "AVDump3CL.runtimeconfig.json");
 
-    private static readonly string ArchivePath = Path.Combine(Utils.ApplicationPath, "avdump.zip");
+    private static string ArchivePath => Path.Combine(ApplicationPaths.StaticDataPath, "avdump.zip");
 
     private const string AVDumpURL = @"AVD3_URL_GOES_HERE";
 

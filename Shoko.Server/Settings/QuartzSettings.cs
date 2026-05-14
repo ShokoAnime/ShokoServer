@@ -5,7 +5,7 @@ using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
-using Shoko.Server.Utilities;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Settings;
 
@@ -26,7 +26,7 @@ public class QuartzSettings
     [RequiresRestart]
     [EnvironmentVariable("QUARTZ_CONNECTION_STRING")]
     [TextArea]
-    public string ConnectionString { get; set; } = $"Data Source={Path.Combine(Utils.ApplicationPath, "SQLite", "Quartz.db3")};Mode=ReadWriteCreate;Pooling=True";
+    public string ConnectionString { get; set; } = $"Data Source={Path.Combine(ApplicationPaths.StaticDataPath, "SQLite", "Quartz.db3")};Mode=ReadWriteCreate;Pooling=True";
 
     /// <summary>
     /// Set this value to override the default size of the queue thread pool.

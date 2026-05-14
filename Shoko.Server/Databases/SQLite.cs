@@ -45,9 +45,9 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
 
             var dirPath = Utils.SettingsProvider.GetSettings().Database.MySqliteDirectory;
             if (string.IsNullOrWhiteSpace(dirPath))
-                return _databasePath = Utils.ApplicationPath;
+                return _databasePath = ApplicationPaths.StaticDataPath;
 
-            return _databasePath = Path.Combine(Utils.ApplicationPath, dirPath);
+            return _databasePath = Path.Combine(ApplicationPaths.StaticDataPath, dirPath);
         }
     }
 

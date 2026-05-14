@@ -39,9 +39,9 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
 
             var dirPath = Utils.SettingsProvider.GetSettings().Database.DatabaseBackupDirectory;
             if (string.IsNullOrWhiteSpace(dirPath))
-                return _databaseBackupDirectoryPath = Utils.ApplicationPath;
+                return _databaseBackupDirectoryPath = ApplicationPaths.StaticDataPath;
 
-            return _databaseBackupDirectoryPath = Path.Combine(Utils.ApplicationPath, dirPath);
+            return _databaseBackupDirectoryPath = Path.Combine(ApplicationPaths.StaticDataPath, dirPath);
         }
     }
 

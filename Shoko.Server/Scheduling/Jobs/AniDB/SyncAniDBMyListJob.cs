@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Quartz;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Release;
@@ -45,6 +46,7 @@ public class SyncAniDBMyListJob : BaseJob
     private readonly AnimeSeriesService _seriesService;
     private readonly VideoLocal_UserRepository _vlUsers;
     private readonly IUserDataService _userDataService;
+    private readonly IApplicationPaths _applicationPaths;
 
     public bool ForceRefresh { get; set; }
 
@@ -158,7 +160,7 @@ public class SyncAniDBMyListJob : BaseJob
     private async Task CreateMyListBackup(HttpResponse<List<ResponseMyList>> response)
     {
         var serialized = JsonConvert.SerializeObject(response.Response, Formatting.Indented);
-        var myListDirectory = new DirectoryInfo(Utils.MyListDirectory);
+        var myListDirectory = new DirectoryInfo(Path.Combine(_applicationPaths.DataPath, "MyList"));
         myListDirectory.Create();
 
         var currentBackupPath = Path.Join(myListDirectory.FullName, "mylist.json");
@@ -334,7 +336,7 @@ public class SyncAniDBMyListJob : BaseJob
         return fileID != 0;
     }
 
-    public SyncAniDBMyListJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, VideoLocal_UserRepository vlUsers, IUserDataService userDataService)
+    public SyncAniDBMyListJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, VideoLocal_UserRepository vlUsers, IUserDataService userDataService, IApplicationPaths applicationPaths)
     {
         _requestFactory = requestFactory;
         _schedulerFactory = schedulerFactory;
@@ -342,6 +344,7 @@ public class SyncAniDBMyListJob : BaseJob
         _vlUsers = vlUsers;
         _userDataService = userDataService;
         _settingsProvider = settingsProvider;
+        _applicationPaths = applicationPaths;
     }
 
     protected SyncAniDBMyListJob() { }

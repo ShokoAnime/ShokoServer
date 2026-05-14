@@ -9,28 +9,26 @@ using System.Net.Security;
 using System.Threading;
 using System.Xml.Serialization;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Plugin;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB.Titles;
 
-public class AniDBTitleHelper
+public class AniDBTitleHelper(ISettingsProvider settingsProvider, IApplicationPaths applicationPaths)
 {
-    private readonly ISettingsProvider _settingsProvider;
     private readonly ReaderWriterLockSlim _accessLock = new(LockRecursionPolicy.SupportsRecursion);
-    private readonly string _cacheFilePath = Path.Combine(Utils.ApplicationPath, "anime-titles.xml");
-    private readonly string _cacheFilePathTemp = Path.Combine(Utils.ApplicationPath, "anime-titles.xml") + ".temp";
-    private readonly string _cacheFilePathBak = Path.Combine(Utils.ApplicationPath, "anime-titles.xml") + ".bak";
+
+    private string CacheFilePath => Path.Join(applicationPaths.DataPath, "anime-titles.xml");
+
+    private string CacheFilePathTemp => CacheFilePath + ".temp";
+
+    private string CacheFilePathBak => CacheFilePath + ".bak";
 
     private DateTime? _nextUpdate = null;
 
     private ResponseAniDBTitles _cache;
-
-    public AniDBTitleHelper(ISettingsProvider settingsProvider)
-    {
-        _settingsProvider = settingsProvider;
-    }
 
     public IEnumerable<ResponseAniDBTitles.Anime> GetAll()
     {
@@ -90,7 +88,7 @@ public class AniDBTitleHelper
             try
             {
                 _accessLock.EnterReadLock();
-                var languages = _settingsProvider.GetSettings().Language.SeriesTitleLanguageOrder;
+                var languages = settingsProvider.GetSettings().Language.SeriesTitleLanguageOrder;
                 return _cache?.AnimeList
                     .AsParallel()
                     .Search(
@@ -126,23 +124,23 @@ public class AniDBTitleHelper
         if (_cache is not null && _nextUpdate.HasValue && DateTime.Now < _nextUpdate.Value)
             return;
 
-        if (!File.Exists(_cacheFilePath))
+        if (!File.Exists(CacheFilePath))
         {
             // first check if there's a temp file
-            if (File.Exists(_cacheFilePathTemp))
-                File.Move(_cacheFilePathTemp, _cacheFilePath);
+            if (File.Exists(CacheFilePathTemp))
+                File.Move(CacheFilePathTemp, CacheFilePath);
 
-            if (!File.Exists(_cacheFilePath)) DownloadCache();
+            if (!File.Exists(CacheFilePath)) DownloadCache();
         }
 
-        if (!File.Exists(_cacheFilePath))
+        if (!File.Exists(CacheFilePath))
         {
             _accessLock.ExitWriteLock();
             return;
         }
 
         // If data is stale, then re-download
-        var lastWriteTime = File.GetLastWriteTime(_cacheFilePath);
+        var lastWriteTime = File.GetLastWriteTime(CacheFilePath);
         if (DateTime.Now - lastWriteTime > TimeSpan.FromHours(24))
             DownloadCache();
 
@@ -161,7 +159,7 @@ public class AniDBTitleHelper
     private void LoadCache()
     {
         // Load the file
-        using var stream = new FileStream(_cacheFilePath, FileMode.Open);
+        using var stream = new FileStream(CacheFilePath, FileMode.Open);
         var serializer = new XmlSerializer(typeof(ResponseAniDBTitles));
         if (serializer.Deserialize(stream) is ResponseAniDBTitles rawData)
         {
@@ -169,7 +167,7 @@ public class AniDBTitleHelper
 
             // Set the next update to run in 24 hours, unless we somehow failed
             // to download it in the last 24 hours, then set it to 4 hours.
-            _nextUpdate = File.GetLastWriteTime(_cacheFilePath).AddHours(24);
+            _nextUpdate = File.GetLastWriteTime(CacheFilePath).AddHours(24);
             if (_nextUpdate.Value < DateTime.Now)
                 _nextUpdate = DateTime.Now.AddHours(4);
         }
@@ -177,28 +175,28 @@ public class AniDBTitleHelper
 
     private void Decompress()
     {
-        using var stream = new FileStream(_cacheFilePath, FileMode.Open);
+        using var stream = new FileStream(CacheFilePath, FileMode.Open);
         var gzip = new GZipStream(stream, CompressionMode.Decompress);
         var textResponse = new StreamReader(gzip).ReadToEnd();
-        if (File.Exists(_cacheFilePathTemp)) File.Delete(_cacheFilePathTemp);
+        if (File.Exists(CacheFilePathTemp)) File.Delete(CacheFilePathTemp);
 
-        File.WriteAllText(_cacheFilePathTemp, textResponse);
+        File.WriteAllText(CacheFilePathTemp, textResponse);
 
         // backup the old one
-        if (File.Exists(_cacheFilePath)) File.Move(_cacheFilePath, _cacheFilePathBak);
+        if (File.Exists(CacheFilePath)) File.Move(CacheFilePath, CacheFilePathBak);
 
         // rename new one
-        File.Move(_cacheFilePathTemp, _cacheFilePath);
+        File.Move(CacheFilePathTemp, CacheFilePath);
 
         // remove old one
-        if (File.Exists(_cacheFilePathBak)) File.Delete(_cacheFilePathBak);
+        if (File.Exists(CacheFilePathBak)) File.Delete(CacheFilePathBak);
     }
 
     private void DownloadCache()
     {
         try
         {
-            if (File.Exists(_cacheFilePathTemp)) File.Delete(_cacheFilePathTemp);
+            if (File.Exists(CacheFilePathTemp)) File.Delete(CacheFilePathTemp);
 
             // Download the file
             using var httpClient = new HttpClient(new SocketsHttpHandler
@@ -221,7 +219,7 @@ public class AniDBTitleHelper
                 using var gzipStream = new GZipStream(responseStream, CompressionMode.Decompress);
                 using var reader = new StreamReader(gzipStream);
                 var textResponse = reader.ReadToEnd();
-                File.WriteAllText(_cacheFilePathTemp, textResponse);
+                File.WriteAllText(CacheFilePathTemp, textResponse);
             }
             else
             {
@@ -230,13 +228,13 @@ public class AniDBTitleHelper
             }
 
             // backup the old one
-            if (File.Exists(_cacheFilePath)) File.Move(_cacheFilePath, _cacheFilePathBak);
+            if (File.Exists(CacheFilePath)) File.Move(CacheFilePath, CacheFilePathBak);
 
             // rename new one
-            File.Move(_cacheFilePathTemp, _cacheFilePath);
+            File.Move(CacheFilePathTemp, CacheFilePath);
 
             // remove old one
-            if (File.Exists(_cacheFilePathBak)) File.Delete(_cacheFilePathBak);
+            if (File.Exists(CacheFilePathBak)) File.Delete(CacheFilePathBak);
         }
         catch (Exception e)
         {

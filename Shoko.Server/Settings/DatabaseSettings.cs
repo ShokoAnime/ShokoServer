@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Server.Server;
-using Shoko.Server.Utilities;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Settings;
 
@@ -73,6 +73,11 @@ public class DatabaseSettings
                 directory = prefix + directory;
             }
 
+            if (string.Equals(directory, ApplicationPaths.StaticDataPath, StringComparison.OrdinalIgnoreCase))
+                directory = string.Empty;
+            if (directory.StartsWith(ApplicationPaths.StaticDataPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                directory = directory[(ApplicationPaths.StaticDataPath.Length + 1)..];
+
             MySqliteDirectory = directory;
             _sqliteFile = parts.LastOrDefault();
         }
@@ -91,7 +96,7 @@ public class DatabaseSettings
     [Display(Name = "Directory")]
     [RequiresRestart]
     [EnvironmentVariable("DB_SQLITE_DIRECTORY")]
-    public string MySqliteDirectory { get; set; } = Path.Combine(Utils.ApplicationPath, "SQLite");
+    public string MySqliteDirectory { get; set; } = "SQLite";
 
     /// <summary>
     /// SQL Server or MySQL/MariaDB host address, optionally with port if it's
@@ -205,7 +210,7 @@ public class DatabaseSettings
     )]
     [RequiresRestart]
     [EnvironmentVariable("DB_BACKUP_DIRECTORY")]
-    public string DatabaseBackupDirectory { get; set; } = Path.Combine(Utils.ApplicationPath, "DatabaseBackup");
+    public string DatabaseBackupDirectory { get; set; } = "DatabaseBackup";
 
     /// <summary>
     /// Use database locking in the application. This should be left on if

@@ -15,59 +15,10 @@ public static partial class Utils
 
     public static ISettingsProvider SettingsProvider { get; set; }
 
-    private static string _applicationPath = null;
-
-    public static string ApplicationPath
-    {
-        get
-        {
-            if (_applicationPath != null)
-                return _applicationPath;
-
-            var shokoHome = Environment.GetEnvironmentVariable("SHOKO_HOME");
-            if (!string.IsNullOrWhiteSpace(shokoHome))
-                return _applicationPath = Path.GetFullPath(shokoHome);
-
-            if (!PlatformUtility.IsWindows)
-                return _applicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".shoko",
-                    DefaultInstance);
-
-            return _applicationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                DefaultInstance);
-        }
-    }
-
-    public static string DefaultInstance { get; set; } = Assembly.GetEntryAssembly().GetName().Name;
-
-    public static string DefaultImagePath => Path.Combine(ApplicationPath, "images");
-
-    public static string AnimeXmlDirectory { get; set; } = Path.Combine(ApplicationPath, "Anime_HTTP");
-
-    public static string MyListDirectory { get; set; } = Path.Combine(ApplicationPath, "MyList");
-
     public static string GetDistinctPath(string fullPath)
     {
         var parent = Path.GetDirectoryName(fullPath);
         return string.IsNullOrEmpty(parent) ? fullPath : Path.Combine(Path.GetFileName(parent), Path.GetFileName(fullPath));
-    }
-
-    private static string GetInstanceFromCommandLineArguments()
-    {
-        const int NotFound = -1;
-        var args = Environment.GetCommandLineArgs();
-        var idx = Array.FindIndex(args, x => string.Equals(x, "instance", StringComparison.InvariantCultureIgnoreCase));
-        if (idx is NotFound)
-            return null;
-        if (idx >= args.Length - 1)
-            return null;
-        return args[idx + 1];
-    }
-
-    public static void SetInstance()
-    {
-        var instance = GetInstanceFromCommandLineArguments();
-        if (string.IsNullOrWhiteSpace(instance) is false)
-            DefaultInstance = instance;
     }
 
     public static int GetScheduledHours(ScheduledUpdateFrequency freq)
