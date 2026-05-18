@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.API.v1.Models;
@@ -15,6 +17,7 @@ using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using TMDbLib.Objects.Search;
 
+#pragma warning disable CS0618 // Type or member is obsolete
 #nullable enable
 namespace Shoko.Server.Extensions;
 
@@ -137,9 +140,7 @@ public static class ModelClients
             TempVoteCount = anime.TempVoteCount,
             AvgReviewRating = anime.AvgReviewRating,
             ReviewCount = anime.ReviewCount,
-#pragma warning disable CS0618
             DateTimeUpdated = anime.DateTimeUpdated,
-#pragma warning restore CS0618
             DateTimeDescUpdated = anime.DateTimeDescUpdated,
             ImageEnabled = anime.ImageEnabled,
             Restricted = anime.Restricted,
@@ -184,48 +185,53 @@ public static class ModelClients
             Rating = (int)Math.Round(movie.UserRating * 10),
         };
 
-    public static CL_MovieDB_Fanart ToClientFanart(this TMDB_Image image)
+    public static CL_MovieDB_Fanart ToClientFanart(this IImage image)
         => new()
         {
-            MovieDB_FanartID = image.TMDB_ImageID,
+            MovieDB_FanartID = image.LocalID,
             Enabled = image.IsEnabled ? 1 : 0,
-            ImageHeight = image.Height,
+            ImageHeight = (int?)image.Height ?? 0,
             ImageID = string.Empty,
             ImageSize = "original",
             ImageType = "backdrop",
-            ImageWidth = image.Width,
+            ImageWidth = (int?)image.Width ?? 0,
             MovieId = 0,
-            URL = image.RemoteFileName,
+            URL = image.ResourceID,
         };
 
-    public static CL_MovieDB_Poster ToClientPoster(this TMDB_Image image)
+    public static CL_MovieDB_Poster ToClientPoster(this IImage image)
         => new()
         {
-            MovieDB_PosterID = image.TMDB_ImageID,
+            MovieDB_PosterID = image.LocalID,
             Enabled = image.IsEnabled ? 1 : 0,
-            ImageHeight = image.Height,
+            ImageHeight = (int?)image.Height ?? 0,
             ImageID = string.Empty,
             ImageSize = "original",
             ImageType = "poster",
-            ImageWidth = image.Width,
+            ImageWidth = (int?)image.Width ?? 0,
             MovieId = 0,
-            URL = image.RemoteFileName,
+            URL = image.ResourceID,
         };
 
-    public static CL_AniDB_Anime_DefaultImage? ToClient(this AniDB_Anime_PreferredImage image)
+    public static CL_AniDB_Anime_DefaultImage? ToClient(this IImageCrossReference xref)
     {
-        if (image.ImageSource is not DataSource.TMDB)
+        if (xref.ImageSource is not DataSource.TMDB || xref.GetImage() is not { IsAvailable: true } image)
             return null;
 
         var contract = new CL_AniDB_Anime_DefaultImage()
         {
-            AniDB_Anime_DefaultImageID = image.AniDB_Anime_PreferredImageID,
-            AnimeID = image.AnidbAnimeID,
-            ImageParentID = image.ImageID,
-            ImageParentType = (int)image.ImageType.ToClient(image.ImageSource),
-            ImageType = image.ImageType switch
+            AniDB_Anime_DefaultImageID = xref.ID,
+            AnimeID = int.Parse(xref.EntityID),
+            ImageParentID = image.LocalID,
+            ImageParentType = xref.ImageType switch
             {
-                ImageEntityType.Poster => 1,
+                ImageEntityType.Primary => (int)CL_ImageEntityType.MovieDB_Poster,
+                ImageEntityType.Backdrop => (int)CL_ImageEntityType.MovieDB_FanArt,
+                _ => (int)CL_ImageEntityType.None,
+            },
+            ImageType = xref.ImageType switch
+            {
+                ImageEntityType.Primary => 1,
                 ImageEntityType.Banner => 3,
                 _ => 2,
             },
@@ -234,77 +240,16 @@ public static class ModelClients
         switch ((CL_ImageEntityType)contract.ImageParentType)
         {
             case CL_ImageEntityType.MovieDB_Poster:
-                contract.MoviePoster = ((TMDB_Image?)image.GetImageMetadata())?.ToClientPoster();
-                if (contract.MoviePoster is null)
-                    return null;
+                contract.MoviePoster = image.ToClientPoster();
                 break;
             case CL_ImageEntityType.MovieDB_FanArt:
-                contract.MovieFanart = ((TMDB_Image?)image.GetImageMetadata())?.ToClientFanart();
-                if (contract.MovieFanart is null)
-                    return null;
+                contract.MovieFanart = image.ToClientFanart();
                 break;
         }
 
         return contract;
     }
 
-    public static ImageEntityType ToServerType(this CL_ImageEntityType type)
-        => type switch
-        {
-            CL_ImageEntityType.AniDB_Character => ImageEntityType.Character,
-            CL_ImageEntityType.AniDB_Cover => ImageEntityType.Poster,
-            CL_ImageEntityType.AniDB_Creator => ImageEntityType.Creator,
-            CL_ImageEntityType.Character => ImageEntityType.Character,
-            CL_ImageEntityType.MovieDB_FanArt => ImageEntityType.Backdrop,
-            CL_ImageEntityType.MovieDB_Poster => ImageEntityType.Poster,
-            CL_ImageEntityType.Staff => ImageEntityType.Creator,
-            CL_ImageEntityType.UserAvatar => ImageEntityType.Thumbnail,
-            _ => ImageEntityType.None,
-        };
-
-    public static DataSource ToServerSource(this CL_ImageEntityType type)
-        => type switch
-        {
-            CL_ImageEntityType.AniDB_Character => DataSource.AniDB,
-            CL_ImageEntityType.AniDB_Cover => DataSource.AniDB,
-            CL_ImageEntityType.AniDB_Creator => DataSource.AniDB,
-            CL_ImageEntityType.Character => DataSource.Shoko,
-            CL_ImageEntityType.MovieDB_FanArt => DataSource.TMDB,
-            CL_ImageEntityType.MovieDB_Poster => DataSource.TMDB,
-            CL_ImageEntityType.Staff => DataSource.Shoko,
-            CL_ImageEntityType.UserAvatar => DataSource.User,
-            _ => DataSource.None,
-        };
-
-    public static CL_ImageEntityType ToClient(this ImageEntityType imageType, DataSource source)
-        => source switch
-        {
-            DataSource.AniDB => imageType switch
-            {
-                ImageEntityType.Character => CL_ImageEntityType.AniDB_Character,
-                ImageEntityType.Poster => CL_ImageEntityType.AniDB_Cover,
-                ImageEntityType.Creator => CL_ImageEntityType.AniDB_Creator,
-                _ => CL_ImageEntityType.None,
-            },
-            DataSource.Shoko => imageType switch
-            {
-                ImageEntityType.Character => CL_ImageEntityType.Character,
-                ImageEntityType.Creator => CL_ImageEntityType.Staff,
-                _ => CL_ImageEntityType.None,
-            },
-            DataSource.TMDB => imageType switch
-            {
-                ImageEntityType.Backdrop => CL_ImageEntityType.MovieDB_FanArt,
-                ImageEntityType.Poster => CL_ImageEntityType.MovieDB_Poster,
-                _ => CL_ImageEntityType.None,
-            },
-            DataSource.User => imageType switch
-            {
-                ImageEntityType.Thumbnail => CL_ImageEntityType.UserAvatar,
-                _ => CL_ImageEntityType.None,
-            },
-            _ => CL_ImageEntityType.None,
-        };
 
     public static CL_CrossRef_AniDB_TraktV2 ToClient(this CrossRef_AniDB_TraktV2 xref)
         => new()
@@ -355,7 +300,6 @@ public static class ModelClients
             CharKanjiName = character.OriginalName,
             CharDescription = character.Description,
             CharType = charRel.Appearance,
-            ImageType = (int)CL_ImageEntityType.AniDB_Character,
             ImageID = character.AniDB_CharacterID
         };
         var creator = charRel.Creators is { Count: > 0 } ? charRel.Creators[0] : null;
@@ -363,7 +307,6 @@ public static class ModelClients
         {
             contract.SeiyuuID = creator.AniDB_CreatorID;
             contract.SeiyuuName = creator.Name;
-            contract.SeiyuuImageType = (int)CL_ImageEntityType.AniDB_Creator;
             contract.SeiyuuImageID = creator.CreatorID;
         }
 

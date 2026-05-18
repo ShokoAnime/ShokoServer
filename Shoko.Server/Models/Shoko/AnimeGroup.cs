@@ -1,16 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Models.Shoko;
@@ -256,11 +261,11 @@ public class AnimeGroup : IShokoGroup
     public HashSet<(int Year, YearlySeason Season)> YearlySeasons => AllSeries.SelectMany(a => a.AniDB_Anime?.YearlySeasons ?? []).ToHashSet();
 
     public HashSet<ImageEntityType> AvailableImageTypes => AllSeries
-        .SelectMany(ser => ser.GetAvailableImageTypes())
+        .SelectMany(ser => ser.AvailableImageTypes)
         .ToHashSet();
 
     public HashSet<ImageEntityType> PreferredImageTypes => AllSeries
-        .SelectMany(ser => ser.GetPreferredImageTypes())
+        .SelectMany(ser => ser.PreferredImageTypes)
         .ToHashSet();
 
     public List<AniDB_Anime_Title> Titles => AllSeries
@@ -316,6 +321,8 @@ public class AnimeGroup : IShokoGroup
     }
 
     #region IMetadata Implementation
+
+    DataEntityType IMetadata.EntityType => DataEntityType.Group;
 
     DataSource IMetadata.Source => DataSource.Shoko;
 
@@ -440,6 +447,18 @@ public class AnimeGroup : IShokoGroup
             return titles;
         }
     }
+
+    #endregion
+
+    #region IWithImages Implementation
+
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
 
     #endregion
 

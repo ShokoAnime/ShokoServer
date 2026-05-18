@@ -977,7 +977,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(151,  1, "ALTER TABLE `TMDB_Season` ADD COLUMN `PosterPath` VARCHAR(64) NULL DEFAULT NULL;"),
         new(151,  2, "ALTER TABLE `TMDB_Episode` ADD COLUMN `ThumbnailPath` VARCHAR(64) NULL DEFAULT NULL;"),
         new(152,  1),
-        new(152,  2, DatabaseFixes.MoveTmdbImagesOnDisc),
+        new(152,  2),
         new(153,  1, "DROP TABLE IF EXISTS DuplicateFile;"),
         new(153,  2, "DROP TABLE IF EXISTS AnimeCharacter;"),
         new(154,  1, "ALTER TABLE `TMDB_Show` MODIFY COLUMN `Keywords` LONGTEXT NULL;"),
@@ -1032,6 +1032,10 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(161,  4, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `CrossRefSource`;"),
         new(161,  5, "ALTER TABLE `AnimeGroup_User` DROP COLUMN `IsFave`;"),
         new(161,  6, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
+        new(162,  1, @"CREATE TABLE `ShokoImage` (`ID` CHAR(36) NOT NULL, `LocalID` INT NOT NULL, `PrimaryID` VARCHAR(36) NOT NULL, `ResourceID` VARCHAR(128) NOT NULL, `LanguageCode` VARCHAR(8), `CountryCode` VARCHAR(8), `Width` INT, `Height` INT, `ContentType` VARCHAR(64) NOT NULL, `DownloadAttempts` TINYINT NOT NULL DEFAULT 0, `Source` TINYINT NOT NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`ID`));"),
+        new(162,  2, @"CREATE TABLE `ShokoImage_Entity` (`ID` INT NOT NULL AUTO_INCREMENT, `ImageID` VARCHAR(36) NOT NULL, `PrimaryImageID` VARCHAR(36) NOT NULL, `ImageType` TINYINT NOT NULL, `ImageSource` TINYINT NOT NULL, `EntitySource` TINYINT NOT NULL, `EntityType` TINYINT NOT NULL, `EntityID` VARCHAR(128) NOT NULL, `EntitySeasonNumber` INT, `EntityEpisodeNumber` INT, `EntityReleasedAt` DATE, `IsEnabled` TINYINT NOT NULL DEFAULT 1, `IsDesired` TINYINT NOT NULL DEFAULT 1, `IsPreferred` TINYINT NOT NULL DEFAULT 0, `Ordering` INT NOT NULL DEFAULT 0, `Rating` decimal(6,2), `RatingVotes` INT, `Source` TINYINT NOT NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`ID`));"),
+        new(162,  3, DatabaseFixes.MigrateToUnifiedImages),
+        new(162,  4, DatabaseFixes.ScheduleTmdbImageUpdates),
     ];
 
     #endregion

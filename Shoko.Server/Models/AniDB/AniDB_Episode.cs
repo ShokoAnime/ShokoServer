@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Video;
@@ -127,54 +131,6 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
         ? RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(EpisodeID, language.Value)
         : RepoFactory.AniDB_Episode_Title.GetByEpisodeID(EpisodeID);
 
-    #region Images
-
-    public IImage? PreferredOrDefaultThumbnail
-    {
-        get
-        {
-            if (TmdbEpisodeCrossReferences is { Count: > 0 } tmdbEpisodeCrossReferences)
-                return GetPreferredImageForType(ImageEntityType.Thumbnail) ?? tmdbEpisodeCrossReferences[0].TmdbEpisode?.GetImages(ImageEntityType.Thumbnail).FirstOrDefault();
-
-            if (TmdbMovieCrossReferences is { Count: > 0 } tmdbMovieCrossReferences)
-                return GetPreferredImageForType(ImageEntityType.Backdrop) ?? tmdbMovieCrossReferences[0].TmdbMovie?.GetImages(ImageEntityType.Backdrop).FirstOrDefault();
-
-            return null;
-        }
-    }
-
-    public IImage? GetPreferredImageForType(ImageEntityType entityType)
-        => RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(EpisodeID, entityType)?.GetImageMetadata();
-
-    public IReadOnlyList<IImage> GetImages(ImageEntityType? entityType = null)
-    {
-        var preferredImages = (entityType.HasValue ? [RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(EpisodeID, entityType.Value)!] : RepoFactory.AniDB_Episode_PreferredImage.GetByEpisodeID(EpisodeID))
-            .WhereNotNull()
-            .Select(preferredImage => preferredImage.GetImageMetadata())
-            .WhereNotNull()
-            .ToDictionary(image => image.ImageType);
-        var images = new List<IImage>();
-        if (!entityType.HasValue || entityType.Value is ImageEntityType.Poster)
-        {
-            var poster = AniDB_Anime?.GetImageMetadata(false);
-            if (poster is not null)
-                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster.Equals(preferredPoster)
-                    ? preferredPoster
-                    : poster
-                );
-        }
-        foreach (var tmdbEpisode in TmdbEpisodes)
-            images.AddRange(tmdbEpisode.GetImages(entityType, preferredImages));
-        foreach (var tmdbMovie in TmdbMovies)
-            images.AddRange(tmdbMovie.GetImages(entityType, preferredImages));
-
-        return images
-            .DistinctBy(image => (image.ImageType, image.Source, image.ID))
-            .ToList();
-    }
-
-    #endregion
-
     #region Shoko
 
     public AnimeSeries? AnimeSeries => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID);
@@ -212,6 +168,8 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
     #endregion
 
     #region IMetadata Implementation
+
+    DataEntityType IMetadata.EntityType => DataEntityType.Episode;
 
     DataSource IMetadata.Source => DataSource.AniDB;
 
@@ -270,9 +228,8 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
     IReadOnlyList<ICast> IWithCastAndCrew.Cast => RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
         .SelectMany(xref =>
         {
-            // We don't want organizations or borked cross-references to show up.
-            var character = xref.Character;
-            if (character is not { Type: not Server.CharacterType.Organization })
+            // We don't want borked cross-references to show up.
+            if (xref.Character is not { } character)
                 return [];
 
             // If a role don't have a creator then we still want it to show up.
@@ -299,6 +256,24 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
 
     #endregion
 
+    #region IWithImages Implementation
+
+    public IImage? GetPreferredImageForType(ImageEntityType imageType)
+        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
+
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
+
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
+
+    #endregion
+
     #region IEpisode Implementation
 
     int IEpisode.SeriesID => AnimeID;
@@ -310,8 +285,6 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
     double IEpisode.Rating => RatingDouble;
 
     int IEpisode.RatingVotes => VotesInt;
-
-    IImage? IEpisode.DefaultThumbnail => null;
 
     DateOnly? IEpisode.AirDate => GetAirDateAsDateOnly();
 

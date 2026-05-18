@@ -1,15 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.Collections;
 
@@ -127,14 +130,14 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
         foreach (var preferredLanguage in Languages.PreferredEpisodeNamingLanguages)
         {
             if (preferredLanguage.Language == TitleLanguage.Main)
-                return new(ForeignEntityType.Collection, TmdbCollectionID, EnglishTitle, "en", "US");
+                return new(DataEntityType.Collection, TmdbCollectionID, EnglishTitle, "en", "US");
 
             var title = titles.GetByLanguage(preferredLanguage.Language);
             if (title != null)
                 return title;
         }
 
-        return useFallback ? new(ForeignEntityType.Collection, TmdbCollectionID, EnglishTitle, "en", "US") : null;
+        return useFallback ? new(DataEntityType.Collection, TmdbCollectionID, EnglishTitle, "en", "US") : null;
     }
 
     /// <summary>
@@ -151,8 +154,8 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
     /// they're already cached from a previous call.</param>
     /// <returns>All titles for the movie collection.</returns>
     public IReadOnlyList<TMDB_Title> GetAllTitles(bool force = false) => force
-        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID)
-        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID);
+        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Collection, TmdbCollectionID)
+        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Collection, TmdbCollectionID);
 
     /// <summary>
     /// Get the preferred overview using the preferred episode title preference
@@ -177,7 +180,7 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
                 return overview;
         }
 
-        return useFallback ? new(ForeignEntityType.Collection, TmdbCollectionID, EnglishOverview, "en", "US") : null;
+        return useFallback ? new(DataEntityType.Collection, TmdbCollectionID, EnglishOverview, "en", "US") : null;
     }
 
     /// <summary>
@@ -193,21 +196,8 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
     /// if they're already cached from a previous call.</param>
     /// <returns>All overviews for the movie collection.</returns>
     public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
-        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID)
-        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Collection, TmdbCollectionID);
-
-    /// <summary>
-    /// Get all images for the movie collection, or all images for the given
-    /// <paramref name="entityType"/> provided for the movie collection.
-    /// </summary>
-    /// <param name="entityType">If set, will restrict the returned list to only
-    /// containing the images of the given entity type.</param>
-    /// <returns>A read-only list of images that are linked to the movie collection.
-    /// </returns>
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbCollectionIDAndType(TmdbCollectionID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbCollectionID(TmdbCollectionID);
-
+        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Collection, TmdbCollectionID)
+        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Collection, TmdbCollectionID);
     /// <summary>
     /// Get all local TMDB movies associated with the movie collection.
     /// </summary>
@@ -219,7 +209,7 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
 
     #region IEntityMetadata
 
-    ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Collection;
+    DataEntityType IEntityMetadata.Type => DataEntityType.Collection;
 
     DataSource IEntityMetadata.DataSource => DataSource.TMDB;
 
@@ -234,6 +224,8 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
     #endregion
 
     #region IMetadata Implementation
+
+    DataEntityType IMetadata.EntityType => DataEntityType.Collection;
 
     DataSource IMetadata.Source => DataSource.TMDB;
 
@@ -277,6 +269,18 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
 
     #endregion
 
+    #region IWithImages Implementation
+
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
+
+    #endregion
+
     #region IWithCreationDate Implementation
 
     DateTime IWithCreationDate.CreatedAt => CreatedAt.ToUniversalTime();
@@ -286,18 +290,6 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
     #region IWithUpdateDate Implementation
 
     DateTime IWithUpdateDate.LastUpdatedAt => LastUpdatedAt.ToUniversalTime();
-
-    #endregion
-
-    #region IWithImages Implementation
-
-    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
-        => null;
-
-    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType)
-        => entityType.HasValue
-            ? RepoFactory.TMDB_Image.GetByTmdbCollectionIDAndType(TmdbCollectionID, entityType.Value)
-            : RepoFactory.TMDB_Image.GetByTmdbCollectionID(TmdbCollectionID);
 
     #endregion
 }

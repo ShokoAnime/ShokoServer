@@ -1,17 +1,13 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
-using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.Extensions;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
-using Shoko.Server.Settings;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
@@ -22,8 +18,7 @@ public class GetAniDBImagesJob : BaseJob
     private AniDB_Anime _anime;
     private string _title;
     private readonly AniDBTitleHelper _titleHelper;
-    private readonly ISettingsProvider _settingsProvider;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly AnidbService _anidbService;
 
     public int AnimeID { get; set; }
     public bool ForceDownload { get; set; }
@@ -61,82 +56,13 @@ public class GetAniDBImagesJob : BaseJob
             return;
         }
 
-        var settings = _settingsProvider.GetSettings();
-
-        // cover
-        var scheduler = await _schedulerFactory.GetScheduler();
-        if (ForceDownload || !_anime.GetImageMetadata().IsLocalAvailable)
-            await scheduler.StartJob<DownloadAniDBImageJob>(
-                a => (a.ImageID, a.ImageType, a.ForceDownload) = (_anime.AnimeID, ImageEntityType.Poster, ForceDownload),
-                prioritize: true
-            );
-
-        if (OnlyPosters) return;
-        var requests = new List<Action<DownloadAniDBImageJob>>();
-
-        // characters
-        if (settings.AniDb.DownloadCharacters)
-        {
-            var characters = RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
-                .Select(xref => RepoFactory.AniDB_Character.GetByCharacterID(xref.CharacterID))
-                .Where(a => !string.IsNullOrEmpty(a?.ImagePath))
-                .DistinctBy(a => a.CharacterID)
-                .ToList();
-            if (characters.Count is not 0)
-                requests.AddRange(characters
-                    .Where(a => ForceDownload || !(a.GetImageMetadata()?.IsLocalAvailable ?? false))
-                    .Select(c => new Action<DownloadAniDBImageJob>(a =>
-                    {
-                        a.ParentName = _title;
-                        a.ImageID = c.CharacterID;
-                        a.ImageType = ImageEntityType.Character;
-                        a.ForceDownload = ForceDownload;
-                    })));
-            else
-                _logger.LogWarning("No AniDB characters were found for {Anime}", _anime.Title ?? AnimeID.ToString());
-        }
-
-        // creators
-        if (settings.AniDb.DownloadCreators)
-        {
-            // Get all voice-actors working on this anime.
-            var voiceActors = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(AnimeID)
-                .Select(xref => RepoFactory.AniDB_Creator.GetByCreatorID(xref.CreatorID))
-                .Where(va => !string.IsNullOrEmpty(va?.ImagePath));
-            // Get all staff members working on this anime.
-            var staffMembers = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(AnimeID)
-                .Select(xref => RepoFactory.AniDB_Creator.GetByCreatorID(xref.CreatorID))
-                .Where(staff => !string.IsNullOrEmpty(staff?.ImagePath));
-            // Concatenate the streams into a single list.
-            var creators = voiceActors.Concat(staffMembers)
-                .DistinctBy(creator => creator.CreatorID)
-                .ToList();
-
-            if (creators.Count is not 0)
-                requests.AddRange(creators
-                    .Where(a => ForceDownload || !(a.GetImageMetadata()?.IsLocalAvailable ?? false))
-                    .Select(va => new Action<DownloadAniDBImageJob>(a =>
-                {
-                    a.ParentName = _title;
-                    a.ImageID = va.CreatorID;
-                    a.ImageType = ImageEntityType.Creator;
-                    a.ForceDownload = ForceDownload;
-                })));
-            else
-                _logger.LogWarning("No AniDB creators were found for {Anime}", _anime.Title ?? AnimeID.ToString());
-        }
-
-        foreach (var action in requests)
-        {
-            await scheduler.StartJob(action);
-        }
+        await _anidbService.ProcessImagesForAnimeByID(AnimeID, OnlyPosters, ForceDownload).ConfigureAwait(false);
     }
 
-    public GetAniDBImagesJob(AniDBTitleHelper aniDBTitleHelper, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory)
+    public GetAniDBImagesJob(AniDBTitleHelper aniDBTitleHelper, IAnidbService anidbService)
     {
         _titleHelper = aniDBTitleHelper;
-        _settingsProvider = settingsProvider;
-        _schedulerFactory = schedulerFactory;
+        _anidbService = (AnidbService)anidbService;
     }
 
     protected GetAniDBImagesJob() { }

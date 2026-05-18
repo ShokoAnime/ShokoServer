@@ -56,13 +56,9 @@ public class TMDB_ContentRating : IContentRating
         return new(countryCode, rating);
     }
 
-    #region IMetadata Implementation
-
-    DataSource IMetadata.Source => DataSource.TMDB;
-
-    #endregion
-
     #region IContentRating Implementation
+
+    DataSource IContentRating.Source => DataSource.TMDB;
 
     string IContentRating.Value => Rating;
 

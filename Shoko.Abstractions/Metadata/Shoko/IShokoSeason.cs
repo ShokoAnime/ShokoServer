@@ -17,4 +17,9 @@ public interface IShokoSeason : ISeason, IWithCreationDate, IWithUpdateDate
     /// All episodes for the Shoko series for the fake "season."
     /// </summary>
     new IReadOnlyList<IShokoEpisode> Episodes { get; }
+
+    /// <summary>
+    /// All seasons linked to the fake Shoko "season."
+    /// </summary>
+    IReadOnlyList<ISeason> LinkedSeasons { get; }
 }

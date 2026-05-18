@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -9,7 +11,6 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
 using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
@@ -25,6 +26,39 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     private const string ImageNotFound = "The requested resource does not exist.";
 
     /// <summary>
+    /// Returns the image for the given <paramref name="imageID"/>.
+    /// </summary>
+    /// <param name="imageID">The image ID.</param>
+    /// <returns>200 on found, 400/404 if the type or source are invalid, and 404 if the id is not found</returns>
+    [HttpGet("{imageID}")]
+    [ResponseCache(Duration = 3600 /* 1 hour in seconds */)]
+    [ProducesResponseType(typeof(FileStreamResult), 200)]
+    [ProducesResponseType(404)]
+    public ActionResult GetImage(
+        [FromRoute] Guid imageID
+    )
+    {
+        var metadata = imageManager.GetImageByID(imageID);
+        if (metadata is null || metadata.GetStream() is not { } stream)
+            return NotFound(ImageNotFound);
+
+        return File(stream, metadata.ContentType);
+    }
+
+    /// <summary>
+    /// Returns the image for the given <paramref name="source"/> and <paramref name="resourceID"/>.
+    /// </summary>
+    [HttpGet("Remote/{source}/{*resourceID}")]
+    [ResponseCache(Duration = 3600 /* 1 hour in seconds */)]
+    [ProducesResponseType(typeof(FileStreamResult), 200)]
+    [ProducesResponseType(404)]
+    public ActionResult GetRemoteImage(
+        [FromRoute] DataSource source,
+        [FromRoute] string resourceID
+    )
+        => source.IsLocal ? NotFound(ImageNotFound) : GetImage(IImageManager.GetIDForImageSourceAndResourceID(source, resourceID));
+
+    /// <summary>
     /// Returns the image for the given <paramref name="source"/>, <paramref name="type"/> and <paramref name="value"/>.
     /// </summary>
     /// <param name="source">AniDB, TMDB, Shoko, etc.</param>
@@ -35,29 +69,19 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     [ResponseCache(Duration = 3600 /* 1 hour in seconds */)]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(404)]
-    public ActionResult GetImage(
-        [FromRoute] Image.ImageSource source,
+    [Obsolete("Legacy endpoint for backwards compatibility only. Clients are advised to switch to using {imageID} instead.")]
+    public ActionResult GetLegacyImage(
+        [FromRoute] DataSource source,
         [FromRoute] Image.ImageType type,
         [FromRoute, Range(1, int.MaxValue)] int value
     )
     {
         // Unrecognized combination of source, type and/or value.
-        var dataSource = source.ToServer();
         var imageEntityType = type.ToServer();
-        if (imageEntityType is ImageEntityType.None || dataSource is DataSource.None)
+        if (imageEntityType is ImageEntityType.None || source is DataSource.None)
             return NotFound(ImageNotFound);
 
-        // User avatars are stored in the database.
-        if (imageEntityType is ImageEntityType.Art && dataSource is DataSource.User)
-        {
-            var user = RepoFactory.JMMUser.GetByID(value);
-            if (!user.HasAvatarImage)
-                return NotFound(ImageNotFound);
-
-            return File(user.AvatarImageBlob, user.AvatarImageMetadata.ContentType);
-        }
-
-        var metadata = imageManager.GetImage(dataSource, imageEntityType, value);
+        var metadata = imageManager.GetImageByID(value);
         if (metadata is null || metadata.GetStream() is not { } stream)
             return NotFound(ImageNotFound);
 
@@ -75,30 +99,28 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{source}/{type}/{value}/Enabled")]
-    public ActionResult EnableOrDisableImage([FromRoute] Image.ImageSource source, [FromRoute] Image.ImageType type, [FromRoute, Range(1, int.MaxValue)] int value, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Image.Input.EnableImageBody body)
+    [Obsolete]
+    public async Task<ActionResult> EnableOrDisableLegacyImage(
+        [FromRoute] DataSource source,
+        [FromRoute] Image.ImageType type,
+        [FromRoute, Range(1, int.MaxValue)] int value,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Image.Input.EnableImageBody body
+    )
     {
         // Unrecognized combination of source, type and/or value.
-        var dataSource = source.ToServer();
         var imageEntityType = type.ToServer();
-        if (imageEntityType is ImageEntityType.None || dataSource is DataSource.None)
+        if (imageEntityType is ImageEntityType.None || source is DataSource.None)
             return NotFound(ImageNotFound);
 
-        // User avatars are stored in the database.
-        if (imageEntityType is ImageEntityType.Art && dataSource is DataSource.User)
-        {
-            var user = RepoFactory.JMMUser.GetByID(value);
-            if (!user.HasAvatarImage)
-                return NotFound(ImageNotFound);
-
-            return ValidationProblem($"Unable to enable or disable user avatar with id {value}!");
-        }
-
-        var metadata = imageManager.GetImage(dataSource, imageEntityType, value);
+        var metadata = imageManager.GetImageByID(value);
         if (metadata is null)
             return NotFound(ImageNotFound);
 
-        if (!imageManager.SetEnabled(dataSource, imageEntityType, value, body.Enabled))
+        // Enabled state is now tied to cross-references.
+        if (metadata.GetCrossReferences() is { Count: 0 })
             return ValidationProblem($"Unable to enable or disable {source} {type} with id {value}!");
+
+        imageManager.EnableImage(metadata, body.Enabled);
 
         return NoContent();
     }
@@ -127,11 +149,11 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
         var tries = 0;
         do
         {
-            var metadata = imageManager.GetRandomImage(dataSource, imageEntityType);
+            var metadata = imageManager.GetRandomImageCrossReference(dataSource, imageEntityType)?.GetImage();
             if (metadata is null)
                 break;
 
-            if (!metadata.IsLocalAvailable)
+            if (!metadata.IsAvailable)
                 continue;
 
             var series = imageManager.GetFirstSeriesForImage(metadata);
@@ -178,11 +200,11 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
         var tries = 0;
         do
         {
-            var metadata = imageManager.GetRandomImage(dataSource, imageEntityType);
+            var metadata = imageManager.GetRandomImageCrossReference(dataSource, imageEntityType)?.GetImage();
             if (metadata is null)
                 break;
 
-            if (!metadata.IsLocalAvailable)
+            if (!metadata.IsAvailable)
                 continue;
 
             var image = new Image(metadata);

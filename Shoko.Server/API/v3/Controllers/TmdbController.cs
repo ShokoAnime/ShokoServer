@@ -249,7 +249,7 @@ public partial class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         return movie.GetImages()
-            .ToDto(language, includeDisabled: includeDisabled, preferredPoster: movie.DefaultPoster, preferredBackdrop: movie.DefaultBackdrop);
+            .ToDto(language, includeDisabled: includeDisabled);
     }
 
     [HttpGet("Movie/{movieID}/Cast")]
@@ -1091,7 +1091,7 @@ public partial class TmdbController : BaseController
             return NotFound(ShowNotFound);
 
         return show.GetImages()
-            .ToDto(language, includeDisabled: includeDisabled, preferredPoster: show.DefaultPoster, preferredBackdrop: show.DefaultBackdrop);
+            .ToDto(language, includeDisabled: includeDisabled);
     }
 
     [HttpGet("Show/{showID}/Ordering")]
@@ -1966,7 +1966,9 @@ public partial class TmdbController : BaseController
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
-            return new Images();
+
+            return altOrderSeason.GetImages()
+                .ToDto(language, includeDisabled: includeDisabled);
         }
 
         var seasonId = int.Parse(seasonID);
@@ -1977,7 +1979,7 @@ public partial class TmdbController : BaseController
             return NotFound(SeasonNotFound);
 
         return season.GetImages()
-            .ToDto(language, includeDisabled: includeDisabled, preferredPoster: season.DefaultPoster);
+            .ToDto(language, includeDisabled: includeDisabled);
     }
 
     [HttpGet("Season/{seasonID}/Cast")]
@@ -2516,7 +2518,7 @@ public partial class TmdbController : BaseController
             return NotFound(EpisodeNotFound);
 
         return episode.GetImages()
-            .ToDto(language, includeDisabled: includeDisabled, includeThumbnails: true);
+            .ToDto(language, includeDisabled: includeDisabled);
     }
 
     [HttpGet("Episode/{episodeID}/Cast")]

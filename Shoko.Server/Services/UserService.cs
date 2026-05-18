@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using Quartz;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Events;
 using Shoko.Abstractions.User.Services;
@@ -24,6 +26,7 @@ namespace Shoko.Server.Services;
 public class UserService(
     ILogger<UserService> _logger,
     ISchedulerFactory _schedulerFactory,
+    IImageManager _imageManager,
     JMMUserRepository _userRepository,
     AuthTokensRepository _authTokensRepository,
     AnimeSeriesRepository _seriesRepository,
@@ -106,10 +109,19 @@ public class UserService(
 
         // Try to update the avatar for the user. It will add model errors if it fails.
         if (updateData.HasSetAvatarImage)
-            if (updateData.AvatarImageAsStream is not null)
-                shouldSave = user.SetAvatarImage(updateData.AvatarImageAsStream, "AvatarImage", AddModelError) || shouldSave;
-            else
-                shouldSave = user.SetAvatarImage(updateData.AvatarImage, "AvatarImage", AddModelError) || shouldSave;
+        {
+            try
+            {
+                var image = updateData.AvatarImageAsStream is { } stream
+                    ? _imageManager.UploadImage(stream)
+                    : _imageManager.UploadImage(updateData.AvatarImage!);
+                _imageManager.SetPreferredImageForEntity(user, ImageEntityType.Primary, image);
+            }
+            catch (ArgumentException ex)
+            {
+                AddModelError(updateData.AvatarImageAsStream is not null ? nameof(updateData.AvatarImageAsStream) : nameof(updateData.AvatarImage), ex.Message);
+            }
+        }
 
         // Return early if the model state was invalidated.
         if (errorDict.Count > 0)

@@ -1,12 +1,11 @@
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Containers;
 
 namespace Shoko.Abstractions.Metadata;
 
 /// <summary>
 /// A cast role.
 /// </summary>
-public interface ICast : IMetadata<string>, IWithPortraitImage
+public interface ICast : IMetadata<string>
 {
     /// <summary>
     /// Creator ID, if the cast role has a known creator.

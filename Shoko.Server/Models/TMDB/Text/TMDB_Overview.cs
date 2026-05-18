@@ -12,7 +12,13 @@ public class TMDB_Overview : IText
 
     public int ParentID { get; set; }
 
-    public ForeignEntityType ParentType { get; set; }
+    public DataEntityType ParentType { get; set; }
+
+    public ForeignEntityType ForeignParentType
+    {
+        get => ParentType.ForeignType;
+        set => ParentType = value.DataType;
+    }
 
     public TitleLanguage Language
     {
@@ -33,7 +39,7 @@ public class TMDB_Overview : IText
 
     public TMDB_Overview() { }
 
-    public TMDB_Overview(ForeignEntityType parentType, int parentId, string value, string languageCode, string countryCode)
+    public TMDB_Overview(DataEntityType parentType, int parentId, string value, string languageCode, string countryCode)
     {
         ParentType = parentType;
         ParentID = parentId;
@@ -45,9 +51,9 @@ public class TMDB_Overview : IText
     public bool Equals(IText? other)
         => IText.Equals(this, other);
 
-    #region IMetadata Implementation
+    #region IText Implementation
 
-    DataSource IMetadata.Source => DataSource.TMDB;
+    DataSource IText.Source => DataSource.TMDB;
 
     #endregion
 }

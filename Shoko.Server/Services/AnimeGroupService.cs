@@ -1,15 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
-using Shoko.Server.API.v1.Models;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;

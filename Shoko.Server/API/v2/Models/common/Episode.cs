@@ -6,14 +6,15 @@ using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
 using Shoko.Server.API.v1.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618 // Type or member is obsolete
 namespace Shoko.Server.API.v2.Models.common;
 
 [DataContract]
@@ -102,12 +103,12 @@ public class Episode : BaseDirectory
 
         if (aep.TmdbEpisodes is { Count: > 0 } tmdbEpisodes)
         {
-            TMDB_Image thumbnail = null;
+            IImage thumbnail = null;
             var tmdbEpisode = tmdbEpisodes[0];
-            if (pic > 0 && tmdbEpisode.GetImages(ImageEntityType.Thumbnail) is { Count: > 0 } thumbnailImages)
+            if (pic > 0 && tmdbEpisode.GetImages(imageType: ImageEntityType.Backdrop) is { Count: > 0 } thumbnailImages)
             {
                 thumbnail = thumbnailImages
-                    .Where(image => image.ImageType == ImageEntityType.Thumbnail && image.IsLocalAvailable)
+                    .Where(image => image.Type is ImageEntityType.Backdrop && image.IsAvailable)
                     .OrderByDescending(image => image.IsPreferred)
                     .FirstOrDefault();
                 if (thumbnail is not null)
@@ -115,14 +116,14 @@ public class Episode : BaseDirectory
                     ep.art.thumb.Add(new Art
                     {
                         index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, thumbnail.ImageType, thumbnail.Source, thumbnail.ID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, thumbnail.Type, thumbnail.Source, thumbnail.LocalID),
                     });
                 }
             }
-            if (pic > 0 && tmdbEpisode.GetImages(ImageEntityType.Backdrop) is { Count: > 0 } backdropImages)
+            if (pic > 0 && tmdbEpisode.GetImages(imageType: ImageEntityType.Backdrop) is { Count: > 0 } backdropImages)
             {
                 var backdrop = backdropImages
-                    .Where(image => image.ImageType == ImageEntityType.Backdrop && image.IsLocalAvailable)
+                    .Where(image => image.Type == ImageEntityType.Backdrop && image.IsAvailable)
                     .OrderByDescending(image => image.IsPreferred)
                     .FirstOrDefault();
                 backdrop ??= thumbnail;
@@ -131,7 +132,7 @@ public class Episode : BaseDirectory
                     ep.art.fanart.Add(new Art
                     {
                         index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop.ImageType, backdrop.Source, backdrop.ID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop.Type, backdrop.Source, backdrop.LocalID),
                     });
                 }
             }

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.Video.Media;
@@ -130,25 +131,11 @@ public class ShokoServiceImplementationService(
     {
         if (anime == null) return null;
         var characters = GetCharactersContract(anime);
-        var movDbFanart = anime.TmdbMovieBackdrops.Concat(anime.TmdbShowBackdrops).Select(i => i.ToClientFanart()).ToList();
         var cl = anime.ToClient();
         cl.FormattedTitle = anime.Title;
         cl.Characters = characters;
-        cl.Banners = null;
-        cl.Fanarts = [];
-        if (movDbFanart != null && movDbFanart.Count != 0)
-        {
-            cl.Fanarts.AddRange(movDbFanart.Select(a => new CL_AniDB_Anime_DefaultImage
-            {
-                ImageType = (int)CL_ImageEntityType.MovieDB_FanArt,
-                MovieFanart = a,
-                AniDB_Anime_DefaultImageID = a.MovieDB_FanartID,
-            }));
-        }
-        if (cl.Fanarts?.Count == 0)
-            cl.Fanarts = null;
-        cl.DefaultImageFanart = anime.PreferredBackdrop?.ToClient();
-        cl.DefaultImagePoster = anime.PreferredPoster?.ToClient();
+        cl.DefaultImageFanart = (anime as IWithBackdropImage).BackdropImageCrossReference?.ToClient();
+        cl.DefaultImagePoster = (anime as IWithPrimaryImage).PrimaryImageCrossReference?.ToClient();
         cl.DefaultImageWideBanner = null;
         return cl;
     }

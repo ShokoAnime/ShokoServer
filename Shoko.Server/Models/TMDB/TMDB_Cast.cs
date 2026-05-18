@@ -1,6 +1,5 @@
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Server.Repositories;
 
 #nullable enable
@@ -58,8 +57,6 @@ public abstract class TMDB_Cast : ICast
     #endregion
 
     #region IWithPortraitImage Implementation
-
-    IImage? IWithPortraitImage.PortraitImage => null;
 
     #endregion
 

@@ -101,6 +101,6 @@ public class UserUpdate
         Username = user.Username;
         IsAdmin = user.IsAdmin;
         IsAnidbUser = user.IsAnidbUser;
-        _avatarImageAsStream = user.PortraitImage?.GetStream();
+        _avatarImageAsStream = user.PrimaryImage?.GetStream();
     }
 }

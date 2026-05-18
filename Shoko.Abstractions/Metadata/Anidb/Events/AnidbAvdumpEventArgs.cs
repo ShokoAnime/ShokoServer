@@ -17,7 +17,6 @@ public class AnidbAvdumpEventArgs : EventArgs
     /// <summary>
     /// The video id, if applicable to the event type.
     /// </summary>
-    /// <value></value>
     public IReadOnlyList<int>? VideoIDs { get; set; }
 
     /// <summary>
@@ -71,7 +70,6 @@ public class AnidbAvdumpEventArgs : EventArgs
     /// <summary>
     /// The exception, if an install or generic exception event occurs.
     /// </summary>
-    /// <value></value>
     public Exception? Exception { get; }
 
     /// <summary>

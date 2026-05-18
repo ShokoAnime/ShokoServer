@@ -21,7 +21,5 @@ public class JMMUserMap : ClassMap<JMMUser>
         Map(x => x.CanEditServerSettings);
         Map(x => x.PlexUsers);
         Map(x => x.PlexToken);
-        Map(x => x.AvatarImageBlob).Nullable();
-        Map(x => x.RawAvatarImageMetadata).Column("AvatarImageMetadata").Nullable();
     }
 }

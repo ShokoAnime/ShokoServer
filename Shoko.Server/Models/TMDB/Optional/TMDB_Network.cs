@@ -1,12 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
@@ -48,16 +53,14 @@ public class TMDB_Network : ITmdbNetwork
 
     #region Methods
 
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbNetworkIDAndType(TmdbNetworkID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbNetworkID(TmdbNetworkID);
-
     public IReadOnlyList<TMDB_Show_Network> GetTmdbNetworkCrossReferences() =>
         RepoFactory.TMDB_Show_Network.GetByTmdbNetworkID(TmdbNetworkID);
 
     #endregion
 
     #region IMetadata Implementation
+
+    DataEntityType IMetadata.EntityType => DataEntityType.Network;
 
     int IMetadata<int>.ID => TmdbNetworkID;
 
@@ -67,17 +70,29 @@ public class TMDB_Network : ITmdbNetwork
 
     #region IWithImages Implementation
 
-    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType)
-        => GetImages(entityType);
+    public IImage? GetPreferredImageForType(ImageEntityType imageType)
+        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
 
-    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
-        => entityType is ImageEntityType.Logo ? GetImages(ImageEntityType.Logo).LastOrDefault() : null;
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
+
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
 
     #endregion
 
-    #region IWithPortraitImage Implementation
+    #region IWithPrimaryImage Implementation
 
-    IImage? IWithPortraitImage.PortraitImage => GetImages(ImageEntityType.Logo).LastOrDefault();
+    public IImage? DefaultPrimaryImage
+        => GetImages(imageSource: DataSource.TMDB, imageType: ImageEntityType.Primary).FirstOrDefault();
+
+    public IImageCrossReference? DefaultPrimaryImageCrossReference
+        => GetImageCrossReferences(imageSource: DataSource.TMDB, imageType: ImageEntityType.Primary).FirstOrDefault();
 
     #endregion
 

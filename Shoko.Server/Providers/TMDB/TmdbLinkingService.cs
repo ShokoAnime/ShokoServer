@@ -17,7 +17,6 @@ using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.TMDB;
-using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -248,8 +247,6 @@ public class TmdbLinkingService : ITmdbLinkingService
 
     private async Task RemoveMovieLink(CrossRef_AniDB_TMDB_Movie xref, bool purge = false)
     {
-        _imageService.ResetPreferredImage(xref.AnidbAnimeID, ForeignEntityType.Movie, xref.TmdbMovieID);
-
         _logger.LogInformation("Removing TMDB movie link: AniDB episode (EpisodeID={EpisodeID},AnimeID={AnimeID}) → TMDB movie (ID:{TmdbID})", xref.AnidbEpisodeID, xref.AnidbAnimeID, xref.TmdbMovieID);
         _xrefAnidbTmdbMovies.Delete(xref);
 
@@ -327,8 +324,6 @@ public class TmdbLinkingService : ITmdbLinkingService
 
     private async Task RemoveShowLink(CrossRef_AniDB_TMDB_Show xref, bool purge = false)
     {
-        _imageService.ResetPreferredImage(xref.AnidbAnimeID, ForeignEntityType.Show, xref.TmdbShowID);
-
         _logger.LogInformation("Removing TMDB show link: AniDB anime (AnimeID={AnidbID}) → TMDB show (ID={TmdbID})", xref.AnidbAnimeID, xref.TmdbShowID);
         _xrefAnidbTmdbShows.Delete(xref);
 

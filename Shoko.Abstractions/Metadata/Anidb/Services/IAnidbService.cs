@@ -172,4 +172,42 @@ public interface IAnidbService
     IEnumerable<IAnidbTag> GetAllTags(bool topLevelOnly = false);
 
     #endregion
+
+    #region Images
+
+    /// <summary>
+    /// Schedule processing of AniDB image records and cross-references for an
+    /// anime and related entities.
+    /// </summary>
+    /// <param name="anidbAnimeID">AniDB anime ID.</param>
+    /// <param name="onlyPosters">Only process poster images.</param>
+    /// <param name="forceDownload">Force re-download of images.</param>
+    /// <param name="prioritize">Whether to prioritize the queue task.</param>
+    Task ScheduleImagesForAnimeByID(int anidbAnimeID, bool onlyPosters = false, bool forceDownload = false, bool prioritize = false);
+
+    #endregion
+
+    #region Purge
+
+    /// <summary>
+    /// Purge all AniDB anime entries that are no longer linked to a Shoko series.
+    /// </summary>
+    Task PurgeAllUnusedAnime();
+
+    /// <summary>
+    /// Schedule purge of an AniDB anime from the local database.
+    /// </summary>
+    /// <param name="anidbAnimeID">AniDB anime ID.</param>
+    /// <param name="removeFromMylist">Remove release links from AniDB MyList while purging.</param>
+    /// <param name="prioritize">Whether to prioritize the queue task.</param>
+    Task SchedulePurgeOfAnimeByID(int anidbAnimeID, bool removeFromMylist = true, bool prioritize = false);
+
+    /// <summary>
+    /// Purge an AniDB anime from the local database.
+    /// </summary>
+    /// <param name="anidbAnimeID">AniDB anime ID.</param>
+    /// <param name="removeFromMylist">Remove release links from AniDB MyList while purging.</param>
+    Task PurgeAnimeByID(int anidbAnimeID, bool removeFromMylist = true);
+
+    #endregion
 }

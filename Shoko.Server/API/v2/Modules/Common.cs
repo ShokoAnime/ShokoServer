@@ -13,9 +13,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Quartz;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.v1.Models;
@@ -38,6 +39,7 @@ using Shoko.Server.Utilities;
 
 using APIFilters = Shoko.Server.API.v2.Models.common.Filters;
 
+#pragma warning disable CS0618
 #pragma warning disable IDE1006
 namespace Shoko.Server.API.v2.Modules;
 
@@ -2883,10 +2885,14 @@ public class Common : BaseController
             var role = new Role
             {
                 character = character.Name,
-                character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Character, DataSource.AniDB, xref.CharacterID),
+                character_image = ((ICharacter)character).PrimaryImage is { } characterImage
+                    ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, characterImage.Source, characterImage.LocalID)
+                    : null,
                 character_description = cdescription,
                 staff = staff.Name,
-                staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Creator, DataSource.AniDB, xref.CreatorID),
+                staff_image = ((ICreator)staff).PrimaryImage is { } staffImage
+                    ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, staffImage.Source, staffImage.LocalID)
+                    : null,
                 staff_description = string.Empty,
                 role = xref2.AppearanceType.ToString().Replace("_", " "),
                 type = "Seiyuu",

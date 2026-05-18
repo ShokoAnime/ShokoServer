@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Metadata;
 
 /// <summary>
 /// Character.
 /// </summary>
-public interface ICharacter : IMetadata<int>, IWithDescriptions, IWithPortraitImage
+public interface ICharacter : IMetadata<int>, IWithDescriptions, IWithPrimaryImage, IWithUpdateDate
 {
     /// <summary>
     /// Casted role name.
@@ -18,6 +19,11 @@ public interface ICharacter : IMetadata<int>, IWithDescriptions, IWithPortraitIm
     /// from
     /// </summary>
     string? OriginalName { get; }
+
+    /// <summary>
+    /// The type of character.
+    /// </summary>
+    CharacterType Type { get; }
 
     /// <summary>
     /// All episode cast roles with the character.

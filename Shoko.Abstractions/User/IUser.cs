@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
 
@@ -7,13 +8,8 @@ namespace Shoko.Abstractions.User;
 /// <summary>
 /// Shoko user.
 /// </summary>
-public interface IUser : IWithPortraitImage
+public interface IUser : IMetadata<int>, IWithPrimaryImage, IWithBackdropImage
 {
-    /// <summary>
-    /// Unique ID.
-    /// </summary>
-    int ID { get; }
-
     /// <summary>
     /// Username.
     /// </summary>

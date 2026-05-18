@@ -2,13 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Anilist;
 using Shoko.Abstractions.Metadata.Anilist.CrossReferences;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
@@ -488,67 +491,16 @@ public class AnimeSeries : IShokoSeries
         .Select(tuple => tuple.episode)
         .ToList();
 
-    #region Images
-
-    public HashSet<ImageEntityType> GetAvailableImageTypes()
-    {
-        var images = new List<IImage>();
-        var poster = AniDB_Anime?.GetImageMetadata(false);
-        if (poster is not null)
-            images.Add(poster);
-        foreach (var xref in TmdbShowCrossReferences)
-            images.AddRange(xref.GetImages());
-        foreach (var xref in TmdbSeasonCrossReferences)
-            images.AddRange(xref.GetImages());
-        foreach (var xref in TmdbMovieCrossReferences.DistinctBy(xref => xref.TmdbMovieID))
-            images.AddRange(xref.GetImages());
-        return images
-            .DistinctBy(image => image.ImageType)
-            .Select(image => image.ImageType)
-            .ToHashSet();
-    }
-
-    public HashSet<ImageEntityType> GetPreferredImageTypes()
-        => RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(AniDB_ID)
-            .Select(preferredImage => preferredImage?.GetImageMetadata())
-            .WhereNotNull()
-            .Select(image => image.ImageType)
+    public HashSet<ImageEntityType> AvailableImageTypes
+        => GetImages()
+            .Select(image => image.Type)
             .ToHashSet();
 
-    public IImage? GetPreferredImageForType(ImageEntityType entityType)
-        => RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AniDB_ID, entityType)?.GetImageMetadata();
-
-    public IReadOnlyList<IImage> GetImages(ImageEntityType? entityType = null)
-    {
-        var preferredImages = (entityType.HasValue ? [RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AniDB_ID, entityType.Value)!] : RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(AniDB_ID))
-            .WhereNotNull()
-            .Select(preferredImage => preferredImage.GetImageMetadata())
-            .WhereNotNull()
-            .DistinctBy(image => image.ImageType)
-            .ToDictionary(image => image.ImageType);
-        var images = new List<IImage>();
-        if (!entityType.HasValue || entityType.Value is ImageEntityType.Poster)
-        {
-            var poster = AniDB_Anime?.GetImageMetadata(false);
-            if (poster is not null)
-                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster.Equals(preferredPoster)
-                    ? preferredPoster
-                    : poster
-                );
-        }
-        foreach (var xref in TmdbShowCrossReferences)
-            images.AddRange(xref.GetImages(entityType, preferredImages));
-        foreach (var xref in TmdbSeasonCrossReferences)
-            images.AddRange(xref.GetImages(entityType, preferredImages));
-        foreach (var xref in TmdbMovieCrossReferences.DistinctBy(xref => xref.TmdbMovieID))
-            images.AddRange(xref.GetImages(entityType, preferredImages));
-
-        return images
-            .DistinctBy(image => (image.ImageType, image.Source, image.ID))
-            .ToList();
-    }
-
-    #endregion
+    public HashSet<ImageEntityType> PreferredImageTypes
+        => GetImages()
+            .Where(image => image.IsPreferred)
+            .Select(image => image.Type)
+            .ToHashSet();
 
     #region AniDB
 
@@ -707,6 +659,8 @@ public class AnimeSeries : IShokoSeries
 
     #region IMetadata Implementation
 
+    DataEntityType IMetadata.EntityType => DataEntityType.Anime;
+
     DataSource IMetadata.Source => DataSource.Shoko;
 
     int IMetadata<int>.ID => AnimeSeriesID;
@@ -728,6 +682,34 @@ public class AnimeSeries : IShokoSeries
     IText? IWithDescriptions.PreferredDescription => PreferredOverview;
 
     IReadOnlyList<IText> IWithDescriptions.Descriptions => (this as IShokoSeries).LinkedSeries.SelectMany(ep => ep.Descriptions).ToList();
+
+    #endregion
+
+    #region IWithImages Implementation
+
+    public IImage? GetPreferredImageForType(ImageEntityType imageType)
+        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
+
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
+
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
+
+    #endregion
+
+    #region IWithPrimaryImage Implementation
+
+    public IImage? DefaultPrimaryImage
+        => AniDB_Anime?.DefaultPrimaryImage;
+
+    public IImageCrossReference? DefaultPrimaryImageCrossReference
+        => AniDB_Anime?.DefaultPrimaryImageCrossReference;
 
     #endregion
 
@@ -835,8 +817,6 @@ public class AnimeSeries : IShokoSeries
     bool ISeries.Restricted => AniDB_Anime?.IsRestricted ?? false;
 
     IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => [this];
-
-    IImage? ISeries.DefaultPoster => AniDB_Anime?.GetImageMetadata();
 
     IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> ISeries.RelatedSeries => [];
 

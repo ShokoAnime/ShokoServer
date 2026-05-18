@@ -7,6 +7,7 @@ using Force.DeepCloner;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.User.Services;
@@ -35,10 +36,13 @@ public class AnimeSeriesService
     private readonly ISchedulerFactory _schedulerFactory;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly UserDataService _userDataService;
+    private readonly IServiceProvider _serviceProvider;
+    private IAnidbService? _anidbService;
 
-    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, ISchedulerFactory schedulerFactory, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService, IUserDataService userDataService)
+    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, IServiceProvider serviceProvider, ISchedulerFactory schedulerFactory, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService, IUserDataService userDataService)
     {
         _logger = logger;
+        _serviceProvider = serviceProvider;
         _schedulerFactory = schedulerFactory;
         _groupService = groupService;
         _vlUsers = vlUsers;
@@ -480,6 +484,16 @@ public class AnimeSeriesService
 
     public async Task DeleteSeries(AnimeSeries series, bool deleteFiles, bool updateGroups, bool completelyRemove = false, bool removeFromMylist = true)
     {
+        await DeleteSeriesInternal(series, deleteFiles, updateGroups, removeFromMylist).ConfigureAwait(false);
+        if (!completelyRemove)
+            return;
+
+        _anidbService ??= _serviceProvider.GetRequiredService<IAnidbService>();
+        await _anidbService.PurgeAnimeByID(series.AniDB_ID, removeFromMylist).ConfigureAwait(false);
+    }
+
+    internal async Task DeleteSeriesInternal(AnimeSeries series, bool deleteFiles, bool updateGroups, bool removeFromMylist = true)
+    {
         var service = Utils.ServiceContainer.GetRequiredService<IVideoService>();
         foreach (var ep in series.AllAnimeEpisodes)
         {
@@ -523,55 +537,6 @@ public class AnimeSeriesService
         }
 
         ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Removed);
-
-        if (completelyRemove)
-        {
-            // episodes, anime, characters, images, staff relations, tag relations, titles
-            var images = RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(series.AniDB_ID);
-            RepoFactory.AniDB_Anime_PreferredImage.Delete(images);
-
-            var characterXrefs = RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID);
-            var characters = characterXrefs
-                .Select(x => x.Character)
-                .WhereNotNull()
-                .Where(x => !RepoFactory.AniDB_Anime_Character.GetByCharacterID(x.CharacterID).ExceptBy(characterXrefs.Select(y => y.AniDB_Anime_CharacterID), y => y.AniDB_Anime_CharacterID).Any())
-                .ToList();
-            RepoFactory.AniDB_Anime_Character.Delete(characterXrefs);
-            RepoFactory.AniDB_Character.Delete(characters);
-
-            var actorXrefs = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID);
-            var staffXrefs = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID);
-            var creators = actorXrefs.Select(x => x.Creator)
-                .Concat(staffXrefs.Select(x => x.Creator))
-                .WhereNotNull()
-                .Where(x =>
-                    !x.Staff.ExceptBy(staffXrefs.Select(y => y.AniDB_Anime_StaffID), y => y.AniDB_Anime_StaffID).Any() &&
-                    !x.Characters.ExceptBy(actorXrefs.Select(y => y.AniDB_Anime_Character_CreatorID), y => y.AniDB_Anime_Character_CreatorID).Any()
-                )
-                .ToList();
-            RepoFactory.AniDB_Anime_Character_Creator.Delete(actorXrefs);
-            RepoFactory.AniDB_Anime_Staff.Delete(staffXrefs);
-            RepoFactory.AniDB_Creator.Delete(creators);
-
-            var tagXrefs = RepoFactory.AniDB_Anime_Tag.GetByAnimeID(series.AniDB_ID);
-            RepoFactory.AniDB_Anime_Tag.Delete(tagXrefs);
-
-            var titles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(series.AniDB_ID);
-            RepoFactory.AniDB_Anime_Title.Delete(titles);
-
-            var aniDBEpisodes = RepoFactory.AniDB_Episode.GetByAnimeID(series.AniDB_ID);
-            var episodeTitles = aniDBEpisodes.SelectMany(a => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(a.EpisodeID)).ToList();
-            RepoFactory.AniDB_Episode_Title.Delete(episodeTitles);
-            RepoFactory.AniDB_Episode.Delete(aniDBEpisodes);
-
-            var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(series.AniDB_ID);
-            RepoFactory.AniDB_AnimeUpdate.Delete(update);
-
-            // remove all releases linked to this series
-            var releases = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID);
-            foreach (var release in releases)
-                await _videoReleaseService.RemoveRelease(release, removeFromMylist);
-        }
     }
 
     /// <summary>

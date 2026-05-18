@@ -4,15 +4,12 @@ using ImageMagick;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
 using Shoko.Abstractions.Metadata.Services;
-using Shoko.Server.API.v1.Models;
-using Shoko.Server.Extensions;
 using Shoko.Server.Properties;
-
-using Mime = MimeMapping.MimeUtility;
 
 namespace Shoko.Server.API.v1.Implementations;
 
 [ApiController]
+[Obsolete]
 [Route("/api/Image")]
 [ApiVersionNeutral]
 [ApiExplorerSettings(IgnoreApi = true)]
@@ -23,15 +20,10 @@ public class ShokoServiceImplementationImage(IImageManager imageManager) : Contr
     [HttpGet("{imageId}/{imageType}/{thumbnailOnly?}")]
     public object GetImage(int imageId, int imageType, bool? thumbnailOnly = false)
     {
-        var path = GetImagePath(imageId, imageType, thumbnailOnly);
-        if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
-        {
+        if (imageManager.GetImageByID(imageId) is not { } metadata || !metadata.IsAvailable)
             return NotFound();
-        }
 
-        var mime = Mime.GetMimeMapping(path);
-        Response.ContentType = mime;
-        return System.IO.File.OpenRead(path);
+        return File(metadata.LocalPath, metadata.ContentType);
     }
 
     [HttpGet("Blank")]
@@ -124,8 +116,7 @@ public class ShokoServiceImplementationImage(IImageManager imageManager) : Contr
     {
         try
         {
-            var it = (CL_ImageEntityType)imageType;
-            return imageManager.GetImage(it.ToServerSource(), it.ToServerType(), imageId) is { } metadata && metadata.IsLocalAvailable ? metadata.LocalPath! : string.Empty;
+            return imageManager.GetImageByID(imageId) is { } metadata && metadata.IsAvailable ? metadata.LocalPath! : string.Empty;
         }
         catch (Exception ex)
         {

@@ -5,4 +5,4 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Collection metadata.
 /// </summary>
-public interface ICollection : IMetadata<string>, IWithTitles, IWithDescriptions { }
+public interface ICollection : IMetadata<string>, IWithPrimaryImage, IWithBackdropImage, IWithTitles, IWithDescriptions { }

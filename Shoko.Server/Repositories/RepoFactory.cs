@@ -25,7 +25,6 @@ public class RepoFactory
 
     public static AniDB_Anime_CharacterRepository AniDB_Anime_Character;
     public static AniDB_Anime_Character_CreatorRepository AniDB_Anime_Character_Creator;
-    public static AniDB_Anime_PreferredImageRepository AniDB_Anime_PreferredImage;
     public static AniDB_Anime_RelationRepository AniDB_Anime_Relation;
     public static AniDB_Anime_SimilarRepository AniDB_Anime_Similar;
     public static AniDB_Anime_StaffRepository AniDB_Anime_Staff;
@@ -35,7 +34,6 @@ public class RepoFactory
     public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate;
     public static AniDB_CharacterRepository AniDB_Character;
     public static AniDB_CreatorRepository AniDB_Creator;
-    public static AniDB_Episode_PreferredImageRepository AniDB_Episode_PreferredImage;
     public static AniDB_Episode_TitleRepository AniDB_Episode_Title;
     public static AniDB_EpisodeRepository AniDB_Episode;
     public static AniDB_GroupStatusRepository AniDB_GroupStatus;
@@ -63,6 +61,8 @@ public class RepoFactory
     public static ScanFileRepository ScanFile;
     public static ScanRepository Scan;
     public static ScheduledUpdateRepository ScheduledUpdate;
+    public static ShokoImage_EntityRepository ShokoImage_Entity;
+    public static ShokoImageRepository ShokoImage;
     public static ShokoManagedFolderRepository ShokoManagedFolder;
     public static StoredReleaseInfoRepository StoredReleaseInfo;
     public static StoredRelocationPipeRepository StoredRelocationPipe;
@@ -77,8 +77,6 @@ public class RepoFactory
     public static TMDB_Episode_CastRepository TMDB_Episode_Cast;
     public static TMDB_Episode_CrewRepository TMDB_Episode_Crew;
     public static TMDB_EpisodeRepository TMDB_Episode;
-    public static TMDB_ImageRepository TMDB_Image;
-    public static TMDB_Image_EntityRepository TMDB_Image_Entity;
     public static TMDB_Movie_CastRepository TMDB_Movie_Cast;
     public static TMDB_Movie_CrewRepository TMDB_Movie_Crew;
     public static TMDB_MovieRepository TMDB_Movie;
@@ -101,7 +99,6 @@ public class RepoFactory
         IEnumerable<ICachedRepository> repositories,
         AniDB_Anime_CharacterRepository anidbAnimeCharacter,
         AniDB_Anime_Character_CreatorRepository anidbAnimeCharacterCreator,
-        AniDB_Anime_PreferredImageRepository anidbAnimePreferredImage,
         AniDB_Anime_RelationRepository anidbAnimeRelation,
         AniDB_Anime_SimilarRepository anidbAnimeSimilar,
         AniDB_Anime_StaffRepository anidbAnimeStaff,
@@ -111,7 +108,6 @@ public class RepoFactory
         AniDB_AnimeUpdateRepository anidbAnimeUpdate,
         AniDB_CharacterRepository anidbCharacter,
         AniDB_CreatorRepository anidbCreator,
-        AniDB_Episode_PreferredImageRepository anidbEpisodePreferredImage,
         AniDB_Episode_TitleRepository anidbEpisodeTitle,
         AniDB_EpisodeRepository anidbEpisode,
         AniDB_GroupStatusRepository anidbGroupStatus,
@@ -139,6 +135,8 @@ public class RepoFactory
         ScanFileRepository scanFile,
         ScanRepository scan,
         ScheduledUpdateRepository scheduledUpdate,
+        ShokoImage_EntityRepository shokoImageEntity,
+        ShokoImageRepository shokoImage,
         ShokoManagedFolderRepository shokoManagedFolder,
         StoredRelocationPipeRepository storedRelocationPipe,
         StoredReleaseInfoRepository storedReleaseInfo,
@@ -153,8 +151,6 @@ public class RepoFactory
         TMDB_Episode_CastRepository tmdbEpisodeCast,
         TMDB_Episode_CrewRepository tmdbEpisodeCrew,
         TMDB_EpisodeRepository tmdbEpisode,
-        TMDB_Image_EntityRepository tmdbImageEntity,
-        TMDB_ImageRepository tmdbImage,
         TMDB_Movie_CastRepository tmdbMovieCast,
         TMDB_Movie_CrewRepository tmdbMovieCrew,
         TMDB_MovieRepository tmdbMovie,
@@ -178,7 +174,6 @@ public class RepoFactory
         AniDB_Anime = anidbAnime;
         AniDB_Anime_Character = anidbAnimeCharacter;
         AniDB_Anime_Character_Creator = anidbAnimeCharacterCreator;
-        AniDB_Anime_PreferredImage = anidbAnimePreferredImage;
         AniDB_Anime_Relation = anidbAnimeRelation;
         AniDB_Anime_Similar = anidbAnimeSimilar;
         AniDB_Anime_Staff = anidbAnimeStaff;
@@ -188,7 +183,6 @@ public class RepoFactory
         AniDB_Character = anidbCharacter;
         AniDB_Creator = anidbCreator;
         AniDB_Episode = anidbEpisode;
-        AniDB_Episode_PreferredImage = anidbEpisodePreferredImage;
         AniDB_Episode_Title = anidbEpisodeTitle;
         AniDB_GroupStatus = anidbGroupStatus;
         AniDB_Message = anidbMessage;
@@ -215,6 +209,8 @@ public class RepoFactory
         Scan = scan;
         ScanFile = scanFile;
         ScheduledUpdate = scheduledUpdate;
+        ShokoImage = shokoImage;
+        ShokoImage_Entity = shokoImageEntity;
         ShokoManagedFolder = shokoManagedFolder;
         StoredReleaseInfo = storedReleaseInfo;
         StoredRelocationPipe = storedRelocationPipe;
@@ -229,8 +225,6 @@ public class RepoFactory
         TMDB_Episode = tmdbEpisode;
         TMDB_Episode_Cast = tmdbEpisodeCast;
         TMDB_Episode_Crew = tmdbEpisodeCrew;
-        TMDB_Image = tmdbImage;
-        TMDB_Image_Entity = tmdbImageEntity;
         TMDB_Movie = tmdbMovie;
         TMDB_Movie_Cast = tmdbMovieCast;
         TMDB_Movie_Crew = tmdbMovieCrew;

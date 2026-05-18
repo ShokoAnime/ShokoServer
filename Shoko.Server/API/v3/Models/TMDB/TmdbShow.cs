@@ -235,7 +235,7 @@ public class TmdbShow
         {
             Value = show.UserRating,
             MaxValue = 10,
-            Votes = show.UserVotes,
+            Votes = (uint)show.UserVotes,
             Source = "TMDB",
         };
         Genres = show.Genres;
@@ -251,7 +251,7 @@ public class TmdbShow
                 .ToList();
         if (include.HasFlag(IncludeDetails.Images))
             Images = show.GetImages()
-                .ToDto(language, preferredPoster: show.DefaultPoster, preferredBackdrop: show.DefaultBackdrop);
+                .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = (alternateOrdering is null ? show.Cast : alternateOrdering.Cast)
                 .Select(cast => new Role(cast))

@@ -29,7 +29,7 @@ public class Rating
     /// number of votes
     /// </summary>
     [Required]
-    public int Votes { get; set; }
+    public uint Votes { get; set; }
 
     /// <summary>
     /// for temporary vs permanent, or any other situations that may arise later

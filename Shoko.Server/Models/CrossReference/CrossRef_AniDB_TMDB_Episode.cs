@@ -1,8 +1,10 @@
 using System.Collections.Generic;
-using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
@@ -10,6 +12,7 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Models.CrossReference;
@@ -33,6 +36,7 @@ public class CrossRef_AniDB_TMDB_Episode : ITmdbEpisodeCrossReference
     public MatchRating MatchRating { get; set; }
 
     #endregion
+
     #region Constructors
 
     public CrossRef_AniDB_TMDB_Episode() { }
@@ -48,6 +52,7 @@ public class CrossRef_AniDB_TMDB_Episode : ITmdbEpisodeCrossReference
     }
 
     #endregion
+
     #region Methods
 
     public AniDB_Episode? AnidbEpisode =>
@@ -76,42 +81,23 @@ public class CrossRef_AniDB_TMDB_Episode : ITmdbEpisodeCrossReference
     public TMDB_Show? TmdbShow =>
         TmdbShowID == 0 ? null : RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
 
-    /// <summary>
-    /// Get all images for the episode, or all images for the given
-    /// <paramref name="entityType"/> provided for the episode.
-    /// </summary>
-    /// <param name="entityType">If set, will restrict the returned list to only
-    /// containing the images of the given entity type.</param>
-    /// <returns>A read-only list of images that are linked to the episode.
-    /// </returns>
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbEpisodeIDAndType(TmdbEpisodeID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbEpisodeID(TmdbEpisodeID);
+    #endregion
 
-    /// <summary>
-    /// Get all images for the episode, or all images for the given
-    /// <paramref name="entityType"/> provided for the episode.
-    /// </summary>
-    /// <param name="entityType">If set, will restrict the returned list to only
-    /// containing the images of the given entity type.</param>
-    /// <param name="preferredImages">The preferred images.</param>
-    /// <returns>A read-only list of images that are linked to the episode.
-    /// </returns>
-    public IReadOnlyList<IImage> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImage> preferredImages) =>
-        GetImages(entityType)
-            .GroupBy(i => i.ImageType)
-            .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)
-            .ToList();
+    #region IMetadata Implementation
+
+    DataSource IMetadata.Source => DataSource.TMDB;
 
     #endregion
 
     #region IWithImages Implementation
 
-    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
-        => null;
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
 
-    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType)
-        => GetImages(entityType);
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
 
     #endregion
 

@@ -740,58 +740,13 @@ public partial class ShokoServiceImplementation : Controller
     [HttpPost("Image/Enable/{enabled}/{imageID}/{imageType}")]
     public string EnableDisableImage(bool enabled, int imageID, int imageType)
     {
-        try
-        {
-            var it = (CL_ImageEntityType)imageType;
-            if (!_imageManager.SetEnabled(it.ToServerSource(), it.ToServerType(), imageID, enabled))
-                return "Could not find image";
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex);
-            return ex.Message;
-        }
+        return "Use APIv3+ instead";
     }
 
     [HttpPost("Image/Default/{isDefault}/{animeID}/{imageID}/{imageType}/{imageSizeType}")]
     public string SetDefaultImage(bool isDefault, int animeID, int imageID, int imageType, int imageSizeType)
     {
-        try
-        {
-            var imageEntityType = ((CL_ImageEntityType)imageType).ToServerType();
-            var dataSource = ((CL_ImageEntityType)imageType).ToServerSource();
-
-            // Reset the image preference.
-            if (!isDefault)
-            {
-                var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(animeID, imageEntityType);
-                if (defaultImage != null)
-                    RepoFactory.AniDB_Anime_PreferredImage.Delete(defaultImage);
-            }
-            // Mark the image as the preferred/default for it's type.
-            else
-            {
-                var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(animeID, imageEntityType) ?? new(animeID, imageEntityType);
-                defaultImage.ImageID = imageID;
-                defaultImage.ImageSource = dataSource;
-                RepoFactory.AniDB_Anime_PreferredImage.Save(defaultImage);
-            }
-
-            if (animeID != 0)
-            {
-                var scheduler = _schedulerFactory.GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
-                scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = animeID).GetAwaiter().GetResult();
-            }
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex);
-            return ex.Message;
-        }
+        return "Use APIv3+ instead";
     }
 
     #region Calendar (Dashboard)

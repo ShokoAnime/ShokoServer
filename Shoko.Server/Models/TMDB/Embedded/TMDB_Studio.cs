@@ -1,20 +1,22 @@
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata<int>, IEntityMetadata
 {
-    private readonly TMDB_Company _company;
-
     public int ID { get; private set; }
 
     public int ParentID { get; private set; }
@@ -27,7 +29,6 @@ public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata<i
 
     public TMDB_Studio(TMDB_Company company, TEntity parent)
     {
-        _company = company;
         ID = company.TmdbCompanyID;
         ParentID = parent.ID;
         Name = company.Name;
@@ -39,12 +40,12 @@ public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata<i
     #region Methods
 
     IEnumerable<TMDB_Movie> GetMovies() =>
-        RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndCompanyID(ForeignEntityType.Movie, ID)
+        RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndCompanyID(DataEntityType.Movie, ID)
         .Select(xref => xref.GetTmdbMovie())
         .WhereNotNull();
 
     IEnumerable<TMDB_Show> GetShows() =>
-        RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndCompanyID(ForeignEntityType.Show, ID)
+        RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndCompanyID(DataEntityType.Show, ID)
         .Select(xref => xref.GetTmdbShow())
         .WhereNotNull();
 
@@ -57,14 +58,35 @@ public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata<i
 
     #region IMetadata Implementation
 
+    DataEntityType IMetadata.EntityType => DataEntityType.Studio;
+
     DataSource IMetadata.Source => DataSource.TMDB;
+
+    #region IWithImages Implementation
+
+    public IImage? GetPreferredImageForType(ImageEntityType imageType)
+        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
+
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
+
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
 
     #endregion
 
-    #region IWithPortraitImage Implementation
+    #endregion
 
-    IImage? IWithPortraitImage.PortraitImage =>
-        _company.GetImages(ImageEntityType.Logo) is { Count: > 0 } images ? images[0] : null;
+    #region IWithPrimaryImage Implementation
+
+    public IImage? DefaultPrimaryImage => GetImages(imageSource: DataSource.TMDB, imageType: ImageEntityType.Primary).FirstOrDefault();
+
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => GetImageCrossReferences(imageSource: DataSource.TMDB, imageType: ImageEntityType.Primary).FirstOrDefault();
 
     #endregion
 
@@ -80,9 +102,7 @@ public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata<i
 
     IEnumerable<IMetadata> IStudio.Works => GetWorks();
 
-    IMetadata<int>? IStudio.Parent => Parent;
-
-    TEntity? IStudio<TEntity>.ParentOfType => Parent;
+    TEntity? IStudio<TEntity>.Parent => Parent;
 
     #endregion
 }

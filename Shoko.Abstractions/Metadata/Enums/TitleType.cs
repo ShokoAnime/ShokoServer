@@ -5,6 +5,8 @@ namespace Shoko.Abstractions.Metadata.Enums;
 /// <summary>
 /// Represents the type of a title.
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
+[Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
 public enum TitleType : byte
 {
     /// <summary>

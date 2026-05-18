@@ -56,9 +56,9 @@ public partial class ShokoServiceImplementation
             if (xrefMovie?.TmdbMovie is { } tmdbMovie)
             {
                 result.MovieDBMovie = xrefMovie?.TmdbMovie?.ToClient();
-                foreach (var fanart in tmdbMovie.GetImages(ImageEntityType.Backdrop))
+                foreach (var fanart in tmdbMovie.GetImages(imageType: ImageEntityType.Backdrop))
                     result.MovieDBFanarts.Add(fanart.ToClientFanart());
-                foreach (var poster in tmdbMovie.GetImages(ImageEntityType.Poster))
+                foreach (var poster in tmdbMovie.GetImages(imageType: ImageEntityType.Primary))
                     result.MovieDBPosters.Add(poster.ToClientPoster());
             }
 
@@ -544,12 +544,14 @@ public partial class ShokoServiceImplementation
         try
         {
             if (movieID.HasValue)
-                return RepoFactory.TMDB_Image.GetByTmdbMovieIDAndType(movieID.Value, ImageEntityType.Poster)
-                    .Select(image => image.ToClientPoster())
+                return RepoFactory.ShokoImage_Entity.GetByEntityForType(DataSource.TMDB, DataEntityType.Movie, movieID.Value.ToString(), ImageEntityType.Primary)
+                    .Select(xref => xref.GetImage()?.ToClientPoster())
+                    .WhereNotNull()
                     .ToList();
 
-            return RepoFactory.TMDB_Image.GetByType(ImageEntityType.Poster)
-                .Select(image => image.ToClientPoster())
+            return RepoFactory.ShokoImage_Entity.GetByEntityForType(DataSource.TMDB, DataEntityType.Movie, ImageEntityType.Primary)
+                .Select(xref => xref.GetImage()?.ToClientPoster())
+                .WhereNotNull()
                 .ToList();
         }
         catch (Exception ex)
@@ -565,12 +567,14 @@ public partial class ShokoServiceImplementation
         try
         {
             if (movieID.HasValue)
-                return RepoFactory.TMDB_Image.GetByTmdbMovieIDAndType(movieID.Value, ImageEntityType.Backdrop)
-                    .Select(image => image.ToClientFanart())
+                return RepoFactory.ShokoImage_Entity.GetByEntityForType(DataSource.TMDB, DataEntityType.Movie, ImageEntityType.Backdrop)
+                    .Select(xref => xref.GetImage()?.ToClientFanart())
+                    .WhereNotNull()
                     .ToList();
 
-            return RepoFactory.TMDB_Image.GetByType(ImageEntityType.Backdrop)
-                .Select(image => image.ToClientFanart())
+            return RepoFactory.ShokoImage_Entity.GetByEntityForType(DataSource.TMDB, DataEntityType.Movie, ImageEntityType.Backdrop)
+                .Select(xref => xref.GetImage()?.ToClientFanart())
+                .WhereNotNull()
                 .ToList();
         }
         catch (Exception ex)

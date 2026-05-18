@@ -1,4 +1,3 @@
-using System;
 using Shoko.Abstractions.Logging.Services;
 
 namespace Shoko.Abstractions.Logging.Models;

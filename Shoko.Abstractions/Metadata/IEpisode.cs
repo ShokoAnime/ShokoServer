@@ -10,7 +10,7 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Episode metadata.
 /// </summary>
-public interface IEpisode : IWithTitles, IWithDescriptions, IWithImages, IWithCastAndCrew, IMetadata<int>
+public interface IEpisode : IWithTitles, IWithDescriptions, IWithBackdropImage, IWithCastAndCrew, IMetadata<int>
 {
     /// <summary>
     /// The series id.
@@ -46,11 +46,6 @@ public interface IEpisode : IWithTitles, IWithDescriptions, IWithImages, IWithCa
     /// The number of votes which were used to calculate the rating.
     /// </summary>
     int RatingVotes { get; }
-
-    /// <summary>
-    /// The default thumbnail for the episode.
-    /// </summary>
-    IImage? DefaultThumbnail { get; }
 
     /// <summary>
     /// The runtime of the episode, as a time span.

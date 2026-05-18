@@ -2,11 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -16,8 +14,7 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
-
-using ImageEntityType = Shoko.Abstractions.Metadata.Enums.ImageEntityType;
+using Shoko.Server.Services;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -31,9 +28,7 @@ public class GetAniDBCreatorJob : BaseJob
 {
     private readonly IRequestFactory _requestFactory;
 
-    private readonly ISchedulerFactory _schedulerFactory;
-
-    private readonly IAnidbService _anidbService;
+    private readonly AnidbService _anidbService;
 
     private string? _creatorName;
 
@@ -110,16 +105,7 @@ public class GetAniDBCreatorJob : BaseJob
         creator.LastUpdatedAt = response.LastUpdateAt;
         RepoFactory.AniDB_Creator.Save(creator);
 
-        if (!(creator.GetImageMetadata()?.IsLocalAvailable ?? true))
-        {
-            _logger.LogInformation("Image not found locally, queuing image download for {Creator} (ID={CreatorID},Type={Type})", response.Name, response.ID, response.Type.ToString());
-            var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-            await scheduler.StartJob<DownloadAniDBImageJob>(c =>
-            {
-                c.ImageType = ImageEntityType.Creator;
-                c.ImageID = creator.CreatorID;
-            });
-        }
+        await _anidbService.ProcessImagesForCreatorByID(creator.CreatorID).ConfigureAwait(false);
 
         var rolesToUpdate = new List<AniDB_Anime_Staff>();
         var roles = RepoFactory.AniDB_Anime_Staff.GetByCreatorID(creator.CreatorID);
@@ -147,11 +133,10 @@ public class GetAniDBCreatorJob : BaseJob
         RepoFactory.AniDB_Anime_Staff.Save(rolesToUpdate);
     }
 
-    public GetAniDBCreatorJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, IAnidbService anidbService)
+    public GetAniDBCreatorJob(IRequestFactory requestFactory, IAnidbService anidbService)
     {
         _requestFactory = requestFactory;
-        _schedulerFactory = schedulerFactory;
-        _anidbService = anidbService;
+        _anidbService = (AnidbService)anidbService;
     }
 
     protected GetAniDBCreatorJob()

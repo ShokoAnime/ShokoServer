@@ -8,12 +8,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
+#pragma warning disable CS0618 // Type or member is obsolete
 namespace Shoko.Server.API.v2.Models.common;
 
 [DataContract]
@@ -125,9 +127,13 @@ public class Group : BaseDirectory
                 var role = new Role
                 {
                     character = character.Name,
-                    character_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Character, DataSource.Shoko, xref.CharacterID),
+                    character_image = ((ICharacter)character).PrimaryImage is { } characterImage
+                        ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, characterImage.Source, characterImage.LocalID)
+                        : null,
                     staff = staff.Name,
-                    staff_image = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Creator, DataSource.Shoko, xref.CreatorID),
+                    staff_image = ((ICreator)staff).PrimaryImage is { } staffImage
+                        ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, staffImage.Source, staffImage.LocalID)
+                        : null,
                     role = xref2.AppearanceType.ToString().Replace("_", " "),
                     type = "Seiyuu",
                 };
@@ -160,9 +166,9 @@ public class Group : BaseDirectory
         var rand = new Random();
         foreach (var anime in Randomize(allAnime))
         {
-            var backdrops = anime.GetImages(ImageEntityType.Backdrop);
-            var banners = anime.GetImages(ImageEntityType.Banner);
-            var posters = anime.GetImages(ImageEntityType.Poster);
+            var backdrops = anime.GetImages(imageType: ImageEntityType.Backdrop);
+            var banners = anime.GetImages(imageType: ImageEntityType.Banner);
+            var posters = anime.GetImages(imageType: ImageEntityType.Primary);
             if (allPictures || maxPictures > 1)
             {
                 if (allPictures)
@@ -175,7 +181,7 @@ public class Group : BaseDirectory
                     group.art.thumb.Add(new Art
                     {
                         index = pictureIndex++,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster.ImageType, poster.Source, poster.ID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, poster.Source, poster.LocalID),
                     });
                 }
                 pictureIndex = 0;
@@ -186,7 +192,7 @@ public class Group : BaseDirectory
                     group.art.fanart.Add(new Art
                     {
                         index = pictureIndex++,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop.ImageType, backdrop.Source, backdrop.ID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Backdrop, backdrop.Source, backdrop.LocalID),
                     });
                 }
                 pictureIndex = 0;
@@ -197,25 +203,25 @@ public class Group : BaseDirectory
                     group.art.banner.Add(new Art
                     {
                         index = pictureIndex++,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner.ImageType, banner.Source, banner.ID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Banner, banner.Source, banner.LocalID),
                     });
                 }
             }
             else if (maxPictures > 0)
             {
-                var poster = anime.PreferredOrDefaultPoster;
+                var poster = (anime as IWithPrimaryImage).PrimaryImage;
                 group.art.thumb.Add(new Art
                 {
                     index = 0,
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster.ImageType, poster.Source, poster.ID),
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, poster.Source, poster.LocalID),
                 });
                 if (backdrops.Count > 0)
                 {
-                    if (anime.PreferredBackdrop is { } preferredBackdrop)
+                    if ((anime as IWithBackdropImage).BackdropImage is { } preferredBackdrop)
                     {
                         group.art.fanart.Add(new Art
                         {
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBackdrop.ImageType, preferredBackdrop.ImageSource, preferredBackdrop.ImageID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Backdrop, preferredBackdrop.Source, preferredBackdrop.LocalID),
                             index = 0
                         });
                     }
@@ -225,19 +231,18 @@ public class Group : BaseDirectory
                         group.art.fanart.Add(new Art
                         {
                             index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop.ImageType, backdrop.Source, backdrop.ID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Backdrop, backdrop.Source, backdrop.LocalID),
                         });
                     }
                 }
                 if (banners.Count > 0)
                 {
-                    var preferredBanner = anime.PreferredBanner;
-                    if (preferredBanner is not null)
+                    if (anime.GetPreferredImageForType(ImageEntityType.Banner) is { } preferredBanner)
                     {
                         group.art.banner.Add(new Art
                         {
                             index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBanner.ImageType, preferredBanner.ImageSource, preferredBanner.ImageID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Banner, preferredBanner.Source, preferredBanner.LocalID),
                         });
                     }
                     else
@@ -246,7 +251,7 @@ public class Group : BaseDirectory
                         group.art.banner.Add(new Art
                         {
                             index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner.ImageType, banner.Source, banner.ID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Banner, banner.Source, banner.LocalID),
                         });
                     }
                 }

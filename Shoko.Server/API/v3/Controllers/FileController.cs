@@ -36,7 +36,6 @@ using Shoko.Server.Utilities;
 
 using AbstractReleaseInfo = Shoko.Abstractions.Video.Release.ReleaseInfo;
 using AbstractReleaseVideoCrossReference = Shoko.Abstractions.Video.Release.ReleaseVideoCrossReference;
-using AVDump = Shoko.Server.API.v3.Models.Shoko.AVDump;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using MediaInfoDto = Shoko.Server.API.v3.Models.Shoko.MediaInfo;

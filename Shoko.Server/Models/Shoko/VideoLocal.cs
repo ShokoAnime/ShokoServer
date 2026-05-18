@@ -3,8 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
@@ -14,6 +20,7 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 using MediaContainer = Shoko.Server.MediaInfo.MediaContainer;
 
@@ -157,6 +164,14 @@ public class VideoLocal : IVideo
         return true;
     }
 
+    #region IMetadata Implementation
+
+    DataEntityType IMetadata.EntityType => DataEntityType.Video;
+
+    DataSource IMetadata.Source => DataSource.Shoko;
+
+    #endregion
+
     #region IWithCreationDate Implementation
 
     DateTime IWithCreationDate.CreatedAt => DateTimeCreated.ToUniversalTime();
@@ -166,6 +181,24 @@ public class VideoLocal : IVideo
     #region IWithUpdateDate Implementation
 
     DateTime IWithUpdateDate.LastUpdatedAt => DateTimeUpdated.ToUniversalTime();
+
+    #endregion
+
+    #region IWithImages Implementation
+
+    public IImage? GetPreferredImageForType(ImageEntityType imageType)
+        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
+
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
+
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
 
     #endregion
 

@@ -4,6 +4,8 @@ namespace Shoko.Abstractions.Metadata.Enums;
 /// <summary>
 /// Reason for an metadata update event to be dispatched.
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
+[Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
 public enum UpdateReason : byte
 {
     /// <summary>

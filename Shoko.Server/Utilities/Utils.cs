@@ -1,10 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using Shoko.Abstractions.Utilities;
-using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities;

@@ -276,11 +276,11 @@ public class Series : BaseModel
                 if (xref.Character is not { } character)
                     continue;
 
-                if (character.Type is CharacterType.Organization)
-                    roles.Add(new(xref, character));
-                else
-                    foreach (var creator in xref.Creators)
+                if (xref.Creators is { Count: > 0 } creators)
+                    foreach (var creator in creators)
                         roles.Add(new(xref, character, creator));
+                else
+                    roles.Add(new(xref, character));
             }
         }
 

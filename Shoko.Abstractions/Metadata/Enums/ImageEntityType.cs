@@ -4,6 +4,8 @@ namespace Shoko.Abstractions.Metadata.Enums;
 /// <summary>
 /// Image entity types.
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
+[Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
 public enum ImageEntityType : byte
 {
     /// <summary>
@@ -12,47 +14,27 @@ public enum ImageEntityType : byte
     None = 0,
 
     /// <summary>
+    /// Primary image.
+    /// </summary>
+    Primary = 1,
+
+    /// <summary>
     /// Backdrop image.
     /// </summary>
-    Backdrop = 1,
+    Backdrop = 2,
 
     /// <summary>
     /// Banner image.
     /// </summary>
-    Banner = 2,
+    Banner = 3,
 
     /// <summary>
     /// Logo image.
     /// </summary>
-    Logo = 3,
-
-    /// <summary>
-    /// Art image.
-    /// </summary>
-    Art = 4,
+    Logo = 4,
 
     /// <summary>
     /// Disc image.
     /// </summary>
     Disc = 5,
-
-    /// <summary>
-    /// Poster image.
-    /// </summary>
-    Poster = 6,
-
-    /// <summary>
-    /// Thumbnail image.
-    /// </summary>
-    Thumbnail = 7,
-
-    /// <summary>
-    /// Person image.
-    /// </summary>
-    Creator = 8,
-
-    /// <summary>
-    /// Character image.
-    /// </summary>
-    Character = 9,
 }

@@ -9,7 +9,7 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Movie metadata.
 /// </summary>
-public interface IMovie : IWithTitles, IWithDescriptions, IWithImages, IWithCastAndCrew, IWithStudios, IWithContentRatings, IWithYearlySeasons, IMetadata<int>
+public interface IMovie : IWithTitles, IWithDescriptions, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithCastAndCrew, IWithStudios, IWithContentRatings, IWithYearlySeasons, IMetadata<int>
 {
     /// <summary>
     /// The shoko series ID, if we have any.
@@ -45,11 +45,6 @@ public interface IMovie : IWithTitles, IWithDescriptions, IWithImages, IWithCast
     /// The number of votes which were used to calculate the rating.
     /// </summary>
     int RatingVotes { get; }
-
-    /// <summary>
-    /// Default poster for the movie.
-    /// </summary>
-    IImage? DefaultPoster { get; }
 
     /// <summary>
     /// All shoko episodes linked to the movie.

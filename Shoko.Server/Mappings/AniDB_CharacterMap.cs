@@ -1,7 +1,7 @@
 ﻿using FluentNHibernate.Mapping;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.Mappings;
 

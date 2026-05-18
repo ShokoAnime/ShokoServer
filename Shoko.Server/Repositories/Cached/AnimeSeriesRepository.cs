@@ -413,7 +413,7 @@ GROUP BY
     }
 
     public ImageEntityType[] GetAllImageTypes()
-        => [ImageEntityType.Backdrop, ImageEntityType.Banner, ImageEntityType.Logo, ImageEntityType.Poster];
+        => [ImageEntityType.Backdrop, ImageEntityType.Banner, ImageEntityType.Logo, ImageEntityType.Primary];
 
     public IEnumerable<int> GetAllYears()
     {

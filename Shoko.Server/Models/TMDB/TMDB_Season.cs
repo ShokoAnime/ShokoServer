@@ -1,18 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.TvShows;
 
@@ -154,14 +159,14 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
         foreach (var preferredLanguage in Languages.PreferredNamingLanguages)
         {
             if (preferredLanguage.Language == TitleLanguage.Main)
-                return new(ForeignEntityType.Season, TmdbSeasonID, EnglishTitle, "en", "US");
+                return new(DataEntityType.Season, TmdbSeasonID, EnglishTitle, "en", "US");
 
             var title = titles.GetByLanguage(preferredLanguage.Language);
             if (title != null)
                 return title;
         }
 
-        return useFallback ? new(ForeignEntityType.Season, TmdbSeasonID, EnglishTitle, "en", "US") : null;
+        return useFallback ? new(DataEntityType.Season, TmdbSeasonID, EnglishTitle, "en", "US") : null;
     }
 
     /// <summary>
@@ -177,8 +182,8 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
     /// already cached from a previous call. </param>
     /// <returns>All titles for the season.</returns>
     public IReadOnlyList<TMDB_Title> GetAllTitles(bool force = false) => force
-        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID)
-        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID);
+        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Season, TmdbSeasonID)
+        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Season, TmdbSeasonID);
 
     public TMDB_Overview? GetPreferredOverview(bool useFallback = true, bool force = false)
     {
@@ -191,7 +196,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
                 return overview;
         }
 
-        return useFallback ? new(ForeignEntityType.Season, TmdbSeasonID, EnglishOverview, "en", "US") : null;
+        return useFallback ? new(DataEntityType.Season, TmdbSeasonID, EnglishOverview, "en", "US") : null;
     }
 
     /// <summary>
@@ -208,22 +213,8 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
     /// already cached from a previous call.</param>
     /// <returns>All overviews for the season.</returns>
     public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
-        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID)
-        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Season, TmdbSeasonID);
-
-    public TMDB_Image? DefaultPoster => RepoFactory.TMDB_Image.GetByRemoteFileName(PosterPath)?.GetImageMetadata(true, ImageEntityType.Poster);
-
-    /// <summary>
-    /// Get all images for the season, or all images for the given
-    /// <paramref name="entityType"/> provided for the season.
-    /// </summary>
-    /// <param name="entityType">If set, will restrict the returned list to only
-    /// containing the images of the given entity type.</param>
-    /// <returns>A read-only list of images that are linked to the season.
-    /// </returns>
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbSeasonIDAndType(TmdbSeasonID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbSeasonID(TmdbSeasonID);
+        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Season, TmdbSeasonID)
+        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Season, TmdbSeasonID);
 
     /// <summary>
     /// Get all cast members that have worked on this season.
@@ -306,7 +297,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
 
     #region IEntityMetadata Implementation
 
-    ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Season;
+    DataEntityType IEntityMetadata.Type => DataEntityType.Season;
 
     DataSource IEntityMetadata.DataSource => DataSource.TMDB;
 
@@ -321,6 +312,8 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
     #endregion
 
     #region IMetadata Implementation
+
+    DataEntityType IMetadata.EntityType => DataEntityType.Season;
 
     int IMetadata<int>.ID => TmdbSeasonID;
 
@@ -388,17 +381,37 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
 
     #region IWithImages Implementation
 
-    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType) => null;
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
 
-    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType) => GetImages(entityType);
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
+
+    public IImage? GetPreferredImageForType(ImageEntityType imageType)
+        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
+
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
+
+    #endregion
+
+    #region IWithPrimaryImage Implementation
+
+    public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
+        ? new ShokoImageStub(image, xref)
+        : null;
+
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(PosterPath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, PosterPath) is { } imageID
+        ? GetImageCrossReferences(imageType: ImageEntityType.Primary).FirstOrDefault(xref => xref.ImageID == imageID)
+        : null;
 
     #endregion
 
     #region ISeason Implementation
 
     int ISeason.SeriesID => TmdbShowID;
-
-    IImage? ISeason.DefaultPoster => DefaultPoster;
 
     ISeries? ISeason.Series => TmdbShow;
 

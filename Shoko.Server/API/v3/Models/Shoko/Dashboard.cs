@@ -1,14 +1,15 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.User;
+using Shoko.Abstractions.Video;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models.AniDB;
-using Shoko.Server.Models.Shoko;
-using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -164,29 +165,32 @@ public static class Dashboard
     /// </summary>
     public class Episode
     {
-        public Episode(AniDB_Episode episode, AniDB_Anime anime, AnimeSeries? series = null,
-            VideoLocal? file = null, VideoLocal_User? userRecord = null)
+        public Episode(IAnidbEpisode anidbEpisode, IAnidbAnime anidbAnime, IShokoSeries? shokoSeries = null,
+            IVideo? video = null, IVideoUserData? videoUserData = null)
         {
+            var shokoEpisode = shokoSeries is not null
+                ? anidbEpisode.ShokoEpisodes.FirstOrDefault()
+                : null;
             IDs = new EpisodeDetailsIDs()
             {
-                ID = episode.EpisodeID,
-                Series = anime.AnimeID,
-                ShokoFile = file?.VideoLocalID,
-                ShokoSeries = series?.AnimeSeriesID,
-                ShokoEpisode = series != null
-                    ? RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID)?.AnimeEpisodeID
-                    : null
+                ID = anidbEpisode.ID,
+                Series = anidbAnime.ID,
+                ShokoFile = video?.ID,
+                ShokoSeries = shokoSeries?.ID,
+                ShokoEpisode = shokoEpisode?.ID
             };
-            Title = episode.Title;
-            Number = episode.EpisodeNumber;
-            Type = episode.EpisodeType.ToV3Dto();
-            AirDate = episode.GetAirDateAsDate()?.ToDateOnly();
-            Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, episode.LengthSeconds);
-            ResumePosition = userRecord?.ProgressPosition;
-            Watched = userRecord?.WatchedDate?.ToUniversalTime();
-            SeriesTitle = series?.Title ?? anime.Title;
-            SeriesPoster = new Image(anime.PreferredOrDefaultPoster);
-            Thumbnail = episode.PreferredOrDefaultThumbnail is { } image ? new Image(image) : null;
+            Title = anidbEpisode.Title;
+            Number = anidbEpisode.EpisodeNumber;
+            Type = anidbEpisode.Type.ToV3Dto();
+            AirDate = anidbEpisode.AirDate;
+            Duration = video?.MediaInfo?.Duration ?? anidbEpisode.Runtime;
+            ResumePosition = videoUserData?.ProgressPosition;
+            Watched = videoUserData?.LastPlayedAt?.ToUniversalTime();
+            SeriesTitle = shokoSeries?.Title ?? anidbAnime.Title;
+            SeriesPoster = (shokoSeries?.PrimaryImage ?? anidbAnime.PrimaryImage) is { } poster
+                ? new Image(poster) : null;
+            Thumbnail = (shokoEpisode?.BackdropImage ?? anidbEpisode.BackdropImage) is { } thumbnail
+                ? new Image(thumbnail) : null;
         }
 
         /// <summary>
@@ -246,7 +250,7 @@ public static class Dashboard
         /// Series poster.
         /// </summary>
         [Required]
-        public Image SeriesPoster { get; set; }
+        public Image? SeriesPoster { get; set; }
 
         /// <summary>
         /// Episode thumbnail.

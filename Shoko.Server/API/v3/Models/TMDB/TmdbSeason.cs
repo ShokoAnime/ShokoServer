@@ -148,7 +148,7 @@ public class TmdbSeason
                 .ToOverviewDto(season.EnglishOverview, preferredOverview, language);
         if (include.HasFlag(IncludeDetails.Images))
             Images = season.GetImages()
-                .ToDto(language, preferredPoster: season.DefaultPoster);
+                .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = season.Cast
                 .Select(cast => new Role(cast))

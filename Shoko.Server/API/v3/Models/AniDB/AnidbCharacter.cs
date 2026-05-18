@@ -1,12 +1,10 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
-using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.AniDB;
@@ -39,7 +37,7 @@ public class AnidbCharacter
     /// <summary>
     /// The type of character.
     /// </summary>
-    [Required, JsonConverter(typeof(StringEnumConverter))]
+    [Required]
     public CharacterType Type { get; set; }
 
     /// <summary>
@@ -68,6 +66,6 @@ public class AnidbCharacter
         Type = character.Type;
         Gender = character.Gender.ToString();
         LastUpdatedAt = character.LastUpdated;
-        Image = character.GetImageMetadata() is { } image ? new Image(image) : null;
+        Image = ((ICharacter)character).PrimaryImage is { } image ? new Image(image) : null;
     }
 }

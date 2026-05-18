@@ -9,7 +9,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Abstractions.Metadata;
 
 #nullable enable
 namespace Shoko.Server.Filters;
@@ -75,9 +74,9 @@ public static class FilterExtensions
             SeasonsDelegate = () =>
                 series.AniDB_Anime?.YearlySeasons.ToHashSet() ?? [],
             AvailableImageTypesDelegate = () =>
-                series.GetAvailableImageTypes(),
+                series.AvailableImageTypes,
             PreferredImageTypesDelegate = () =>
-                series.GetPreferredImageTypes(),
+                series.PreferredImageTypes,
             CharacterAppearancesDelegate = () =>
                 RepoFactory.AniDB_Anime_Character.GetByAnimeID(series.AniDB_ID)
                     .GroupBy(a => a.CastRoleType)

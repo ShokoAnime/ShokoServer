@@ -28,6 +28,11 @@ public interface IRelatedMetadata : IEquatable<IRelatedMetadata>
     /// </summary>
     /// <returns>The reversed relation.</returns>
     IRelatedMetadata Reversed { get; }
+
+    /// <summary>
+    ///   The source of the relation.
+    /// </summary>
+    DataSource Source { get; }
 }
 
 /// <summary>
@@ -35,7 +40,7 @@ public interface IRelatedMetadata : IEquatable<IRelatedMetadata>
 /// </summary>
 /// <typeparam name="TBaseMetadata">Base entity type.</typeparam>
 /// <typeparam name="TRelatedMetadata">Related entity type.</typeparam>
-public interface IRelatedMetadata<TBaseMetadata, TRelatedMetadata> : IMetadata, IRelatedMetadata, IEquatable<IRelatedMetadata<TBaseMetadata, TRelatedMetadata>> where TBaseMetadata : IMetadata<int> where TRelatedMetadata : IMetadata<int>
+public interface IRelatedMetadata<TBaseMetadata, TRelatedMetadata> : IRelatedMetadata, IEquatable<IRelatedMetadata<TBaseMetadata, TRelatedMetadata>> where TBaseMetadata : IMetadata<int> where TRelatedMetadata : IMetadata<int>
 {
     /// <summary>
     /// Base entity, if available.

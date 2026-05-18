@@ -6,7 +6,7 @@ namespace Shoko.Abstractions.Metadata.Tmdb
     /// <summary>
     /// A TMDB network.
     /// </summary>
-    public interface ITmdbNetwork : IMetadata<int>, IWithImages, IWithPortraitImage
+    public interface ITmdbNetwork : IMetadata<int>, IWithImages, IWithPrimaryImage
     {
         /// <summary>
         /// Main name of the network on TMDB.

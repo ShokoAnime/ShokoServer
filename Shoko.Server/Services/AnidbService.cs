@@ -15,10 +15,16 @@ using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Events;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
@@ -78,11 +84,37 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     private readonly AniDB_TagRepository _anidbTagRepository;
 
+    private readonly AniDB_Anime_TitleRepository _anidbAnimeTitleRepository;
+
+    private readonly AniDB_Anime_TagRepository _anidbAnimeTagRepository;
+
+    private readonly AniDB_EpisodeRepository _anidbEpisodeRepository;
+
+    private readonly AniDB_Episode_TitleRepository _anidbEpisodeTitleRepository;
+
+    private readonly AniDB_Anime_CharacterRepository _anidbAnimeCharacterRepository;
+
+    private readonly AniDB_CharacterRepository _anidbCharacterRepository;
+
+    private readonly AniDB_Anime_Character_CreatorRepository _anidbAnimeCharacterCreatorRepository;
+
+    private readonly AniDB_Anime_StaffRepository _anidbAnimeStaffRepository;
+
+    private readonly AniDB_CreatorRepository _anidbCreatorRepository;
+
     private readonly AnimeSeriesRepository _seriesRepository;
 
     private readonly CrossRef_File_EpisodeRepository _crossReferenceRepository;
 
+    private readonly StoredReleaseInfoRepository _storedReleaseInfoRepository;
+
+    private readonly ShokoImage_EntityRepository _shokoImageXrefRepository;
+
     private readonly AsyncBulkheadPolicy<AniDB_Anime?> _bulkheadPolicy;
+
+    private readonly IImageManager _imageManager;
+
+    private readonly KeyedEntityLockHelper _entityLock;
 
     public AnidbService(
         ILogger<AnidbService> logger,
@@ -100,8 +132,20 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         AniDB_AnimeRepository anidbAnimeRepository,
         AniDB_AnimeUpdateRepository anidbAnimeUpdateRepository,
         AniDB_TagRepository anidbTagRepository,
+        AniDB_Anime_TitleRepository anidbAnimeTitleRepository,
+        AniDB_Anime_TagRepository anidbAnimeTagRepository,
+        AniDB_EpisodeRepository anidbEpisodeRepository,
+        AniDB_Episode_TitleRepository anidbEpisodeTitleRepository,
+        AniDB_Anime_CharacterRepository anidbAnimeCharacterRepository,
+        AniDB_CharacterRepository anidbCharacterRepository,
+        AniDB_Anime_Character_CreatorRepository anidbAnimeCharacterCreatorRepository,
+        AniDB_Anime_StaffRepository anidbAnimeStaffRepository,
+        AniDB_CreatorRepository anidbCreatorRepository,
         AnimeSeriesRepository seriesRepository,
-        CrossRef_File_EpisodeRepository crossReferenceRepository
+        CrossRef_File_EpisodeRepository crossReferenceRepository,
+        StoredReleaseInfoRepository storedReleaseInfoRepository,
+        ShokoImage_EntityRepository shokoImageXrefRepository,
+        IImageManager imageManager
     )
     {
         _logger = logger;
@@ -119,8 +163,21 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         _anidbAnimeRepository = anidbAnimeRepository;
         _anidbAnimeUpdateRepository = anidbAnimeUpdateRepository;
         _anidbTagRepository = anidbTagRepository;
+        _anidbAnimeTitleRepository = anidbAnimeTitleRepository;
+        _anidbAnimeTagRepository = anidbAnimeTagRepository;
+        _anidbEpisodeRepository = anidbEpisodeRepository;
+        _anidbEpisodeTitleRepository = anidbEpisodeTitleRepository;
+        _anidbAnimeCharacterRepository = anidbAnimeCharacterRepository;
+        _anidbCharacterRepository = anidbCharacterRepository;
+        _anidbAnimeCharacterCreatorRepository = anidbAnimeCharacterCreatorRepository;
+        _anidbAnimeStaffRepository = anidbAnimeStaffRepository;
+        _anidbCreatorRepository = anidbCreatorRepository;
         _seriesRepository = seriesRepository;
         _crossReferenceRepository = crossReferenceRepository;
+        _storedReleaseInfoRepository = storedReleaseInfoRepository;
+        _shokoImageXrefRepository = shokoImageXrefRepository;
+        _imageManager = imageManager;
+        _entityLock = new(logger);
         _bulkheadPolicy = Policy.BulkheadAsync<AniDB_Anime?>(1, int.MaxValue);
 
         var now = DateTime.UnixEpoch.ToUniversalTime();
@@ -398,222 +455,224 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     private async Task<AniDB_Anime?> ProcessInternal(AnidbJobDetails job, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Processing {Job}: {AnimeID}", nameof(GetAniDBAnimeJob), job.AnimeID);
-
-        var scheduler = await _schedulerFactory.GetScheduler(cancellationToken).ConfigureAwait(false);
-        var anime = _anidbAnimeRepository.GetByAnimeID(job.AnimeID);
-        var update = _anidbAnimeUpdateRepository.GetByAnimeID(job.AnimeID);
-        var animeRecentlyUpdated = AnimeRecentlyUpdated(anime, update);
-
-        Exception? ex = null;
-        ResponseGetAnime? response = null;
-        if (job.PreferCacheOverRemote && job.UseCache)
+        using (await _entityLock.GetLockForEntityAsync(DataEntityType.Anime, job.AnimeID, "metadata", "Update", cancellationToken).ConfigureAwait(false))
         {
-            try
-            {
-                var (success, xml) = await TryGetXmlFromCache(job.AnimeID).ConfigureAwait(false);
-                if (success)
-                    response = _httpParser.Parse(job.AnimeID, xml);
-            }
-            catch (Exception e)
-            {
-                _logger.LogDebug(e, "Failed to parse the cached AnimeDoc_{AnimeID}.xml file", job.AnimeID);
-                ex = e;
-            }
-        }
+            var scheduler = await _schedulerFactory.GetScheduler(cancellationToken).ConfigureAwait(false);
+            var anime = _anidbAnimeRepository.GetByAnimeID(job.AnimeID);
+            var update = _anidbAnimeUpdateRepository.GetByAnimeID(job.AnimeID);
+            var animeRecentlyUpdated = AnimeRecentlyUpdated(anime, update);
 
-        if (job.UseRemote && response is null)
-        {
-            try
+            Exception? ex = null;
+            ResponseGetAnime? response = null;
+            if (job.PreferCacheOverRemote && job.UseCache)
             {
-                if (_httpConnectionHandler.IsBanned && !job.IgnoreHttpBans)
+                try
                 {
-                    _logger.LogDebug("We're HTTP banned and requested a forced online update for anime with ID {AnimeID}", job.AnimeID);
-                    throw new AniDBBannedException
-                    {
-                        BanType = UpdateType.HTTPBan,
-                        BanExpires = _httpConnectionHandler.BanTime?.AddHours(_httpConnectionHandler.BanTimerResetLength),
-                    };
+                    var (success, xml) = await TryGetXmlFromCache(job.AnimeID).ConfigureAwait(false);
+                    if (success)
+                        response = _httpParser.Parse(job.AnimeID, xml);
                 }
-
-                if (animeRecentlyUpdated is null || job.IgnoreTimeCheck)
+                catch (Exception e)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var request = _requestFactory.Create<RequestGetAnime>(r => (r.AnimeID, r.Force) = (job.AnimeID, job.IgnoreHttpBans));
-                    var httpResponse = request.Send();
-                    response = httpResponse.Response;
+                    _logger.LogDebug(e, "Failed to parse the cached AnimeDoc_{AnimeID}.xml file", job.AnimeID);
+                    ex = e;
+                }
+            }
 
-                    // If the response is null then we successfully got a response from the server
-                    // but the ID does not belong to any anime.
-                    if (response is null)
+            if (job.UseRemote && response is null)
+            {
+                try
+                {
+                    if (_httpConnectionHandler.IsBanned && !job.IgnoreHttpBans)
                     {
-                        _logger.LogError("No such anime with ID: {AnimeID}", job.AnimeID);
-                        return null;
+                        _logger.LogDebug("We're HTTP banned and requested a forced online update for anime with ID {AnimeID}", job.AnimeID);
+                        throw new AniDBBannedException
+                        {
+                            BanType = UpdateType.HTTPBan,
+                            BanExpires = _httpConnectionHandler.BanTime?.AddHours(_httpConnectionHandler.BanTimerResetLength),
+                        };
+                    }
+
+                    if (animeRecentlyUpdated is null || job.IgnoreTimeCheck)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var request = _requestFactory.Create<RequestGetAnime>(r => (r.AnimeID, r.Force) = (job.AnimeID, job.IgnoreHttpBans));
+                        var httpResponse = request.Send();
+                        response = httpResponse.Response;
+
+                        // If the response is null then we successfully got a response from the server
+                        // but the ID does not belong to any anime.
+                        if (response is null)
+                        {
+                            _logger.LogError("No such anime with ID: {AnimeID}", job.AnimeID);
+                            return null;
+                        }
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                if (e is AniDBBannedException)
-                    _logger.LogTrace("We're HTTP banned and requested an online update for anime with ID {AnimeID}", job.AnimeID);
-                else
-                    _logger.LogError(e, "Failed to get an anime with ID: {AnimeID}", job.AnimeID);
-
-                ex = e;
-            }
-        }
-
-        if (!job.PreferCacheOverRemote && job.UseCache && response is null)
-        {
-            try
-            {
-                var (success, xml) = await TryGetXmlFromCache(job.AnimeID).ConfigureAwait(false);
-                if (success)
-                    response = _httpParser.Parse(job.AnimeID, xml);
-            }
-            catch (Exception e)
-            {
-                _logger.LogDebug(e, "Failed to parse the cached AnimeDoc_{AnimeID}.xml file", job.AnimeID);
-                ex ??= e;
-            }
-        }
-
-        // If we failed to get the data from either source then throw the
-        // exception (if one exists) or return null.
-        if (response is null)
-        {
-            if (job.DeferToRemoteIfUnsuccessful)
-            {
-                _logger.LogDebug("Deferring to remote update for anime with ID {AnimeID}", job.AnimeID);
-                // Queue the command to get the data when we're no longer banned if there is no anime record.
-                await scheduler.StartJob<GetRemoteAniDBAnimeJob>(
-                    c =>
-                    {
-                        c.AnimeID = job.AnimeID;
-                        c.DownloadRelations = job.DownloadRelations;
-                        c.RelDepth = job.RelDepth;
-                        c.CreateSeriesEntry = job.CreateSeriesEntry;
-                        c.SkipTmdbUpdate = job.SkipTmdbUpdate;
-                    },
-                    // Only prioritize if we don't have an anime record.
-                    prioritize: anime is null && animeRecentlyUpdated is null,
-                    // Don't fire immediately if we recently updated the record.
-                    startTime: animeRecentlyUpdated is not null ? DateTime.Now.AddHours(animeRecentlyUpdated.Value) : null
-                ).ConfigureAwait(false);
-            }
-            if (ex is null)
-                return null;
-            throw ex;
-        }
-
-        // Create or update the anime record,
-        anime ??= new AniDB_Anime();
-        var isNew = anime.AniDB_AnimeID == 0;
-        _animeCreator ??= _serviceProvider.GetRequiredService<AnimeCreator>();
-        var (isUpdated, titlesUpdated, descriptionUpdated, shouldUpdateFiles, animeEpisodeChanges) = await _animeCreator.CreateAnime(response, anime, job.RelDepth).ConfigureAwait(false);
-
-        // then conditionally create the series record if it doesn't exist,
-        var series = _seriesRepository.GetByAnimeID(job.AnimeID);
-        var seriesIsNew = series == null;
-        var seriesUpdated = false;
-        var seriesEpisodeChanges = new Dictionary<AnimeEpisode, UpdateReason>();
-        var settings = _settingsProvider.GetSettings();
-        if (series == null && job.CreateSeriesEntry)
-            series = await CreateAnimeSeriesAndGroup(anime, job, settings);
-
-        // and then create or update the episode records if we have an
-        // existing series record.
-        if (series != null)
-        {
-            _seriesService ??= _serviceProvider.GetRequiredService<AnimeSeriesService>();
-            (seriesUpdated, seriesEpisodeChanges) = await _seriesService.CreateAnimeEpisodes(series).ConfigureAwait(false);
-            _seriesRepository.Save(series, true, false);
-        }
-
-        await _jobFactory.CreateJob<RefreshAnimeStatsJob>(x => x.AnimeID = job.AnimeID).Process().ConfigureAwait(false);
-
-        // Request an image download
-        var imagesJob = _jobFactory.CreateJob<GetAniDBImagesJob>(c => (c.AnimeID, c.OnlyPosters) = (job.AnimeID, series == null));
-        await imagesJob.Process().ConfigureAwait(false);
-
-        // Emit anidb anime updated event.
-        if (isNew || isUpdated || animeEpisodeChanges.Count > 0)
-            ShokoEventHandler.Instance.OnSeriesUpdated(anime, isNew ? UpdateReason.Added : UpdateReason.Updated, animeEpisodeChanges);
-
-        // Reset the cached preferred title if anime titles were updated.
-        if (titlesUpdated)
-            anime.ResetPreferredTitle();
-
-        // Reset the cached titles if anime titles were updated or if series is new.
-        if ((titlesUpdated || seriesIsNew) && series is not null)
-        {
-            series.ResetPreferredTitle();
-            series.ResetAnimeTitles();
-        }
-
-        // Reset the cached description if anime description was updated or if series is new.
-        if ((descriptionUpdated || seriesIsNew) && series is not null)
-        {
-            series.ResetPreferredOverview();
-        }
-
-        // Emit shoko series updated event.
-        if (series is not null && (seriesIsNew || seriesUpdated || seriesEpisodeChanges.Count > 0))
-            ShokoEventHandler.Instance.OnSeriesUpdated(series, seriesIsNew ? UpdateReason.Added : UpdateReason.Updated, seriesEpisodeChanges);
-
-        // Re-schedule the videos to move/rename as required if something changed.
-        if (settings.Plugins.Renamer.RelocateOnImport && (
-            isNew || shouldUpdateFiles || animeEpisodeChanges.Count > 0 || seriesIsNew || seriesUpdated || seriesEpisodeChanges.Count > 0
-        ))
-        {
-            var videos = new List<VideoLocal>();
-            if (isNew || seriesIsNew || shouldUpdateFiles || seriesUpdated)
-            {
-                videos.AddRange(
-                    _crossReferenceRepository.GetByAnimeID(job.AnimeID)
-                        .WhereNotNull()
-                        .Select(a => a.VideoLocal)
-                        .WhereNotNull()
-                        .DistinctBy(a => a.VideoLocalID)
-                );
-            }
-            else
-            {
-                if (animeEpisodeChanges.Count > 0)
-                    videos.AddRange(
-                        animeEpisodeChanges.Keys
-                            .SelectMany(a => _crossReferenceRepository.GetByEpisodeID(a.EpisodeID))
-                            .WhereNotNull()
-                            .Select(a => a.VideoLocal)
-                            .WhereNotNull()
-                            .DistinctBy(a => a.VideoLocalID)
-                    );
-                if (seriesEpisodeChanges.Count > 0)
-                    videos.AddRange(
-                        seriesEpisodeChanges.Keys
-                            .SelectMany(a => _crossReferenceRepository.GetByEpisodeID(a.AniDB_EpisodeID))
-                            .WhereNotNull()
-                            .Select(a => a.VideoLocal)
-                            .WhereNotNull()
-                            .DistinctBy(a => a.VideoLocalID)
-                    );
-            }
-
-            foreach (var video in videos)
-                await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.VideoLocalID).ConfigureAwait(false);
-        }
-
-        if (!job.SkipTmdbUpdate)
-            foreach (var xref in anime.TmdbShowCrossReferences)
-                await scheduler.StartJob<UpdateTmdbShowJob>(job =>
+                catch (Exception e)
                 {
-                    job.TmdbShowID = xref.TmdbShowID;
-                    job.DownloadImages = true;
-                }).ConfigureAwait(false);
+                    if (e is AniDBBannedException)
+                        _logger.LogTrace("We're HTTP banned and requested an online update for anime with ID {AnimeID}", job.AnimeID);
+                    else
+                        _logger.LogError(e, "Failed to get an anime with ID: {AnimeID}", job.AnimeID);
 
-        await ProcessRelations(response, job, settings).ConfigureAwait(false);
+                    ex = e;
+                }
+            }
 
-        return anime;
+            if (!job.PreferCacheOverRemote && job.UseCache && response is null)
+            {
+                try
+                {
+                    var (success, xml) = await TryGetXmlFromCache(job.AnimeID).ConfigureAwait(false);
+                    if (success)
+                        response = _httpParser.Parse(job.AnimeID, xml);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogDebug(e, "Failed to parse the cached AnimeDoc_{AnimeID}.xml file", job.AnimeID);
+                    ex ??= e;
+                }
+            }
+
+            // If we failed to get the data from either source then throw the
+            // exception (if one exists) or return null.
+            if (response is null)
+            {
+                if (job.DeferToRemoteIfUnsuccessful)
+                {
+                    _logger.LogDebug("Deferring to remote update for anime with ID {AnimeID}", job.AnimeID);
+                    // Queue the command to get the data when we're no longer banned if there is no anime record.
+                    await scheduler.StartJob<GetRemoteAniDBAnimeJob>(
+                        c =>
+                        {
+                            c.AnimeID = job.AnimeID;
+                            c.DownloadRelations = job.DownloadRelations;
+                            c.RelDepth = job.RelDepth;
+                            c.CreateSeriesEntry = job.CreateSeriesEntry;
+                            c.SkipTmdbUpdate = job.SkipTmdbUpdate;
+                        },
+                        // Only prioritize if we don't have an anime record.
+                        prioritize: anime is null && animeRecentlyUpdated is null,
+                        // Don't fire immediately if we recently updated the record.
+                        startTime: animeRecentlyUpdated is not null ? DateTime.Now.AddHours(animeRecentlyUpdated.Value) : null
+                    ).ConfigureAwait(false);
+                }
+                if (ex is null)
+                    return null;
+                throw ex;
+            }
+
+            // Create or update the anime record,
+            anime ??= new AniDB_Anime();
+            var isNew = anime.AniDB_AnimeID == 0;
+            _animeCreator ??= _serviceProvider.GetRequiredService<AnimeCreator>();
+            var (isUpdated, titlesUpdated, descriptionUpdated, shouldUpdateFiles, animeEpisodeChanges) = await _animeCreator.CreateAnime(response, anime, job.RelDepth).ConfigureAwait(false);
+
+            // then conditionally create the series record if it doesn't exist,
+            var series = _seriesRepository.GetByAnimeID(job.AnimeID);
+            var seriesIsNew = series == null;
+            var seriesUpdated = false;
+            var seriesEpisodeChanges = new Dictionary<AnimeEpisode, UpdateReason>();
+            var settings = _settingsProvider.GetSettings();
+            if (series == null && job.CreateSeriesEntry)
+                series = await CreateAnimeSeriesAndGroup(anime, job, settings);
+
+            // and then create or update the episode records if we have an
+            // existing series record.
+            if (series != null)
+            {
+                _seriesService ??= _serviceProvider.GetRequiredService<AnimeSeriesService>();
+                (seriesUpdated, seriesEpisodeChanges) = await _seriesService.CreateAnimeEpisodes(series).ConfigureAwait(false);
+                _seriesRepository.Save(series, true, false);
+            }
+
+            await _jobFactory.CreateJob<RefreshAnimeStatsJob>(x => x.AnimeID = job.AnimeID).Process().ConfigureAwait(false);
+
+            // Request an image download
+            await UpsertAndScheduleImageForEntity(anime, anime.Picname!, isDesired: true, forceDownload: false).ConfigureAwait(false);
+            if (series is not null)
+                await scheduler.StartJob<GetAniDBImagesJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
+
+            // Emit anidb anime updated event.
+            if (isNew || isUpdated || animeEpisodeChanges.Count > 0)
+                ShokoEventHandler.Instance.OnSeriesUpdated(anime, isNew ? UpdateReason.Added : UpdateReason.Updated, animeEpisodeChanges);
+
+            // Reset the cached preferred title if anime titles were updated.
+            if (titlesUpdated)
+                anime.ResetPreferredTitle();
+
+            // Reset the cached titles if anime titles were updated or if series is new.
+            if ((titlesUpdated || seriesIsNew) && series is not null)
+            {
+                series.ResetPreferredTitle();
+                series.ResetAnimeTitles();
+            }
+
+            // Reset the cached description if anime description was updated or if series is new.
+            if ((descriptionUpdated || seriesIsNew) && series is not null)
+            {
+                series.ResetPreferredOverview();
+            }
+
+            // Emit shoko series updated event.
+            if (series is not null && (seriesIsNew || seriesUpdated || seriesEpisodeChanges.Count > 0))
+                ShokoEventHandler.Instance.OnSeriesUpdated(series, seriesIsNew ? UpdateReason.Added : UpdateReason.Updated, seriesEpisodeChanges);
+
+            // Re-schedule the videos to move/rename as required if something changed.
+            if (settings.Plugins.Renamer.RelocateOnImport && (
+                isNew || shouldUpdateFiles || animeEpisodeChanges.Count > 0 || seriesIsNew || seriesUpdated || seriesEpisodeChanges.Count > 0
+            ))
+            {
+                var videos = new List<VideoLocal>();
+                if (isNew || seriesIsNew || shouldUpdateFiles || seriesUpdated)
+                {
+                    videos.AddRange(
+                        _crossReferenceRepository.GetByAnimeID(job.AnimeID)
+                            .WhereNotNull()
+                            .Select(a => a.VideoLocal)
+                            .WhereNotNull()
+                            .DistinctBy(a => a.VideoLocalID)
+                    );
+                }
+                else
+                {
+                    if (animeEpisodeChanges.Count > 0)
+                        videos.AddRange(
+                            animeEpisodeChanges.Keys
+                                .SelectMany(a => _crossReferenceRepository.GetByEpisodeID(a.EpisodeID))
+                                .WhereNotNull()
+                                .Select(a => a.VideoLocal)
+                                .WhereNotNull()
+                                .DistinctBy(a => a.VideoLocalID)
+                        );
+                    if (seriesEpisodeChanges.Count > 0)
+                        videos.AddRange(
+                            seriesEpisodeChanges.Keys
+                                .SelectMany(a => _crossReferenceRepository.GetByEpisodeID(a.AniDB_EpisodeID))
+                                .WhereNotNull()
+                                .Select(a => a.VideoLocal)
+                                .WhereNotNull()
+                                .DistinctBy(a => a.VideoLocalID)
+                        );
+                }
+
+                foreach (var video in videos)
+                    await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.VideoLocalID).ConfigureAwait(false);
+            }
+
+            if (!job.SkipTmdbUpdate)
+                foreach (var xref in anime.TmdbShowCrossReferences)
+                    await scheduler.StartJob<UpdateTmdbShowJob>(job =>
+                    {
+                        job.TmdbShowID = xref.TmdbShowID;
+                        job.DownloadImages = true;
+                    }).ConfigureAwait(false);
+
+            await ProcessRelations(response, job, settings).ConfigureAwait(false);
+
+            return anime;
+        }
     }
 
     private int? AnimeRecentlyUpdated(AniDB_Anime? anime, AniDB_AnimeUpdate update)
@@ -737,6 +796,231 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         if (topLevelOnly)
             return tags.Where(t => t.ParentTagID is 0);
         return tags;
+    }
+
+    #endregion
+
+    #region Images
+
+    public async Task ScheduleImagesForAnimeByID(int anidbAnimeID, bool onlyPosters = false, bool forceDownload = false, bool prioritize = true)
+    {
+        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+        await scheduler.StartJob<GetAniDBImagesJob>(
+            c => (c.AnimeID, c.OnlyPosters, c.ForceDownload) = (anidbAnimeID, onlyPosters, forceDownload),
+            prioritize: prioritize
+        ).ConfigureAwait(false);
+    }
+
+    public async Task ProcessImagesForAnimeByID(int anidbAnimeID, bool onlyPosters = false, bool forceDownload = false)
+    {
+        if (_anidbAnimeRepository.GetByAnimeID(anidbAnimeID) is null)
+            return;
+
+        using (await _entityLock.GetLockForEntityAsync(DataEntityType.Anime, anidbAnimeID, "images", "Update").ConfigureAwait(false))
+        {
+            if (_anidbAnimeRepository.GetByAnimeID(anidbAnimeID) is not { } anime)
+                return;
+
+            var settings = _settingsProvider.GetSettings();
+
+            await UpsertAndScheduleImageForEntity(anime, anime.Picname, isDesired: true, forceDownload).ConfigureAwait(false);
+            if (onlyPosters)
+                return;
+
+            var characters = _anidbAnimeCharacterRepository.GetByAnimeID(anidbAnimeID)
+                .Select(xref => _anidbCharacterRepository.GetByCharacterID(xref.CharacterID))
+                .WhereNotNull()
+                .Where(character => !string.IsNullOrEmpty(character.ImagePath))
+                .DistinctBy(character => character.CharacterID)
+                .ToList();
+            foreach (var character in characters)
+                await UpsertAndScheduleImageForEntity(character, character.ImagePath, settings.AniDb.DownloadCharacters, forceDownload).ConfigureAwait(false);
+
+            var voiceActors = _anidbAnimeCharacterCreatorRepository.GetByAnimeID(anidbAnimeID)
+                .Select(xref => _anidbCreatorRepository.GetByCreatorID(xref.CreatorID))
+                .WhereNotNull()
+                .Where(creator => !string.IsNullOrEmpty(creator.ImagePath));
+            var staffMembers = _anidbAnimeStaffRepository.GetByAnimeID(anidbAnimeID)
+                .Select(xref => _anidbCreatorRepository.GetByCreatorID(xref.CreatorID))
+                .WhereNotNull()
+                .Where(creator => !string.IsNullOrEmpty(creator.ImagePath));
+            var creators = voiceActors.Concat(staffMembers)
+                .DistinctBy(creator => creator.CreatorID)
+                .ToList();
+            foreach (var creator in creators)
+            {
+                await UpsertAndScheduleImageForEntity(creator, creator.ImagePath, settings.AniDb.DownloadCreators, forceDownload).ConfigureAwait(false);
+                if (creator.Type is Providers.AniDB.CreatorType.Company)
+                    await UpsertAndScheduleImageForEntity(new AniDB_Studio(creator), creator.ImagePath, settings.AniDb.DownloadCreators, forceDownload).ConfigureAwait(false);
+            }
+        }
+    }
+
+    public async Task ProcessImagesForCreatorByID(int creatorID, bool forceDownload = false)
+    {
+        if (_anidbCreatorRepository.GetByCreatorID(creatorID) is not { } creator || string.IsNullOrEmpty(creator.ImagePath))
+            return;
+
+        using (await _entityLock.GetLockForEntityAsync(DataEntityType.Creator, creatorID, "images", "Update").ConfigureAwait(false))
+        {
+            var desired = _settingsProvider.GetSettings().AniDb.DownloadCreators;
+            await UpsertAndScheduleImageForEntity(creator, creator.ImagePath, desired, forceDownload).ConfigureAwait(false);
+            if (creator.Type is Providers.AniDB.CreatorType.Company)
+                await UpsertAndScheduleImageForEntity(new AniDB_Studio(creator), creator.ImagePath, desired, forceDownload).ConfigureAwait(false);
+        }
+    }
+
+    private async Task UpsertAndScheduleImageForEntity(IWithImages entity, string? resourceID, bool isDesired, bool forceDownload)
+    {
+        if (string.IsNullOrWhiteSpace(resourceID))
+            return;
+
+        var image = _imageManager.GetImageBySourceAndRemoteResourceID(DataSource.AniDB, resourceID)
+            ?? _imageManager.AddImage(new ImageData
+            {
+                Source = DataSource.AniDB,
+                ResourceID = resourceID,
+            });
+
+        var imageXref = _imageManager.GetImageCrossReferencesForEntity(entity, imageSource: DataSource.AniDB, imageType: ImageEntityType.Primary, xrefSource: DataSource.AniDB)
+            .FirstOrDefault(xref => xref.ImageID == image.ID)
+            ?? _imageManager.AddImageCrossReference(entity, image, new ImageCrossReferenceData
+            {
+                Source = DataSource.AniDB,
+                ImageType = ImageEntityType.Primary,
+                IsDesired = isDesired,
+            });
+
+        _imageManager.UpdateImageCrossReference(imageXref, new ImageCrossReferenceUpdateData
+        {
+            IsDesired = isDesired,
+        });
+
+        if (isDesired)
+            await _imageManager.ScheduleDownloadOfImage(image, forceDownload).ConfigureAwait(false);
+    }
+
+    #endregion
+
+    #region Purge
+
+    public async Task PurgeAllUnusedAnime()
+    {
+        var allAnimeIds = _anidbAnimeRepository.GetAll()
+            .Select(anime => anime.AnimeID)
+            .Concat(_shokoImageXrefRepository.GetByEntity(DataSource.AniDB, DataEntityType.Anime).Select(xref => int.TryParse(xref.EntityID, out var id) ? id : 0))
+            .Concat(_anidbEpisodeRepository.GetAll().Select(episode => episode.AnimeID))
+            .Concat(_anidbAnimeCharacterRepository.GetAll().Select(xref => xref.AnimeID))
+            .Concat(_anidbAnimeCharacterCreatorRepository.GetAll().Select(xref => xref.AnimeID))
+            .Concat(_anidbAnimeStaffRepository.GetAll().Select(xref => xref.AnimeID))
+            .Concat(_anidbAnimeTagRepository.GetAll().Select(xref => xref.AnimeID))
+            .Concat(_anidbAnimeTitleRepository.GetAll().Select(title => title.AnimeID))
+            .Concat(_anidbAnimeUpdateRepository.GetAll().Select(update => update.AnimeID))
+            .Concat(_storedReleaseInfoRepository.GetAll().SelectMany(release => release.CrossReferences.Select(xref => xref.AnidbAnimeID).WhereNotNull()))
+            .Where(id => id > 0)
+            .ToHashSet();
+        var toKeep = _seriesRepository.GetAll().Select(series => series.AniDB_ID).Where(id => id > 0).ToHashSet();
+        var toBePurged = allAnimeIds.Except(toKeep).ToHashSet();
+
+        _logger.LogInformation("Scheduling {Count} out of {AllCount} AniDB anime entries to be purged.", toBePurged.Count, allAnimeIds.Count);
+        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+        foreach (var animeID in toBePurged)
+            await scheduler.StartJob<PurgeAniDBAnimeJob>(c => c.AnimeID = animeID).ConfigureAwait(false);
+    }
+
+    public async Task SchedulePurgeOfAnimeByID(int anidbAnimeID, bool removeFromMylist = true, bool prioritize = false)
+    {
+        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
+        await scheduler.StartJob<PurgeAniDBAnimeJob>(c =>
+        {
+            c.AnimeID = anidbAnimeID;
+            c.RemoveFromMylist = removeFromMylist;
+        }, prioritize: prioritize).ConfigureAwait(false);
+    }
+
+    public async Task PurgeAnimeByID(int anidbAnimeID, bool removeFromMylist = true)
+    {
+        using (await _entityLock.GetLockForEntityAsync(DataEntityType.Anime, anidbAnimeID, "metadata", "Purge").ConfigureAwait(false))
+        {
+            // Ensure shoko entities are removed first when they still exist.
+            if (_seriesRepository.GetByAnimeID(anidbAnimeID) is { } series)
+            {
+                _seriesService ??= _serviceProvider.GetRequiredService<AnimeSeriesService>();
+                await _seriesService.DeleteSeriesInternal(series, deleteFiles: false, updateGroups: true, removeFromMylist).ConfigureAwait(false);
+            }
+
+            var anime = _anidbAnimeRepository.GetByAnimeID(anidbAnimeID);
+            var characterXrefs = _anidbAnimeCharacterRepository.GetByAnimeID(anidbAnimeID);
+            var actorXrefs = _anidbAnimeCharacterCreatorRepository.GetByAnimeID(anidbAnimeID);
+            var staffXrefs = _anidbAnimeStaffRepository.GetByAnimeID(anidbAnimeID);
+            var characters = characterXrefs
+                .Select(x => x.Character)
+                .WhereNotNull()
+                .Where(x => !_anidbAnimeCharacterRepository.GetByCharacterID(x.CharacterID).ExceptBy(characterXrefs.Select(y => y.AniDB_Anime_CharacterID), y => y.AniDB_Anime_CharacterID).Any())
+                .ToList();
+            var creators = actorXrefs.Select(x => x.Creator)
+                .Concat(staffXrefs.Select(x => x.Creator))
+                .WhereNotNull()
+                .Where(x =>
+                    !x.Staff.ExceptBy(staffXrefs.Select(y => y.AniDB_Anime_StaffID), y => y.AniDB_Anime_StaffID).Any() &&
+                    !x.Characters.ExceptBy(actorXrefs.Select(y => y.AniDB_Anime_Character_CreatorID), y => y.AniDB_Anime_Character_CreatorID).Any()
+                )
+                .ToList();
+            var tagXrefs = _anidbAnimeTagRepository.GetByAnimeID(anidbAnimeID);
+            var titles = _anidbAnimeTitleRepository.GetByAnimeID(anidbAnimeID);
+            var anidbEpisodes = _anidbEpisodeRepository.GetByAnimeID(anidbAnimeID);
+            var episodeTitles = anidbEpisodes.SelectMany(a => _anidbEpisodeTitleRepository.GetByEpisodeID(a.EpisodeID)).ToList();
+            var update = _anidbAnimeUpdateRepository.GetByAnimeID(anidbAnimeID);
+
+            _anidbAnimeCharacterRepository.Delete(characterXrefs);
+            _anidbCharacterRepository.Delete(characters);
+            _anidbAnimeCharacterCreatorRepository.Delete(actorXrefs);
+            _anidbAnimeStaffRepository.Delete(staffXrefs);
+            _anidbCreatorRepository.Delete(creators);
+            _anidbAnimeTagRepository.Delete(tagXrefs);
+            _anidbAnimeTitleRepository.Delete(titles);
+            _anidbEpisodeTitleRepository.Delete(episodeTitles);
+            _anidbEpisodeRepository.Delete(anidbEpisodes);
+            _anidbAnimeUpdateRepository.Delete(update);
+
+            // Explicitly remove image cross references through the image manager.
+            PurgeImageXrefsForEntity(DataEntityType.Anime, anidbAnimeID);
+            PurgeImageXrefsForEntity(DataEntityType.Season, AniDB_Season.GetID(anidbAnimeID, Abstractions.Metadata.Enums.EpisodeType.Episode, 1));
+            PurgeImageXrefsForEntity(DataEntityType.Season, AniDB_Season.GetID(anidbAnimeID, Abstractions.Metadata.Enums.EpisodeType.Special, 0));
+            foreach (var episode in anidbEpisodes)
+                PurgeImageXrefsForEntity(DataEntityType.Episode, episode.EpisodeID);
+            foreach (var character in characters)
+                PurgeImageXrefsForEntity(DataEntityType.Character, character.CharacterID);
+            foreach (var creator in creators)
+            {
+                PurgeImageXrefsForEntity(DataEntityType.Creator, creator.CreatorID);
+                PurgeImageXrefsForEntity(DataEntityType.Studio, creator.CreatorID);
+            }
+
+            // remove all releases linked to this anime.
+            var releases = _storedReleaseInfoRepository.GetByAnidbAnimeID(anidbAnimeID);
+            var releaseService = _serviceProvider.GetRequiredService<IVideoReleaseService>();
+            foreach (var release in releases)
+                await releaseService.RemoveRelease(release, removeFromMylist).ConfigureAwait(false);
+
+            if (anime is not null)
+            {
+                _logger.LogTrace("Removing AniDB anime {AnimeTitle} (Anime={AnimeID})", anime.MainTitle, anime.AnimeID);
+                _anidbAnimeRepository.Delete(anime);
+
+                ShokoEventHandler.Instance.OnSeriesUpdated(anime, UpdateReason.Removed);
+            }
+        }
+    }
+
+    private void PurgeImageXrefsForEntity(DataEntityType entityType, int entityID)
+        => PurgeImageXrefsForEntity(entityType, entityID.ToString());
+
+    private void PurgeImageXrefsForEntity(DataEntityType entityType, string entityID)
+    {
+        var xrefs = _shokoImageXrefRepository.GetByEntity(DataSource.AniDB, entityType, entityID.ToString());
+        foreach (var xref in xrefs)
+            _imageManager.RemoveImageCrossReference(xref);
     }
 
     #endregion

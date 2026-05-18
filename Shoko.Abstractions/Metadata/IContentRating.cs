@@ -5,7 +5,7 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 ///   The content rating for the specified language/country.
 /// </summary>
-public interface IContentRating : IMetadata
+public interface IContentRating
 {
     /// <summary>
     /// The inferred <see cref="TitleLanguage"/> for the content rating.
@@ -26,4 +26,9 @@ public interface IContentRating : IMetadata
     /// The content rating for the country code.
     /// </summary>
     string Value { get; }
+
+    /// <summary>
+    ///   The source of the content rating.
+    /// </summary>
+    DataSource Source { get; }
 }

@@ -782,7 +782,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(132,  9, "ALTER TABLE TMDB_Image DROP COLUMN TmdbPersonID;"),
         new(132, 10, "ALTER TABLE TMDB_Image DROP COLUMN ForeignType;"),
         new(132, 11, "ALTER TABLE TMDB_Image DROP COLUMN ImageType;"),
-        new(132, 12, DatabaseFixes.ScheduleTmdbImageUpdates),
+        new(132, 12),
         new(133,  1, "ALTER TABLE TMDB_Season ADD COLUMN PosterPath TEXT NULL DEFAULT NULL;"),
         new(133,  2, "ALTER TABLE TMDB_Episode ADD COLUMN ThumbnailPath TEXT NULL DEFAULT NULL;"),
         new(134,  1),
@@ -850,6 +850,10 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(143,  4, "ALTER TABLE CrossRef_AniDB_MAL DROP COLUMN CrossRefSource;"),
         new(143,  5, "ALTER TABLE AnimeGroup_User DROP COLUMN IsFave;"),
         new(143,  6, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
+        new(144,  1, @"CREATE TABLE ShokoImage (ID UNIQUEIDENTIFIER NOT NULL, LocalID INTEGER NOT NULL, PrimaryID UNIQUEIDENTIFIER NOT NULL, ResourceID NVARCHAR(128) NOT NULL, LanguageCode NVARCHAR(8), CountryCode NVARCHAR(8), Width INTEGER, Height INTEGER, ContentType NVARCHAR(64) NOT NULL, DownloadAttempts INTEGER NOT NULL DEFAULT 0, Source INTEGER NOT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL, PRIMARY KEY (ID));"),
+        new(144,  2, @"CREATE TABLE ShokoImage_Entity (ID INTEGER PRIMARY KEY AUTOINCREMENT, ImageID UNIQUEIDENTIFIER NOT NULL, PrimaryImageID UNIQUEIDENTIFIER NOT NULL, ImageType INTEGER NOT NULL, ImageSource INTEGER NOT NULL, EntitySource INTEGER NOT NULL, EntityType INTEGER NOT NULL, EntityID NVARCHAR(128) NOT NULL, EntitySeasonNumber INTEGER, EntityEpisodeNumber INTEGER, EntityReleasedAt DATE, IsEnabled INTEGER NOT NULL DEFAULT 1, IsDesired INTEGER NOT NULL DEFAULT 1, IsPreferred INTEGER NOT NULL DEFAULT 0, Ordering INTEGER NOT NULL DEFAULT 0, Rating REAL, RatingVotes INTEGER, Source INTEGER NOT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL);"),
+        new(144,  3, DatabaseFixes.MigrateToUnifiedImages),
+        new(144,  4, DatabaseFixes.ScheduleTmdbImageUpdates),
     ];
 
     #endregion

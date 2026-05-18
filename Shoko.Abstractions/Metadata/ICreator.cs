@@ -1,13 +1,14 @@
+using System;
 using System.Collections.Generic;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Metadata;
 
 /// <summary>
 /// Creator.
 /// </summary>
-public interface ICreator : IMetadata<int>, IWithDescriptions, IWithPortraitImage
+public interface ICreator : IMetadata<int>, IWithDescriptions, IWithPrimaryImage, IWithUpdateDate
 {
     /// <summary>
     /// Casted role name.
@@ -24,6 +25,11 @@ public interface ICreator : IMetadata<int>, IWithDescriptions, IWithPortraitImag
     /// The type of the creator.
     /// </summary>
     CreatorType Type { get; }
+
+    /// <summary>
+    /// The creator's date of birth.
+    /// </summary>
+    DateOnly? BirthDay { get; }
 
     /// <summary>
     /// All episode cast roles the creator have participated in.

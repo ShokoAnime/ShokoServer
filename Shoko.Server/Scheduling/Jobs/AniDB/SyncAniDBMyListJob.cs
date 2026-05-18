@@ -26,7 +26,6 @@ using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 #pragma warning disable CS8618
 #nullable enable

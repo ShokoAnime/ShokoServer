@@ -44,5 +44,5 @@ public class AniDB_Anime_Title : ITitle
 
     string IText.Value => Title;
 
-    DataSource IMetadata.Source => DataSource.AniDB;
+    DataSource IText.Source => DataSource.AniDB;
 }

@@ -228,4 +228,13 @@ public class TMDBSettings
     [RequiresRestart]
     [PasswordPropertyText]
     public string? UserApiKey { get; set; } = null;
+
+    /// <summary>
+    /// The base URL or URL template for the image CDN to use.
+    /// </summary>
+    [Visibility(Size = DisplayElementSize.Large)]
+    [Display(Name = "Image CDN URL")]
+    [EnvironmentVariable("TMDB_IMAGE_CDN_URL")]
+    [Url]
+    public string? ImageCdnUrl { get; set; }
 }

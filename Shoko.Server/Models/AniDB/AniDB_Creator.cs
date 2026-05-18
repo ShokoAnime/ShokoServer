@@ -1,14 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Server.Extensions;
-using Shoko.Server.Providers.AniDB;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Utilities;
 
 using AbstractCreatorType = Shoko.Abstractions.Metadata.Enums.CreatorType;
+using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
 using DataSource = Shoko.Abstractions.Metadata.Enums.DataSource;
 
 #nullable enable
@@ -92,6 +99,8 @@ public class AniDB_Creator : ICreator
 
     #region IMetadata Implementation
 
+    DataEntityType IMetadata.EntityType => DataEntityType.Creator;
+
     int IMetadata<int>.ID => CreatorID;
 
     DataSource IMetadata.Source => DataSource.AniDB;
@@ -108,15 +117,41 @@ public class AniDB_Creator : ICreator
 
     #endregion
 
-    #region IWithPortraitImage Implementation
+    #region IWithImages Implementation
 
-    IImage? IWithPortraitImage.PortraitImage => this.GetImageMetadata();
+    public IImage? GetPreferredImageForType(ImageEntityType imageType)
+        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
+
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
+
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
+
+    #endregion
+
+    #region IWithPrimaryImage Implementation
+
+    public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
+        ? new ShokoImageStub(image, xref)
+        : null;
+
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(ImagePath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, ImagePath) is { } imageID
+        ? GetImageCrossReferences(imageType: ImageEntityType.Primary).FirstOrDefault(xref => xref.ImageID == imageID)
+        : null;
 
     #endregion
 
     #region ICreator Implementation
 
     AbstractCreatorType ICreator.Type => AbstractType;
+
+    DateOnly? ICreator.BirthDay => null;
 
     IEnumerable<ICast<IEpisode>> ICreator.EpisodeCastRoles =>
         RepoFactory.AniDB_Anime_Character_Creator.GetByCreatorID(CreatorID)

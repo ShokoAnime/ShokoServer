@@ -1,11 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Models.Shoko.Embedded;
@@ -16,8 +21,11 @@ public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seaso
 
     int ISeason.SeasonNumber => seasonNumber;
 
-    IImage? ISeason.DefaultPoster
-        => seasonNumber is 0 ? null : series.DefaultPoster;
+    public IImage? DefaultPrimaryImage
+        => series.DefaultPrimaryImage;
+
+    public IImageCrossReference? DefaultPrimaryImageCrossReference
+        => series.DefaultBackdropImageCrossReference;
 
     ISeries ISeason.Series => series;
 
@@ -109,7 +117,9 @@ public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seaso
 
     IReadOnlyList<ICrew> IWithCastAndCrew.Crew => series.Crew;
 
-    string IMetadata<string>.ID => series.ID.ToString();
+    string IMetadata<string>.ID => $"{series.ID}:{episodeType}:{seasonNumber}";
+
+    DataEntityType IMetadata.EntityType => DataEntityType.Season;
 
     DataSource IMetadata.Source => DataSource.AniDB;
 
@@ -119,12 +129,8 @@ public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seaso
         .Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber)
         .ToList();
 
+    IReadOnlyList<ISeason> IShokoSeason.LinkedSeasons => [];
+
     IReadOnlyList<(int Year, YearlySeason Season)> IWithYearlySeasons.YearlySeasons
         => seasonNumber is 0 ? [] : series.YearlySeasons;
-
-    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
-        => seasonNumber is 0 ? null : series.GetPreferredImageForType(entityType);
-
-    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType)
-        => seasonNumber is 0 ? [] : series.GetImages(entityType);
 }

@@ -14,7 +14,7 @@ public class TMDB_TitleMap : ClassMap<TMDB_Title>
         Id(x => x.TMDB_TitleID);
 
         Map(x => x.ParentID).Not.Nullable();
-        Map(x => x.ParentType).Not.Nullable().CustomType<ForeignEntityType>();
+        Map(x => x.ForeignParentType).Column("ParentType").Not.Nullable().CustomType<ForeignEntityType>();
         Map(x => x.LanguageCode).Not.Nullable();
         Map(x => x.CountryCode).Not.Nullable();
         Map(x => x.Value).Not.Nullable();

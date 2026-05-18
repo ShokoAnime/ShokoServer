@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +11,6 @@ using Quartz;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Services;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
@@ -24,7 +22,6 @@ using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 using AbstractAnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
 using AbstractEpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
@@ -792,8 +789,6 @@ public class AnimeCreator
     {
         if (chars == null) return;
 
-        var charBasePath = ImageUtils.BaseAniDBCharacterImagesPath + Path.DirectorySeparatorChar;
-        var creatorBasePath = ImageUtils.BaseAniDBCreatorImagesPath + Path.DirectorySeparatorChar;
         var settings = _settingsProvider.GetSettings();
 
         var existingCreators = new Dictionary<int, AniDB_Creator>();
@@ -1072,7 +1067,6 @@ public class AnimeCreator
         if (staffList == null) return;
 
         var settings = _settingsProvider.GetSettings();
-        var creatorBasePath = ImageUtils.BaseAniDBCreatorImagesPath + Path.DirectorySeparatorChar;
 
         var existingCreators = new Dictionary<int, AniDB_Creator>();
         var existingXrefs = RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID)

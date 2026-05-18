@@ -90,10 +90,10 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     /// <inheritdoc />
     public bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
 
-    /// <inheritdoc />
-    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
-    [Visibility(Advanced = true)]
-    public bool LoadImageMetadata { get; set; } = false;
+    /// <summary>
+    /// Configure the image settings for Shoko.
+    /// </summary>
+    public ImageSettings Image { get; set; } = new();
 
     /// <summary>
     /// The maximum number of seconds to cache a repository during startup.

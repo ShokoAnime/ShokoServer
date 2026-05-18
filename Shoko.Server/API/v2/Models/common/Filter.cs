@@ -10,6 +10,7 @@ using Shoko.Abstractions.Filtering.Services;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
+#pragma warning disable CS0618 // Type or member is obsolete
 #nullable enable
 namespace Shoko.Server.API.v2.Models.common;
 
@@ -79,22 +80,23 @@ public class Filter : Filters
         {
             var rand = new Random();
             var anime = arts[rand.Next(arts.Count)];
-            var backdrops = anime.GetImages(ImageEntityType.Backdrop);
+            var backdrops = anime.GetImages(imageType: ImageEntityType.Backdrop);
             if (backdrops.Count > 0)
             {
                 var backdrop = backdrops[rand.Next(backdrops.Count)];
                 filter.art.fanart.Add(new Art
                 {
                     index = 0,
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop.ImageType, backdrop.Source, backdrop.ID),
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Backdrop, backdrop.Source, backdrop.LocalID),
                 });
             }
 
-            filter.art.thumb.Add(new Art
-            {
-                index = 0,
-                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Poster, DataSource.AniDB, anime.AniDB_ID),
-            });
+            if (anime.AniDB_Anime?.DefaultPrimaryImage is { IsAvailable: true } defaultPoster)
+                filter.art.thumb.Add(new Art
+                {
+                    index = 0,
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, DataSource.AniDB, defaultPoster.LocalID),
+                });
         }
 
         if (level > 0)
@@ -111,6 +113,6 @@ public class Filter : Filters
 
     private static bool SeriesHasArt(AnimeSeries series)
     {
-        return series.GetImages(ImageEntityType.Backdrop).Count is > 0;
+        return series.GetImages(imageType: ImageEntityType.Backdrop).Count is > 0;
     }
 }

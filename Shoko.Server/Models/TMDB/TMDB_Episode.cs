@@ -1,10 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
@@ -13,9 +17,10 @@ using Shoko.Abstractions.Video;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Search;
@@ -212,14 +217,14 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
         foreach (var preferredLanguage in Languages.PreferredEpisodeNamingLanguages)
         {
             if (preferredLanguage.Language == TitleLanguage.Main)
-                return new(ForeignEntityType.Episode, TmdbEpisodeID, EnglishTitle, "en", "US");
+                return new(DataEntityType.Episode, TmdbEpisodeID, EnglishTitle, "en", "US");
 
             var title = titles.GetByLanguage(preferredLanguage.Language);
             if (title != null)
                 return title;
         }
 
-        return useFallback ? new(ForeignEntityType.Episode, TmdbEpisodeID, EnglishTitle, "en", "US") : null;
+        return useFallback ? new(DataEntityType.Episode, TmdbEpisodeID, EnglishTitle, "en", "US") : null;
     }
 
     /// <summary>
@@ -235,8 +240,8 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
     /// already cached from a previous call.</param>
     /// <returns>All titles for the episode.</returns>
     public IReadOnlyList<TMDB_Title> GetAllTitles(bool force = false) => force
-        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Episode, TmdbEpisodeID)
-        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(ForeignEntityType.Episode, TmdbEpisodeID);
+        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Episode, TmdbEpisodeID)
+        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Episode, TmdbEpisodeID);
 
     /// <summary>
     /// Get all episode titles in the preferred episode title languages.
@@ -276,7 +281,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
                 return overview;
         }
 
-        return useFallback ? new(ForeignEntityType.Episode, TmdbEpisodeID, EnglishOverview, "en", "US") : null;
+        return useFallback ? new(DataEntityType.Episode, TmdbEpisodeID, EnglishOverview, "en", "US") : null;
     }
 
     /// <summary>
@@ -293,37 +298,8 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
     /// already cached from a previous call.</param>
     /// <returns>All overviews for the episode.</returns>
     public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
-        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Episode, TmdbEpisodeID)
-        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Episode, TmdbEpisodeID);
-
-    public TMDB_Image? DefaultThumbnail => RepoFactory.TMDB_Image.GetByRemoteFileName(ThumbnailPath)?.GetImageMetadata(true, ImageEntityType.Thumbnail);
-
-    /// <summary>
-    /// Get all images for the episode, or all images for the given
-    /// <paramref name="entityType"/> provided for the episode.
-    /// </summary>
-    /// <param name="entityType">If set, will restrict the returned list to only
-    /// containing the images of the given entity type.</param>
-    /// <returns>A read-only list of images that are linked to the episode.
-    /// </returns>
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbEpisodeIDAndType(TmdbEpisodeID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbEpisodeID(TmdbEpisodeID);
-
-    /// <summary>
-    /// Get all images for the episode, or all images for the given
-    /// <paramref name="entityType"/> provided for the episode.
-    /// </summary>
-    /// <param name="entityType">If set, will restrict the returned list to only
-    /// containing the images of the given entity type.</param>
-    /// <param name="preferredImages">The preferred images.</param>
-    /// <returns>A read-only list of images that are linked to the episode.
-    /// </returns>
-    public IReadOnlyList<IImage> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImage> preferredImages) =>
-        GetImages(entityType)
-            .GroupBy(i => i.ImageType)
-            .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)
-            .ToList();
+        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Episode, TmdbEpisodeID)
+        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Episode, TmdbEpisodeID);
 
     /// <summary>
     /// Get all cast members that have worked on this episode.
@@ -400,7 +376,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
 
     #region IEntityMetadata Implementation
 
-    ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Episode;
+    DataEntityType IEntityMetadata.Type => DataEntityType.Episode;
 
     DataSource IEntityMetadata.DataSource => DataSource.TMDB;
 
@@ -415,6 +391,8 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
     #endregion
 
     #region IMetadata Implementation
+
+    DataEntityType IMetadata.EntityType => DataEntityType.Episode;
 
     DataSource IMetadata.Source => DataSource.TMDB;
 
@@ -480,13 +458,31 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
 
     #region IWithImages Implementation
 
-    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
-        => null;
+    public IImage? GetPreferredImageForType(ImageEntityType imageType)
+        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
 
-    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType)
-        => entityType.HasValue
-            ? RepoFactory.TMDB_Image.GetByTmdbEpisodeIDAndType(TmdbEpisodeID, entityType.Value)
-            : RepoFactory.TMDB_Image.GetByTmdbEpisodeID(TmdbEpisodeID);
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
+
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
+
+    #endregion
+
+    #region IWithBackdropImage Implementation
+
+    public IImage? DefaultBackdropImage => DefaultBackdropImageCrossReference is { } xref && xref.GetImage() is { } image
+        ? new ShokoImageStub(image, xref)
+        : null;
+
+    public IImageCrossReference? DefaultBackdropImageCrossReference => !string.IsNullOrEmpty(ThumbnailPath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, ThumbnailPath) is { } imageID
+        ? GetImageCrossReferences(imageSource: DataSource.TMDB, imageType: ImageEntityType.Backdrop).FirstOrDefault(xref => xref.ImageID == imageID)
+        : null;
 
     #endregion
 
@@ -508,8 +504,6 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
     double IEpisode.Rating => UserRating;
 
     int IEpisode.RatingVotes => UserVotes;
-
-    IImage? IEpisode.DefaultThumbnail => DefaultThumbnail;
 
     TimeSpan IEpisode.Runtime => Runtime ?? TimeSpan.Zero;
 

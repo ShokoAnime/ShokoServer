@@ -3,6 +3,7 @@ using System.Linq;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Image;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
@@ -105,15 +106,11 @@ public static class APIv3_Extensions
         IReadOnlySet<TitleLanguage>? language = null,
         IImage? preferredPoster = null,
         IImage? preferredBackdrop = null,
-        IImage? preferredThumbnail = null,
         bool includeDisabled = false,
-        bool includeThumbnails = false,
         bool preferredImages = false,
         bool randomizeImages = false)
     {
         var images = new Images();
-        if (includeThumbnails)
-            images.Thumbnails ??= [];
         foreach (var image in imageList)
         {
             if (!includeDisabled && !image.IsEnabled)
@@ -123,9 +120,9 @@ public static class APIv3_Extensions
                 continue;
 
             bool? preferredOverride = null;
-            switch (image.ImageType)
+            switch (image.Type)
             {
-                case ImageEntityType.Poster:
+                case ImageEntityType.Primary:
                     if (image.IsEnabled && preferredPoster is not null && preferredPoster.Equals(image))
                         preferredOverride = true;
                     images.Posters.Add(new(image, preferredOverride));
@@ -141,11 +138,6 @@ public static class APIv3_Extensions
                 case ImageEntityType.Logo:
                     images.Logos.Add(new(image));
                     break;
-                case ImageEntityType.Thumbnail when includeThumbnails:
-                    if (image.IsEnabled && preferredThumbnail is not null && preferredThumbnail.Equals(image))
-                        preferredOverride = true;
-                    images.Thumbnails!.Add(new(image, preferredOverride));
-                    break;
                 default:
                     break;
             }
@@ -157,8 +149,6 @@ public static class APIv3_Extensions
             SetPreferredOrDefaultImage(images.Backdrops, randomizeImages);
             SetPreferredOrDefaultImage(images.Banners, randomizeImages);
             SetPreferredOrDefaultImage(images.Logos, randomizeImages);
-            if (includeThumbnails)
-                SetPreferredOrDefaultImage(images.Thumbnails!, randomizeImages);
         }
 
         return images;

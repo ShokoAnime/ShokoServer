@@ -3,14 +3,15 @@ using System.Globalization;
 using System.IO;
 using ImageMagick;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.core;
-using Shoko.Server.Extensions;
 using Shoko.Server.Properties;
 using Shoko.Server.Settings;
 
+#pragma warning disable CS0618 // Type or member is obsolete
 #nullable enable
 namespace Shoko.Server.API.v2.Modules;
 
@@ -33,8 +34,7 @@ public class Image(IImageManager imageManager, ISettingsProvider settingsProvide
     [HttpGet("{type}/{id}")]
     public ActionResult GetImage(int type, int id)
     {
-        var imageType = (CL_ImageEntityType)type;
-        var metadata = imageManager.GetImage(imageType.ToServerSource(), imageType.ToServerType(), id);
+        var metadata = imageManager.GetImageByID(id);
         if (metadata is null || metadata.GetStream() is not { } stream)
             return APIStatus.NotFound();
 
@@ -54,12 +54,10 @@ public class Image(IImageManager imageManager, ISettingsProvider settingsProvide
         if (!float.TryParse(ratio.Replace(',', '.'), NumberStyles.AllowDecimalPoint, CultureInfo.CreateSpecificCulture("en-EN"), out var newRatio))
             newRatio = 0.6667f;
 
-        var imageType = (CL_ImageEntityType)type;
-        var metadata = imageManager.GetImage(imageType.ToServerSource(), imageType.ToServerType(), id);
-        if (metadata is null || metadata.GetStream() is not { } stream)
+        if (imageManager.GetImageByID(id)?.GetStream() is not { } stream)
             return APIStatus.NotFound();
 
-        return File(ResizeImageToRatio(stream, newRatio), metadata.ContentType);
+        return File(ResizeImageToRatio(stream, newRatio), "image/png");
     }
 
     /// <summary>
@@ -115,7 +113,7 @@ public class Image(IImageManager imageManager, ISettingsProvider settingsProvide
         var imageType = (CL_ImageEntityType)type;
         while (tries++ < 5)
         {
-            var metadata = imageManager.GetRandomImage(imageType.ToServerSource(), imageType.ToServerType());
+            var metadata = imageManager.GetRandomImageCrossReference(imageType.ToServerSource(), imageType.ToServerType())?.GetImage();
             if (metadata is not null && metadata.GetStream() is { } stream)
                 return File(stream, metadata.ContentType);
         }
@@ -158,5 +156,33 @@ public class Image(IImageManager imageManager, ISettingsProvider settingsProvide
         outStream.Seek(0, SeekOrigin.Begin);
 
         return outStream;
+    }
+}
+
+public static class APIv2ImageExtensions
+{
+    extension(CL_ImageEntityType type)
+    {
+        public ImageEntityType ToServerType()
+        => type switch
+        {
+            CL_ImageEntityType.AniDB_Character => ImageEntityType.Primary,
+            CL_ImageEntityType.AniDB_Cover => ImageEntityType.Primary,
+            CL_ImageEntityType.AniDB_Creator => ImageEntityType.Primary,
+            CL_ImageEntityType.MovieDB_FanArt => ImageEntityType.Backdrop,
+            CL_ImageEntityType.MovieDB_Poster => ImageEntityType.Primary,
+            _ => ImageEntityType.None,
+        };
+
+        public DataSource ToServerSource()
+        => type switch
+        {
+            CL_ImageEntityType.AniDB_Character => DataSource.AniDB,
+            CL_ImageEntityType.AniDB_Cover => DataSource.AniDB,
+            CL_ImageEntityType.AniDB_Creator => DataSource.AniDB,
+            CL_ImageEntityType.MovieDB_FanArt => DataSource.TMDB,
+            CL_ImageEntityType.MovieDB_Poster => DataSource.TMDB,
+            _ => DataSource.None,
+        };
     }
 }

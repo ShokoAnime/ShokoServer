@@ -252,6 +252,9 @@ public class SystemService : ISystemService
 
             _webHost = InitWebHost(settings);
 
+#pragma warning disable CS0618 // Type or member is obsolete
+            ISystemService.StaticServices = _webHost.Services;
+#pragma warning restore CS0618 // Type or member is obsolete
             Utils.ServiceContainer = _webHost.Services;
 
             StartupMessage = "Web Host & Services initialized.";
@@ -399,7 +402,7 @@ public class SystemService : ISystemService
             services.AddSingleton(typeof(ConfigurationProvider<>));
             services.AddSingleton<IUserService, UserService>();
             services.AddSingleton<IUserDataService, UserDataService>();
-            services.AddSingleton<IImageManager, AbstractImageManager>();
+            services.AddSingleton<IImageManager, ImageManager>();
             services.AddSingleton<IConnectivityService, ConnectivityService>();
             services.AddScoped<AnimeGroupCreator>();
 

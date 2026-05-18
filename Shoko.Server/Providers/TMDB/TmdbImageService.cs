@@ -1,314 +1,155 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
-using Shoko.Server.Models.TMDB;
-using Shoko.Server.Repositories.Cached.AniDB;
-using Shoko.Server.Repositories.Cached.TMDB;
-using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.TMDB;
-using Shoko.Server.Server;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using TMDbLib.Objects.General;
-
-// Suggestions we don't need in this file.
-#pragma warning disable CA1822
-#pragma warning disable CA1826
 
 #nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
-public class TmdbImageService
+public class TmdbImageService(ILogger<TmdbImageService> logger, IImageManager imageManager)
 {
-    private readonly ILogger<TmdbImageService> _logger;
-
-    private readonly ISchedulerFactory _schedulerFactory;
-
-    private readonly TMDB_ImageRepository _tmdbImages;
-
-    private readonly TMDB_Image_EntityRepository _tmdbImageEntities;
-
-    private readonly AniDB_Anime_PreferredImageRepository _preferredImages;
-
-    private readonly AniDB_Episode_PreferredImageRepository _preferredEpisodeImages;
-
-    public TmdbImageService(
-        ILogger<TmdbImageService> logger,
-        ISchedulerFactory schedulerFactory,
-        TMDB_ImageRepository tmdbImages,
-        TMDB_Image_EntityRepository tmdbImageEntities,
-        AniDB_Anime_PreferredImageRepository preferredImages,
-        AniDB_Episode_PreferredImageRepository preferredEpisodeImages
-    )
-    {
-        _logger = logger;
-        _schedulerFactory = schedulerFactory;
-        _tmdbImages = tmdbImages;
-        _tmdbImageEntities = tmdbImageEntities;
-        _preferredImages = preferredImages;
-        _preferredEpisodeImages = preferredEpisodeImages;
-    }
-
     #region Image
 
-    public async Task DownloadImageByType(string filePath, ImageEntityType imageType, ForeignEntityType foreignType, int foreignId, bool forceDownload = false)
+    public async Task DownloadImageByType(string filePath, ImageEntityType imageType, IWithImages entity, bool forceDownload = false)
     {
         if (string.IsNullOrEmpty(filePath))
             return;
 
-        var image = _tmdbImages.GetByRemoteFileName(filePath) ?? new(filePath);
-        var updated = image.TMDB_ImageID is 0;
-        if (updated)
-            _tmdbImages.Save(image);
+        filePath = SafeTransformResourceID(filePath);
+        var image = imageManager.GetImageBySourceAndRemoteResourceID(DataSource.TMDB, filePath)
+            ?? imageManager.AddImage(new()
+            {
+                Source = DataSource.TMDB,
+                ResourceID = filePath,
+            });
 
-        var imageEntity = _tmdbImageEntities.GetByForeignIDAndTypeAndRemoteFileName(foreignId, foreignType, imageType, filePath) ?? new(filePath, imageType, foreignType, foreignId);
-        updated = imageEntity.Populate(0, null);
-        if (updated)
-            _tmdbImageEntities.Save(imageEntity);
-
-        if (!forceDownload && File.Exists(image.LocalPath))
+        var imageEntity = imageManager.GetImageCrossReferencesForEntity(entity)
+            .FirstOrDefault(xref => xref.ImageType == imageType && xref.Source == DataSource.TMDB && xref.ImageID == image.ID) ??
+            imageManager.AddImageCrossReference(entity, image, new() { ImageType = imageType, Source = DataSource.TMDB });
+        imageManager.UpdateImageCrossReference(imageEntity, new() { Ordering = 0, IsDesired = true });
+        if (!forceDownload && image.IsAvailable)
             return;
 
-        await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<DownloadTmdbImageJob>(c =>
-        {
-            c.ImageID = image.TMDB_ImageID;
-            c.ImageType = image.ImageType;
-            c.ForceDownload = forceDownload;
-        });
+        await imageManager.ScheduleDownloadOfImage(image, force: forceDownload).ConfigureAwait(false);
     }
 
     public async Task DownloadImagesByType(
         string? defaultForType,
-        DateOnly? releasedAt,
         IReadOnlyList<ImageData> images,
         ImageEntityType imageType,
-        ForeignEntityType foreignType,
-        int foreignId,
+        IWithImages entity,
         int maxCount,
         List<TitleLanguage> languages,
         bool forceDownload = false
     )
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        var isLimitEnabled = maxCount > 0;
-        var validImages = images.Select(a => a.FilePath).Where(a => !string.IsNullOrEmpty(a)).ToHashSet();
-        var visitedImages = new HashSet<string>();
-        var orderedImages = images
-            .Select((image, index) => (Image: image, Language: (image.GetLanguageCode() ?? string.Empty).GetTitleLanguage(), Index: index))
+        var defaultId = string.IsNullOrEmpty(defaultForType)
+            ? (Guid?)null
+            : IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, defaultForType);
+        var desiredImages = images
+            .Select((image, index) => (Image: image, Language: (image?.Iso_639_1 ?? string.Empty).GetTitleLanguage(), Index: index))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Image.FilePath) && (languages.Count == 0 || languages.Contains(tuple.Language)))
             .OrderBy(tuple => languages.IndexOf(tuple.Language))
             .ThenBy(tuple => tuple.Index)
-            .Take(isLimitEnabled ? maxCount : int.MaxValue)
-            .OrderByDescending(tuple => tuple.Image.FilePath!.Equals(defaultForType))
-            .ThenBy(tuple => tuple.Index)
-            .Select((tuple, index) => (tuple.Image, index))
+            .Take(maxCount > 0 ? maxCount : int.MaxValue)
+            .Select(tuple => IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, SafeTransformResourceID(tuple.Image.FilePath!)))
+            .ToHashSet();
+        var orderedImages = images
+            .Where(a => !string.IsNullOrEmpty(a.FilePath))
+            .Select((image, index) => (image, index))
             .ToList();
+        var xrefs = imageManager.GetImageCrossReferencesForEntity(entity, imageSource: DataSource.TMDB, imageType: imageType, xrefSource: DataSource.TMDB)
+            .ToDictionary(xref => xref.ImageID);
+        var validImageCrossReferences = new HashSet<Guid>();
         foreach (var (imageData, index) in orderedImages)
         {
-            var imageFilePath = imageData.FilePath!;
-            visitedImages.Add(imageFilePath);
-
-            var image = _tmdbImages.GetByRemoteFileName(imageFilePath) ?? new(imageFilePath, imageType);
-            var updated = image.Populate(imageData);
-            if (updated)
-                _tmdbImages.Save(image);
-
-            var imageEntity = _tmdbImageEntities.GetByForeignIDAndTypeAndRemoteFileName(foreignId, foreignType, imageType, imageFilePath) ?? new(imageFilePath, imageType, foreignType, foreignId);
-            updated = imageEntity.Populate(index, releasedAt);
-            if (updated)
-                _tmdbImageEntities.Save(imageEntity);
-
-            if (!forceDownload && File.Exists(image.LocalPath))
+            var imageFilePath = SafeTransformResourceID(imageData.FilePath!);
+            if (!validImageCrossReferences.Add(IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, imageFilePath)))
                 continue;
 
-            await scheduler.StartJob<DownloadTmdbImageJob>(c =>
-            {
-                c.ImageID = image.TMDB_ImageID;
-                c.ImageType = image.ImageType;
-                c.ForceDownload = forceDownload;
-            });
-        }
-
-        var count = visitedImages.Count;
-        var storedImages = _tmdbImageEntities.GetByForeignIDAndType(foreignId, foreignType, imageType)
-            .Select(e => (Image: e.GetTmdbImage(), Entity: e))
-            .Where(x => x.Image is null || !visitedImages.Contains(x.Image.RemoteFileName))
-            .OrderByDescending(x => x.Entity.RemoteFileName.Equals(defaultForType))
-            .ThenBy(x => x.Image is null ? int.MinValue : languages.IndexOf(x.Image.Language) is var index && index >= 0 ? index : int.MaxValue)
-            .ThenBy(x => x.Entity.Ordering)
-            .ToList();
-        foreach (var (image, imageEntity) in storedImages)
-        {
-            if (image is null)
-            {
-                _tmdbImageEntities.Delete(imageEntity);
-                continue;
-            }
-
-            if (!validImages.Contains(image.RemoteFileName) || (isLimitEnabled && count >= maxCount))
-            {
-                // Check if the image is set as the preferred image for the given type for any series or episodes.
-                var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSource.TMDB, imageType, image.TMDB_ImageID);
-                var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSource.TMDB, imageType, image.TMDB_ImageID);
-                if (preferredAnimeImages.Count == 0 && preferredEpisodeImages.Count == 0)
+            var image = imageManager.GetImageBySourceAndRemoteResourceID(DataSource.TMDB, imageFilePath)
+                ?? imageManager.AddImage(new()
                 {
-                    RemoveImageFromEntity(image, foreignType, foreignId, imageType);
-                    continue;
-                }
-            }
-
-            var updated = imageEntity.Populate(count++, releasedAt);
-            if (updated)
-                _tmdbImageEntities.Save(imageEntity);
-
-            if (!forceDownload && File.Exists(image.LocalPath))
-                continue;
-
-            await scheduler.StartJob<DownloadTmdbImageJob>(c =>
+                    Source = DataSource.TMDB,
+                    ResourceID = imageFilePath,
+                    Width = (uint)imageData.Width,
+                    Height = (uint)imageData.Height,
+                    LanguageCode = imageData.Iso_639_1,
+                    CountryCode = imageData.Iso_3166_1,
+                });
+            var isDesired = desiredImages.Contains(image.ID) || (defaultId.HasValue && image.ID == defaultId.Value);
+            if (!xrefs.TryGetValue(image.ID, out var xref))
             {
-                c.ImageID = image.TMDB_ImageID;
-                c.ImageType = image.ImageType;
-                c.ForceDownload = forceDownload;
-            });
+                var data = new ImageCrossReferenceData()
+                {
+                    ImageType = imageType,
+                    Source = DataSource.TMDB,
+                    Ordering = (uint)index,
+                    IsDesired = isDesired,
+                    IsEnabled = true,
+                };
+                if (imageData.VoteCount > 0 && imageData.VoteAverage >= 1)
+                {
+                    data.Rating = imageData.VoteAverage;
+                    data.RatingVotes = (uint)imageData.VoteCount;
+                }
+                xref = imageManager.AddImageCrossReference(entity, image, data);
+            }
+            else
+            {
+                var updateData = new ImageCrossReferenceUpdateData()
+                {
+                    Ordering = (uint)index,
+                    IsDesired = isDesired,
+                };
+                if (imageData.VoteCount > 0 && imageData.VoteAverage >= 1)
+                {
+                    updateData.Rating = imageData.VoteAverage;
+                    updateData.RatingVotes = (uint)imageData.VoteCount;
+                }
+                xref = imageManager.UpdateImageCrossReference(xref, updateData);
+            }
         }
+
+        foreach (var xref in xrefs.Values.Where(xref => !validImageCrossReferences.Contains(xref.ImageID)))
+            imageManager.RemoveImageCrossReference(xref);
+
+        await imageManager.ScheduleAutoDownloadsForEntity(entity, xrefSource: DataSource.TMDB, force: forceDownload).ConfigureAwait(false);
     }
 
-    public void PurgeAllUnusedImages()
+    public void PurgeImages(IWithImages entity)
     {
-        var toRemove = new List<TMDB_Image>();
-        foreach (var image in _tmdbImages.GetAll())
+        if (!imageManager.TryGetMetadataForEntity(entity, out var entitySource, out var entityType, out var entityID, out _, out _, out _))
         {
-            var references = _tmdbImageEntities.GetByRemoteFileName(image.RemoteFileName);
-            if (references.Count > 0)
-                continue;
-
-            // Check if the image is set as any preferred image for any series or episodes.
-            var shouldKeep = false;
-            foreach (var iT in Enum.GetValues<ImageEntityType>())
-            {
-                var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSource.TMDB, iT, image.TMDB_ImageID);
-                var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSource.TMDB, iT, image.TMDB_ImageID);
-                if (preferredAnimeImages.Count > 0 || preferredEpisodeImages.Count > 0)
-                {
-                    shouldKeep = true;
-                    break;
-                }
-            }
-            if (shouldKeep)
-                continue;
-
-            toRemove.Add(image);
+            logger.LogWarning("Unable to purge images for {type} with id {EntityId}", entityType.ToString().ToLowerInvariant(), entityID);
+            return;
         }
 
-        _logger.LogDebug(
-            "Removing {count} unused images",
-            toRemove.Count
-        );
+        if (entitySource is not DataSource.TMDB)
+        {
+            logger.LogWarning("Unable to purge images for {type} with id {EntityId}", entityType.ToString().ToLowerInvariant(), entityID);
+            return;
+        }
 
-        foreach (var image in toRemove)
-            RemoveImageFromEntity(image);
-    }
-
-    public void PurgeImages(ForeignEntityType foreignType, int foreignId)
-    {
-        var imagesToRemove = _tmdbImages.GetByForeignID(foreignId, foreignType);
-
-        _logger.LogDebug(
-            "Removing {count} images for {type} with id {EntityId}",
+        var imagesToRemove = imageManager.GetImageCrossReferencesForEntity(entity);
+        logger.LogDebug(
+            "Removing {count} image cross-references for {type} with id {EntityId}",
             imagesToRemove.Count,
-            foreignType.ToString().ToLowerInvariant(),
-            foreignId);
-        foreach (var image in imagesToRemove)
-            RemoveImageFromEntity(image, foreignType, foreignId);
+            entityType.ToString().ToLowerInvariant(),
+            entityID);
+        foreach (var xref in imagesToRemove)
+            imageManager.RemoveImageCrossReference(xref);
     }
 
-    private bool RemoveImageFromEntity(TMDB_Image image, ForeignEntityType? foreignType = null, int? foreignId = null, ImageEntityType? imageType = null)
-    {
-        if (foreignType.HasValue && foreignId.HasValue)
-        {
-            var entities = _tmdbImageEntities.GetByForeignID(foreignId.Value, foreignType.Value)
-                .Where(x => !imageType.HasValue || x.ImageType == imageType.Value)
-                .ToList();
-            foreach (var linkedEntity in entities)
-            {
-                switch (linkedEntity.GetTmdbEntity())
-                {
-                    case TMDB_Movie movie:
-                        ShokoEventHandler.Instance.OnMovieUpdated(movie, UpdateReason.ImageRemoved);
-                        break;
-
-                    case TMDB_Show show:
-                        ShokoEventHandler.Instance.OnSeriesUpdated(show, UpdateReason.ImageRemoved);
-                        break;
-
-                    case TMDB_Season season:
-                    {
-                        if (season.TmdbShow is not { } tmdbShow)
-                            continue;
-
-                        // Until we have proper season entities in the abstraction, just emit it for the series/show.
-                        ShokoEventHandler.Instance.OnSeriesUpdated(tmdbShow, UpdateReason.ImageRemoved);
-                        break;
-                    }
-
-                    case TMDB_Episode episode:
-                    {
-                        if (episode.TmdbShow is not { } tmdbShow)
-                            continue;
-                        ShokoEventHandler.Instance.OnEpisodeUpdated(tmdbShow, episode, UpdateReason.ImageRemoved);
-                        break;
-                    }
-                }
-            }
-            _tmdbImageEntities.Delete(entities);
-        }
-
-        // Only delete the image metadata and/or file if all references were removed.
-        if (_tmdbImageEntities.GetByRemoteFileName(image.RemoteFileName).Count > 0)
-            return false;
-
-        // Check if the image is set as any preferred image for any series or episodes.
-        foreach (var iT in Enum.GetValues<ImageEntityType>())
-        {
-            var preferredAnimeImages = _preferredImages.GetByImageSourceAndTypeAndID(DataSource.TMDB, iT, image.TMDB_ImageID);
-            var preferredEpisodeImages = _preferredEpisodeImages.GetByImageSourceAndTypeAndID(DataSource.TMDB, iT, image.TMDB_ImageID);
-            if (preferredAnimeImages.Count > 0 || preferredEpisodeImages.Count > 0)
-                return false;
-        }
-
-        if (!string.IsNullOrEmpty(image.LocalPath) && File.Exists(image.LocalPath))
-            File.Delete(image.LocalPath);
-
-        _tmdbImages.Delete(image);
-
-        return true;
-    }
-
-    public void ResetPreferredImage(int anidbAnimeId, ForeignEntityType foreignType, int foreignId)
-    {
-        var images = _preferredImages.GetByAnimeID(anidbAnimeId);
-        foreach (var defaultImage in images)
-        {
-            if (defaultImage.ImageSource == DataSource.TMDB)
-            {
-                var image = _tmdbImages.GetByID(defaultImage.ImageID);
-                if (image == null)
-                {
-                    _logger.LogTrace("Removing preferred image for anime {AnimeId} because the preferred image could not be found.", anidbAnimeId);
-                    _preferredImages.Delete(defaultImage);
-                }
-                else if (_tmdbImageEntities.GetByForeignIDAndTypeAndRemoteFileName(foreignId, foreignType, defaultImage.ImageType, image.RemoteFileName) is { })
-                {
-                    _logger.LogTrace("Removing preferred image for anime {AnimeId} because it belongs to now TMDB {Type} {Id}", anidbAnimeId, foreignType.ToString(), foreignId);
-                    _preferredImages.Delete(defaultImage);
-                }
-            }
-        }
-    }
+    public static string SafeTransformResourceID(string resourceID)
+        => resourceID.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) ? resourceID[1..^4] + ".png" : resourceID[1..];
 
     #endregion
 }

@@ -39,9 +39,9 @@ public interface IServerSettings
     bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
 
     /// <summary>
-    /// Load image metadata from the file system and send to the clients.
+    /// Configure the image settings for Shoko.
     /// </summary>
-    bool LoadImageMetadata { get; set; }
+    ImageSettings Image { get; set; }
 
     /// <summary>
     /// The timeout in seconds for the caching database.

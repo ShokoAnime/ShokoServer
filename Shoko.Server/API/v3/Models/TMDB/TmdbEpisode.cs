@@ -200,14 +200,14 @@ public class TmdbEpisode
         {
             Value = episode.UserRating,
             MaxValue = 10,
-            Votes = episode.UserVotes,
+            Votes = (uint)episode.UserVotes,
             Source = "TMDB",
         };
         Runtime = episode.Runtime;
         if (include.HasFlag(IncludeDetails.Images))
             Images = episode.GetImages()
                 .InLanguage(language)
-                .ToDto(includeThumbnails: true, preferredThumbnail: episode.DefaultThumbnail);
+                .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = episode.Cast
                 .Select(cast => new Role(cast))

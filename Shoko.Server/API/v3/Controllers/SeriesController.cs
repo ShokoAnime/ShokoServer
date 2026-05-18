@@ -43,6 +43,8 @@ using Shoko.Server.Utilities;
 using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
 using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 
+#pragma warning disable CS0612 // Type or member is obsolete
+#pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable CA1822
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
@@ -126,6 +128,10 @@ public class SeriesController : BaseController
     internal const string TmdbForbiddenForUser = "Accessing TMDB.Show is not allowed for the current user";
 
     internal const string TmdbLinkNotFoundForSeriesID = "No TMDB entry for the given seriesID";
+
+    internal const string AnilistNotFoundForSeriesID = "No Anilist entry for the given seriesID";
+
+    internal const string AnilistForbiddenForUser = "Accessing Anilist is not allowed for the current user";
 
     #endregion
 
@@ -2541,8 +2547,6 @@ public class SeriesController : BaseController
 
     private const string InvalidIDForSource = "Invalid image id for selected source.";
 
-    private const string InvalidImageIsDisabled = "Image is disabled.";
-
     private const string NoDefaultImageForType = "No default image for type.";
 
     /// <summary>
@@ -2594,17 +2598,17 @@ public class SeriesController : BaseController
 
         var imageEntityType = imageType.ToServer();
         var preferredImage = series.GetPreferredImageForType(imageEntityType);
-        if (preferredImage != null)
+        if (preferredImage is not null)
             return new Image(preferredImage);
 
-        var images = series.GetImages(imageEntityType).ToDto();
+        var images = series.GetImages(imageType: imageEntityType).ToDto();
         var image = imageEntityType switch
         {
-            ImageEntityType.Poster => images.Posters.FirstOrDefault(),
+            ImageEntityType.Primary => images.Posters.FirstOrDefault(),
             ImageEntityType.Banner => images.Banners.FirstOrDefault(),
             ImageEntityType.Backdrop => images.Backdrops.FirstOrDefault(),
             ImageEntityType.Logo => images.Logos.FirstOrDefault(),
-            _ => null
+            _ => null,
         };
 
         if (image is null)
@@ -2637,31 +2641,18 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         // Check if the id is valid for the given type and source.
-        var dataSource = body.Source.ToServer();
+        var dataSource = body.Source;
         var imageEntityType = imageType.ToServer();
-        var image = _imageManager.GetImage(dataSource, imageEntityType, body.ID);
-        if (image is null)
+        var image = Guid.TryParse(body.ID, out var imageID)
+            ? _imageManager.GetImageByID(imageID)
+            : int.TryParse(body.ID, out var legacyImageID)
+                ? _imageManager.GetImageByID(legacyImageID)
+                : null;
+        if (image is null || (dataSource is not DataSource.None && dataSource != image.Source))
             return ValidationProblem(InvalidIDForSource);
-        if (!image.IsEnabled)
-            return ValidationProblem(InvalidImageIsDisabled);
 
-        // Create or update the entry if something changed.
-        var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(series.AniDB_ID, imageEntityType) ??
-            new() { AnidbAnimeID = series.AniDB_ID, ImageType = imageEntityType };
-        if (defaultImage.ImageID == body.ID && defaultImage.ImageSource == dataSource)
-            return new Image(body.ID, imageEntityType, dataSource, true);
-
-        defaultImage.ImageID = body.ID;
-        defaultImage.ImageSource = dataSource;
-        var isNew = defaultImage.AniDB_Anime_PreferredImageID is 0;
-        RepoFactory.AniDB_Anime_PreferredImage.Save(defaultImage);
-
-        // Update the contract data (used by Shoko Desktop).
-        RepoFactory.AnimeSeries.Save(series, false);
-
-        ShokoEventHandler.Instance.OnSeriesUpdated(series, isNew ? UpdateReason.ImageAdded : UpdateReason.ImageUpdated);
-
-        return new Image(body.ID, imageEntityType, dataSource, true);
+        var xref = _imageManager.SetPreferredImageForEntity(series, imageEntityType, image);
+        return new Image(new ShokoImageStub(image, xref));
     }
 
     /// <summary>
@@ -2687,17 +2678,23 @@ public class SeriesController : BaseController
 
         // Check if a default image is set.
         var imageEntityType = imageType.ToServer();
-        var defaultImage = RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(series.AniDB_ID, imageEntityType);
-        if (defaultImage == null)
+        var xref = _imageManager
+            .GetImageCrossReferencesForEntity(series, imageType: imageEntityType).FirstOrDefault(xref => xref.IsPreferred);
+        if (xref is null)
             return ValidationProblem("No default image for the selected type.");
 
-        // Delete the entry.
-        RepoFactory.AniDB_Anime_PreferredImage.Delete(defaultImage);
-
-        // Update the contract data (used by Shoko Desktop).
-        RepoFactory.AnimeSeries.Save(series, false);
-
-        ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.ImageRemoved);
+        switch (xref)
+        {
+            // Unset the preferred if it's not a user xref, or if it's a user xref and a user uploaded image.
+            case { Source: not DataSource.User }:
+            case { Source: DataSource.User, ImageSource: DataSource.User }:
+                _imageManager.UnsetPreferredImageForEntity(xref);
+                break;
+            // Otherwise remove the user created xref.
+            default:
+                _imageManager.RemoveImageCrossReference(xref);
+                break;
+        }
 
         // Don't return any content.
         return NoContent();

@@ -206,11 +206,11 @@ public class AniDbSettings
     public bool Notification_HandleMovedFiles { get; set; } = false;
 
     /// <summary>
-    /// The base URL for the image CDN to use.
+    /// The base URL or URL template for the image CDN to use.
     /// </summary>
     [Visibility(Size = DisplayElementSize.Large)]
     [SectionName("URLs")]
-    [Display(Name = "Image CDN Base URL")]
+    [Display(Name = "Image CDN URL")]
     [EnvironmentVariable("ANIDB_IMAGE_CDN_URL")]
     [Url]
     public string? ImageCdnUrl { get; set; }

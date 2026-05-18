@@ -8,6 +8,7 @@ using NLog;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v1.Models.Metro;
@@ -25,6 +26,7 @@ using Shoko.Server.Utilities;
 using Constants = Shoko.Server.Server.Constants;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.API.v1.Implementations;
 
 [ApiController]
@@ -374,10 +376,9 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
                             summary.UnwatchedEpisodeCount = 0;
                         }
 
-                        var imgDet = anidb_anime.PreferredOrDefaultPoster;
+                        var imgDet = (anidb_anime as IWithPrimaryImage).PrimaryImage;
                         summary.PosterName = imgDet.LocalPath;
-                        summary.ImageType = (int)imgDet.ImageType.ToClient(imgDet.Source);
-                        summary.ImageID = imgDet.ID;
+                        summary.ImageID = imgDet.LocalID;
 
                         retAnime.Add(summary);
                         numEps++;
@@ -464,10 +465,9 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
                             summary.UnwatchedEpisodeCount = 0;
                         }
 
-                        var imgDet = anidb_anime.PreferredOrDefaultPoster;
+                        var imgDet = (anidb_anime as IWithPrimaryImage).PrimaryImage;
                         summary.PosterName = imgDet.LocalPath;
-                        summary.ImageType = (int)imgDet.ImageType.ToClient(imgDet.Source);
-                        summary.ImageID = imgDet.ID;
+                        summary.ImageID = imgDet.LocalID;
 
                         retAnime.Add(summary);
 
@@ -561,9 +561,8 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
                             summary.UnwatchedEpisodeCount = 0;
                         }
 
-                        var imgDet = anidb_anime.PreferredOrDefaultPoster;
-                        summary.ImageType = (int)imgDet.ImageType.ToClient(imgDet.Source);
-                        summary.ImageID = imgDet.ID;
+                        var imgDet = (anidb_anime as IWithPrimaryImage).PrimaryImage;
+                        summary.ImageID = imgDet.LocalID;
 
                         retAnime.Add(summary);
 
@@ -633,10 +632,9 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
                 summary.BeginYear = anidb_anime.BeginYear;
                 summary.EndYear = anidb_anime.EndYear;
 
-                var imgDet = anidb_anime.PreferredOrDefaultPoster;
+                var imgDet = (anidb_anime as IWithPrimaryImage).PrimaryImage;
                 summary.PosterName = imgDet.LocalPath;
-                summary.ImageType = (int)imgDet.ImageType.ToClient(imgDet.Source);
-                summary.ImageID = imgDet.ID;
+                summary.ImageID = imgDet.LocalID;
 
                 retAnime.Add(summary);
                 if (retAnime.Count == maxRecords)
@@ -673,7 +671,7 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
                 if (anidb_anime is null || !user.AllowedSeries(ser))
                     continue;
 
-                var imgDet = anidb_anime.PreferredOrDefaultPoster;
+                var imgDet = (anidb_anime as IWithPrimaryImage).PrimaryImage;
                 var summary = new Metro_Anime_Summary
                 {
                     AirDateAsSeconds = AniDBExtensions.GetAniDBDateAsSeconds(anidb_anime.AirDate?.ToDateTime()),
@@ -683,8 +681,7 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
                     BeginYear = anidb_anime.BeginYear,
                     EndYear = anidb_anime.EndYear,
                     PosterName = imgDet.LocalPath,
-                    ImageType = (int)imgDet.ImageType.ToClient(imgDet.Source),
-                    ImageID = imgDet.ID,
+                    ImageID = imgDet.LocalID,
                 };
 
                 retAnime.Add(summary);
@@ -733,9 +730,8 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
             ret.BeginYear = anime.BeginYear;
             ret.EndYear = anime.EndYear;
 
-            var imgDet = anime.PreferredOrDefaultPoster;
-            ret.PosterImageType = (int)imgDet.ImageType.ToClient(imgDet.Source);
-            ret.PosterImageID = imgDet.ID;
+            var imgDet = (anime as IWithPrimaryImage).PrimaryImage;
+            ret.PosterImageID = imgDet.LocalID;
 
             ret.FanartImageType = 0;
             ret.FanartImageID = 0;
@@ -907,10 +903,9 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
                 BeginYear = anime.BeginYear,
                 EndYear = anime.EndYear,
             };
-            var imgDet = anime.PreferredOrDefaultPoster;
+            var imgDet = (anime as IWithPrimaryImage).PrimaryImage;
             summary.PosterName = imgDet.LocalPath;
-            summary.ImageType = (int)imgDet.ImageType.ToClient(imgDet.Source);
-            summary.ImageID = imgDet.ID;
+            summary.ImageID = imgDet.LocalID;
 
             if (ser is not null)
             {
@@ -1030,10 +1025,9 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
 
                     RelationshipType = link.RelationType
                 };
-                var imgDet = animeLink.PreferredOrDefaultPoster;
+                var imgDet = (animeLink as IWithPrimaryImage).PrimaryImage;
                 summary.PosterName = imgDet.LocalPath;
-                summary.ImageType = (int)imgDet.ImageType.ToClient(imgDet.Source);
-                summary.ImageID = imgDet.ID;
+                summary.ImageID = imgDet.LocalID;
 
                 if (ser is not null)
                 {
@@ -1070,10 +1064,9 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
                     EndYear = animeLink.EndYear,
                     RelationshipType = "Recommendation"
                 };
-                var imgDet = animeLink.PreferredOrDefaultPoster;
+                var imgDet = (animeLink as IWithPrimaryImage).PrimaryImage;
                 summary.PosterName = imgDet.LocalPath;
-                summary.ImageType = (int)imgDet.ImageType.ToClient(imgDet.Source);
-                summary.ImageID = imgDet.ID;
+                summary.ImageID = imgDet.LocalID;
 
                 if (ser is not null)
                 {

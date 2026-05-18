@@ -95,18 +95,15 @@ public class AniDB_Anime_Relation : IRelatedMetadata<ISeries, ISeries>, IEquatab
     public override int GetHashCode()
         => HashCode.Combine(AnimeID, RelatedAnimeID, AbstractRelationType);
 
-    #region IMetadata implementation
-
-    DataSource IMetadata.Source => DataSource.AniDB;
-
-    #endregion
-
     #region IRelatedMetadata implementation
 
     int IRelatedMetadata.BaseID => AnimeID;
 
     int IRelatedMetadata.RelatedID => RelatedAnimeID;
+
     AbstractRelationType IRelatedMetadata.RelationType => AbstractRelationType;
+
+    DataSource IRelatedMetadata.Source => DataSource.AniDB;
 
     #endregion
 

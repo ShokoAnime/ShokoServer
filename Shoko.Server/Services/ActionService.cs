@@ -1,21 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentNHibernate.Utils;
 using Microsoft.Extensions.Logging;
 using Quartz;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Databases;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -26,11 +23,8 @@ using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
-using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-
-using Utils = Shoko.Server.Utilities.Utils;
 
 namespace Shoko.Server.Services;
 
@@ -50,6 +44,8 @@ public class ActionService
 
     private readonly IVideoService _videoService;
 
+    private readonly IImageManager _imageManager;
+
     private readonly TmdbMetadataService _tmdbService;
 
     private readonly DatabaseFactory _databaseFactory;
@@ -57,8 +53,6 @@ public class ActionService
     private readonly HttpXmlUtils _xmlUtils;
 
     private readonly IPluginPackageManager _pluginPackageManager;
-
-    private readonly BackgroundWorker _downloadImagesWorker;
 
     public ActionService(
         ILogger<ActionService> logger,
@@ -68,6 +62,7 @@ public class ActionService
         IVideoReleaseService videoReleaseService,
         IAnidbService anidbService,
         IVideoService videoService,
+        IImageManager imageManager,
         TmdbMetadataService tmdbService,
         DatabaseFactory databaseFactory,
         HttpXmlUtils xmlUtils,
@@ -80,14 +75,12 @@ public class ActionService
         _settingsProvider = settingsProvider;
         _videoReleaseService = videoReleaseService;
         _anidbService = anidbService;
+        _imageManager = imageManager;
         _videoService = videoService;
         _tmdbService = tmdbService;
         _databaseFactory = databaseFactory;
         _xmlUtils = xmlUtils;
         _pluginPackageManager = pluginPackageManager;
-        _downloadImagesWorker = new();
-        _downloadImagesWorker.DoWork += DownloadImagesWorker_DoWork;
-        _downloadImagesWorker.WorkerSupportsCancellation = true;
     }
 
     public async Task RunImport_IntegrityCheck()
@@ -143,281 +136,8 @@ public class ActionService
         }
     }
 
-    public void RunImport_GetImages()
-    {
-        if (!_downloadImagesWorker.IsBusy)
-            _downloadImagesWorker.RunWorkerAsync();
-    }
-
-    private void DownloadImagesWorker_DoWork(object sender, DoWorkEventArgs e)
-        => RunImport_GetImagesInternal().ConfigureAwait(false).GetAwaiter().GetResult();
-
-    private async Task RunImport_GetImagesInternal()
-    {
-        var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
-        // AniDB images
-        foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
-        {
-            var updateImages = false;
-            // poster
-            if (!string.IsNullOrEmpty(anime.PosterPath)) updateImages |= !File.Exists(anime.PosterPath);
-
-            var seriesExists = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID) != null;
-            if (seriesExists)
-            {
-                // characters
-                updateImages |= ShouldUpdateAniDBCharacterImages(settings, anime);
-
-                // creators
-                updateImages |= ShouldUpdateAniDBCreatorImages(settings, anime);
-            }
-
-            if (!updateImages) continue;
-            await scheduler.StartJob<GetAniDBImagesJob>(c =>
-            {
-                c.AnimeID = anime.AnimeID;
-                c.OnlyPosters = !seriesExists;
-            });
-        }
-
-        // TMDB Images
-        if (settings.TMDB.AutoDownloadPosters)
-            await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Poster, settings.TMDB.MaxAutoPosters);
-        if (settings.TMDB.AutoDownloadLogos)
-            await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Logo, settings.TMDB.MaxAutoLogos);
-        if (settings.TMDB.AutoDownloadBackdrops)
-            await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Backdrop, settings.TMDB.MaxAutoBackdrops);
-        if (settings.TMDB.AutoDownloadStaffImages)
-            await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Creator, settings.TMDB.MaxAutoStaffImages);
-        if (settings.TMDB.AutoDownloadThumbnails)
-            await RunImport_DownloadTmdbImagesForType(_schedulerFactory, ImageEntityType.Thumbnail, settings.TMDB.MaxAutoThumbnails);
-    }
-
-    private static async Task RunImport_DownloadTmdbImagesForType(ISchedulerFactory schedulerFactory, ImageEntityType type, int maxCount)
-    {
-        // Build a few dictionaries to check how many images exist for each type.
-        var countsForMovies = new Dictionary<int, int>();
-        var countForEpisodes = new Dictionary<int, int>();
-        var countForSeasons = new Dictionary<int, int>();
-        var countForShows = new Dictionary<int, int>();
-        var countForCollections = new Dictionary<int, int>();
-        var countForNetworks = new Dictionary<int, int>();
-        var countForCompanies = new Dictionary<int, int>();
-        var countForPersons = new Dictionary<int, int>();
-        var allImages = RepoFactory.TMDB_Image.GetByType(type);
-        foreach (var image in allImages)
-        {
-            var path = image.LocalPath;
-            if (string.IsNullOrEmpty(path))
-                continue;
-
-            if (!File.Exists(path))
-                continue;
-
-            var entities = RepoFactory.TMDB_Image_Entity.GetByRemoteFileName(image.RemoteFileName)
-                .Where(x => x.ImageType == type)
-                .ToList();
-            foreach (var entity in entities)
-                switch (entity.TmdbEntityType)
-                {
-                    case ForeignEntityType.Movie:
-                        if (countsForMovies.ContainsKey(entity.TmdbEntityID))
-                            countsForMovies[entity.TmdbEntityID] += 1;
-                        else
-                            countsForMovies[entity.TmdbEntityID] = 1;
-                        break;
-                    case ForeignEntityType.Episode:
-                        if (countForEpisodes.ContainsKey(entity.TmdbEntityID))
-                            countForEpisodes[entity.TmdbEntityID] += 1;
-                        else
-                            countForEpisodes[entity.TmdbEntityID] = 1;
-                        break;
-                    case ForeignEntityType.Season:
-                        if (countForSeasons.ContainsKey(entity.TmdbEntityID))
-                            countForSeasons[entity.TmdbEntityID] += 1;
-                        else
-                            countForSeasons[entity.TmdbEntityID] = 1;
-                        break;
-                    case ForeignEntityType.Show:
-                        if (countForShows.ContainsKey(entity.TmdbEntityID))
-                            countForShows[entity.TmdbEntityID] += 1;
-                        else
-                            countForShows[entity.TmdbEntityID] = 1;
-                        break;
-                    case ForeignEntityType.Collection:
-                        if (countForCollections.ContainsKey(entity.TmdbEntityID))
-                            countForCollections[entity.TmdbEntityID] += 1;
-                        else
-                            countForCollections[entity.TmdbEntityID] = 1;
-                        break;
-                    case ForeignEntityType.Network:
-                        if (countForNetworks.ContainsKey(entity.TmdbEntityID))
-                            countForNetworks[entity.TmdbEntityID] += 1;
-                        else
-                            countForNetworks[entity.TmdbEntityID] = 1;
-                        break;
-                    case ForeignEntityType.Company:
-                        if (countForCompanies.ContainsKey(entity.TmdbEntityID))
-                            countForCompanies[entity.TmdbEntityID] += 1;
-                        else
-                            countForCompanies[entity.TmdbEntityID] = 1;
-                        break;
-                    case ForeignEntityType.Person:
-                        if (countForPersons.ContainsKey(entity.TmdbEntityID))
-                            countForPersons[entity.TmdbEntityID] += 1;
-                        else
-                            countForPersons[entity.TmdbEntityID] = 1;
-                        break;
-                }
-        }
-
-        var scheduler = await schedulerFactory.GetScheduler();
-        foreach (var image in allImages)
-        {
-            var path = image.LocalPath;
-            if (string.IsNullOrEmpty(path) || File.Exists(path))
-                continue;
-
-            // Check if we should download the image or not.
-            var limitEnabled = maxCount > 0;
-            var entities = RepoFactory.TMDB_Image_Entity.GetByRemoteFileName(image.RemoteFileName)
-                .Where(x => x.ImageType == type)
-                .ToList();
-            var shouldDownload = !limitEnabled && entities.Count > 0;
-            if (limitEnabled && entities.Count > 0)
-                foreach (var entity in entities)
-                    switch (entity.TmdbEntityType)
-                    {
-                        case ForeignEntityType.Movie:
-                            if (countsForMovies.ContainsKey(entity.TmdbEntityID) && countsForMovies[entity.TmdbEntityID] < maxCount)
-                                shouldDownload = true;
-                            break;
-                        case ForeignEntityType.Episode:
-                            if (countForEpisodes.ContainsKey(entity.TmdbEntityID) && countForEpisodes[entity.TmdbEntityID] < maxCount)
-                                shouldDownload = true;
-                            break;
-                        case ForeignEntityType.Season:
-                            if (countForSeasons.ContainsKey(entity.TmdbEntityID) && countForSeasons[entity.TmdbEntityID] < maxCount)
-                                shouldDownload = true;
-                            break;
-                        case ForeignEntityType.Show:
-                            if (countForShows.ContainsKey(entity.TmdbEntityID) && countForShows[entity.TmdbEntityID] < maxCount)
-                                shouldDownload = true;
-                            break;
-                        case ForeignEntityType.Collection:
-                            if (countForCollections.ContainsKey(entity.TmdbEntityID) && countForCollections[entity.TmdbEntityID] < maxCount)
-                                shouldDownload = true;
-                            break;
-                        case ForeignEntityType.Network:
-                            if (countForNetworks.ContainsKey(entity.TmdbEntityID) && countForNetworks[entity.TmdbEntityID] < maxCount)
-                                shouldDownload = true;
-                            break;
-                        case ForeignEntityType.Company:
-                            if (countForCompanies.ContainsKey(entity.TmdbEntityID) && countForCompanies[entity.TmdbEntityID] < maxCount)
-                                shouldDownload = true;
-                            break;
-                        case ForeignEntityType.Person:
-                            if (countForPersons.ContainsKey(entity.TmdbEntityID) && countForPersons[entity.TmdbEntityID] < maxCount)
-                                shouldDownload = true;
-                            break;
-                    }
-
-            if (shouldDownload)
-            {
-                await scheduler.StartJob<DownloadTmdbImageJob>(c =>
-                {
-                    c.ImageID = image.TMDB_ImageID;
-                    c.ImageType = image.ImageType;
-                });
-
-                foreach (var entity in entities)
-                    switch (entity.TmdbEntityType)
-                    {
-                        case ForeignEntityType.Movie:
-                            if (countsForMovies.ContainsKey(entity.TmdbEntityID))
-                                countsForMovies[entity.TmdbEntityID] += 1;
-                            else
-                                countsForMovies[entity.TmdbEntityID] = 1;
-                            break;
-                        case ForeignEntityType.Episode:
-                            if (countForEpisodes.ContainsKey(entity.TmdbEntityID))
-                                countForEpisodes[entity.TmdbEntityID] += 1;
-                            else
-                                countForEpisodes[entity.TmdbEntityID] = 1;
-                            break;
-                        case ForeignEntityType.Season:
-                            if (countForSeasons.ContainsKey(entity.TmdbEntityID))
-                                countForSeasons[entity.TmdbEntityID] += 1;
-                            else
-                                countForSeasons[entity.TmdbEntityID] = 1;
-                            break;
-                        case ForeignEntityType.Show:
-                            if (countForShows.ContainsKey(entity.TmdbEntityID))
-                                countForShows[entity.TmdbEntityID] += 1;
-                            else
-                                countForShows[entity.TmdbEntityID] = 1;
-                            break;
-                        case ForeignEntityType.Collection:
-                            if (countForCollections.ContainsKey(entity.TmdbEntityID))
-                                countForCollections[entity.TmdbEntityID] += 1;
-                            else
-                                countForCollections[entity.TmdbEntityID] = 1;
-                            break;
-                        case ForeignEntityType.Network:
-                            if (countForNetworks.ContainsKey(entity.TmdbEntityID))
-                                countForNetworks[entity.TmdbEntityID] += 1;
-                            else
-                                countForNetworks[entity.TmdbEntityID] = 1;
-                            break;
-                        case ForeignEntityType.Company:
-                            if (countForCompanies.ContainsKey(entity.TmdbEntityID))
-                                countForCompanies[entity.TmdbEntityID] += 1;
-                            else
-                                countForCompanies[entity.TmdbEntityID] = 1;
-                            break;
-                        case ForeignEntityType.Person:
-                            if (countForPersons.ContainsKey(entity.TmdbEntityID))
-                                countForPersons[entity.TmdbEntityID] += 1;
-                            else
-                                countForPersons[entity.TmdbEntityID] = 1;
-                            break;
-                    }
-            }
-        }
-    }
-
-    private static bool ShouldUpdateAniDBCreatorImages(IServerSettings settings, AniDB_Anime anime)
-    {
-        if (!settings.AniDb.DownloadCreators) return false;
-
-        foreach (var creator in RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(anime.AnimeID).Select(a => a.Creator).WhereNotNull())
-        {
-            if (string.IsNullOrEmpty(creator.ImagePath)) continue;
-            if (!ImageExtensions.IsImageValid(creator.GetFullImagePath())) return true;
-        }
-
-        foreach (var creator in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(anime.AnimeID).Select(a => RepoFactory.AniDB_Creator.GetByCreatorID(a.CreatorID)).WhereNotNull())
-        {
-            if (string.IsNullOrEmpty(creator.ImagePath)) continue;
-            if (!ImageExtensions.IsImageValid(creator.GetFullImagePath())) return true;
-        }
-
-        return false;
-    }
-
-    private static bool ShouldUpdateAniDBCharacterImages(IServerSettings settings, AniDB_Anime anime)
-    {
-        if (!settings.AniDb.DownloadCharacters) return false;
-
-        foreach (var chr in RepoFactory.AniDB_Character.GetCharactersForAnime(anime.AnimeID))
-        {
-            if (string.IsNullOrEmpty(chr.ImagePath)) continue;
-            if (!ImageExtensions.IsImageValid(chr.GetFullImagePath())) return true;
-        }
-
-        return false;
-    }
+    public Task RunImport_GetImages()
+        => _imageManager.ScheduleAllAutoDownloads();
 
     public Task RunImport_ScanTMDB()
         => _tmdbService.ScanForMatches();

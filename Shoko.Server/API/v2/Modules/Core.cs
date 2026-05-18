@@ -684,9 +684,9 @@ public class Core : BaseController
     #region 11. Image Actions
 
     [HttpGet("images/update")]
-    public ActionResult UpdateImages()
+    public async Task<ActionResult> UpdateImages()
     {
-        _actionService.RunImport_GetImages();
+        await _actionService.RunImport_GetImages();
 
         return APIStatus.OK();
     }

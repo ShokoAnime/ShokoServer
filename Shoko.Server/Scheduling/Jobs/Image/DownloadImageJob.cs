@@ -1,0 +1,58 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Server.Scheduling.Acquisition.Attributes;
+using Shoko.Server.Scheduling.Attributes;
+using Shoko.Server.Utilities;
+
+#nullable enable
+namespace Shoko.Server.Scheduling.Jobs.Image;
+
+[DatabaseRequired]
+[NetworkRequired]
+[JobKeyGroup(JobKeyGroup.Image)]
+public class DownloadImageJob : BaseJob
+{
+    public DownloadImageJob() { }
+
+    public DataSource Source { get; set; }
+
+    public string ResourceID { get; set; } = string.Empty;
+
+    public bool ForceDownload { get; set; }
+
+    public override string TypeName => $"Download Image";
+
+    public override string Title => $"Downloading Image";
+
+    public override Dictionary<string, object> Details => ForceDownload
+        ? new()
+        {
+            { "Source", Source.ToString() },
+            { "Resource ID", ResourceID },
+            { "Force Download", true },
+        }
+        : new()
+        {
+            { "Source", Source.ToString() },
+            { "Resource ID", ResourceID },
+        };
+
+    public override async Task Process()
+    {
+        _logger.LogInformation("Processing {Job} for {Source}: {ResourceID} (ForceDownload: {ForceDownload})", nameof(DownloadImageJob), Source, ResourceID, ForceDownload);
+
+        var imageManager = Utils.ServiceContainer.GetRequiredService<IImageManager>();
+        var image = imageManager.GetImageBySourceAndRemoteResourceID(Source, ResourceID);
+        if (image is null)
+        {
+            _logger.LogWarning("Unable to find image for {Source}: {ResourceID}", Source, ResourceID);
+            return;
+        }
+
+        await imageManager.DownloadImage(image, ForceDownload);
+    }
+}

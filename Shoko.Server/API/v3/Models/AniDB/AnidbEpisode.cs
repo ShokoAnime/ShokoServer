@@ -80,7 +80,7 @@ public class AnidbEpisode
         EpisodeNumber = ep.EpisodeNumber;
         AirDate = ep.GetAirDateAsDate()?.ToDateOnly();
         Description = ep.Description;
-        Rating = new Rating { MaxValue = 10, Value = ep.RatingDouble, Votes = ep.VotesInt, Source = "AniDB" };
+        Rating = new Rating { MaxValue = 10, Value = ep.RatingDouble, Votes = (uint)ep.VotesInt, Source = "AniDB" };
         Title = mainTitle;
         Titles = titles
             .Select(a => new Title(a, defaultTitle.Value, mainTitle))

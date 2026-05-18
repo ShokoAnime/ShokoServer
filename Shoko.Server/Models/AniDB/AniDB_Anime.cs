@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Video;
@@ -18,6 +21,8 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 #nullable enable
@@ -372,57 +377,13 @@ public class AniDB_Anime : IAnidbAnime
                 return string.Empty;
             }
 
-            return Path.Combine(ImageUtils.GetAniDBImagePath(AnimeID), Picname);
+            var id = IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, Picname).ToString("N");
+            return Path.Join(ApplicationPaths.Instance.ImagesPath, DataSource.AniDB.ToString(), id[..2], id);
         }
     }
-
-    public AniDB_Anime_PreferredImage? PreferredPoster
-        => RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AnimeID, ImageEntityType.Poster);
-
-    public AniDB_Anime_PreferredImage? PreferredBackdrop
-        => RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AnimeID, ImageEntityType.Backdrop);
-
-    public AniDB_Anime_PreferredImage? PreferredBanner
-        => RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AnimeID, ImageEntityType.Banner);
 
     public string PreferredOrDefaultPosterPath
-        => PreferredPoster?.GetImageMetadata() is { } defaultPoster ? defaultPoster.LocalPath! : PosterPath;
-
-    public IImage PreferredOrDefaultPoster
-        => PreferredPoster?.GetImageMetadata() ?? this.GetImageMetadata();
-
-
-    public IImage? GetPreferredImageForType(ImageEntityType entityType)
-        => RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AnimeID, entityType)?.GetImageMetadata();
-
-    public IReadOnlyList<IImage> GetImages(ImageEntityType? entityType = null)
-    {
-        var preferredImages = (entityType.HasValue ? [RepoFactory.AniDB_Anime_PreferredImage.GetByAnidbAnimeIDAndType(AnimeID, entityType.Value)!] : RepoFactory.AniDB_Anime_PreferredImage.GetByAnimeID(AnimeID))
-            .WhereNotNull()
-            .Select(preferredImage => preferredImage.GetImageMetadata())
-            .WhereNotNull()
-            .ToDictionary(image => image.ImageType);
-        var images = new List<IImage>();
-        if (!entityType.HasValue || entityType.Value is ImageEntityType.Poster)
-        {
-            var poster = this.GetImageMetadata(false);
-            if (poster is not null)
-                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster.Equals(preferredPoster)
-                    ? preferredPoster
-                    : poster
-                );
-        }
-        foreach (var xref in TmdbShowCrossReferences)
-            images.AddRange(xref.GetImages(entityType, preferredImages));
-        foreach (var xref in TmdbSeasonCrossReferences)
-            images.AddRange(xref.GetImages(entityType, preferredImages));
-        foreach (var xref in TmdbMovieCrossReferences)
-            images.AddRange(xref.GetImages(entityType, preferredImages));
-
-        return images
-            .DistinctBy(image => (image.ImageType, image.Source, image.ID))
-            .ToList();
-    }
+        => (this as IWithPrimaryImage).PrimaryImageCrossReference?.GetImage() is { } primaryImage ? primaryImage.LocalPath! : PosterPath;
 
     #endregion
 
@@ -445,11 +406,6 @@ public class AniDB_Anime : IAnidbAnime
         => TmdbShowCrossReferences
             .Select(xref => RepoFactory.TMDB_Show.GetByTmdbShowID(xref.TmdbShowID))
             .WhereNotNull()
-            .ToList();
-
-    public IReadOnlyList<TMDB_Image> TmdbShowBackdrops
-        => TmdbShowCrossReferences
-            .SelectMany(xref => RepoFactory.TMDB_Image.GetByTmdbShowIDAndType(xref.TmdbShowID, ImageEntityType.Backdrop))
             .ToList();
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> TmdbEpisodeCrossReferences => RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AnimeID);
@@ -477,16 +433,6 @@ public class AniDB_Anime : IAnidbAnime
             .Distinct()
             .ToList();
 
-    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
-    {
-        throw new NotImplementedException();
-    }
-
-    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType)
-    {
-        throw new NotImplementedException();
-    }
-
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> TmdbMovieCrossReferences
         => RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(AnimeID);
 
@@ -494,11 +440,6 @@ public class AniDB_Anime : IAnidbAnime
         => TmdbMovieCrossReferences
             .Select(xref => RepoFactory.TMDB_Movie.GetByTmdbMovieID(xref.TmdbMovieID))
             .WhereNotNull()
-            .ToList();
-
-    public IReadOnlyList<TMDB_Image> TmdbMovieBackdrops
-        => TmdbMovieCrossReferences
-            .SelectMany(xref => RepoFactory.TMDB_Image.GetByTmdbMovieIDAndType(xref.TmdbMovieID, ImageEntityType.Backdrop))
             .ToList();
 
     #endregion
@@ -513,6 +454,8 @@ public class AniDB_Anime : IAnidbAnime
     #endregion
 
     #region IMetadata Implementation
+
+    DataEntityType IMetadata.EntityType => DataEntityType.Anime;
 
     DataSource IMetadata.Source => DataSource.AniDB;
 
@@ -564,6 +507,34 @@ public class AniDB_Anime : IAnidbAnime
 
     #endregion
 
+    #region IWithImages Implementation
+
+    public IImage? GetPreferredImageForType(ImageEntityType imageType)
+        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
+
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
+
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>().GetImagesForEntity(this, imageSource, imageType);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>().GetImageCrossReferencesForEntity(this, imageSource, imageType);
+
+    #endregion
+
+    #region IWithPrimaryImage Implementation
+
+    public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
+        ? new ShokoImageStub(image, xref)
+        : null;
+
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(Picname) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, Picname) is { } imageID
+        ? GetImageCrossReferences(imageSource: DataSource.AniDB, imageType: ImageEntityType.Primary).FirstOrDefault(xref => xref.ImageID == imageID)
+        : null;
+
+    #endregion
+
     #region IWithUpdateDate Implementation
 
     DateTime IWithUpdateDate.LastUpdatedAt => DateTimeDescUpdated.ToUniversalTime();
@@ -575,9 +546,8 @@ public class AniDB_Anime : IAnidbAnime
     IReadOnlyList<ICast> IWithCastAndCrew.Cast => RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID)
         .SelectMany(xref =>
         {
-            // We don't want organizations or borked cross-references to show up.
-            var character = xref.Character;
-            if (character is not { Type: not Server.CharacterType.Organization })
+            // We don't want borked cross-references to show up.
+            if (xref.Character is not { } character)
                 return [];
 
             // If a role don't have a creator then we still want it to show up.
@@ -617,7 +587,7 @@ public class AniDB_Anime : IAnidbAnime
             if (xref.Creator is not { Type: Providers.AniDB.CreatorType.Company } creator)
                 return null;
 
-            return new AniDB_Studio(xref, creator, this);
+            return new AniDB_Studio_For_Anime(xref, creator, this);
         })
         .WhereNotNull()
         .ToList();
@@ -643,8 +613,6 @@ public class AniDB_Anime : IAnidbAnime
     bool ISeries.Restricted => IsRestricted;
 
     IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is { } series ? [series] : [];
-
-    IImage? ISeries.DefaultPoster => this.GetImageMetadata();
 
     IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> ISeries.RelatedSeries =>
         RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID)

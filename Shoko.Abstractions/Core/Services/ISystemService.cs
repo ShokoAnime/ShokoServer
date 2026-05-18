@@ -228,4 +228,27 @@ public interface ISystemService
     Task WaitForDatabaseUnblockedAsync();
 
     #endregion
+
+    #region Services
+
+    private static IServiceProvider? _services = null;
+
+    /// <summary>
+    ///   Get or set the static service provider. DO NOT USE UNLESS ABSOLUTELY
+    ///   NECESSARY.
+    /// </summary>
+    /// <remarks>
+    ///   Will be set during startup. DO NOT SET MANUALLY.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///   The service provider has already been set.
+    /// </exception>
+    [Obsolete("Do not use this unless DI is not an option and only use it as a LAST RESORT!")]
+    public static IServiceProvider StaticServices
+    {
+        get => _services ?? throw new InvalidOperationException("The service provider has not been set.");
+        set => _services = _services is null ? value : throw new InvalidOperationException("The service provider has already been set.");
+    }
+
+    #endregion
 }

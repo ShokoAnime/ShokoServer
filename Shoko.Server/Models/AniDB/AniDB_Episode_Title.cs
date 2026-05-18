@@ -54,5 +54,5 @@ public class AniDB_Episode_Title : IEquatable<AniDB_Episode_Title>, ITitle
 
     string IText.Value => Title;
 
-    DataSource IMetadata.Source => DataSource.AniDB;
+    DataSource IText.Source => DataSource.AniDB;
 }

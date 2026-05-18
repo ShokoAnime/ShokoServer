@@ -845,7 +845,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(142,  9, "ALTER TABLE TMDB_Image DROP COLUMN TmdbPersonID;"),
         new(142, 10, "ALTER TABLE TMDB_Image DROP COLUMN ForeignType;"),
         new(142, 11, "ALTER TABLE TMDB_Image DROP COLUMN ImageType;"),
-        new(142, 12, DatabaseFixes.ScheduleTmdbImageUpdates),
+        new(142, 12),
         new(143,  1, "ALTER TABLE TMDB_Season ADD PosterPath NVARCHAR(64) NULL DEFAULT NULL;"),
         new(143,  2, "ALTER TABLE TMDB_Episode ADD ThumbnailPath NVARCHAR(64) NULL DEFAULT NULL;"),
         new(144,  1),
@@ -933,6 +933,10 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(156,  2, "UPDATE StoredRelocationPipe SET temp = CAST(Configuration AS VARBINARY(MAX));"),
         new(156,  3, "ALTER TABLE StoredRelocationPipe DROP COLUMN Configuration;"),
         new(156,  4, "EXEC sp_rename 'StoredRelocationPipe.temp', 'Configuration', 'COLUMN';"),
+        new(157,  1, @"CREATE TABLE ShokoImage (ID UNIQUEIDENTIFIER NOT NULL, LocalID INT NOT NULL, PrimaryID UNIQUEIDENTIFIER NOT NULL, Source TINYINT NOT NULL, ResourceID NVARCHAR(128) NOT NULL, LanguageCode NVARCHAR(8), CountryCode NVARCHAR(8), Width INT, Height INT, ContentType NVARCHAR(64) NOT NULL, DownloadAttempts TINYINT NOT NULL DEFAULT 0, CreatedAt DATETIME2 NOT NULL, LastUpdatedAt DATETIME2 NOT NULL, PRIMARY KEY (ID));"),
+        new(157,  2, @"CREATE TABLE ShokoImage_Entity (ID INT IDENTITY(1,1) NOT NULL, ImageID UNIQUEIDENTIFIER NOT NULL, PrimaryImageID UNIQUEIDENTIFIER NOT NULL, ImageType TINYINT NOT NULL, ImageSource TINYINT NOT NULL, EntitySource TINYINT NOT NULL, EntityType TINYINT NOT NULL, EntityID NVARCHAR(128) NOT NULL, EntitySeasonNumber INT, EntityEpisodeNumber INT, EntityReleasedAt DATE, IsEnabled BIT NOT NULL DEFAULT 1, IsDesired BIT NOT NULL DEFAULT 1, IsPreferred BIT NOT NULL DEFAULT 0, Ordering INT NOT NULL DEFAULT 0, Rating decimal(6,2) NULL, RatingVotes INT NULL, Source TINYINT NOT NULL, CreatedAt DATETIME2 NOT NULL, LastUpdatedAt DATETIME2 NOT NULL);"),
+        new(157,  3, DatabaseFixes.MigrateToUnifiedImages),
+        new(157,  4, DatabaseFixes.ScheduleTmdbImageUpdates),
     ];
 
     #endregion

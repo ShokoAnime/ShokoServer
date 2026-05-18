@@ -1,7 +1,6 @@
 
 using System;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Models.Interfaces;
@@ -16,7 +15,7 @@ public interface IEntityMetadata
     /// <summary>
     /// Entity type.
     /// </summary>
-    public ForeignEntityType Type { get; }
+    public DataEntityType Type { get; }
 
     /// <summary>
     /// Entity data source.

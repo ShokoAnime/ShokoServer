@@ -4,7 +4,6 @@ using System.Linq;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Server;
@@ -70,7 +69,7 @@ public class WebUIFactory
         {
             ID = group.AnimeGroupID,
             Type = anime.AnimeType.ToV3Dto(),
-            Rating = new Rating { Source = "AniDB", Value = anime.Rating, MaxValue = 1000, Votes = anime.VoteCount }
+            Rating = new Rating { Source = "AniDB", Value = anime.Rating, MaxValue = 1000, Votes = (uint)anime.VoteCount }
         };
         if (anime.AirDate is { } airDate && airDate != DateTime.MinValue)
             result.AirDate = airDate.ToDateOnly();

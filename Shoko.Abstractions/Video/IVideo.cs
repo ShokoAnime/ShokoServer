@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
@@ -14,7 +15,7 @@ namespace Shoko.Abstractions.Video;
 /// <summary>
 /// Video.
 /// </summary>
-public interface IVideo : IWithCreationDate, IWithUpdateDate
+public interface IVideo : IMetadata, IWithBackdropImage, IWithCreationDate, IWithUpdateDate
 {
     /// <summary>
     /// Video ID.

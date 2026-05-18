@@ -8,8 +8,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Core.Services;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
 using Shoko.Server.API;
@@ -24,6 +25,7 @@ namespace Shoko.Server.Services;
 
 public class GeneratedPlaylistService(
     ISystemService systemService,
+    IImageManager imageManager,
     IHttpContextAccessor contextAccessor,
     AnimeSeriesService animeSeriesService,
     AnimeSeriesRepository seriesRepository,
@@ -410,7 +412,7 @@ public class GeneratedPlaylistService(
 
     private string GetEpisodeEntry(UriBuilder uri, IShokoSeries series, IShokoEpisode episode, IVideo video, int part, int totalParts, int episodeRange, string apiKey)
     {
-        var poster = series.GetPreferredImageForType(ImageEntityType.Poster) ?? series.DefaultPoster;
+        var poster = series.GetPreferredImageForType(ImageEntityType.Primary) ?? series.DefaultPrimaryImage;
         var parts = totalParts > 1 ? $" ({part}/{totalParts})" : string.Empty;
         var episodeNumber = episode.Type is EpisodeType.Episode
             ? episode.EpisodeNumber.ToString()
@@ -421,8 +423,8 @@ public class GeneratedPlaylistService(
         queryString.Add("apikey", apiKey);
 
         // These fields are for media player plugins to consume.
-        if (poster is not null && !string.IsNullOrEmpty(poster.RemoteURL))
-            queryString.Add("posterUrl", poster.RemoteURL);
+        if (poster is not null && imageManager.GetTemplateUrlForSource(poster.Source) is { } template)
+            queryString.Add("posterUrl", string.Format(template, poster.ResourceID));
         queryString.Add("appId", "07a58b50-5109-5aa3-abbc-782fed0df04f"); // plugin id
         queryString.Add("animeId", series.AnidbAnimeID.ToString());
         queryString.Add("animeName", series.Title);

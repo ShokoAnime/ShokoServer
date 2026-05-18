@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using NLog;
 using NLog.Targets;
 using Shoko.Abstractions.Extensions;

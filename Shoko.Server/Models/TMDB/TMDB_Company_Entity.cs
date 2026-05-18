@@ -1,6 +1,5 @@
-
-#nullable enable
 using System;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -25,7 +24,16 @@ public class TMDB_Company_Entity
     /// <summary>
     /// TMDB Entity Type.
     /// </summary>
-    public ForeignEntityType TmdbEntityType { get; set; }
+    public DataEntityType TmdbEntityType { get; set; }
+
+    /// <summary>
+    /// Database compatibility for TMDB Entity Type.
+    /// </summary>
+    public ForeignEntityType ForeignTmdbEntityType
+    {
+        get => TmdbEntityType.ForeignType;
+        set => TmdbEntityType = value.DataType;
+    }
 
     /// <summary>
     /// TMDB Entity ID.
@@ -48,7 +56,7 @@ public class TMDB_Company_Entity
 
     public TMDB_Company_Entity() { }
 
-    public TMDB_Company_Entity(int companyId, ForeignEntityType entityType, int entityId, int index, DateOnly? releasedAt)
+    public TMDB_Company_Entity(int companyId, DataEntityType entityType, int entityId, int index, DateOnly? releasedAt)
     {
         TmdbCompanyID = companyId;
         TmdbEntityType = entityType;
@@ -67,16 +75,16 @@ public class TMDB_Company_Entity
     public IEntityMetadata? GetTmdbEntity() =>
         TmdbEntityType switch
         {
-            ForeignEntityType.Show => RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbEntityID),
-            ForeignEntityType.Movie => RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbEntityID),
+            DataEntityType.Show => RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbEntityID),
+            DataEntityType.Movie => RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbEntityID),
             _ => null,
         };
 
-    public TMDB_Show? GetTmdbShow() => TmdbEntityType == ForeignEntityType.Show
+    public TMDB_Show? GetTmdbShow() => TmdbEntityType is DataEntityType.Show
         ? RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbEntityID)
         : null;
 
-    public TMDB_Movie? GetTmdbMovie() => TmdbEntityType == ForeignEntityType.Movie
+    public TMDB_Movie? GetTmdbMovie() => TmdbEntityType is DataEntityType.Movie
         ? RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbEntityID)
         : null;
 

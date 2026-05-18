@@ -13,7 +13,13 @@ public class TMDB_Title : IEquatable<TMDB_Title>, ITitle
 
     public int ParentID { get; set; }
 
-    public ForeignEntityType ParentType { get; set; }
+    public DataEntityType ParentType { get; set; }
+
+    public ForeignEntityType ForeignParentType
+    {
+        get => ParentType.ForeignType;
+        set => ParentType = value.DataType;
+    }
 
     public TitleLanguage Language
     {
@@ -34,7 +40,7 @@ public class TMDB_Title : IEquatable<TMDB_Title>, ITitle
 
     public TMDB_Title() { }
 
-    public TMDB_Title(ForeignEntityType parentType, int parentId, string value, string languageCode, string countryCode)
+    public TMDB_Title(DataEntityType parentType, int parentId, string value, string languageCode, string countryCode)
     {
         ParentType = parentType;
         ParentID = parentId;
@@ -71,9 +77,9 @@ public class TMDB_Title : IEquatable<TMDB_Title>, ITitle
     public bool Equals(ITitle? other)
         => ITitle.Equals(this, other);
 
-    #region IMetadata Implementation
+    #region IText Implementation
 
-    DataSource IMetadata.Source => DataSource.TMDB;
+    DataSource IText.Source => DataSource.TMDB;
 
     #endregion
 

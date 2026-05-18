@@ -1,39 +1,36 @@
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Server.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Models.AniDB;
 
-public class AniDB_Studio : IStudio<ISeries>
+public class AniDB_Studio : IStudio
 {
-    private readonly AniDB_Anime_Staff _xref;
-
-    private readonly AniDB_Creator _creator;
+    private readonly string? _imagePath;
 
     public int ID { get; private set; }
 
-    public int ParentID { get; private set; }
-
     public string Name { get; private set; }
-
-    public ISeries Parent { get; private set; }
 
     #region Constructor
 
-    public AniDB_Studio(AniDB_Anime_Staff xref, AniDB_Creator creator, AniDB_Anime parent)
+    public AniDB_Studio(AniDB_Creator creator)
     {
-        _xref = xref;
-        _creator = creator;
+        _imagePath = creator.ImagePath;
         ID = creator.CreatorID;
-        ParentID = parent.AnimeID;
         Name = creator.Name;
-        Parent = parent;
     }
 
     #endregion
@@ -49,13 +46,21 @@ public class AniDB_Studio : IStudio<ISeries>
 
     #region IMetadata Implementation
 
+    DataEntityType IMetadata.EntityType => DataEntityType.Studio;
+
     DataSource IMetadata.Source => DataSource.AniDB;
 
     #endregion
 
-    #region IWithPortraitImage Implementation
+    #region IWithPrimaryImage Implementation
 
-    IImage? IWithPortraitImage.PortraitImage => _creator.GetImageMetadata();
+    public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
+        ? new ShokoImageStub(image, xref)
+        : null;
+
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(_imagePath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, _imagePath) is { } posterID
+        ? (this as IWithImages).GetImageCrossReferences(imageType: ImageEntityType.Primary).FirstOrDefault(xref => xref.ImageID == posterID)
+        : null;
 
     #endregion
 
@@ -63,7 +68,7 @@ public class AniDB_Studio : IStudio<ISeries>
 
     string? IStudio.OriginalName => null;
 
-    StudioType IStudio.StudioType => _xref.Role is "Animation Work" ? StudioType.Animation : StudioType.None;
+    StudioType IStudio.StudioType => StudioType.None;
 
     IEnumerable<IMovie> IStudio.MovieWorks => [];
 
@@ -71,9 +76,33 @@ public class AniDB_Studio : IStudio<ISeries>
 
     IEnumerable<IMetadata> IStudio.Works => GetAnime();
 
-    IMetadata<int>? IStudio.Parent => Parent;
+    #endregion
+}
 
-    ISeries? IStudio<ISeries>.ParentOfType => Parent;
+public class AniDB_Studio_For_Anime : AniDB_Studio, IStudio<ISeries>
+{
+    private readonly AniDB_Anime_Staff _xref;
+
+    public int ParentID { get; private set; }
+
+    public ISeries Parent { get; private set; }
+
+    #region Constructor
+
+    public AniDB_Studio_For_Anime(AniDB_Anime_Staff xref, AniDB_Creator creator, AniDB_Anime parent) : base(creator)
+    {
+        _xref = xref;
+        ParentID = parent.AnimeID;
+        Parent = parent;
+    }
+
+    #endregion
+
+    #region IStudio Implementation
+
+    StudioType IStudio.StudioType => _xref.Role is "Animation Work" ? StudioType.Animation : StudioType.None;
+
+    ISeries? IStudio<ISeries>.Parent => Parent;
 
     #endregion
 }

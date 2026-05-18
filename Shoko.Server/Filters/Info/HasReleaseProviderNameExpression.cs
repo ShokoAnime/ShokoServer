@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Filters.Interfaces;
-using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Filters.Info;

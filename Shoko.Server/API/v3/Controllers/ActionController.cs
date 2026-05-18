@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -15,7 +16,6 @@ using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Plex;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -36,35 +36,35 @@ public class ActionController : BaseController
     private readonly AnimeGroupService _groupService;
     private readonly TmdbMetadataService _tmdbMetadataService;
     private readonly TmdbLinkingService _tmdbLinkingService;
-    private readonly TmdbImageService _tmdbImageService;
     private readonly IVideoService _videoService;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IImageManager _imageManager;
 
     public ActionController(
         ILogger<ActionController> logger,
         TmdbMetadataService tmdbMetadataService,
         TmdbLinkingService tmdbLinkingService,
-        TmdbImageService tmdbImageService,
         ISchedulerFactory schedulerFactory,
         IVideoService videoService,
         IVideoReleaseService videoReleaseService,
         ISettingsProvider settingsProvider,
         ActionService actionService,
         AnimeGroupCreator groupCreator,
-        AnimeGroupService groupService
+        AnimeGroupService groupService,
+        IImageManager imageManager
     ) : base(settingsProvider)
     {
         _logger = logger;
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbLinkingService = tmdbLinkingService;
-        _tmdbImageService = tmdbImageService;
         _videoService = videoService;
         _videoReleaseService = videoReleaseService;
         _schedulerFactory = schedulerFactory;
         _actionService = actionService;
         _groupCreator = groupCreator;
         _groupService = groupService;
+        _imageManager = imageManager;
     }
 
     #region Common Actions
@@ -176,7 +176,7 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllImages")]
     public ActionResult UpdateAllImages()
     {
-        _actionService.RunImport_GetImages();
+        Task.Factory.StartNew(() => _imageManager.ScheduleAllAutoDownloads());
         return Ok();
     }
 
@@ -255,7 +255,7 @@ public class ActionController : BaseController
     [HttpGet("PurgeAllUnusedTmdbImages")]
     public ActionResult PurgeAllUnusedTmdbImages()
     {
-        Task.Factory.StartNew(_tmdbImageService.PurgeAllUnusedImages);
+        Task.Factory.StartNew(() => _imageManager.SchedulePurgeOfOrphanedImages(0, Abstractions.Metadata.Enums.DataSource.TMDB));
         return Ok();
     }
 
@@ -353,8 +353,7 @@ public class ActionController : BaseController
     [HttpGet("ValidateAllImages")]
     public async Task<ActionResult> ValidateAllImages()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<ValidateAllImagesJob>(prioritize: true);
+        await _imageManager.ScheduleValidateAllImages(prioritize: true);
         return Ok();
     }
 

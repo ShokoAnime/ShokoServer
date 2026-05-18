@@ -1,23 +1,33 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Models.AniDB.Embedded;
 
 public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int seasonNumber) : IAnidbSeason
 {
+    public static string GetID(int animeID, EpisodeType episodeType, int seasonNumber) => $"{animeID}:{episodeType}:{seasonNumber}";
+
+    public string ID => GetID(anime.ID, episodeType, seasonNumber);
+
+    private readonly string? _imagePath = ((AniDB_Anime)anime).Picname;
+
     int ISeason.SeriesID => anime.ID;
 
     int ISeason.SeasonNumber => seasonNumber;
-
-    IImage? ISeason.DefaultPoster
-        => seasonNumber is 0 ? null : anime.DefaultPoster;
 
     ISeries ISeason.Series => anime;
 
@@ -107,8 +117,6 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
 
     IReadOnlyList<ICrew> IWithCastAndCrew.Crew => anime.Crew;
 
-    string IMetadata<string>.ID => anime.ID.ToString();
-
     DataSource IMetadata.Source => DataSource.AniDB;
 
     IAnidbAnime IAnidbSeason.Series => anime;
@@ -120,9 +128,15 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
     IReadOnlyList<(int Year, YearlySeason Season)> IWithYearlySeasons.YearlySeasons
         => seasonNumber is 0 ? [] : anime.YearlySeasons;
 
-    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
-        => seasonNumber is 0 ? null : anime.GetPreferredImageForType(entityType);
+    #region IWithPrimaryImage Implementation
 
-    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType)
-        => seasonNumber is 0 ? [] : anime.GetImages(entityType);
+    public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
+        ? new ShokoImageStub(image, xref)
+        : null;
+
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(_imagePath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, _imagePath) is { } posterID
+        ? (this as IWithImages).GetImageCrossReferences(imageType: ImageEntityType.Primary).FirstOrDefault(xref => xref.ImageID == posterID)
+        : null;
+
+    #endregion
 }

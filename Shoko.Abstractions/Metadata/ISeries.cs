@@ -1,7 +1,6 @@
-using System;
 using System.Collections.Generic;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
 
@@ -10,7 +9,7 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Series metadata.
 /// </summary>
-public interface ISeries : IWithTitles, IWithDescriptions, IWithImages, IWithCastAndCrew, IWithStudios, IWithContentRatings, IWithYearlySeasons, IMetadata<int>
+public interface ISeries : IWithTitles, IWithDescriptions, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithCastAndCrew, IWithStudios, IWithContentRatings, IWithYearlySeasons, IMetadata<int>
 {
     /// <summary>
     /// The shoko series ID, if we have any.
@@ -25,7 +24,6 @@ public interface ISeries : IWithTitles, IWithDescriptions, IWithImages, IWithCas
     /// <summary>
     /// The first aired date, if fully or partially known.
     /// </summary>
-    /// <value></value>
     PartialDateOnly? AirDate { get; }
 
     /// <summary>
@@ -47,11 +45,6 @@ public interface ISeries : IWithTitles, IWithDescriptions, IWithImages, IWithCas
     /// Indicates it's restricted for non-adult viewers. 😉
     /// </summary>
     bool Restricted { get; }
-
-    /// <summary>
-    /// Default poster for the series.
-    /// </summary>
-    IImage? DefaultPoster { get; }
 
     /// <summary>
     /// All shoko series linked to this entity.

@@ -4,6 +4,8 @@ namespace Shoko.Abstractions.Metadata.Enums;
 /// <summary>
 ///   Match rating.
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
+[Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
 public enum MatchRating : byte
 {
     /// <summary>

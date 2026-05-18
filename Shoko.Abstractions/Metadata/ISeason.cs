@@ -6,7 +6,7 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Season Metadata.
 /// </summary>
-public interface ISeason : IWithTitles, IWithDescriptions, IWithImages, IWithCastAndCrew, IWithYearlySeasons, IMetadata<string>
+public interface ISeason : IWithTitles, IWithDescriptions, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithCastAndCrew, IWithYearlySeasons, IMetadata<string>
 {
     /// <summary>
     /// The TMDB show ID.
@@ -17,11 +17,6 @@ public interface ISeason : IWithTitles, IWithDescriptions, IWithImages, IWithCas
     /// Season number for default ordering.
     /// </summary>
     int SeasonNumber { get; }
-
-    /// <summary>
-    /// Default poster for the season.
-    /// </summary>
-    IImage? DefaultPoster { get; }
 
     /// <summary>
     /// Get the series info for the season, if available.

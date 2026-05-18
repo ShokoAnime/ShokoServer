@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using ImageMagick;
 using MessagePack;
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,10 +18,11 @@ using NLog;
 using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Enums;
@@ -111,7 +113,7 @@ public class DatabaseFixes
 
         var idMappings = new Dictionary<int, int>();
         // first, do the ones with no parent
-        foreach (var key in filters.Keys.Where(a => a.ParentGroupFilterID == null).OrderBy(a => a.GroupFilterID))
+        foreach (var key in filters.Keys.Where(a => a.ParentGroupFilterID is null).OrderBy(a => a.GroupFilterID))
         {
             var filter = legacyConverter.FromLegacy(key, filters[key]);
             RepoFactory.FilterPreset.Save(filter);
@@ -218,7 +220,7 @@ public class DatabaseFixes
     {
         var emptyGroups = RepoFactory.AnimeGroup.GetAll().Where(a => a.AllSeries.Count == 0).ToArray();
         RepoFactory.AnimeGroup.Delete(emptyGroups);
-        var orphanedSeries = RepoFactory.AnimeSeries.GetAll().Where(a => a.AnimeGroupID == 0 || a.AnimeGroup == null).ToArray();
+        var orphanedSeries = RepoFactory.AnimeSeries.GetAll().Where(a => a.AnimeGroupID == 0 || a.AnimeGroup is null).ToArray();
         var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
         using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         foreach (var series in orphanedSeries)
@@ -310,7 +312,7 @@ public class DatabaseFixes
         foreach (var (series, userIDs) in seriesList)
         {
             // No idea why we would have episode entries for a deleted series, but just in case.
-            if (series == null)
+            if (series is null)
             {
                 continue;
             }
@@ -362,7 +364,7 @@ public class DatabaseFixes
             try
             {
                 response = animeParser.Parse(anime.AnimeID, xml);
-                if (response == null) throw new NullReferenceException(nameof(response));
+                if (response is null) throw new NullReferenceException(nameof(response));
             }
             catch (Exception e)
             {
@@ -464,7 +466,7 @@ public class DatabaseFixes
             try
             {
                 response = animeParser.Parse(anime.AnimeID, xml);
-                if (response == null) throw new NullReferenceException(nameof(response));
+                if (response is null) throw new NullReferenceException(nameof(response));
             }
             catch (Exception e)
             {
@@ -559,7 +561,7 @@ public class DatabaseFixes
         {
             // No shoko episode, continue.
             var shokoEpisode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
-            if (shokoEpisode == null)
+            if (shokoEpisode is null)
                 continue;
 
             // The series exists and the episode mapping is correct, continue.
@@ -634,7 +636,7 @@ public class DatabaseFixes
         var service = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
 
         // Remove the "MovieDB" directory in the image directory, since it's no longer used,
-        var dir = new DirectoryInfo(Path.Join(ImageUtils.BaseImagesPath, "MovieDB"));
+        var dir = new DirectoryInfo(Path.Join(ApplicationPaths.Instance.ImagesPath, "MovieDB"));
         if (dir.Exists)
             dir.Delete(true);
 
@@ -647,7 +649,7 @@ public class DatabaseFixes
 
     public static void CleanupAfterRemovingTvDB()
     {
-        var dir = new DirectoryInfo(Path.Join(ImageUtils.BaseImagesPath, "TvDB"));
+        var dir = new DirectoryInfo(Path.Join(ApplicationPaths.Instance.ImagesPath, "TvDB"));
         if (dir.Exists)
             dir.Delete(true);
     }
@@ -728,7 +730,7 @@ public class DatabaseFixes
             try
             {
                 response = animeParser.Parse(anime.AnimeID, xml);
-                if (response == null) throw new NullReferenceException(nameof(response));
+                if (response is null) throw new NullReferenceException(nameof(response));
             }
             catch (Exception e)
             {
@@ -796,7 +798,7 @@ public class DatabaseFixes
     public static void MoveTmdbImagesOnDisc()
     {
         var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
-        var imageDir = Path.Join(ImageUtils.BaseImagesPath, "TMDB");
+        var imageDir = Path.Join(ApplicationPaths.Instance.ImagesPath, "TMDB");
         if (!Directory.Exists(imageDir))
             return;
 
@@ -856,7 +858,7 @@ public class DatabaseFixes
             }
         }
 
-        var imageTypes = Enum.GetValues<ImageEntityType>();
+        var imageTypes = new string[] { "Poster", "Banner", "Backdrop", "Logo" };
         foreach (var imageType in imageTypes)
         {
             var imageTypeDir = Path.Join(imageDir, imageType.ToString());
@@ -1373,7 +1375,7 @@ public class DatabaseFixes
                             : null;
                         try
                         {
-                            var settingsJson = MessagePackSerializer.ConvertToJson(renamerConfig.Settings,MessagePackSerializer.DefaultOptions.WithCompression(MessagePackCompression.Lz4BlockArray));
+                            var settingsJson = MessagePackSerializer.ConvertToJson(renamerConfig.Settings, MessagePackSerializer.DefaultOptions.WithCompression(MessagePackCompression.Lz4BlockArray));
                             settingsString = Environment.NewLine + "Settings (JSON): " + settingsJson;
                             scriptString = Environment.NewLine + "Script: " + Environment.NewLine + JsonNode.Parse(settingsJson)?["Script"] ?? string.Empty;
                         }
@@ -1392,7 +1394,7 @@ public class DatabaseFixes
                             var config = MessagePackSerializer.Typeless.Deserialize(renamerConfig.Settings);
                             if (config.GetType() != providerInfo.ConfigurationInfo.Type)
                             {
-                                _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPipe. Mismatched config type. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type +  settingsString + scriptString);
+                                _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPipe. Mismatched config type. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
                                 continue;
                             }
                             configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(config as IConfiguration));
@@ -1553,6 +1555,772 @@ public class DatabaseFixes
         session.CreateSQLQuery(DropCommand).ExecuteUpdate();
     }
 
+    public static void MigrateToUnifiedImages()
+    {
+        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
+        var imagesPath = ApplicationPaths.Instance.ImagesPath;
+        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+        var str = systemService.StartupMessage ?? string.Empty;
+
+        foreach (var (oldName, newName) in new (string, string)[]
+        {
+            ("AniDB", "AniDB_old"),
+            ("AniDB_Char", "AniDB_Char_old"),
+            ("AniDB_Creator", "AniDB_Creator_old"),
+            ("TMDB", "TMDB_old"),
+        })
+        {
+            var oldDir = Path.Join(imagesPath, oldName);
+            var backupDir = Path.Join(imagesPath, newName);
+            if (Directory.Exists(oldDir) && !Directory.Exists(backupDir))
+                Directory.Move(oldDir, backupDir);
+        }
+
+        var oldTmdbImages = new List<DNF_TMDB_Image>();
+        try
+        {
+            var rawTmdbImages = session.CreateSQLQuery(
+                    "SELECT TMDB_ImageID, IsEnabled, Width, Height, Language, RemoteFileName, UserRating, UserVotes FROM TMDB_Image")
+                .AddScalar("TMDB_ImageID", NHibernateUtil.Int32)
+                .AddScalar("IsEnabled", NHibernateUtil.Int32)
+                .AddScalar("Width", NHibernateUtil.Int32)
+                .AddScalar("Height", NHibernateUtil.Int32)
+                .AddScalar("Language", NHibernateUtil.String)
+                .AddScalar("RemoteFileName", NHibernateUtil.String)
+                .AddScalar("UserRating", NHibernateUtil.Double)
+                .AddScalar("UserVotes", NHibernateUtil.Int32)
+                .List<object[]>();
+
+            foreach (var fields in rawTmdbImages)
+            {
+                var remoteFileName = (string)fields[5];
+                if (string.IsNullOrEmpty(remoteFileName))
+                    continue;
+
+                oldTmdbImages.Add(new DNF_TMDB_Image
+                {
+                    TMDB_ImageID = (int)fields[0],
+                    IsEnabled = (int)fields[1] == 1,
+                    Width = (int)fields[2],
+                    Height = (int)fields[3],
+                    Language = (string)fields[4],
+                    RemoteFileName = remoteFileName,
+                    UserRating = (double)fields[6],
+                    UserVotes = (int)fields[7],
+                });
+            }
+        }
+        catch (GenericADOException)
+        {
+            _logger.Info("TMDB_Image table does not exist, skipping.");
+        }
+
+        systemService.StartupMessage = $"{str} - Loaded {oldTmdbImages.Count} TMDB_Image records to migrate.";
+        _logger.Info("Loaded {Count} TMDB_Image records to migrate.", oldTmdbImages.Count);
+
+        var oldTmdbImageEntities = new List<DNF_TMDB_Image_Entity>();
+        try
+        {
+            var rawTmdbImageEntities = session.CreateSQLQuery(
+                    "SELECT TMDB_Image_EntityID, RemoteFileName, ImageType, TmdbEntityType, TmdbEntityID, Ordering, ReleasedAt FROM TMDB_Image_Entity")
+                .AddScalar("TMDB_Image_EntityID", NHibernateUtil.Int32)
+                .AddScalar("RemoteFileName", NHibernateUtil.String)
+                .AddScalar("ImageType", NHibernateUtil.Int32)
+                .AddScalar("TmdbEntityType", NHibernateUtil.Int32)
+                .AddScalar("TmdbEntityID", NHibernateUtil.Int32)
+                .AddScalar("Ordering", NHibernateUtil.Int32)
+                .AddScalar("ReleasedAt", NHibernateUtil.Date)
+                .List<object[]>();
+
+            foreach (var fields in rawTmdbImageEntities)
+            {
+                var releasedAt = (DateTime?)fields[6];
+                oldTmdbImageEntities.Add(new DNF_TMDB_Image_Entity
+                {
+                    TMDB_Image_EntityID = (int)fields[0],
+                    RemoteFileName = (string)fields[1],
+                    ImageType = LegacyImageEntityTypeConverter((int)fields[2]),
+                    TmdbEntityType = (int)fields[3],
+                    TmdbEntityID = (int)fields[4],
+                    Ordering = (int)fields[5],
+                    ReleasedAt = releasedAt.HasValue ? DateOnly.FromDateTime(releasedAt.Value) : null,
+                });
+            }
+        }
+        catch (GenericADOException)
+        {
+            _logger.Info("TMDB_Image_Entity table does not exist, skipping.");
+        }
+
+        systemService.StartupMessage = $"{str} - Loaded {oldTmdbImages.Count} TMDB_Image_Entity records to migrate.";
+        _logger.Info("Loaded {Count} TMDB_Image_Entity records to migrate.", oldTmdbImageEntities.Count);
+
+        var oldPreferredImages = new List<DNF_AniDB_PreferredImage>();
+        try
+        {
+            var rawAnimePreferredImages = session.CreateSQLQuery(
+                    "SELECT AniDB_Anime_PreferredImageID, AnidbAnimeID, ImageID, ImageSource, ImageType FROM AniDB_Anime_PreferredImage")
+                .AddScalar("AniDB_Anime_PreferredImageID", NHibernateUtil.Int32)
+                .AddScalar("AnidbAnimeID", NHibernateUtil.Int32)
+                .AddScalar("ImageID", NHibernateUtil.Int32)
+                .AddScalar("ImageSource", NHibernateUtil.Int32)
+                .AddScalar("ImageType", NHibernateUtil.Int32)
+                .List<object[]>();
+
+            foreach (var fields in rawAnimePreferredImages)
+            {
+                oldPreferredImages.Add(new DNF_AniDB_PreferredImage
+                {
+                    PreferredImageID = (int)fields[0],
+                    AnidbAnimeID = (int)fields[1],
+                    AnidbEpisodeID = 0,
+                    ImageID = (int)fields[2],
+                    ImageSource = (int)fields[3],
+                    ImageType = LegacyImageEntityTypeConverter((int)fields[4]),
+                });
+            }
+        }
+        catch (GenericADOException)
+        {
+            _logger.Info("AniDB_Anime_PreferredImage table does not exist, skipping.");
+        }
+
+        try
+        {
+            var rawEpisodePreferredImages = session.CreateSQLQuery(
+                    "SELECT AniDB_Episode_PreferredImageID, AnidbAnimeID, AnidbEpisodeID, ImageID, ImageSource, ImageType FROM AniDB_Episode_PreferredImage")
+                .AddScalar("AniDB_Episode_PreferredImageID", NHibernateUtil.Int32)
+                .AddScalar("AnidbAnimeID", NHibernateUtil.Int32)
+                .AddScalar("AnidbEpisodeID", NHibernateUtil.Int32)
+                .AddScalar("ImageID", NHibernateUtil.Int32)
+                .AddScalar("ImageSource", NHibernateUtil.Int32)
+                .AddScalar("ImageType", NHibernateUtil.Int32)
+                .List<object[]>();
+
+            foreach (var fields in rawEpisodePreferredImages)
+            {
+                oldPreferredImages.Add(new DNF_AniDB_PreferredImage
+                {
+                    PreferredImageID = (int)fields[0],
+                    AnidbAnimeID = (int)fields[1],
+                    AnidbEpisodeID = (int)fields[2],
+                    ImageID = (int)fields[3],
+                    ImageSource = (int)fields[4],
+                    ImageType = LegacyImageEntityTypeConverter((int)fields[5]),
+                });
+            }
+        }
+        catch (GenericADOException)
+        {
+            _logger.Info("AniDB_Episode_PreferredImage table does not exist, skipping.");
+        }
+
+        systemService.StartupMessage = $"{str} - Loaded {oldPreferredImages.Count} PreferredImage records to migrate.";
+        _logger.Info("Loaded {Count} PreferredImage records to migrate.", oldPreferredImages.Count);
+
+        var oldUserAvatars = new List<DNF_UserAvatar>();
+        try
+        {
+            var rawAvatars = session.CreateSQLQuery(
+                    "SELECT JMMUserID, AvatarImageBlob, AvatarImageMetadata FROM JMMUser WHERE AvatarImageBlob IS NOT NULL AND AvatarImageBlob <> ''")
+                .AddScalar("JMMUserID", NHibernateUtil.Int32)
+                .AddScalar("AvatarImageBlob", NHibernateUtil.BinaryBlob)
+                .AddScalar("AvatarImageMetadata", NHibernateUtil.String)
+                .List<object[]>();
+
+            foreach (var fields in rawAvatars)
+            {
+                oldUserAvatars.Add(new DNF_UserAvatar
+                {
+                    JMMUserID = (int)fields[0],
+                    AvatarImageBlob = (byte[])fields[1],
+                    AvatarImageMetadata = (string)fields[2],
+                });
+            }
+        }
+        catch (GenericADOException)
+        {
+            _logger.Info("AvatarImageBlob column does not exist on JMMUser, skipping.");
+        }
+
+        systemService.StartupMessage = $"{str} - Loaded {oldUserAvatars.Count} user avatar records to migrate.";
+        _logger.Info("Loaded {Count} user avatar records to migrate.", oldUserAvatars.Count);
+
+        var migratedCount = 0;
+        var tmdbResourceIDToEnabled = new Dictionary<string, bool>(oldTmdbImages.Count);
+        var oldTMDBImageIDToNewGuid = new Dictionary<int, Guid>(oldTmdbImages.Count);
+        foreach (var old in oldTmdbImages)
+        {
+            var resourceID = TmdbImageService.SafeTransformResourceID(old.RemoteFileName);
+            var guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, resourceID);
+            if (RepoFactory.ShokoImage.GetByID(guid) != null)
+            {
+                oldTMDBImageIDToNewGuid[old.TMDB_ImageID] = guid;
+                continue;
+            }
+
+            var guidStr = guid.ToString("N");
+            var oldFileName = Path.GetFileNameWithoutExtension(resourceID);
+            var oldFileExt = resourceID.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)
+                ? ".png"
+                : Path.GetExtension(resourceID);
+            var oldHashedName = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(oldFileName))).ToLower();
+            var oldPath = Path.Join(imagesPath, "TMDB_old", oldHashedName[..2], oldHashedName + oldFileExt);
+            var newPath = Path.Join(imagesPath, "TMDB", guidStr[..2], guidStr);
+            var oldPathExists = File.Exists(oldPath);
+
+            var languageCode = old.Language is { Length: 2 } ? old.Language : null;
+            var contentType = MimeMapping.MimeUtility.GetMimeMapping(resourceID);
+            if (string.IsNullOrEmpty(contentType) || contentType == MimeMapping.MimeUtility.UnknownMimeType)
+                contentType = "image/jpeg";
+
+            var width = old.Width > 0 ? (uint?)old.Width : null;
+            var height = old.Height > 0 ? (uint?)old.Height : null;
+            if (oldPathExists)
+            {
+                try
+                {
+                    var metadata = new MagickImageInfo(oldPath);
+                    width = metadata.Width;
+                    height = metadata.Height;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn(ex, "Failed to get image metadata for {Path}", oldPath);
+                    continue;
+                }
+            }
+
+            var image = new ShokoImage
+            {
+                ID = guid,
+                PrimaryID = guid,
+                Source = DataSource.TMDB,
+                ResourceID = resourceID,
+                LanguageCode = languageCode,
+                Width = width,
+                Height = height,
+                ContentType = contentType,
+                DownloadAttempts = (byte)(oldPathExists ? 1 : 0),
+                CreatedAt = DateTime.UtcNow,
+                LastUpdatedAt = DateTime.UtcNow,
+            };
+            RepoFactory.ShokoImage.Save(image);
+
+            tmdbResourceIDToEnabled[resourceID] = old.IsEnabled;
+            oldTMDBImageIDToNewGuid[old.TMDB_ImageID] = guid;
+
+            if (oldPathExists)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
+                File.Move(oldPath, newPath, overwrite: true);
+            }
+
+            migratedCount++;
+            if (migratedCount % 1000 == 0)
+            {
+                systemService.StartupMessage = $"{str} - Migrating TMDB images... {migratedCount}/{oldTmdbImages.Count}";
+            }
+        }
+
+        systemService.StartupMessage = $"{str} - Migrated {migratedCount} TMDB images to ShokoImage.";
+        _logger.Info("Migrated {Count} TMDB_Image records to ShokoImage.", migratedCount);
+
+        migratedCount = 0;
+        foreach (var old in oldTmdbImageEntities)
+        {
+            var resourceID = TmdbImageService.SafeTransformResourceID(old.RemoteFileName);
+            var guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, resourceID);
+            if (RepoFactory.ShokoImage.GetByID(guid) is null)
+            {
+                var guidStr = guid.ToString("N");
+                var oldFileName = Path.GetFileNameWithoutExtension(resourceID);
+                var oldFileExt = resourceID.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)
+                    ? ".png"
+                    : Path.GetExtension(resourceID);
+                var oldHashedName = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(oldFileName))).ToLower();
+                var oldPath = Path.Join(imagesPath, "TMDB_old", oldHashedName[..2], oldHashedName + oldFileExt);
+                var newPath = Path.Join(imagesPath, "TMDB", guidStr[..2], guidStr);
+                if (!MigrateImage(resourceID, DataSource.TMDB, oldPath, newPath))
+                    continue;
+            }
+
+            var mappedEntityType = old.TmdbEntityType switch
+            {
+                1 => DataEntityType.Collection,
+                2 => DataEntityType.Movie,
+                4 => DataEntityType.Show,
+                8 => DataEntityType.Season,
+                16 => DataEntityType.Episode,
+                32 => DataEntityType.Company,
+                128 => DataEntityType.Network,
+                256 => DataEntityType.Person,
+                _ => DataEntityType.Unknown,
+            };
+            if (mappedEntityType == DataEntityType.Unknown)
+                continue;
+
+            var entityID = old.TmdbEntityID.ToString();
+            var hasXref = RepoFactory.ShokoImage_Entity.GetByImageID(guid)
+                .Any(x => x.EntitySource is DataSource.TMDB && x.EntityType == mappedEntityType && x.EntityID == entityID && x.ImageType == old.ImageType);
+            if (!hasXref)
+            {
+                var xref = new ShokoImage_Entity
+                {
+                    ImageID = guid,
+                    PrimaryImageID = guid,
+                    ImageType = old.ImageType,
+                    ImageSource = DataSource.TMDB,
+                    EntitySource = DataSource.TMDB,
+                    EntityType = mappedEntityType,
+                    EntityID = entityID,
+                    Ordering = (uint)Math.Max(0, old.Ordering),
+                    EntityReleasedAt = old.ReleasedAt,
+                    IsEnabled = tmdbResourceIDToEnabled.TryGetValue(resourceID, out var isEnabled) && isEnabled,
+                    IsDesired = true,
+                    Source = DataSource.TMDB,
+                    CreatedAt = DateTime.UtcNow,
+                    LastUpdatedAt = DateTime.UtcNow,
+                };
+                RepoFactory.ShokoImage_Entity.Save(xref);
+            }
+
+            migratedCount++;
+            if (migratedCount % 1000 == 0)
+            {
+                systemService.StartupMessage = $"{str} - Migrating TMDB image xrefs... {migratedCount}/{oldTmdbImageEntities.Count}";
+            }
+        }
+
+        _logger.Info("Migrated {Count} TMDB_Image_Entity records to ShokoImage_Entity.", migratedCount);
+        systemService.StartupMessage = $"{str} - Migrated {migratedCount} TMDB image xrefs to ShokoImage_Entity.";
+
+        // Migrate AniDB PreferredImage records
+        migratedCount = 0;
+        foreach (var old in oldPreferredImages)
+        {
+            Guid guid;
+            if (old is { ImageSource: 0 /* abstractions and old internal anidb */, ImageType: ImageEntityType.Primary })
+            {
+                // AniDB Poster — find Picname from the anime record
+                var anime = RepoFactory.AniDB_Anime.GetByAnimeID(old.AnidbAnimeID);
+                if (anime is null || string.IsNullOrEmpty(anime.Picname))
+                    continue;
+
+                guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, anime.Picname);
+            }
+            else if (old is { ImageSource: 1 /* abstractions tmdb */ or 4 /* old internal tmdb */})
+            {
+                // TMDB — look up from old TMDB ImageID
+                if (!oldTMDBImageIDToNewGuid.TryGetValue(old.ImageID, out guid))
+                    continue;
+            }
+            else
+            {
+                continue;
+            }
+
+            DataEntityType entityType;
+            DataSource entitySource;
+            int entityID;
+            if (old.AnidbEpisodeID == 0 || old.AnidbEpisodeID is null)
+            {
+                if (RepoFactory.AnimeSeries.GetByAnimeID(old.AnidbAnimeID) is not { } shokoSeries)
+                    continue;
+
+                entityType = DataEntityType.Series;
+                entityID = shokoSeries.AnimeSeriesID;
+                entitySource = DataSource.Shoko;
+            }
+            else
+            {
+                if (RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(old.AnidbEpisodeID.Value) is not { } shokoEpisode)
+                    continue;
+
+                entityType = DataEntityType.Episode;
+                entityID = shokoEpisode.AnimeEpisodeID;
+                entitySource = DataSource.Shoko;
+            }
+
+            var xref = new ShokoImage_Entity
+            {
+                ImageID = guid,
+                PrimaryImageID = guid,
+                ImageType = old.ImageType,
+                ImageSource = (DataSource)old.ImageSource,
+                EntitySource = entitySource,
+                EntityType = entityType,
+                EntityID = entityID.ToString(),
+                IsPreferred = true,
+                IsEnabled = true,
+                IsDesired = true,
+                Source = DataSource.User,
+                CreatedAt = DateTime.UtcNow,
+                LastUpdatedAt = DateTime.UtcNow,
+            };
+            RepoFactory.ShokoImage_Entity.Save(xref);
+
+            migratedCount++;
+            if (migratedCount % 1000 == 0)
+            {
+                systemService.StartupMessage = $"{str} - Migrating PreferredImage records... {migratedCount}/{oldPreferredImages.Count}";
+            }
+        }
+
+        _logger.Info("Migrated {Count} PreferredImage records.", migratedCount);
+        systemService.StartupMessage = $"{str} - Migrated {migratedCount} PreferredImage records.";
+
+        // User avatar migration
+        migratedCount = 0;
+        foreach (var old in oldUserAvatars)
+        {
+            // Parse AvatarImageMetadata JSON to get ContentType, Width, Height
+            DNF_UserAvatarMetadata metadata;
+            try
+            {
+                metadata = JsonConvert.DeserializeObject<DNF_UserAvatarMetadata>(old.AvatarImageMetadata);
+                if (metadata is null)
+                {
+                    _logger.Warn("Failed to parse avatar metadata for user {UserID}, skipping.", old.JMMUserID);
+                    continue;
+                }
+            }
+            catch
+            {
+                _logger.Warn("Failed to parse avatar metadata for user {UserID}, skipping.", old.JMMUserID);
+                continue;
+            }
+
+            var md5Hex = Convert.ToHexString(MD5.HashData(old.AvatarImageBlob)).ToLower();
+            var guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.User, md5Hex);
+            if (RepoFactory.ShokoImage.GetByID(guid) is null)
+            {
+                var image = new ShokoImage
+                {
+                    ID = guid,
+                    PrimaryID = guid,
+                    Source = DataSource.User,
+                    ResourceID = md5Hex,
+                    ContentType = metadata.ContentType ?? "image/png",
+                    Width = metadata.Width > 0 ? metadata.Width : null,
+                    Height = metadata.Height > 0 ? metadata.Height : null,
+                    CreatedAt = DateTime.UtcNow,
+                    LastUpdatedAt = DateTime.UtcNow,
+                };
+                RepoFactory.ShokoImage.Save(image);
+            }
+
+            // Write blob to disk
+            var guidStr = guid.ToString("N");
+            var newPath = Path.Join(imagesPath, "User", guidStr[..2], guidStr);
+            Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
+            File.WriteAllBytes(newPath, old.AvatarImageBlob);
+
+            // Create ShokoImage_Entity xref
+            var xref = new ShokoImage_Entity
+            {
+                ImageID = guid,
+                PrimaryImageID = guid,
+                ImageType = ImageEntityType.Primary,
+                ImageSource = DataSource.User,
+                EntitySource = DataSource.Shoko,
+                EntityType = DataEntityType.User,
+                EntityID = old.JMMUserID.ToString(),
+                IsPreferred = true,
+                IsEnabled = true,
+                IsDesired = true,
+                Source = DataSource.Shoko,
+                CreatedAt = DateTime.UtcNow,
+                LastUpdatedAt = DateTime.UtcNow,
+            };
+            RepoFactory.ShokoImage_Entity.Save(xref);
+
+            migratedCount++;
+            if (migratedCount % 1000 == 0)
+            {
+                systemService.StartupMessage = $"{str} - Migrating user avatars... {migratedCount}/{oldUserAvatars.Count}";
+            }
+        }
+
+        _logger.Info("Migrated {Count} user avatar records.", migratedCount);
+        systemService.StartupMessage = $"{str} - Migrated {migratedCount} user avatar records.";
+
+        migratedCount = 0;
+        var anidbAnimeList = RepoFactory.AniDB_Anime.GetAll();
+        foreach (var anime in anidbAnimeList)
+        {
+            if (string.IsNullOrEmpty(anime.Picname))
+                continue;
+
+            var resourceID = anime.Picname;
+            var guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, resourceID);
+            if (RepoFactory.ShokoImage.GetByID(guid) is null)
+            {
+                var guidStr = guid.ToString("N");
+                var oldPath = Path.Join(
+                    imagesPath,
+                    "AniDB_old",
+                    anime.AnimeID.ToString() is { Length: > 1 } sid
+                        ? sid[..2] : anime.AnimeID.ToString(),
+                    resourceID
+                );
+                var newPath = Path.Join(imagesPath, "AniDB", guidStr[..2], guidStr);
+                if (!MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath))
+                    continue;
+            }
+
+            var entityID = anime.AnimeID.ToString();
+            var hasXref = RepoFactory.ShokoImage_Entity.GetByImageID(guid)
+                .Any(x => x is { EntitySource: DataSource.AniDB, EntityType: DataEntityType.Anime } && x.EntityID == entityID);
+            if (!hasXref)
+            {
+                var xref = new ShokoImage_Entity
+                {
+                    ImageID = guid,
+                    PrimaryImageID = guid,
+                    ImageType = ImageEntityType.Primary,
+                    ImageSource = DataSource.AniDB,
+                    EntitySource = DataSource.AniDB,
+                    EntityType = DataEntityType.Anime,
+                    EntityID = anime.AnimeID.ToString(),
+                    IsEnabled = true,
+                    IsDesired = true,
+                    Source = DataSource.AniDB,
+                    CreatedAt = DateTime.UtcNow,
+                    LastUpdatedAt = DateTime.UtcNow,
+                };
+                RepoFactory.ShokoImage_Entity.Save(xref);
+            }
+
+            migratedCount++;
+            if (migratedCount % 1000 == 0)
+            {
+                systemService.StartupMessage = $"{str} - Backfilling AniDB anime images... {migratedCount}/{anidbAnimeList.Count}";
+            }
+        }
+
+        _logger.Info("Backfilled {Count} AniDB anime image records.", migratedCount);
+        systemService.StartupMessage = $"{str} - Backfilled {migratedCount} AniDB anime image records.";
+
+        migratedCount = 0;
+        var anidbCreatorList = RepoFactory.AniDB_Creator.GetAll();
+        foreach (var creator in anidbCreatorList)
+        {
+            if (string.IsNullOrEmpty(creator.ImagePath))
+                continue;
+
+            var resourceID = creator.ImagePath;
+            var guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, resourceID);
+            if (RepoFactory.ShokoImage.GetByID(guid) is null)
+            {
+                var guidStr = guid.ToString("N");
+
+                var oldPath = Path.Join(
+                    imagesPath,
+                    "AniDB_Creator_old",
+                    creator.CreatorID.ToString() is { Length: > 1 } sid
+                        ? sid[..2] : creator.CreatorID.ToString(),
+                    resourceID
+                );
+                var newPath = Path.Join(imagesPath, "AniDB", guidStr[..2], guidStr);
+                if (!MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath))
+                    continue;
+            }
+
+            var entityID = creator.CreatorID.ToString();
+            var hasXref = RepoFactory.ShokoImage_Entity.GetByImageID(guid)
+                .Any(x => x is { EntitySource: DataSource.AniDB, EntityType: DataEntityType.Creator } && x.EntityID == entityID);
+            if (!hasXref)
+            {
+                var xref = new ShokoImage_Entity
+                {
+                    ImageID = guid,
+                    PrimaryImageID = guid,
+                    ImageType = ImageEntityType.Primary,
+                    ImageSource = DataSource.AniDB,
+                    EntitySource = DataSource.AniDB,
+                    EntityType = DataEntityType.Creator,
+                    EntityID = creator.CreatorID.ToString(),
+                    IsEnabled = true,
+                    IsDesired = true,
+                    Source = DataSource.AniDB,
+                    CreatedAt = DateTime.UtcNow,
+                    LastUpdatedAt = DateTime.UtcNow,
+                };
+                RepoFactory.ShokoImage_Entity.Save(xref);
+            }
+
+            migratedCount++;
+            if (migratedCount % 1000 == 0)
+            {
+                systemService.StartupMessage = $"{str} - Backfilling AniDB creator images... {migratedCount}/{anidbCreatorList.Count}";
+            }
+        }
+
+        _logger.Info("Backfilled {Count} AniDB creator image records.", migratedCount);
+        systemService.StartupMessage = $"{str} - Backfilled {migratedCount} AniDB creator image records.";
+
+        migratedCount = 0;
+        var anidbCharacterList = RepoFactory.AniDB_Character.GetAll();
+        foreach (var character in anidbCharacterList)
+        {
+            if (string.IsNullOrEmpty(character.ImagePath))
+                continue;
+
+            var resourceID = character.ImagePath;
+            var guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, resourceID);
+            if (RepoFactory.ShokoImage.GetByID(guid) is null)
+            {
+                var guidStr = guid.ToString("N");
+
+                var oldPath = Path.Join(
+                    imagesPath,
+                    "AniDB_Char_old",
+                    character.CharacterID.ToString() is { Length: > 1 } sid
+                        ? sid[..2] : character.CharacterID.ToString(),
+                    resourceID);
+                var newPath = Path.Join(imagesPath, "AniDB", guidStr[..2], guidStr);
+                if (!MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath))
+                    continue;
+            }
+
+            var entityID = character.CharacterID.ToString();
+            var hasXref = RepoFactory.ShokoImage_Entity.GetByImageID(guid)
+                .Any(x => x is { EntitySource: DataSource.AniDB, EntityType: DataEntityType.Character } && x.EntityID == entityID);
+            if (!hasXref)
+            {
+                var xref = new ShokoImage_Entity
+                {
+                    ImageID = guid,
+                    PrimaryImageID = guid,
+                    ImageType = ImageEntityType.Primary,
+                    ImageSource = DataSource.AniDB,
+                    EntitySource = DataSource.AniDB,
+                    EntityType = DataEntityType.Character,
+                    EntityID = character.CharacterID.ToString(),
+                    IsEnabled = true,
+                    IsDesired = true,
+                    Source = DataSource.AniDB,
+                    CreatedAt = DateTime.UtcNow,
+                    LastUpdatedAt = DateTime.UtcNow,
+                };
+                RepoFactory.ShokoImage_Entity.Save(xref);
+            }
+
+            migratedCount++;
+            if (migratedCount % 1000 == 0)
+            {
+                systemService.StartupMessage = $"{str} - Backfilling AniDB character images... {migratedCount}/{anidbCharacterList.Count}";
+            }
+        }
+
+        _logger.Info("Backfilled {Count} AniDB character image records.", migratedCount);
+        systemService.StartupMessage = $"{str} - Backfilled {migratedCount} AniDB character image records.";
+
+        // 3k. Cleanup
+        var tablesToDrop = new[] { "TMDB_Image", "TMDB_Image_Entity", "AniDB_Anime_PreferredImage", "AniDB_Episode_PreferredImage" };
+        foreach (var table in tablesToDrop)
+        {
+            try
+            {
+                session.CreateSQLQuery($"DROP TABLE {table};").ExecuteUpdate();
+            }
+            catch (GenericADOException) { }
+        }
+        try
+        {
+            session.CreateSQLQuery("ALTER TABLE JMMUser DROP COLUMN AvatarImageBlob;").ExecuteUpdate();
+        }
+        catch (GenericADOException) { }
+        try
+        {
+            session.CreateSQLQuery("ALTER TABLE JMMUser DROP COLUMN AvatarImageMetadata;").ExecuteUpdate();
+        }
+        catch (GenericADOException) { }
+
+        // Remove old image directories
+        foreach (var oldName in new[] { "AniDB_old", "AniDB_Char_old", "AniDB_Creator_old", "TMDB_old" })
+        {
+            var dir = Path.Join(imagesPath, oldName);
+            if (Directory.Exists(dir))
+                Directory.Delete(dir, true);
+        }
+
+        systemService.StartupMessage = str;
+        _logger.Info("Completed migration to unified images.");
+    }
+
+    private static bool MigrateImage(string resourceID, DataSource source, string oldPath, string newPath)
+    {
+        var guid = IImageManager.GetIDForImageSourceAndResourceID(source, resourceID);
+        var oldPathExists = File.Exists(oldPath);
+
+        var contentType = MimeMapping.MimeUtility.GetMimeMapping(resourceID);
+        if (string.IsNullOrEmpty(contentType) || contentType == MimeMapping.MimeUtility.UnknownMimeType)
+            contentType = "image/jpeg";
+
+        var width = (uint?)null;
+        var height = (uint?)null;
+        if (oldPathExists)
+        {
+            try
+            {
+                var metadata = new MagickImageInfo(oldPath);
+                width = metadata.Width;
+                height = metadata.Height;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Could not get metadata for {Path}", oldPath);
+                return false;
+            }
+        }
+
+        var image = new ShokoImage
+        {
+            ID = guid,
+            PrimaryID = guid,
+            Source = source,
+            ResourceID = resourceID,
+            ContentType = contentType,
+            Width = width,
+            Height = height,
+            DownloadAttempts = (byte)(oldPathExists ? 1 : 0),
+            CreatedAt = DateTime.UtcNow,
+            LastUpdatedAt = DateTime.UtcNow,
+        };
+        RepoFactory.ShokoImage.Save(image);
+
+        if (oldPathExists)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
+            File.Move(oldPath, newPath, overwrite: true);
+        }
+
+        return true;
+    }
+
+    private static ImageEntityType LegacyImageEntityTypeConverter(int legacyType) => legacyType switch
+    {
+        1 => ImageEntityType.Backdrop,
+        2 => ImageEntityType.Banner,
+        3 => ImageEntityType.Logo,
+        4 => ImageEntityType.Primary,
+        5 => ImageEntityType.Disc,
+        6 => ImageEntityType.Primary,
+        7 => ImageEntityType.Backdrop,
+        8 => ImageEntityType.Primary,
+        9 => ImageEntityType.Primary,
+        _ => ImageEntityType.None,
+    };
+
+    private class DNF_UserAvatarMetadata
+    {
+        public string ContentType { get; set; }
+        public uint Width { get; set; }
+        public uint Height { get; set; }
+    }
+
     public class DBF_VideoLocal
     {
         public int VideoLocalID { get; set; }
@@ -1622,5 +2390,45 @@ public class DatabaseFixes
         public int VoteValue { get; set; }
 
         public VoteType VoteType { get; set; }
+    }
+
+    private class DNF_TMDB_Image
+    {
+        public int TMDB_ImageID { get; set; }
+        public bool IsEnabled { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public string Language { get; set; }
+        public string RemoteFileName { get; set; }
+        public double UserRating { get; set; }
+        public int UserVotes { get; set; }
+    }
+
+    private class DNF_TMDB_Image_Entity
+    {
+        public int TMDB_Image_EntityID { get; set; }
+        public string RemoteFileName { get; set; }
+        public ImageEntityType ImageType { get; set; }
+        public int TmdbEntityType { get; set; }
+        public int TmdbEntityID { get; set; }
+        public int Ordering { get; set; }
+        public DateOnly? ReleasedAt { get; set; }
+    }
+
+    private class DNF_AniDB_PreferredImage
+    {
+        public int PreferredImageID { get; set; }
+        public int AnidbAnimeID { get; set; }
+        public int? AnidbEpisodeID { get; set; }
+        public int ImageID { get; set; }
+        public int ImageSource { get; set; }
+        public ImageEntityType ImageType { get; set; }
+    }
+
+    private class DNF_UserAvatar
+    {
+        public int JMMUserID { get; set; }
+        public byte[] AvatarImageBlob { get; set; }
+        public string AvatarImageMetadata { get; set; }
     }
 }

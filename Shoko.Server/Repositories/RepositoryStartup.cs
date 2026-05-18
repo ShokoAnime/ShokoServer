@@ -51,12 +51,10 @@ public static class RepositoryStartup
         services.AddCachedRepository<AniDB_AnimeRepository>();
         services.AddCachedRepository<AniDB_Anime_CharacterRepository>();
         services.AddCachedRepository<AniDB_Anime_Character_CreatorRepository>();
-        services.AddCachedRepository<AniDB_Anime_PreferredImageRepository>();
         services.AddCachedRepository<AniDB_Anime_TagRepository>();
         services.AddCachedRepository<AniDB_Anime_TitleRepository>();
         services.AddCachedRepository<AniDB_CharacterRepository>();
         services.AddCachedRepository<AniDB_EpisodeRepository>();
-        services.AddCachedRepository<AniDB_Episode_PreferredImageRepository>();
         services.AddCachedRepository<AniDB_Episode_TitleRepository>();
         services.AddCachedRepository<AniDB_CreatorRepository>();
         services.AddCachedRepository<AniDB_TagRepository>();
@@ -79,10 +77,10 @@ public static class RepositoryStartup
         services.AddCachedRepository<StoredRelocationPipeRepository>();
         services.AddCachedRepository<FilterPresetRepository>();
         services.AddCachedRepository<ShokoManagedFolderRepository>();
+        services.AddCachedRepository<ShokoImageRepository>();
+        services.AddCachedRepository<ShokoImage_EntityRepository>();
         services.AddCachedRepository<JMMUserRepository>();
         services.AddCachedRepository<TMDB_EpisodeRepository>();
-        services.AddCachedRepository<TMDB_ImageRepository>();
-        services.AddCachedRepository<TMDB_Image_EntityRepository>();
         services.AddCachedRepository<TMDB_MovieRepository>();
         services.AddCachedRepository<TMDB_SeasonRepository>();
         services.AddCachedRepository<TMDB_ShowRepository>();

@@ -211,7 +211,7 @@ public class TmdbMovie
         {
             Value = movie.UserRating,
             MaxValue = 10,
-            Votes = movie.UserVotes,
+            Votes = (uint)movie.UserVotes,
             Source = "TMDB",
             Type = "User",
         };
@@ -227,7 +227,7 @@ public class TmdbMovie
                 .ToList();
         if (include.HasFlag(IncludeDetails.Images))
             Images = movie.GetImages()
-                .ToDto(language, preferredPoster: movie.DefaultPoster, preferredBackdrop: movie.DefaultBackdrop);
+                .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = movie.Cast
                 .Select(cast => new Role(cast))
@@ -332,7 +332,7 @@ public class TmdbMovie
             MovieCount = collection.MovieCount;
             if (include.HasFlag(IncludeDetails.Images))
                 Images = collection.GetImages()
-                    .ToDto(language, includeThumbnails: true);
+                    .ToDto(language);
             CreatedAt = collection.CreatedAt.ToUniversalTime();
             LastUpdatedAt = collection.LastUpdatedAt.ToUniversalTime();
         }

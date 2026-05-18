@@ -1,20 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Anilist;
 using Shoko.Abstractions.Metadata.Anilist.CrossReferences;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
@@ -209,7 +212,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
         }
     }
 
-    public IText? PreferredOverview
+    public IText? PreferredDescription
     {
         get
         {
@@ -255,44 +258,6 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
             // Return nothing if no provider had an overview in the preferred language.
             return null;
         }
-    }
-
-    #endregion
-
-    #region Images
-
-    public IImage? GetPreferredImageForType(ImageEntityType entityType)
-        => RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(AniDB_EpisodeID, entityType)?.GetImageMetadata();
-
-    public IReadOnlyList<IImage> GetImages(ImageEntityType? entityType = null)
-    {
-        var preferredImages = (
-                entityType.HasValue
-                    ? [RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(AniDB_EpisodeID, entityType.Value)!]
-                    : RepoFactory.AniDB_Episode_PreferredImage.GetByEpisodeID(AniDB_EpisodeID)
-            )
-            .WhereNotNull()
-            .Select(preferredImage => preferredImage.GetImageMetadata())
-            .WhereNotNull()
-            .ToDictionary(image => image.ImageType);
-        var images = new List<IImage>();
-        if (!entityType.HasValue || entityType.Value is ImageEntityType.Poster)
-        {
-            var poster = AniDB_Anime?.GetImageMetadata(false);
-            if (poster is not null)
-                images.Add(preferredImages.TryGetValue(ImageEntityType.Poster, out var preferredPoster) && poster.Equals(preferredPoster)
-                    ? preferredPoster
-                    : poster
-                );
-        }
-        foreach (var xref in TmdbEpisodeCrossReferences)
-            images.AddRange(xref.GetImages(entityType, preferredImages));
-        foreach (var xref in TmdbMovieCrossReferences)
-            images.AddRange(xref.GetImages(entityType, preferredImages));
-
-        return images
-            .DistinctBy(image => (image.ImageType, image.Source, image.ID))
-            .ToList();
     }
 
     #endregion
@@ -362,6 +327,8 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
 
     #region IMetadata Implementation
 
+    DataEntityType IMetadata.EntityType => DataEntityType.Episode;
+
     DataSource IMetadata.Source => DataSource.Shoko;
 
     int IMetadata<int>.ID => AnimeEpisodeID;
@@ -380,9 +347,25 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
         }
         : null;
 
-    IText? IWithDescriptions.PreferredDescription => PreferredOverview;
-
     IReadOnlyList<IText> IWithDescriptions.Descriptions => (this as IShokoEpisode).LinkedEpisodes.SelectMany(ep => ep.Descriptions).ToList();
+
+    #endregion
+
+    #region IWithImages Implementation
+
+    public IImage? GetPreferredImageForType(ImageEntityType entityType)
+        => GetImages(imageType: entityType).FirstOrDefault(image => image.IsPreferred);
+
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
+
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
 
     #endregion
 
@@ -447,10 +430,6 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
     double IEpisode.Rating => AniDB_Episode?.RatingDouble ?? 0;
 
     int IEpisode.RatingVotes => AniDB_Episode?.VotesInt ?? 0;
-
-    IImage? IEpisode.DefaultThumbnail => TmdbEpisodes is { Count: > 0 } tmdbEpisodes
-        ? tmdbEpisodes[0].DefaultThumbnail
-        : null;
 
     TimeSpan IEpisode.Runtime => TimeSpan.FromSeconds(AniDB_Episode?.LengthSeconds ?? 0);
 

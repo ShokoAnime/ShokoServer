@@ -9,12 +9,12 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
+using Shoko.Abstractions.Metadata.Containers;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.AniDB;
@@ -123,14 +123,14 @@ public class AnidbAnime
                 : null;
             Description = anime.Description;
             Restricted = anime.IsRestricted;
-            Poster = new Image(anime.PreferredOrDefaultPoster);
+            Poster = (anime as IWithPrimaryImage).PrimaryImage is { } img ? new Image(img) : null;
             EpisodeCount = anime.EpisodeCountNormal;
             Rating = new Rating
             {
                 Source = "AniDB",
                 Value = anime.Rating,
                 MaxValue = 1000,
-                Votes = anime.VoteCount,
+                Votes = (uint)anime.VoteCount,
             };
             UserApproval = null;
             Relation = null;
@@ -154,14 +154,14 @@ public class AnidbAnime
                 ).ToList()
                 : null;
             Description = null;
-            Poster = new Image(animeId, ImageEntityType.Poster, DataSource.AniDB);
+            Poster = null;
         }
         else
         {
             Type = AnimeType.Unknown;
             Title = string.Empty;
             Titles = includeTitles ? [] : null;
-            Poster = new Image(animeId, ImageEntityType.Poster, DataSource.AniDB);
+            Poster = null;
         }
     }
 
@@ -187,7 +187,7 @@ public class AnidbAnime
         {
             Value = new Vote(similar.Approval, similar.Total).GetRating(100),
             MaxValue = 100,
-            Votes = similar.Total,
+            Votes = (uint)similar.Total,
             Source = "AniDB",
             Type = "User Approval"
         };

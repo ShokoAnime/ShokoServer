@@ -6,7 +6,7 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 ///   Represents a text from a data source.
 /// </summary>
-public interface IText : IMetadata, IEquatable<IText>
+public interface IText : IEquatable<IText>
 {
     /// <summary>
     ///   The language enum inferred from the language code and country code.
@@ -28,6 +28,11 @@ public interface IText : IMetadata, IEquatable<IText>
     /// The value.
     /// </summary>
     string Value { get; }
+
+    /// <summary>
+    ///   The source of the text.
+    /// </summary>
+    DataSource Source { get; }
 
     /// <summary>
     ///   Checks if two text objects are equal.

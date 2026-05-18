@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Server.Server;
 
@@ -139,10 +140,45 @@ public enum ForeignEntityType
     Season = 8,
     Episode = 16,
     Company = 32,
-    Studio = 64,
+    // Studio = 64, // Unused
     Network = 128,
     Person = 256,
-    Character = 512,
+    // Character = 512, // Unused
+}
+
+public static class ForeignEntityTypeExtensions
+{
+    extension(ForeignEntityType type)
+    {
+        public DataEntityType DataType => type switch
+        {
+            ForeignEntityType.Collection => DataEntityType.Collection,
+            ForeignEntityType.Movie => DataEntityType.Movie,
+            ForeignEntityType.Show => DataEntityType.Show,
+            ForeignEntityType.Season => DataEntityType.Season,
+            ForeignEntityType.Episode => DataEntityType.Episode,
+            ForeignEntityType.Company => DataEntityType.Company,
+            ForeignEntityType.Network => DataEntityType.Network,
+            ForeignEntityType.Person => DataEntityType.Person,
+            _ => DataEntityType.Unknown,
+        };
+    }
+
+    extension(DataEntityType type)
+    {
+        public ForeignEntityType ForeignType => type switch
+        {
+            DataEntityType.Collection => ForeignEntityType.Collection,
+            DataEntityType.Movie => ForeignEntityType.Movie,
+            DataEntityType.Show => ForeignEntityType.Show,
+            DataEntityType.Season => ForeignEntityType.Season,
+            DataEntityType.Episode => ForeignEntityType.Episode,
+            DataEntityType.Company => ForeignEntityType.Company,
+            DataEntityType.Network => ForeignEntityType.Network,
+            DataEntityType.Person => ForeignEntityType.Person,
+            _ => ForeignEntityType.None,
+        };
+    }
 }
 
 [JsonConverter(typeof(StringEnumConverter))]
@@ -202,15 +238,6 @@ public enum CharacterAppearanceType
     Minor_Character,
     Background_Character,
     Cameo
-}
-
-[JsonConverter(typeof(StringEnumConverter))]
-public enum CharacterType
-{
-    Unknown = 0,
-    Character = 1,
-    // ??? = 2,
-    Organization = 3,
 }
 
 public enum ScanFileStatus

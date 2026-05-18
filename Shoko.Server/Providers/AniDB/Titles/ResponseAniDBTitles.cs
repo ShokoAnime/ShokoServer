@@ -96,7 +96,7 @@ public class ResponseAniDBTitles
 
             string IText.Value => Title;
 
-            DataSource IMetadata.Source => DataSource.AniDB;
+            DataSource IText.Source => DataSource.AniDB;
         }
     }
 }

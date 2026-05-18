@@ -1,15 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.People;
 
@@ -169,7 +172,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
                 return biography;
         }
 
-        return useFallback ? new(ForeignEntityType.Person, TmdbPersonID, EnglishBiography, "en", "US") : null;
+        return useFallback ? new(DataEntityType.Person, TmdbPersonID, EnglishBiography, "en", "US") : null;
     }
 
     /// <summary>
@@ -185,26 +188,14 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
     /// already cached from a previous call.</param>
     /// <returns>All biographies for the person.</returns>
     public IReadOnlyList<TMDB_Overview> GetAllBiographies(bool force = false) => force
-        ? _allBiographies = RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Person, TmdbPersonID)
-        : _allBiographies ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(ForeignEntityType.Person, TmdbPersonID);
-
-    /// <summary>
-    /// Get all images for the person, or all images for the given
-    /// <paramref name="entityType"/> provided for the person.
-    /// </summary>
-    /// <param name="entityType">If set, will restrict the returned list to only
-    /// containing the images of the given entity type.</param>
-    /// <returns>A read-only list of images that are linked to the person.
-    /// </returns>
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbPersonIDAndType(TmdbPersonID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbPersonID(TmdbPersonID);
+        ? _allBiographies = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Person, TmdbPersonID)
+        : _allBiographies ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Person, TmdbPersonID);
 
     #endregion
 
     #region IEntityMetadata Implementation
 
-    ForeignEntityType IEntityMetadata.Type => ForeignEntityType.Person;
+    DataEntityType IEntityMetadata.Type => DataEntityType.Person;
 
     DataSource IEntityMetadata.DataSource => DataSource.TMDB;
 
@@ -224,6 +215,8 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
     #endregion
 
     #region IMetadata Implementation
+
+    DataEntityType IMetadata.EntityType => DataEntityType.Person;
 
     int IMetadata<int>.ID => TmdbPersonID;
 
@@ -248,9 +241,29 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
 
     #endregion
 
-    #region IWithPortraitImage Implementation
+    #region IWithImages Implementation
 
-    IImage? IWithPortraitImage.PortraitImage => GetImages(ImageEntityType.Creator) is { Count: > 0 } images ? images[0] : null;
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
+
+    public IImage? GetPreferredImageForType(ImageEntityType imageType)
+        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
+
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
+
+    #endregion
+
+    #region IWithPrimaryImage Implementation
+
+    public IImage? DefaultPrimaryImage => GetImages(imageSource: DataSource.TMDB, imageType: ImageEntityType.Primary).FirstOrDefault();
+
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => GetImageCrossReferences(imageSource: DataSource.TMDB, imageType: ImageEntityType.Primary).FirstOrDefault();
 
     #endregion
 

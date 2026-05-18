@@ -179,7 +179,7 @@ public class Episode : BaseModel
             },
         };
         HasCustomName = !string.IsNullOrEmpty(episode.EpisodeNameOverride);
-        Images = episode.GetImages().ToDto(includeThumbnails: true, preferredImages: true);
+        Images = episode.GetImages().ToDto(preferredImages: true);
         Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, anidbEpisode.LengthSeconds);
         ResumePosition = fileUserRecord?.ProgressPosition;
         Watched = episodeUserRecord?.WatchedDate?.ToUniversalTime();
@@ -187,7 +187,7 @@ public class Episode : BaseModel
         IsFavorite = episodeUserRecord?.IsFavorite ?? false;
         IsHidden = episode.IsHidden;
         Name = episode.Title;
-        Description = episode.PreferredOverview?.Value ?? string.Empty;
+        Description = episode.PreferredDescription?.Value ?? string.Empty;
         Size = files.Count;
         Created = episode.DateTimeCreated.ToUniversalTime();
         Updated = episode.DateTimeUpdated.ToUniversalTime();

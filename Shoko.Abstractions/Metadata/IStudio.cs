@@ -7,13 +7,8 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// A studio.
 /// </summary>
-public interface IStudio : IMetadata<int>, IWithPortraitImage
+public interface IStudio : IMetadata<int>, IWithPrimaryImage
 {
-    /// <summary>
-    /// Parent entity ID.
-    /// </summary>
-    int ParentID { get; }
-
     /// <summary>
     /// The name of the studio.
     /// </summary>
@@ -28,11 +23,6 @@ public interface IStudio : IMetadata<int>, IWithPortraitImage
     /// The type of studio.
     /// </summary>
     StudioType StudioType { get; }
-
-    /// <summary>
-    /// Parent metadata entity.
-    /// </summary>
-    IMetadata<int>? Parent { get; }
 
     /// <summary>
     /// All locally known movie works by the studio.
@@ -53,10 +43,15 @@ public interface IStudio : IMetadata<int>, IWithPortraitImage
 /// <summary>
 /// A studio for a parent entity.
 /// </summary>
-public interface IStudio<TMetadata> : IStudio where TMetadata : IMetadata<int>
+public interface IStudio<TMetadata> : IStudio where TMetadata : IMetadata
 {
+    /// <summary>
+    /// Parent entity ID.
+    /// </summary>
+    int ParentID { get; }
+
     /// <summary>
     /// Parent metadata entity.
     /// </summary>
-    TMetadata? ParentOfType { get; }
+    TMetadata? Parent { get; }
 }

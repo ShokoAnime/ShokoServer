@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.v3.Helpers;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
@@ -43,24 +43,24 @@ public class Role
     [Required]
     public string RoleDetails { get; set; } = string.Empty;
 
-    public Role(AniDB_Anime_Character xref, AniDB_Character character, AniDB_Creator? staff = null)
+    public Role(AniDB_Anime_Character xref, ICharacter character, ICreator? staff = null)
     {
         Character = character == null ? null : new()
         {
-            ID = character.CharacterID,
+            ID = character.ID,
             Name = character.Name,
             AlternateName = character.OriginalName ?? string.Empty,
-            Description = character.Description ?? string.Empty,
-            Image = character.GetImageMetadata() is { } characterImage ? new Image(characterImage) : null,
+            Description = character.DefaultDescription?.Value ?? string.Empty,
+            Image = character.PrimaryImage is { } characterImage ? new Image(characterImage) : null,
         };
         Staff = staff is not null
             ? new()
             {
-                ID = staff.CreatorID,
+                ID = staff.ID,
                 Name = staff.Name,
                 AlternateName = staff.OriginalName ?? string.Empty,
                 Description = string.Empty,
-                Image = staff.GetImageMetadata() is { } staffImage ? new Image(staffImage) : null,
+                Image = staff.PrimaryImage is { } staffImage ? new Image(staffImage) : null,
                 Type = staff.Type.ToString(),
             }
             : new()
@@ -78,15 +78,15 @@ public class Role
             : "Appears In";
     }
 
-    public Role(AniDB_Anime_Staff xref, AniDB_Creator staff)
+    public Role(AniDB_Anime_Staff xref, ICreator staff)
     {
         Staff = new()
         {
-            ID = staff.CreatorID,
+            ID = staff.ID,
             Name = staff.Name,
             AlternateName = staff.OriginalName ?? string.Empty,
             Description = string.Empty,
-            Image = staff.GetImageMetadata() is { } staffImage ? new Image(staffImage) : null,
+            Image = staff.PrimaryImage is { } staffImage ? new Image(staffImage) : null,
             Type = staff.Type.ToString(),
         };
         RoleName = xref.RoleType;

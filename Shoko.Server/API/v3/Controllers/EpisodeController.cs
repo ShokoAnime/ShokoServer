@@ -8,8 +8,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.Annotations;
@@ -20,12 +20,15 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0612 // Type or member is obsolete
+#pragma warning disable CS0618 // Type or member is obsolete
 using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -711,8 +714,6 @@ public class EpisodeController : BaseController
 
     private const string InvalidIDForSource = "Invalid image id for selected source.";
 
-    private const string InvalidImageIsDisabled = "Image is disabled.";
-
     /// <summary>
     /// Get all images for episode with ID, optionally with Disabled images, as well.
     /// </summary>
@@ -733,7 +734,7 @@ public class EpisodeController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        return episode.GetImages().ToDto(includeDisabled: includeDisabled, includeThumbnails: true);
+        return episode.GetImages().ToDto(includeDisabled: includeDisabled);
     }
 
     #endregion
@@ -766,18 +767,17 @@ public class EpisodeController : BaseController
 
         var imageEntityType = imageType.ToServer();
         var preferredImage = episode.GetPreferredImageForType(imageEntityType);
-        if (preferredImage != null)
+        if (preferredImage is not null)
             return new Image(preferredImage);
 
-        var images = episode.GetImages().ToDto(includeThumbnails: true);
+        var images = episode.GetImages(imageType: imageEntityType).ToDto();
         return imageEntityType switch
         {
-            ImageEntityType.Poster => images.Posters.FirstOrDefault(),
+            ImageEntityType.Primary => images.Posters.FirstOrDefault(),
             ImageEntityType.Banner => images.Banners.FirstOrDefault(),
             ImageEntityType.Backdrop => images.Backdrops.FirstOrDefault(),
             ImageEntityType.Logo => images.Logos.FirstOrDefault(),
-            ImageEntityType.Thumbnail => images.Thumbnails.FirstOrDefault(),
-            _ => null
+            _ => null,
         };
     }
 
@@ -809,28 +809,18 @@ public class EpisodeController : BaseController
             return Forbid(EpisodeForbiddenForUser);
 
         // Check if the id is valid for the given type and source.
-        var dataSource = body.Source.ToServer();
+        var dataSource = body.Source;
         var imageEntityType = imageType.ToServer();
-        var image = _imageManager.GetImage(dataSource, imageEntityType, body.ID);
-        if (image is null)
+        var image = Guid.TryParse(body.ID, out var imageID)
+            ? _imageManager.GetImageByID(imageID)
+            : int.TryParse(body.ID, out var legacyImageID)
+                ? _imageManager.GetImageByID(legacyImageID)
+                : null;
+        if (image is null || (dataSource is not DataSource.None && dataSource != image.Source))
             return ValidationProblem(InvalidIDForSource);
-        if (!image.IsEnabled)
-            return ValidationProblem(InvalidImageIsDisabled);
 
-        // Create or update the entry if something changed.
-        var defaultImage = RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(episode.AniDB_EpisodeID, imageEntityType) ??
-            new(series.AniDB_ID, episode.AniDB_EpisodeID, imageEntityType);
-        if (defaultImage.ImageID == body.ID && defaultImage.ImageSource == dataSource)
-            return new Image(body.ID, imageEntityType, dataSource, true);
-
-        defaultImage.ImageID = body.ID;
-        defaultImage.ImageSource = dataSource;
-        var isNew = defaultImage.AniDB_Episode_PreferredImageID == 0;
-        RepoFactory.AniDB_Episode_PreferredImage.Save(defaultImage);
-
-        ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, isNew ? UpdateReason.ImageAdded : UpdateReason.ImageUpdated);
-
-        return new Image(body.ID, imageEntityType, dataSource, true);
+        var xref = _imageManager.SetPreferredImageForEntity(episode, imageEntityType, image);
+        return new Image(new ShokoImageStub(image, xref));
     }
 
     /// <summary>
@@ -859,14 +849,23 @@ public class EpisodeController : BaseController
 
         // Check if a default image is set.
         var imageEntityType = imageType.ToServer();
-        var defaultImage = RepoFactory.AniDB_Episode_PreferredImage.GetByAnidbEpisodeIDAndType(episode.AniDB_EpisodeID, imageEntityType);
-        if (defaultImage == null)
+        var xref = _imageManager
+            .GetImageCrossReferencesForEntity(episode, imageType: imageEntityType).FirstOrDefault(xref => xref.IsPreferred);
+        if (xref is null)
             return ValidationProblem("No default image for the selected type.");
 
-        // Delete the entry.
-        RepoFactory.AniDB_Episode_PreferredImage.Delete(defaultImage);
-
-        ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.ImageRemoved);
+        switch (xref)
+        {
+            // Unset the preferred if it's not a user xref, or if it's a user xref and a user uploaded image.
+            case { Source: not DataSource.User }:
+            case { Source: DataSource.User, ImageSource: DataSource.User }:
+                _imageManager.UnsetPreferredImageForEntity(xref);
+                break;
+            // Otherwise remove the user created xref.
+            default:
+                _imageManager.RemoveImageCrossReference(xref);
+                break;
+        }
 
         // Don't return any content.
         return NoContent();

@@ -1,16 +1,23 @@
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 using TMDbLib.Objects.General;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Abstractions.Metadata.Containers;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Company
+public class TMDB_Company : IStudio
 {
     #region Properties
 
@@ -65,16 +72,6 @@ public class TMDB_Company
         return updated;
     }
 
-    public IReadOnlyList<TMDB_Image> GetImages(ImageEntityType? entityType = null) => entityType.HasValue
-        ? RepoFactory.TMDB_Image.GetByTmdbCompanyIDAndType(TmdbCompanyID, entityType.Value)
-        : RepoFactory.TMDB_Image.GetByTmdbCompanyID(TmdbCompanyID);
-
-    public IReadOnlyList<IImage> GetImages(ImageEntityType? entityType, IReadOnlyDictionary<ImageEntityType, IImage> preferredImages) =>
-        GetImages(entityType)
-            .GroupBy(i => i.ImageType)
-            .SelectMany(gB => preferredImages.TryGetValue(gB.Key, out var pI) ? gB.Select(i => i.Equals(pI) ? pI : i) : gB)
-            .ToList();
-
     public IReadOnlyList<TMDB_Company_Entity> GetTmdbCompanyCrossReferences() =>
         RepoFactory.TMDB_Company_Entity.GetByTmdbCompanyID(TmdbCompanyID);
 
@@ -95,6 +92,56 @@ public class TMDB_Company
             .Select(xref => xref.GetTmdbMovie())
             .WhereNotNull()
             .ToList();
+
+    #endregion
+
+    #region IMetadata Implementation
+
+    DataEntityType IMetadata.EntityType => DataEntityType.Company;
+
+    int IMetadata<int>.ID => TmdbCompanyID;
+
+    DataSource IMetadata.Source => DataSource.TMDB;
+
+    #endregion
+
+    #region IWithImages Implementation
+
+    public IImage? GetPreferredImageForType(ImageEntityType imageType)
+        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
+
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
+
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
+
+    #endregion
+
+    #region IWithPrimaryImage Implementation
+
+    public IImage? DefaultPrimaryImage => GetImages(imageSource: DataSource.TMDB, imageType: ImageEntityType.Primary).FirstOrDefault();
+
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => GetImageCrossReferences(imageSource: DataSource.TMDB, imageType: ImageEntityType.Primary).FirstOrDefault();
+
+    #endregion
+
+    #region IStudio Implementation
+
+    string? IStudio.OriginalName => null;
+
+    StudioType IStudio.StudioType => StudioType.Animation;
+
+    IEnumerable<IMovie> IStudio.MovieWorks => [];
+
+    IEnumerable<ISeries> IStudio.SeriesWorks => [];
+
+    IEnumerable<IMetadata> IStudio.Works => [];
 
     #endregion
 }

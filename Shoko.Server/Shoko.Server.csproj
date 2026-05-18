@@ -18,7 +18,7 @@
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
     <Configurations>Debug;Release;ApiLogging;Benchmarks</Configurations>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
+    <NoWarn>$(NoWarn);1591;NU1902</NoWarn>
     <ApplicationIcon>db.ico</ApplicationIcon>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
@@ -50,6 +50,7 @@
     <ProjectReference Include="..\Shoko.Abstractions\Shoko.Abstractions.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="AsyncKeyedLock" Version="8.0.2" />
     <PackageReference Include="DeepCloner" Version="0.10.4" />
     <PackageReference Include="F23.StringSimilarity" Version="7.0.1" />
     <PackageReference Include="FluentNHibernate" Version="3.4.1" />

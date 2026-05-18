@@ -1,10 +1,8 @@
 using System;
 using System.ComponentModel.DataAnnotations;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 
 #nullable enable
@@ -35,7 +33,7 @@ public class AnidbCreator
     /// <summary>
     /// The type of creator.
     /// </summary>
-    [Required, JsonConverter(typeof(StringEnumConverter))]
+    [Required]
     public CreatorType Type { get; set; }
 
     /// <summary>
@@ -80,6 +78,6 @@ public class AnidbCreator
         EnglishWikiUrl = creator.EnglishWikiUrl;
         JapaneseWikiUrl = creator.JapaneseWikiUrl;
         LastUpdatedAt = creator.LastUpdatedAt.ToUniversalTime();
-        Image = creator.GetImageMetadata() is { } image ? new Image(image) : null;
+        Image = ((ICreator)creator).PrimaryImage is { } image ? new Image(image) : null;
     }
 }

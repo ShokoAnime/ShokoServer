@@ -8,6 +8,8 @@ using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Server.Repositories;
 
 #nullable enable
@@ -115,6 +117,8 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
 
     #region IMetadata Implementation
 
+    DataEntityType IMetadata.EntityType => DataEntityType.Episode;
+
     DataSource IMetadata.Source => DataSource.TMDB;
 
     int IMetadata<int>.ID => TmdbEpisodeID;
@@ -165,13 +169,33 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
 
     #region IWithImages Implementation
 
-    IImage? IWithImages.GetPreferredImageForType(ImageEntityType entityType)
-        => null;
+    public IImage? GetPreferredImageForType(ImageEntityType imageType)
+        => GetTmdbEpisode().GetPreferredImageForType(imageType);
 
-    IReadOnlyList<IImage> IWithImages.GetImages(ImageEntityType? entityType)
-        => entityType.HasValue
-            ? RepoFactory.TMDB_Image.GetByTmdbEpisodeIDAndType(TmdbEpisodeID, entityType.Value)
-            : RepoFactory.TMDB_Image.GetByTmdbEpisodeID(TmdbEpisodeID);
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetTmdbEpisode().GetPreferredImageCrossReferenceForType(imageType);
+
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+        => GetTmdbEpisode().GetImages(imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+        => GetTmdbEpisode().GetImageCrossReferences(imageSource, imageType, xrefSource, isEnabled, isDesired);
+
+    #endregion
+
+    #region IWithBackdropImage Implementation
+
+    public IImage? BackdropImage
+        => GetTmdbEpisode().BackdropImage;
+
+    public IImageCrossReference? BackdropImageCrossReference
+        => GetTmdbEpisode().BackdropImageCrossReference;
+
+    public IImage? DefaultBackdropImage
+        => GetTmdbEpisode().DefaultBackdropImage;
+
+    public IImageCrossReference? DefaultBackdropImageCrossReference
+        => GetTmdbEpisode().DefaultBackdropImageCrossReference;
 
     #endregion
 
@@ -190,8 +214,6 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
     double IEpisode.Rating => GetTmdbEpisode().Rating;
 
     int IEpisode.RatingVotes => GetTmdbEpisode().RatingVotes;
-
-    IImage? IEpisode.DefaultThumbnail => GetTmdbEpisode().DefaultThumbnail;
 
     TimeSpan IEpisode.Runtime => GetTmdbEpisode().Runtime;
 

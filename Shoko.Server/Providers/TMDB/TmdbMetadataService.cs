@@ -129,6 +129,8 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private readonly AnimeSeriesRepository _animeSeries;
 
+    private readonly ShokoImage_EntityRepository _shokoImageXrefRepository;
+
     private readonly TMDB_AlternateOrderingRepository _tmdbAlternateOrdering;
 
     private readonly TMDB_AlternateOrdering_EpisodeRepository _tmdbAlternateOrderingEpisodes;
@@ -144,8 +146,6 @@ public class TmdbMetadataService : ITmdbMetadataService
     private readonly TMDB_Episode_CastRepository _tmdbEpisodeCast;
 
     private readonly TMDB_Episode_CrewRepository _tmdbEpisodeCrew;
-
-    private readonly TMDB_Image_EntityRepository _tmdbImageEntities;
 
     private readonly TMDB_MovieRepository _tmdbMovies;
 
@@ -194,7 +194,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     // throw if an exception that's not rate-limit related is thrown.
     private readonly AsyncRetryPolicy _retryPolicy;
 
-    private readonly ConcurrentDictionary<string, SemaphoreSlim> _concurrencyGuards = new();
+    private readonly KeyedEntityLockHelper _entityLock;
 
     /// <summary>
     /// Execute the given function with the TMDb client, applying rate limiting and retry policies.
@@ -245,6 +245,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         TmdbImageService imageService,
         TmdbLinkingService linkingService,
         AnimeSeriesRepository animeSeries,
+        ShokoImage_EntityRepository shokoImageXrefRepository,
         TMDB_AlternateOrderingRepository tmdbAlternateOrdering,
         TMDB_AlternateOrdering_EpisodeRepository tmdbAlternateOrderingEpisodes,
         TMDB_AlternateOrdering_SeasonRepository tmdbAlternateOrderingSeasons,
@@ -253,7 +254,6 @@ public class TmdbMetadataService : ITmdbMetadataService
         TMDB_EpisodeRepository tmdbEpisodes,
         TMDB_Episode_CastRepository tmdbEpisodeCast,
         TMDB_Episode_CrewRepository tmdbEpisodeCrew,
-        TMDB_Image_EntityRepository tmdbImageEntities,
         TMDB_MovieRepository tmdbMovies,
         TMDB_Movie_CastRepository tmdbMovieCast,
         TMDB_Movie_CrewRepository tmdbMovieCrew,
@@ -276,6 +276,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         _imageService = imageService;
         _linkingService = linkingService;
         _animeSeries = animeSeries;
+        _shokoImageXrefRepository = shokoImageXrefRepository;
         _tmdbAlternateOrdering = tmdbAlternateOrdering;
         _tmdbAlternateOrderingEpisodes = tmdbAlternateOrderingEpisodes;
         _tmdbAlternateOrderingSeasons = tmdbAlternateOrderingSeasons;
@@ -284,7 +285,6 @@ public class TmdbMetadataService : ITmdbMetadataService
         _tmdbEpisodes = tmdbEpisodes;
         _tmdbEpisodeCast = tmdbEpisodeCast;
         _tmdbEpisodeCrew = tmdbEpisodeCrew;
-        _tmdbImageEntities = tmdbImageEntities;
         _tmdbMovies = tmdbMovies;
         _tmdbMovieCast = tmdbMovieCast;
         _tmdbMovieCrew = tmdbMovieCrew;
@@ -299,6 +299,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         _xrefTmdbCollectionMovies = xrefTmdbCollectionMovies;
         _xrefTmdbCompanyEntity = xrefTmdbCompanyEntity;
         _xrefTmdbShowNetwork = xrefTmdbShowNetwork;
+        _entityLock = new(logger);
         _instance ??= this;
         _bulkheadPolicy = Policy.BulkheadAsync(_maxConcurrency, int.MaxValue);
         _rateLimitPolicy = Policy.RateLimitAsync(45, TimeSpan.FromSeconds(10), 45);
@@ -399,7 +400,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         if (_movieGenres is not null)
             return _movieGenres;
 
-        using (await GetLockForEntity(ForeignEntityType.Movie, 0, "genre", "Load").ConfigureAwait(false))
+        using (await GetLockForEntity(DataEntityType.Movie, 0, "genre", "Load").ConfigureAwait(false))
         {
             if (_movieGenres is not null)
                 return _movieGenres;
@@ -418,22 +419,22 @@ public class TmdbMetadataService : ITmdbMetadataService
     #region Update (Movies)
 
     public bool IsMovieUpdating(int movieId)
-        => IsEntityLocked(ForeignEntityType.Movie, movieId, "metadata");
+        => IsEntityLocked(DataEntityType.Movie, movieId, "metadata");
 
     public bool WaitForMovieUpdate(int movieId)
-        => WaitIfEntityLocked(ForeignEntityType.Movie, movieId, "metadata");
+        => WaitIfEntityLocked(DataEntityType.Movie, movieId, "metadata");
 
     public Task<bool> WaitForMovieUpdateAsync(int movieId)
-        => WaitIfEntityLockedAsync(ForeignEntityType.Movie, movieId, "metadata");
+        => WaitIfEntityLockedAsync(DataEntityType.Movie, movieId, "metadata");
 
     public bool IsMovieCollectionUpdating(int collectionId)
-        => IsEntityLocked(ForeignEntityType.Collection, collectionId, "metadata");
+        => IsEntityLocked(DataEntityType.Collection, collectionId, "metadata");
 
     public bool WaitForMovieCollectionUpdate(int collectionId)
-        => WaitIfEntityLocked(ForeignEntityType.Collection, collectionId, "metadata");
+        => WaitIfEntityLocked(DataEntityType.Collection, collectionId, "metadata");
 
     public Task<bool> WaitForMovieCollectionUpdateAsync(int collectionId)
-        => WaitIfEntityLockedAsync(ForeignEntityType.Collection, collectionId, "metadata");
+        => WaitIfEntityLockedAsync(DataEntityType.Collection, collectionId, "metadata");
 
     public async Task UpdateAllMovies(bool force, bool saveImages)
     {
@@ -471,7 +472,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public async Task<bool> UpdateMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadCollections = false)
     {
-        using (await GetLockForEntity(ForeignEntityType.Movie, movieId, "metadata", "Update").ConfigureAwait(false))
+        using (await GetLockForEntity(DataEntityType.Movie, movieId, "metadata", "Update").ConfigureAwait(false))
         {
             // Abort if we're within a certain time frame as to not try and get us rate-limited.
             var tmdbMovie = _tmdbMovies.GetByTmdbMovieID(movieId) ?? new(movieId);
@@ -709,7 +710,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             return;
         }
 
-        using (await GetLockForEntity(ForeignEntityType.Collection, collection.Id, "metadata", "Update").ConfigureAwait(false))
+        using (await GetLockForEntity(DataEntityType.Collection, collection.Id, "metadata", "Update").ConfigureAwait(false))
         {
             var settings = _settingsProvider.GetSettings();
             var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
@@ -770,7 +771,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public async Task DownloadAllMovieImages(int movieId, bool forceDownload = false)
     {
-        using (await GetLockForEntity(ForeignEntityType.Movie, movieId, "images", "Update").ConfigureAwait(false))
+        using (await GetLockForEntity(DataEntityType.Movie, movieId, "images", "Update").ConfigureAwait(false))
         {
             var tmdbMovie = _tmdbMovies.GetByTmdbMovieID(movieId);
             if (tmdbMovie is null)
@@ -797,11 +798,11 @@ public class TmdbMetadataService : ITmdbMetadataService
 
         var languages = GetLanguages(mainLanguage);
         if (settings.TMDB.AutoDownloadPosters)
-            await _imageService.DownloadImagesByType(movie.PosterPath, movie.ReleasedAt, images.Posters!, ImageEntityType.Poster, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoPosters, languages, forceDownload);
+            await _imageService.DownloadImagesByType(movie.PosterPath, images.Posters!, ImageEntityType.Primary, movie, settings.TMDB.MaxAutoPosters, languages, forceDownload);
         if (settings.TMDB.AutoDownloadLogos)
-            await _imageService.DownloadImagesByType(null, movie.ReleasedAt, images.Logos!, ImageEntityType.Logo, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoLogos, languages, forceDownload);
+            await _imageService.DownloadImagesByType(null, images.Logos!, ImageEntityType.Logo, movie, settings.TMDB.MaxAutoLogos, languages, forceDownload);
         if (settings.TMDB.AutoDownloadBackdrops)
-            await _imageService.DownloadImagesByType(movie.BackdropPath, movie.ReleasedAt, images.Backdrops!, ImageEntityType.Backdrop, ForeignEntityType.Movie, movieId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
+            await _imageService.DownloadImagesByType(movie.BackdropPath, images.Backdrops!, ImageEntityType.Backdrop, movie, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
 
     #endregion
@@ -811,9 +812,9 @@ public class TmdbMetadataService : ITmdbMetadataService
     public async Task PurgeAllUnusedMovies()
     {
         var allMovies = _tmdbMovies.GetAll().Select(movie => movie.TmdbMovieID)
-            .Concat(_tmdbImageEntities.GetByForeignType(ForeignEntityType.Movie).Select(image => image.TmdbEntityID))
+            .Concat(_shokoImageXrefRepository.GetByEntity(DataSource.TMDB, DataEntityType.Movie).Select(xref => int.Parse(xref.EntityID)))
             .Concat(_xrefAnidbTmdbMovies.GetAll().Select(xref => xref.TmdbMovieID))
-            .Concat(_xrefTmdbCompanyEntity.GetAll().Where(x => x.TmdbEntityType == ForeignEntityType.Movie).Select(x => x.TmdbEntityID))
+            .Concat(_xrefTmdbCompanyEntity.GetAll().Where(x => x.TmdbEntityType is DataEntityType.Movie).Select(x => x.TmdbEntityID))
             .Concat(_tmdbMovieCast.GetAll().Select(x => x.TmdbMovieID))
             .Concat(_tmdbMovieCrew.GetAll().Select(x => x.TmdbMovieID))
             .Concat(_tmdbCollections.GetAll().Select(collection => collection.TmdbCollectionID))
@@ -846,11 +847,9 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// <param name="movieId">TMDB Movie ID.</param>
     public async Task PurgeMovie(int movieId)
     {
-        using (await GetLockForEntity(ForeignEntityType.Movie, movieId, "metadata", "Purge").ConfigureAwait(false))
+        using (await GetLockForEntity(DataEntityType.Movie, movieId, "metadata", "Purge").ConfigureAwait(false))
         {
             await _linkingService.RemoveAllMovieLinksForMovie(movieId);
-
-            _imageService.PurgeImages(ForeignEntityType.Movie, movieId);
 
             var movie = _tmdbMovies.GetByTmdbMovieID(movieId);
             if (movie is not null)
@@ -859,19 +858,21 @@ public class TmdbMetadataService : ITmdbMetadataService
                 _tmdbMovies.Delete(movie);
             }
 
+            _imageService.PurgeImages(movie ?? new() { TmdbMovieID = movieId });
+
             PurgeMovieCompanies(movieId);
 
             await PurgeMovieCastAndCrew(movieId);
 
             await CleanupMovieCollection(movieId);
 
-            PurgeTitlesAndOverviews(ForeignEntityType.Movie, movieId);
+            PurgeTitlesAndOverviews(DataEntityType.Movie, movieId);
         }
     }
 
     private void PurgeMovieCompanies(int movieId)
     {
-        var xrefsToRemove = _xrefTmdbCompanyEntity.GetByTmdbEntityTypeAndID(ForeignEntityType.Movie, movieId);
+        var xrefsToRemove = _xrefTmdbCompanyEntity.GetByTmdbEntityTypeAndID(DataEntityType.Movie, movieId);
         foreach (var xref in xrefsToRemove)
         {
             // Delete xref or purge company.
@@ -914,7 +915,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private async Task PurgeMovieCollection(int collectionId)
     {
-        using (await GetLockForEntity(ForeignEntityType.Collection, collectionId, "metadata", "Update").ConfigureAwait(false))
+        using (await GetLockForEntity(DataEntityType.Collection, collectionId, "metadata", "Update").ConfigureAwait(false))
         {
             var collection = _tmdbCollections.GetByTmdbCollectionID(collectionId);
             var collectionXRefs = _xrefTmdbCollectionMovies.GetByTmdbCollectionID(collectionId);
@@ -928,9 +929,9 @@ public class TmdbMetadataService : ITmdbMetadataService
                 _xrefTmdbCollectionMovies.Delete(collectionXRefs);
             }
 
-            _imageService.PurgeImages(ForeignEntityType.Collection, collectionId);
+            _imageService.PurgeImages(collection ?? new() { TmdbCollectionID = collectionId });
 
-            PurgeTitlesAndOverviews(ForeignEntityType.Collection, collectionId);
+            PurgeTitlesAndOverviews(DataEntityType.Collection, collectionId);
 
             if (collection is not null)
             {
@@ -974,7 +975,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         if (_tvShowGenres is not null)
             return _tvShowGenres;
 
-        using (await GetLockForEntity(ForeignEntityType.Show, 0, "genre", "Load").ConfigureAwait(false))
+        using (await GetLockForEntity(DataEntityType.Show, 0, "genre", "Load").ConfigureAwait(false))
         {
             if (_tvShowGenres is not null)
                 return _tvShowGenres;
@@ -1017,13 +1018,13 @@ public class TmdbMetadataService : ITmdbMetadataService
     }
 
     public bool IsShowUpdating(int showId)
-        => IsEntityLocked(ForeignEntityType.Show, showId, "metadata");
+        => IsEntityLocked(DataEntityType.Show, showId, "metadata");
 
     public bool WaitForShowUpdate(int showId)
-        => WaitIfEntityLocked(ForeignEntityType.Show, showId, "metadata");
+        => WaitIfEntityLocked(DataEntityType.Show, showId, "metadata");
 
     public Task<bool> WaitForShowUpdateAsync(int showId)
-        => WaitIfEntityLockedAsync(ForeignEntityType.Show, showId, "metadata");
+        => WaitIfEntityLockedAsync(DataEntityType.Show, showId, "metadata");
 
     public async Task ScheduleUpdateOfShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadAlternateOrdering = null, bool? downloadNetworks = null)
     {
@@ -1047,7 +1048,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         if (showId is 0)
             return false;
 
-        using (await GetLockForEntity(ForeignEntityType.Show, showId, "metadata", "Update").ConfigureAwait(false))
+        using (await GetLockForEntity(DataEntityType.Show, showId, "metadata", "Update").ConfigureAwait(false))
         {
             // Abort if we're within a certain time frame as to not try and get us rate-limited.
             var tmdbShow = _tmdbShows.GetByTmdbShowID(showId) ?? new(showId);
@@ -1751,7 +1752,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private async Task CreateOrUpdateNetwork(NetworkWithLogo network)
     {
-        using (await GetLockForEntity(ForeignEntityType.Network, network.Id, "metadata & images", "Update").ConfigureAwait(false))
+        using (await GetLockForEntity(DataEntityType.Network, network.Id, "metadata & images", "Update").ConfigureAwait(false))
         {
             var tmdbNetwork = _tmdbNetwork.GetByTmdbNetworkID(network.Id) ??
                 new() { TmdbNetworkID = network.Id };
@@ -1777,7 +1778,7 @@ public class TmdbMetadataService : ITmdbMetadataService
                 _logger.LogDebug("Updated TMDB Network (Network={NetworkId})", network.Id);
             }
             if (!string.IsNullOrEmpty(network.LogoPath))
-                await _imageService.DownloadImageByType(network.LogoPath, ImageEntityType.Logo, ForeignEntityType.Network, network.Id);
+                await _imageService.DownloadImageByType(network.LogoPath, ImageEntityType.Logo, tmdbNetwork);
         }
     }
 
@@ -1793,7 +1794,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public async Task DownloadAllShowImages(int showId, bool forceDownload = false)
     {
-        using (await GetLockForEntity(ForeignEntityType.Show, showId, "images", "Update").ConfigureAwait(false))
+        using (await GetLockForEntity(DataEntityType.Show, showId, "images", "Update").ConfigureAwait(false))
         {
             // Abort if we're within a certain time frame as to not try and get us rate-limited.
             var tmdbShow = _tmdbShows.GetByTmdbShowID(showId);
@@ -1832,11 +1833,11 @@ public class TmdbMetadataService : ITmdbMetadataService
 
         var languages = GetLanguages(mainLanguage);
         if (settings.TMDB.AutoDownloadPosters)
-            await _imageService.DownloadImagesByType(show.PosterPath, show.FirstAiredAt, images.Posters!, ImageEntityType.Poster, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoPosters, languages, forceDownload);
+            await _imageService.DownloadImagesByType(show.PosterPath, images.Posters!, ImageEntityType.Primary, show, settings.TMDB.MaxAutoPosters, languages, forceDownload);
         if (settings.TMDB.AutoDownloadLogos)
-            await _imageService.DownloadImagesByType(null, show.FirstAiredAt, images.Logos!, ImageEntityType.Logo, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoLogos, languages, forceDownload);
+            await _imageService.DownloadImagesByType(null, images.Logos!, ImageEntityType.Logo, show, settings.TMDB.MaxAutoLogos, languages, forceDownload);
         if (settings.TMDB.AutoDownloadBackdrops)
-            await _imageService.DownloadImagesByType(show.BackdropPath, show.FirstAiredAt, images.Backdrops!, ImageEntityType.Backdrop, ForeignEntityType.Show, showId, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
+            await _imageService.DownloadImagesByType(show.BackdropPath, images.Backdrops!, ImageEntityType.Backdrop, show, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
 
     private async Task DownloadSeasonImages(int seasonId, int showId, int seasonNumber, TitleLanguage? mainLanguage = null, bool forceDownload = false)
@@ -1855,12 +1856,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             return;
 
         var languages = GetLanguages(mainLanguage);
-        var releasedAt = _tmdbEpisodes.GetByTmdbSeasonID(seasonId)
-            .Select(o => o.AiredAt)
-            .WhereNotNull()
-            .Order()
-            .FirstOrDefault();
-        await _imageService.DownloadImagesByType(season.PosterPath, releasedAt, images.Posters!, ImageEntityType.Poster, ForeignEntityType.Season, seasonId, settings.TMDB.MaxAutoPosters, languages, forceDownload);
+        await _imageService.DownloadImagesByType(season.PosterPath, images.Posters!, ImageEntityType.Primary, season, settings.TMDB.MaxAutoPosters, languages, forceDownload);
     }
 
     private async Task DownloadEpisodeImages(int episodeId, int showId, int seasonNumber, int episodeNumber, TitleLanguage mainLanguage, bool forceDownload = false)
@@ -1879,7 +1875,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             return;
 
         var languages = GetLanguages(mainLanguage);
-        await _imageService.DownloadImagesByType(episode.ThumbnailPath, episode.AiredAt, images.Stills!, ImageEntityType.Thumbnail, ForeignEntityType.Episode, episodeId, settings.TMDB.MaxAutoThumbnails, languages, forceDownload);
+        await _imageService.DownloadImagesByType(episode.ThumbnailPath, images.Stills!, ImageEntityType.Backdrop, episode, settings.TMDB.MaxAutoThumbnails, languages, forceDownload);
     }
 
     private List<TitleLanguage> GetLanguages(TitleLanguage? mainLanguage = null) => _settingsProvider.GetSettings().TMDB.ImageLanguageOrder
@@ -1895,9 +1891,9 @@ public class TmdbMetadataService : ITmdbMetadataService
     public async Task PurgeAllUnusedShows()
     {
         var allShows = _tmdbShows.GetAll().Select(show => show.TmdbShowID)
-            .Concat(_tmdbImageEntities.GetByForeignType(ForeignEntityType.Show).Select(image => image.TmdbEntityID))
+            .Concat(_shokoImageXrefRepository.GetByEntity(DataSource.TMDB, DataEntityType.Show).Select(xref => int.Parse(xref.EntityID)))
             .Concat(_xrefAnidbTmdbShows.GetAll().Select(xref => xref.TmdbShowID))
-            .Concat(_xrefTmdbCompanyEntity.GetAll().Where(x => x.TmdbEntityType == ForeignEntityType.Show).Select(x => x.TmdbEntityID))
+            .Concat(_xrefTmdbCompanyEntity.GetAll().Where(x => x.TmdbEntityType is DataEntityType.Show).Select(x => x.TmdbEntityID))
             .Concat(_xrefTmdbShowNetwork.GetAll().Select(x => x.TmdbShowID))
             .Concat(_tmdbSeasons.GetAll().Select(x => x.TmdbShowID))
             .Concat(_tmdbEpisodes.GetAll().Select(x => x.TmdbShowID))
@@ -1928,13 +1924,13 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public async Task PurgeShow(int showId)
     {
-        using (await GetLockForEntity(ForeignEntityType.Show, showId, "metadata", "Purge").ConfigureAwait(false))
+        using (await GetLockForEntity(DataEntityType.Show, showId, "metadata", "Purge").ConfigureAwait(false))
         {
             var show = _tmdbShows.GetByTmdbShowID(showId);
 
             await _linkingService.RemoveAllShowLinksForShow(showId);
 
-            _imageService.PurgeImages(ForeignEntityType.Show, showId);
+            _imageService.PurgeImages(show ?? new() { TmdbShowID = showId });
 
             if (show is not null)
             {
@@ -1946,7 +1942,7 @@ public class TmdbMetadataService : ITmdbMetadataService
                 _tmdbShows.Delete(show);
             }
 
-            PurgeTitlesAndOverviews(ForeignEntityType.Show, showId);
+            PurgeTitlesAndOverviews(DataEntityType.Show, showId);
 
             PurgeShowCompanies(showId);
 
@@ -1964,7 +1960,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private void PurgeShowCompanies(int showId)
     {
-        var xrefsToRemove = _xrefTmdbCompanyEntity.GetByTmdbEntityTypeAndID(ForeignEntityType.Show, showId);
+        var xrefsToRemove = _xrefTmdbCompanyEntity.GetByTmdbEntityTypeAndID(DataEntityType.Show, showId);
         foreach (var xref in xrefsToRemove)
         {
             // Delete xref or purge company.
@@ -2000,7 +1996,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private async Task PurgeShowNetwork(int networkId)
     {
-        using (await GetLockForEntity(ForeignEntityType.Network, networkId, "metadata & images", "Purge").ConfigureAwait(false))
+        using (await GetLockForEntity(DataEntityType.Network, networkId, "metadata & images", "Purge").ConfigureAwait(false))
         {
             var tmdbNetwork = _tmdbNetwork.GetByTmdbNetworkID(networkId);
             if (tmdbNetwork is not null)
@@ -2022,7 +2018,7 @@ public class TmdbMetadataService : ITmdbMetadataService
                 _tmdbNetwork.Delete(tmdbNetwork);
             }
 
-            _imageService.PurgeImages(ForeignEntityType.Network, networkId);
+            _imageService.PurgeImages(tmdbNetwork ?? new() { TmdbNetworkID = networkId });
 
             var xrefs = _xrefTmdbShowNetwork.GetByTmdbNetworkID(networkId);
             if (xrefs.Count > 0)
@@ -2050,9 +2046,9 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private void PurgeShowEpisode(TMDB_Episode episode)
     {
-        _imageService.PurgeImages(ForeignEntityType.Episode, episode.Id);
+        _imageService.PurgeImages(episode);
 
-        PurgeTitlesAndOverviews(ForeignEntityType.Episode, episode.Id);
+        PurgeTitlesAndOverviews(DataEntityType.Episode, episode.Id);
     }
 
     private void PurgeShowSeasons(int showId)
@@ -2072,9 +2068,9 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private void PurgeShowSeason(TMDB_Season season)
     {
-        _imageService.PurgeImages(ForeignEntityType.Season, season.Id);
+        _imageService.PurgeImages(season);
 
-        PurgeTitlesAndOverviews(ForeignEntityType.Season, season.Id);
+        PurgeTitlesAndOverviews(DataEntityType.Season, season.Id);
     }
 
     private async Task PurgeShowCastAndCrew(int showId)
@@ -2265,7 +2261,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         );
     }
 
-    private void PurgeTitlesAndOverviews(ForeignEntityType foreignType, int foreignId)
+    private void PurgeTitlesAndOverviews(DataEntityType foreignType, int foreignId)
     {
         var overviewsToRemove = _tmdbOverview.GetByParentTypeAndID(foreignType, foreignId);
         var titlesToRemove = _tmdbTitle.GetByParentTypeAndID(foreignType, foreignId);
@@ -2358,7 +2354,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
         var settings = _settingsProvider.GetSettings();
         if (!string.IsNullOrEmpty(company.LogoPath) && settings.TMDB.AutoDownloadStudioImages)
-            await _imageService.DownloadImageByType(company.LogoPath, ImageEntityType.Art, ForeignEntityType.Company, company.Id);
+            await _imageService.DownloadImageByType(company.LogoPath, ImageEntityType.Primary, tmdbCompany);
     }
 
     private void PurgeCompany(int companyId)
@@ -2370,7 +2366,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             _tmdbCompany.Delete(tmdbCompany);
         }
 
-        _imageService.PurgeImages(ForeignEntityType.Company, companyId);
+        _imageService.PurgeImages(tmdbCompany ?? new() { TmdbCompanyID = companyId });
 
         var xrefs = _xrefTmdbCompanyEntity.GetByTmdbCompanyID(companyId);
         if (xrefs.Count > 0)
@@ -2416,7 +2412,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public async Task<(bool added, bool updated)> UpdatePerson(int personId, bool forceRefresh = false, bool downloadImages = false, int? currentShowId = null, int? currentMovieId = null)
     {
-        using (await GetLockForEntity(ForeignEntityType.Person, personId, "metadata & images", "Update").ConfigureAwait(false))
+        using (await GetLockForEntity(DataEntityType.Person, personId, "metadata & images", "Update").ConfigureAwait(false))
         {
             var tmdbPerson = _tmdbPeople.GetByTmdbPersonID(personId) ?? new(personId);
             if (!forceRefresh && tmdbPerson.TMDB_PersonID is not 0 && tmdbPerson.LastUpdatedAt > DateTime.Now.AddHours(-1))
@@ -2465,8 +2461,10 @@ public class TmdbMetadataService : ITmdbMetadataService
             return;
 
         _logger.LogDebug("Downloading images for staff member. (Person={personId})", personId);
-        var birthedAt = _tmdbPeople.GetByTmdbPersonID(personId)?.BirthDay;
-        await _imageService.DownloadImagesByType(null, birthedAt, images.Profiles!, ImageEntityType.Creator, ForeignEntityType.Person, personId, settings.TMDB.MaxAutoStaffImages, [], forceDownload);
+        if (_tmdbPeople.GetByTmdbPersonID(personId) is not { } person)
+            return;
+
+        await _imageService.DownloadImagesByType(null, images.Profiles!, ImageEntityType.Primary, person, settings.TMDB.MaxAutoStaffImages, [], forceDownload);
     }
 
     public async Task PurgeUnlinkedPeople()
@@ -2479,7 +2477,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public async Task<bool> PurgePerson(int personId, bool force = false)
     {
-        using (await GetLockForEntity(ForeignEntityType.Person, personId, "metadata & images", "Purge"))
+        using (await GetLockForEntity(DataEntityType.Person, personId, "metadata & images", "Purge"))
         {
             if (!force && IsPersonLinkedToOtherEntities(personId))
                 return false;
@@ -2516,7 +2514,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             _tmdbPeople.Delete(person);
         }
 
-        _imageService.PurgeImages(ForeignEntityType.Person, personId);
+        _imageService.PurgeImages(person ?? new() { TmdbPersonID = personId });
 
         var movieCast = _tmdbMovieCast.GetByTmdbPersonID(personId);
         if (movieCast.Count > 0)
@@ -2733,81 +2731,17 @@ public class TmdbMetadataService : ITmdbMetadataService
     #region Locking
 
 
-    private bool WaitIfEntityLocked(ForeignEntityType entityType, int id, string metadataKey)
-    {
-        var key = $"{entityType.ToString().ToLowerInvariant()}-{metadataKey}:{id}";
-        if (!_concurrencyGuards.TryGetValue(key, out var semaphore) || semaphore.CurrentCount != 0)
-            return false;
+    private bool WaitIfEntityLocked(DataEntityType entityType, int id, string metadataKey)
+        => _entityLock.WaitIfEntityLocked(entityType, id, metadataKey);
 
-        semaphore.Wait();
-        semaphore.Release();
+    private Task<bool> WaitIfEntityLockedAsync(DataEntityType entityType, int id, string metadataKey)
+        => _entityLock.WaitIfEntityLockedAsync(entityType, id, metadataKey);
 
-        return true;
-    }
+    private bool IsEntityLocked(DataEntityType entityType, int id, string metadataKey)
+        => _entityLock.IsEntityLocked(entityType, id, metadataKey);
 
-    private Task<bool> WaitIfEntityLockedAsync(ForeignEntityType entityType, int id, string metadataKey)
-    {
-        var startedAt = DateTime.Now;
-        var key = $"{entityType.ToString().ToLowerInvariant()}-{metadataKey}:{id}";
-        if (!_concurrencyGuards.TryGetValue(key, out var semaphore) || semaphore.CurrentCount != 0)
-            return Task.FromResult(false);
-
-        return semaphore.WaitAsync().ContinueWith(t =>
-        {
-            semaphore.Release();
-            return true;
-        });
-    }
-
-    private bool IsEntityLocked(ForeignEntityType entityType, int id, string metadataKey)
-    {
-        var key = $"{entityType.ToString().ToLowerInvariant()}-{metadataKey}:{id}";
-        if (!_concurrencyGuards.TryGetValue(key, out var semaphore))
-            return false;
-        return semaphore.CurrentCount == 0;
-    }
-
-    private async Task<IDisposable> GetLockForEntity(ForeignEntityType entityType, int id, string metadataKey, string reason)
-    {
-        var startedAt = DateTime.Now;
-        var key = $"{entityType.ToString().ToLowerInvariant()}-{metadataKey}:{id}";
-        _logger.LogDebug("Acquiring lock '{MetadataKey}' for {EntityType} {Id}. (Reason: {Reason})", metadataKey, entityType, id, reason);
-        var semaphore = _concurrencyGuards.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
-        var acquiredLock = await semaphore.WaitAsync(500).ConfigureAwait(false);
-        if (!acquiredLock)
-        {
-            _logger.LogDebug("Waiting for lock '{MetadataKey}' for {EntityType} {Id}. (Reason: {Reason})", metadataKey, entityType, id, reason);
-            await semaphore.WaitAsync().ConfigureAwait(false);
-            var deltaTime = DateTime.Now - startedAt;
-            _logger.LogDebug("Waited {Waited} for lock '{MetadataKey}' for {EntityType} {Id}. (Reason: {Reason})", deltaTime, metadataKey, entityType, id, reason);
-        }
-        _logger.LogDebug("Acquired lock '{MetadataKey}' for {EntityType} {Id}. (Reason: {Reason})", metadataKey, entityType, id, reason);
-
-        var released = false;
-        return new DisposableAction(() =>
-        {
-            if (released) return;
-            released = true;
-            var deltaTime = DateTime.Now - startedAt;
-            // We remove the semaphore from the dictionary before releasing it
-            // so new threads will acquire a new semaphore instead.
-            _concurrencyGuards.TryRemove(key, out _);
-            semaphore.Release();
-            _logger.LogDebug("Released lock '{MetadataKey}' for {EntityType} {Id} after {Run}. (Reason: {Reason})", metadataKey, entityType, id, deltaTime, reason);
-        });
-    }
-
-    internal class DisposableAction : IDisposable
-    {
-        private readonly Action _action;
-
-        public DisposableAction(Action action)
-        {
-            _action = action;
-        }
-
-        public void Dispose() => _action();
-    }
+    private Task<IDisposable> GetLockForEntity(DataEntityType entityType, int id, string metadataKey, string reason)
+        => _entityLock.GetLockForEntityAsync(entityType, id, metadataKey, reason);
 
     #endregion
 }

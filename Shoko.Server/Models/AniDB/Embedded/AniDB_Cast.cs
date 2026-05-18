@@ -1,7 +1,6 @@
 using System;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata;
-using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 #nullable enable
@@ -37,8 +36,6 @@ public class AniDB_Cast : ICast
     public int Ordering => _xref.Ordering;
 
     public CastRoleType RoleType => _xref.CastRoleType;
-
-    public IImage? PortraitImage => _character.GetImageMetadata();
 
     public IMetadata<int>? Parent => _getParent();
 

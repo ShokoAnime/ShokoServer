@@ -1,0 +1,1513 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using ImageMagick;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.Retry;
+using Quartz;
+using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Events;
+using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Image.Exceptions;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.Metadata.Tmdb;
+using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
+using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.User;
+using Shoko.Abstractions.Video;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.TMDB;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Jobs.Image;
+using Shoko.Server.Server;
+using Shoko.Server.Settings;
+
+#nullable enable
+namespace Shoko.Server.Services;
+
+public class ImageManager(
+    ILogger<ImageManager> logger,
+    IApplicationPaths applicationPaths,
+    ISettingsProvider settingsProvider,
+    ISchedulerFactory schedulerFactory,
+    IServiceProvider services,
+    IHttpClientFactory httpClientFactory,
+    ConfigurationProvider<ServerSettings> configurationProvider,
+    ShokoImageRepository imageRepository,
+    ShokoImage_EntityRepository xrefRepository
+) : IImageManager
+{
+    private static IUDPConnectionHandler? _udpConnectionHandler = null;
+
+    #region Image Sources
+
+    private Dictionary<DataSource, string?>? _cachedUrls = null;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<DataSource, string?> GetTemplateUrls()
+    {
+        if (_cachedUrls is not null)
+            return _cachedUrls;
+        lock (applicationPaths)
+        {
+            if (_cachedUrls is not null)
+                return _cachedUrls;
+            var userRegisteredTemplates = configurationProvider.Load().Image.ImageTemplateUrls
+                .DistinctBy(template => template.ImageSource)
+                .ToDictionary(template => template.ImageSource, template => template.TemplateUrl);
+            var dict = new Dictionary<DataSource, string?>();
+            foreach (var dataSource in Enum.GetValues<DataSource>())
+            {
+                if (dataSource.IsLocal)
+                    continue;
+                if (userRegisteredTemplates.TryGetValue(dataSource, out var templateUrl) && templateUrl is { Length: > 0 })
+                    dict.Add(dataSource, templateUrl);
+                else if (dataSource is DataSource.AniDB)
+                    dict.Add(dataSource, DefaultAnidbUrlTemplate());
+                else if (dataSource is DataSource.TMDB)
+                    dict.Add(dataSource, DefaultTmdbUrlTemplate());
+                else if (dataSource is DataSource.AniList)
+                    // TODO: Add Anilist image template url.
+                    dict.Add(dataSource, null);
+                else
+                    dict.Add(dataSource, null);
+            }
+            return _cachedUrls = dict;
+        }
+    }
+
+    private string DefaultAnidbUrlTemplate()
+    {
+        // Setting override.
+        var setting = settingsProvider.GetSettings().AniDb.ImageCdnUrl;
+        if (!string.IsNullOrWhiteSpace(setting) && !string.Equals(setting, Constants.AnidbCdnUrl) && (setting.StartsWith("http://") || setting.StartsWith("https://")))
+        {
+            // Setting as a URL template.
+            if (setting.Contains("{0}"))
+                return setting;
+
+            // Setting as a base URL.
+            if (setting.EndsWith("/", StringComparison.Ordinal))
+                setting = setting[..^1];
+            return string.Format(Constants.URLS.AniDB_Images, setting);
+        }
+
+        // UDP API provided override.
+        _udpConnectionHandler ??= services?.GetRequiredService<IUDPConnectionHandler>();
+        if (_udpConnectionHandler is not null)
+            return _udpConnectionHandler.ImageServerUrl;
+
+        // Static fallback.
+        return string.Format(Constants.URLS.AniDB_Images, Constants.AnidbCdnUrl);
+    }
+
+    private string DefaultTmdbUrlTemplate()
+    {
+        // Setting override.
+        var setting = settingsProvider.GetSettings().TMDB.ImageCdnUrl;
+        if (!string.IsNullOrWhiteSpace(setting) && !string.Equals(setting, TmdbMetadataService.ImageServerUrl) && (setting.StartsWith("http://") || setting.StartsWith("https://")))
+        {
+            // Setting as a URL template.
+            if (setting.Contains("{0}"))
+                return setting;
+
+            // Setting as a base URL.
+            if (!setting.EndsWith("/", StringComparison.Ordinal))
+                setting += "/";
+            return $"{setting}original/{{0}}";
+        }
+
+        // Static fallback.
+        return $"{TmdbMetadataService.ImageServerUrl}original/{{0}}";
+    }
+
+    /// <inheritdoc/>
+    public string? GetTemplateUrlForSource(DataSource imageSource)
+    {
+        var urls = GetTemplateUrls();
+        return urls.TryGetValue(imageSource, out var url) ? url : null;
+    }
+
+    /// <inheritdoc/>
+    public void SetTemplateUrlForSource(DataSource imageSource, string? templateUrl)
+    {
+        if (imageSource.IsLocal)
+            throw new InvalidOperationException($"{nameof(imageSource)} cannot be User, None or Shoko.");
+
+        if (templateUrl is not null)
+        {
+            var urlErrors = new List<string>();
+            if (!Uri.TryCreate(templateUrl, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttp || uri.Scheme != Uri.UriSchemeHttps)
+                throw new ArgumentException($"{nameof(templateUrl)} must be a valid http:// or https:// URL.", nameof(templateUrl));
+            if (!templateUrl.Contains("{0}"))
+                throw new ArgumentException($"{nameof(templateUrl)} must contain {{0}}.", nameof(templateUrl));
+
+            lock (applicationPaths)
+            {
+                var config = configurationProvider.Load();
+                config.Image.ImageTemplateUrls.RemoveAll(template => template.ImageSource == imageSource);
+                config.Image.ImageTemplateUrls.Add(new ImageTemplateUrlConfiguration()
+                {
+                    ImageSource = imageSource,
+                    TemplateUrl = templateUrl,
+                });
+                configurationProvider.Save(config);
+                if (_cachedUrls is not null)
+                    _cachedUrls[imageSource] = templateUrl;
+            }
+        }
+        else
+        {
+            lock (applicationPaths)
+            {
+                var config = configurationProvider.Load();
+                config.Image.ImageTemplateUrls.RemoveAll(template => template.ImageSource == imageSource);
+                configurationProvider.Save(config);
+                if (_cachedUrls is not null)
+                    _cachedUrls.Remove(imageSource);
+            }
+        }
+    }
+
+    #endregion
+
+    #region Images
+
+    /// <inheritdoc/>
+    public event EventHandler<ImageEventArgs>? ImageAdded;
+
+    /// <inheritdoc/>
+    public event EventHandler<ImageEventArgs>? ImageUpdated;
+
+    /// <inheritdoc/>
+    public event EventHandler<ImageEventArgs>? ImageDownloaded;
+
+    /// <inheritdoc/>
+    public event EventHandler<ImageEventArgs>? ImageRemoved;
+
+    /// <inheritdoc/>
+    public IEnumerable<IImage> GetAllImages(
+        DataSource? imageSource = null,
+        ImageEntityType? imageType = null,
+        DataSource? xrefSource = null,
+        bool? isEnabled = null,
+        bool? isDesired = null,
+        bool? primaryImage = null
+    )
+    {
+        IEnumerable<IImage> images = imageRepository.GetAll();
+        if (imageSource is not null || primaryImage is not null)
+            images = images.Where(image =>
+                (imageSource is null || image.Source == imageSource) &&
+                (primaryImage is null || image.PrimaryID == image.ID == primaryImage.Value)
+            );
+        if (imageType is not null || xrefSource is not null || isEnabled is not null || isDesired is not null)
+        {
+            images = images
+                .Where(image => xrefRepository.GetByImageID(image.ID) is { Count: > 0 } xrefs && xrefs
+                    .Any(xref =>
+                        (imageType is null || xref.ImageType == imageType) &&
+                        (xrefSource is null || xref.Source == xrefSource) &&
+                        (isEnabled is null || xref.IsEnabled == isEnabled) &&
+                        (isDesired is null || xref.IsDesired == isDesired)
+                    )
+                );
+        }
+        return images;
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IImage> GetImagesForEntity(
+        IWithImages entity,
+        DataSource? imageSource = null,
+        ImageEntityType? imageType = null,
+        DataSource? xrefSource = null,
+        bool? isEnabled = null,
+        bool? isDesired = null,
+        bool primaryImage = false,
+        bool? linkedEntityImages = null
+    )
+    {
+        if (!TryGetMetadataForEntity(entity, out var entitySource, out var entityType, out var entityID, out _, out _, out _))
+            throw new ArgumentException(nameof(entity), "Invalid entity given to GetImagesForEntity");
+
+        Func<IEnumerable<IImageCrossReference>, IEnumerable<IImageCrossReference>> filter =
+            imageSource is not null || imageType is not null || xrefSource is not null || isEnabled is not null || isDesired is not null
+                ? xrefs => xrefs
+                    .Where(xref =>
+                        (imageSource is null || xref.ImageSource == imageSource) &&
+                        (imageType is null || xref.ImageType == imageType) &&
+                        (xrefSource is null || xref.Source == xrefSource) &&
+                        (isEnabled is null || xref.IsEnabled == isEnabled) &&
+                        (isDesired is null || xref.IsDesired == isDesired)
+                    )
+                : xrefs => xrefs;
+
+        linkedEntityImages ??= entity is IShokoGroup or IShokoSeries or IShokoSeason or IShokoEpisode;
+        if (linkedEntityImages.Value)
+        {
+            var xrefs = new List<IEnumerable<IImageCrossReference>>()
+            {
+                filter(xrefRepository.GetByEntity(entitySource, entityType, entityID)),
+            };
+
+            switch (entity)
+            {
+                case IShokoGroup group:
+                {
+                    var series = group.MainSeries;
+                    xrefs.Add(filter(xrefRepository.GetByEntity(series.Source, series.EntityType, series.ID.ToString())));
+                    foreach (var s in series.LinkedSeries)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
+                    foreach (var m in series.LinkedMovies)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
+                    break;
+                }
+                case IShokoSeries series:
+                {
+                    foreach (var s in series.LinkedSeries)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
+                    foreach (var m in series.LinkedMovies)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
+                    break;
+                }
+                case IShokoSeason season:
+                {
+                    foreach (var s in season.LinkedSeasons)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID)));
+                    break;
+                }
+                case IShokoEpisode episode:
+                {
+                    foreach (var s in episode.LinkedEpisodes)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
+                    foreach (var m in episode.LinkedMovies)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
+                    break;
+                }
+            }
+
+            return xrefs
+                .SelectMany(list => list)
+                .Select(xref => (xref, image: GetImageByID(xref.ImageID, primaryImage), linkedXref: (xref.EntitySource, xref.EntityType, xref.EntityID) != (entitySource, entityType, entityID)))
+                .Where(tuple => tuple.image is not null)
+                .OrderBy(tuple => tuple.xref.ImageType)
+                .ThenBy(tuple => tuple.linkedXref)
+                .ThenBy(tuple => (tuple.xref.EntitySource, tuple.xref.EntityType, tuple.xref.EntityID))
+                .ThenBy(tuple => tuple.xref.Ordering)
+                .ThenBy(tuple => tuple.xref.Source)
+                .DistinctBy(tuple => (tuple.xref.ImageID, tuple.xref.ImageType, tuple.xref.ImageSource))
+                .Select(tuple => new ShokoImageStub(tuple.image, tuple.xref, tuple.linkedXref))
+                .ToList();
+        }
+
+        return filter(xrefRepository.GetByEntity(entitySource, entityType, entityID))
+            .Select(xref => (xref, image: GetImageByID(xref.ImageID, primaryImage)!))
+            .Where(tuple => tuple.image is not null)
+            .OrderBy(tuple => tuple.xref.ImageType)
+            .ThenBy(tuple => tuple.xref.Ordering)
+            .ThenBy(tuple => tuple.xref.Source)
+            .DistinctBy(tuple => (tuple.xref.ImageID, tuple.xref.ImageType, tuple.xref.ImageSource))
+            .Select(tuple => new ShokoImageStub(tuple.image, tuple.xref))
+            .ToList();
+    }
+
+    /// <inheritdoc/>
+    public IImage? GetImageByID(Guid imageID, bool primaryImage = false)
+    {
+        var image = imageRepository.GetByID(imageID);
+        if (image is not null && primaryImage && image.ID != image.PrimaryID)
+            image = imageRepository.GetByID(image.PrimaryID);
+        return image;
+    }
+
+    /// <inheritdoc/>
+    [Obsolete("Use the Universally Unique Identifier instead.")]
+    public IImage? GetImageByID(int localImageID, bool primaryImage = false)
+    {
+        var image = imageRepository.GetByLocalID(localImageID);
+        if (image is not null && primaryImage && image.ID != image.PrimaryID)
+            image = imageRepository.GetByID(image.PrimaryID);
+        return image;
+    }
+
+    /// <inheritdoc/>
+    public IImage? GetImageBySourceAndRemoteResourceID(DataSource source, string resourceID, bool primaryImage = false)
+        => GetImageByID(IImageManager.GetIDForImageSourceAndResourceID(source, resourceID), primaryImage);
+
+    /// <inheritdoc/>
+    public IShokoSeries? GetFirstSeriesForImage(IImage image)
+        => xrefRepository.GetByImageID(image.ID)
+            .Where(xref => xref is
+            {
+                IsEnabled: true,
+                EntityType: DataEntityType.Movie or DataEntityType.Series or DataEntityType.Season or DataEntityType.Episode,
+            })
+            .DistinctBy(xref => (xref.EntitySource, xref.EntityType, xref.EntityID))
+            .SelectMany(xref => xref.GetEntity() switch
+            {
+                ISeries series => series.ShokoSeries,
+                IMovie movie => movie.ShokoSeries,
+                ISeason season => season.Series?.ShokoSeries ?? [],
+                IEpisode episode => episode.Series?.ShokoSeries ?? [],
+                _ => [],
+            })
+            .FirstOrDefault();
+
+    #region Images | Add
+
+    /// <inheritdoc/>
+    public IImage AddImage(ImageData imageData)
+    {
+        if (GetTemplateUrlForSource(imageData.Source) is null)
+            throw new MissingImageSourceTemplateUrlException()
+            {
+                ImageSource = imageData.Source,
+            };
+
+        var id = IImageManager.GetIDForImageSourceAndResourceID(imageData.Source, imageData.ResourceID);
+        if (imageRepository.GetByID(id) is not null)
+            throw new ImageDataExistsException()
+            {
+                ImageSource = imageData.Source,
+                ImageResourceID = imageData.ResourceID,
+            };
+
+        var image = new ShokoImage()
+        {
+            ID = id,
+            PrimaryID = id,
+            Height = imageData.Height,
+            Width = imageData.Width,
+            CountryCode = imageData.CountryCode,
+            LanguageCode = imageData.LanguageCode,
+            Source = imageData.Source,
+            ResourceID = imageData.ResourceID,
+            CreatedAt = DateTime.UtcNow,
+            LastUpdatedAt = DateTime.UtcNow,
+        };
+
+        imageRepository.Save(image);
+
+        _ = Task.Run(() => ImageAdded?.Invoke(this, new() { Image = image }));
+
+        return image;
+    }
+
+    private static readonly string[] _allowedMimeTypes = ["image/jpeg", "image/png", "image/bmp", "image/gif", "image/tiff", "image/webp"];
+
+    /// <inheritdoc/>
+    public IImage UploadImage(Stream imageStream, string? contentType = null, bool userSubmitted = true)
+    {
+        ArgumentNullException.ThrowIfNull(imageStream);
+        return UploadImage(imageStream.ToByteArray(), contentType, userSubmitted);
+    }
+
+    /// <inheritdoc/>
+    public IImage UploadImage(byte[] imageByteArray, string? contentType = null, bool userSubmitted = true)
+    {
+        ArgumentNullException.ThrowIfNull(imageByteArray);
+
+        TryConvertFromDataURL(ref imageByteArray, ref contentType);
+
+        if (contentType is not null)
+        {
+            contentType = contentType?.ToLower().Replace("jpg", "jpeg") ?? string.Empty;
+            if (contentType is not { Length: > 8 } || contentType[0..6] is not "image/")
+                throw new ArgumentException("The provided content-type is not valid.", nameof(contentType));
+
+            if (!_allowedMimeTypes.Contains(contentType))
+                throw new ArgumentException("The provided content-type is not allowed.", nameof(contentType));
+        }
+
+        var md5 = Convert.ToHexString(MD5.HashData(imageByteArray));
+        var source = userSubmitted ? DataSource.User : DataSource.LocallyGenerated;
+        var id = IImageManager.GetIDForImageSourceAndResourceID(source, md5);
+        if (imageRepository.GetByID(id) is { } existingImage)
+        {
+            if (contentType is not null && existingImage.ContentType != contentType)
+                throw new ArgumentException("The provided content-type does not match the actual image format.", nameof(contentType));
+
+            return existingImage;
+        }
+
+        MagickImageInfo info;
+        try
+        {
+            info = new(imageByteArray);
+        }
+        catch (Exception ex)
+        {
+            throw new ArgumentException("The provided image data is not valid.", nameof(imageByteArray), ex);
+        }
+
+        var expectedContentType = "image/" + info.Format.ToString().ToLower().Replace("jpg", "jpeg");
+        if (contentType is not null && expectedContentType != contentType)
+            throw new ArgumentException("The provided content-type does not match the actual image format.", nameof(contentType));
+
+        if (contentType is null && !_allowedMimeTypes.Contains(expectedContentType))
+            throw new ArgumentException("The provided content-type is not allowed.", nameof(imageByteArray));
+
+        var image = new ShokoImage()
+        {
+            ID = id,
+            PrimaryID = id,
+            Source = source,
+            ResourceID = md5,
+            Height = info.Height,
+            Width = info.Width,
+            CountryCode = string.Empty,
+            LanguageCode = string.Empty,
+            CreatedAt = DateTime.UtcNow,
+            LastUpdatedAt = DateTime.UtcNow,
+        };
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(image.LocalPath)!);
+            File.OpenWrite(image.LocalPath).Write(imageByteArray);
+        }
+        catch (Exception ex)
+        {
+            if (File.Exists(image.LocalPath))
+            {
+                try
+                {
+                    File.Delete(image.LocalPath);
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+
+            throw new ArgumentException("The provided image data is not valid.", nameof(imageByteArray), ex);
+        }
+
+        imageRepository.Save(image);
+
+        _ = Task.Run(() => ImageAdded?.Invoke(this, new() { Image = image }));
+
+        return image;
+    }
+
+    #endregion
+
+    #region Images | Update
+
+    /// <inheritdoc/>
+    public IImage EnableImage(IImage image, bool isEnabled)
+        => UpdateImage(image, new() { IsEnabled = isEnabled });
+
+    /// <inheritdoc/>
+    public IImage SetPrimaryImage(IImage image, IImage? primaryImage)
+        => UpdateImage(image, new() { PrimaryImage = primaryImage });
+
+    /// <inheritdoc/>
+    public IImage UpdateImage(IImage image, ImageUpdateData imageUpdateData)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(imageUpdateData);
+        if (imageRepository.GetByID(image.ID) is not ShokoImage localImage)
+            throw new ArgumentException("Invalid image given to UpdateImage", nameof(image));
+
+        var now = DateTime.UtcNow;
+        var imagesToSave = new HashSet<ShokoImage>();
+        var xrefsToSave = new HashSet<ShokoImage_Entity>();
+        if (imageUpdateData.IsEnabled.HasValue)
+        {
+            var xrefs = xrefRepository.GetByImageID(localImage.ID).Where(xref => xref.IsEnabled != imageUpdateData.IsEnabled.Value).ToList();
+            foreach (var xref in xrefs)
+            {
+                xref.IsEnabled = imageUpdateData.IsEnabled.Value;
+                xrefsToSave.Add(xref);
+            }
+        }
+
+        if (localImage.Update(imageUpdateData) || xrefsToSave.Count > 0)
+        {
+            localImage.LastUpdatedAt = now;
+            imagesToSave.Add(localImage);
+        }
+
+        var shouldUpdatePrimaryImage = imageUpdateData.PrimaryImage is not null || localImage.PrimaryID != localImage.ID;
+        if (shouldUpdatePrimaryImage)
+        {
+            var previousPrimaryID = localImage.PrimaryID;
+            var nextPrimaryID = imageUpdateData.PrimaryImage switch
+            {
+                null => localImage.ID,
+                { ID: var primaryID } when primaryID == localImage.ID => localImage.ID,
+                { ID: var primaryID } => imageRepository.GetByID(primaryID)?.PrimaryID ?? primaryID,
+            };
+            if (previousPrimaryID != nextPrimaryID)
+            {
+                localImage.PrimaryID = nextPrimaryID;
+                localImage.LastUpdatedAt = now;
+                imagesToSave.Add(localImage);
+
+                // Keep linked image groups and xref primary pointers in sync with the new canonical primary id.
+                if (previousPrimaryID == localImage.ID)
+                {
+                    var linkedImages = imageRepository.GetByPrimaryImageID(previousPrimaryID)
+                        .Where(linkedImage => linkedImage.ID != localImage.ID && linkedImage.PrimaryID != nextPrimaryID)
+                        .ToList();
+                    foreach (var linkedImage in linkedImages)
+                    {
+                        linkedImage.PrimaryID = nextPrimaryID;
+                        imagesToSave.Add(linkedImage);
+                    }
+                }
+
+                var xrefsToUpdate = previousPrimaryID == localImage.ID
+                    ? xrefRepository.GetByImageID(localImage.ID)
+                        .Where(xref => xref.PrimaryImageID != nextPrimaryID)
+                        .Concat(
+                            xrefRepository.GetByPrimaryImageID(previousPrimaryID)
+                                .Where(xref => xref.ImageID != localImage.ID && xref.PrimaryImageID != nextPrimaryID)
+                        )
+                        .DistinctBy(xref => xref.ID)
+                        .ToList()
+                    : xrefRepository.GetByImageID(localImage.ID)
+                        .Where(xref => xref.PrimaryImageID != nextPrimaryID)
+                        .ToList();
+                foreach (var xref in xrefsToUpdate)
+                {
+                    xref.PrimaryImageID = nextPrimaryID;
+                    xref.LastUpdatedAt = now;
+                    xrefsToSave.Add(xref);
+                }
+            }
+        }
+
+        imageRepository.Save(imagesToSave);
+        xrefRepository.Save(xrefsToSave);
+
+        foreach (var imageToSave in imagesToSave)
+            Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = imageToSave }));
+        foreach (var xrefToSave in xrefsToSave)
+        {
+            Task.Run(() => ImageCrossReferenceUpdated?.Invoke(this, new() { ImageCrossReference = xrefToSave }));
+            EmitEventForRelatedEntry(xrefToSave, UpdateReason.ImageUpdated);
+        }
+
+        return localImage;
+    }
+
+    #endregion
+
+    #region Image | Download
+
+    private static readonly TimeSpan[] _retryTimeSpans = [TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30)];
+
+    private static readonly AsyncRetryPolicy _retryPolicy = Policy
+        .Handle<HttpRequestException>()
+        .Or<TaskCanceledException>()
+        .WaitAndRetryAsync(_retryTimeSpans, (exception, timeSpan) =>
+        {
+            if (timeSpan == _retryTimeSpans[3] || exception is HttpRequestException hre && hre.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden)
+                throw exception;
+        });
+
+    /// <inheritdoc/>
+    public async Task<bool> CheckIfAvailableAtRemote(IImage image)
+    {
+        var template = GetTemplateUrlForSource(image.Source);
+        if (template is null)
+            return false;
+
+        var remoteUrl = string.Format(template, image.ResourceID);
+        try
+        {
+            using var client = httpClientFactory.CreateClient("Default");
+            using var stream = await _retryPolicy.ExecuteAsync(async () => await client.GetStreamAsync(remoteUrl)).ConfigureAwait(false);
+            var bytes = new byte[12];
+            stream.ReadExactly(bytes);
+            stream.Close();
+            return GetImageFormat(bytes) is not null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to retrieve resource at url: {RemoteURL}", remoteUrl);
+            return false;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> DownloadImage(IImage image, bool force = false)
+    {
+        var template = GetTemplateUrlForSource(image.Source);
+        if (template is null)
+        {
+            logger.LogWarning("Unable to find template url to use for {Source}. (Image={ImageID})", image.Source, image.ID);
+            return false;
+        }
+
+        if (imageRepository.GetByID(image.ID) is not { } shokoImage)
+        {
+            logger.LogWarning("Unable to find image to update in database. (Image={ImageID})", image.ID);
+            return false;
+        }
+
+        var previouslyDownloaded = image.IsAvailable;
+        if (!force && image.IsAvailable)
+        {
+            logger.LogDebug("Image already in cache. (Image={ImageID})", image.ID);
+            return true;
+        }
+
+        var downloaded = false;
+        var remoteUrl = string.Format(template, image.ResourceID);
+        try
+        {
+            using var client = httpClientFactory.CreateClient("Default");
+            var byteArray = await _retryPolicy.ExecuteAsync(async () => await client.GetByteArrayAsync(remoteUrl)).ConfigureAwait(false);
+            if (GetImageFormat(byteArray) is not { } imageFormat)
+                throw new HttpRequestException($"Invalid or disallowed image data format at remote resource: {remoteUrl}", null, HttpStatusCode.ExpectationFailed);
+
+            MagickImageInfo info;
+            try
+            {
+                info = new(byteArray);
+            }
+            catch (MagickException e)
+            {
+                throw new HttpRequestException($"Invalid or disallowed image data format at remote resource: {remoteUrl}", e, HttpStatusCode.ExpectationFailed);
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(image.LocalPath)!);
+            if (File.Exists(image.LocalPath))
+                File.Delete(image.LocalPath);
+            File.WriteAllBytes(image.LocalPath, byteArray);
+
+            logger.LogInformation("Image downloaded to cache: {DownloadUrl} (Image={ImageID})", remoteUrl, image.ID);
+
+            // Update metadata.
+            shokoImage.Width = info.Width;
+            shokoImage.Height = info.Height;
+            shokoImage.ContentType = $"image/{imageFormat}";
+
+            return downloaded = true;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden or HttpStatusCode.ExpectationFailed)
+        {
+            logger.LogWarning("Image failed to download because the remote resource does not exist, is unavailable, or is not invalid/disallowed: {DownloadUrl} (Image={ImageID})", remoteUrl, image.ID);
+            throw;
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning("Image failed to download due to an unexpected error: {DownloadUrl} - {Message} (Image={ImageID})", remoteUrl, e.Message, image.ID);
+            throw;
+        }
+        finally
+        {
+            // Emit updated event if not downloaded, because the metadata changed.
+            shokoImage.DownloadAttempts++;
+            shokoImage.LastUpdatedAt = DateTime.UtcNow;
+            imageRepository.Save(shokoImage);
+            if (downloaded)
+            {
+                _ = Task.Run(() => ImageDownloaded?.Invoke(this, new() { Image = image }));
+
+                EmitEventForRelatedEntities(image, !previouslyDownloaded ? UpdateReason.ImageAdded : UpdateReason.ImageUpdated);
+            }
+            else
+            {
+                _ = Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = image }));
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task ScheduleDownloadOfImage(IImage image, bool force = false)
+    {
+        if (!force && image.IsAvailable)
+            return;
+
+        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
+        await scheduler.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force)).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public async Task ScheduleAutoDownloadsForEntity(
+        IWithImages entity,
+        DataSource? imageSource = null,
+        ImageEntityType? imageType = null,
+        DataSource? xrefSource = null,
+        bool force = false
+    )
+    {
+        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
+        var images = GetImagesForEntity(entity, imageSource: imageSource, imageType: imageType, xrefSource: xrefSource, isEnabled: true, isDesired: true);
+        foreach (var image in images)
+        {
+            if (!force && (image.IsAvailable || image.DownloadAttempts > 3))
+                continue;
+
+            await scheduler.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force)).ConfigureAwait(false);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task ScheduleAllAutoDownloads(
+        DataSource? imageSource = null,
+        ImageEntityType? imageType = null,
+        DataSource? xrefSource = null,
+        bool force = false
+    )
+    {
+        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
+        var images = GetAllImages(imageSource: imageSource, imageType: imageType, xrefSource: xrefSource, isEnabled: true, isDesired: true);
+        foreach (var image in images)
+        {
+            if (!force && (image.IsAvailable || image.DownloadAttempts > 3))
+                continue;
+
+            await scheduler.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force)).ConfigureAwait(false);
+        }
+    }
+
+    #endregion
+
+    #region Image | Purge
+
+    /// <inheritdoc/>
+    public async Task<bool> PurgeImage(IImage image)
+    {
+        var updated = false;
+        var xrefsToFix = xrefRepository.GetByPrimaryImageID(image.ID)
+            .Where(xref => xref.ImageID != xref.PrimaryImageID)
+            .ToList();
+        if (xrefsToFix is { Count: > 0 })
+        {
+            updated = true;
+            foreach (var xref in xrefsToFix)
+                xref.PrimaryImageID = xref.ImageID;
+            xrefRepository.Save(xrefsToFix);
+            foreach (var xref in xrefsToFix)
+            {
+                _ = Task.Run(() => ImageCrossReferenceUpdated?.Invoke(this, new() { ImageCrossReference = xref }));
+            }
+        }
+
+        var imagesToFix = imageRepository.GetByPrimaryImageID(image.ID)
+            .Where(image => image.ID != image.PrimaryID)
+            .ToList();
+        if (imagesToFix is { Count: > 0 })
+        {
+            updated = true;
+            foreach (var imageToFix in imagesToFix)
+                imageToFix.PrimaryID = imageToFix.ID;
+            imageRepository.Save(imagesToFix);
+            foreach (var imageToFix in imagesToFix)
+            {
+                _ = Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = imageToFix }));
+            }
+        }
+
+        if (xrefRepository.GetByImageID(image.ID) is { Count: > 0 } xrefs)
+        {
+            updated = true;
+            xrefRepository.Delete(xrefs);
+            foreach (var xref in xrefs)
+            {
+                _ = Task.Run(() => ImageCrossReferenceRemoved?.Invoke(this, new() { ImageCrossReference = xref }));
+            }
+        }
+
+        if (imageRepository.GetByID(image.ID) is { } localImage)
+        {
+            updated = true;
+            imageRepository.Delete(localImage);
+        }
+
+        _ = Task.Run(() => ImageRemoved?.Invoke(this, new() { Image = image }));
+
+        return updated;
+    }
+
+    /// <inheritdoc/>
+    public async Task SchedulePurgeOfImage(IImage image)
+    {
+        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
+        await scheduler.StartJob<PurgeImageJob>(c => (c.Source, c.ResourceID) = (image.Source, image.ResourceID)).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public async Task<int> PurgeOrphanedImages(int daysOld = 7, DataSource? imageSource = null)
+    {
+        var count = 0;
+        var threshold = DateTime.UtcNow.AddDays(-daysOld);
+        var imagesToPurge = imageRepository.GetOrphanedImages(threshold);
+        foreach (var image in imagesToPurge)
+        {
+            if (await PurgeImage(image).ConfigureAwait(false))
+                count++;
+        }
+        return count;
+    }
+
+    /// <inheritdoc/>
+    public async Task SchedulePurgeOfOrphanedImages(int daysOld = 7, DataSource? imageSource = null)
+    {
+        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
+        await scheduler.StartJob<PurgeOrphanedImagesJob>(c => (c.DaysOld, c.ImageSource) = (daysOld, imageSource)).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public async Task<int> ValidateAllImages()
+    {
+        var scanned = 0;
+        var invalid = 0;
+        var queuedForRedownload = 0;
+        var cleanedLocally = 0;
+
+        logger.LogInformation("Validating local image cache integrity.");
+        foreach (var image in GetAllImages())
+        {
+            scanned++;
+            if (image.IsAvailable)
+                continue;
+
+            invalid++;
+            if (image.IsEnabled && image.IsDesired)
+            {
+                await ScheduleDownloadOfImage(image, force: true).ConfigureAwait(false);
+                queuedForRedownload++;
+                continue;
+            }
+
+            var localPath = image.LocalPath;
+            if (string.IsNullOrEmpty(localPath) || !File.Exists(localPath))
+                continue;
+
+            try
+            {
+                File.Delete(localPath);
+                cleanedLocally++;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Unable to remove invalid local image file for {Source}:{ResourceID}", image.Source, image.ResourceID);
+            }
+        }
+
+        logger.LogInformation(
+            "Image validation complete. Scanned={Scanned}, Invalid={Invalid}, QueuedForRedownload={QueuedForRedownload}, CleanedLocally={CleanedLocally}",
+            scanned,
+            invalid,
+            queuedForRedownload,
+            cleanedLocally
+        );
+        return queuedForRedownload;
+    }
+
+    /// <inheritdoc/>
+    public async Task ScheduleValidateAllImages(bool prioritize = true)
+    {
+        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
+        await scheduler.StartJob<ValidateAllImagesJob>(prioritize: prioritize).ConfigureAwait(false);
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Cross References
+
+    /// <inheritdoc/>
+    public event EventHandler<ImageCrossReferenceEventArgs>? ImageCrossReferenceAdded;
+
+    /// <inheritdoc/>
+    public event EventHandler<ImageCrossReferenceEventArgs>? ImageCrossReferenceUpdated;
+
+    /// <inheritdoc/>
+    public event EventHandler<ImageCrossReferenceEventArgs>? ImageCrossReferenceRemoved;
+
+    /// <inheritdoc/>
+    public IEnumerable<IImageCrossReference> GetAllImageCrossReferences(
+        DataSource? imageSource = null,
+        ImageEntityType? imageType = null,
+        DataSource? xrefSource = null,
+        DataSource? entitySource = null,
+        DataEntityType? entityType = null,
+        bool? isEnabled = null,
+        bool? isDesired = null,
+        bool? primaryImage = null
+    )
+    {
+        IEnumerable<IImageCrossReference> xrefs = xrefRepository.GetAll();
+        if (imageSource is not null || imageType is not null || xrefSource is not null || entitySource is not null || entityType is not null || isEnabled is not null || isDesired is not null || primaryImage is not null)
+        {
+            xrefs = xrefs
+                .Where(xref =>
+                    (imageSource is null || xref.ImageSource == imageSource) &&
+                    (imageType is null || xref.ImageType == imageType) &&
+                    (xrefSource is null || xref.Source == xrefSource) &&
+                    (entitySource is null || xref.EntitySource == entitySource) &&
+                    (entityType is null || xref.EntityType == entityType) &&
+                    (isEnabled is null || xref.IsEnabled == isEnabled) &&
+                    (isDesired is null || xref.IsDesired == isDesired) &&
+                    (primaryImage is null || xref.PrimaryImageID == xref.ImageID == primaryImage)
+                );
+        }
+        return xrefs
+            .OrderBy(xref => xref.ImageType)
+            .ThenBy(xref => xref.Ordering);
+    }
+
+    /// <inheritdoc/>
+    public IImageCrossReference? GetImageCrossReferenceByID(int crossReferenceID)
+        => xrefRepository.GetByID(crossReferenceID);
+
+    /// <inheritdoc/>
+    public IImageCrossReference? GetRandomImageCrossReference(
+        DataSource imageSource,
+        ImageEntityType imageType,
+        DataSource? xrefSource = null,
+        DataSource? entitySource = null,
+        DataEntityType? entityType = null,
+        bool? isEnabled = null,
+        bool? isDesired = null,
+        bool primaryImage = false
+    )
+    {
+        var rng = Random.Shared;
+        using var enumerator = GetAllImageCrossReferences(
+            imageSource: imageSource,
+            imageType: imageType,
+            xrefSource: xrefSource,
+            entitySource: entitySource,
+            entityType: entityType,
+            isEnabled: isEnabled,
+            isDesired: isDesired,
+            primaryImage: primaryImage
+        ).GetEnumerator();
+        while (enumerator.MoveNext())
+        {
+            var current = enumerator.Current;
+            var roll = rng.Next(1, 21); // d20
+            if (roll == 20)
+                return current;
+            var skip = roll;
+            while (skip-- > 0)
+            {
+                if (!enumerator.MoveNext())
+                    return null; // gamble failed, exhausted list
+            }
+        }
+        return null;
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferencesForEntity(
+        IWithImages entity,
+        DataSource? imageSource = null,
+        ImageEntityType? imageType = null,
+        DataSource? xrefSource = null,
+        bool? isEnabled = null,
+        bool? isDesired = null,
+        bool? primaryImage = null,
+        bool? linkedEntityImages = null
+    )
+    {
+        if (!TryGetMetadataForEntity(entity, out var entitySource, out var entityType, out var entityID, out _, out _, out _))
+            throw new ArgumentException("Invalid entity given to GetImagesForEntity", nameof(entity));
+
+        Func<IEnumerable<IImageCrossReference>, IEnumerable<IImageCrossReference>> filter =
+            imageSource is not null || imageType is not null || xrefSource is not null || isEnabled is not null || isDesired is not null || primaryImage is not null
+                ? xrefs => xrefs
+                    .Where(xref =>
+                        (imageSource is null || xref.ImageSource == imageSource) &&
+                        (imageType is null || xref.ImageType == imageType) &&
+                        (xrefSource is null || xref.Source == xrefSource) &&
+                        (isEnabled is null || xref.IsEnabled == isEnabled) &&
+                        (isDesired is null || xref.IsDesired == isDesired) &&
+                        (primaryImage is null || xref.PrimaryImageID == xref.ImageID == primaryImage)
+                    )
+                : xrefs => xrefs;
+
+        linkedEntityImages ??= entity is IShokoGroup or IShokoSeries or IShokoSeason or IShokoEpisode;
+        if (linkedEntityImages.Value)
+        {
+            var xrefs = new List<IEnumerable<IImageCrossReference>>()
+            {
+                filter(xrefRepository.GetByEntity(entitySource, entityType, entityID)),
+            };
+
+            switch (entity)
+            {
+                case IShokoGroup group:
+                {
+                    var series = group.MainSeries;
+                    xrefs.Add(filter(xrefRepository.GetByEntity(series.Source, series.EntityType, series.ID.ToString())));
+                    foreach (var s in series.LinkedSeries)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
+                    foreach (var m in series.LinkedMovies)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
+                    break;
+                }
+                case IShokoSeries series:
+                {
+                    foreach (var s in series.LinkedSeries)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
+                    foreach (var m in series.LinkedMovies)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
+                    break;
+                }
+                case IShokoSeason season:
+                {
+                    foreach (var s in season.LinkedSeasons)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID)));
+                    break;
+                }
+                case IShokoEpisode episode:
+                {
+                    foreach (var s in episode.LinkedEpisodes)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
+                    foreach (var m in episode.LinkedMovies)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
+                    break;
+                }
+            }
+
+            return xrefs
+                .SelectMany(list => list)
+                .OrderBy(xref => xref.ImageType)
+                .ThenBy(xref => (xref.EntitySource, xref.EntityType, xref.EntityID) != (entitySource, entityType, entityID))
+                .ThenBy(xref => (xref.EntitySource, xref.EntityType, xref.EntityID))
+                .ThenBy(xref => xref.Ordering)
+                .ThenBy(xref => xref.Source)
+                .ToList();
+        }
+
+        return filter(xrefRepository.GetByEntity(entitySource, entityType, entityID))
+            .OrderBy(xref => xref.ImageType)
+            .ThenBy(xref => xref.Ordering)
+            .ToList();
+    }
+
+    #region Cross References | Add
+
+    /// <inheritdoc/>
+    public IImageCrossReference AddImageCrossReference(IWithImages entity, IImage image, ImageCrossReferenceData imageCrossReferenceData)
+    {
+        if (!TryGetMetadataForEntity(entity, out var entitySource, out var entityType, out var entityID, out _, out _, out _))
+            throw new ArgumentException("Invalid entity given to AddImageCrossReference", nameof(entity));
+
+        if (imageRepository.GetByID(image.ID) is not { } localImage)
+            throw new ArgumentException("Invalid image given to AddImageCrossReference", nameof(image));
+
+        var xrefs = xrefRepository.GetByEntity(entitySource, entityType, entityID);
+        var existing = xrefs
+            .FirstOrDefault(xref => xref.ImageID == image.ID && xref.ImageType == imageCrossReferenceData.ImageType && xref.Source == imageCrossReferenceData.Source);
+        if (existing is not null)
+            throw new ImageCrossReferenceExistsException()
+            {
+                Image = image,
+                Entity = entity,
+            };
+
+        var xref = new ShokoImage_Entity(image, entity, imageCrossReferenceData, (uint)xrefs.Count);
+        localImage.LastUpdatedAt = xref.LastUpdatedAt;
+
+        xrefRepository.Save(xref);
+        imageRepository.Save(localImage);
+
+        if (imageCrossReferenceData.IsPreferred is true)
+        {
+            var siblingXrefs = xrefRepository
+                .GetByEntity(xref.EntitySource, xref.EntityType, xref.EntityID)
+                .Where(x => x.ID != xref.ID && x.ImageType == xref.ImageType && x.IsPreferred)
+                .ToList();
+            foreach (var siblingXref in siblingXrefs)
+            {
+                siblingXref.Update(new() { IsPreferred = false }, entity: null);
+                xrefRepository.Save(siblingXref);
+                if (imageRepository.GetByID(siblingXref.ImageID) is { } siblingImage)
+                {
+                    siblingImage.LastUpdatedAt = siblingXref.LastUpdatedAt;
+                    imageRepository.Save(siblingImage);
+                    Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = siblingImage }));
+                }
+
+                Task.Run(() => ImageCrossReferenceUpdated?.Invoke(this, new() { ImageCrossReference = siblingXref }));
+                EmitEventForRelatedEntry(siblingXref, UpdateReason.ImageUpdated);
+            }
+        }
+
+        Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = localImage }));
+        Task.Run(() => ImageCrossReferenceAdded?.Invoke(this, new() { ImageCrossReference = xref }));
+
+        EmitEventForRelatedEntry(xref, UpdateReason.ImageAdded);
+
+        return xref;
+    }
+
+    #endregion
+
+    #region Cross References | Update
+
+    /// <inheritdoc/>
+    public IImageCrossReference SetPreferredImageForEntity(IWithImages entity, ImageEntityType imageType, IImage image)
+        => GetImageCrossReferencesForEntity(entity, imageType: imageType, linkedEntityImages: false).FirstOrDefault(xref => xref.ImageID == image.ID) is { } xref
+            ? xref.IsPreferred && xref.IsEnabled && xref.IsDesired ? xref : UpdateImageCrossReference(xref, new() { IsPreferred = true, IsEnabled = true, IsDesired = true })
+            : AddImageCrossReference(entity, image, new() { ImageType = imageType, IsPreferred = true, IsEnabled = true, IsDesired = true });
+
+    /// <inheritdoc/>
+    public IImageCrossReference SetPreferredImageForEntity(IImageCrossReference imageCrossReference)
+        => imageCrossReference.IsPreferred && imageCrossReference.IsEnabled && imageCrossReference.IsDesired ? imageCrossReference : UpdateImageCrossReference(imageCrossReference, new() { IsPreferred = true, IsEnabled = true, IsDesired = true });
+
+    /// <inheritdoc/>
+    public bool UnsetPreferredImageForEntity(IImageCrossReference imageCrossReference)
+        => !imageCrossReference.IsPreferred || UpdateImageCrossReference(imageCrossReference, new() { IsPreferred = false }) is { IsPreferred: false };
+
+    /// <inheritdoc/>
+    public bool UnsetAllPreferredImagesForEntity(IWithImages entity)
+    {
+        var xrefs = GetImageCrossReferencesForEntity(entity, linkedEntityImages: false);
+        if (xrefs.Count is 0)
+            return true;
+
+        var unset = true;
+        foreach (var xref in xrefs)
+        {
+            if (!UnsetPreferredImageForEntity(xref))
+                unset = false;
+        }
+        return unset;
+    }
+
+    /// <inheritdoc/>
+    public IImageCrossReference UpdateImageCrossReference(IImageCrossReference imageCrossReference, ImageCrossReferenceUpdateData imageCrossReferenceUpdateData)
+    {
+        if (xrefRepository.GetByID(imageCrossReference.ID) is not ShokoImage_Entity localCrossReference)
+            throw new ArgumentException("Invalid image cross-reference given to UpdateImageCrossReference", nameof(imageCrossReference));
+
+        var updated = localCrossReference.Update(imageCrossReferenceUpdateData, entity: null);
+        if (imageCrossReferenceUpdateData.IsPreferred is true)
+        {
+            var siblingXrefs = xrefRepository
+                .GetByEntity(localCrossReference.EntitySource, localCrossReference.EntityType, localCrossReference.EntityID)
+                .Where(xref => xref.ID != localCrossReference.ID && xref.ImageType == localCrossReference.ImageType && xref.IsPreferred)
+                .ToList();
+            foreach (var siblingXref in siblingXrefs)
+            {
+                siblingXref.Update(new() { IsPreferred = false }, entity: null);
+                xrefRepository.Save(siblingXref);
+                if (imageRepository.GetByID(siblingXref.ImageID) is { } siblingImage)
+                {
+                    siblingImage.LastUpdatedAt = siblingXref.LastUpdatedAt;
+                    imageRepository.Save(siblingImage);
+                    Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = siblingImage }));
+                }
+
+                Task.Run(() => ImageCrossReferenceUpdated?.Invoke(this, new() { ImageCrossReference = siblingXref }));
+                EmitEventForRelatedEntry(siblingXref, UpdateReason.ImageUpdated);
+            }
+        }
+
+        if (!updated)
+            return localCrossReference;
+
+        xrefRepository.Save(localCrossReference);
+
+        if (imageRepository.GetByID(localCrossReference.ImageID) is { } localImage)
+        {
+            localImage.LastUpdatedAt = localCrossReference.LastUpdatedAt;
+            imageRepository.Save(localImage);
+            Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = localImage }));
+        }
+
+        Task.Run(() => ImageCrossReferenceUpdated?.Invoke(this, new() { ImageCrossReference = localCrossReference }));
+        EmitEventForRelatedEntry(localCrossReference, UpdateReason.ImageUpdated);
+
+        return localCrossReference;
+    }
+
+    #endregion
+
+    #region Cross References | Remove
+
+    /// <inheritdoc/>
+    public bool RemoveImageCrossReference(IImageCrossReference imageCrossReference)
+    {
+        if (xrefRepository.GetByID(imageCrossReference.ID) is not { } localCrossReference)
+            return false;
+
+        xrefRepository.Delete(localCrossReference);
+
+        if (imageRepository.GetByID(imageCrossReference.ImageID) is { } localImage)
+        {
+            localImage.LastUpdatedAt = DateTime.UtcNow;
+            imageRepository.Save(localImage);
+            Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = localImage }));
+        }
+
+        Task.Run(() => ImageCrossReferenceRemoved?.Invoke(this, new() { ImageCrossReference = localCrossReference }));
+
+        EmitEventForRelatedEntry(localCrossReference, UpdateReason.ImageRemoved);
+
+        return true;
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Helpers
+
+    public bool TryGetMetadataForEntity(
+        IWithImages entity,
+        out DataSource entitySource,
+        out DataEntityType entityType,
+        [NotNullWhen(true)] out string? entityID,
+        out int? entitySeasonNumber,
+        out int? entityEpisodeNumber,
+        out DateOnly? releasedAt
+    )
+    {
+        entitySource = entity.Source;
+        entityType = entity.EntityType;
+        entityID = null;
+        entitySeasonNumber = null;
+        entityEpisodeNumber = null;
+        releasedAt = null;
+        switch (entity)
+        {
+            case ICollection collection:
+                entityID = collection.ID.ToString();
+                return true;
+
+            case IMovie movie:
+                entityID = movie.ID.ToString();
+                releasedAt = movie.ReleaseDate?.ToDateOnly();
+                return true;
+
+            case ISeries series:
+                entityID = series.ID.ToString();
+                releasedAt = series.AirDate?.IsComplete ?? false ? series.AirDate.Value.ToDateOnly() : null;
+                return true;
+
+            case ISeason season:
+                entityID = season.ID;
+                entitySeasonNumber = season.SeasonNumber;
+                releasedAt = season.Episodes
+                    .Select(o => o.AirDate)
+                    .WhereNotNull()
+                    .Order()
+                    .FirstOrDefault();
+                return true;
+
+            case IEpisode episode:
+                entityID = episode.ID.ToString();
+                entitySeasonNumber = episode.SeasonNumber;
+                entityEpisodeNumber = episode.EpisodeNumber;
+                releasedAt = episode.AirDate;
+                return true;
+
+            case IVideo video:
+                entityID = video.ID.ToString();
+                releasedAt = video.ReleaseInfo is { ReleasedAt: { } videoReleasedAt } ? videoReleasedAt : null;
+                return true;
+
+            case ICreator creator:
+                entityID = creator.ID.ToString();
+                releasedAt = creator.BirthDay;
+                return true;
+
+            case ICharacter character:
+                entityID = character.ID.ToString();
+                return true;
+
+            case IStudio studio:
+                entityID = studio.ID.ToString();
+                return true;
+
+            case ITmdbNetwork tmdbNetwork:
+                entityID = tmdbNetwork.ID.ToString();
+                return true;
+
+            case ITmdbShowCrossReference xref:
+                entitySource = DataSource.TMDB;
+                entityType = DataEntityType.Show;
+                entityID = xref.TmdbShowID.ToString();
+                return true;
+
+            case ITmdbSeasonCrossReference xref:
+                entitySource = DataSource.TMDB;
+                entityType = DataEntityType.Season;
+                entityID = xref.TmdbSeasonID.ToString();
+                return true;
+
+            case ITmdbEpisodeCrossReference xref:
+                entitySource = DataSource.TMDB;
+                entityType = DataEntityType.Episode;
+                entityID = xref.TmdbEpisodeID.ToString();
+                return true;
+
+            case ITmdbMovieCrossReference xref:
+                entitySource = DataSource.TMDB;
+                entityType = DataEntityType.Movie;
+                entityID = xref.TmdbMovieID.ToString();
+                return true;
+
+            case IUser user:
+                entityID = user.ID.ToString();
+                return true;
+        }
+        return false;
+    }
+
+    public static bool IsImageValid(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return false;
+
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+            var bytes = new byte[12];
+            if (fs.Length < 12) return false;
+            fs.ReadExactly(bytes);
+            return GetImageFormat(bytes) != null;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void EmitEventForRelatedEntities(IImage image, UpdateReason reason)
+    {
+        foreach (var xref in image.GetCrossReferences(isEnabled: true))
+            EmitEventForRelatedEntry(xref, reason);
+    }
+
+    private void EmitEventForRelatedEntry(IImageCrossReference xref, UpdateReason reason)
+    {
+        switch (xref.GetEntity())
+        {
+            case IMovie movie:
+                ShokoEventHandler.Instance.OnMovieUpdated(movie, reason);
+                break;
+
+            case ISeries show:
+                ShokoEventHandler.Instance.OnSeriesUpdated(show, reason);
+                break;
+
+            case ISeason season:
+            {
+                if (season.Series is not { } series)
+                    return;
+
+                ShokoEventHandler.Instance.OnSeasonUpdated(series, season, reason);
+                break;
+            }
+
+            case IEpisode episode:
+            {
+                if (episode.Series is not { } series)
+                    return;
+
+                ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, reason);
+                break;
+            }
+        }
+    }
+
+    private static string? GetImageFormat(byte[] bytes)
+    {
+        if (bytes.Length < 12) return null;
+        try
+        {
+            // https://en.wikipedia.org/wiki/BMP_file_format#File_structure
+            var bmp = new byte[] { 66, 77 };
+            // https://en.wikipedia.org/wiki/GIF#File_format
+            var gif = new byte[] { 71, 73, 70 };
+            // https://en.wikipedia.org/wiki/JPEG#Syntax_and_structure
+            var jpeg = new byte[] { 255, 216 };
+            // https://en.wikipedia.org/wiki/Portable_Network_Graphics#File_header
+            var png = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+            // https://en.wikipedia.org/wiki/TIFF#Byte_order
+            var tiff1 = new byte[] { 73, 73, 42, 0 };
+            var tiff2 = new byte[] { 77, 77, 42, 0 };
+            // https://developers.google.com/speed/webp/docs/riff_container#webp_file_header
+            var webp1 = new byte[] { 82, 73, 70, 70 };
+            var webp2 = new byte[] { 87, 69, 66, 80 };
+
+            if (png.SequenceEqual(bytes.Take(png.Length)))
+                return "png";
+
+            if (jpeg.SequenceEqual(bytes.Take(jpeg.Length)))
+                return "jpeg";
+
+            if (webp1.SequenceEqual(bytes.Take(webp1.Length)) &&
+                webp2.SequenceEqual(bytes.Skip(8).Take(webp2.Length)))
+                return "webp";
+
+            if (gif.SequenceEqual(bytes.Take(gif.Length)))
+                return "gif";
+
+            if (bmp.SequenceEqual(bytes.Take(bmp.Length)))
+                return "bmp";
+
+            if (tiff1.SequenceEqual(bytes.Take(tiff1.Length)) ||
+                tiff2.SequenceEqual(bytes.Take(tiff2.Length)))
+                return "tiff";
+        }
+        catch
+        {
+            // ignored
+        }
+        return null;
+    }
+
+    private static readonly string[] _dataUrlSeparators = [":", ";", ","];
+
+    public static void TryConvertFromDataURL(
+        ref byte[] imageByteArray,
+        ref string? contentType
+    )
+    {
+        if (imageByteArray.Length < 16 || imageByteArray[0] != 'd' || imageByteArray[1] != 'a' || imageByteArray[2] != 't' || imageByteArray[3] != 'a' || imageByteArray[4] != ':')
+            return;
+
+        var parts = Encoding.UTF8.GetString(imageByteArray).Split(_dataUrlSeparators, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 4 || parts[0] != "data")
+            throw new ArgumentException("Invalid data URL format.");
+
+        try
+        {
+            imageByteArray = Convert.FromBase64String(parts[3]);
+            contentType = parts[1];
+        }
+        catch (FormatException ex)
+        {
+            throw new ArgumentException("Base64 data is not in a correct format.", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new ArgumentException("Unexpected error when converting data URL to byte array.", ex);
+        }
+    }
+
+    #endregion
+}
