@@ -157,7 +157,7 @@ public class AniDBController(
                 .ToListResult(c => new AnidbCharacter(c.Result), page, pageSize);
 
         return anidbCharacters.GetAll()
-            .ToListResult(c => new AnidbCharacter(c), 1, 0);
+            .ToListResult(c => new AnidbCharacter(c), page, pageSize);
     }
 
     /// <summary>
