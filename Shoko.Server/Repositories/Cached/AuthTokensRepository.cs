@@ -89,7 +89,7 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
             return apiKey;
 
         apiKey = Guid.NewGuid().ToString().ToLowerInvariant().Trim();
-        var newToken = new AuthTokens { UserID = uid, DeviceName = device.Trim().ToLowerInvariant(), Token = apiKey };
+        var newToken = new AuthTokens { UserID = uid, DeviceName = device.Trim(), Token = apiKey };
         Save(newToken);
 
         return apiKey;
