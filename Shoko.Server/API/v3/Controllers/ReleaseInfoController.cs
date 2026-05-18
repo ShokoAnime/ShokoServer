@@ -331,6 +331,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// Preview an automatic search for a <see cref="ReleaseInfo"/> for a file, disregarding any existing info, using the <paramref name="fileID"/>.
     /// </summary>
     /// <param name="fileID">File ID</param>
+    /// <param name="strict">Whether to use strict search or not.</param>
     /// <param name="isAutomatic">Whether this is an automatic search or not.</param>
     /// <param name="providerIDs">Optional. List of provider IDs to search with.</param>
     /// <returns>The current automatic <see cref="ReleaseInfo"/> for the <paramref name="fileID"/>, or a 204 response if none is available.</returns>
@@ -341,6 +342,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     [HttpPost("File/{fileID}/AutoPreview")]
     public async Task<ActionResult<ReleaseInfo>> AutoPreviewReleaseInfoByFileID(
         [FromRoute, Range(1, int.MaxValue)] int fileID,
+        [FromQuery] bool strict = false,
         [FromQuery] bool isAutomatic = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<Guid>? providerIDs = default
     )
@@ -356,7 +358,7 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
                 .Select(id => availableProviders.GetValueOrDefault(id))
                 .WhereNotNull()
                 .ToList();
-            if (providers.Count != providerIDs.Count)
+            if (strict && providers.Count != providerIDs.Count)
             {
                 ModelState.AddModelError(nameof(providerIDs), $"Invalid provider IDs; {providerIDs.Where(id => !availableProviders.ContainsKey(id)).Select(id => id.ToString()).Join(", ")}");
                 return ValidationProblem(ModelState);
