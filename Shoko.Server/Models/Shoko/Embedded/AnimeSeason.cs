@@ -1,16 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
-using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
-using Shoko.Server.Utilities;
+using Shoko.Abstractions.Metadata.Tmdb;
+using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 
 #nullable enable
 namespace Shoko.Server.Models.Shoko.Embedded;
@@ -129,7 +129,50 @@ public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seaso
         .Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber)
         .ToList();
 
-    IReadOnlyList<ISeason> IShokoSeason.LinkedSeasons => [];
+    IReadOnlyList<ITmdbSeason> IShokoSeason.TmdbSeasons => series.Episodes
+        .Where(x => x.Type == episodeType && x.SeasonNumber != seasonNumber)
+        .OfType<AnimeEpisode>()
+        .SelectMany(x => x.TmdbEpisodeCrossReferences)
+        .Select(xref => xref.TmdbSeason)
+        .WhereNotNull()
+        .DistinctBy(xref => xref.TmdbSeasonID)
+        .ToList();
+
+    IReadOnlyList<ITmdbMovie> IShokoSeason.TmdbMovies => series.Episodes
+        .Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber)
+        .OfType<AnimeEpisode>()
+        .SelectMany(x => x.TmdbMovies)
+        .ToList();
+
+    IReadOnlyList<ITmdbSeasonCrossReference> IShokoSeason.TmdbSeasonCrossReferences => series.Episodes
+        .Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber)
+        .OfType<AnimeEpisode>()
+        .SelectMany(x => x.TmdbEpisodeCrossReferences)
+        .Select(xref => xref.TmdbSeasonCrossReference)
+        .WhereNotNull()
+        .DistinctBy(xref => xref.TmdbSeasonID)
+        .ToList();
+
+    IReadOnlyList<ITmdbEpisodeCrossReference> IShokoSeason.TmdbEpisodeCrossReferences => series.Episodes
+        .Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber)
+        .OfType<AnimeEpisode>()
+        .SelectMany(x => x.TmdbEpisodeCrossReferences)
+        .ToList();
+
+    IReadOnlyList<ITmdbMovieCrossReference> IShokoSeason.TmdbMovieCrossReferences => series.Episodes
+        .Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber)
+        .OfType<AnimeEpisode>()
+        .SelectMany(x => x.TmdbMovieCrossReferences)
+        .ToList();
+
+    IReadOnlyList<ISeason> IShokoSeason.LinkedSeasons => series.Episodes
+        .Where(x => x.Type == episodeType && x.SeasonNumber != seasonNumber)
+        .OfType<AnimeEpisode>()
+        .SelectMany(x => x.TmdbEpisodeCrossReferences)
+        .Select(xref => xref.TmdbSeason)
+        .WhereNotNull()
+        .DistinctBy(xref => xref.TmdbSeasonID)
+        .ToList();
 
     IReadOnlyList<(int Year, YearlySeason Season)> IWithYearlySeasons.YearlySeasons
         => seasonNumber is 0 ? [] : series.YearlySeasons;
