@@ -1978,7 +1978,7 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
         if (action.Trim().Contains(Constants.FileRenameTag.Censored))
         {
             var censored = "cen";
-            if (aniFile?.IsCensored ?? false) censored = "unc";
+            if (!(aniFile?.IsCensored ?? false)) censored = "unc";
 
             newFileName = newFileName.Replace(Constants.FileRenameTag.Censored, censored);
         }
