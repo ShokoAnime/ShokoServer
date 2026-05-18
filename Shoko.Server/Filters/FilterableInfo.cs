@@ -21,6 +21,11 @@ public class Filterable : IFilterableInfo
     private readonly Lazy<int> _automaticTmdbEpisodeLinks;
     private readonly Lazy<int> _userVerifiedTmdbEpisodeLinks;
     private readonly Lazy<int> _missingTmdbEpisodeLinks;
+    private readonly Lazy<bool> _hasAnilistLink;
+    private readonly Lazy<bool> _hasAnilistAutoLinkingDisabled;
+    private readonly Lazy<int> _automaticAnilistEpisodeLinks;
+    private readonly Lazy<int> _userVerifiedAnilistEpisodeLinks;
+    private readonly Lazy<int> _missingAnilistEpisodeLinks;
     private readonly Lazy<double> _highestAniDBRating;
     private readonly Lazy<bool> _isFinished;
     private readonly Lazy<DateTime> _lastAddedDate;
@@ -310,6 +315,41 @@ public class Filterable : IFilterableInfo
     public required Func<int> MissingTmdbEpisodeLinksDelegate
     {
         init => _missingTmdbEpisodeLinks = new Lazy<int>(value);
+    }
+
+    public bool HasAnilistLink => _hasAnilistLink.Value;
+
+    public required Func<bool> HasAnilistLinkDelegate
+    {
+        init => _hasAnilistLink = new Lazy<bool>(value);
+    }
+
+    public bool HasAnilistAutoLinkingDisabled => _hasAnilistAutoLinkingDisabled.Value;
+
+    public required Func<bool> HasAnilistAutoLinkingDisabledDelegate
+    {
+        init => _hasAnilistAutoLinkingDisabled = new Lazy<bool>(value);
+    }
+
+    public int AutomaticAnilistEpisodeLinks => _automaticAnilistEpisodeLinks.Value;
+
+    public required Func<int> AutomaticAnilistEpisodeLinksDelegate
+    {
+        init => _automaticAnilistEpisodeLinks = new Lazy<int>(value);
+    }
+
+    public int UserVerifiedAnilistEpisodeLinks => _userVerifiedAnilistEpisodeLinks.Value;
+
+    public required Func<int> UserVerifiedAnilistEpisodeLinksDelegate
+    {
+        init => _userVerifiedAnilistEpisodeLinks = new Lazy<int>(value);
+    }
+
+    public int MissingAnilistEpisodeLinks => _missingAnilistEpisodeLinks.Value;
+
+    public required Func<int> MissingAnilistEpisodeLinksDelegate
+    {
+        init => _missingAnilistEpisodeLinks = new Lazy<int>(value);
     }
 
     public bool IsFinished => _isFinished.Value;

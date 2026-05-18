@@ -144,8 +144,8 @@ public class TmdbLinkingService : ITmdbLinkingService
         var itemNo = 0;
         foreach (var seriesItem in series)
         {
-            seriesItem.IsTMDBAutoMatchingDisabled = disabled;
-            _animeSeries.Save(seriesItem, false, true, false);
+            seriesItem.IsTmdbAutoMatchingDisabled = disabled;
+            _animeSeries.Save(seriesItem, false, false);
 
             if (++itemNo % 100 == 0)
             {
@@ -189,10 +189,10 @@ public class TmdbLinkingService : ITmdbLinkingService
             return;
 
         // Disable auto-matching when we remove an existing match for the series.
-        if (_anidbEpisodes.GetByEpisodeID(anidbEpisodeId) is { } anidbEpisode && _animeSeries.GetByAnimeID(anidbEpisode.AnimeID) is { } series && !series.IsTMDBAutoMatchingDisabled)
+        if (_anidbEpisodes.GetByEpisodeID(anidbEpisodeId) is { } anidbEpisode && _animeSeries.GetByAnimeID(anidbEpisode.AnimeID) is { } series && !series.IsTmdbAutoMatchingDisabled)
         {
-            series.IsTMDBAutoMatchingDisabled = true;
-            _animeSeries.Save(series, false, true, false);
+            series.IsTmdbAutoMatchingDisabled = true;
+            _animeSeries.Save(series, false, false);
         }
 
         await RemoveMovieLink(xref, purge);
@@ -206,10 +206,10 @@ public class TmdbLinkingService : ITmdbLinkingService
             return;
 
         // Disable auto-matching when we remove an existing match for the series.
-        if (_animeSeries.GetByAnimeID(anidbAnimeId) is { } series && !series.IsTMDBAutoMatchingDisabled)
+        if (_animeSeries.GetByAnimeID(anidbAnimeId) is { } series && !series.IsTmdbAutoMatchingDisabled)
         {
-            series.IsTMDBAutoMatchingDisabled = true;
-            _animeSeries.Save(series, false, true, false);
+            series.IsTmdbAutoMatchingDisabled = true;
+            _animeSeries.Save(series, false, false);
         }
 
         foreach (var xref in xrefs)
@@ -224,10 +224,10 @@ public class TmdbLinkingService : ITmdbLinkingService
             return;
 
         // Disable auto-matching when we remove an existing match for the series.
-        if (_anidbEpisodes.GetByEpisodeID(anidbEpisodeId) is { } anidbEpisode && _animeSeries.GetByAnimeID(anidbEpisode.AnimeID) is { } series && !series.IsTMDBAutoMatchingDisabled)
+        if (_anidbEpisodes.GetByEpisodeID(anidbEpisodeId) is { } anidbEpisode && _animeSeries.GetByAnimeID(anidbEpisode.AnimeID) is { } series && !series.IsTmdbAutoMatchingDisabled)
         {
-            series.IsTMDBAutoMatchingDisabled = true;
-            _animeSeries.Save(series, false, true, false);
+            series.IsTmdbAutoMatchingDisabled = true;
+            _animeSeries.Save(series, false, false);
         }
 
         foreach (var xref in xrefs)
@@ -284,10 +284,10 @@ public class TmdbLinkingService : ITmdbLinkingService
 
         // Disable auto-matching when we remove an existing match for the series.
         var series = _animeSeries.GetByAnimeID(anidbAnimeId);
-        if (series != null && !series.IsTMDBAutoMatchingDisabled)
+        if (series != null && !series.IsTmdbAutoMatchingDisabled)
         {
-            series.IsTMDBAutoMatchingDisabled = true;
-            _animeSeries.Save(series, false, true, false);
+            series.IsTmdbAutoMatchingDisabled = true;
+            _animeSeries.Save(series, false, false);
         }
 
         await RemoveShowLink(xref, purge);
@@ -302,10 +302,10 @@ public class TmdbLinkingService : ITmdbLinkingService
 
         // Disable auto-matching when we remove an existing match for the series.
         var series = _animeSeries.GetByAnimeID(animeId);
-        if (series != null && !series.IsTMDBAutoMatchingDisabled)
+        if (series != null && !series.IsTmdbAutoMatchingDisabled)
         {
-            series.IsTMDBAutoMatchingDisabled = true;
-            _animeSeries.Save(series, false, true, false);
+            series.IsTmdbAutoMatchingDisabled = true;
+            _animeSeries.Save(series, false, false);
         }
 
         foreach (var xref in xrefs)

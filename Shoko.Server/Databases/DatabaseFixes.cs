@@ -229,7 +229,7 @@ public class DatabaseFixes
             {
                 var group = groupCreator.GetOrCreateSingleGroupForSeries(series);
                 series.AnimeGroupID = group.AnimeGroupID;
-                RepoFactory.AnimeSeries.Save(series, false, false);
+                RepoFactory.AnimeSeries.Save(series, false);
             }
             catch (Exception e)
             {

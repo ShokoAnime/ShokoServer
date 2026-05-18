@@ -368,7 +368,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var ser in allSeries)
         {
-            if (ser.IsTMDBAutoMatchingDisabled)
+            if (ser.IsTmdbAutoMatchingDisabled)
                 continue;
 
             if (ser.AniDB_Anime is not { } anime)

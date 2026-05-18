@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Tests;
 
@@ -39,12 +40,18 @@ public class TestFilterable : IFilterableInfo
     public int MissingTmdbEpisodeLinks { get; init; }
     public int AutomaticTmdbEpisodeLinks { get; init; }
     public int UserVerifiedTmdbEpisodeLinks { get; init; }
+    public bool HasAnilistLink { get; init; }
+    public bool HasAnilistAutoLinkingDisabled { get; init; }
+    public bool HasMissingAnilistLink { get; init; }
+    public int MissingAnilistEpisodeLinks { get; init; }
+    public int AutomaticAnilistEpisodeLinks { get; init; }
+    public int UserVerifiedAnilistEpisodeLinks { get; init; }
     public bool HasTraktLink { get; init; }
     public bool HasTraktAutoLinkingDisabled { get; init; }
     public bool HasMissingTraktLink { get; init; }
     public bool IsFinished { get; init; }
-    public DateTime? AirDate { get; init; }
-    public DateTime? LastAirDate { get; init; }
+    public PartialDateOnly? AirDate { get; init; }
+    public PartialDateOnly? LastAirDate { get; init; }
     public DateTime AddedDate { get; init; }
     public DateTime LastAddedDate { get; init; }
     public int EpisodeCount { get; init; }

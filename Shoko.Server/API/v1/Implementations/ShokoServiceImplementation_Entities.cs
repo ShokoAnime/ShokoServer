@@ -1773,7 +1773,7 @@ public partial class ShokoServiceImplementation
                 {
                     series.DateTimeUpdated = DateTime.Now;
 
-                    RepoFactory.AnimeSeries.Save(series, true, true);
+                    RepoFactory.AnimeSeries.Save(series, true);
 
                     ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
                 }
@@ -1808,7 +1808,7 @@ public partial class ShokoServiceImplementation
                 series.AnimeGroupID = group.AnimeGroupID;
 
                 // Populate before making a group to ensure IDs and stats are set for group filters.
-                RepoFactory.AnimeSeries.Save(series, false, false);
+                RepoFactory.AnimeSeries.Save(series, false);
 
                 seriesService.CreateAnimeEpisodes(series).ConfigureAwait(false)
                     .GetAwaiter()

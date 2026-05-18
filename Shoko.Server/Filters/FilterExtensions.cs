@@ -97,7 +97,7 @@ public static class FilterExtensions
             HasTmdbLinkDelegate = () =>
                 series.TmdbShowCrossReferences.Count is > 0 || series.TmdbMovieCrossReferences.Count is > 0,
             HasTmdbAutoLinkingDisabledDelegate = () =>
-                series.IsTMDBAutoMatchingDisabled,
+                series.IsTmdbAutoMatchingDisabled,
             AutomaticTmdbEpisodeLinksDelegate = () =>
                 series.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified) +
                 series.TmdbMovieCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified),
@@ -111,6 +111,16 @@ public static class FilterExtensions
                     .ToHashSet();
                 return series.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
             },
+            HasAnilistLinkDelegate = () =>
+                false,
+            HasAnilistAutoLinkingDisabledDelegate = () =>
+                series.IsAnilistAutoMatchingDisabled,
+            AutomaticAnilistEpisodeLinksDelegate = () =>
+                0,
+            UserVerifiedAnilistEpisodeLinksDelegate = () =>
+                0,
+            MissingAnilistEpisodeLinksDelegate = () =>
+                0,
             IsFinishedDelegate = () =>
                 series.AniDB_Anime?.EndDate is { } endDate && endDate < now.Date,
             LastAirDateDelegate = () =>
@@ -310,7 +320,7 @@ public static class FilterExtensions
             HasTmdbLinkDelegate = () =>
                 series.Any(a => a.TmdbShowCrossReferences.Count is > 0 || a.TmdbMovieCrossReferences.Count is > 0),
             HasTmdbAutoLinkingDisabledDelegate = () =>
-                series.Any(a => a.IsTMDBAutoMatchingDisabled),
+                series.Any(a => a.IsTmdbAutoMatchingDisabled),
             AutomaticTmdbEpisodeLinksDelegate = () =>
                 series.Sum(a =>
                     a.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified) +
@@ -328,6 +338,16 @@ public static class FilterExtensions
                     .ToHashSet();
                 return acc + ser.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
             }),
+            HasAnilistLinkDelegate = () =>
+                false,
+            HasAnilistAutoLinkingDisabledDelegate = () =>
+                series.Any(a => a.IsAnilistAutoMatchingDisabled),
+            AutomaticAnilistEpisodeLinksDelegate = () =>
+                0,
+            UserVerifiedAnilistEpisodeLinksDelegate = () =>
+                0,
+            MissingAnilistEpisodeLinksDelegate = () =>
+                0,
             IsFinishedDelegate = () =>
                 series.All(a => a.EndDate is not null && a.EndDate <= now.Date),
             AddedDateDelegate = () =>

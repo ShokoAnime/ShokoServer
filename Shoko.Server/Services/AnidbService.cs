@@ -584,7 +584,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             {
                 _seriesService ??= _serviceProvider.GetRequiredService<AnimeSeriesService>();
                 (seriesUpdated, seriesEpisodeChanges) = await _seriesService.CreateAnimeEpisodes(series).ConfigureAwait(false);
-                _seriesRepository.Save(series, true, false);
+                _seriesRepository.Save(series, true);
             }
 
             await _jobFactory.CreateJob<RefreshAnimeStatsJob>(x => x.AnimeID = job.AnimeID).Process().ConfigureAwait(false);
@@ -718,10 +718,10 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         var grp = _animeGroupCreator.GetOrCreateSingleGroupForAnime(anime);
         series.AnimeGroupID = grp.AnimeGroupID;
         // Populate before making a group to ensure IDs and stats are set for group filters.
-        _seriesRepository.Save(series, false, false);
+        _seriesRepository.Save(series, false);
 
         var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-        if (settings.TMDB.AutoLink && !series.IsTMDBAutoMatchingDisabled)
+        if (settings.TMDB.AutoLink && !series.IsTmdbAutoMatchingDisabled)
             await scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
 
         return series;

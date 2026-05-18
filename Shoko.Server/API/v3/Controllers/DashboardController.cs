@@ -137,7 +137,7 @@ public class DashboardController : BaseController
         if (MissingTmdbLinkExpression.AnimeTypes.Contains(ser.AniDB_Anime?.AnimeType ?? AnimeType.Unknown))
             return false;
 
-        if (ser.IsTMDBAutoMatchingDisabled)
+        if (ser.IsTmdbAutoMatchingDisabled)
             return false;
 
         var tmdbMovieLinkMissing = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(ser.AniDB_ID).Count == 0;

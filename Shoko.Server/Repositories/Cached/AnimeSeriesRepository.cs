@@ -91,7 +91,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
                 {
                     var group = groupCreator.GetOrCreateSingleGroupForSeries(s);
                     s.AnimeGroupID = group.AnimeGroupID;
-                    Save(s, false, true);
+                    Save(s, false);
                 }
                 catch
                 {
@@ -120,15 +120,10 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
 
     public override void Save(AnimeSeries obj)
     {
-        Save(obj, false);
+        Save(obj, true);
     }
 
-    public void Save(AnimeSeries obj, bool onlyupdatestats)
-    {
-        Save(obj, true, onlyupdatestats);
-    }
-
-    public void Save(AnimeSeries obj, bool updateGroups, bool onlyupdatestats, bool alsoupdateepisodes = false)
+    public void Save(AnimeSeries obj, bool updateGroups, bool alsoupdateepisodes = false)
     {
         var animeID = obj.AniDB_Anime?.MainTitle ?? obj.AniDB_ID.ToString();
         logger.Trace($"Saving Series {animeID}");

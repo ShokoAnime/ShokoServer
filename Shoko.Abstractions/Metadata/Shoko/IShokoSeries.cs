@@ -68,7 +68,7 @@ public interface IShokoSeries : ISeries, IWithCreationDate, IWithUpdateDate
     /// <summary>
     ///   Wether or not AniList auto matching is disabled for the Shoko series.
     /// </summary>
-    bool AnilistAutoMatchingDisabled { get; }
+    bool AnilistAutoMatchingDisabled { get; set; }
 
     /// <summary>
     /// A direct link to all AniList anime linked to the Shoko series.
@@ -83,7 +83,7 @@ public interface IShokoSeries : ISeries, IWithCreationDate, IWithUpdateDate
     /// <summary>
     ///   Wether or not TMDB auto matching is disabled for the Shoko series.
     /// </summary>
-    bool TmdbAutoMatchingDisabled { get; }
+    bool TmdbAutoMatchingDisabled { get; set; }
 
     /// <summary>
     /// A direct link to all TMDB shows linked to the Shoko series.

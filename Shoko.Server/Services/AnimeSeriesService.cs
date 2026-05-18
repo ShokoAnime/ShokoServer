@@ -231,7 +231,7 @@ public class AnimeSeriesService
             if (missingEpsStats) UpdateMissingEpisodeStats(series, eps, name, ref start);
 
             // Skip group filters if we are doing group stats, as the group stats will regenerate group filters
-            RepoFactory.AnimeSeries.Save(series, false, false);
+            RepoFactory.AnimeSeries.Save(series, false);
             var ts = DateTime.Now - start;
             _logger.LogTrace("Saved stats for SERIES {Name} in {Elapsed}ms", name, ts.TotalMilliseconds);
 

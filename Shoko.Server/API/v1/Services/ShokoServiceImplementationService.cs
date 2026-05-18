@@ -642,7 +642,7 @@ public class ShokoServiceImplementationService(
 
             if (!foundTMDBShowLink && !foundTMDBMovieLink)
             {
-                if (!series.IsTMDBAutoMatchingDisabled)
+                if (!series.IsTmdbAutoMatchingDisabled)
                 {
                     missingTMDBLink = true;
                 }

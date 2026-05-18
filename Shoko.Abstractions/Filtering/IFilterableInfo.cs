@@ -172,6 +172,31 @@ public interface IFilterableInfo
     int MissingTmdbEpisodeLinks { get; }
 
     /// <summary>
+    /// Has at least one AniList Link
+    /// </summary>
+    bool HasAnilistLink { get; }
+
+    /// <summary>
+    /// Has automatic AniList linking disabled.
+    /// </summary>
+    bool HasAnilistAutoLinkingDisabled { get; }
+
+    /// <summary>
+    /// Number of automatic AniList episode links.
+    /// </summary>
+    int AutomaticAnilistEpisodeLinks { get; }
+
+    /// <summary>
+    /// Number of user verified AniList episode links.
+    /// </summary>
+    int UserVerifiedAnilistEpisodeLinks { get; }
+
+    /// <summary>
+    /// Number of missing AniList episode links.
+    /// </summary>
+    int MissingAnilistEpisodeLinks { get; }
+
+    /// <summary>
     /// Has Finished airing
     /// </summary>
     bool IsFinished { get; }

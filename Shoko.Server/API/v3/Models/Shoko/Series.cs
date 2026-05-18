@@ -352,29 +352,29 @@ public class Series : BaseModel
         {
             TMDB = false;
             // MAL = false;
-            // AniList = false;
+            AniList = false;
             // Animeshon = false;
             // Kitsu = false;
         }
 
         public AutoMatchSettings(AnimeSeries series)
         {
-            TMDB = !series.IsTMDBAutoMatchingDisabled;
+            TMDB = !series.IsTmdbAutoMatchingDisabled;
             // MAL = !series.IsMALAutoMatchingDisabled;
-            // AniList = !series.IsAniListAutoMatchingDisabled;
+            AniList = !series.IsAnilistAutoMatchingDisabled;
             // Animeshon = !series.IsAnimeshonAutoMatchingDisabled;
             // Kitsu = !series.IsKitsuAutoMatchingDisabled;
         }
 
         public AutoMatchSettings MergeWithExisting(AnimeSeries series)
         {
-            series.IsTMDBAutoMatchingDisabled = !TMDB;
+            series.IsTmdbAutoMatchingDisabled = !TMDB;
             // series.IsMALAutoMatchingDisabled = !MAL;
-            // series.IsAniListAutoMatchingDisabled = !AniList;
+            series.IsAnilistAutoMatchingDisabled = !AniList;
             // series.IsAnimeshonAutoMatchingDisabled = !Animeshon;
             // series.IsKitsuAutoMatchingDisabled = !Kitsu;
 
-            RepoFactory.AnimeSeries.Save(series, false, true);
+            RepoFactory.AnimeSeries.Save(series, false);
 
             return new AutoMatchSettings(series);
         }
@@ -391,11 +391,11 @@ public class Series : BaseModel
         // [Required]
         // public bool MAL { get; set; }
 
-        // /// <summary>
-        // /// Auto-match against AniList.
-        // /// </summary>
-        // [Required]
-        // public bool AniList { get; set; }
+        /// <summary>
+        /// Auto-match against AniList.
+        /// </summary>
+        [Required]
+        public bool AniList { get; set; }
 
         // /// <summary>
         // /// Auto-match against Animeshon.

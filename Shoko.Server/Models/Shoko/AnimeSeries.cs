@@ -76,7 +76,7 @@ public class AnimeSeries : IShokoSeries
 
     #region Disabled Auto Matching
 
-    public bool IsTMDBAutoMatchingDisabled
+    public bool IsTmdbAutoMatchingDisabled
     {
         get
         {
@@ -106,7 +106,7 @@ public class AnimeSeries : IShokoSeries
         }
     }
 
-    public bool IsAniListAutoMatchingDisabled
+    public bool IsAnilistAutoMatchingDisabled
     {
         get
         {
@@ -870,13 +870,29 @@ public class AnimeSeries : IShokoSeries
     IAnidbAnime IShokoSeries.AnidbAnime => AniDB_Anime ??
         throw new NullReferenceException($"Unable to find AniDB anime with id {AniDB_ID} in IShokoSeries.AnidbAnime");
 
-    bool IShokoSeries.AnilistAutoMatchingDisabled => IsAniListAutoMatchingDisabled;
+    bool IShokoSeries.AnilistAutoMatchingDisabled
+    {
+        get => IsAnilistAutoMatchingDisabled;
+        set
+        {
+            IsAnilistAutoMatchingDisabled = value;
+            RepoFactory.AnimeSeries.Save(this, false);
+        }
+    }
 
     IReadOnlyList<IAnilistAnime> IShokoSeries.AnilistAnime => [];
 
     IReadOnlyList<IAnilistAnimeCrossReference> IShokoSeries.AnilistAnimeCrossReferences => [];
 
-    bool IShokoSeries.TmdbAutoMatchingDisabled => IsTMDBAutoMatchingDisabled;
+    bool IShokoSeries.TmdbAutoMatchingDisabled
+    {
+        get => IsTmdbAutoMatchingDisabled;
+        set
+        {
+            IsTmdbAutoMatchingDisabled = value;
+            RepoFactory.AnimeSeries.Save(this, false);
+        }
+    }
 
     IReadOnlyList<ITmdbShow> IShokoSeries.TmdbShows => TmdbShows;
 
