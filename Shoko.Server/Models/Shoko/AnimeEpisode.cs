@@ -124,7 +124,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
                 };
 
             var settings = Utils.SettingsProvider.GetSettings();
-            var sourceOrder = settings.Language.SeriesTitleSourceOrder;
+            var sourceOrder = settings.Language.EpisodeTitleSourceOrder;
             var languageOrder = Languages.PreferredEpisodeNamingLanguages;
 
             // Lazy load AniDB titles if needed.
