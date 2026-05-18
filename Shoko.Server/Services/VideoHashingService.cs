@@ -154,7 +154,7 @@ public class VideoHashingService(
             {
                 Definitions = new MimeDetective.Definitions.CondensedBuilder() { UsageType = UsageType.PersonalNonCommercial, }
                     .Build()
-                    .ScopeExtensions(["3g2", "3gp", "avi", "flv", "h264", "m4v", "mkv", "mov", "mp4", "mpg", "mpeg", "ogv", "ogg", "qt", "rm", "swf", "vob", "wmv", "webm"])
+                    .ScopeExtensions(["3g2", "3gp", "avi", "av1", "flv", "h265", "h264", "m4v", "mkv", "mov", "mp4", "mpg", "mpeg", "ogv", "ogg", "qt", "rm", "swf", "vob", "wmv", "webm"])
                     .TrimMeta()
                     .TrimDescription()
                     .TrimMimeType()
