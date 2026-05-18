@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.Versioning;
 
 namespace Shoko.Server.API.Swagger;
 
-public class ShokoApiReader : IApiVersionReader
+public class ShokoApiReader(bool enableV1, bool enableV2) : IApiVersionReader
 {
     private static readonly PathString[] _v1 = ["/v1", "/api/Image", "/api/Kodi", "/api/Metro", "/api/Plex", "/Stream"];
 
@@ -15,7 +15,7 @@ public class ShokoApiReader : IApiVersionReader
         "/api/file", "/api/queue", "/api/myid", "/api/news", "/api/search", "/api/remove_missing_files",
         "/api/stats_update", "/api/medainfo_update", "/api/hash", "/api/rescan", "/api/rescanunlinked",
         "/api/folder", "/api/rescanmanuallinks", "/api/rehash", "/api/config", "/api/rehashunlinked",
-        "/api/rehashmanuallinks", "/api/ep"
+        "/api/rehashmanuallinks", "/api/ep", "/api/trakt"
     ];
     public void AddParameters(IApiVersionParameterDescriptionContext context)
     {
@@ -24,10 +24,10 @@ public class ShokoApiReader : IApiVersionReader
 
     public string Read(HttpRequest request)
     {
-        if (_v1.Any(request.Path.StartsWithSegments))
+        if (enableV1 && _v1.Any(request.Path.StartsWithSegments))
             return "1.0";
 
-        if (_v2.Any(request.Path.StartsWithSegments))
+        if (enableV2 && _v2.Any(request.Path.StartsWithSegments))
             return "2.0";
 
         return null; // defer to controller attribute or configured default

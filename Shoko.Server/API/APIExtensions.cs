@@ -230,10 +230,12 @@ public static partial class APIExtensions
 
         services.AddApiVersioning(o =>
         {
+            var webSettings = Utils.SettingsProvider.GetSettings().Web;
+
             o.ReportApiVersions = true;
             o.AssumeDefaultVersionWhenUnspecified = true;
             o.DefaultApiVersion = new ApiVersion(1, 0);
-            o.ApiVersionReader = new ShokoApiReader();
+            o.ApiVersionReader = new ShokoApiReader(webSettings.EnableAPIv1, webSettings.EnableAPIv2);
         });
         services.AddVersionedApiExplorer(options =>
         {
