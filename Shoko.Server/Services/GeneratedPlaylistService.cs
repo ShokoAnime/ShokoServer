@@ -51,7 +51,7 @@ public class GeneratedPlaylistService(
                 continue;
 
             var releaseGroupID = -2;
-            var subItems = item.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var subItems = item.Split(['+', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (subItems.Any(subItem => subItem[0] == 's'))
             {
                 var seriesItem = subItems.First(subItem => subItem[0] == 's');
@@ -76,7 +76,7 @@ public class GeneratedPlaylistService(
                     continue;
                 }
 
-                var endIndex = seriesItem.IndexOf('+');
+                var endIndex = seriesItem.IndexOf(['+', ' ']);
                 if (endIndex == -1)
                     endIndex = seriesItem.Length;
                 var plusExtras = endIndex == seriesItem.Length ? [] : seriesItem[(endIndex + 1)..].Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
