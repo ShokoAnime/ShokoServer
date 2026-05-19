@@ -13,9 +13,9 @@ namespace Shoko.Server.Scheduling.Jobs.Image;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Image)]
-public abstract class PurgeOrphanedImagesJob : BaseJob
+public class PurgeOrphanedImagesJob : BaseJob
 {
-    protected PurgeOrphanedImagesJob() { }
+    public PurgeOrphanedImagesJob() { }
 
     public int DaysOld { get; set; }
 

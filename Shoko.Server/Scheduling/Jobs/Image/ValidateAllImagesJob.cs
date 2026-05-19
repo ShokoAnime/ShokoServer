@@ -27,5 +27,5 @@ public class ValidateAllImagesJob : BaseJob
         _logger.LogInformation("Validation finished. Queued {Count} images for forced re-download.", queued);
     }
 
-    protected ValidateAllImagesJob() { }
+    public ValidateAllImagesJob() { }
 }
