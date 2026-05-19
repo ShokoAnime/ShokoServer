@@ -169,60 +169,60 @@ public class Image
         /// <summary>
         /// Temp. synonym until it's safe to remove it.
         /// </summary>
-        Poster = Primary,
+        Poster = 2,
 
         /// <summary>
         /// Temp. synonym until it's safe to remove it.
         /// </summary>
-        Character = Primary,
+        Character = 3,
 
         /// <summary>
         /// Temp. synonym until it's safe to remove it.
         /// </summary>
-        Creator = Primary,
+        Creator = 4,
 
         /// <summary>
         /// Temp. synonym until it's safe to remove it.
         /// </summary>
-        Staff = Primary,
+        Staff = 5,
 
         /// <summary>
         /// Temp. synonym until it's safe to remove it.
         /// </summary>
-        Avatar = Primary,
+        Avatar = 6,
 
         /// <summary>
         /// A long/wide banner image, usually with text.
         /// </summary>
-        Banner = 2,
+        Banner = 7,
 
         /// <summary>
         /// Backdrop / background images. Usually doesn't contain any text, but
         /// it might.
         /// </summary>
-        Backdrop = 3,
+        Backdrop = 8,
 
         /// <summary>
         /// Temp. synonym until it's safe to remove it.
         /// </summary>
-        Thumbnail = Backdrop,
+        Thumbnail = 9,
 
         /// <summary>
         /// Temp. synonym until it's safe to remove it.
         /// </summary>
-        Thumb = Backdrop,
+        Thumb = 10,
 
         /// <summary>
         /// Temp. synonym until it's safe to remove it.
         /// </summary>
-        Fanart = Backdrop,
+        Fanart = 11,
 
         /// <summary>
         /// Clear-text logo.
         /// </summary>
-        Logo = 4,
+        Logo = 12,
 
-        Disc = 5,
+        Disc = 13,
     }
 
     public class ImageSeriesInfo
@@ -288,8 +288,16 @@ public static class ImageExtensions
         => type switch
         {
             Image.ImageType.Primary => ImageEntityType.Primary,
-            Image.ImageType.Backdrop => ImageEntityType.Backdrop,
+            Image.ImageType.Poster => ImageEntityType.Primary,
+            Image.ImageType.Character => ImageEntityType.Primary,
+            Image.ImageType.Creator => ImageEntityType.Primary,
+            Image.ImageType.Staff => ImageEntityType.Primary,
+            Image.ImageType.Avatar => ImageEntityType.Primary,
             Image.ImageType.Banner => ImageEntityType.Banner,
+            Image.ImageType.Backdrop => ImageEntityType.Backdrop,
+            Image.ImageType.Thumbnail => ImageEntityType.Backdrop,
+            Image.ImageType.Thumb => ImageEntityType.Backdrop,
+            Image.ImageType.Fanart => ImageEntityType.Backdrop,
             Image.ImageType.Logo => ImageEntityType.Logo,
             Image.ImageType.Disc => ImageEntityType.Disc,
             _ => ImageEntityType.None,
@@ -298,7 +306,7 @@ public static class ImageExtensions
     public static Image.ImageType ToV3Dto(this ImageEntityType type)
         => type switch
         {
-            ImageEntityType.Primary => Image.ImageType.Poster,
+            ImageEntityType.Primary => Image.ImageType.Primary,
             ImageEntityType.Backdrop => Image.ImageType.Backdrop,
             ImageEntityType.Banner => Image.ImageType.Banner,
             ImageEntityType.Logo => Image.ImageType.Logo,
