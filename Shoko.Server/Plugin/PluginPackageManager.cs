@@ -372,6 +372,8 @@ public partial class PluginPackageManager(
                     Directory.Delete(innerPath, true);
                 }
 
+                File.Delete(zipPath);
+
                 if (cancellationToken.IsCancellationRequested)
                     throw new OperationCanceledException("Installation cancelled during archive extraction.");
             }
