@@ -1787,7 +1787,7 @@ public class DatabaseFixes
                 catch (Exception ex)
                 {
                     _logger.Warn(ex, "Failed to get image metadata for {Path}", oldPath);
-                    continue;
+                    oldPathExists = false;
                 }
             }
 
@@ -1841,8 +1841,7 @@ public class DatabaseFixes
                 var oldHashedName = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(oldFileName))).ToLower();
                 var oldPath = Path.Join(imagesPath, "TMDB_old", oldHashedName[..2], oldHashedName + oldFileExt);
                 var newPath = Path.Join(imagesPath, "TMDB", guidStr[..2], guidStr);
-                if (!MigrateImage(resourceID, DataSource.TMDB, oldPath, newPath))
-                    continue;
+                MigrateImage(resourceID, DataSource.TMDB, oldPath, newPath);
             }
 
             var mappedEntityType = old.TmdbEntityType switch
@@ -2065,8 +2064,7 @@ public class DatabaseFixes
                     resourceID
                 );
                 var newPath = Path.Join(imagesPath, "AniDB", guidStr[..2], guidStr);
-                if (!MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath))
-                    continue;
+                MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath);
             }
 
             var entityID = anime.AnimeID.ToString();
@@ -2114,7 +2112,6 @@ public class DatabaseFixes
             if (RepoFactory.ShokoImage.GetByID(guid) is null)
             {
                 var guidStr = guid.ToString("N");
-
                 var oldPath = Path.Join(
                     imagesPath,
                     "AniDB_Creator_old",
@@ -2123,8 +2120,7 @@ public class DatabaseFixes
                     resourceID
                 );
                 var newPath = Path.Join(imagesPath, "AniDB", guidStr[..2], guidStr);
-                if (!MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath))
-                    continue;
+                MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath);
             }
 
             var entityID = creator.CreatorID.ToString();
@@ -2172,7 +2168,6 @@ public class DatabaseFixes
             if (RepoFactory.ShokoImage.GetByID(guid) is null)
             {
                 var guidStr = guid.ToString("N");
-
                 var oldPath = Path.Join(
                     imagesPath,
                     "AniDB_Char_old",
@@ -2180,8 +2175,7 @@ public class DatabaseFixes
                         ? sid[..2] : character.CharacterID.ToString(),
                     resourceID);
                 var newPath = Path.Join(imagesPath, "AniDB", guidStr[..2], guidStr);
-                if (!MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath))
-                    continue;
+                MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath);
             }
 
             var entityID = character.CharacterID.ToString();
@@ -2250,7 +2244,7 @@ public class DatabaseFixes
         _logger.Info("Completed migration to unified images.");
     }
 
-    private static bool MigrateImage(string resourceID, DataSource source, string oldPath, string newPath)
+    private static void MigrateImage(string resourceID, DataSource source, string oldPath, string newPath)
     {
         var guid = IImageManager.GetIDForImageSourceAndResourceID(source, resourceID);
         var oldPathExists = File.Exists(oldPath);
@@ -2272,7 +2266,7 @@ public class DatabaseFixes
             catch (Exception ex)
             {
                 _logger.Error(ex, "Could not get metadata for {Path}", oldPath);
-                return false;
+                oldPathExists = false;
             }
         }
 
@@ -2296,8 +2290,6 @@ public class DatabaseFixes
             Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
             File.Move(oldPath, newPath, overwrite: true);
         }
-
-        return true;
     }
 
     private static ImageEntityType LegacyImageEntityTypeConverter(int legacyType) => legacyType switch
