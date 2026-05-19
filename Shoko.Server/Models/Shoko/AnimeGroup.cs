@@ -452,6 +452,12 @@ public class AnimeGroup : IShokoGroup
 
     #region IWithImages Implementation
 
+    public IImage? GetPreferredImageForType(ImageEntityType imageType)
+        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
+
+    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
+        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
+
     public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
         => Utils.ServiceContainer.GetRequiredService<IImageManager>()
             .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);

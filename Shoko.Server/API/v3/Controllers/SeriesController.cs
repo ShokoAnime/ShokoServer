@@ -2539,24 +2539,25 @@ public class SeriesController : BaseController
 
     #region Images
 
-    #region All images
-
-    private static readonly HashSet<Image.ImageType> _allowedImageTypes = [Image.ImageType.Poster, Image.ImageType.Banner, Image.ImageType.Backdrop, Image.ImageType.Logo];
-
-    private const string InvalidImageTypeForSeries = "Invalid image type for series.";
-
     private const string InvalidIDForSource = "Invalid image id for selected source.";
 
     private const string NoDefaultImageForType = "No default image for type.";
+
+    #region All images
 
     /// <summary>
     /// Get all images for series with ID, optionally with Disabled images, as well.
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
     /// <param name="includeDisabled"></param>
+    /// <param name="includeUndesired"></param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Images")]
-    public ActionResult<Images> GetSeriesImages([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool includeDisabled)
+    public ActionResult<Images> GetSeriesImages(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] bool includeDisabled = false,
+        [FromQuery] bool includeUndesired = false
+    )
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -2569,7 +2570,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return series.GetImages().ToDto(includeDisabled: includeDisabled);
+        return series.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto();
     }
 
     #endregion
@@ -2586,9 +2587,6 @@ public class SeriesController : BaseController
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromRoute] Image.ImageType imageType)
     {
-        if (!_allowedImageTypes.Contains(imageType))
-            return BadRequest(InvalidImageTypeForSeries);
-
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2608,6 +2606,7 @@ public class SeriesController : BaseController
             ImageEntityType.Banner => images.Banners.FirstOrDefault(),
             ImageEntityType.Backdrop => images.Backdrops.FirstOrDefault(),
             ImageEntityType.Logo => images.Logos.FirstOrDefault(),
+            ImageEntityType.Disc => images.Discs.FirstOrDefault(),
             _ => null,
         };
 
@@ -2616,7 +2615,6 @@ public class SeriesController : BaseController
 
         return image;
     }
-
 
     /// <summary>
     /// Set the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
@@ -2630,9 +2628,6 @@ public class SeriesController : BaseController
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
-        if (!_allowedImageTypes.Contains(imageType))
-            return BadRequest(InvalidImageTypeForSeries);
-
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2665,9 +2660,6 @@ public class SeriesController : BaseController
     [HttpDelete("{seriesID}/Images/{imageType}")]
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute] Image.ImageType imageType)
     {
-        if (!_allowedImageTypes.Contains(imageType))
-            return BadRequest(InvalidImageTypeForSeries);
-
         // Check if the series exists and if the user can access the series.
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)

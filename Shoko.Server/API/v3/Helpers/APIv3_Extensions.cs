@@ -106,16 +106,13 @@ public static class APIv3_Extensions
         IReadOnlySet<TitleLanguage>? language = null,
         IImage? preferredPoster = null,
         IImage? preferredBackdrop = null,
-        bool includeDisabled = false,
+        IImage? preferredLogo = null,
         bool preferredImages = false,
         bool randomizeImages = false)
     {
         var images = new Images();
         foreach (var image in imageList)
         {
-            if (!includeDisabled && !image.IsEnabled)
-                continue;
-
             if (language != null && !language.Contains(image.Language))
                 continue;
 
@@ -136,7 +133,12 @@ public static class APIv3_Extensions
                     images.Backdrops.Add(new(image, preferredOverride));
                     break;
                 case ImageEntityType.Logo:
-                    images.Logos.Add(new(image));
+                    if (image.IsEnabled && preferredLogo is not null && preferredLogo.Equals(image))
+                        preferredOverride = true;
+                    images.Logos.Add(new(image, preferredOverride));
+                    break;
+                case ImageEntityType.Disc:
+                    images.Discs.Add(new(image));
                     break;
                 default:
                     break;
@@ -156,12 +158,12 @@ public static class APIv3_Extensions
 
     private static void SetPreferredOrDefaultImage(List<Image> images, bool randomizeImages = false)
     {
-        var poster = randomizeImages
+        var image = randomizeImages
             ? images.GetRandomElement()
             : images.FirstOrDefault(i => i.Preferred) ?? images.FirstOrDefault();
         images.Clear();
-        if (poster is not null)
-            images.Add(poster);
+        if (image is not null)
+            images.Add(image);
     }
 
     public static IReadOnlyList<Title> ToTitleDto<TTitle>(this IEnumerable<TTitle> titles, string? mainTitle = null, ITitle? preferredTitle = null, IReadOnlySet<TitleLanguage>? language = null) where TTitle : ITitle

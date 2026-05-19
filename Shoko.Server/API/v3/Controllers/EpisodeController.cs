@@ -708,20 +708,22 @@ public class EpisodeController : BaseController
 
     #region Images
 
-    #region All images
-
-    private static readonly HashSet<Image.ImageType> _allowedImageTypes = [Image.ImageType.Poster, Image.ImageType.Banner, Image.ImageType.Backdrop, Image.ImageType.Logo, Image.ImageType.Thumbnail];
-
     private const string InvalidIDForSource = "Invalid image id for selected source.";
+
+    #region All images
 
     /// <summary>
     /// Get all images for episode with ID, optionally with Disabled images, as well.
     /// </summary>
     /// <param name="episodeID">Shoko ID</param>
     /// <param name="includeDisabled"></param>
+    /// <param name="includeUndesired"></param>
     /// <returns></returns>
     [HttpGet("{episodeID}/Images")]
-    public ActionResult<Images> GetSeriesImages([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool includeDisabled)
+    public ActionResult<Images> GetSeriesImages([FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromQuery] bool includeDisabled = false,
+        [FromQuery] bool includeUndesired = false
+    )
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -734,7 +736,7 @@ public class EpisodeController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        return episode.GetImages().ToDto(includeDisabled: includeDisabled);
+        return episode.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto();
     }
 
     #endregion
@@ -751,9 +753,6 @@ public class EpisodeController : BaseController
     public ActionResult<Image> GetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] Image.ImageType imageType)
     {
-        if (!_allowedImageTypes.Contains(imageType))
-            return NotFound();
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -777,10 +776,10 @@ public class EpisodeController : BaseController
             ImageEntityType.Banner => images.Banners.FirstOrDefault(),
             ImageEntityType.Backdrop => images.Backdrops.FirstOrDefault(),
             ImageEntityType.Logo => images.Logos.FirstOrDefault(),
+            ImageEntityType.Disc => images.Discs.FirstOrDefault(),
             _ => null,
         };
     }
-
 
     /// <summary>
     /// Set the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Episode"/>.
@@ -794,9 +793,6 @@ public class EpisodeController : BaseController
     public ActionResult<Image> SetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
-        if (!_allowedImageTypes.Contains(imageType))
-            return NotFound();
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -833,9 +829,6 @@ public class EpisodeController : BaseController
     [HttpDelete("{episodeID}/Images/{imageType}")]
     public ActionResult DeleteEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] Image.ImageType imageType)
     {
-        if (!_allowedImageTypes.Contains(imageType))
-            return NotFound();
-
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);

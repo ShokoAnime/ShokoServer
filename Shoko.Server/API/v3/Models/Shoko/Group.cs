@@ -115,7 +115,7 @@ public class Group : BaseModel
         Updated = group.DateTimeUpdated.ToUniversalTime();
         HasCustomName = group.IsManuallyNamed == 1;
         HasCustomDescription = group.OverrideDescription == 1;
-        Images = mainSeries == null ? new Images() : mainSeries.GetImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
+        Images = group.GetImages(isEnabled: true, isDesired: true).ToDto(preferredImages: true, randomizeImages: randomizeImages);
     }
 
     #endregion

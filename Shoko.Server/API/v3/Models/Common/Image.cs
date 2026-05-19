@@ -18,16 +18,16 @@ namespace Shoko.Server.API.v3.Models.Common;
 public class Image
 {
     /// <summary>
-    /// The image's locally  ID.
-    /// </summary>
-    [Required, Obsolete("Use UUID instead.")]
-    public int ID { get; set; }
-
-    /// <summary>
     ///  The image's universally/globally unique identifier (UUID/GUID).
     /// </summary>
     [Required]
     public Guid UID { get; set; }
+
+    /// <summary>
+    /// The image's locally  ID.
+    /// </summary>
+    [Required, Obsolete("Use UUID instead.")]
+    public int ID { get; set; }
 
     /// <summary>
     /// text representation of type of image. fanart, poster, etc. Mainly so clients know what they are getting
@@ -42,23 +42,18 @@ public class Image
     public DataSource Source { get; set; }
 
     /// <summary>
-    /// Language code for the language used for the text in the image, if any.
-    /// Or null if the image doesn't contain any language specifics.
-    /// </summary>
-    public string? LanguageCode { get; set; }
-
-    /// <summary>
-    /// The relative path from the base image directory. A client with access to the server's filesystem can map
-    /// these for quick access and no need for caching
-    /// </summary>
-    public string? RelativeFilepath { get; set; }
-
-    /// <summary>
     /// Indicates the image is available locally and can be served through the
     /// API.
     /// </summary>
     [Required]
     public bool Available { get; set; }
+
+    /// <summary>
+    /// Indicates the images is disabled. You must explicitly ask for these, for
+    /// hopefully obvious reasons.
+    /// </summary>
+    [Required]
+    public bool Disabled { get; set; }
 
     /// <summary>
     /// Indicates this is the preferred image for the <see cref="Type"/> for the
@@ -68,11 +63,21 @@ public class Image
     public bool Preferred { get; set; }
 
     /// <summary>
-    /// Indicates the images is disabled. You must explicitly ask for these, for
-    /// hopefully obvious reasons.
+    /// Indicates the image is desired for the selected entity.
     /// </summary>
     [Required]
-    public bool Disabled { get; set; }
+    public bool Desired { get; set; }
+
+    /// <summary>
+    /// Language code for the language used for the text in the image, if any.
+    /// Or null if the image doesn't contain any language specifics.
+    /// </summary>
+    public string? LanguageCode { get; set; }
+
+    /// <summary>
+    /// Country code for the language used for the text in the image, if any.
+    /// </summary>
+    public string? CountryCode { get; set; }
 
     /// <summary>
     /// Width of the image.
@@ -99,15 +104,18 @@ public class Image
 
     public Image(IImage imageMetadata, bool? preferredOverride = null)
     {
-        ID = imageMetadata.LocalID;
         UID = imageMetadata.ID;
+        ID = imageMetadata.LocalID;
         Type = imageMetadata.Type.ToV3Dto();
         Source = imageMetadata.Source;
-
-        Available = imageMetadata.IsEnabled;
-        Preferred = preferredOverride ?? imageMetadata.IsPreferred;
+        Available = imageMetadata.IsAvailable;
         Disabled = !imageMetadata.IsEnabled;
+        Preferred = preferredOverride ?? imageMetadata.IsPreferred;
+        Desired = imageMetadata.IsDesired;
         LanguageCode = imageMetadata.LanguageCode;
+        CountryCode = imageMetadata.CountryCode;
+        Width = imageMetadata.Width;
+        Height = imageMetadata.Height;
         if (imageMetadata.HasRating)
             CommunityRating = new()
             {
@@ -117,13 +125,6 @@ public class Image
                 Type = "User",
                 Source = imageMetadata.Source.ToString(),
             };
-        Width = imageMetadata.Width;
-        Height = imageMetadata.Height;
-
-        // we need to set _something_ for the clients that determine
-        // if an image exists by checking if a relative path is set,
-        // so we set the id.
-        RelativeFilepath = imageMetadata.IsAvailable ? $"1" : null;
     }
 
     private static readonly List<DataSource> _bannerImageSources =

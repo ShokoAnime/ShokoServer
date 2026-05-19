@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
@@ -17,18 +19,15 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 
+#pragma warning disable CS0618 // Type or member is obsolete
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class GroupController : BaseController
+public class GroupController(ISettingsProvider settingsProvider, IImageManager _imageManager, AnimeGroupCreator _groupCreator, AnimeSeriesService _seriesService, AnimeGroupService _groupService) : BaseController(settingsProvider)
 {
-    private readonly AnimeGroupCreator _groupCreator;
-    private readonly AnimeSeriesService _seriesService;
-    private readonly AnimeGroupService _groupService;
-
     #region Return messages
 
     internal const string GroupNotFound = "No Group entry for the given groupID";
@@ -302,6 +301,165 @@ public class GroupController : BaseController
 
     #endregion
 
+    #region Images
+
+    private const string InvalidIDForSource = "Invalid image id for selected source.";
+
+    private const string NoDefaultImageForType = "No default image for type.";
+
+    #region All images
+
+    /// <summary>
+    /// Get all images for group with ID, optionally with Disabled images, as well.
+    /// </summary>
+    /// <param name="groupID">Shoko Group ID</param>
+    /// <param name="includeDisabled"></param>
+    /// <param name="includeUndesired"></param>
+    /// <returns></returns>
+    [HttpGet("{groupID}/Images")]
+    public ActionResult<Images> GetSeriesImages(
+        [FromRoute, Range(1, int.MaxValue)] int groupID,
+        [FromQuery] bool includeDisabled = false,
+        [FromQuery] bool includeUndesired = false
+    )
+    {
+        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        if (group == null)
+            return NotFound(GroupNotFound);
+
+        var user = User;
+        if (!user.AllowedGroup(group))
+            return Forbid(GroupForbiddenForUser);
+
+        return group.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto();
+    }
+
+    #endregion
+
+    #region Default image
+
+    /// <summary>
+    /// Get the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
+    /// </summary>
+    /// <param name="groupID">Shoko Group ID</param>
+    /// <param name="imageType">Poster, Banner, Fanart</param>
+    /// <returns></returns>
+    [HttpGet("{seriesID}/Images/{imageType}")]
+    public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
+        [FromRoute] Image.ImageType imageType)
+    {
+        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        if (group == null)
+            return NotFound(GroupNotFound);
+
+        var user = User;
+        if (!user.AllowedGroup(group))
+            return Forbid(GroupForbiddenForUser);
+
+        var imageEntityType = imageType.ToServer();
+        var preferredImage = group.GetPreferredImageForType(imageEntityType);
+        if (preferredImage is not null)
+            return new Image(preferredImage);
+
+        var images = group.GetImages(imageType: imageEntityType).ToDto();
+        var image = imageEntityType switch
+        {
+            ImageEntityType.Primary => images.Posters.FirstOrDefault(),
+            ImageEntityType.Banner => images.Banners.FirstOrDefault(),
+            ImageEntityType.Backdrop => images.Backdrops.FirstOrDefault(),
+            ImageEntityType.Logo => images.Logos.FirstOrDefault(),
+            ImageEntityType.Disc => images.Discs.FirstOrDefault(),
+            _ => null,
+        };
+
+        if (image is null)
+            return NotFound(NoDefaultImageForType);
+
+        return image;
+    }
+
+    /// <summary>
+    /// Set the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
+    /// </summary>
+    /// <param name="groupID">Shoko Group ID</param>
+    /// <param name="imageType">Poster, Banner, Fanart</param>
+    /// <param name="body">The body containing the source and id used to set.</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpPut("{seriesID}/Images/{imageType}")]
+    public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
+        [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
+    {
+        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        if (group == null)
+            return NotFound(GroupNotFound);
+
+        var user = User;
+        if (!user.AllowedGroup(group))
+            return Forbid(GroupForbiddenForUser);
+
+        // Check if the id is valid for the given type and source.
+        var dataSource = body.Source;
+        var imageEntityType = imageType.ToServer();
+        var image = Guid.TryParse(body.ID, out var imageID)
+            ? _imageManager.GetImageByID(imageID)
+            : int.TryParse(body.ID, out var legacyImageID)
+                ? _imageManager.GetImageByID(legacyImageID)
+                : null;
+        if (image is null || (dataSource is not DataSource.None && dataSource != image.Source))
+            return ValidationProblem(InvalidIDForSource);
+
+        var xref = _imageManager.SetPreferredImageForEntity(group, imageEntityType, image);
+        return new Image(new ShokoImageStub(image, xref));
+    }
+
+    /// <summary>
+    /// Unset the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
+    /// </summary>
+    /// <param name="groupID">Shoko Group ID</param>
+    /// <param name="imageType">Poster, Banner, Fanart</param>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpDelete("{seriesID}/Images/{imageType}")]
+    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID, [FromRoute] Image.ImageType imageType)
+    {
+        // Check if the series exists and if the user can access the series.
+        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        if (group == null)
+            return NotFound(GroupNotFound);
+
+        var user = User;
+        if (!user.AllowedGroup(group))
+            return Forbid(GroupForbiddenForUser);
+
+        // Check if a default image is set.
+        var imageEntityType = imageType.ToServer();
+        var xref = _imageManager
+            .GetImageCrossReferencesForEntity(group, imageType: imageEntityType).FirstOrDefault(xref => xref.IsPreferred);
+        if (xref is null)
+            return ValidationProblem("No default image for the selected type.");
+
+        switch (xref)
+        {
+            // Unset the preferred if it's not a user xref, or if it's a user xref and a user uploaded image.
+            case { Source: not DataSource.User }:
+            case { Source: DataSource.User, ImageSource: DataSource.User }:
+                _imageManager.UnsetPreferredImageForEntity(xref);
+                break;
+            // Otherwise remove the user created xref.
+            default:
+                _imageManager.RemoveImageCrossReference(xref);
+                break;
+        }
+
+        // Don't return any content.
+        return NoContent();
+    }
+
+    #endregion
+
+    #endregion
+
     #region Delete
 
     /// <summary>
@@ -361,11 +519,4 @@ public class GroupController : BaseController
     }
 
     #endregion
-
-    public GroupController(ISettingsProvider settingsProvider, AnimeGroupCreator groupCreator, AnimeSeriesService seriesService, AnimeGroupService groupService) : base(settingsProvider)
-    {
-        _groupCreator = groupCreator;
-        _seriesService = seriesService;
-        _groupService = groupService;
-    }
 }
