@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using NutzCode.InMemoryIndex;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Utilities;
@@ -18,6 +19,8 @@ public class ShokoImageRepository : BaseCachedRepository<ShokoImage, Guid>
     internal static Guid GetIDForSourceAndResourceID(DataSource imageSource, string resourceID)
         => UuidUtility.GetV5($"ImageSource={imageSource},ImageResourceID={resourceID}", _imageRootIdentifierNamespace);
 
+    private int _lastLocalID = 0;
+
     private PocoIndex<Guid, ShokoImage, int>? _localImageID;
 
     private PocoIndex<Guid, ShokoImage, Guid>? _primaryImageID;
@@ -27,7 +30,7 @@ public class ShokoImageRepository : BaseCachedRepository<ShokoImage, Guid>
         BeginSaveCallback = obj =>
         {
             if (obj.LocalID == 0)
-                obj.LocalID = GetAll().Select(x => x.LocalID).DefaultIfEmpty(0).Max() + 1;
+                obj.LocalID = Interlocked.Increment(ref _lastLocalID);
         };
     }
 
@@ -36,6 +39,7 @@ public class ShokoImageRepository : BaseCachedRepository<ShokoImage, Guid>
 
     public override void PopulateIndexes()
     {
+        _lastLocalID = Cache.Values.Select(a => a.LocalID).DefaultIfEmpty(0).Max();
         _localImageID = Cache.CreateIndex(a => a.LocalID);
         _primaryImageID = Cache.CreateIndex(a => a.PrimaryID);
     }
