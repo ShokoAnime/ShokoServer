@@ -1,3 +1,4 @@
+using Shoko.Abstractions.Metadata.Image;
 
 namespace Shoko.Abstractions.Metadata.Enums;
 
@@ -9,32 +10,33 @@ namespace Shoko.Abstractions.Metadata.Enums;
 public enum ImageEntityType : byte
 {
     /// <summary>
-    /// No image type.
+    ///   No image type. Only visible as a placeholder when the
+    ///   <see cref="IImage"/> is not linked to an entity.
     /// </summary>
     None = 0,
 
     /// <summary>
-    /// Primary image.
+    ///   Primary image for the linked entity.
     /// </summary>
     Primary = 1,
 
     /// <summary>
-    /// Backdrop image.
+    ///   Backdrop image for the linked entity.
     /// </summary>
     Backdrop = 2,
 
     /// <summary>
-    /// Banner image.
+    ///   Banner image for the linked entity.
     /// </summary>
     Banner = 3,
 
     /// <summary>
-    /// Logo image.
+    ///   Logo image for the linked entity.
     /// </summary>
     Logo = 4,
 
     /// <summary>
-    /// Disc image.
+    ///   Disc image for the linked entity.
     /// </summary>
     Disc = 5,
 }
