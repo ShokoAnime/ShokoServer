@@ -854,6 +854,9 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(144,  2, @"CREATE TABLE ShokoImage_Entity (ID INTEGER PRIMARY KEY AUTOINCREMENT, ImageID UNIQUEIDENTIFIER NOT NULL, PrimaryImageID UNIQUEIDENTIFIER NOT NULL, ImageType INTEGER NOT NULL, ImageSource INTEGER NOT NULL, EntitySource INTEGER NOT NULL, EntityType INTEGER NOT NULL, EntityID NVARCHAR(128) NOT NULL, EntitySeasonNumber INTEGER, EntityEpisodeNumber INTEGER, EntityReleasedAt DATE, IsEnabled INTEGER NOT NULL DEFAULT 1, IsDesired INTEGER NOT NULL DEFAULT 1, IsPreferred INTEGER NOT NULL DEFAULT 0, Ordering INTEGER NOT NULL DEFAULT 0, Rating REAL, RatingVotes INTEGER, Source INTEGER NOT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL);"),
         new(144,  3, DatabaseFixes.MigrateToUnifiedImages),
         new(144,  4, DatabaseFixes.ScheduleTmdbImageUpdates),
+        new(144,  5, "UPDATE ShokoImage SET Source = 1 WHERE Source = 'TMDB';"),
+        new(144,  6, "UPDATE ShokoImage SET Source = 0 WHERE Source = 'AniDB';"),
+        new(144,  7, "UPDATE ShokoImage SET Source = 254 WHERE Source = 'User';"),
     ];
 
     #endregion
