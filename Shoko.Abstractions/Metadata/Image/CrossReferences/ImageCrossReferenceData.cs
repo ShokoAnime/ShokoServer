@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using Shoko.Abstractions.Metadata.Enums;
 
@@ -10,10 +11,22 @@ namespace Shoko.Abstractions.Metadata.Image.CrossReferences;
 /// </summary>
 public sealed class ImageCrossReferenceData
 {
+    private ImageEntityType _imageEntityType;
+
     /// <summary>
     /// The image type for the association (poster, backdrop, banner, etc.).
     /// </summary>
-    public required ImageEntityType ImageType { get; set; }
+    [DeniedValues(ImageEntityType.None)]
+    public required ImageEntityType ImageType
+    {
+        get => _imageEntityType;
+        set
+        {
+            if (value == ImageEntityType.None)
+                throw new ArgumentException("Image type cannot be None", nameof(value));
+            _imageEntityType = value;
+        }
+    }
 
     /// <summary>
     /// Source of the cross-reference. Defaults to <see cref="DataSource.User"/>.
