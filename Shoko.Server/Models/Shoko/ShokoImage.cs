@@ -110,7 +110,7 @@ public class ShokoImage : IImage
     double? IImage.Rating => null;
 
     /// <inheritdoc/>
-    uint? IImage.RatingVotes => null;
+    int? IImage.RatingVotes => null;
 
     /// <inheritdoc/>
     TitleLanguage IImage.Language

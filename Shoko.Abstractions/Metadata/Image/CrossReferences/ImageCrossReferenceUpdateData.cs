@@ -68,16 +68,21 @@ public sealed class ImageCrossReferenceUpdateData
         }
     }
 
-    private uint? _ratingVotes;
+    private int? _ratingVotes;
 
     /// <summary>
     ///   Number of community votes for the rating. Must be non-negative if set.
     /// </summary>
-    public uint? RatingVotes
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///   Thrown when the rating votes are set to a negative value.
+    /// </exception>
+    public int? RatingVotes
     {
         get => _ratingVotes;
         set
         {
+            if (value is not null and < 0)
+                throw new ArgumentOutOfRangeException(nameof(RatingVotes), "Rating votes must be non-negative if set.");
             HasRatingSet = true;
             _ratingVotes = value;
             if (value.HasValue && !_rating.HasValue)

@@ -48,7 +48,7 @@ public class ShokoImageStub(IImage image, IImageCrossReference xref, bool linked
 
     public double? Rating => xref.Rating;
 
-    public uint? RatingVotes => xref.RatingVotes;
+    public int? RatingVotes => xref.RatingVotes;
 
     public string LanguageCode => image.LanguageCode;
 

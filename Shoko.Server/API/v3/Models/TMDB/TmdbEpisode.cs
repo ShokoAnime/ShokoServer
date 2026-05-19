@@ -200,7 +200,7 @@ public class TmdbEpisode
         {
             Value = episode.UserRating,
             MaxValue = 10,
-            Votes = (uint)episode.UserVotes,
+            Votes = episode.UserVotes,
             Source = "TMDB",
         };
         Runtime = episode.Runtime;

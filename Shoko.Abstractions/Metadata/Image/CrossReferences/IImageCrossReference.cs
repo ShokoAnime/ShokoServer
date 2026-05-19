@@ -117,7 +117,7 @@ public interface IImageCrossReference : IWithCreationDate, IWithUpdateDate
     /// Number of votes for the image rating, if available. This indicates
     /// how many users have rated this image.
     /// </summary>
-    uint? RatingVotes { get; }
+    int? RatingVotes { get; }
 
     /// <summary>
     ///   The source of the cross-reference.

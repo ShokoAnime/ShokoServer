@@ -78,7 +78,7 @@ public partial class ShokoImage_Entity : IImageCrossReference
     public double? Rating { get; set; }
 
     /// <inheritdoc/>
-    public uint? RatingVotes { get; set; }
+    public int? RatingVotes { get; set; }
 
     /// <inheritdoc/>
     public DataSource Source { get; set; }
@@ -174,7 +174,6 @@ public partial class ShokoImage_Entity : IImageCrossReference
                 {
                     Rating = newRating;
                     RatingVotes = newRatingVotes;
-                    LastUpdatedAt = DateTime.Now;
                     updated = true;
                 }
             }

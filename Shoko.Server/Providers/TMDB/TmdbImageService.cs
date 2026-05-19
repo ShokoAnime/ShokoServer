@@ -98,7 +98,7 @@ public class TmdbImageService(ILogger<TmdbImageService> logger, IImageManager im
                 if (imageData.VoteCount > 0 && imageData.VoteAverage >= 1)
                 {
                     data.Rating = imageData.VoteAverage;
-                    data.RatingVotes = (uint)imageData.VoteCount;
+                    data.RatingVotes = imageData.VoteCount;
                 }
                 xref = imageManager.AddImageCrossReference(entity, image, data);
             }
@@ -112,7 +112,7 @@ public class TmdbImageService(ILogger<TmdbImageService> logger, IImageManager im
                 if (imageData.VoteCount > 0 && imageData.VoteAverage >= 1)
                 {
                     updateData.Rating = imageData.VoteAverage;
-                    updateData.RatingVotes = (uint)imageData.VoteCount;
+                    updateData.RatingVotes = imageData.VoteCount;
                 }
                 xref = imageManager.UpdateImageCrossReference(xref, updateData);
             }

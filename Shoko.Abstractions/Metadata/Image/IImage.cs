@@ -154,7 +154,7 @@ public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
     ///   Number of votes for the image rating, if available. This indicates
     ///   how many users have rated this image.
     /// </summary>
-    uint? RatingVotes { get; }
+    int? RatingVotes { get; }
 
     /// <summary>
     ///   ISO 639-1 alpha-2 language code for the main language used for the

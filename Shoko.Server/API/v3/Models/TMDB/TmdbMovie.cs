@@ -211,7 +211,7 @@ public class TmdbMovie
         {
             Value = movie.UserRating,
             MaxValue = 10,
-            Votes = (uint)movie.UserVotes,
+            Votes = movie.UserVotes,
             Source = "TMDB",
             Type = "User",
         };

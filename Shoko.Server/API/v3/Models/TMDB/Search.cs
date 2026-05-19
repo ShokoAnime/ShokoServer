@@ -205,7 +205,7 @@ public static class Search
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
-                Votes = (uint)movie.UserVotes,
+                Votes = movie.UserVotes,
             };
             Genres = movie.Genres;
         }
@@ -230,7 +230,7 @@ public static class Search
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
-                Votes = (uint)movie.VoteCount,
+                Votes = movie.VoteCount,
             };
             Genres = movie.GetGenres();
         }
@@ -255,7 +255,7 @@ public static class Search
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
-                Votes = (uint)movie.VoteCount,
+                Votes = movie.VoteCount,
             };
             Genres = movie.GetGenres();
         }
@@ -280,7 +280,7 @@ public static class Search
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
-                Votes = (uint)movie.UserVotes,
+                Votes = movie.UserVotes,
             };
             Genres = movie.Genres;
         }
@@ -368,7 +368,7 @@ public static class Search
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
-                Votes = (uint)show.UserVotes,
+                Votes = show.UserVotes,
             };
             Genres = show.Genres;
         }
@@ -393,7 +393,7 @@ public static class Search
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
-                Votes = (uint)show.VoteCount,
+                Votes = show.VoteCount,
             };
             Genres = show.GetGenres();
         }
@@ -418,7 +418,7 @@ public static class Search
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
-                Votes = (uint)show.VoteCount,
+                Votes = show.VoteCount,
             };
             Genres = show.GetGenres();
         }
@@ -443,7 +443,7 @@ public static class Search
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
-                Votes = (uint)show.UserVotes,
+                Votes = show.UserVotes,
             };
             Genres = show.Genres;
         }

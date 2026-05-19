@@ -69,7 +69,7 @@ public class WebUIFactory
         {
             ID = group.AnimeGroupID,
             Type = anime.AnimeType.ToV3Dto(),
-            Rating = new Rating { Source = "AniDB", Value = anime.Rating, MaxValue = 1000, Votes = (uint)anime.VoteCount }
+            Rating = new Rating { Source = "AniDB", Value = anime.Rating, MaxValue = 1000, Votes = anime.VoteCount }
         };
         if (anime.AirDate is { } airDate && airDate != DateTime.MinValue)
             result.AirDate = airDate.ToDateOnly();

@@ -130,7 +130,7 @@ public class AnidbAnime
                 Source = "AniDB",
                 Value = anime.Rating,
                 MaxValue = 1000,
-                Votes = (uint)anime.VoteCount,
+                Votes = anime.VoteCount,
             };
             UserApproval = null;
             Relation = null;
@@ -187,7 +187,7 @@ public class AnidbAnime
         {
             Value = new Vote(similar.Approval, similar.Total).GetRating(100),
             MaxValue = 100,
-            Votes = (uint)similar.Total,
+            Votes = similar.Total,
             Source = "AniDB",
             Type = "User Approval"
         };

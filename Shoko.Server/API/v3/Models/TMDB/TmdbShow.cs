@@ -235,7 +235,7 @@ public class TmdbShow
         {
             Value = show.UserRating,
             MaxValue = 10,
-            Votes = (uint)show.UserVotes,
+            Votes = show.UserVotes,
             Source = "TMDB",
         };
         Genres = show.Genres;
