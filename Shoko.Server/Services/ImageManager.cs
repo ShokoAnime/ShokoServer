@@ -472,8 +472,8 @@ public class ImageManager(
             PrimaryID = id,
             Source = source,
             ResourceID = md5,
-            Height = info.Height,
-            Width = info.Width,
+            Height = (int)info.Height,
+            Width = (int)info.Width,
             CountryCode = string.Empty,
             LanguageCode = string.Empty,
             CreatedAt = DateTime.UtcNow,
@@ -701,8 +701,8 @@ public class ImageManager(
             logger.LogInformation("Image downloaded to cache: {DownloadUrl} (Image={ImageID})", remoteUrl, image.ID);
 
             // Update metadata.
-            shokoImage.Width = info.Width;
-            shokoImage.Height = info.Height;
+            shokoImage.Width = (int)info.Width;
+            shokoImage.Height = (int)info.Height;
             shokoImage.ContentType = $"image/{imageFormat}";
 
             return downloaded = true;
@@ -1126,7 +1126,7 @@ public class ImageManager(
                 Entity = entity,
             };
 
-        var xref = new ShokoImage_Entity(image, entity, imageCrossReferenceData, (uint)xrefs.Count);
+        var xref = new ShokoImage_Entity(image, entity, imageCrossReferenceData, xrefs.Count);
         localImage.LastUpdatedAt = xref.LastUpdatedAt;
 
         xrefRepository.Save(xref);

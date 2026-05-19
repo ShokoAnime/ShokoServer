@@ -72,7 +72,7 @@ public partial class ShokoImage_Entity : IImageCrossReference
     public bool IsEnabled { get; set; }
 
     /// <inheritdoc/>
-    public uint Ordering { get; set; }
+    public int Ordering { get; set; }
 
     /// <inheritdoc/>
     public double? Rating { get; set; }
@@ -96,7 +96,7 @@ public partial class ShokoImage_Entity : IImageCrossReference
     [Obsolete("Only for NHibernate. DO NOT USE ELSEWHERE.")]
     public ShokoImage_Entity() { }
 
-    public ShokoImage_Entity(IImage image, IWithImages entity, ImageCrossReferenceData data, uint xrefsCount)
+    public ShokoImage_Entity(IImage image, IWithImages entity, ImageCrossReferenceData data, int xrefsCount)
     {
         var imageManager = Utils.ServiceContainer.GetRequiredService<IImageManager>();
         if (!imageManager.TryGetMetadataForEntity(

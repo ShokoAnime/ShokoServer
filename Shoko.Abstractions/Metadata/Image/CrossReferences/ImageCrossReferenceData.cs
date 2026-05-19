@@ -36,11 +36,25 @@ public sealed class ImageCrossReferenceData
     /// </summary>
     public bool IsPreferred { get; set; } = false;
 
+    private int? _ordering;
+
     /// <summary>
     ///   Sort order index for images of the same type. If set to <c>null</c>,
     ///   will be appended at the end.
     /// </summary>
-    public uint? Ordering { get; set; }
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///   Thrown when the ordering is set to a value less than 0.
+    /// </exception>
+    public int? Ordering
+    {
+        get => _ordering;
+        set
+        {
+            if (value is not null and < 0)
+                throw new ArgumentOutOfRangeException(nameof(Ordering), "Ordering must be greater than or equal to 0 if set.");
+            _ordering = value;
+        }
+    }
 
     /// <summary>
     ///   Indicates that the cross-reference has a rating set.

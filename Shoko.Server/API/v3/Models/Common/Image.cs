@@ -77,12 +77,12 @@ public class Image
     /// <summary>
     /// Width of the image.
     /// </summary>
-    public uint? Width { get; set; }
+    public int? Width { get; set; }
 
     /// <summary>
     /// Height of the image.
     /// </summary>
-    public uint? Height { get; set; }
+    public int? Height { get; set; }
 
     /// <summary>
     /// Community rating for the image, if available.

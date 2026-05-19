@@ -21,14 +21,14 @@ public sealed class PackageThumbnailInfo
     /// </summary>
     [JsonPropertyName("width")]
     [JsonProperty("width")]
-    public required uint Width { get; init; }
+    public required int Width { get; init; }
 
     /// <summary>
     /// The height of the thumbnail image.
     /// </summary>
     [JsonPropertyName("height")]
     [JsonProperty("height")]
-    public required uint Height { get; init; }
+    public required int Height { get; init; }
 
     /// <summary>
     /// The path to the thumbnail image.

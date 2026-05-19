@@ -79,8 +79,8 @@ public class TmdbImageService(ILogger<TmdbImageService> logger, IImageManager im
                 {
                     Source = DataSource.TMDB,
                     ResourceID = imageFilePath,
-                    Width = (uint)imageData.Width,
-                    Height = (uint)imageData.Height,
+                    Width = imageData.Width,
+                    Height = imageData.Height,
                     LanguageCode = imageData.Iso_639_1,
                     CountryCode = imageData.Iso_3166_1,
                 });
@@ -91,7 +91,7 @@ public class TmdbImageService(ILogger<TmdbImageService> logger, IImageManager im
                 {
                     ImageType = imageType,
                     Source = DataSource.TMDB,
-                    Ordering = (uint)index,
+                    Ordering = index,
                     IsDesired = isDesired,
                     IsEnabled = true,
                 };
@@ -106,7 +106,7 @@ public class TmdbImageService(ILogger<TmdbImageService> logger, IImageManager im
             {
                 var updateData = new ImageCrossReferenceUpdateData()
                 {
-                    Ordering = (uint)index,
+                    Ordering = index,
                     IsDesired = isDesired,
                 };
                 if (imageData.VoteCount > 0 && imageData.VoteAverage >= 1)

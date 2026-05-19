@@ -79,7 +79,7 @@ public interface IImageCrossReference : IWithCreationDate, IWithUpdateDate
     /// Gets the ordering number for where the image should appear in the list of
     /// images for the entity and image type. Lower values appear first.
     /// </summary>
-    uint Ordering { get; }
+    int Ordering { get; }
 
     /// <summary>
     /// Gets a value indicating whether the image is enabled. Disabled images should
