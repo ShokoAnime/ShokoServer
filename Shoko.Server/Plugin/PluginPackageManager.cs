@@ -985,8 +985,8 @@ public partial class PluginPackageManager(
                     return new PackageThumbnailInfo
                     {
                         MimeType = mime,
-                        Width = imageInfo.Width,
-                        Height = imageInfo.Height,
+                        Width = (int)imageInfo.Width,
+                        Height = (int)imageInfo.Height,
                         FilePath = existingFile
                             .Replace(_applicationPaths.PluginsPath, "%PluginsPath%")
                             .Replace(_applicationPaths.ApplicationPath, "%ApplicationPaths%"),
@@ -1021,8 +1021,8 @@ public partial class PluginPackageManager(
                     return new PackageThumbnailInfo
                     {
                         MimeType = mime,
-                        Width = imageInfo.Width,
-                        Height = imageInfo.Height,
+                        Width = (int)imageInfo.Width,
+                        Height = (int)imageInfo.Height,
                         FilePath = imagePath
                             .Replace(_applicationPaths.PluginsPath, "%PluginsPath%")
                             .Replace(_applicationPaths.ApplicationPath, "%ApplicationPaths%"),

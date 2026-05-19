@@ -42,9 +42,9 @@ public class ShokoImageStub(IImage image, IImageCrossReference xref, bool linked
 
     public byte DownloadAttempts => image.DownloadAttempts;
 
-    public uint? Width => image.Width;
+    public int? Width => image.Width;
 
-    public uint? Height => image.Height;
+    public int? Height => image.Height;
 
     public double? Rating => xref.Rating;
 

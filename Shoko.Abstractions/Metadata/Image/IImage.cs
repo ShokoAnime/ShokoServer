@@ -128,12 +128,12 @@ public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
     /// <summary>
     ///   Image width in pixels. Will be greater than 0 if set.
     /// </summary>
-    uint? Width { get; }
+    int? Width { get; }
 
     /// <summary>
     ///   Image height in pixels. Will be greater than 0 if set.
     /// </summary>
-    uint? Height { get; }
+    int? Height { get; }
 
     /// <summary>
     ///   Indicates that the image has a rating and number of votes. This is

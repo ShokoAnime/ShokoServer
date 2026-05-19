@@ -1774,15 +1774,15 @@ public class DatabaseFixes
             if (string.IsNullOrEmpty(contentType) || contentType == MimeMapping.MimeUtility.UnknownMimeType)
                 contentType = "image/jpeg";
 
-            var width = old.Width > 0 ? (uint?)old.Width : null;
-            var height = old.Height > 0 ? (uint?)old.Height : null;
+            var width = old.Width > 0 ? old.Width : (int?)null;
+            var height = old.Height > 0 ? old.Height : (int?)null;
             if (oldPathExists)
             {
                 try
                 {
                     var metadata = new MagickImageInfo(oldPath);
-                    width = metadata.Width;
-                    height = metadata.Height;
+                    width = (int)metadata.Width;
+                    height = (int)metadata.Height;
                 }
                 catch (Exception ex)
                 {
@@ -1874,7 +1874,7 @@ public class DatabaseFixes
                     EntitySource = DataSource.TMDB,
                     EntityType = mappedEntityType,
                     EntityID = entityID,
-                    Ordering = (uint)Math.Max(0, old.Ordering),
+                    Ordering = Math.Max(0, old.Ordering),
                     EntityReleasedAt = old.ReleasedAt,
                     IsEnabled = tmdbResourceIDToEnabled.TryGetValue(resourceID, out var isEnabled) && isEnabled,
                     IsDesired = true,
@@ -2259,15 +2259,15 @@ public class DatabaseFixes
         if (string.IsNullOrEmpty(contentType) || contentType == MimeMapping.MimeUtility.UnknownMimeType)
             contentType = "image/jpeg";
 
-        var width = (uint?)null;
-        var height = (uint?)null;
+        var width = (int?)null;
+        var height = (int?)null;
         if (oldPathExists)
         {
             try
             {
                 var metadata = new MagickImageInfo(oldPath);
-                width = metadata.Width;
-                height = metadata.Height;
+                width = (int)metadata.Width;
+                height = (int)metadata.Height;
             }
             catch (Exception ex)
             {
@@ -2317,8 +2317,8 @@ public class DatabaseFixes
     private class DNF_UserAvatarMetadata
     {
         public string ContentType { get; set; }
-        public uint Width { get; set; }
-        public uint Height { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
     }
 
     public class DBF_VideoLocal

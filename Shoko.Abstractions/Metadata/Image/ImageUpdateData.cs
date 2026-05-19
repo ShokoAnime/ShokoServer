@@ -27,7 +27,7 @@ public sealed class ImageUpdateData
     /// </summary>
     public bool HasSize { get => _width.HasValue && _height.HasValue; }
 
-    private uint? _width;
+    private int? _width;
 
     /// <summary>
     /// Image width in pixels. Must be greater than 0 if set.
@@ -36,7 +36,7 @@ public sealed class ImageUpdateData
     ///   Thrown when the width is set to a value less than 1 that is not
     ///   <c>null</c>.
     /// </exception>
-    public uint? Width
+    public int? Width
     {
         get => _width;
         set
@@ -52,7 +52,7 @@ public sealed class ImageUpdateData
         }
     }
 
-    private uint? _height;
+    private int? _height;
 
     /// <summary>
     ///   Image height in pixels. Must be greater than 0 if set.
@@ -61,7 +61,7 @@ public sealed class ImageUpdateData
     ///   Thrown when the height is set to a value less than 1 that is not
     ///   <c>null</c>.
     /// </exception>
-    public uint? Height
+    public int? Height
     {
         get => _height;
         set

@@ -1123,8 +1123,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
                     return new()
                     {
-                        Height = imageInfo.Height,
-                        Width = imageInfo.Width,
+                        Height = (int)imageInfo.Height,
+                        Width = (int)imageInfo.Width,
                         FilePath = fileName
                             .Replace(applicationPaths.PluginsPath, "%PluginsPath%")
                             .Replace(applicationPaths.ApplicationPath, "%ApplicationPaths%"),
@@ -1148,8 +1148,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
                     return new()
                     {
-                        Height = imageInfo.Height,
-                        Width = imageInfo.Width,
+                        Height = (int)imageInfo.Height,
+                        Width = (int)imageInfo.Width,
                         FilePath = fileName
                             .Replace(applicationPaths.PluginsPath, "%PluginsPath%")
                             .Replace(applicationPaths.ApplicationPath, "%ApplicationPaths%"),
@@ -1175,8 +1175,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
             return new()
             {
-                Height = imageInfo.Height,
-                Width = imageInfo.Width,
+                Height = (int)imageInfo.Height,
+                Width = (int)imageInfo.Width,
                 FilePath = fileName
                     .Replace(applicationPaths.PluginsPath, "%PluginsPath%")
                     .Replace(applicationPaths.ApplicationPath, "%ApplicationPaths%"),

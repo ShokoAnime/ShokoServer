@@ -20,11 +20,11 @@ public class PackageThumbnailInfo(AbstractPluginThumbnailInfo thumbnailInfo)
     /// The width of the thumbnail image.
     /// </summary>
     [Required]
-    public uint Width { get; init; } = thumbnailInfo.Width;
+    public int Width { get; init; } = thumbnailInfo.Width;
 
     /// <summary>
     /// The height of the thumbnail image.
     /// </summary>
     [Required]
-    public uint Height { get; init; } = thumbnailInfo.Height;
+    public int Height { get; init; } = thumbnailInfo.Height;
 }

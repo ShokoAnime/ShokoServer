@@ -54,12 +54,12 @@ public class ShokoImage : IImage
     /// <summary>
     /// Image width in pixels.
     /// </summary>
-    public uint? Width { get; set; }
+    public int? Width { get; set; }
 
     /// <summary>
     /// Image height in pixels.
     /// </summary>
-    public uint? Height { get; set; }
+    public int? Height { get; set; }
 
     /// <inheritdoc/>
     public string ContentType { get; set; } = MimeMapping.MimeUtility.UnknownMimeType;
