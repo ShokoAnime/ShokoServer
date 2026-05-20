@@ -59,28 +59,22 @@ public class TraktTVHelper
             }
 
             // post to trakt
-            var postStream = request.GetRequestStream();
+            using var postStream = request.GetRequestStream();
             postStream.Write(data, 0, data.Length);
 
             // get the response
-            var response = (HttpWebResponse)request.GetResponse();
+            using var response = (HttpWebResponse)request.GetResponse();
+            using var responseStream = response.GetResponseStream();
 
-            var responseStream = response.GetResponseStream();
             if (responseStream == null)
             {
                 return ret;
             }
 
-            var reader = new StreamReader(responseStream);
+            using var reader = new StreamReader(responseStream);
             var strResponse = reader.ReadToEnd();
 
             var statusCode = (int)response.StatusCode;
-
-            // cleanup
-            postStream.Close();
-            responseStream.Close();
-            reader.Close();
-            response.Close();
 
             webResponse = strResponse;
             _logger.LogTrace("Trakt SEND Data - Response\nStatus Code: {StatusCode}\nResponse: {Response}", statusCode,
@@ -90,33 +84,49 @@ public class TraktTVHelper
         }
         catch (WebException webEx)
         {
-            if (webEx.Status == WebExceptionStatus.ProtocolError)
+            if (webEx.Status == WebExceptionStatus.ProtocolError &&
+                webEx.Response is HttpWebResponse response)
             {
-                if (webEx.Response is HttpWebResponse response)
-                    if (response.ResponseUri.AbsoluteUri != TraktURIs.OAuthDeviceToken && response.StatusCode == HttpStatusCode.BadRequest)
-                    {
-                        {
-                            _logger.LogError(webEx, "Error in SendData: {StatusCode}", (int)response.StatusCode);
-                            ret = (int)response.StatusCode;
-                        }
-                        try
-                        {
-                            var responseStream2 = response.GetResponseStream();
-                            if (responseStream2 == null)
-                            {
-                                return ret;
-                            }
+                ret = (int)response.StatusCode;
 
-                            var reader2 = new StreamReader(responseStream2);
-                            webResponse = reader2.ReadToEnd();
-                            _logger.LogError("Error in SendData: {Response}", webResponse);
-                        }
-                        catch
+                if (response.ResponseUri.AbsoluteUri != TraktURIs.OAuthDeviceToken &&
+                    response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    try
+                    {
+                        using var responseStream = response.GetResponseStream();
+                        if (responseStream == null)
                         {
-                            // ignore
+                            return ret;
                         }
+
+                        using var reader = new StreamReader(responseStream);
+                        webResponse = reader.ReadToEnd();
+
+                        if (webResponse.Contains("\"error\":\"invalid_grant\"", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _logger.LogWarning("Trakt token is invalid, expired, or revoked.");
+                            return ret;
+                        }
+
+                        _logger.LogError("Error in SendData: {Response}", webResponse);
                     }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    return ret;
+                }
+
+                if (response.ResponseUri.AbsoluteUri != TraktURIs.OAuthDeviceToken)
+                {
+                    _logger.LogError(webEx, "{Ex}", webEx.ToString());
+                }
+
+                return ret;
             }
+
             if (webEx.Response != null && webEx.Response.ResponseUri.AbsoluteUri != TraktURIs.OAuthDeviceToken)
             {
                 _logger.LogError(webEx, "{Ex}", webEx.ToString());
@@ -209,6 +219,8 @@ public class TraktTVHelper
     public bool RefreshAuthToken()
     {
         var settings = _settingsProvider.GetSettings();
+        var shouldSaveSettings = false;
+
         try
         {
             if (!settings.TraktTv.Enabled ||
@@ -218,6 +230,8 @@ public class TraktTVHelper
                 settings.TraktTv.AuthToken = string.Empty;
                 settings.TraktTv.RefreshToken = string.Empty;
                 settings.TraktTv.TokenExpirationDate = string.Empty;
+                settings.TraktTv.Enabled = false;
+                shouldSaveSettings = true;
 
                 return false;
             }
@@ -229,11 +243,11 @@ public class TraktTVHelper
             var retData = string.Empty;
             TraktTVRateLimiter.Instance.EnsureRate();
             var response = SendData(TraktURIs.Oauth, json, "POST", headers, ref retData);
+
             if (response is TraktStatusCodes.Success or TraktStatusCodes.Success_Post)
             {
                 var loginResponse = retData.FromJSON<TraktAuthToken>();
 
-                // save the token to the config file to use for subsequent API calls
                 settings.TraktTv.AuthToken = loginResponse.AccessToken;
                 settings.TraktTv.RefreshToken = loginResponse.RefreshToken;
 
@@ -242,28 +256,46 @@ public class TraktTVHelper
                 var expireDate = createdAt + validity;
 
                 settings.TraktTv.TokenExpirationDate = expireDate.ToString();
+                shouldSaveSettings = true;
 
                 return true;
+            }
+
+            if (retData.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("Trakt refresh token is invalid, expired, or revoked. Disabling Trakt until it is re-authenticated.");
+                settings.TraktTv.Enabled = false;
+            }
+            else
+            {
+                _logger.LogWarning("Failed to refresh Trakt auth token. Response code: {ResponseCode}. Response: {Response}", response, retData);
             }
 
             settings.TraktTv.AuthToken = string.Empty;
             settings.TraktTv.RefreshToken = string.Empty;
             settings.TraktTv.TokenExpirationDate = string.Empty;
+            shouldSaveSettings = true;
+
+            return false;
         }
         catch (Exception ex)
         {
             settings.TraktTv.AuthToken = string.Empty;
             settings.TraktTv.RefreshToken = string.Empty;
             settings.TraktTv.TokenExpirationDate = string.Empty;
+            settings.TraktTv.Enabled = false;
+            shouldSaveSettings = true;
 
             _logger.LogError(ex, "Error in TraktTVHelper.RefreshAuthToken");
             return false;
         }
         finally
         {
-            Utils.SettingsProvider.SaveSettings();
+            if (shouldSaveSettings)
+            {
+                _settingsProvider.SaveSettings();
+            }
         }
-        return false;
     }
 
     #endregion
