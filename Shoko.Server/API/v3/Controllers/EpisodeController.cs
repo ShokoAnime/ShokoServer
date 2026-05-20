@@ -716,11 +716,14 @@ public class EpisodeController : BaseController
     /// Get all images for episode with ID, optionally with Disabled images, as well.
     /// </summary>
     /// <param name="episodeID">Shoko ID</param>
+    /// <param name="showLinkedIDs"></param>
     /// <param name="includeDisabled"></param>
     /// <param name="includeUndesired"></param>
     /// <returns></returns>
     [HttpGet("{episodeID}/Images")]
-    public ActionResult<Images> GetSeriesImages([FromRoute, Range(1, int.MaxValue)] int episodeID,
+    public ActionResult<Images> GetSeriesImages(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromQuery] bool showLinkedIDs = false,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool includeUndesired = false
     )
@@ -736,7 +739,7 @@ public class EpisodeController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        return episode.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto();
+        return episode.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(showLinkedIDs: showLinkedIDs);
     }
 
     #endregion

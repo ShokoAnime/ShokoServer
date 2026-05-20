@@ -18,28 +18,55 @@ namespace Shoko.Server.API.v3.Models.Common;
 public class Image
 {
     /// <summary>
+    /// The image's local ID. Remains available for backwards compatibility for
+    /// now.
+    /// </summary>
+    [Required, Obsolete("Use UID instead.")]
+    public int ID { get; set; }
+
+    /// <summary>
     ///  The image's universally/globally unique identifier (UUID/GUID).
     /// </summary>
     [Required]
     public Guid UID { get; set; }
 
     /// <summary>
-    /// The image's locally  ID.
+    /// Primary image's universally/globally unique identifier (UUID/GUID) in
+    /// the linked image list.
     /// </summary>
-    [Required, Obsolete("Use UUID instead.")]
-    public int ID { get; set; }
+    [Required]
+    public Guid PrimaryUID { get; set; }
 
     /// <summary>
-    /// text representation of type of image. fanart, poster, etc. Mainly so clients know what they are getting
+    ///   Extra image IDs in the linked image list, except the primary image.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Guid>? LinkedUIDs { get; set; }
+
+    /// <summary>
+    ///   The image type. Will always be <see cref="ImageEntityType.None"/> when
+    ///   the image is directly retrieved from image manager. Will be set to any
+    ///   other type when retrieved from a cross-reference or from an entity.
     /// </summary>
     [Required]
     public ImageType Type { get; set; }
 
     /// <summary>
-    /// AniDB, TMDB, etc.
+    /// The image source.
     /// </summary>
     [Required]
     public DataSource Source { get; set; }
+
+    /// <summary>
+    /// The image's resource identifier.
+    /// </summary>
+    [Required]
+    public string ResourceID { get; set; }
+
+    /// <summary>
+    /// The image's content type.
+    /// </summary>
+    public string ContentType { get; set; }
 
     /// <summary>
     /// Indicates the image is available locally and can be served through the
@@ -102,15 +129,20 @@ public class Image
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public ImageSeriesInfo? Series { get; set; } = null;
 
-    public Image(IImage imageMetadata, bool? preferredOverride = null)
+    public Image(IImage imageMetadata, bool showLinkedIDs = false)
     {
         UID = imageMetadata.ID;
         ID = imageMetadata.LocalID;
+        PrimaryUID = imageMetadata.PrimaryID;
+        if (showLinkedIDs)
+            LinkedUIDs = imageMetadata.LinkedIDs;
         Type = imageMetadata.Type.ToV3Dto();
         Source = imageMetadata.Source;
+        ResourceID = imageMetadata.ResourceID;
+        ContentType = imageMetadata.ContentType;
         Available = imageMetadata.IsAvailable;
         Disabled = !imageMetadata.IsEnabled;
-        Preferred = preferredOverride ?? imageMetadata.IsPreferred;
+        Preferred = imageMetadata.IsPreferred;
         Desired = imageMetadata.IsDesired;
         LanguageCode = imageMetadata.LanguageCode;
         CountryCode = imageMetadata.CountryCode;
@@ -162,6 +194,8 @@ public class Image
     [JsonConverter(typeof(StringEnumConverter))]
     public enum ImageType
     {
+        None = 0,
+
         /// <summary>
         /// The standard poster image. May or may not contain text.
         /// </summary>
@@ -312,6 +346,6 @@ public static class ImageExtensions
             ImageEntityType.Banner => Image.ImageType.Banner,
             ImageEntityType.Logo => Image.ImageType.Logo,
             ImageEntityType.Disc => Image.ImageType.Disc,
-            _ => Image.ImageType.Staff,
+            _ => Image.ImageType.None,
         };
 }

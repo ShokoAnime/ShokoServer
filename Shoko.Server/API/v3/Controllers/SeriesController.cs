@@ -2549,12 +2549,14 @@ public class SeriesController : BaseController
     /// Get all images for series with ID, optionally with Disabled images, as well.
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
+    /// <param name="showLinkedIDs"></param>
     /// <param name="includeDisabled"></param>
     /// <param name="includeUndesired"></param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Images")]
     public ActionResult<Images> GetSeriesImages(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] bool showLinkedIDs = false,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool includeUndesired = false
     )
@@ -2570,7 +2572,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return series.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto();
+        return series.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(showLinkedIDs: showLinkedIDs);
     }
 
     #endregion

@@ -313,12 +313,14 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// Get all images for group with ID, optionally with Disabled images, as well.
     /// </summary>
     /// <param name="groupID">Shoko Group ID</param>
+    /// <param name="showLinkedIDs"></param>
     /// <param name="includeDisabled"></param>
     /// <param name="includeUndesired"></param>
     /// <returns></returns>
     [HttpGet("{groupID}/Images")]
     public ActionResult<Images> GetSeriesImages(
         [FromRoute, Range(1, int.MaxValue)] int groupID,
+        [FromQuery] bool showLinkedIDs = false,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool includeUndesired = false
     )
@@ -331,7 +333,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (!user.AllowedGroup(group))
             return Forbid(GroupForbiddenForUser);
 
-        return group.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto();
+        return group.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(showLinkedIDs: showLinkedIDs);
     }
 
     #endregion

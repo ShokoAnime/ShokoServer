@@ -104,11 +104,9 @@ public static class APIv3_Extensions
     public static Images ToDto(
         this IEnumerable<IImage> imageList,
         IReadOnlySet<TitleLanguage>? language = null,
-        IImage? preferredPoster = null,
-        IImage? preferredBackdrop = null,
-        IImage? preferredLogo = null,
         bool preferredImages = false,
-        bool randomizeImages = false)
+        bool randomizeImages = false,
+        bool showLinkedIDs = false)
     {
         var images = new Images();
         foreach (var image in imageList)
@@ -116,29 +114,22 @@ public static class APIv3_Extensions
             if (language != null && !language.Contains(image.Language))
                 continue;
 
-            bool? preferredOverride = null;
             switch (image.Type)
             {
                 case ImageEntityType.Primary:
-                    if (image.IsEnabled && preferredPoster is not null && preferredPoster.Equals(image))
-                        preferredOverride = true;
-                    images.Posters.Add(new(image, preferredOverride));
+                    images.Posters.Add(new(image, showLinkedIDs));
                     break;
                 case ImageEntityType.Banner:
-                    images.Banners.Add(new(image));
+                    images.Banners.Add(new(image, showLinkedIDs));
                     break;
                 case ImageEntityType.Backdrop:
-                    if (image.IsEnabled && preferredBackdrop is not null && preferredBackdrop.Equals(image))
-                        preferredOverride = true;
-                    images.Backdrops.Add(new(image, preferredOverride));
+                    images.Backdrops.Add(new(image, showLinkedIDs));
                     break;
                 case ImageEntityType.Logo:
-                    if (image.IsEnabled && preferredLogo is not null && preferredLogo.Equals(image))
-                        preferredOverride = true;
-                    images.Logos.Add(new(image, preferredOverride));
+                    images.Logos.Add(new(image, showLinkedIDs));
                     break;
                 case ImageEntityType.Disc:
-                    images.Discs.Add(new(image));
+                    images.Discs.Add(new(image, showLinkedIDs));
                     break;
                 default:
                     break;
