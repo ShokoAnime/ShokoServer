@@ -268,7 +268,7 @@ public class TraktTVHelper
             }
             else
             {
-                _logger.LogWarning("Failed to refresh Trakt auth token. Response code: {ResponseCode}. Response: {Response}", response, retData);
+                _logger.LogWarning("Failed to refresh Trakt auth token. Response code: {ResponseCode}. Response data: {ResponseData}", response, retData);
             }
 
             settings.TraktTv.AuthToken = string.Empty;
