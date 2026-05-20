@@ -2,7 +2,7 @@
   "\n`\(.type)`" +
   if .scope then " (`\(.scope)`)" else "" end +
   ": **\(.subject)**" +
-  if .prNumber then " ([#\(.prNumber)](https://github.com/ShokoAnime/Shoko/pull/\(.prNumber)))" else "" end +
+  if .prNumber then " ([#\(.prNumber)](https://github.com/ShokoAnime/ShokoServer/pull/\(.prNumber)))" else "" end +
   if .body != null and .body != "" then
     if .isSkipCI then
       ": (_Skip CI_)\n\n\(.body)"
