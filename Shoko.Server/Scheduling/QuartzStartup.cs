@@ -29,13 +29,22 @@ public static class QuartzStartup
 {
     public static async Task ScheduleRecurringJobs(bool replace)
     {
+        var settings = Utils.SettingsProvider.GetSettings();
+
         // this needs to run immediately upon scheduling, so it replaces always. Others will run on other schedules
         // Also give it a high priority, since it affects Acquisition Filters
         // StartJobNow gives a priority of 10. We'll give it 20 to be even higher priority
         await ScheduleRecurringJob<CheckNetworkAvailabilityJob>(
             triggerConfig: t => t.WithPriority(20).WithSimpleSchedule(tr => tr.WithIntervalInMinutes(30).RepeatForever()).StartNow(), replace: true, keepSchedule: false);
-        await ScheduleRecurringJob<CheckTraktTokenJob>(
-            triggerConfig: t => t.WithPriority(20).WithSimpleSchedule(tr => tr.WithIntervalInMinutes(60).RepeatForever()).StartNow(), replace: true, keepSchedule: false);
+        if (settings.TraktTv.Enabled)
+        {
+            await ScheduleRecurringJob<CheckTraktTokenJob>(
+                triggerConfig: t => t.WithPriority(20).WithSimpleSchedule(tr => tr.WithIntervalInMinutes(60).RepeatForever()).StartNow(), replace: true, keepSchedule: false);
+        }
+        else
+        {
+            await RemoveRecurringJob<CheckTraktTokenJob>();
+        }
 
         // TODO the other schedule-based jobs that are on timers
     }
@@ -84,6 +93,19 @@ public static class QuartzStartup
                 await scheduler.DeleteJob(jobKey);
                 await scheduler.ScheduleJob(JobBuilder<T>.Create().UsingJobData(jobConfig).WithIdentity(jobKey).Build(), trigger.Build());
             }
+        }
+    }
+
+    private static async Task RemoveRecurringJob<T>() where T : class, IJob
+    {
+        var groupName = typeof(T).GetCustomAttribute<JobKeyGroupAttribute>()?.GroupName;
+        var jobKey = JobKeyBuilder<T>.Create().WithGroup(groupName).Build();
+        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+
+        using var _ = await QuartzExtensions.SchedulerLock.WriterLockAsync();
+        if (await scheduler.CheckExists(jobKey))
+        {
+            await scheduler.DeleteJob(jobKey);
         }
     }
 
