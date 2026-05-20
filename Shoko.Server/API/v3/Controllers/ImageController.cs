@@ -76,11 +76,6 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
         [FromRoute, Range(1, int.MaxValue)] int value
     )
     {
-        // Unrecognized combination of source, type and/or value.
-        var imageEntityType = type.ToServer();
-        if (imageEntityType is ImageEntityType.None || source is DataSource.None)
-            return NotFound(ImageNotFound);
-
         var metadata = imageManager.GetImageByID(value);
         if (metadata is null || metadata.GetStream() is not { } stream)
             return NotFound(ImageNotFound);
@@ -107,11 +102,6 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Image.Input.EnableImageBody body
     )
     {
-        // Unrecognized combination of source, type and/or value.
-        var imageEntityType = type.ToServer();
-        if (imageEntityType is ImageEntityType.None || source is DataSource.None)
-            return NotFound(ImageNotFound);
-
         var metadata = imageManager.GetImageByID(value);
         if (metadata is null)
             return NotFound(ImageNotFound);
