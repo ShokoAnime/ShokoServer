@@ -129,20 +129,9 @@ public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, Configura
                     else if (_saveValidation && !string.Equals(tuple.Original, tuple.Override, StringComparison.Ordinal))
                     {
                         if (tuple.Original is null)
-                        {
                             ((JObject)parentToken!).Remove(propertyName!);
-                        }
-                        else if (string.IsNullOrWhiteSpace(tuple.Original))
-                        {
-                            if (token is not null)
-                                token.Replace(JValue.CreateString(string.Empty));
-                            else
-                                ((JObject)parentToken!).Add(propertyName!, JValue.CreateString(string.Empty));
-                        }
                         else
-                        {
                             token!.Replace(JToken.Parse(tuple.Original));
-                        }
                     }
                 }
 
