@@ -14,6 +14,13 @@ public enum TraktSyncType
     HistoryRemove = 2
 }
 
+public enum TraktAuthTokenValidationResult
+{
+    Valid = 1,
+    Invalid = 2,
+    Unknown = 3
+}
+
 public static class TraktStatusCodes
 {
     // http://docs.trakt.apiary.io/#introduction/status-codes

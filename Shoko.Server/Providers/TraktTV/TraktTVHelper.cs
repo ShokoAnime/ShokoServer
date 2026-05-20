@@ -242,6 +242,49 @@ public class TraktTVHelper
 
     #region Authorization
 
+    public TraktAuthTokenValidationResult ValidateAuthToken()
+    {
+        var request = (HttpWebRequest)WebRequest.Create(TraktURIs.UserSettings);
+
+        _logger.LogTrace("Trakt token validation\nuri: {Uri}", TraktURIs.UserSettings);
+
+        request.KeepAlive = true;
+        request.Method = "GET";
+        request.ContentLength = 0;
+        request.Timeout = 120000;
+        request.ContentType = "application/json";
+        request.UserAgent = "JMM";
+        foreach (var header in BuildRequestHeaders())
+        {
+            request.Headers.Add(header.Key, header.Value);
+        }
+
+        try
+        {
+            using var response = (HttpWebResponse)request.GetResponse();
+            return (int)response.StatusCode == TraktStatusCodes.Success
+                ? TraktAuthTokenValidationResult.Valid
+                : TraktAuthTokenValidationResult.Unknown;
+        }
+        catch (WebException ex) when (ex.Response is HttpWebResponse response)
+        {
+            var statusCode = (int)response.StatusCode;
+            if (statusCode is TraktStatusCodes.Unauthorized or TraktStatusCodes.Forbidden)
+            {
+                _logger.LogWarning("Trakt auth token validation failed with {StatusCode}.", statusCode);
+                return TraktAuthTokenValidationResult.Invalid;
+            }
+
+            _logger.LogError(ex, "Error validating Trakt auth token: {StatusCode}", statusCode);
+            return TraktAuthTokenValidationResult.Unknown;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating Trakt auth token");
+            return TraktAuthTokenValidationResult.Unknown;
+        }
+    }
+
     public bool RefreshAuthToken()
     {
         var settings = _settingsProvider.GetSettings();

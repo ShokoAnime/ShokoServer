@@ -34,6 +34,24 @@ public class CheckTraktTokenJob : BaseJob
                 return Task.CompletedTask;
             }
 
+            var validationResult = _traktHelper.ValidateAuthToken();
+            if (validationResult == TraktAuthTokenValidationResult.Invalid)
+            {
+                _logger.LogInformation("Trakt auth token is no longer valid. Refreshing token.");
+                if (_traktHelper.RefreshAuthToken())
+                {
+                    var newExpirationDate = DateTimeOffset.FromUnixTimeSeconds(long.Parse(settings.TraktTv.TokenExpirationDate)).DateTime;
+                    _logger.LogInformation("Trakt token refreshed successfully. New expiry date: {Date}", newExpirationDate);
+                }
+
+                return Task.CompletedTask;
+            }
+
+            if (validationResult == TraktAuthTokenValidationResult.Unknown)
+            {
+                _logger.LogWarning("Unable to validate Trakt auth token. Falling back to stored expiry date.");
+            }
+
             // Convert the Unix timestamp to DateTime
             var expirationDate = DateTimeOffset.FromUnixTimeSeconds(long.Parse(settings.TraktTv.TokenExpirationDate)).DateTime;
 
