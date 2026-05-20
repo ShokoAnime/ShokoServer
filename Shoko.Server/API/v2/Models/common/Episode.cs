@@ -14,7 +14,6 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
-#pragma warning disable CS0618 // Type or member is obsolete
 namespace Shoko.Server.API.v2.Models.common;
 
 [DataContract]
@@ -116,7 +115,7 @@ public class Episode : BaseDirectory
                     ep.art.thumb.Add(new Art
                     {
                         index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, thumbnail.Type, thumbnail.Source, thumbnail.LocalID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, thumbnail),
                     });
                 }
             }
@@ -132,7 +131,7 @@ public class Episode : BaseDirectory
                     ep.art.fanart.Add(new Art
                     {
                         index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop.Type, backdrop.Source, backdrop.LocalID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop),
                     });
                 }
             }

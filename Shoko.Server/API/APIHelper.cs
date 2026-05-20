@@ -4,9 +4,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image;
 using Shoko.Server.API.Authentication;
-using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
@@ -15,8 +14,8 @@ namespace Shoko.Server.API;
 
 public static class APIHelper
 {
-    public static string ConstructImageLinkFromTypeAndId(HttpContext ctx, ImageEntityType imageType, DataSource dataType, int id, bool short_url = true)
-         => ProperURL(ctx, $"/api/v3/Image/{dataType}/{imageType.ToV3Dto()}/{id}", short_url);
+    public static string ConstructImageLinkFromTypeAndId(HttpContext ctx, IImage image, bool short_url = true)
+         => ProperURL(ctx, $"/api/v3/Image/{image.ID}", short_url);
 
     public static string ProperURL(HttpContext ctx, string path, bool short_url = false)
     {

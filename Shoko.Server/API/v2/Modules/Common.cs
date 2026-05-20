@@ -39,7 +39,6 @@ using Shoko.Server.Utilities;
 
 using APIFilters = Shoko.Server.API.v2.Models.common.Filters;
 
-#pragma warning disable CS0618
 #pragma warning disable IDE1006
 namespace Shoko.Server.API.v2.Modules;
 
@@ -2886,12 +2885,12 @@ public class Common : BaseController
             {
                 character = character.Name,
                 character_image = ((ICharacter)character).PrimaryImage is { } characterImage
-                    ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, characterImage.Source, characterImage.LocalID)
+                    ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, characterImage)
                     : null,
                 character_description = cdescription,
                 staff = staff.Name,
                 staff_image = ((ICreator)staff).PrimaryImage is { } staffImage
-                    ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, staffImage.Source, staffImage.LocalID)
+                    ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, staffImage)
                     : null,
                 staff_description = string.Empty,
                 role = xref2.AppearanceType.ToString().Replace("_", " "),

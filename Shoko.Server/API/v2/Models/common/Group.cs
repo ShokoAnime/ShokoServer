@@ -15,7 +15,6 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
-#pragma warning disable CS0618 // Type or member is obsolete
 namespace Shoko.Server.API.v2.Models.common;
 
 [DataContract]
@@ -128,11 +127,11 @@ public class Group : BaseDirectory
                 {
                     character = character.Name,
                     character_image = ((ICharacter)character).PrimaryImage is { } characterImage
-                        ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, characterImage.Source, characterImage.LocalID)
+                        ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, characterImage)
                         : null,
                     staff = staff.Name,
                     staff_image = ((ICreator)staff).PrimaryImage is { } staffImage
-                        ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, staffImage.Source, staffImage.LocalID)
+                        ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, staffImage)
                         : null,
                     role = xref2.AppearanceType.ToString().Replace("_", " "),
                     type = "Seiyuu",
@@ -181,7 +180,7 @@ public class Group : BaseDirectory
                     group.art.thumb.Add(new Art
                     {
                         index = pictureIndex++,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, poster.Source, poster.LocalID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster),
                     });
                 }
                 pictureIndex = 0;
@@ -192,7 +191,7 @@ public class Group : BaseDirectory
                     group.art.fanart.Add(new Art
                     {
                         index = pictureIndex++,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Backdrop, backdrop.Source, backdrop.LocalID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop),
                     });
                 }
                 pictureIndex = 0;
@@ -203,7 +202,7 @@ public class Group : BaseDirectory
                     group.art.banner.Add(new Art
                     {
                         index = pictureIndex++,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Banner, banner.Source, banner.LocalID),
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner),
                     });
                 }
             }
@@ -213,7 +212,7 @@ public class Group : BaseDirectory
                 group.art.thumb.Add(new Art
                 {
                     index = 0,
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, poster.Source, poster.LocalID),
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster),
                 });
                 if (backdrops.Count > 0)
                 {
@@ -221,7 +220,7 @@ public class Group : BaseDirectory
                     {
                         group.art.fanart.Add(new Art
                         {
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Backdrop, preferredBackdrop.Source, preferredBackdrop.LocalID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBackdrop),
                             index = 0
                         });
                     }
@@ -231,7 +230,7 @@ public class Group : BaseDirectory
                         group.art.fanart.Add(new Art
                         {
                             index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Backdrop, backdrop.Source, backdrop.LocalID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop),
                         });
                     }
                 }
@@ -242,7 +241,7 @@ public class Group : BaseDirectory
                         group.art.banner.Add(new Art
                         {
                             index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Banner, preferredBanner.Source, preferredBanner.LocalID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBanner),
                         });
                     }
                     else
@@ -251,7 +250,7 @@ public class Group : BaseDirectory
                         group.art.banner.Add(new Art
                         {
                             index = 0,
-                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Banner, banner.Source, banner.LocalID),
+                            url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner),
                         });
                     }
                 }

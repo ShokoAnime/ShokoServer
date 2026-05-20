@@ -10,7 +10,6 @@ using Shoko.Abstractions.Filtering.Services;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
-#pragma warning disable CS0618 // Type or member is obsolete
 #nullable enable
 namespace Shoko.Server.API.v2.Models.common;
 
@@ -87,7 +86,7 @@ public class Filter : Filters
                 filter.art.fanart.Add(new Art
                 {
                     index = 0,
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Backdrop, backdrop.Source, backdrop.LocalID),
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop),
                 });
             }
 
@@ -95,7 +94,7 @@ public class Filter : Filters
                 filter.art.thumb.Add(new Art
                 {
                     index = 0,
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, ImageEntityType.Primary, DataSource.AniDB, defaultPoster.LocalID),
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, defaultPoster),
                 });
         }
 
