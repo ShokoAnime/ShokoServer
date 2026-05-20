@@ -56,6 +56,15 @@ public class TraktTVHelper
         }
     }
 
+    private static bool IsExpectedDeviceTokenPollingStatus(HttpStatusCode statusCode)
+        => (int)statusCode is
+            TraktStatusCodes.Awaiting_Auth or
+            TraktStatusCodes.Not_Found or
+            TraktStatusCodes.Conflict or
+            TraktStatusCodes.Token_Expired or
+            TraktStatusCodes.Denied or
+            TraktStatusCodes.Rate_Limit_Exceeded;
+
     private int SendData(string uri, string json, string verb, Dictionary<string, string> headers, ref string webResponse)
     {
         var ret = 400;
@@ -132,7 +141,7 @@ public class TraktTVHelper
                     _logger.LogWarning(
                         "Trakt OAuth token request failed with invalid_grant. The token is invalid, expired, or revoked and must be re-authenticated.");
                 }
-                else if (!isDeviceTokenPolling || response.StatusCode != HttpStatusCode.BadRequest)
+                else if (!isDeviceTokenPolling || !IsExpectedDeviceTokenPollingStatus(response.StatusCode))
                 {
                     _logger.LogError(
                         webEx,
@@ -300,7 +309,6 @@ public class TraktTVHelper
             settings.TraktTv.AuthToken = string.Empty;
             settings.TraktTv.RefreshToken = string.Empty;
             settings.TraktTv.TokenExpirationDate = string.Empty;
-            settings.TraktTv.Enabled = false;
             shouldSaveSettings = true;
 
             _logger.LogError(ex, "Error in TraktTVHelper.RefreshAuthToken");
