@@ -130,44 +130,56 @@ for (const commit of Object.values(commits)) {
 // Convert commits object to a list of values
 const commitsList = commitOrder.reverse()
     .map((commitId) => commits[commitId])
-    .map(({ commit, parents, tree, subject, body, author_name, author_email, author_date, committer_name, committer_email, committer_date, files }) => ({
-        commit,
-        parents,
-        tree,
-        subject: /^\s*\w+\s*: ?/i.test(subject) ? subject.split(":").slice(1).join(":").trim() : subject.trim(),
-        type: /^\s*\w+\s*: ?/i.test(subject) ?
-                subject.split(":")[0].toLowerCase()
-            : subject.startsWith("Partially revert ") ?
-                "revert"
-            : parents.length > 1 ?
-                "merge"
-            : /^fix/i.test(subject) ?
-                "fix"
-            : "misc",
-        body,
-        author: {
-            name: author_name,
-            email: author_email,
-            github: emailToGithubMapping[author_email] || null,
-            date: new Date(author_date).toISOString(),
-            timeZone: author_date.substring(19) === "Z" ? "+00:00" : author_date.substring(19),
-        },
-        committer: {
-            name: committer_name,
-            email: committer_email,
-            github: emailToGithubMapping[committer_email] || null,
-            date: new Date(committer_date).toISOString(),
-            timeZone: committer_date.substring(19) === "Z" ? "+00:00" : committer_date.substring(19),
-        },
-        files,
-    }))
-    .map((commit) => ({
-        ...commit,
-        subject: commit.subject.replace(/\[(?:skip|no) *ci\]/ig, "").trim().replace(/[\.:]+^/, ""),
-        body: commit.body ? commit.body.replace(/\[(?:skip|no) *ci\]/ig, "").trimEnd() : commit.body,
-        isSkipCI: /\[(?:skip|no) *ci\]/i.test(commit.subject) || Boolean(commit.body && /\[(?:skip|no) *ci\]/i.test(commit.body)),
-        type: commit.type == "feature" ? "feat" : commit.type === "refacor" ? "refactor" : commit.type == "mics" ? "misc" : commit.type,
-    }))
+    .map(({ commit, parents, tree, subject, body, author_name, author_email, author_date, committer_name, committer_email, committer_date, files }) => {
+        // Conventional Commits: type(scope): subject  or  type: subject
+        const conventionalMatch = subject.match(/^\s*(\w+)(?:\(([^)]*)\))?\s*:\s*(.*)$/);
+        const parsedType = conventionalMatch ? conventionalMatch[1].toLowerCase() : null;
+        const parsedScope = conventionalMatch ? (conventionalMatch[2] || null) : null;
+        const parsedSubject = conventionalMatch ? conventionalMatch[3] : subject.trim();
+
+        const type = parsedType
+            ?? (subject.startsWith("Partially revert ") ? "revert"
+            : parents.length > 1 ? "merge"
+            : /^fix/i.test(subject) ? "fix"
+            : "misc");
+
+        return {
+            commit,
+            parents,
+            tree,
+            subject: parsedSubject,
+            scope: parsedScope,
+            type,
+            body,
+            author: {
+                name: author_name,
+                email: author_email,
+                github: emailToGithubMapping[author_email] || null,
+                date: new Date(author_date).toISOString(),
+                timeZone: author_date.substring(19) === "Z" ? "+00:00" : author_date.substring(19),
+            },
+            committer: {
+                name: committer_name,
+                email: committer_email,
+                github: emailToGithubMapping[committer_email] || null,
+                date: new Date(committer_date).toISOString(),
+                timeZone: committer_date.substring(19) === "Z" ? "+00:00" : committer_date.substring(19),
+            },
+            files,
+        };
+    })
+    .map((commit) => {
+        const prMatch = commit.subject.match(/\(#(\d+)\)/);
+        const prNumber = prMatch ? parseInt(prMatch[1], 10) : null;
+        return {
+            ...commit,
+            subject: commit.subject.replace(/\[(?:skip|no) *ci\]/ig, "").replace(/\(#\d+\)/g, "").trim().replace(/[\.:]+^/, ""),
+            body: commit.body ? commit.body.replace(/\[(?:skip|no) *ci\]/ig, "").trimEnd() : commit.body,
+            isSkipCI: /\[(?:skip|no) *ci\]/i.test(commit.subject) || Boolean(commit.body && /\[(?:skip|no) *ci\]/i.test(commit.body)),
+            prNumber,
+            type: commit.type == "feature" ? "feat" : commit.type === "refacor" ? "refactor" : commit.type == "mics" ? "misc" : commit.type,
+        };
+    })
     .map((commit) => ({
         ...commit,
         subject: ((subject) => {
@@ -177,10 +189,9 @@ const commitsList = commitOrder.reverse()
             return subject;
         })(commit.subject),
     }))
-    .filter((commit) => !(commit.type === "misc" && (commit.subject === "update unstable manifest" || commit.subject === "Update repo manifest" || commit.subject === "Update unstable repo manifest")))
     .map((commit, index) => ({
         ...commit,
-        simple_type: ["misc", "refactor"].includes(commit.type) ? "change" : commit.type === "chore" ? "repo" : commit.type,
+        simple_type: ["misc", "refactor", "style", "perf", "test", "build", "ci", "docs", "revert"].includes(commit.type) ? "change" : commit.type === "chore" ? "repo" : commit.type,
         index,
     }));
 
