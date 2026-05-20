@@ -14,6 +14,13 @@ public enum TraktSyncType
     HistoryRemove = 2
 }
 
+public enum TraktAuthTokenValidationResult
+{
+    Valid = 1,
+    Invalid = 2,
+    Unknown = 3
+}
+
 public static class TraktStatusCodes
 {
     // http://docs.trakt.apiary.io/#introduction/status-codes
@@ -34,6 +41,7 @@ public static class TraktStatusCodes
     public const int Conflict = 409;
 
     public const int Precondition_Failed = 412;
+    public const int Denied = 418;
     public const int Account_Limit_Exceeded = 420;
     public const int Account_Locked = 423;
     public const int Unprocessable_Entity = 422;

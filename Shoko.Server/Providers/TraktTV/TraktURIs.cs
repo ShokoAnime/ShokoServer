@@ -6,6 +6,7 @@ public static class TraktURIs
 
     public const string OAuthDeviceCode = TraktConstants.BaseAPIURL + @"/oauth/device/code";
     public const string OAuthDeviceToken = TraktConstants.BaseAPIURL + @"/oauth/device/token";
+    public const string UserSettings = TraktConstants.BaseAPIURL + @"/users/settings";
 
     // add to history (mark as watched)
     // used for movies, series, episodes
