@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.Models.Shoko;
@@ -35,6 +36,25 @@ public class TraktTVHelper
     }
 
     #region Helpers
+
+    private static bool IsInvalidGrantResponse(string response)
+    {
+        if (string.IsNullOrWhiteSpace(response))
+            return false;
+
+        try
+        {
+            var json = JObject.Parse(response);
+            return string.Equals(
+                (string?)json["error"],
+                "invalid_grant",
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     private int SendData(string uri, string json, string verb, Dictionary<string, string> headers, ref string webResponse)
     {
@@ -89,39 +109,36 @@ public class TraktTVHelper
             {
                 ret = (int)response.StatusCode;
 
-                if (response.ResponseUri.AbsoluteUri != TraktURIs.OAuthDeviceToken &&
-                    response.StatusCode == HttpStatusCode.BadRequest)
+                try
                 {
-                    try
+                    using var responseStream = response.GetResponseStream();
+                    if (responseStream is not null)
                     {
-                        using var responseStream = response.GetResponseStream();
-                        if (responseStream == null)
-                        {
-                            return ret;
-                        }
-
                         using var reader = new StreamReader(responseStream);
                         webResponse = reader.ReadToEnd();
-
-                        if (webResponse.Contains("\"error\":\"invalid_grant\"", StringComparison.OrdinalIgnoreCase))
-                        {
-                            _logger.LogWarning("Trakt token is invalid, expired, or revoked.");
-                            return ret;
-                        }
-
-                        _logger.LogError("Error in SendData: {Response}", webResponse);
                     }
-                    catch
-                    {
-                        // ignore
-                    }
-
-                    return ret;
+                }
+                catch
+                {
+                    // ignore response body read failures
                 }
 
-                if (response.ResponseUri.AbsoluteUri != TraktURIs.OAuthDeviceToken)
+                var isDeviceTokenPolling = response.ResponseUri.AbsoluteUri == TraktURIs.OAuthDeviceToken;
+                var isInvalidGrant = response.StatusCode == HttpStatusCode.BadRequest &&
+                                     IsInvalidGrantResponse(webResponse);
+
+                if (isInvalidGrant)
                 {
-                    _logger.LogError(webEx, "{Ex}", webEx.ToString());
+                    _logger.LogWarning(
+                        "Trakt OAuth token request failed with invalid_grant. The token is invalid, expired, or revoked and must be re-authenticated.");
+                }
+                else if (!isDeviceTokenPolling || response.StatusCode != HttpStatusCode.BadRequest)
+                {
+                    _logger.LogError(
+                        webEx,
+                        "Error in SendData: {StatusCode}. Response: {Response}",
+                        ret,
+                        webResponse);
                 }
 
                 return ret;
@@ -261,7 +278,7 @@ public class TraktTVHelper
                 return true;
             }
 
-            if (retData.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase))
+            if (IsInvalidGrantResponse(retData))
             {
                 _logger.LogWarning("Trakt refresh token is invalid, expired, or revoked. Disabling Trakt until it is re-authenticated.");
                 settings.TraktTv.Enabled = false;
