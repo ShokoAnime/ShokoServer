@@ -8,7 +8,7 @@ namespace Shoko.Abstractions.Metadata;
 /// in addition to full dates. Values range from January 1, 0001 Anno Domini (Common Era)
 /// through December 31, 9999 A.D. (C.E.) in the Gregorian calendar.
 /// </summary>
-public readonly struct PartialDateOnly : IComparable<PartialDateOnly>, IEquatable<PartialDateOnly>, IFormattable, IParsable<PartialDateOnly>, ISpanFormattable, ISpanParsable<PartialDateOnly>, IUtf8SpanFormattable
+public readonly partial struct PartialDateOnly : IComparable<PartialDateOnly>, IEquatable<PartialDateOnly>, IFormattable, IParsable<PartialDateOnly>, ISpanFormattable, ISpanParsable<PartialDateOnly>, IUtf8SpanFormattable, IConvertible
 {
     /// <summary>
     ///   Gets the earliest possible date that can be created.
