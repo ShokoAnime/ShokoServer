@@ -878,44 +878,47 @@ public class ImageManager(
         var scanned = 0;
         var invalid = 0;
         var queuedForRedownload = 0;
-        var cleanedLocally = 0;
 
         logger.LogInformation("Validating local image cache integrity.");
         foreach (var image in GetAllImages())
         {
-            scanned++;
+            if (scanned++ % 1000 == 0)
+                logger.LogInformation("Image validation in progress. Scanned={Scanned}, Invalid={Invalid}, QueuedForRedownload={QueuedForRedownload}", scanned, invalid, queuedForRedownload);
             if (image.IsAvailable)
-                continue;
+            {
+                try
+                {
+                    new MagickImageInfo(image.LocalPath);
+                }
+                catch
+                {
+                    logger.LogWarning("Found invalid image. (Image={ImageID},Source={Source},ResourceID={ResourceID})", image.ID, image.Source, image.ResourceID);
+                    invalid++;
+                    if (File.Exists(image.LocalPath))
+                        try { File.Delete(image.LocalPath); } catch { }
 
-            invalid++;
+                    if (image.IsEnabled && image.IsDesired)
+                    {
+                        await ScheduleDownloadOfImage(image, force: true).ConfigureAwait(false);
+                        queuedForRedownload++;
+                    }
+                }
+                continue;
+            }
+
             if (image.IsEnabled && image.IsDesired)
             {
                 await ScheduleDownloadOfImage(image, force: true).ConfigureAwait(false);
                 queuedForRedownload++;
                 continue;
             }
-
-            var localPath = image.LocalPath;
-            if (string.IsNullOrEmpty(localPath) || !File.Exists(localPath))
-                continue;
-
-            try
-            {
-                File.Delete(localPath);
-                cleanedLocally++;
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Unable to remove invalid local image file for {Source}:{ResourceID}", image.Source, image.ResourceID);
-            }
         }
 
         logger.LogInformation(
-            "Image validation complete. Scanned={Scanned}, Invalid={Invalid}, QueuedForRedownload={QueuedForRedownload}, CleanedLocally={CleanedLocally}",
+            "Image validation complete. Scanned={Scanned}, Invalid={Invalid}, QueuedForRedownload={QueuedForRedownload}",
             scanned,
             invalid,
-            queuedForRedownload,
-            cleanedLocally
+            queuedForRedownload
         );
         return queuedForRedownload;
     }
