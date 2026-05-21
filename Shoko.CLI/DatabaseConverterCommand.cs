@@ -595,6 +595,9 @@ internal static class DatabaseConverterCommand
             case byte[] bytes:
                 buffer.AddRange(Convert.ToHexString(bytes).Select(c => (byte)c));
                 break;
+            case string text when TryNormalizeGuidString(text, out var normalizedGuidText):
+                buffer.AddRange(Encoding.UTF8.GetBytes(normalizedGuidText));
+                break;
             case string text when TryNormalizeTemporalString(text, out var normalizedText):
                 buffer.AddRange(Encoding.UTF8.GetBytes(normalizedText));
                 break;
@@ -621,7 +624,8 @@ internal static class DatabaseConverterCommand
         return value switch
         {
             DBNull => DBNull.Value,
-            Guid guid => guid.ToString(),
+            Guid guid => NormalizeGuid(guid),
+            string text when TryNormalizeGuidString(text, out var normalizedGuidText) => normalizedGuidText,
             DateTimeOffset offset => offset.UtcDateTime,
             _ => value,
         };
@@ -653,6 +657,23 @@ internal static class DatabaseConverterCommand
 
         normalized = string.Empty;
         return false;
+    }
+
+    private static bool TryNormalizeGuidString(string value, out string normalized)
+    {
+        if (Guid.TryParse(value, out var guid))
+        {
+            normalized = NormalizeGuid(guid);
+            return true;
+        }
+
+        normalized = string.Empty;
+        return false;
+    }
+
+    private static string NormalizeGuid(Guid guid)
+    {
+        return guid.ToString("D").ToUpperInvariant();
     }
 
     private static async Task<HashSet<string>> GetSourceTablesAsync(DbConnection connection, SourceDatabaseType sourceType)
@@ -1110,6 +1131,8 @@ internal static class DatabaseConverterCommand
         {
             null or DBNull => "<null>",
             byte[] bytes => Convert.ToHexString(bytes),
+            Guid guid => NormalizeGuid(guid),
+            string text when TryNormalizeGuidString(text, out var normalizedGuidText) => normalizedGuidText,
             string text when TryNormalizeTemporalString(text, out var normalizedText) => normalizedText,
             DateTime dateTime => NormalizeDateTime(dateTime),
             DateTimeOffset offset => offset.ToString("O", CultureInfo.InvariantCulture),
