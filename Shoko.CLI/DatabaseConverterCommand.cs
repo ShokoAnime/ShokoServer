@@ -39,20 +39,6 @@ internal static class DatabaseConverterCommand
         "Versions",
     };
 
-    private static readonly HashSet<string> LegacyMigratedTables = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "AniDB_Vote",
-        "CrossRef_AniDB_TvDBV2",
-    };
-
-    private static readonly string[] LegacyUnifiedImageTables =
-    [
-        "TMDB_Image",
-        "TMDB_Image_Entity",
-        "AniDB_Anime_PreferredImage",
-        "AniDB_Episode_PreferredImage",
-    ];
-
     public static async Task<int> RunAsync(string[] args)
     {
         var options = ParseArgs(args);
@@ -118,7 +104,6 @@ internal static class DatabaseConverterCommand
         await ConfigureSqliteAsync(target);
 
         var sourceTables = await GetSourceTablesAsync(source, sourceType);
-        await PruneLegacyTargetTablesAsync(target, sourceTables);
         var targetTables = await GetSqliteTablesAsync(target);
         var tablesToCopy = targetTables
             .Where(sourceTables.Contains)
@@ -1005,23 +990,6 @@ internal static class DatabaseConverterCommand
         }
 
         return columns;
-    }
-
-    private static async Task PruneLegacyTargetTablesAsync(SqliteConnection target, IReadOnlySet<string> sourceTables)
-    {
-        var targetTables = await GetSqliteTablesAsync(target);
-        foreach (var tableName in LegacyMigratedTables)
-        {
-            if (sourceTables.Contains(tableName) || !targetTables.Contains(tableName, StringComparer.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            await using var command = target.CreateCommand();
-            command.CommandText = $"DROP TABLE {QuoteSqliteIdentifier(tableName)};";
-            await command.ExecuteNonQueryAsync();
-            Console.WriteLine($"Pruned legacy target-only table: {tableName}");
-        }
     }
 
     private static string BuildSourceOrderedSelectSql(SourceDatabaseType sourceType, string tableName, IReadOnlyList<string> selectColumns, IReadOnlyList<string> orderColumns, IReadOnlyDictionary<string, string> columnTypes)
