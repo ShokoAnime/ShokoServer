@@ -857,6 +857,8 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(144,  5, "UPDATE ShokoImage SET Source = 1 WHERE Source = 'TMDB';"),
         new(144,  6, "UPDATE ShokoImage SET Source = 0 WHERE Source = 'AniDB';"),
         new(144,  7, "UPDATE ShokoImage SET Source = 254 WHERE Source = 'User';"),
+        new(145,  1, DatabaseFixes.FinalizeAniDBVoteCleanup),
+        new(145,  2, DatabaseFixes.FinalizeCrossRefAniDBTvDBV2Cleanup),
     ];
 
     #endregion

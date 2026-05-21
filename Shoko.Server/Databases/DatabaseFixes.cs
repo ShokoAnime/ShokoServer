@@ -1555,6 +1555,78 @@ public class DatabaseFixes
         session.CreateSQLQuery(DropCommand).ExecuteUpdate();
     }
 
+    public static void FinalizeAniDBVoteCleanup()
+    {
+        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+        const string CountCommand = "SELECT COUNT(*) FROM AniDB_Vote;";
+        const string DropCommand = "DROP TABLE IF EXISTS AniDB_Vote;";
+
+        int voteCount;
+        try
+        {
+            voteCount = Convert.ToInt32(session.CreateSQLQuery(CountCommand).UniqueResult());
+        }
+        catch (GenericADOException ex)
+        {
+            _logger.Info(ex, "AniDB_Vote table does not exist, skipping final cleanup.");
+            return;
+        }
+
+        if (voteCount == 0)
+        {
+            session.CreateSQLQuery(DropCommand).ExecuteUpdate();
+            _logger.Info("Dropped empty AniDB_Vote table during final cleanup.");
+            return;
+        }
+
+        MigrateAnidbVotes();
+
+        try
+        {
+            voteCount = Convert.ToInt32(session.CreateSQLQuery(CountCommand).UniqueResult());
+        }
+        catch (GenericADOException ex)
+        {
+            _logger.Info(ex, "Completed AniDB_Vote final cleanup.");
+            return;
+        }
+
+        if (voteCount == 0)
+        {
+            session.CreateSQLQuery(DropCommand).ExecuteUpdate();
+            _logger.Info("Dropped AniDB_Vote after final cleanup migration.");
+            return;
+        }
+
+        throw new InvalidOperationException($"AniDB_Vote still contains {voteCount} rows after final cleanup migration.");
+    }
+
+    public static void FinalizeCrossRefAniDBTvDBV2Cleanup()
+    {
+        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+        const string CountCommand = "SELECT COUNT(*) FROM CrossRef_AniDB_TvDBV2;";
+        const string DropCommand = "DROP TABLE IF EXISTS CrossRef_AniDB_TvDBV2;";
+
+        int rowCount;
+        try
+        {
+            rowCount = Convert.ToInt32(session.CreateSQLQuery(CountCommand).UniqueResult());
+        }
+        catch (GenericADOException ex)
+        {
+            _logger.Info(ex, "CrossRef_AniDB_TvDBV2 table does not exist, skipping final cleanup.");
+            return;
+        }
+
+        if (rowCount > 0)
+        {
+            throw new InvalidOperationException($"CrossRef_AniDB_TvDBV2 still contains {rowCount} rows, but no safe legacy migration helper is available anymore.");
+        }
+
+        session.CreateSQLQuery(DropCommand).ExecuteUpdate();
+        _logger.Info("Completed CrossRef_AniDB_TvDBV2 final cleanup.");
+    }
+
     public static void MigrateToUnifiedImages()
     {
         var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();

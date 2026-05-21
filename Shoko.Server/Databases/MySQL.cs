@@ -1036,6 +1036,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(162,  2, @"CREATE TABLE `ShokoImage_Entity` (`ID` INT NOT NULL AUTO_INCREMENT, `ImageID` VARCHAR(36) NOT NULL, `PrimaryImageID` VARCHAR(36) NOT NULL, `ImageType` TINYINT NOT NULL, `ImageSource` TINYINT NOT NULL, `EntitySource` TINYINT NOT NULL, `EntityType` TINYINT NOT NULL, `EntityID` VARCHAR(128) NOT NULL, `EntitySeasonNumber` INT, `EntityEpisodeNumber` INT, `EntityReleasedAt` DATE, `IsEnabled` TINYINT NOT NULL DEFAULT 1, `IsDesired` TINYINT NOT NULL DEFAULT 1, `IsPreferred` TINYINT NOT NULL DEFAULT 0, `Ordering` INT NOT NULL DEFAULT 0, `Rating` decimal(6,2), `RatingVotes` INT, `Source` TINYINT NOT NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`ID`));"),
         new(162,  3, DatabaseFixes.MigrateToUnifiedImages),
         new(162,  4, DatabaseFixes.ScheduleTmdbImageUpdates),
+        new(163,  1, DatabaseFixes.FinalizeAniDBVoteCleanup),
+        new(163,  2, DatabaseFixes.FinalizeCrossRefAniDBTvDBV2Cleanup),
     ];
 
     #endregion
