@@ -8,8 +8,6 @@ using System.IO;
 using System.Collections;
 using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
@@ -364,9 +362,14 @@ internal static class DatabaseConverterCommand
     private static async Task CopyTableAsync(DbConnection source, SourceDatabaseType sourceType, SqliteConnection target, string tableName)
     {
         var sourceColumns = await GetSourceColumnsAsync(source, sourceType, tableName);
+        var sourceColumnTypes = await GetSourceColumnTypesAsync(source, sourceType, tableName);
         var targetColumns = await GetSqliteColumnsAsync(target, tableName);
         var sourceColumnSet = sourceColumns.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var sourceBackedColumns = targetColumns.Where(column => sourceColumnSet.Contains(column.Name)).ToList();
+        var guidColumns = sourceBackedColumns
+            .Where(column => IsGuidColumn(sourceType, sourceColumnTypes, column))
+            .Select(column => column.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var fallbackColumns = targetColumns
             .Where(column => !sourceColumnSet.Contains(column.Name) && column.NotNull && string.IsNullOrWhiteSpace(column.DefaultValue))
             .ToList();
@@ -414,7 +417,7 @@ internal static class DatabaseConverterCommand
             for (var index = 0; index < sourceBackedColumns.Count; index++)
             {
                 var value = await reader.IsDBNullAsync(index) ? DBNull.Value : reader.GetValue(index);
-                insertCommand.Parameters[index].Value = NormalizeValue(value);
+                insertCommand.Parameters[index].Value = NormalizeValue(value, guidColumns.Contains(sourceBackedColumns[index].Name));
             }
 
             for (var index = 0; index < fallbackColumns.Count; index++)
@@ -480,6 +483,11 @@ internal static class DatabaseConverterCommand
     private static async Task VerifyTableContentAsync(DbConnection source, SourceDatabaseType sourceType, SqliteConnection target, string tableName, IReadOnlyList<string> sharedColumns)
     {
         var sourceColumnTypes = await GetSourceColumnTypesAsync(source, sourceType, tableName);
+        var targetColumns = await GetSqliteColumnsAsync(target, tableName);
+        var targetColumnLookup = targetColumns.ToDictionary(column => column.Name, StringComparer.OrdinalIgnoreCase);
+        var guidColumns = sharedColumns
+            .Where(column => targetColumnLookup.TryGetValue(column, out var targetColumn) && IsGuidColumn(sourceType, sourceColumnTypes, targetColumn))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var orderColumns = await ResolveOrderColumnsAsync(source, sourceType, target, tableName, sharedColumns, sourceColumnTypes);
 
         var sourceSql = BuildSourceOrderedSelectSql(sourceType, tableName, sharedColumns, orderColumns, sourceColumnTypes);
@@ -508,8 +516,8 @@ internal static class DatabaseConverterCommand
             }
 
             rowNumber++;
-            var sourceRow = await ReadNormalizedRowAsync(sourceReader, sharedColumns.Count);
-            var targetRow = await ReadNormalizedRowAsync(targetReader, sharedColumns.Count);
+            var sourceRow = await ReadNormalizedRowAsync(sourceReader, sharedColumns, guidColumns);
+            var targetRow = await ReadNormalizedRowAsync(targetReader, sharedColumns, guidColumns);
             ThrowIfRowMismatch(tableName, sharedColumns, orderColumns, rowNumber, sourceRow, targetRow);
         }
     }
@@ -546,12 +554,12 @@ internal static class DatabaseConverterCommand
         throw new InvalidOperationException($"Verification failed for {tableName}: no primary key or SQL-orderable shared columns are available for deterministic comparison.");
     }
 
-    private static async Task<string[]> ReadNormalizedRowAsync(DbDataReader reader, int columnCount)
+    private static async Task<string[]> ReadNormalizedRowAsync(DbDataReader reader, IReadOnlyList<string> columnNames, IReadOnlySet<string> guidColumns)
     {
-        var row = new string[columnCount];
-        for (var index = 0; index < columnCount; index++)
+        var row = new string[columnNames.Count];
+        for (var index = 0; index < columnNames.Count; index++)
         {
-            row[index] = NormalizeComparisonValue(await reader.IsDBNullAsync(index) ? null : reader.GetValue(index));
+            row[index] = NormalizeComparisonValue(await reader.IsDBNullAsync(index) ? null : reader.GetValue(index), guidColumns.Contains(columnNames[index]));
         }
 
         return row;
@@ -584,48 +592,13 @@ internal static class DatabaseConverterCommand
         }
     }
 
-    private static void AppendValue(List<byte> buffer, object? value)
-    {
-        switch (value)
-        {
-            case null:
-            case DBNull:
-                buffer.AddRange("NULL"u8.ToArray());
-                break;
-            case byte[] bytes:
-                buffer.AddRange(Convert.ToHexString(bytes).Select(c => (byte)c));
-                break;
-            case string text when TryNormalizeGuidString(text, out var normalizedGuidText):
-                buffer.AddRange(Encoding.UTF8.GetBytes(normalizedGuidText));
-                break;
-            case string text when TryNormalizeTemporalString(text, out var normalizedText):
-                buffer.AddRange(Encoding.UTF8.GetBytes(normalizedText));
-                break;
-            case DateTime dateTime:
-                buffer.AddRange(Encoding.UTF8.GetBytes(NormalizeDateTime(dateTime)));
-                break;
-            case DateTimeOffset offset:
-                buffer.AddRange(Encoding.UTF8.GetBytes(offset.ToString("O", CultureInfo.InvariantCulture)));
-                break;
-            case bool boolean:
-                buffer.AddRange(boolean ? "1"u8.ToArray() : "0"u8.ToArray());
-                break;
-            case IFormattable formattable:
-                buffer.AddRange(Encoding.UTF8.GetBytes(formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty));
-                break;
-            default:
-                buffer.AddRange(Encoding.UTF8.GetBytes(value.ToString() ?? string.Empty));
-                break;
-        }
-    }
-
-    private static object NormalizeValue(object value)
+    private static object NormalizeValue(object value, bool isGuidColumn)
     {
         return value switch
         {
             DBNull => DBNull.Value,
             Guid guid => NormalizeGuid(guid),
-            string text when TryNormalizeGuidString(text, out var normalizedGuidText) => normalizedGuidText,
+            string text when isGuidColumn && TryNormalizeGuidString(text, out var normalizedGuidText) => normalizedGuidText,
             DateTimeOffset offset => offset.UtcDateTime,
             _ => value,
         };
@@ -675,6 +648,29 @@ internal static class DatabaseConverterCommand
     {
         return guid.ToString("D").ToUpperInvariant();
     }
+
+    private static bool IsGuidColumn(SourceDatabaseType sourceType, IReadOnlyDictionary<string, string> sourceColumnTypes, SqliteColumnInfo targetColumn)
+    {
+        if (IsGuidType(targetColumn.Type))
+        {
+            return true;
+        }
+
+        return sourceColumnTypes.TryGetValue(targetColumn.Name, out var sourceTypeName) && IsGuidType(sourceType, sourceTypeName);
+    }
+
+    private static bool IsGuidType(SourceDatabaseType sourceType, string typeName)
+    {
+        return sourceType switch
+        {
+            SourceDatabaseType.SqlServer => typeName.Equals("uniqueidentifier", StringComparison.OrdinalIgnoreCase),
+            SourceDatabaseType.MySql => false,
+            _ => false,
+        };
+    }
+
+    private static bool IsGuidType(string typeName)
+        => typeName.Contains("UNIQUEIDENTIFIER", StringComparison.OrdinalIgnoreCase);
 
     private static async Task<HashSet<string>> GetSourceTablesAsync(DbConnection connection, SourceDatabaseType sourceType)
     {
@@ -1125,14 +1121,14 @@ internal static class DatabaseConverterCommand
            !dataType.Equals("json", StringComparison.OrdinalIgnoreCase) &&
            !dataType.Equals("geometry", StringComparison.OrdinalIgnoreCase);
 
-    private static string NormalizeComparisonValue(object? value)
+    private static string NormalizeComparisonValue(object? value, bool isGuidColumn)
     {
         return value switch
         {
             null or DBNull => "<null>",
             byte[] bytes => Convert.ToHexString(bytes),
             Guid guid => NormalizeGuid(guid),
-            string text when TryNormalizeGuidString(text, out var normalizedGuidText) => normalizedGuidText,
+            string text when isGuidColumn && TryNormalizeGuidString(text, out var normalizedGuidText) => normalizedGuidText,
             string text when TryNormalizeTemporalString(text, out var normalizedText) => normalizedText,
             DateTime dateTime => NormalizeDateTime(dateTime),
             DateTimeOffset offset => offset.ToString("O", CultureInfo.InvariantCulture),
