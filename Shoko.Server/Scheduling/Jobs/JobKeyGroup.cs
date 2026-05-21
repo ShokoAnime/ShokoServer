@@ -9,5 +9,4 @@ public static class JobKeyGroup
     public const string Legacy = "Legacy";
     public const string System = "System";
     public const string TMDB = "TMDB";
-    public const string Trakt = "TraktTv";
 }

@@ -15,11 +15,9 @@ using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Settings;
 
 #nullable enable
@@ -510,22 +508,6 @@ public class UserDataService(
                         updateStatsNow: false
                     );
                 }
-            }
-
-            var settings = settingsProvider.GetSettings();
-            var syncTrakt =
-                !(reason.HasFlag(EpisodeUserDataSaveReason.Import) && importSource is "Trakt") &&
-                user is JMMUser { IsTraktUser: 1 } &&
-                videoReason is VideoUserDataSaveReason.None or VideoUserDataSaveReason.UserInteraction or VideoUserDataSaveReason.PlaybackEnd &&
-                settings.TraktTv.Enabled && !string.IsNullOrEmpty(settings.TraktTv.AuthToken);
-            if (syncTrakt && watchedStatusChanged)
-            {
-                var scheduler = await schedulerFactory.GetScheduler();
-                await scheduler.StartJob<SendEpisodeWatchStateToTraktJob>(c =>
-                {
-                    c.AnimeEpisodeID = episode.ID;
-                    c.Action = userDataUpdate.LastPlayedAt.HasValue ? TraktSyncType.HistoryAdd : TraktSyncType.HistoryRemove;
-                });
             }
         }
 

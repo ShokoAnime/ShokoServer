@@ -628,9 +628,6 @@ public partial class ShokoServiceImplementation
                     c.FileSize = vl.FileSize;
                 }
             ).GetAwaiter().GetResult();
-
-            // For deletion of files from Trakt, we will rely on the Daily sync
-            // lets also try removing from the users trakt collection
         }
     }
 

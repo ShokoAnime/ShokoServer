@@ -303,7 +303,6 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
             HideCategories = string.Empty,
             IsAdmin = 1,
             IsAniDBUser = 1,
-            IsTraktUser = 1,
             Password = defaultPassword,
             Username = settings.Database.DefaultUserUsername
         };

@@ -4,7 +4,7 @@
 
 This has all files related to handling the AniDB User data. This includes MyList and Votes. At the beginning, it will
 likely have references to it hardcoded throughout the project, but those should be abstracted out with scrobble events (
-which will go out to things like Trakt, AniList, etc).
+which will go out to things like AniList, etc).
 
 ### MyList Notes
 

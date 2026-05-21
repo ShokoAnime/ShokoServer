@@ -19,7 +19,6 @@ using Shoko.Server.Scheduling.GenericJobBuilder;
 using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Shoko;
-using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
@@ -36,15 +35,6 @@ public static class QuartzStartup
         // StartJobNow gives a priority of 10. We'll give it 20 to be even higher priority
         await ScheduleRecurringJob<CheckNetworkAvailabilityJob>(
             triggerConfig: t => t.WithPriority(20).WithSimpleSchedule(tr => tr.WithIntervalInMinutes(30).RepeatForever()).StartNow(), replace: true, keepSchedule: false);
-        if (settings.TraktTv.Enabled)
-        {
-            await ScheduleRecurringJob<CheckTraktTokenJob>(
-                triggerConfig: t => t.WithPriority(20).WithSimpleSchedule(tr => tr.WithIntervalInMinutes(60).RepeatForever()).StartNow(), replace: true, keepSchedule: false);
-        }
-        else
-        {
-            await RemoveRecurringJob<CheckTraktTokenJob>();
-        }
 
         // TODO the other schedule-based jobs that are on timers
     }

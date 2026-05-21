@@ -3038,7 +3038,7 @@ public partial class ShokoServiceImplementation
                     JMMUserID = u.JMMUserID,
                     Username = u.Username,
                     IsAniDBUser = u.IsAniDBUser,
-                    IsTraktUser = u.IsTraktUser,
+                    IsTraktUser = 0,
                     CanEditServerSettings = u.CanEditServerSettings,
                     HideCategories = u.HideCategories,
                     IsAdmin = u.IsAdmin,
@@ -3069,7 +3069,7 @@ public partial class ShokoServiceImplementation
                 JMMUserID = user.JMMUserID,
                 Username = user.Username,
                 IsAniDBUser = user.IsAniDBUser,
-                IsTraktUser = user.IsTraktUser,
+                IsTraktUser = 0,
                 CanEditServerSettings = user.CanEditServerSettings,
                 HideCategories = user.HideCategories,
                 IsAdmin = user.IsAdmin,
@@ -3171,11 +3171,9 @@ public partial class ShokoServiceImplementation
             // probably never will.
             if (
                 !string.Equals(jmmUser.PlexUsers, user.PlexUsers, StringComparison.InvariantCultureIgnoreCase) ||
-                !string.Equals(jmmUser.PlexToken, user.PlexToken, StringComparison.InvariantCultureIgnoreCase) ||
-                jmmUser.IsTraktUser != user.IsTraktUser
+                !string.Equals(jmmUser.PlexToken, user.PlexToken, StringComparison.InvariantCultureIgnoreCase)
             )
             {
-                jmmUser.IsTraktUser = user.IsTraktUser;
                 jmmUser.PlexUsers = user.PlexUsers;
                 if (user.PlexToken is not "**SECRET**")
                 {

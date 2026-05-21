@@ -76,8 +76,6 @@ public enum ScheduledUpdateType
     AniDBCalendar = 1,
     AniDBUpdates = 3,
     AniDBMyListSync = 5,
-    TraktSendWatchStates = 6,
-    TraktGetWatchStates = 7,
     AniDBFileUpdates = 10,
     AniDBNotify = 15,
     PluginUpdates = 16,

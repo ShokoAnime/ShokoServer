@@ -611,7 +611,6 @@ public class VideoService : IVideoService
                 RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.Path), place.ManagedFolder!.Path);
 
             await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
-            // For deletion of files from Trakt, we will rely on the Daily sync
         }
         catch (Exception ex)
         {

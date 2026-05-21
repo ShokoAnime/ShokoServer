@@ -99,9 +99,8 @@ NHibernate-mapped entities. Organized by source:
 - `Shoko.Server.Models.Shoko` — core domain: `AnimeSeries`, `AnimeGroup`, `AnimeEpisode`, `VideoLocal`, `JMMUser`, `FilterPreset`, etc.
 - `Shoko.Server.Models.AniDB` — AniDB metadata cache: `AniDB_Anime`, `AniDB_Episode`, `AniDB_Character`, `AniDB_Creator`, `AniDB_Tag`, etc.
 - `Shoko.Server.Models.TMDB` — TMDB metadata cache: `TMDB_Show`, `TMDB_Movie`, `TMDB_Episode`, `TMDB_Image`, etc.
-- `Shoko.Server.Models.CrossReference` — cross-reference tables linking providers (AniDB↔TMDB, AniDB↔MAL, AniDB↔Trakt)
+- `Shoko.Server.Models.CrossReference` — cross-reference tables linking providers (AniDB↔TMDB, AniDB↔MAL)
 - `Shoko.Server.Models.Release` — release/video file associations
-- `Shoko.Server.Models.Trakt` — Trakt metadata cache
 - `Shoko.Server.Models.Image` — image metadata
 - `Shoko.Server.Models.Internal` — internal tracking entities
 - `Shoko.Server.Models.Legacy` — legacy entities scheduled for removal once APIv1 is finally removed or before if they can be mocked using other methods/models

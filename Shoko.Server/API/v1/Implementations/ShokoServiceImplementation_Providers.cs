@@ -11,7 +11,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Utilities;
 
 #pragma warning disable ASP0023
@@ -371,29 +370,7 @@ public partial class ShokoServiceImplementation
     [HttpPost("Trakt/Sync/{animeID}")]
     public string SyncTraktSeries(int animeID)
     {
-        try
-        {
-            if (!_settingsProvider.GetSettings().TraktTv.Enabled)
-            {
-                return string.Empty;
-            }
-
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-            if (ser == null)
-            {
-                return "Could not find Anime Series";
-            }
-
-            var scheduler = _schedulerFactory.GetScheduler().Result;
-            scheduler.StartJob<SendSeriesWatchStatesToTraktJob>(c => c.AnimeSeriesID = ser.AnimeSeriesID).GetAwaiter().GetResult();
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return ex.Message;
-        }
+        return string.Empty;
     }
 
     [HttpPost("Trakt/Comment/{traktID}/{isSpoiler}")]
@@ -423,16 +400,7 @@ public partial class ShokoServiceImplementation
     [HttpGet("Trakt/DeviceCode")]
     public CL_TraktDeviceCode GetTraktDeviceCode()
     {
-        try
-        {
-            var response = _traktHelper.GetTraktDeviceCode();
-            return new CL_TraktDeviceCode { VerificationUrl = response.VerificationUrl, UserCode = response.UserCode };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in GetTraktDeviceCode: {ex}", ex.ToString());
-            return null;
-        }
+        return null;
     }
 
     #endregion

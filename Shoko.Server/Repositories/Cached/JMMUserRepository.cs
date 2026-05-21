@@ -25,9 +25,6 @@ public class JMMUserRepository(DatabaseFactory databaseFactory) : BaseCachedRepo
     public JMMUser? GetAniDBUser()
         => ReadLock(() => Cache.Values.Where(a => a.IsAniDBUser == 1).FirstOrDefault());
 
-    public IReadOnlyList<JMMUser> GetTraktUsers()
-        => ReadLock(() => Cache.Values.Where(a => a.IsTraktUser == 1).ToList());
-
     public JMMUser? AuthenticateUser(string userName, string? password)
     {
         password ??= string.Empty;

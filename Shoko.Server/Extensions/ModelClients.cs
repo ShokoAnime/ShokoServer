@@ -92,12 +92,12 @@ public static class ModelClients
             SeriesNameSource = (int)settings.Language.SeriesTitleSourceOrder.FirstOrDefault(),
 
             // trakt
-            Trakt_IsEnabled = settings.TraktTv.Enabled,
-            Trakt_AuthToken = settings.TraktTv.AuthToken,
-            Trakt_RefreshToken = settings.TraktTv.RefreshToken,
-            Trakt_TokenExpirationDate = settings.TraktTv.TokenExpirationDate,
+            Trakt_IsEnabled = false,
+            Trakt_AuthToken = string.Empty,
+            Trakt_RefreshToken = string.Empty,
+            Trakt_TokenExpirationDate = null,
             Trakt_UpdateFrequency = 0,
-            Trakt_SyncFrequency = (int)settings.TraktTv.SyncFrequency,
+            Trakt_SyncFrequency = 1,
 
             // Logging
             RotateLogs = settings.Logging.RotationEnabled,
@@ -249,21 +249,6 @@ public static class ModelClients
 
         return contract;
     }
-
-
-    public static CL_CrossRef_AniDB_TraktV2 ToClient(this CrossRef_AniDB_TraktV2 xref)
-        => new()
-        {
-            CrossRef_AniDB_TraktV2ID = xref.CrossRef_AniDB_TraktV2ID,
-            AnimeID = xref.AnimeID,
-            TraktID = xref.TraktID,
-            TraktSeasonNumber = xref.TraktSeasonNumber,
-            AniDBStartEpisodeType = xref.AniDBStartEpisodeType,
-            AniDBStartEpisodeNumber = xref.AniDBStartEpisodeNumber,
-            CrossRefSource = xref.CrossRefSource,
-            TraktStartEpisodeNumber = xref.TraktStartEpisodeNumber,
-            TraktTitle = xref.TraktTitle,
-        };
 
     public static CL_CrossRef_CustomTag ToClient(this CrossRef_CustomTag xref)
         => new()

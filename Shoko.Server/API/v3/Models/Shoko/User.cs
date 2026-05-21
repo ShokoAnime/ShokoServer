@@ -42,7 +42,7 @@ public class User
     public bool IsAdmin { get; set; }
 
     /// <summary>
-    /// This is a list of services that the user is set to use. AniDB, Trakt, and Plex, for example
+    /// This is a list of services that the user is set to use. AniDB, and Plex, for example
     /// </summary>
     [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     [Required]
@@ -78,8 +78,6 @@ public class User
         CommunitySites = [];
         if (user.IsAniDBUser == 1)
             CommunitySites.Add(CommunitySite.AniDB);
-        if (user.IsTraktUser == 1)
-            CommunitySites.Add(CommunitySite.Trakt);
         if (!string.IsNullOrEmpty(user.PlexToken))
             CommunitySites.Add(CommunitySite.Plex);
 
@@ -154,17 +152,6 @@ public class User
                     // Extra handling for things not exposed to the plugin API
                     // and probably never will.
                     var saved = false;
-                    if (CommunitySites is not null)
-                    {
-                        var oldTraktUser = user.IsTraktUser == 1;
-                        var newTraktUser = CommunitySites.Contains(CommunitySite.Trakt);
-                        if (oldTraktUser != newTraktUser)
-                        {
-                            saved = true;
-                            user.IsTraktUser = CommunitySites.Contains(CommunitySite.Trakt) ? 1 : 0;
-                        }
-                    }
-
                     if (PlexUsernames is not null)
                     {
                         var oldPlexUsernames = user.PlexUsers;
@@ -289,17 +276,6 @@ public class User
                     // Extra handling for things not exposed to the plugin API
                     // and probably never will.
                     var saved = false;
-                    if (CommunitySites is not null)
-                    {
-                        var oldTraktUser = user.IsTraktUser == 1;
-                        var newTraktUser = CommunitySites.Contains(CommunitySite.Trakt);
-                        if (oldTraktUser != newTraktUser)
-                        {
-                            saved = true;
-                            user.IsTraktUser = CommunitySites.Contains(CommunitySite.Trakt) ? 1 : 0;
-                        }
-                    }
-
                     if (PlexUsernames is not null)
                     {
                         var oldPlexUsernames = user.PlexUsers;

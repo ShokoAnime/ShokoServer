@@ -46,7 +46,6 @@ using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
@@ -379,7 +378,6 @@ public class SystemService : ISystemService
 
             services.AddSingleton<IPluginPackageManager, PluginPackageManager>();
             services.AddSingleton<FileWatcherService>();
-            services.AddSingleton<TraktTVHelper>();
             services.AddSingleton<TmdbImageService>();
             services.AddSingleton<TmdbLinkingService>();
             services.AddSingleton<ITmdbLinkingService>(sp => sp.GetRequiredService<TmdbLinkingService>());

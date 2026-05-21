@@ -22,11 +22,9 @@ using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -49,8 +47,6 @@ public class Core : BaseController
 
     private readonly ActionService _actionService;
 
-    private readonly TraktTVHelper _traktHelper;
-
     private IServerSettings _settings => SettingsProvider.GetSettings();
 
     public Core(
@@ -58,15 +54,13 @@ public class Core : BaseController
         ISchedulerFactory schedulerFactory,
         IUserService userService,
         IAnidbService anidbService,
-        ActionService actionService,
-        TraktTVHelper traktHelper
+        ActionService actionService
     ) : base(settingsProvider)
     {
         _schedulerFactory = schedulerFactory;
         _userService = userService;
         _anidbService = anidbService;
         _actionService = actionService;
-        _traktHelper = traktHelper;
     }
 
     #region 01.Settings
@@ -310,18 +304,7 @@ public class Core : BaseController
     /// <returns></returns>
     [HttpGet("trakt/code")]
     public ActionResult<Dictionary<string, object>> GetTraktCode()
-    {
-        var code = _traktHelper.GetTraktDeviceCode();
-        if (code.UserCode == string.Empty)
-            return APIStatus.InternalError("Trakt code doesn't exist on the server");
-
-        var result = new Dictionary<string, object>
-        {
-            { "usercode", code.UserCode },
-            { "url", code.VerificationUrl }
-        };
-        return result;
-    }
+        => APIStatus.BadRequest("Trakt integration has been disabled permanently.");
 
     /// <summary>
     /// Return trakt authtoken
@@ -329,13 +312,7 @@ public class Core : BaseController
     /// <returns></returns>
     [HttpGet("trakt/get")]
     public ActionResult<Credentials> GetTrakt()
-    {
-        return new Credentials
-        {
-            token = _settings.TraktTv.AuthToken,
-            refresh_token = _settings.TraktTv.RefreshToken
-        };
-    }
+        => APIStatus.BadRequest("Trakt integration has been disabled permanently.");
 
     /// <summary>
     /// Sync Trakt Collection
@@ -343,16 +320,7 @@ public class Core : BaseController
     /// <returns></returns>
     [HttpGet("trakt/sync")]
     public async Task<ActionResult> SyncTrakt()
-    {
-        if (_settings.TraktTv.Enabled && !string.IsNullOrEmpty(_settings.TraktTv.AuthToken))
-        {
-            var scheduler = await _schedulerFactory.GetScheduler();
-            await scheduler.StartJob<SendWatchStatesToTraktJob>(c => c.ForceRefresh = true);
-            return APIStatus.OK();
-        }
-
-        return new APIMessage(204, "Trakt is not enabled or you are missing the authtoken");
-    }
+        => APIStatus.BadRequest("Trakt integration has been disabled permanently.");
 
     #endregion
 
@@ -512,11 +480,9 @@ public class Core : BaseController
         // probably never will.
         if (
             !string.Equals(user.PlexUsers, body.PlexUsers, StringComparison.InvariantCultureIgnoreCase) ||
-            !string.Equals(user.PlexToken, body.PlexToken, StringComparison.InvariantCultureIgnoreCase) ||
-            user.IsTraktUser != body.IsTraktUser
+            !string.Equals(user.PlexToken, body.PlexToken, StringComparison.InvariantCultureIgnoreCase)
         )
         {
-            user.IsTraktUser = body.IsTraktUser;
             user.PlexUsers = body.PlexUsers;
             if (body.PlexToken is not "**SECRET**")
             {
