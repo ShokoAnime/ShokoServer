@@ -41,11 +41,9 @@ public interface IConnectivityService
     /// <summary>
     /// Add a new connectivity monitor definition.
     /// </summary>
-    /// <param name="name">A unique, human-readable name for this monitor.</param>
-    /// <param name="type">The type of HTTP request to perform.</param>
-    /// <param name="address">The URL to check for connectivity.</param>
+    /// <param name="data">The monitor definition data.</param>
     /// <returns>The created monitor.</returns>
-    public IConnectivityMonitor AddMonitorDefinition(string name, ConnectivityCheckType type, string address);
+    public IConnectivityMonitor AddMonitorDefinition(MonitorDefinitionData data);
 
     /// <summary>
     /// Remove a connectivity monitor definition by name.

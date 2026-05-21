@@ -88,22 +88,22 @@ public class ConnectivityService : IConnectivityService
     public IReadOnlyList<IConnectivityMonitor> GetMonitorDefinitions() => _monitorDefinitions;
 
     /// <inheritdoc/>
-    public IConnectivityMonitor AddMonitorDefinition(string name, ConnectivityCheckType type, string address)
+    public IConnectivityMonitor AddMonitorDefinition(MonitorDefinitionData data)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentException.ThrowIfNullOrWhiteSpace(address);
+        ArgumentException.ThrowIfNullOrWhiteSpace(data.Name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(data.Address);
 
-        if (_monitorDefinitions.Any(d => string.Equals(d.Name, name, StringComparison.OrdinalIgnoreCase)))
-            throw new ArgumentException($"A monitor definition with the name '{name}' already exists.", nameof(name));
+        if (_monitorDefinitions.Any(d => string.Equals(d.Name, data.Name, StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException($"A monitor definition with the name '{data.Name}' already exists.", nameof(data));
 
-        if (!Uri.TryCreate(address, UriKind.Absolute, out _))
-            throw new ArgumentException($"The address '{address}' is not a valid absolute URI.", nameof(address));
+        if (!Uri.TryCreate(data.Address, UriKind.Absolute, out _))
+            throw new ArgumentException($"The address '{data.Address}' is not a valid absolute URI.", nameof(data));
 
         var definition = new ConnectivityMonitorDefinition
         {
-            Name = name,
-            Type = type,
-            Address = address,
+            Name = data.Name,
+            Type = data.Type,
+            Address = data.Address,
         };
         _monitorDefinitions.Add(definition);
         SaveDefinitions();
