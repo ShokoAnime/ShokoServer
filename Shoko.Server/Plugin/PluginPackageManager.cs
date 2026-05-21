@@ -688,35 +688,35 @@ public partial class PluginPackageManager(
     }
 
     /// <inheritdoc/>
-    public async Task<PackageRepositoryInfo> AddPackageRepository(string name, string url, TimeSpan? staleTime = null, CancellationToken cancellationToken = default)
+    public async Task<PackageRepositoryInfo> AddPackageRepository(PackageRepositoryData data, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentException.ThrowIfNullOrWhiteSpace(url);
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            throw new ArgumentException("Url must be absolute!", nameof(url));
+        ArgumentException.ThrowIfNullOrWhiteSpace(data.Name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(data.Url);
+        if (!Uri.TryCreate(data.Url, UriKind.Absolute, out var uri))
+            throw new ArgumentException("Url must be absolute!", nameof(data.Url));
         if (uri.Scheme is not ("http" or "https"))
-            throw new ArgumentException("Url must use the http:// or https:// schema!", nameof(url));
-        if (staleTime.HasValue && staleTime.Value < TimeSpan.Zero)
-            throw new ArgumentException("Stale time cannot be less than zero.", nameof(staleTime));
+            throw new ArgumentException("Url must use the http:// or https:// schema!", nameof(data.Url));
+        if (data.StaleTime.HasValue && data.StaleTime.Value < TimeSpan.Zero)
+            throw new ArgumentException("Stale time cannot be less than zero.", nameof(data.StaleTime));
 
-        name = name.Trim();
-        url = uri.ToString();
+        var name = data.Name.Trim();
+        var url = uri.ToString();
         var existingRepositories = ListPackageRepositories();
         var repositoryInfo = new PackageRepositoryInfo()
         {
             ID = UuidUtility.GetV5(url),
             Name = name,
             Url = url,
-            StaleTime = staleTime ?? DefaultRepositoryStaleTime,
+            StaleTime = data.StaleTime ?? DefaultRepositoryStaleTime,
             LastFetchedAt = null,
         };
 
         lock (_logger)
         {
             if (existingRepositories.Any(r => string.Equals(r.Name, name, StringComparison.InvariantCultureIgnoreCase)))
-                throw new ArgumentException("An existing repository with the given name already exists.", nameof(name));
+                throw new ArgumentException("An existing repository with the given name already exists.", nameof(data.Name));
             if (existingRepositories.Any(r => string.Equals(r.Url, url)))
-                throw new ArgumentException("An existing repository with the given URL already exists.", nameof(url));
+                throw new ArgumentException("An existing repository with the given URL already exists.", nameof(data.Url));
             var repoPath = Path.Join(_applicationPaths.PluginsPath, Repositories, repositoryInfo.ID.ToString(), RepoInfoFile);
             var repoJson = JsonConvert.SerializeObject(repositoryInfo);
 
