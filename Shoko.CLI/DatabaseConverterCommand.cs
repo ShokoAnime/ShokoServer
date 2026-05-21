@@ -738,10 +738,10 @@ internal static class DatabaseConverterCommand
 
     private static async Task<List<string>> GetSqlServerColumnsAsync(SqlConnection connection, string tableName)
     {
-        const string sql = """
+        var sql = $"""
             SELECT COLUMN_NAME
             FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_NAME = @tableName
+            WHERE TABLE_NAME = {TableNameParameter}
             ORDER BY ORDINAL_POSITION
             """;
 
@@ -759,17 +759,17 @@ internal static class DatabaseConverterCommand
 
     private static async Task<List<string>> GetMySqlColumnsAsync(MySqlConnection connection, string tableName)
     {
-        const string sql = """
+        var sql = $"""
             SELECT COLUMN_NAME
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = @tableName
+              AND TABLE_NAME = {TableNameParameter}
             ORDER BY ORDINAL_POSITION
             """;
 
         var columns = new List<string>();
         await using var command = new MySqlCommand(sql, connection);
-        command.Parameters.AddWithValue("@tableName", tableName);
+        command.Parameters.AddWithValue(TableNameParameter, tableName);
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -791,17 +791,17 @@ internal static class DatabaseConverterCommand
 
     private static async Task<List<string>> GetSqlServerPrimaryKeyColumnsAsync(SqlConnection connection, string tableName)
     {
-        const string sql = """
+        var sql = $"""
             SELECT COLUMN_NAME
             FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
             WHERE OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + QUOTENAME(CONSTRAINT_NAME)), 'IsPrimaryKey') = 1
-              AND TABLE_NAME = @tableName
+              AND TABLE_NAME = {TableNameParameter}
             ORDER BY ORDINAL_POSITION
             """;
 
         var columns = new List<string>();
         await using var command = new SqlCommand(sql, connection);
-        command.Parameters.AddWithValue("@tableName", tableName);
+        command.Parameters.AddWithValue(TableNameParameter, tableName);
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -813,18 +813,18 @@ internal static class DatabaseConverterCommand
 
     private static async Task<List<string>> GetMySqlPrimaryKeyColumnsAsync(MySqlConnection connection, string tableName)
     {
-        const string sql = """
+        var sql = $"""
             SELECT COLUMN_NAME
             FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
             WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = @tableName
+              AND TABLE_NAME = {TableNameParameter}
               AND CONSTRAINT_NAME = 'PRIMARY'
             ORDER BY ORDINAL_POSITION
             """;
 
         var columns = new List<string>();
         await using var command = new MySqlCommand(sql, connection);
-        command.Parameters.AddWithValue("@tableName", tableName);
+        command.Parameters.AddWithValue(TableNameParameter, tableName);
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -846,15 +846,15 @@ internal static class DatabaseConverterCommand
 
     private static async Task<Dictionary<string, string>> GetSqlServerColumnTypesAsync(SqlConnection connection, string tableName)
     {
-        const string sql = """
+        var sql = $"""
             SELECT COLUMN_NAME, DATA_TYPE
             FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_NAME = @tableName
+            WHERE TABLE_NAME = {TableNameParameter}
             """;
 
         var columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         await using var command = new SqlCommand(sql, connection);
-        command.Parameters.AddWithValue("@tableName", tableName);
+        command.Parameters.AddWithValue(TableNameParameter, tableName);
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -866,16 +866,16 @@ internal static class DatabaseConverterCommand
 
     private static async Task<Dictionary<string, string>> GetMySqlColumnTypesAsync(MySqlConnection connection, string tableName)
     {
-        const string sql = """
+        var sql = $"""
             SELECT COLUMN_NAME, DATA_TYPE
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = @tableName
+              AND TABLE_NAME = {TableNameParameter}
             """;
 
         var columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         await using var command = new MySqlCommand(sql, connection);
-        command.Parameters.AddWithValue("@tableName", tableName);
+        command.Parameters.AddWithValue(TableNameParameter, tableName);
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -1142,11 +1142,37 @@ internal static class DatabaseConverterCommand
         };
     }
 
+    private static string ValidateIdentifier(string identifier)
+    {
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            throw new InvalidOperationException("SQL identifier cannot be null or empty.");
+        }
+
+        if (!(char.IsLetter(identifier[0]) || identifier[0] == '_'))
+        {
+            throw new InvalidOperationException($"Unsupported SQL identifier: {identifier}");
+        }
+
+        for (var index = 1; index < identifier.Length; index++)
+        {
+            var character = identifier[index];
+            if (char.IsLetterOrDigit(character) || character == '_')
+            {
+                continue;
+            }
+
+            throw new InvalidOperationException($"Unsupported SQL identifier: {identifier}");
+        }
+
+        return identifier;
+    }
+
     private static string QuoteSqlServerIdentifier(string identifier)
-        => $"[{identifier.Replace("]", "]]", StringComparison.Ordinal)}]";
+        => $"[{ValidateIdentifier(identifier).Replace("]", "]]", StringComparison.Ordinal)}]";
 
     private static string QuoteMySqlIdentifier(string identifier)
-        => $"`{identifier.Replace("`", "``", StringComparison.Ordinal)}`";
+        => $"`{ValidateIdentifier(identifier).Replace("`", "``", StringComparison.Ordinal)}`";
 
     private static string QuoteSourceIdentifier(SourceDatabaseType sourceType, string identifier)
     {
@@ -1159,10 +1185,10 @@ internal static class DatabaseConverterCommand
     }
 
     private static string QuoteSqliteIdentifier(string identifier)
-        => $"\"{identifier.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
+        => $"\"{ValidateIdentifier(identifier).Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
 
     private static string QuoteSqliteLiteral(string value)
-        => $"'{value.Replace("'", "''", StringComparison.Ordinal)}'";
+        => $"'{ValidateIdentifier(value).Replace("'", "''", StringComparison.Ordinal)}'";
 
     private static Options ParseArgs(string[] args)
     {
