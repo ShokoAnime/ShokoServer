@@ -179,7 +179,7 @@ public static class Dashboard
                 ShokoSeries = shokoSeries?.ID,
                 ShokoEpisode = shokoEpisode?.ID
             };
-            Title = anidbEpisode.Title;
+            Title = shokoEpisode?.Title ?? anidbEpisode.Title;
             Number = anidbEpisode.EpisodeNumber;
             Type = anidbEpisode.Type.ToV3Dto();
             AirDate = anidbEpisode.AirDate;
