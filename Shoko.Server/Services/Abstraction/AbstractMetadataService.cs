@@ -332,35 +332,40 @@ public partial class AbstractMetadataService : IMetadataService
         => tagID <= 0 ? null : _customTagRepository.GetByID(tagID);
 
     /// <inheritdoc />
-    public IShokoTag CreateCustomTag(string name, string? description = null)
+    public IShokoTag CreateCustomTag(CustomTagData data)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (_customTagRepository.GetByTagName(name) is not null)
-            throw new DuplicateNameException($"Tag with name '{name}' already exists.");
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentException.ThrowIfNullOrWhiteSpace(data.Name);
+        if (_customTagRepository.GetByTagName(data.Name) is not null)
+            throw new DuplicateNameException($"Tag with name '{data.Name}' already exists.");
 
         var tag = new CustomTag
         {
-            TagName = name,
-            TagDescription = description ?? string.Empty,
+            TagName = data.Name,
+            TagDescription = data.Description ?? string.Empty,
         };
         _customTagRepository.Save(tag);
         return tag;
     }
 
-    public IShokoTag UpdateCustomTag(IShokoTag tag, string? name = null, string? description = null)
+    public IShokoTag UpdateCustomTag(IShokoTag tag, CustomTagUpdateData data)
     {
+        ArgumentNullException.ThrowIfNull(data);
         if (tag is not (CustomTag or AnimeTag) || _customTagRepository.GetByID(tag.ID) is not { } customTag)
             throw new ArgumentException("Invalid tag supplied.", nameof(tag));
 
         var updated = false;
-        if (!string.IsNullOrWhiteSpace(name))
+        if (!string.IsNullOrWhiteSpace(data.Name))
         {
-            customTag.TagName = name;
+            if (_customTagRepository.GetByTagName(data.Name) is not null)
+                throw new DuplicateNameException($"Tag with name '{data.Name}' already exists.");
+
+            customTag.TagName = data.Name;
             updated = true;
         }
-        if (!string.IsNullOrEmpty(description))
+        if (data.Description is not null)
         {
-            customTag.TagDescription = description;
+            customTag.TagDescription = data.Description;
             updated = true;
         }
         if (updated)

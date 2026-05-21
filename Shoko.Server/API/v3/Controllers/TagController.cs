@@ -1,24 +1,28 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Data;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class TagController : BaseController
+public class TagController(ISettingsProvider settingsProvider, IMetadataService metadataService) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Get a list of all known anidb tags, optionally with a
@@ -110,11 +114,19 @@ public class TagController : BaseController
         if (string.IsNullOrEmpty(body.Name?.Trim()))
             return ValidationProblem("Name must be set for new tags.", nameof(body.Name));
 
-        var tag = body.MergeWithExisting(new(), ModelState);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        return tag;
+        try
+        {
+            var tag = metadataService.CreateCustomTag(new()
+            {
+                Name = body.Name,
+                Description = body.Description,
+            });
+            return new Tag((CustomTag)tag);
+        }
+        catch (ArgumentException ex)
+        {
+            return ValidationProblem(ex.Message);
+        }
     }
 
     /// <summary>
@@ -148,11 +160,19 @@ public class TagController : BaseController
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
 
-        var result = body.MergeWithExisting(tag, ModelState, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        return result!;
+        try
+        {
+            var result = metadataService.UpdateCustomTag(tag, new()
+            {
+                Name = body.Name,
+                Description = body.Description,
+            });
+            return new Tag((CustomTag)result, excludeDescription: false, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null);
+        }
+        catch (DuplicateNameException)
+        {
+            return ValidationProblem("Unable to create duplicate tag with the same name.", nameof(body.Name));
+        }
     }
 
     /// <summary>
@@ -170,16 +190,25 @@ public class TagController : BaseController
         var tag = RepoFactory.CustomTag.GetByID(tagID);
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
+
         var body = new Tag.Input.CreateOrUpdateCustomTagBody();
         patchDocument.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var result = body.MergeWithExisting(tag, ModelState, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        return result!;
+        try
+        {
+            var result = metadataService.UpdateCustomTag(tag, new()
+            {
+                Name = body.Name,
+                Description = body.Description,
+            });
+            return new Tag((CustomTag)result, excludeDescription: false, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null);
+        }
+        catch (DuplicateNameException)
+        {
+            return ValidationProblem("Unable to create duplicate tag with the same name.", nameof(body.Name));
+        }
     }
 
     /// <summary>
@@ -200,9 +229,5 @@ public class TagController : BaseController
         RepoFactory.CustomTag.Delete(tag);
 
         return NoContent();
-    }
-
-    public TagController(ISettingsProvider settingsProvider) : base(settingsProvider)
-    {
     }
 }
