@@ -12,6 +12,7 @@ using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
+using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Legacy;
@@ -3240,7 +3241,41 @@ public partial class ShokoServiceImplementation
         var folder = new CL_Response<CL_ImportFolder>();
         try
         {
-            folder.Result = RepoFactory.ShokoManagedFolder.SaveFolder(contract.ToServer()).ToClient();
+            var dropFolderType = DropFolderType.Excluded;
+            if (contract.IsDropSource == 1)
+                dropFolderType |= DropFolderType.Source;
+            if (contract.IsDropDestination == 1)
+                dropFolderType |= DropFolderType.Destination;
+
+            if (contract.ImportFolderID == 0)
+            {
+                var newFolder = (ShokoManagedFolder)_videoService.AddManagedFolder(new()
+                {
+                    Name = contract.ImportFolderName,
+                    Path = contract.ImportFolderLocation,
+                    DropFolderType = dropFolderType,
+                    WatchForNewFiles = contract.IsWatched == 1,
+                });
+                folder.Result = newFolder.ToClient();
+            }
+            else
+            {
+                var existingFolder = RepoFactory.ShokoManagedFolder.GetByID(contract.ImportFolderID);
+                if (existingFolder == null)
+                {
+                    folder.ErrorMessage = "ImportFolder not found";
+                    return folder;
+                }
+
+                var updatedFolder = (ShokoManagedFolder)_videoService.UpdateManagedFolder(existingFolder, new()
+                {
+                    Name = contract.ImportFolderName,
+                    Path = contract.ImportFolderLocation,
+                    DropFolderType = dropFolderType,
+                    WatchForNewFiles = contract.IsWatched == 1,
+                });
+                folder.Result = updatedFolder.ToClient();
+            }
         }
         catch (Exception e)
         {

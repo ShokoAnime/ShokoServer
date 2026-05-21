@@ -347,18 +347,6 @@ public static class ModelClients
             IsDropSource = mf.IsDropSource ? 1 : 0,
             IsWatched = mf.IsWatched ? 1 : 0,
         };
-
-    public static ShokoManagedFolder ToServer(this CL_ImportFolder mf)
-        => new()
-        {
-            ID = mf.ImportFolderID,
-            Path = mf.ImportFolderLocation,
-            Name = mf.ImportFolderName,
-            IsDropDestination = mf.IsDropDestination == 1,
-            IsDropSource = mf.IsDropSource == 1,
-            IsWatched = mf.IsWatched == 1,
-        };
-
     public static CL_AnimeGroup_User DeepCopy(this CL_AnimeGroup_User c)
         => new()
         {

@@ -25,6 +25,7 @@ using AbstractDropFolderType = Shoko.Abstractions.Video.Enums.DropFolderType;
 using Directory = System.IO.Directory;
 using Path = System.IO.Path;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>
@@ -81,7 +82,13 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, ISchedu
                 dropFolderType |= AbstractDropFolderType.Source;
             if (body.DropFolderType.HasFlag(DropFolderType.Destination))
                 dropFolderType |= AbstractDropFolderType.Destination;
-            var newFolder = (ShokoManagedFolder)videoService.AddManagedFolder(body.Name, body.Path, dropFolderType, body.WatchForNewFiles);
+            var newFolder = (ShokoManagedFolder)videoService.AddManagedFolder(new()
+            {
+                Name = body.Name,
+                Path = body.Path,
+                DropFolderType = dropFolderType,
+                WatchForNewFiles = body.WatchForNewFiles,
+            });
             return new ManagedFolder(newFolder);
         }
         catch (Exception e)
@@ -140,8 +147,13 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, ISchedu
         if (!TryValidateModel(patchModel))
             return ValidationProblem(ModelState);
 
-        var serverModel = patchModel.GetServerModel();
-        RepoFactory.ShokoManagedFolder.SaveFolder(serverModel);
+        videoService.UpdateManagedFolder(folder, new()
+        {
+            Name = patchModel.Name,
+            Path = patchModel.Path,
+            DropFolderType = (AbstractDropFolderType)patchModel.DropFolderType,
+            WatchForNewFiles = patchModel.WatchForNewFiles,
+        });
 
         return Ok();
     }
@@ -154,10 +166,13 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, ISchedu
     [HttpPut]
     public ActionResult EditManagedFolder([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ManagedFolder body)
     {
+        ShokoManagedFolder? folder = null;
         if (body.ID is 0)
             ModelState.AddModelError(nameof(body.ID), "ID missing. If this is a new Folder, then use POST.");
-        else if (RepoFactory.ShokoManagedFolder.GetByID(body.ID) == null)
+        else if (RepoFactory.ShokoManagedFolder.GetByID(body.ID) is not { } folder0)
             ModelState.AddModelError(nameof(body.ID), "ID invalid. If this is a new Folder, then use POST.");
+        else
+            folder = folder0;
 
         if (string.IsNullOrEmpty(body.Path))
             ModelState.AddModelError(nameof(body.Path), "Path not provided. Managed Folders must be a location that exists on the server.");
@@ -172,7 +187,13 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, ISchedu
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        RepoFactory.ShokoManagedFolder.SaveFolder(body.GetServerModel());
+        videoService.UpdateManagedFolder(folder!, new()
+        {
+            Name = body.Name,
+            Path = body.Path,
+            DropFolderType = (AbstractDropFolderType)body.DropFolderType,
+            WatchForNewFiles = body.WatchForNewFiles,
+        });
 
         return Ok();
     }
@@ -260,8 +281,8 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, ISchedu
     public ActionResult<ListResult<File>> GetFilesInManagedFolder([FromRoute, Range(1, int.MaxValue)] int folderID,
         [FromQuery, Range(0, 10000)] int pageSize = 200,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] string folderPath = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[] include = default)
+        [FromQuery] string? folderPath = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = default)
     {
         include ??= [];
 

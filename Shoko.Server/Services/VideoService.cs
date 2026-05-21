@@ -876,22 +876,22 @@ public class VideoService : IVideoService
     public IManagedFolder? GetManagedFolderByPath(string path)
          => string.IsNullOrWhiteSpace(path) ? null : _managedFolderRepository.GetByImportLocation(path);
 
-    public IManagedFolder AddManagedFolder(string name, string path, DropFolderType dropFolderType = DropFolderType.Excluded, bool watchForNewFiles = false)
+    public IManagedFolder AddManagedFolder(ManagedFolderData folderData)
         => _managedFolderRepository.SaveFolder(new ShokoManagedFolder()
         {
-            Name = name,
-            Path = path,
-            DropFolderType = dropFolderType,
-            IsWatched = watchForNewFiles,
+            Name = folderData.Name,
+            Path = folderData.Path,
+            DropFolderType = folderData.DropFolderType,
+            IsWatched = folderData.WatchForNewFiles,
         });
 
-    public IManagedFolder UpdateManagedFolder(IManagedFolder folder, string? name = null, string? path = null, DropFolderType? dropFolderType = null, bool? watchForNewFiles = null)
+    public IManagedFolder UpdateManagedFolder(IManagedFolder folder, ManagedFolderUpdateData folderUpdate)
     {
         var managedFolder = (ShokoManagedFolder)folder;
-        if (name is { Length: > 0 }) managedFolder.Name = name;
-        if (path is { Length: > 0 }) managedFolder.Path = path;
-        if (dropFolderType is not null) managedFolder.DropFolderType = dropFolderType.Value;
-        if (watchForNewFiles is not null) managedFolder.IsWatched = watchForNewFiles.Value;
+        if (folderUpdate.Name is { Length: > 0 }) managedFolder.Name = folderUpdate.Name;
+        if (folderUpdate.Path is { Length: > 0 }) managedFolder.Path = folderUpdate.Path;
+        if (folderUpdate.DropFolderType is not null) managedFolder.DropFolderType = folderUpdate.DropFolderType.Value;
+        if (folderUpdate.WatchForNewFiles is not null) managedFolder.IsWatched = folderUpdate.WatchForNewFiles.Value;
         return _managedFolderRepository.SaveFolder(managedFolder);
     }
 
