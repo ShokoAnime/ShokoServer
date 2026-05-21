@@ -120,22 +120,6 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Send local watch states to Trakt for the whole collection
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("SendWatchStatesToTrakt")]
-    public async Task<ActionResult> SendWatchStatesToTrakt()
-        => BadRequest("Trakt integration has been disabled permanently.");
-
-    /// <summary>
-    /// Get remote watch states from Trakt for the whole collection
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("GetWatchStatesFromTrakt")]
-    public async Task<ActionResult> GetWatchStatesFromTrakt()
-        => BadRequest("Trakt integration has been disabled permanently.");
-
-    /// <summary>
     /// Remove Entries in the Shoko Database for Files that are no longer accessible
     /// </summary>
     /// <returns></returns>
