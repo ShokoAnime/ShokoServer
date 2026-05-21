@@ -20,7 +20,6 @@ using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.General;
 using TMDbLib.Objects.Search;

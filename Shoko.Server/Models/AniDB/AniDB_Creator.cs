@@ -11,7 +11,6 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Utilities;
 
 using AbstractCreatorType = Shoko.Abstractions.Metadata.Enums.CreatorType;

@@ -11,8 +11,6 @@ using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.General;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Abstractions.Metadata.Containers;
 
 #nullable enable
 namespace Shoko.Server.Models.TMDB;

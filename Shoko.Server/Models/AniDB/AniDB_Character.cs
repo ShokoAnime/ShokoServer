@@ -12,7 +12,6 @@ using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Utilities;
 
 #nullable enable
