@@ -92,6 +92,11 @@ public enum DataSource : byte
     ///   MediUX.
     /// </summary>
     MediUX = 0x0C,
+
+    /// <summary>
+    ///   SimKL.
+    /// </summary>
+    SimKL = 0x0D,
 }
 
 /// <summary>
