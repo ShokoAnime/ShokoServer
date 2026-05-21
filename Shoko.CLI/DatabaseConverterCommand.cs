@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.Common;
 using System.Globalization;
 using System.IO;
+using System.Collections;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -99,6 +100,9 @@ internal static class DatabaseConverterCommand
             Directory.CreateDirectory(targetDirectory);
         }
 
+        await using var source = await OpenSourceConnectionAsync(sourceType, sourceConnectionString);
+        await EnsureSourceVersionSupportedAsync(source, sourceType);
+
         var targetConnectionString = new SqliteConnectionStringBuilder
         {
             DataSource = fullTargetPath,
@@ -108,7 +112,6 @@ internal static class DatabaseConverterCommand
 
         await InitializeSqliteDatabaseAsync(targetConnectionString);
 
-        await using var source = await OpenSourceConnectionAsync(sourceType, sourceConnectionString);
         await using var target = new SqliteConnection(targetConnectionString);
         await target.OpenAsync();
 
@@ -173,6 +176,35 @@ internal static class DatabaseConverterCommand
         Console.WriteLine($"Conversion completed successfully: {fullTargetPath}");
     }
 
+    private static async Task EnsureSourceVersionSupportedAsync(DbConnection source, SourceDatabaseType sourceType)
+    {
+        var sourceVersion = await GetSourceDatabaseVersionAsync(source, sourceType);
+        if (sourceVersion is null)
+        {
+            throw new InvalidOperationException("The source database does not contain a current Database version entry in Versions. Upgrade it with the matching Shoko Server build before conversion.");
+        }
+
+        var expectedVersion = await GetExpectedSourceDatabaseVersionAsync(sourceType);
+        if (sourceVersion.Value.Version != expectedVersion.Version || sourceVersion.Value.Revision != expectedVersion.Revision)
+        {
+            throw new InvalidOperationException(
+                $"Unsupported source database version for {GetSourceTypeDisplayName(sourceType)}. " +
+                $"Found {sourceVersion.Value.Version}.{sourceVersion.Value.Revision} " +
+                $"(program: {sourceVersion.Value.Program ?? "unknown"}), expected {expectedVersion.Version}.{expectedVersion.Revision} " +
+                $"for this Shoko build. Upgrade the source database with the matching Shoko Server build before conversion.");
+        }
+    }
+
+    private static string GetSourceTypeDisplayName(SourceDatabaseType sourceType)
+    {
+        return sourceType switch
+        {
+            SourceDatabaseType.SqlServer => "SQL Server",
+            SourceDatabaseType.MySql => "MySQL/MariaDB",
+            _ => sourceType.ToString(),
+        };
+    }
+
     private static async Task InitializeSqliteDatabaseAsync(string connectionString)
     {
         await using var bootstrapHome = new TemporaryShokoHomeScope();
@@ -226,6 +258,118 @@ internal static class DatabaseConverterCommand
 
         await connection.OpenAsync();
         return connection;
+    }
+
+    private static async Task<DatabaseVersionInfo?> GetSourceDatabaseVersionAsync(DbConnection connection, SourceDatabaseType sourceType)
+    {
+        return sourceType switch
+        {
+            SourceDatabaseType.SqlServer => await GetSqlServerDatabaseVersionAsync((SqlConnection)connection),
+            SourceDatabaseType.MySql => await GetMySqlDatabaseVersionAsync((MySqlConnection)connection),
+            _ => throw new InvalidOperationException($"Unsupported source database type: {sourceType}"),
+        };
+    }
+
+    private static async Task<DatabaseVersionInfo?> GetSqlServerDatabaseVersionAsync(SqlConnection connection)
+    {
+        const string sql = """
+            SELECT TOP 1 VersionValue, VersionRevision, VersionProgram
+            FROM Versions
+            WHERE VersionType = 'Database'
+            ORDER BY TRY_CONVERT(int, VersionValue) DESC, TRY_CONVERT(int, VersionRevision) DESC
+            """;
+
+        await using var command = new SqlCommand(sql, connection);
+        await using var reader = await command.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
+
+        return new DatabaseVersionInfo(
+            ParseVersionPart(reader.GetString(0), "VersionValue"),
+            ParseVersionPart(reader.GetString(1), "VersionRevision"),
+            reader.IsDBNull(2) ? null : reader.GetString(2));
+    }
+
+    private static async Task<DatabaseVersionInfo?> GetMySqlDatabaseVersionAsync(MySqlConnection connection)
+    {
+        const string sql = """
+            SELECT VersionValue, VersionRevision, VersionProgram
+            FROM Versions
+            WHERE VersionType = 'Database'
+            ORDER BY CAST(VersionValue AS SIGNED) DESC, CAST(VersionRevision AS SIGNED) DESC
+            LIMIT 1
+            """;
+
+        await using var command = new MySqlCommand(sql, connection);
+        await using var reader = await command.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
+
+        return new DatabaseVersionInfo(
+            ParseVersionPart(reader.GetString(0), "VersionValue"),
+            ParseVersionPart(reader.GetString(1), "VersionRevision"),
+            reader.IsDBNull(2) ? null : reader.GetString(2));
+    }
+
+    private static async Task<DatabaseVersionInfo> GetExpectedSourceDatabaseVersionAsync(SourceDatabaseType sourceType)
+    {
+        await using var bootstrapHome = new TemporaryShokoHomeScope();
+        var systemService = new SystemService();
+        object database = sourceType switch
+        {
+            SourceDatabaseType.SqlServer => new SQLServer(systemService),
+            SourceDatabaseType.MySql => new MySQL(systemService),
+            _ => throw new InvalidOperationException($"Unsupported source database type: {sourceType}"),
+        };
+
+        var latest = GetDatabaseCommands(database)
+            .Where(command => command.Version > 0)
+            .Select(command => new DatabaseVersionInfo(command.Version, command.Revision, null))
+            .OrderByDescending(command => command.Version)
+            .ThenByDescending(command => command.Revision)
+            .First();
+
+        return latest;
+    }
+
+    private static IEnumerable<DatabaseCommand> GetDatabaseCommands(object database)
+    {
+        foreach (var field in database.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic))
+        {
+            var value = field.GetValue(database);
+            if (value is DatabaseCommand singleCommand)
+            {
+                yield return singleCommand;
+                continue;
+            }
+
+            if (value is not IEnumerable enumerable)
+            {
+                continue;
+            }
+
+            foreach (var item in enumerable)
+            {
+                if (item is DatabaseCommand command)
+                {
+                    yield return command;
+                }
+            }
+        }
+    }
+
+    private static int ParseVersionPart(string value, string columnName)
+    {
+        if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            throw new InvalidOperationException($"Invalid {columnName} value in Versions: {value}");
+        }
+
+        return parsed;
     }
 
     private static async Task CopyTableAsync(DbConnection source, SourceDatabaseType sourceType, SqliteConnection target, string tableName)
@@ -1091,6 +1235,8 @@ internal static class DatabaseConverterCommand
         public bool Overwrite { get; set; }
         public bool ShowHelp { get; set; }
     }
+
+    private readonly record struct DatabaseVersionInfo(int Version, int Revision, string? Program);
 
     private sealed class TemporaryShokoHomeScope : IAsyncDisposable
     {
