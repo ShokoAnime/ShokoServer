@@ -937,6 +937,8 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(157,  2, @"CREATE TABLE ShokoImage_Entity (ID INT IDENTITY(1,1) NOT NULL, ImageID UNIQUEIDENTIFIER NOT NULL, PrimaryImageID UNIQUEIDENTIFIER NOT NULL, ImageType TINYINT NOT NULL, ImageSource TINYINT NOT NULL, EntitySource TINYINT NOT NULL, EntityType TINYINT NOT NULL, EntityID NVARCHAR(128) NOT NULL, EntitySeasonNumber INT, EntityEpisodeNumber INT, EntityReleasedAt DATE, IsEnabled BIT NOT NULL DEFAULT 1, IsDesired BIT NOT NULL DEFAULT 1, IsPreferred BIT NOT NULL DEFAULT 0, Ordering INT NOT NULL DEFAULT 0, Rating decimal(6,2) NULL, RatingVotes INT NULL, Source TINYINT NOT NULL, CreatedAt DATETIME2 NOT NULL, LastUpdatedAt DATETIME2 NOT NULL);"),
         new(157,  3, DatabaseFixes.MigrateToUnifiedImages),
         new(157,  4, DatabaseFixes.ScheduleTmdbImageUpdates),
+        new(158,  1, "DROP TABLE IF EXISTS AniDB_Vote;"),
+        new(158,  2, "DROP TABLE IF EXISTS CrossRef_AniDB_TvDBV2;"),
     ];
 
     #endregion
