@@ -15,8 +15,13 @@ public static class Program
 {
     private static ILogger _logger = null!;
 
-    public static async Task<int> Main()
+    public static async Task<int> Main(string[] args)
     {
+        if (args.Length > 0 && string.Equals(args[0], "convert-db", StringComparison.OrdinalIgnoreCase))
+        {
+            return await DatabaseConverterCommand.RunAsync(args[1..]);
+        }
+
         try
         {
             UnhandledExceptionManager.AddHandler();
