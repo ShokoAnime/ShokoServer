@@ -19,7 +19,6 @@ using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
@@ -565,7 +564,7 @@ public class EpisodeController : BaseController
 
         var needRefresh = RepoFactory.TMDB_Movie.GetByTmdbMovieID(body.ID) is null || body.Refresh;
         if (needRefresh)
-            await _tmdbMetadataService.ScheduleUpdateOfMovie(body.ID, forceRefresh: body.Refresh, downloadImages: true);
+            await _tmdbMetadataService.ScheduleUpdateOfMovie(new() { MovieId = body.ID, ForceRefresh = body.Refresh, DownloadImages = true });
 
         return NoContent();
     }

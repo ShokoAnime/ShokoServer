@@ -568,11 +568,11 @@ public partial class TmdbController : BaseController
 
         if (body.Immediate)
         {
-            await _tmdbMetadataService.UpdateMovie(movieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? SettingsProvider.GetSettings().TMDB.AutoDownloadCrewAndCast, body.DownloadCollections ?? SettingsProvider.GetSettings().TMDB.AutoDownloadCollections);
+            await _tmdbMetadataService.UpdateMovie(new() { MovieId = movieID, ForceRefresh = body.Force, DownloadImages = body.DownloadImages, DownloadCrewAndCast = body.DownloadCrewAndCast, DownloadCollections = body.DownloadCollections });
             return Ok();
         }
 
-        await _tmdbMetadataService.ScheduleUpdateOfMovie(movieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadCollections);
+        await _tmdbMetadataService.ScheduleUpdateOfMovie(new() { MovieId = movieID, ForceRefresh = body.Force, DownloadImages = body.DownloadImages, DownloadCrewAndCast = body.DownloadCrewAndCast, DownloadCollections = body.DownloadCollections });
         return NoContent();
     }
 
@@ -1699,19 +1699,28 @@ public partial class TmdbController : BaseController
             if (body.QuickRefresh && _tmdbMetadataService.IsShowUpdating(showID) && RepoFactory.TMDB_Episode.GetByTmdbShowID(showID).Count > 0)
                 return Ok();
 
-            var settings = SettingsProvider.GetSettings();
-            await _tmdbMetadataService.UpdateShow(
-                showId: showID,
-                forceRefresh: !body.QuickRefresh && body.Force,
-                downloadImages: body.DownloadImages,
-                downloadCrewAndCast: body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast,
-                downloadAlternateOrdering: body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering,
-                downloadNetworks: body.DownloadNetworks ?? settings.TMDB.AutoDownloadNetworks,
-                quickRefresh: body.QuickRefresh);
+            await _tmdbMetadataService.UpdateShow(new()
+            {
+                ShowId = showID,
+                ForceRefresh = !body.QuickRefresh && body.Force,
+                DownloadImages = body.DownloadImages,
+                DownloadCrewAndCast = body.DownloadCrewAndCast,
+                DownloadAlternateOrdering = body.DownloadAlternateOrdering,
+                DownloadNetworks = body.DownloadNetworks,
+                QuickRefresh = body.QuickRefresh,
+            });
             return Ok();
         }
 
-        await _tmdbMetadataService.ScheduleUpdateOfShow(showID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadAlternateOrdering, body.DownloadNetworks);
+        await _tmdbMetadataService.ScheduleUpdateOfShow(new()
+        {
+            ShowId = showID,
+            ForceRefresh = body.Force,
+            DownloadImages = body.DownloadImages,
+            DownloadCrewAndCast = body.DownloadCrewAndCast,
+            DownloadAlternateOrdering = body.DownloadAlternateOrdering,
+            DownloadNetworks = body.DownloadNetworks,
+        });
         return NoContent();
     }
 
@@ -3366,7 +3375,7 @@ public partial class TmdbController : BaseController
             RepoFactory.CrossRef_AniDB_TMDB_Movie.Delete(movieXrefsToRemove);
 
             foreach (var movieId in moviesToPull)
-                await _tmdbMetadataService.ScheduleUpdateOfMovie(movieId);
+                await _tmdbMetadataService.ScheduleUpdateOfMovie(new() { MovieId = movieId });
         }
 
         var episodeXrefsToRemove = episodeXrefsToPotentiallyRemove
@@ -3390,7 +3399,7 @@ public partial class TmdbController : BaseController
             RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(episodeXrefsToRemove);
 
             foreach (var showId in showsToPull)
-                await _tmdbMetadataService.ScheduleUpdateOfShow(showId);
+                await _tmdbMetadataService.ScheduleUpdateOfShow(new() { ShowId = showId });
         }
 
         return NoContent();

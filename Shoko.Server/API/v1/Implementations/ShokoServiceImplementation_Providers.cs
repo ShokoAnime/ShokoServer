@@ -10,7 +10,6 @@ using Shoko.Server.API.v1.Models;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Utilities;
 
 #pragma warning disable ASP0023
@@ -442,7 +441,7 @@ public partial class ShokoServiceImplementation
                     if (!episodeId.HasValue || episodeId <= 0)
                         return $"Could not find first episode for AniDB Anime {animeID} to link to for TMDB Movie {id}";
                     _tmdbLinkingService.AddMovieLinkForEpisode(episodeId.Value, id).ConfigureAwait(false).GetAwaiter().GetResult();
-                    _tmdbMetadataService.ScheduleUpdateOfMovie(id, downloadImages: true).ConfigureAwait(false).GetAwaiter().GetResult();
+                    _tmdbMetadataService.ScheduleUpdateOfMovie(new() { MovieId = id, DownloadImages = true }).ConfigureAwait(false).GetAwaiter().GetResult();
                     break;
             }
 
@@ -557,7 +556,7 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            _tmdbMetadataService.ScheduleUpdateOfMovie(movieID, downloadImages: true, forceRefresh: true).ConfigureAwait(false).GetAwaiter().GetResult();
+            _tmdbMetadataService.ScheduleUpdateOfMovie(new() { MovieId = movieID, DownloadImages = true, ForceRefresh = true }).ConfigureAwait(false).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {

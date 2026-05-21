@@ -6,7 +6,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Settings;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -19,8 +18,6 @@ namespace Shoko.Server.Scheduling.Jobs.TMDB;
 public class UpdateTmdbShowJob : BaseJob
 {
     private readonly TmdbMetadataService _tmdbService;
-
-    private readonly ISettingsProvider _settingsProvider;
 
     public virtual int TmdbShowID { get; set; }
 
@@ -63,22 +60,20 @@ public class UpdateTmdbShowJob : BaseJob
     public override async Task Process()
     {
         _logger.LogInformation("Processing UpdateTmdbShowJob: {TmdbShowId}", TmdbShowID);
-        var settings = _settingsProvider.GetSettings();
-        await _tmdbService.UpdateShow(
-            showId: TmdbShowID,
-            forceRefresh: ForceRefresh,
-            downloadImages: DownloadImages,
-            downloadCrewAndCast: DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast,
-            downloadAlternateOrdering: DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering,
-            downloadNetworks: DownloadNetworks ?? settings.TMDB.AutoDownloadNetworks,
-            quickRefresh: false
-        ).ConfigureAwait(false);
+        await _tmdbService.UpdateShow(new()
+        {
+            ShowId = TmdbShowID,
+            ForceRefresh = ForceRefresh,
+            DownloadImages = DownloadImages,
+            DownloadCrewAndCast = DownloadCrewAndCast,
+            DownloadAlternateOrdering = DownloadAlternateOrdering,
+            DownloadNetworks = DownloadNetworks,
+        }).ConfigureAwait(false);
     }
 
-    public UpdateTmdbShowJob(TmdbMetadataService tmdbService, ISettingsProvider settingsProvider)
+    public UpdateTmdbShowJob(TmdbMetadataService tmdbService)
     {
         _tmdbService = tmdbService;
-        _settingsProvider = settingsProvider;
     }
 
     protected UpdateTmdbShowJob() { }
