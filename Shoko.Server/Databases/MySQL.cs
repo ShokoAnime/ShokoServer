@@ -1038,6 +1038,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(162,  4, DatabaseFixes.ScheduleTmdbImageUpdates),
         new(163,  1, "DROP TABLE IF EXISTS AniDB_Vote;"),
         new(163,  2, "DROP TABLE IF EXISTS CrossRef_AniDB_TvDBV2;"),
+        new(164,  1, "ALTER TABLE JMMUser DROP COLUMN IsTraktUser;"),
     ];
 
     #endregion

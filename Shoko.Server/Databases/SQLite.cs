@@ -859,6 +859,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(144,  7, "UPDATE ShokoImage SET Source = 254 WHERE Source = 'User';"),
         new(145,  1, "DROP TABLE IF EXISTS AniDB_Vote;"),
         new(145,  2, "DROP TABLE IF EXISTS CrossRef_AniDB_TvDBV2;"),
+        new(146,  1, "ALTER TABLE JMMUser DROP COLUMN IsTraktUser;"),
     ];
 
     #endregion

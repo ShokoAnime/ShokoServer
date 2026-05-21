@@ -939,6 +939,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(157,  4, DatabaseFixes.ScheduleTmdbImageUpdates),
         new(158,  1, "DROP TABLE IF EXISTS AniDB_Vote;"),
         new(158,  2, "DROP TABLE IF EXISTS CrossRef_AniDB_TvDBV2;"),
+        new(159,  1, "ALTER TABLE JMMUser DROP COLUMN IsTraktUser;"),
     ];
 
     #endregion
