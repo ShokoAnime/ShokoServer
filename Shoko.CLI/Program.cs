@@ -17,11 +17,6 @@ public static class Program
 
     public static async Task<int> Main(string[] args)
     {
-        if (args.Length > 0 && string.Equals(args[0], "convert-db", StringComparison.OrdinalIgnoreCase))
-        {
-            return await DatabaseConverterCommand.RunAsync(args[1..]);
-        }
-
         try
         {
             UnhandledExceptionManager.AddHandler();
@@ -31,7 +26,7 @@ public static class Program
             Console.WriteLine(ex.ToString());
         }
 
-        var systemService = new SystemService();
+        var systemService = new SystemService(args);
         systemService.StartupFailed += OnStartupFailed;
         systemService.AboutToStart += (_, args) => AddEventHandlers(args.ServiceProvider);
         var host = await systemService.StartAsync();

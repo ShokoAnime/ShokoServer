@@ -10,96 +10,264 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Force.DeepCloner;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using MySqlConnector;
-using Shoko.Abstractions.Plugin.Models;
-using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Plugin;
 using Shoko.Server.Databases;
-using Shoko.Server.Plugin;
 using Shoko.Server.Repositories;
-using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
-namespace Shoko.CLI;
+using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
-internal static class DatabaseConverterCommand
+#nullable enable
+namespace Shoko.Server.Services;
+
+internal sealed class DatabaseConversionOptions
+{
+    public DatabaseConversionService.SourceDatabaseType SourceType { get; set; } = DatabaseConversionService.SourceDatabaseType.SqlServer;
+    public bool SourceTypeProvided { get; set; }
+    public string SourceConnectionString { get; set; } = string.Empty;
+    public bool SourceConnectionStringProvided { get; set; }
+    public string TargetFile { get; set; } = string.Empty;
+    public bool TargetFileProvided { get; set; }
+    public bool Overwrite { get; set; }
+    public bool ShowHelp { get; set; }
+
+    public static bool TryParse(string[] args, [NotNullWhen(true)] out DatabaseConversionOptions? options)
+    {
+        options = null;
+        var conversionModeDetected = DetectConversionMode(args);
+        if (!conversionModeDetected)
+        {
+            return false;
+        }
+
+        var parsed = new DatabaseConversionOptions();
+        for (var index = 0; index < args.Length; index++)
+        {
+            var argument = args[index];
+            switch (argument)
+            {
+                case "convert-db":
+                case "--convert-db":
+                    break;
+                case "--source-type":
+                    parsed.SourceType = DatabaseConversionService.ParseSourceType(GetRequiredValue(args, ref index, argument));
+                    parsed.SourceTypeProvided = true;
+                    break;
+                case "--source-connection-string":
+                    parsed.SourceConnectionString = GetRequiredValue(args, ref index, argument);
+                    parsed.SourceConnectionStringProvided = true;
+                    break;
+                case "--target-file":
+                    parsed.TargetFile = GetRequiredValue(args, ref index, argument);
+                    parsed.TargetFileProvided = true;
+                    break;
+                case "--overwrite":
+                    parsed.Overwrite = true;
+                    break;
+                case "--help":
+                case "-h":
+                case "/?":
+                    parsed.ShowHelp = true;
+                    break;
+            }
+        }
+
+        options = parsed;
+        return true;
+    }
+
+    private static bool DetectConversionMode(string[] args)
+    {
+        if (args.Any(argument => string.Equals(argument, "--convert-db", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        for (var index = 0; index < args.Length; index++)
+        {
+            var argument = args[index];
+            if (argument.StartsWith("-", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            return string.Equals(argument, "convert-db", StringComparison.OrdinalIgnoreCase) &&
+                   (index is 0 || !args[index - 1].StartsWith("-", StringComparison.Ordinal));
+        }
+
+        return false;
+    }
+
+    private static string GetRequiredValue(string[] args, ref int index, string argumentName)
+    {
+        if (index + 1 >= args.Length)
+        {
+            throw new ArgumentException($"Missing value for {argumentName}");
+        }
+
+        index++;
+        return args[index];
+    }
+}
+
+internal static class DatabaseConversionService
 {
     private const string TableNameParameter = "@tableName";
 
-    private enum SourceDatabaseType
+    internal enum SourceDatabaseType
     {
         SqlServer,
         MySql,
     }
+
+    internal readonly record struct ResolvedSource(SourceDatabaseType SourceType, string SourceConnectionString);
+    internal readonly record struct ResolvedTarget(string TargetFile);
+    internal readonly record struct ConversionRuntimeContext(
+        DatabaseConversionOptions Options,
+        ResolvedSource Source,
+        string PreparedTargetFile,
+        string TargetConnectionString,
+        string TemporaryHomePath,
+        ISettingsProvider RuntimeSettingsProvider);
 
     private static readonly HashSet<string> ExcludedTables = new(StringComparer.OrdinalIgnoreCase)
     {
         "Versions",
     };
 
-    public static async Task<int> RunAsync(string[] args)
+    internal static ConversionRuntimeContext PrepareRuntime(DatabaseConversionOptions options, Shoko.Server.Settings.ServerSettings realSettings)
     {
-        var options = ParseArgs(args);
         if (options.ShowHelp)
         {
-            PrintUsage();
-            return 0;
+            throw new InvalidOperationException("Help output does not require conversion runtime preparation.");
         }
 
-        if (string.IsNullOrWhiteSpace(options.SourceConnectionString) || string.IsNullOrWhiteSpace(options.TargetFile))
-        {
-            PrintUsage();
-            return 1;
-        }
-
-        try
-        {
-            await ConvertAsync(options.SourceType, options.SourceConnectionString, options.TargetFile, options.Overwrite);
-            return 0;
-        }
-        catch (Exception ex)
-        {
-            await Console.Error.WriteLineAsync($"Database conversion failed: {ex.Message}");
-            await Console.Error.WriteLineAsync(ex.ToString());
-            return 1;
-        }
+        var resolvedSource = ResolveSource(options, realSettings);
+        var resolvedTarget = ResolveTarget(options, realSettings);
+        var preparedTargetFile = PrepareTargetPath(resolvedTarget.TargetFile, options.Overwrite);
+        var targetConnectionString = BuildSqliteConnectionString(preparedTargetFile);
+        var temporaryHomePath = Path.Combine(Path.GetTempPath(), $"shoko-convert-home-{Guid.NewGuid():N}");
+        var runtimeSettings = realSettings.DeepClone();
+        runtimeSettings.Database.Type = Shoko.Server.Server.Constants.DatabaseType.SQLite;
+        runtimeSettings.Database.OverrideConnectionString = targetConnectionString;
+        runtimeSettings.Quartz.DatabaseType = Shoko.Server.Server.Constants.DatabaseType.SQLite;
+        runtimeSettings.Quartz.ConnectionString = BuildTemporaryQuartzConnectionString(temporaryHomePath);
+        return new(options, resolvedSource, preparedTargetFile, targetConnectionString, temporaryHomePath, new InMemorySettingsProvider(runtimeSettings));
     }
 
-    private static async Task ConvertAsync(SourceDatabaseType sourceType, string sourceConnectionString, string targetFile, bool overwrite)
+    internal static IDisposable BeginIsolatedRuntime(ConversionRuntimeContext context)
+        => new ConversionIsolationScope(context);
+
+    internal static async Task RunAsync(SystemService systemService, IServiceProvider services, ConversionRuntimeContext context, CancellationToken cancellationToken)
     {
-        var fullTargetPath = Path.GetFullPath(targetFile);
-        if (File.Exists(fullTargetPath))
+        await ConvertAsync(systemService, services, context.Source.SourceType, context.Source.SourceConnectionString, context.PreparedTargetFile, cancellationToken);
+    }
+
+    internal static ResolvedSource ResolveSource(DatabaseConversionOptions options, Shoko.Server.Settings.IServerSettings settings)
+    {
+        var configuredSourceType = TryResolveConfiguredSourceType(settings.Database.Type);
+        var resolvedSourceType = options.SourceTypeProvided
+            ? options.SourceType
+            : configuredSourceType ?? throw new InvalidOperationException(
+                "The current configured source database is SQLite. Conversion only supports SQL Server/MySQL/MariaDB -> SQLite. " +
+                "Provide both --source-type and --source-connection-string to convert from an external supported source.");
+
+        var resolvedConnectionString = options.SourceConnectionStringProvided
+            ? options.SourceConnectionString
+            : ResolveConfiguredSourceConnectionString(settings.Database, configuredSourceType, resolvedSourceType);
+
+        return new(resolvedSourceType, resolvedConnectionString);
+    }
+
+    internal static ResolvedTarget ResolveTarget(DatabaseConversionOptions options, Shoko.Server.Settings.IServerSettings settings)
+    {
+        if (options.TargetFileProvided)
         {
-            if (!overwrite)
+            if (string.IsNullOrWhiteSpace(options.TargetFile))
             {
-                throw new InvalidOperationException($"Target file already exists: {fullTargetPath}. Use --overwrite to replace it.");
+                throw new InvalidOperationException(GetUsage());
             }
 
-            File.Delete(fullTargetPath);
+            return new(Path.GetFullPath(options.TargetFile));
         }
 
-        var targetDirectory = Path.GetDirectoryName(fullTargetPath);
-        if (!string.IsNullOrWhiteSpace(targetDirectory))
+        return new(GetDefaultSqliteTargetPath(settings.Database));
+    }
+
+    private static string ResolveConfiguredSourceConnectionString(
+        Shoko.Server.Settings.DatabaseSettings settings,
+        SourceDatabaseType? configuredSourceType,
+        SourceDatabaseType requestedSourceType)
+    {
+        if (!configuredSourceType.HasValue)
         {
-            Directory.CreateDirectory(targetDirectory);
+            throw new InvalidOperationException(
+                "The current configured source database is SQLite. Conversion only supports SQL Server/MySQL/MariaDB -> SQLite. " +
+                "Provide --source-connection-string to override the source details.");
         }
+
+        if (configuredSourceType.Value != requestedSourceType)
+        {
+            throw new InvalidOperationException(
+                $"The current configured source database is {GetSourceTypeDisplayName(configuredSourceType.Value)}, but the requested source type is {GetSourceTypeDisplayName(requestedSourceType)}. " +
+                "Provide --source-connection-string when overriding the source type.");
+        }
+
+        return BuildConfiguredSourceConnectionString(settings, configuredSourceType.Value);
+    }
+
+    private static SourceDatabaseType? TryResolveConfiguredSourceType(Shoko.Server.Server.Constants.DatabaseType configuredType)
+    {
+        return configuredType switch
+        {
+            Shoko.Server.Server.Constants.DatabaseType.SQLServer => SourceDatabaseType.SqlServer,
+            Shoko.Server.Server.Constants.DatabaseType.MySQL => SourceDatabaseType.MySql,
+            Shoko.Server.Server.Constants.DatabaseType.SQLite => null,
+            _ => null,
+        };
+    }
+
+    private static string BuildConfiguredSourceConnectionString(Shoko.Server.Settings.DatabaseSettings settings, SourceDatabaseType sourceType)
+    {
+        if (!string.IsNullOrWhiteSpace(settings.OverrideConnectionString))
+        {
+            return settings.OverrideConnectionString;
+        }
+
+        return sourceType switch
+        {
+            SourceDatabaseType.SqlServer =>
+                $"data source={settings.Hostname},{settings.Port};Initial Catalog={settings.Schema};user id={settings.Username};password={settings.Password};persist security info=True;MultipleActiveResultSets=True;TrustServerCertificate=True",
+            SourceDatabaseType.MySql =>
+                $"Server={settings.Hostname};Port={settings.Port};Database={settings.Schema};User ID={settings.Username};Password={settings.Password};Default Command Timeout=3600;Allow User Variables=true",
+            _ => throw new InvalidOperationException($"Unsupported source database type: {sourceType}"),
+        };
+    }
+
+    private static string GetDefaultSqliteTargetPath(Shoko.Server.Settings.DatabaseSettings settings)
+    {
+        var databaseDirectory = string.IsNullOrWhiteSpace(settings.MySqliteDirectory)
+            ? ApplicationPaths.StaticDataPath
+            : Path.Combine(ApplicationPaths.StaticDataPath, settings.MySqliteDirectory);
+        var databaseFile = string.IsNullOrWhiteSpace(settings.SQLite_DatabaseFile) ? "Shoko.db3" : settings.SQLite_DatabaseFile;
+        return Path.GetFullPath(Path.Combine(databaseDirectory, databaseFile));
+    }
+
+    private static async Task ConvertAsync(SystemService systemService, IServiceProvider services, SourceDatabaseType sourceType, string sourceConnectionString, string targetFile, CancellationToken cancellationToken)
+    {
+        Console.WriteLine($"Resolved target SQLite path: {targetFile}");
 
         await using var source = await OpenSourceConnectionAsync(sourceType, sourceConnectionString);
-        await EnsureSourceVersionSupportedAsync(source, sourceType);
+        await EnsureSourceVersionSupportedAsync(systemService, source, sourceType);
 
-        var targetConnectionString = new SqliteConnectionStringBuilder
-        {
-            DataSource = fullTargetPath,
-            Mode = SqliteOpenMode.ReadWriteCreate,
-            Pooling = false,
-        }.ToString();
+        await InitializeSqliteDatabaseAsync(systemService, services, cancellationToken);
 
-        await InitializeSqliteDatabaseAsync(targetConnectionString);
-
-        await using var target = new SqliteConnection(targetConnectionString);
+        await using var target = new SqliteConnection(BuildSqliteConnectionString(targetFile));
         await target.OpenAsync();
 
         await ConfigureSqliteAsync(target);
@@ -159,10 +327,32 @@ internal static class DatabaseConverterCommand
         }
 
         await VerifyCopyAsync(source, sourceType, target, tablesToCopy);
-        Console.WriteLine($"Conversion completed successfully: {fullTargetPath}");
+        Console.WriteLine($"Conversion completed successfully: {targetFile}");
     }
 
-    private static async Task EnsureSourceVersionSupportedAsync(DbConnection source, SourceDatabaseType sourceType)
+    internal static string PrepareTargetPath(string targetFile, bool overwrite)
+    {
+        var fullTargetPath = Path.GetFullPath(targetFile);
+        if (File.Exists(fullTargetPath))
+        {
+            if (!overwrite)
+            {
+                throw new InvalidOperationException($"Target file already exists: {fullTargetPath}. Use --overwrite to replace it.");
+            }
+
+            File.Delete(fullTargetPath);
+        }
+
+        var targetDirectory = Path.GetDirectoryName(fullTargetPath);
+        if (!string.IsNullOrWhiteSpace(targetDirectory))
+        {
+            Directory.CreateDirectory(targetDirectory);
+        }
+
+        return fullTargetPath;
+    }
+
+    private static async Task EnsureSourceVersionSupportedAsync(SystemService systemService, DbConnection source, SourceDatabaseType sourceType)
     {
         var sourceVersion = await GetSourceDatabaseVersionAsync(source, sourceType);
         if (sourceVersion is null)
@@ -170,7 +360,7 @@ internal static class DatabaseConverterCommand
             throw new InvalidOperationException("The source database does not contain a current Database version entry in Versions. Upgrade it with the matching Shoko Server build before conversion.");
         }
 
-        var expectedVersion = await GetExpectedSourceDatabaseVersionAsync(sourceType);
+        var expectedVersion = GetExpectedSourceDatabaseVersion(systemService, sourceType);
         if (sourceVersion.Value.Version != expectedVersion.Version || sourceVersion.Value.Revision != expectedVersion.Revision)
         {
             throw new InvalidOperationException(
@@ -191,30 +381,101 @@ internal static class DatabaseConverterCommand
         };
     }
 
-    private static async Task InitializeSqliteDatabaseAsync(string connectionString)
+    private static async Task InitializeSqliteDatabaseAsync(SystemService systemService, IServiceProvider services, CancellationToken cancellationToken)
     {
-        await using var bootstrapHome = new TemporaryShokoHomeScope();
+        var databaseFactory = services.GetRequiredService<DatabaseFactory>();
+        var repositoryFactory = services.GetRequiredService<RepoFactory>();
+        // Conversion mode enters its isolated temp-home/settings scope before host build, so
+        // Quartz and any other early services already point at the conversion runtime. Database
+        // bootstrap can therefore reuse the existing isolated runtime without touching the real
+        // Shoko home or source database settings.
+        databaseFactory.CloseSessionFactory();
+        databaseFactory.Instance = null;
 
-        var systemService = new SystemService();
-        var settings = Utils.SettingsProvider.GetSettings();
-        settings.Database.Type = Shoko.Server.Server.Constants.DatabaseType.SQLite;
-        settings.Database.OverrideConnectionString = connectionString;
-        var pluginManager = GetRequiredPrivateField<PluginManager>(systemService, "_pluginManager");
-        InitializeCorePluginOnly(pluginManager, systemService);
-
-        using var host = CreateBootstrapHost(systemService, settings);
-        Utils.ServiceContainer = host.Services;
-        pluginManager.InitPlugins();
-
-        var databaseFactory = host.Services.GetRequiredService<DatabaseFactory>();
-        var repositoryFactory = host.Services.GetRequiredService<RepoFactory>();
-        if (!RunInitializeDatabase(systemService, databaseFactory, repositoryFactory))
+        if (!systemService.InitializeDatabaseForConversion(databaseFactory, repositoryFactory, cancellationToken))
         {
             throw new InvalidOperationException(systemService.StartupMessage ?? "Shoko database bootstrap failed.");
         }
 
         databaseFactory.CloseSessionFactory();
+        databaseFactory.Instance = null;
     }
+
+    private sealed class InMemorySettingsProvider(Shoko.Server.Settings.ServerSettings settings) : ISettingsProvider
+    {
+        private Shoko.Server.Settings.ServerSettings _settings = settings;
+
+        public Shoko.Server.Settings.IServerSettings GetSettings(bool copy = false)
+            => copy ? _settings.DeepClone() : _settings;
+
+        public void SaveSettings(Shoko.Server.Settings.IServerSettings settings)
+        {
+            if (settings is Shoko.Server.Settings.ServerSettings serverSettings)
+            {
+                _settings = serverSettings;
+            }
+        }
+
+        public void SaveSettings()
+        {
+        }
+
+        public void DebugSettingsToLog()
+        {
+        }
+    }
+
+    private sealed class ConversionIsolationScope : IDisposable
+    {
+        private readonly IDisposable _settingsOverride;
+        private readonly IDisposable _dataPathOverride;
+        private readonly string _temporaryHomePath;
+        private bool _disposed;
+
+        public ConversionIsolationScope(ConversionRuntimeContext context)
+        {
+            _temporaryHomePath = context.TemporaryHomePath;
+            Directory.CreateDirectory(_temporaryHomePath);
+            _settingsOverride = Utils.PushSettingsProviderOverride(context.RuntimeSettingsProvider);
+            _dataPathOverride = ApplicationPaths.PushDataPathOverride(_temporaryHomePath);
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _dataPathOverride.Dispose();
+            _settingsOverride.Dispose();
+
+            try
+            {
+                if (Directory.Exists(_temporaryHomePath))
+                {
+                    Directory.Delete(_temporaryHomePath, true);
+                }
+            }
+            catch
+            {
+                // Best-effort cleanup only.
+            }
+
+            _disposed = true;
+        }
+    }
+
+    private static string BuildTemporaryQuartzConnectionString(string temporaryHomePath)
+        => $"Data Source={Path.Combine(temporaryHomePath, "SQLite", "Quartz.db3")};Mode=ReadWriteCreate;Pooling=True";
+
+    private static string BuildSqliteConnectionString(string targetFile)
+        => new SqliteConnectionStringBuilder
+        {
+            DataSource = targetFile,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Pooling = false,
+        }.ToString();
 
     private static async Task ConfigureSqliteAsync(SqliteConnection connection)
     {
@@ -301,10 +562,8 @@ internal static class DatabaseConverterCommand
             await reader.IsDBNullAsync(2) ? null : reader.GetString(2));
     }
 
-    private static async Task<DatabaseVersionInfo> GetExpectedSourceDatabaseVersionAsync(SourceDatabaseType sourceType)
+    private static DatabaseVersionInfo GetExpectedSourceDatabaseVersion(SystemService systemService, SourceDatabaseType sourceType)
     {
-        await using var bootstrapHome = new TemporaryShokoHomeScope();
-        var systemService = new SystemService();
         object database = sourceType switch
         {
             SourceDatabaseType.SqlServer => new SQLServer(systemService),
@@ -584,7 +843,18 @@ internal static class DatabaseConverterCommand
 
             var keyDescription = string.Join(", ", orderColumns.Select(column =>
             {
-                var keyIndex = sharedColumns.IndexOf(column);
+                var keyIndex = -1;
+                for (var sharedColumnIndex = 0; sharedColumnIndex < sharedColumns.Count; sharedColumnIndex++)
+                {
+                    if (!string.Equals(sharedColumns[sharedColumnIndex], column, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    keyIndex = sharedColumnIndex;
+                    break;
+                }
+
                 var keyValue = keyIndex >= 0 ? sourceRow[keyIndex] : "<missing>";
                 return $"{column}={keyValue}";
             }));
@@ -1209,51 +1479,7 @@ internal static class DatabaseConverterCommand
     private static string QuoteSqliteLiteral(string value)
         => $"'{ValidateIdentifier(value).Replace("'", "''", StringComparison.Ordinal)}'";
 
-    private static Options ParseArgs(string[] args)
-    {
-        var options = new Options();
-        for (var index = 0; index < args.Length; index++)
-        {
-            var argument = args[index];
-            switch (argument)
-            {
-                case "--source-type":
-                    options.SourceType = ParseSourceType(GetRequiredValue(args, ref index, argument));
-                    break;
-                case "--source-connection-string":
-                    options.SourceConnectionString = GetRequiredValue(args, ref index, argument);
-                    break;
-                case "--target-file":
-                    options.TargetFile = GetRequiredValue(args, ref index, argument);
-                    break;
-                case "--overwrite":
-                    options.Overwrite = true;
-                    break;
-                case "--help":
-                case "-h":
-                case "/?":
-                    options.ShowHelp = true;
-                    break;
-                default:
-                    throw new ArgumentException($"Unknown argument: {argument}");
-            }
-        }
-
-        return options;
-    }
-
-    private static string GetRequiredValue(string[] args, ref int index, string argumentName)
-    {
-        if (index + 1 >= args.Length)
-        {
-            throw new ArgumentException($"Missing value for {argumentName}");
-        }
-
-        index++;
-        return args[index];
-    }
-
-    private static SourceDatabaseType ParseSourceType(string value)
+    internal static SourceDatabaseType ParseSourceType(string value)
     {
         return value.Trim().ToLowerInvariant() switch
         {
@@ -1263,69 +1489,24 @@ internal static class DatabaseConverterCommand
         };
     }
 
-    private static void PrintUsage()
-    {
-        Console.WriteLine("Usage:");
-        Console.WriteLine("  Shoko.CLI convert-db [--source-type mssql|mariadb] --source-connection-string \"<connection-string>\" --target-file \"/path/to/Shoko.sqlite\" [--overwrite]");
-        Console.WriteLine();
-        Console.WriteLine("Notes:");
-        Console.WriteLine("  - This creates a fresh SQLite database using Shoko's built-in SQLite schema commands.");
-        Console.WriteLine("  - Supported source backends: SQL Server and MySQL/MariaDB.");
-        Console.WriteLine("  - It copies tables and columns shared by the source schema and target SQLite schema.");
-        Console.WriteLine("  - Quartz tables are not included because Quartz uses a separate database configuration.");
-    }
+    internal static string GetUsage()
+        => """
+           Usage:
+             ShokoServer --convert-db [--source-type mssql|mariadb] [--source-connection-string "<connection-string>"] [--target-file "/path/to/Shoko.sqlite"] [--overwrite]
 
-    private sealed class Options
-    {
-        public SourceDatabaseType SourceType { get; set; } = SourceDatabaseType.SqlServer;
-        public string SourceConnectionString { get; set; } = string.Empty;
-        public string TargetFile { get; set; } = string.Empty;
-        public bool Overwrite { get; set; }
-        public bool ShowHelp { get; set; }
-    }
+           Notes:
+             - If omitted, source type and connection details default to the current ServerSettings.Database configuration.
+             - If omitted, the target SQLite file defaults to Shoko's normal SQLite database path under the current Shoko home/data directory.
+             - Explicit --source-type and/or --source-connection-string override the configured source details.
+             - Explicit --target-file overrides the default SQLite target path.
+             - The resolved source database must be SQL Server or MySQL/MariaDB. SQLite cannot be used as a source.
+             - This creates a fresh SQLite database using Shoko's built-in SQLite schema commands.
+             - Supported source backends: SQL Server and MySQL/MariaDB.
+             - It copies tables and columns shared by the source schema and target SQLite schema.
+             - Quartz tables are not included because Quartz uses a separate database configuration.
+           """;
 
     private readonly record struct DatabaseVersionInfo(int Version, int Revision, string? Program);
-
-    private sealed class TemporaryShokoHomeScope : IAsyncDisposable
-    {
-        private readonly string? _previousShokoHome;
-        private readonly string _temporaryHomePath;
-
-        public TemporaryShokoHomeScope()
-        {
-            _previousShokoHome = Environment.GetEnvironmentVariable("SHOKO_HOME");
-            _temporaryHomePath = Path.Combine(Path.GetTempPath(), $"shoko-convert-bootstrap-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(_temporaryHomePath);
-            Environment.SetEnvironmentVariable("SHOKO_HOME", _temporaryHomePath);
-            ResetApplicationPaths();
-        }
-
-        public ValueTask DisposeAsync()
-        {
-            Utils.ServiceContainer = null;
-            Environment.SetEnvironmentVariable("SHOKO_HOME", _previousShokoHome);
-            ResetApplicationPaths();
-            try
-            {
-                if (Directory.Exists(_temporaryHomePath))
-                {
-                    Directory.Delete(_temporaryHomePath, true);
-                }
-            }
-            catch
-            {
-                // Best-effort cleanup only. Bootstrap isolation matters more than temp dir removal.
-            }
-
-            return ValueTask.CompletedTask;
-        }
-
-        private static void ResetApplicationPaths()
-        {
-            SetPrivateStaticField<ApplicationPaths>("_dataPath", null);
-            SetPrivateStaticField<ApplicationPaths>("_instance", null);
-        }
-    }
 
     private sealed class SqliteColumnInfo
     {
@@ -1333,75 +1514,5 @@ internal static class DatabaseConverterCommand
         public string Type { get; set; } = string.Empty;
         public bool NotNull { get; set; }
         public string? DefaultValue { get; set; }
-    }
-
-    [SuppressMessage("Major Code Smell", "S3011", Justification = "The converter must call Shoko's internal bootstrap path to create a real target database without changing server startup surface area.")]
-    private static IHost CreateBootstrapHost(SystemService systemService, object settings)
-    {
-        var initWebHostMethod = typeof(SystemService).GetMethod("InitWebHost", BindingFlags.Instance | BindingFlags.NonPublic)
-                                ?? throw new InvalidOperationException("Unable to locate SystemService.InitWebHost.");
-        return (IHost)(initWebHostMethod.Invoke(systemService, [settings])
-                       ?? throw new InvalidOperationException("SystemService.InitWebHost returned null."));
-    }
-
-    [SuppressMessage("Major Code Smell", "S3011", Justification = "The converter must run Shoko's internal database initialization path so bootstrap and migrations behave exactly like server startup.")]
-    private static bool RunInitializeDatabase(SystemService systemService, DatabaseFactory databaseFactory, RepoFactory repositoryFactory)
-    {
-        var initializeDatabaseMethod = typeof(SystemService).GetMethod("InitializeDatabase", BindingFlags.Instance | BindingFlags.NonPublic)
-                                       ?? throw new InvalidOperationException("Unable to locate SystemService.InitializeDatabase.");
-        return (bool)(initializeDatabaseMethod.Invoke(systemService, [databaseFactory, repositoryFactory, default(CancellationToken)])
-                      ?? throw new InvalidOperationException("SystemService.InitializeDatabase returned null."));
-    }
-
-    [SuppressMessage("Major Code Smell", "S3011", Justification = "The converter uses limited reflective access to initialize only Shoko's built-in core plugin state during isolated database bootstrap, without loading external plugins.")]
-    private static T GetRequiredPrivateField<T>(object instance, string fieldName) where T : class
-    {
-        var field = instance.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
-                    ?? throw new InvalidOperationException($"Unable to locate field {instance.GetType().Name}.{fieldName}.");
-        return (T)(field.GetValue(instance) ?? throw new InvalidOperationException($"Field {instance.GetType().Name}.{fieldName} was null."));
-    }
-
-    [SuppressMessage("Major Code Smell", "S3011", Justification = "The converter resets cached application paths between temporary SHOKO_HOME scopes to keep bootstrap isolated from the user's normal data directory.")]
-    private static void SetPrivateStaticField<TDeclaring>(string fieldName, object? value)
-    {
-        var field = typeof(TDeclaring).GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic)
-                    ?? throw new InvalidOperationException($"Unable to locate static field {typeof(TDeclaring).Name}.{fieldName}.");
-        field.SetValue(null, value);
-    }
-
-    private static void InitializeCorePluginOnly(PluginManager pluginManager, SystemService systemService)
-    {
-        var pluginTypes = GetRequiredPrivateField<List<LocalPluginInfo>>(pluginManager, "_pluginTypes");
-        if (pluginTypes.Count > 0)
-        {
-            return;
-        }
-
-        var coreAssembly = typeof(CorePlugin).Assembly;
-        pluginTypes.Add(new()
-        {
-            ID = typeof(CorePlugin).FullName!.ToUuidV5(),
-            Name = "Shoko Core",
-            Description = string.Empty,
-            Version = systemService.Version,
-            Authors = null,
-            RepositoryUrl = null,
-            HomepageUrl = null,
-            Tags = [],
-            LoadOrder = 0,
-            Thumbnail = null,
-            InstalledAt = DateTime.MinValue,
-            IsEnabled = true,
-            IsActive = false,
-            CanLoad = true,
-            CanUninstall = false,
-            Plugin = null,
-            PluginType = typeof(CorePlugin),
-            ServiceRegistrationType = null,
-            ApplicationRegistrationType = null,
-            ContainingDirectory = null,
-            DLLs = [coreAssembly.Location],
-            Types = coreAssembly.GetExportedTypes(),
-        });
     }
 }
