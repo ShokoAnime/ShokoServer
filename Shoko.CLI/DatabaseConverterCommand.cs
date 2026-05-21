@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Collections;
@@ -28,6 +29,8 @@ namespace Shoko.CLI;
 
 internal static class DatabaseConverterCommand
 {
+    private const string TableNameParameter = "@tableName";
+
     private enum SourceDatabaseType
     {
         SqlServer,
@@ -61,8 +64,8 @@ internal static class DatabaseConverterCommand
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Database conversion failed: {ex.Message}");
-            Console.Error.WriteLine(ex);
+            await Console.Error.WriteLineAsync($"Database conversion failed: {ex.Message}");
+            await Console.Error.WriteLineAsync(ex.ToString());
             return 1;
         }
     }
@@ -274,7 +277,7 @@ internal static class DatabaseConverterCommand
         return new DatabaseVersionInfo(
             ParseVersionPart(reader.GetString(0), "VersionValue"),
             ParseVersionPart(reader.GetString(1), "VersionRevision"),
-            reader.IsDBNull(2) ? null : reader.GetString(2));
+            await reader.IsDBNullAsync(2) ? null : reader.GetString(2));
     }
 
     private static async Task<DatabaseVersionInfo?> GetMySqlDatabaseVersionAsync(MySqlConnection connection)
@@ -297,7 +300,7 @@ internal static class DatabaseConverterCommand
         return new DatabaseVersionInfo(
             ParseVersionPart(reader.GetString(0), "VersionValue"),
             ParseVersionPart(reader.GetString(1), "VersionRevision"),
-            reader.IsDBNull(2) ? null : reader.GetString(2));
+            await reader.IsDBNullAsync(2) ? null : reader.GetString(2));
     }
 
     private static async Task<DatabaseVersionInfo> GetExpectedSourceDatabaseVersionAsync(SourceDatabaseType sourceType)
@@ -321,6 +324,7 @@ internal static class DatabaseConverterCommand
         return latest;
     }
 
+    [SuppressMessage("Major Code Smell", "S3011", Justification = "The converter inspects internal database command containers to determine the expected backend migration version without duplicating migration metadata.")]
     private static IEnumerable<DatabaseCommand> GetDatabaseCommands(object database)
     {
         foreach (var field in database.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic))
@@ -381,7 +385,7 @@ internal static class DatabaseConverterCommand
             Console.WriteLine($"Applying fallback values for {tableName}: {string.Join(", ", fallbackColumns.Select(column => column.Name))}");
         }
 
-        await using var transaction = target.BeginTransaction();
+        await using var transaction = (SqliteTransaction)await target.BeginTransactionAsync();
         await using (var deleteCommand = target.CreateCommand())
         {
             deleteCommand.Transaction = transaction;
@@ -475,25 +479,8 @@ internal static class DatabaseConverterCommand
 
     private static async Task VerifyTableContentAsync(DbConnection source, SourceDatabaseType sourceType, SqliteConnection target, string tableName, IReadOnlyList<string> sharedColumns)
     {
-        var sourcePrimaryKeys = await GetSourcePrimaryKeyColumnsAsync(source, sourceType, tableName);
-        var targetPrimaryKeys = await GetSqlitePrimaryKeyColumnsAsync(target, tableName);
         var sourceColumnTypes = await GetSourceColumnTypesAsync(source, sourceType, tableName);
-        var orderColumns = sourcePrimaryKeys
-            .Where(column => targetPrimaryKeys.Contains(column, StringComparer.OrdinalIgnoreCase))
-            .Where(column => sharedColumns.Contains(column, StringComparer.OrdinalIgnoreCase))
-            .ToList();
-
-        if (orderColumns.Count == 0)
-        {
-            orderColumns = sharedColumns
-                .Where(column => sourceColumnTypes.TryGetValue(column, out var type) && IsSourceOrderableType(sourceType, type))
-                .ToList();
-        }
-
-        if (orderColumns.Count == 0)
-        {
-            throw new InvalidOperationException($"Verification failed for {tableName}: no primary key or SQL-orderable shared columns are available for deterministic comparison.");
-        }
+        var orderColumns = await ResolveOrderColumnsAsync(source, sourceType, target, tableName, sharedColumns, sourceColumnTypes);
 
         var sourceSql = BuildSourceOrderedSelectSql(sourceType, tableName, sharedColumns, orderColumns, sourceColumnTypes);
         var targetSql = BuildSqliteOrderedSelectSql(tableName, sharedColumns, orderColumns);
@@ -521,31 +508,79 @@ internal static class DatabaseConverterCommand
             }
 
             rowNumber++;
-            var sourceRow = new string[sharedColumns.Count];
-            var targetRow = new string[sharedColumns.Count];
-            for (var index = 0; index < sharedColumns.Count; index++)
+            var sourceRow = await ReadNormalizedRowAsync(sourceReader, sharedColumns.Count);
+            var targetRow = await ReadNormalizedRowAsync(targetReader, sharedColumns.Count);
+            ThrowIfRowMismatch(tableName, sharedColumns, orderColumns, rowNumber, sourceRow, targetRow);
+        }
+    }
+
+    private static async Task<List<string>> ResolveOrderColumnsAsync(
+        DbConnection source,
+        SourceDatabaseType sourceType,
+        SqliteConnection target,
+        string tableName,
+        IReadOnlyList<string> sharedColumns,
+        IReadOnlyDictionary<string, string> sourceColumnTypes)
+    {
+        var sourcePrimaryKeys = await GetSourcePrimaryKeyColumnsAsync(source, sourceType, tableName);
+        var targetPrimaryKeys = await GetSqlitePrimaryKeyColumnsAsync(target, tableName);
+        var orderColumns = sourcePrimaryKeys
+            .Where(column => targetPrimaryKeys.Contains(column, StringComparer.OrdinalIgnoreCase))
+            .Where(column => sharedColumns.Contains(column, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        if (orderColumns.Count > 0)
+        {
+            return orderColumns;
+        }
+
+        orderColumns = sharedColumns
+            .Where(column => sourceColumnTypes.TryGetValue(column, out var type) && IsSourceOrderableType(sourceType, type))
+            .ToList();
+
+        if (orderColumns.Count > 0)
+        {
+            return orderColumns;
+        }
+
+        throw new InvalidOperationException($"Verification failed for {tableName}: no primary key or SQL-orderable shared columns are available for deterministic comparison.");
+    }
+
+    private static async Task<string[]> ReadNormalizedRowAsync(DbDataReader reader, int columnCount)
+    {
+        var row = new string[columnCount];
+        for (var index = 0; index < columnCount; index++)
+        {
+            row[index] = NormalizeComparisonValue(await reader.IsDBNullAsync(index) ? null : reader.GetValue(index));
+        }
+
+        return row;
+    }
+
+    private static void ThrowIfRowMismatch(
+        string tableName,
+        IReadOnlyList<string> sharedColumns,
+        IReadOnlyList<string> orderColumns,
+        long rowNumber,
+        IReadOnlyList<string> sourceRow,
+        IReadOnlyList<string> targetRow)
+    {
+        for (var index = 0; index < sharedColumns.Count; index++)
+        {
+            var sourceValue = sourceRow[index];
+            var targetValue = targetRow[index];
+            if (string.Equals(sourceValue, targetValue, StringComparison.Ordinal))
             {
-                sourceRow[index] = NormalizeComparisonValue(await sourceReader.IsDBNullAsync(index) ? null : sourceReader.GetValue(index));
-                targetRow[index] = NormalizeComparisonValue(targetReader.IsDBNull(index) ? null : targetReader.GetValue(index));
+                continue;
             }
 
-            for (var index = 0; index < sharedColumns.Count; index++)
+            var keyDescription = string.Join(", ", orderColumns.Select(column =>
             {
-                var sourceValue = sourceRow[index];
-                var targetValue = targetRow[index];
-                if (string.Equals(sourceValue, targetValue, StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                var keyDescription = string.Join(", ", orderColumns.Select(column =>
-                {
-                    var keyIndex = sharedColumns.IndexOf(column);
-                    var keyValue = keyIndex >= 0 ? sourceRow[keyIndex] : "<missing>";
-                    return $"{column}={keyValue}";
-                }));
-                throw new InvalidOperationException($"Verification failed for {tableName}: column {sharedColumns[index]} mismatch at row {rowNumber} ({keyDescription}). Source={sourceValue}, Target={targetValue}.");
-            }
+                var keyIndex = sharedColumns.IndexOf(column);
+                var keyValue = keyIndex >= 0 ? sourceRow[keyIndex] : "<missing>";
+                return $"{column}={keyValue}";
+            }));
+            throw new InvalidOperationException($"Verification failed for {tableName}: column {sharedColumns[index]} mismatch at row {rowNumber} ({keyDescription}). Source={sourceValue}, Target={targetValue}.");
         }
     }
 
@@ -712,7 +747,7 @@ internal static class DatabaseConverterCommand
 
         var columns = new List<string>();
         await using var command = new SqlCommand(sql, connection);
-        command.Parameters.AddWithValue("@tableName", tableName);
+        command.Parameters.AddWithValue(TableNameParameter, tableName);
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -983,9 +1018,9 @@ internal static class DatabaseConverterCommand
             columns.Add(new()
             {
                 Name = reader.GetString(1),
-                Type = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+                Type = await reader.IsDBNullAsync(2) ? string.Empty : reader.GetString(2),
                 NotNull = reader.GetInt32(3) != 0,
-                DefaultValue = reader.IsDBNull(4) ? null : reader.GetString(4),
+                DefaultValue = await reader.IsDBNullAsync(4) ? null : reader.GetString(4),
             });
         }
 
@@ -997,7 +1032,7 @@ internal static class DatabaseConverterCommand
         return sourceType switch
         {
             SourceDatabaseType.SqlServer => BuildSqlServerOrderedSelectSql(tableName, selectColumns, orderColumns, columnTypes),
-            SourceDatabaseType.MySql => BuildMySqlOrderedSelectSql(tableName, selectColumns, orderColumns, columnTypes),
+            SourceDatabaseType.MySql => BuildMySqlOrderedSelectSql(tableName, selectColumns, orderColumns),
             _ => throw new InvalidOperationException($"Unsupported source database type: {sourceType}"),
         };
     }
@@ -1009,10 +1044,10 @@ internal static class DatabaseConverterCommand
         return $"SELECT {selectList} FROM {QuoteSqlServerIdentifier(tableName)} ORDER BY {orderList};";
     }
 
-    private static string BuildMySqlOrderedSelectSql(string tableName, IReadOnlyList<string> selectColumns, IReadOnlyList<string> orderColumns, IReadOnlyDictionary<string, string> columnTypes)
+    private static string BuildMySqlOrderedSelectSql(string tableName, IReadOnlyList<string> selectColumns, IReadOnlyList<string> orderColumns)
     {
-        var selectList = string.Join(", ", selectColumns.Select(column => BuildMySqlSelectExpression(column, columnTypes)));
-        var orderList = string.Join(", ", orderColumns.Select(column => BuildMySqlOrderExpression(column, columnTypes)));
+        var selectList = string.Join(", ", selectColumns.Select(BuildMySqlSelectExpression));
+        var orderList = string.Join(", ", orderColumns.Select(BuildMySqlOrderExpression));
         return $"SELECT {selectList} FROM {QuoteMySqlIdentifier(tableName)} ORDER BY {orderList};";
     }
 
@@ -1039,12 +1074,12 @@ internal static class DatabaseConverterCommand
         return identifier;
     }
 
-    private static string BuildMySqlSelectExpression(string columnName, IReadOnlyDictionary<string, string> columnTypes)
+    private static string BuildMySqlSelectExpression(string columnName)
     {
         return QuoteMySqlIdentifier(columnName);
     }
 
-    private static string BuildMySqlOrderExpression(string columnName, IReadOnlyDictionary<string, string> columnTypes)
+    private static string BuildMySqlOrderExpression(string columnName)
     {
         return QuoteMySqlIdentifier(columnName);
     }
@@ -1255,6 +1290,7 @@ internal static class DatabaseConverterCommand
         public string? DefaultValue { get; set; }
     }
 
+    [SuppressMessage("Major Code Smell", "S3011", Justification = "The converter must call Shoko's internal bootstrap path to create a real target database without changing server startup surface area.")]
     private static IHost CreateBootstrapHost(SystemService systemService, object settings)
     {
         var initWebHostMethod = typeof(SystemService).GetMethod("InitWebHost", BindingFlags.Instance | BindingFlags.NonPublic)
@@ -1263,6 +1299,7 @@ internal static class DatabaseConverterCommand
                        ?? throw new InvalidOperationException("SystemService.InitWebHost returned null."));
     }
 
+    [SuppressMessage("Major Code Smell", "S3011", Justification = "The converter must run Shoko's internal database initialization path so bootstrap and migrations behave exactly like server startup.")]
     private static bool RunInitializeDatabase(SystemService systemService, DatabaseFactory databaseFactory, RepoFactory repositoryFactory)
     {
         var initializeDatabaseMethod = typeof(SystemService).GetMethod("InitializeDatabase", BindingFlags.Instance | BindingFlags.NonPublic)
@@ -1271,6 +1308,7 @@ internal static class DatabaseConverterCommand
                       ?? throw new InvalidOperationException("SystemService.InitializeDatabase returned null."));
     }
 
+    [SuppressMessage("Major Code Smell", "S3011", Justification = "The converter uses limited reflective access to initialize only Shoko's built-in core plugin state during isolated database bootstrap, without loading external plugins.")]
     private static T GetRequiredPrivateField<T>(object instance, string fieldName) where T : class
     {
         var field = instance.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
@@ -1278,6 +1316,7 @@ internal static class DatabaseConverterCommand
         return (T)(field.GetValue(instance) ?? throw new InvalidOperationException($"Field {instance.GetType().Name}.{fieldName} was null."));
     }
 
+    [SuppressMessage("Major Code Smell", "S3011", Justification = "The converter resets cached application paths between temporary SHOKO_HOME scopes to keep bootstrap isolated from the user's normal data directory.")]
     private static void SetPrivateStaticField<TDeclaring>(string fieldName, object? value)
     {
         var field = typeof(TDeclaring).GetField(fieldName, BindingFlags.Static | BindingFlags.NonPublic)
