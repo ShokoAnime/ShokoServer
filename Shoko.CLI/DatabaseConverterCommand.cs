@@ -14,6 +14,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using MySqlConnector;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
@@ -26,6 +27,12 @@ namespace Shoko.CLI;
 
 internal static class DatabaseConverterCommand
 {
+    private enum SourceDatabaseType
+    {
+        SqlServer,
+        MySql,
+    }
+
     private static readonly HashSet<string> ExcludedTables = new(StringComparer.OrdinalIgnoreCase)
     {
         "Versions",
@@ -36,6 +43,14 @@ internal static class DatabaseConverterCommand
         "AniDB_Vote",
         "CrossRef_AniDB_TvDBV2",
     };
+
+    private static readonly string[] LegacyUnifiedImageTables =
+    [
+        "TMDB_Image",
+        "TMDB_Image_Entity",
+        "AniDB_Anime_PreferredImage",
+        "AniDB_Episode_PreferredImage",
+    ];
 
     public static async Task<int> RunAsync(string[] args)
     {
@@ -54,7 +69,7 @@ internal static class DatabaseConverterCommand
 
         try
         {
-            await ConvertAsync(options.SourceConnectionString, options.TargetFile, options.Overwrite);
+            await ConvertAsync(options.SourceType, options.SourceConnectionString, options.TargetFile, options.Overwrite);
             return 0;
         }
         catch (Exception ex)
@@ -65,7 +80,7 @@ internal static class DatabaseConverterCommand
         }
     }
 
-    private static async Task ConvertAsync(string sourceConnectionString, string targetFile, bool overwrite)
+    private static async Task ConvertAsync(SourceDatabaseType sourceType, string sourceConnectionString, string targetFile, bool overwrite)
     {
         var fullTargetPath = Path.GetFullPath(targetFile);
         if (File.Exists(fullTargetPath))
@@ -93,15 +108,14 @@ internal static class DatabaseConverterCommand
 
         await InitializeSqliteDatabaseAsync(targetConnectionString);
 
-        await using var source = new SqlConnection(sourceConnectionString);
-        await source.OpenAsync();
+        await using var source = await OpenSourceConnectionAsync(sourceType, sourceConnectionString);
         await using var target = new SqliteConnection(targetConnectionString);
         await target.OpenAsync();
 
         await ConfigureSqliteAsync(target);
 
-        var sourceTables = await GetSqlServerTablesAsync(source);
-        await PruneLegacyTargetTablesAsync(source, target, sourceTables);
+        var sourceTables = await GetSourceTablesAsync(source, sourceType);
+        await PruneLegacyTargetTablesAsync(target, sourceTables);
         var targetTables = await GetSqliteTablesAsync(target);
         var tablesToCopy = targetTables
             .Where(sourceTables.Contains)
@@ -138,7 +152,7 @@ internal static class DatabaseConverterCommand
                 Console.WriteLine($"  {targetOnlyTable}");
             }
 
-            await ReportSqlServerObjectsAsync(source, targetOnlyTables);
+            await ReportSourceObjectsAsync(source, sourceType, targetOnlyTables);
         }
 
         if (ExcludedTables.Count > 0)
@@ -152,10 +166,10 @@ internal static class DatabaseConverterCommand
 
         foreach (var tableName in tablesToCopy)
         {
-            await CopyTableAsync(source, target, tableName);
+            await CopyTableAsync(source, sourceType, target, tableName);
         }
 
-        await VerifyCopyAsync(source, target, tablesToCopy);
+        await VerifyCopyAsync(source, sourceType, target, tablesToCopy);
         Console.WriteLine($"Conversion completed successfully: {fullTargetPath}");
     }
 
@@ -201,9 +215,22 @@ internal static class DatabaseConverterCommand
         }
     }
 
-    private static async Task CopyTableAsync(SqlConnection source, SqliteConnection target, string tableName)
+    private static async Task<DbConnection> OpenSourceConnectionAsync(SourceDatabaseType sourceType, string connectionString)
     {
-        var sourceColumns = await GetSqlServerColumnsAsync(source, tableName);
+        DbConnection connection = sourceType switch
+        {
+            SourceDatabaseType.SqlServer => new SqlConnection(connectionString),
+            SourceDatabaseType.MySql => new MySqlConnection(connectionString),
+            _ => throw new InvalidOperationException($"Unsupported source database type: {sourceType}"),
+        };
+
+        await connection.OpenAsync();
+        return connection;
+    }
+
+    private static async Task CopyTableAsync(DbConnection source, SourceDatabaseType sourceType, SqliteConnection target, string tableName)
+    {
+        var sourceColumns = await GetSourceColumnsAsync(source, sourceType, tableName);
         var targetColumns = await GetSqliteColumnsAsync(target, tableName);
         var sourceColumnSet = sourceColumns.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var sourceBackedColumns = targetColumns.Where(column => sourceColumnSet.Contains(column.Name)).ToList();
@@ -233,8 +260,9 @@ internal static class DatabaseConverterCommand
             await deleteCommand.ExecuteNonQueryAsync();
         }
 
-        var selectSql = $"SELECT {string.Join(", ", sourceBackedColumns.Select(column => QuoteSqlServerIdentifier(column.Name)))} FROM {QuoteSqlServerIdentifier(tableName)};";
-        await using var selectCommand = new SqlCommand(selectSql, source);
+        var selectSql = $"SELECT {string.Join(", ", sourceBackedColumns.Select(column => QuoteSourceIdentifier(sourceType, column.Name)))} FROM {QuoteSourceIdentifier(sourceType, tableName)};";
+        await using var selectCommand = source.CreateCommand();
+        selectCommand.CommandText = selectSql;
         await using var reader = await selectCommand.ExecuteReaderAsync(CommandBehavior.SequentialAccess);
 
         await using var insertCommand = target.CreateCommand();
@@ -270,13 +298,13 @@ internal static class DatabaseConverterCommand
         Console.WriteLine($"Copied {tableName}: {rowCount} rows, {insertColumns.Count} columns.");
     }
 
-    private static async Task VerifyCopyAsync(SqlConnection source, SqliteConnection target, IReadOnlyList<string> tablesToCopy)
+    private static async Task VerifyCopyAsync(DbConnection source, SourceDatabaseType sourceType, SqliteConnection target, IReadOnlyList<string> tablesToCopy)
     {
         Console.WriteLine("Verifying migrated data...");
 
         foreach (var tableName in tablesToCopy)
         {
-            var sourceColumns = await GetSqlServerColumnsAsync(source, tableName);
+            var sourceColumns = await GetSourceColumnsAsync(source, sourceType, tableName);
             var targetColumns = await GetSqliteColumnsAsync(target, tableName);
             var sharedColumns = targetColumns
                 .Where(column => sourceColumns.Contains(column.Name, StringComparer.OrdinalIgnoreCase))
@@ -289,23 +317,23 @@ internal static class DatabaseConverterCommand
                 continue;
             }
 
-            var sourceCount = await GetRowCountAsync(source, tableName);
+            var sourceCount = await GetRowCountAsync(source, sourceType, tableName);
             var targetCount = await GetRowCountAsync(target, tableName);
             if (sourceCount != targetCount)
             {
                 throw new InvalidOperationException($"Verification failed for {tableName}: row count mismatch. Source={sourceCount}, Target={targetCount}.");
             }
 
-            await VerifyTableContentAsync(source, target, tableName, sharedColumns);
+            await VerifyTableContentAsync(source, sourceType, target, tableName, sharedColumns);
 
             Console.WriteLine($"Verified {tableName}: {sourceCount} rows, {sharedColumns.Count} shared columns.");
         }
     }
 
-    private static async Task<long> GetRowCountAsync(SqlConnection connection, string tableName)
+    private static async Task<long> GetRowCountAsync(DbConnection connection, SourceDatabaseType sourceType, string tableName)
     {
         await using var command = connection.CreateCommand();
-        command.CommandText = $"SELECT COUNT(*) FROM {QuoteSqlServerIdentifier(tableName)};";
+        command.CommandText = $"SELECT COUNT(*) FROM {QuoteSourceIdentifier(sourceType, tableName)};";
         return Convert.ToInt64(await command.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
     }
 
@@ -316,11 +344,11 @@ internal static class DatabaseConverterCommand
         return Convert.ToInt64(await command.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
     }
 
-    private static async Task VerifyTableContentAsync(SqlConnection source, SqliteConnection target, string tableName, IReadOnlyList<string> sharedColumns)
+    private static async Task VerifyTableContentAsync(DbConnection source, SourceDatabaseType sourceType, SqliteConnection target, string tableName, IReadOnlyList<string> sharedColumns)
     {
-        var sourcePrimaryKeys = await GetSqlServerPrimaryKeyColumnsAsync(source, tableName);
+        var sourcePrimaryKeys = await GetSourcePrimaryKeyColumnsAsync(source, sourceType, tableName);
         var targetPrimaryKeys = await GetSqlitePrimaryKeyColumnsAsync(target, tableName);
-        var sourceColumnTypes = await GetSqlServerColumnTypesAsync(source, tableName);
+        var sourceColumnTypes = await GetSourceColumnTypesAsync(source, sourceType, tableName);
         var orderColumns = sourcePrimaryKeys
             .Where(column => targetPrimaryKeys.Contains(column, StringComparer.OrdinalIgnoreCase))
             .Where(column => sharedColumns.Contains(column, StringComparer.OrdinalIgnoreCase))
@@ -329,7 +357,7 @@ internal static class DatabaseConverterCommand
         if (orderColumns.Count == 0)
         {
             orderColumns = sharedColumns
-                .Where(column => sourceColumnTypes.TryGetValue(column, out var type) && IsSqlServerOrderableType(type))
+                .Where(column => sourceColumnTypes.TryGetValue(column, out var type) && IsSourceOrderableType(sourceType, type))
                 .ToList();
         }
 
@@ -338,10 +366,11 @@ internal static class DatabaseConverterCommand
             throw new InvalidOperationException($"Verification failed for {tableName}: no primary key or SQL-orderable shared columns are available for deterministic comparison.");
         }
 
-        var sourceSql = BuildSqlServerOrderedSelectSql(tableName, sharedColumns, orderColumns, sourceColumnTypes);
+        var sourceSql = BuildSourceOrderedSelectSql(sourceType, tableName, sharedColumns, orderColumns, sourceColumnTypes);
         var targetSql = BuildSqliteOrderedSelectSql(tableName, sharedColumns, orderColumns);
 
-        await using var sourceCommand = new SqlCommand(sourceSql, source);
+        await using var sourceCommand = source.CreateCommand();
+        sourceCommand.CommandText = sourceSql;
         await using var sourceReader = await sourceCommand.ExecuteReaderAsync(CommandBehavior.SequentialAccess);
         await using var targetCommand = target.CreateCommand();
         targetCommand.CommandText = targetSql;
@@ -462,6 +491,16 @@ internal static class DatabaseConverterCommand
         return false;
     }
 
+    private static async Task<HashSet<string>> GetSourceTablesAsync(DbConnection connection, SourceDatabaseType sourceType)
+    {
+        return sourceType switch
+        {
+            SourceDatabaseType.SqlServer => await GetSqlServerTablesAsync((SqlConnection)connection),
+            SourceDatabaseType.MySql => await GetMySqlTablesAsync((MySqlConnection)connection),
+            _ => throw new InvalidOperationException($"Unsupported source database type: {sourceType}"),
+        };
+    }
+
     private static async Task<HashSet<string>> GetSqlServerTablesAsync(SqlConnection connection)
     {
         const string sql = """
@@ -472,6 +511,26 @@ internal static class DatabaseConverterCommand
 
         var tables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         await using var command = new SqlCommand(sql, connection);
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            tables.Add(reader.GetString(0));
+        }
+
+        return tables;
+    }
+
+    private static async Task<HashSet<string>> GetMySqlTablesAsync(MySqlConnection connection)
+    {
+        const string sql = """
+            SELECT TABLE_NAME
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_TYPE = 'BASE TABLE'
+            """;
+
+        var tables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await using var command = new MySqlCommand(sql, connection);
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -503,6 +562,16 @@ internal static class DatabaseConverterCommand
         return tables;
     }
 
+    private static async Task<List<string>> GetSourceColumnsAsync(DbConnection connection, SourceDatabaseType sourceType, string tableName)
+    {
+        return sourceType switch
+        {
+            SourceDatabaseType.SqlServer => await GetSqlServerColumnsAsync((SqlConnection)connection, tableName),
+            SourceDatabaseType.MySql => await GetMySqlColumnsAsync((MySqlConnection)connection, tableName),
+            _ => throw new InvalidOperationException($"Unsupported source database type: {sourceType}"),
+        };
+    }
+
     private static async Task<List<string>> GetSqlServerColumnsAsync(SqlConnection connection, string tableName)
     {
         const string sql = """
@@ -522,6 +591,38 @@ internal static class DatabaseConverterCommand
         }
 
         return columns;
+    }
+
+    private static async Task<List<string>> GetMySqlColumnsAsync(MySqlConnection connection, string tableName)
+    {
+        const string sql = """
+            SELECT COLUMN_NAME
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = @tableName
+            ORDER BY ORDINAL_POSITION
+            """;
+
+        var columns = new List<string>();
+        await using var command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@tableName", tableName);
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            columns.Add(reader.GetString(0));
+        }
+
+        return columns;
+    }
+
+    private static async Task<List<string>> GetSourcePrimaryKeyColumnsAsync(DbConnection connection, SourceDatabaseType sourceType, string tableName)
+    {
+        return sourceType switch
+        {
+            SourceDatabaseType.SqlServer => await GetSqlServerPrimaryKeyColumnsAsync((SqlConnection)connection, tableName),
+            SourceDatabaseType.MySql => await GetMySqlPrimaryKeyColumnsAsync((MySqlConnection)connection, tableName),
+            _ => throw new InvalidOperationException($"Unsupported source database type: {sourceType}"),
+        };
     }
 
     private static async Task<List<string>> GetSqlServerPrimaryKeyColumnsAsync(SqlConnection connection, string tableName)
@@ -546,6 +647,39 @@ internal static class DatabaseConverterCommand
         return columns;
     }
 
+    private static async Task<List<string>> GetMySqlPrimaryKeyColumnsAsync(MySqlConnection connection, string tableName)
+    {
+        const string sql = """
+            SELECT COLUMN_NAME
+            FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = @tableName
+              AND CONSTRAINT_NAME = 'PRIMARY'
+            ORDER BY ORDINAL_POSITION
+            """;
+
+        var columns = new List<string>();
+        await using var command = new MySqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@tableName", tableName);
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            columns.Add(reader.GetString(0));
+        }
+
+        return columns;
+    }
+
+    private static async Task<Dictionary<string, string>> GetSourceColumnTypesAsync(DbConnection connection, SourceDatabaseType sourceType, string tableName)
+    {
+        return sourceType switch
+        {
+            SourceDatabaseType.SqlServer => await GetSqlServerColumnTypesAsync((SqlConnection)connection, tableName),
+            SourceDatabaseType.MySql => await GetMySqlColumnTypesAsync((MySqlConnection)connection, tableName),
+            _ => throw new InvalidOperationException($"Unsupported source database type: {sourceType}"),
+        };
+    }
+
     private static async Task<Dictionary<string, string>> GetSqlServerColumnTypesAsync(SqlConnection connection, string tableName)
     {
         const string sql = """
@@ -556,6 +690,27 @@ internal static class DatabaseConverterCommand
 
         var columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@tableName", tableName);
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            columns[reader.GetString(0)] = reader.GetString(1);
+        }
+
+        return columns;
+    }
+
+    private static async Task<Dictionary<string, string>> GetMySqlColumnTypesAsync(MySqlConnection connection, string tableName)
+    {
+        const string sql = """
+            SELECT COLUMN_NAME, DATA_TYPE
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = @tableName
+            """;
+
+        var columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        await using var command = new MySqlCommand(sql, connection);
         command.Parameters.AddWithValue("@tableName", tableName);
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -584,6 +739,21 @@ internal static class DatabaseConverterCommand
         return columns.OrderBy(column => column.Position).Select(column => column.Name).ToList();
     }
 
+    private static async Task ReportSourceObjectsAsync(DbConnection connection, SourceDatabaseType sourceType, IReadOnlyList<string> objectNames)
+    {
+        switch (sourceType)
+        {
+            case SourceDatabaseType.SqlServer:
+                await ReportSqlServerObjectsAsync((SqlConnection)connection, objectNames);
+                return;
+            case SourceDatabaseType.MySql:
+                await ReportMySqlObjectsAsync((MySqlConnection)connection, objectNames);
+                return;
+            default:
+                throw new InvalidOperationException($"Unsupported source database type: {sourceType}");
+        }
+    }
+
     private static async Task ReportSqlServerObjectsAsync(SqlConnection connection, IReadOnlyList<string> objectNames)
     {
         const string sql = """
@@ -609,6 +779,35 @@ internal static class DatabaseConverterCommand
             while (await reader.ReadAsync())
             {
                 Console.WriteLine($"  {objectName}: schema={reader.GetString(0)}, type={reader.GetString(2)}, type_desc={reader.GetString(3)}");
+            }
+        }
+    }
+
+    private static async Task ReportMySqlObjectsAsync(MySqlConnection connection, IReadOnlyList<string> objectNames)
+    {
+        const string sql = """
+            SELECT TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = @objectName
+            ORDER BY TABLE_TYPE, TABLE_NAME
+            """;
+
+        Console.WriteLine("Source object lookup for target-only names:");
+        foreach (var objectName in objectNames)
+        {
+            await using var command = new MySqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@objectName", objectName);
+            await using var reader = await command.ExecuteReaderAsync();
+            if (!reader.HasRows)
+            {
+                Console.WriteLine($"  {objectName}: not found in information_schema.tables");
+                continue;
+            }
+
+            while (await reader.ReadAsync())
+            {
+                Console.WriteLine($"  {objectName}: schema={reader.GetString(0)}, type={reader.GetString(2)}");
             }
         }
     }
@@ -664,7 +863,7 @@ internal static class DatabaseConverterCommand
         return columns;
     }
 
-    private static async Task PruneLegacyTargetTablesAsync(SqlConnection source, SqliteConnection target, IReadOnlySet<string> sourceTables)
+    private static async Task PruneLegacyTargetTablesAsync(SqliteConnection target, IReadOnlySet<string> sourceTables)
     {
         var targetTables = await GetSqliteTablesAsync(target);
         foreach (var tableName in LegacyMigratedTables)
@@ -681,11 +880,28 @@ internal static class DatabaseConverterCommand
         }
     }
 
+    private static string BuildSourceOrderedSelectSql(SourceDatabaseType sourceType, string tableName, IReadOnlyList<string> selectColumns, IReadOnlyList<string> orderColumns, IReadOnlyDictionary<string, string> columnTypes)
+    {
+        return sourceType switch
+        {
+            SourceDatabaseType.SqlServer => BuildSqlServerOrderedSelectSql(tableName, selectColumns, orderColumns, columnTypes),
+            SourceDatabaseType.MySql => BuildMySqlOrderedSelectSql(tableName, selectColumns, orderColumns, columnTypes),
+            _ => throw new InvalidOperationException($"Unsupported source database type: {sourceType}"),
+        };
+    }
+
     private static string BuildSqlServerOrderedSelectSql(string tableName, IReadOnlyList<string> selectColumns, IReadOnlyList<string> orderColumns, IReadOnlyDictionary<string, string> columnTypes)
     {
         var selectList = string.Join(", ", selectColumns.Select(column => BuildSqlServerSelectExpression(column, columnTypes)));
         var orderList = string.Join(", ", orderColumns.Select(column => BuildSqlServerOrderExpression(column, columnTypes)));
         return $"SELECT {selectList} FROM {QuoteSqlServerIdentifier(tableName)} ORDER BY {orderList};";
+    }
+
+    private static string BuildMySqlOrderedSelectSql(string tableName, IReadOnlyList<string> selectColumns, IReadOnlyList<string> orderColumns, IReadOnlyDictionary<string, string> columnTypes)
+    {
+        var selectList = string.Join(", ", selectColumns.Select(column => BuildMySqlSelectExpression(column, columnTypes)));
+        var orderList = string.Join(", ", orderColumns.Select(column => BuildMySqlOrderExpression(column, columnTypes)));
+        return $"SELECT {selectList} FROM {QuoteMySqlIdentifier(tableName)} ORDER BY {orderList};";
     }
 
     private static string BuildSqliteOrderedSelectSql(string tableName, IReadOnlyList<string> selectColumns, IReadOnlyList<string> orderColumns)
@@ -711,10 +927,35 @@ internal static class DatabaseConverterCommand
         return identifier;
     }
 
+    private static string BuildMySqlSelectExpression(string columnName, IReadOnlyDictionary<string, string> columnTypes)
+    {
+        return QuoteMySqlIdentifier(columnName);
+    }
+
+    private static string BuildMySqlOrderExpression(string columnName, IReadOnlyDictionary<string, string> columnTypes)
+    {
+        return QuoteMySqlIdentifier(columnName);
+    }
+
+    private static bool IsSourceOrderableType(SourceDatabaseType sourceType, string dataType)
+    {
+        return sourceType switch
+        {
+            SourceDatabaseType.SqlServer => IsSqlServerOrderableType(dataType),
+            SourceDatabaseType.MySql => IsMySqlOrderableType(dataType),
+            _ => false,
+        };
+    }
+
     private static bool IsSqlServerOrderableType(string dataType)
         => !dataType.Equals("text", StringComparison.OrdinalIgnoreCase) &&
            !dataType.Equals("ntext", StringComparison.OrdinalIgnoreCase) &&
            !dataType.Equals("image", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsMySqlOrderableType(string dataType)
+        => !dataType.Contains("blob", StringComparison.OrdinalIgnoreCase) &&
+           !dataType.Equals("json", StringComparison.OrdinalIgnoreCase) &&
+           !dataType.Equals("geometry", StringComparison.OrdinalIgnoreCase);
 
     private static string NormalizeComparisonValue(object? value)
     {
@@ -757,6 +998,19 @@ internal static class DatabaseConverterCommand
     private static string QuoteSqlServerIdentifier(string identifier)
         => $"[{identifier.Replace("]", "]]", StringComparison.Ordinal)}]";
 
+    private static string QuoteMySqlIdentifier(string identifier)
+        => $"`{identifier.Replace("`", "``", StringComparison.Ordinal)}`";
+
+    private static string QuoteSourceIdentifier(SourceDatabaseType sourceType, string identifier)
+    {
+        return sourceType switch
+        {
+            SourceDatabaseType.SqlServer => QuoteSqlServerIdentifier(identifier),
+            SourceDatabaseType.MySql => QuoteMySqlIdentifier(identifier),
+            _ => throw new InvalidOperationException($"Unsupported source database type: {sourceType}"),
+        };
+    }
+
     private static string QuoteSqliteIdentifier(string identifier)
         => $"\"{identifier.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
 
@@ -771,6 +1025,9 @@ internal static class DatabaseConverterCommand
             var argument = args[index];
             switch (argument)
             {
+                case "--source-type":
+                    options.SourceType = ParseSourceType(GetRequiredValue(args, ref index, argument));
+                    break;
                 case "--source-connection-string":
                     options.SourceConnectionString = GetRequiredValue(args, ref index, argument);
                     break;
@@ -804,19 +1061,31 @@ internal static class DatabaseConverterCommand
         return args[index];
     }
 
+    private static SourceDatabaseType ParseSourceType(string value)
+    {
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "mssql" or "sqlserver" or "sql-server" => SourceDatabaseType.SqlServer,
+            "mysql" or "mariadb" or "maria" => SourceDatabaseType.MySql,
+            _ => throw new ArgumentException($"Unsupported source type: {value}. Expected mssql or mariadb."),
+        };
+    }
+
     private static void PrintUsage()
     {
         Console.WriteLine("Usage:");
-        Console.WriteLine("  Shoko.CLI convert-db --source-connection-string \"<sql-server-connection-string>\" --target-file \"/path/to/Shoko.sqlite\" [--overwrite]");
+        Console.WriteLine("  Shoko.CLI convert-db [--source-type mssql|mariadb] --source-connection-string \"<connection-string>\" --target-file \"/path/to/Shoko.sqlite\" [--overwrite]");
         Console.WriteLine();
         Console.WriteLine("Notes:");
         Console.WriteLine("  - This creates a fresh SQLite database using Shoko's built-in SQLite schema commands.");
-        Console.WriteLine("  - It copies tables and columns shared by the source SQL Server schema and target SQLite schema.");
+        Console.WriteLine("  - Supported source backends: SQL Server and MySQL/MariaDB.");
+        Console.WriteLine("  - It copies tables and columns shared by the source schema and target SQLite schema.");
         Console.WriteLine("  - Quartz tables are not included because Quartz uses a separate database configuration.");
     }
 
     private sealed class Options
     {
+        public SourceDatabaseType SourceType { get; set; } = SourceDatabaseType.SqlServer;
         public string SourceConnectionString { get; set; } = string.Empty;
         public string TargetFile { get; set; } = string.Empty;
         public bool Overwrite { get; set; }
