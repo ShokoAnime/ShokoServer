@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,15 +14,16 @@ using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Config.Services;
-using Shoko.Abstractions.Video.Enums;
-using Shoko.Abstractions.Video.Events;
-using Shoko.Abstractions.Video.Services;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
-using Shoko.Abstractions.Video.Relocation;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Video.Enums;
+using Shoko.Abstractions.Video.Events;
+using Shoko.Abstractions.Video.Relocation;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Server.MediaInfo.Subtitles;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plugin;
@@ -34,6 +35,7 @@ using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Services;
 
@@ -738,7 +740,7 @@ public class VideoRelocationService(
 
             var config = configurationService.Deserialize(configInfo, Encoding.UTF8.GetString(pipe.Configuration!));
             var argsType = typeof(RelocationContext<>).MakeGenericType(configInfo.Type);
-            args = (RelocationContext)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, argsType, args, config);
+            args = (RelocationContext)ActivatorUtilities.CreateInstance(ISystemService.StaticServices, argsType, args, config);
 
             return ConvertToResponse(place, ProcessPipe((r, a) => (RelocationResult)method.Invoke(r, [a])!, providerInfo.Provider, args, shouldRename, shouldMove), shouldMove, shouldRename);
         }

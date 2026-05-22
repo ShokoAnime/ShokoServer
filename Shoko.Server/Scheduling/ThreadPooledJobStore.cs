@@ -19,6 +19,7 @@ using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #pragma warning disable CS8618
 #nullable enable
 namespace Shoko.Server.Scheduling;
@@ -760,7 +761,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private async Task<int> GetThreadPoolSize(CancellationToken cancellationToken)
     {
-        var schedulerFactory = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>();
+        var schedulerFactory = ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>();
         var scheduler = await schedulerFactory.GetScheduler(cancellationToken);
         var metadata = await scheduler.GetMetaData(cancellationToken);
         return metadata.ThreadPoolSize;

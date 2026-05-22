@@ -9,13 +9,16 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
+
 using Mime = MimeMapping.MimeUtility;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.API.v1.Implementations;
 
 [ApiInUse]
@@ -150,7 +153,7 @@ public class ShokoServiceImplementationStream : Controller, IHttpContextAccessor
                     {
                         Task.Factory.StartNew(async () =>
                             {
-                                var userDataService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
+                                var userDataService = ISystemService.StaticServices.GetRequiredService<IUserDataService>();
                                 await userDataService.SetVideoWatchedStatus(r.VideoLocal, r.User);
                             },
                             new CancellationToken(),

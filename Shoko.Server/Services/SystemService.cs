@@ -28,8 +28,8 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Logging.Services;
 using Shoko.Abstractions.Metadata.Anidb.Services;
-using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Utilities;
@@ -254,7 +254,6 @@ public class SystemService : ISystemService
 #pragma warning disable CS0618 // Type or member is obsolete
             ISystemService.StaticServices = _webHost.Services;
 #pragma warning restore CS0618 // Type or member is obsolete
-            Utils.ServiceContainer = _webHost.Services;
 
             StartupMessage = "Web Host & Services initialized.";
 

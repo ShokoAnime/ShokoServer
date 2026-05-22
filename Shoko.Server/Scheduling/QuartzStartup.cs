@@ -22,6 +22,7 @@ using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Scheduling;
 
 public static class QuartzStartup
@@ -49,7 +50,7 @@ public static class QuartzStartup
 
         // this is called when clearing the queue, so the lock is needed to prevent conflicts with StartJob and StartJobNow
 
-        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+        var scheduler = await ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler();
 
         bool exists;
         IReadOnlyCollection<ITrigger> existingTriggers;
@@ -90,7 +91,7 @@ public static class QuartzStartup
     {
         var groupName = typeof(T).GetCustomAttribute<JobKeyGroupAttribute>()?.GroupName;
         var jobKey = JobKeyBuilder<T>.Create().WithGroup(groupName).Build();
-        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+        var scheduler = await ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler();
 
         using var _ = await QuartzExtensions.SchedulerLock.WriterLockAsync();
         if (await scheduler.CheckExists(jobKey))

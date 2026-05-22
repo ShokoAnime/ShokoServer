@@ -6,6 +6,7 @@ using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Enums;
@@ -24,6 +25,7 @@ using Shoko.Server.Utilities;
 using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -566,7 +568,7 @@ public class Series : BaseModel
 
         public SeriesUserData MergeWithExisting(JMMUser user, AnimeSeries series)
         {
-            var userDataService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
+            var userDataService = ISystemService.StaticServices.GetRequiredService<IUserDataService>();
             var userData = userDataService.SaveSeriesUserData(series, user, new()
             {
                 IsFavorite = IsFavorite,

@@ -7,6 +7,7 @@ using FluentNHibernate.Cfg.Db;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Databases.SqliteFixes;
@@ -17,6 +18,7 @@ using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Databases;
 
 public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection>(systemService)
@@ -134,7 +136,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
             {
                 prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
             })
-            .SetInterceptor(new NHibernateDependencyInjector(Utils.ServiceContainer)))
+            .SetInterceptor(new NHibernateDependencyInjector(ISystemService.StaticServices)))
             .BuildSessionFactory();
     }
 
@@ -871,7 +873,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         try
         {
             var myConn = (SqliteConnection)connection;
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
 
             var addCommand = "ALTER TABLE CrossRef_Languages_AniDB_File ADD LanguageName TEXT NOT NULL DEFAULT '';";
             var updateCommand = "UPDATE CrossRef_Languages_AniDB_File SET LanguageName = l.LanguageName FROM CrossRef_Languages_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';";
@@ -904,7 +906,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Anime",
@@ -972,7 +974,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Anime_Character",
@@ -1004,7 +1006,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Character",
@@ -1036,7 +1038,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.Execute((SqliteConnection)connection, [
                 "ALTER TABLE AniDB_GroupStatus RENAME TO AniDB_GroupStatus_old;",
                 "CREATE TABLE AniDB_GroupStatus ( AniDB_GroupStatusID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, GroupID INTEGER NOT NULL, GroupName TEXT NOT NULL, CompletionState INTEGER NOT NULL, LastEpisodeNumber INTEGER NOT NULL, Rating decimal(6,2) NOT NULL, Votes INTEGER NOT NULL, EpisodeRange TEXT NOT NULL ); ",
@@ -1060,7 +1062,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_File",
@@ -1119,7 +1121,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AnimeEpisode_User",
@@ -1154,7 +1156,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "VideoLocal",
@@ -1203,7 +1205,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Episode",
@@ -1240,7 +1242,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.Execute((SqliteConnection)connection, [
                 """
                     CREATE TABLE CrossRef_AniDB_TvDB_Episode_Override(
@@ -1265,7 +1267,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Anime",
@@ -1323,7 +1325,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "VideoLocal",
@@ -1371,7 +1373,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "TvDB_Episode",
@@ -1412,7 +1414,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.Alter(
                 (SqliteConnection)connection,
                 "VideoLocal_User",

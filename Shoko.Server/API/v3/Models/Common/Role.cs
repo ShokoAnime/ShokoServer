@@ -1,16 +1,17 @@
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
-using Shoko.Server.Utilities;
-using System;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
@@ -99,7 +100,7 @@ public class Role
         // Band-aid for missing data until the root cause is found and fixed.
         if (person is null)
         {
-            var tmdbMetadataService = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
+            var tmdbMetadataService = ISystemService.StaticServices.GetRequiredService<TmdbMetadataService>();
             tmdbMetadataService.UpdatePerson(cast.TmdbPersonID)
                 .ConfigureAwait(false)
                 .GetAwaiter()
@@ -130,7 +131,7 @@ public class Role
         // Band-aid for missing data until the root cause is found and fixed.
         if (person is null)
         {
-            var tmdbMetadataService = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
+            var tmdbMetadataService = ISystemService.StaticServices.GetRequiredService<TmdbMetadataService>();
             tmdbMetadataService.UpdatePerson(cast.TmdbPersonID)
                 .ConfigureAwait(false)
                 .GetAwaiter()

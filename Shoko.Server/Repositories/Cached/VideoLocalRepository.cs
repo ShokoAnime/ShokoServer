@@ -6,6 +6,7 @@ using FluentNHibernate.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using NutzCode.InMemoryIndex;
 using Quartz;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Databases;
@@ -18,9 +19,9 @@ using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
-#nullable enable
 #pragma warning disable CS0618
 #pragma warning disable CA2012
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
@@ -72,7 +73,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             list = Cache.Values.Where(a => a.MediaVersion < VideoLocal.MEDIA_VERSION || a.MediaInfo == null).ToList();
             max = list.Count;
 
-            var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
+            var scheduler = ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
             list.ForEach(
                 a =>
                 {
@@ -200,7 +201,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
 
         if (obj.FirstResolvedPlace is { } place)
         {
-            _videoService ??= (VideoService)Utils.ServiceContainer.GetRequiredService<IVideoService>();
+            _videoService ??= (VideoService)ISystemService.StaticServices.GetRequiredService<IVideoService>();
             _videoService.RefreshMediaInfo(place, obj);
         }
     }

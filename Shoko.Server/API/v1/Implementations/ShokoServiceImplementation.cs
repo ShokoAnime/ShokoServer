@@ -8,9 +8,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Quartz;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Services;
@@ -32,8 +33,8 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.API.v1.Implementations;
 
 [EmitEmptyEnumerableInsteadOfNull]
@@ -809,7 +810,7 @@ public partial class ShokoServiceImplementation : Controller
     {
         try
         {
-            Utils.ServiceContainer.GetRequiredService<ActionService>().CheckForCalendarUpdate(true).GetAwaiter().GetResult();
+            ISystemService.StaticServices.GetRequiredService<ActionService>().CheckForCalendarUpdate(true).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -834,7 +835,7 @@ public partial class ShokoServiceImplementation : Controller
 
         try
         {
-            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            var seriesService = ISystemService.StaticServices.GetRequiredService<AnimeSeriesService>();
             var user = RepoFactory.JMMUser.GetByID(userID);
             if (user == null)
                 return recs;

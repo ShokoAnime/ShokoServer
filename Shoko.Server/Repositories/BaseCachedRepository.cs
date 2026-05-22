@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -6,13 +6,14 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NutzCode.InMemoryIndex;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
-
+#pragma warning disable CS0618
 namespace Shoko.Server.Repositories;
 
 // ReSharper disable once InconsistentNaming
@@ -26,7 +27,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     private SystemService _systemService;
 
     // A hack to not have to pass the system service to every cached repository.
-    protected SystemService SystemService => _systemService ??= Utils.ServiceContainer.GetRequiredService<SystemService>();
+    protected SystemService SystemService => _systemService ??= ISystemService.StaticServices.GetRequiredService<SystemService>();
 
     public PocoCache<S, T> Cache;
 

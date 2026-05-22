@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using NLog;
 using Quartz;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Logging.Models;
 using Shoko.Abstractions.Logging.Services;
@@ -27,8 +28,8 @@ using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.API.v2.Modules;
 
 [Authorize("admin")]
@@ -441,7 +442,7 @@ public class Core : BaseController
     [HttpPost("user/create")]
     public async Task<ActionResult> CreateUser(CL_JMMUser body)
     {
-        var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+        var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
         JMMUser user = null;
         var tags = body.HideCategories?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .SelectMany(RepoFactory.AniDB_Tag.GetByName)
@@ -501,7 +502,7 @@ public class Core : BaseController
     [HttpPost("user/password")]
     public async Task<ActionResult> ChangePassword(CL_JMMUser body)
     {
-        var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+        var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
         var user = service.GetUserByID(body.JMMUserID);
         if (user is null)
             return APIStatus.NotFound();
@@ -518,7 +519,7 @@ public class Core : BaseController
     [HttpPost("user/password/{uid}")]
     public async Task<ActionResult> ChangePassword(int uid, CL_JMMUser body)
     {
-        var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+        var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
         var user = service.GetUserByID(uid);
         if (user is null)
             return APIStatus.NotFound();
@@ -535,7 +536,7 @@ public class Core : BaseController
     [HttpPost("user/delete")]
     public async Task<ActionResult> DeleteUser(CL_JMMUser body)
     {
-        var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+        var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
         var user = service.GetUserByID(body.JMMUserID);
         if (user is null)
             return APIStatus.NotFound();

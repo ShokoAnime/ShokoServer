@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Server.API.v1.Services;
@@ -12,8 +13,8 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.API.v2.Models.common;
 
 [DataContract]
@@ -83,7 +84,7 @@ public class Episode : BaseDirectory
             }
         }
 
-        var epService = Utils.ServiceContainer.GetRequiredService<ShokoServiceImplementationService>();
+        var epService = ISystemService.StaticServices.GetRequiredService<ShokoServiceImplementationService>();
         if (epService.GetV1Contract(aep, uid) is { } cae)
         {
             ep.name = cae.AniDB_EnglishName;

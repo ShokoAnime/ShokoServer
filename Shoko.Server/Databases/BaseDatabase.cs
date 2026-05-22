@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Extensions;
@@ -19,6 +20,7 @@ using Shoko.Server.Utilities;
 
 using Constants = Shoko.Server.Server.Constants;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Databases;
 
 public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
@@ -314,8 +316,8 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
         if (RepoFactory.StoredRelocationPipe.GetAll().Any())
             return;
 
-        var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
-        var relocationService = Utils.ServiceContainer.GetRequiredService<IVideoRelocationService>();
+        var configurationService = ISystemService.StaticServices.GetRequiredService<IConfigurationService>();
+        var relocationService = ISystemService.StaticServices.GetRequiredService<IVideoRelocationService>();
         var provider = relocationService.GetProviderInfo<WebAOMRenamer>();
         var configuration = provider.ConfigurationInfo is null ? null : Encoding.UTF8.GetBytes(
             configurationService.Serialize(

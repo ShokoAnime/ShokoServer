@@ -8,9 +8,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Nito.AsyncEx;
 using NLog;
 using Quartz;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Scheduling.GenericJobBuilder;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Scheduling;
 
@@ -113,7 +115,7 @@ public static class QuartzExtensions
 
     private static async Task ProcessJobs()
     {
-        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+        var scheduler = await ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler();
         var scheduleBuilder = SimpleScheduleBuilder.Create().WithMisfireHandlingInstructionIgnoreMisfires();
         while (_jobQueue.TryDequeue(out var jobs))
         {

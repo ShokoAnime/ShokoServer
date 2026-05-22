@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -16,8 +17,8 @@ using Shoko.Abstractions.User.Update;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -124,7 +125,7 @@ public class User
 
                 try
                 {
-                    var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+                    var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
                     var initialData = new UserUpdate();
                     if (Username is not null)
                         initialData.Username = Username;
@@ -250,7 +251,7 @@ public class User
 
                 try
                 {
-                    var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+                    var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
                     var updateData = new UserUpdate();
                     if (Username is not null)
                         updateData.Username = Username;

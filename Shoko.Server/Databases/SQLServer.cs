@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NHibernate.AdoNet;
 using NHibernate.Driver;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
@@ -18,6 +19,7 @@ using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Databases;
 
 public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection>(systemService)
@@ -152,7 +154,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
                 prop.BatchSize = 0;
                 prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
             })
-            .SetInterceptor(new NHibernateDependencyInjector(Utils.ServiceContainer)))
+            .SetInterceptor(new NHibernateDependencyInjector(ISystemService.StaticServices)))
             .BuildSessionFactory();
     }
 
@@ -950,7 +952,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
     {
         DropColumnWithDefaultConstraint("TMDB_Movie", "ImdbMovieID");
 
-        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
         using var transaction = session.BeginTransaction();
 
         const string alterCommand = "ALTER TABLE TMDB_Movie ADD ImdbMovieID NVARCHAR(12) NULL DEFAULT NULL;";
@@ -1009,7 +1011,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     private static void DropColumnWithDefaultConstraint(string table, string column)
     {
-        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
         using var trans = session.BeginTransaction();
         var query = $@"SELECT Name FROM sys.default_constraints
                         WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
@@ -1031,7 +1033,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     private static void DropDefaultConstraint(string table, string column)
     {
-        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
         using var trans = session.BeginTransaction();
         var query = $@"SELECT Name FROM sys.default_constraints
                         WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')

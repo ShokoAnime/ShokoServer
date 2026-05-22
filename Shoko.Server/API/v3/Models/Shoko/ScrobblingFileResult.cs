@@ -6,10 +6,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class ScrobblingFileResult : PhysicalFileResult
@@ -36,7 +37,7 @@ public class ScrobblingFileResult : PhysicalFileResult
         var end = GetRange(context.HttpContext, VideoLocal.FileSize);
         if (end != VideoLocal.FileSize) return;
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        var watchedService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
+        var watchedService = ISystemService.StaticServices.GetRequiredService<IUserDataService>();
         Task.Factory.StartNew(() => watchedService.SetVideoWatchedStatus(VideoLocal, User), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
     }

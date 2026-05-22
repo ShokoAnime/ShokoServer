@@ -27,6 +27,7 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Plugin;
 
@@ -360,7 +361,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             }
 
             var pluginType = localPluginInfo.PluginType!;
-            var pluginInstance = (IPlugin)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, pluginType);
+            var pluginInstance = (IPlugin)ActivatorUtilities.CreateInstance(ISystemService.StaticServices, pluginType);
             _pluginTypes[localPluginInfo.LoadOrder] = new()
             {
                 ID = pluginInstance.ID,
@@ -391,20 +392,20 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             logger.LogInformation("Initialized plugin \"{Name}\". ({DllName}, {Version})", pluginInstance.Name, dllName, localPluginInfo.Version);
         }
 
-        var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
+        var configurationService = ISystemService.StaticServices.GetRequiredService<IConfigurationService>();
         configurationService.AddParts(GetTypes<IConfiguration>());
 
-        var videoService = Utils.ServiceContainer.GetRequiredService<IVideoService>();
+        var videoService = ISystemService.StaticServices.GetRequiredService<IVideoService>();
         videoService.AddParts(GetExports<IManagedFolderIgnoreRule>());
 
         // Used to store the updated priorities for the providers in the settings file.
-        var videoReleaseService = Utils.ServiceContainer.GetRequiredService<IVideoReleaseService>();
+        var videoReleaseService = ISystemService.StaticServices.GetRequiredService<IVideoReleaseService>();
         videoReleaseService.AddParts(GetExports<IReleaseInfoProvider>());
 
-        var videoHashingService = Utils.ServiceContainer.GetRequiredService<IVideoHashingService>();
+        var videoHashingService = ISystemService.StaticServices.GetRequiredService<IVideoHashingService>();
         videoHashingService.AddParts(GetExports<IHashProvider>());
 
-        var relocationService = Utils.ServiceContainer.GetRequiredService<IVideoRelocationService>();
+        var relocationService = ISystemService.StaticServices.GetRequiredService<IVideoRelocationService>();
         relocationService.AddParts(GetExports<IRelocationProvider>());
     }
 
@@ -1021,7 +1022,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 if (pluginInfo.Plugin is not null)
                 {
                     pluginConfigDir += Path.DirectorySeparatorChar;
-                    var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
+                    var configurationService = ISystemService.StaticServices.GetRequiredService<IConfigurationService>();
                     var configInfos = configurationService.GetConfigurationInfo(pluginInfo.Plugin);
                     foreach (var configInfo in configInfos)
                     {
@@ -1283,7 +1284,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             : [];
 
     public T? GetExport<T>(Type type)
-        => !typeof(T).IsAssignableFrom(type) ? default : typeof(T).IsValueType ? (T?)Activator.CreateInstance(type) : (T?)ActivatorUtilities.GetServiceOrCreateInstance(Utils.ServiceContainer, type);
+        => !typeof(T).IsAssignableFrom(type) ? default : typeof(T).IsValueType ? (T?)Activator.CreateInstance(type) : (T?)ActivatorUtilities.GetServiceOrCreateInstance(ISystemService.StaticServices, type);
 
     public IEnumerable<T> GetExports<T>()
         => GetTypes<T>()
@@ -1291,7 +1292,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             {
                 try
                 {
-                    return ActivatorUtilities.GetServiceOrCreateInstance(Utils.ServiceContainer, t);
+                    return ActivatorUtilities.GetServiceOrCreateInstance(ISystemService.StaticServices, t);
                 }
                 catch (Exception ex)
                 {
@@ -1308,7 +1309,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             {
                 try
                 {
-                    return ActivatorUtilities.GetServiceOrCreateInstance(Utils.ServiceContainer, t);
+                    return ActivatorUtilities.GetServiceOrCreateInstance(ISystemService.StaticServices, t);
                 }
                 catch (Exception ex)
                 {
@@ -1320,16 +1321,16 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             .Cast<T>();
 
     public object? GetService(Type type)
-        => Utils.ServiceContainer.GetService(type);
+        => ISystemService.StaticServices.GetService(type);
 
     public T? GetService<T>()
-        => Utils.ServiceContainer.GetService<T>();
+        => ISystemService.StaticServices.GetService<T>();
 
     public object GetRequiredService(Type type)
-        => Utils.ServiceContainer.GetRequiredService(type);
+        => ISystemService.StaticServices.GetRequiredService(type);
 
     public T GetRequiredService<T>() where T : notnull
-        => Utils.ServiceContainer.GetRequiredService<T>();
+        => ISystemService.StaticServices.GetRequiredService<T>();
 
     #endregion
 }

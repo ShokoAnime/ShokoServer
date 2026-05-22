@@ -37,6 +37,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 using File = System.IO.File;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.API;
 
 public static partial class APIExtensions
@@ -80,7 +81,7 @@ public static partial class APIExtensions
             {
                 // Resolve the services we'll need from the static service provider
                 // since the app is running at this point.
-                var provider = Utils.ServiceContainer.GetRequiredService<IApiVersionDescriptionProvider>();
+                var provider = ISystemService.StaticServices.GetRequiredService<IApiVersionDescriptionProvider>();
                 var webSettings = Utils.SettingsProvider.GetSettings().Web;
 
                 // Add a swagger document for each discovered API version (server-only).

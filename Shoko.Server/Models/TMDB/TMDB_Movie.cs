@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
@@ -23,6 +24,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.Movies;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Models.TMDB;
 
@@ -514,11 +516,11 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
         => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
 
     public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
-        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+        => ISystemService.StaticServices.GetRequiredService<IImageManager>()
             .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
 
     public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
-        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+        => ISystemService.StaticServices.GetRequiredService<IImageManager>()
             .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
 
     #endregion

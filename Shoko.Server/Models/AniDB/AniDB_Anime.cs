@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -24,6 +25,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Models.AniDB;
 
@@ -259,7 +261,7 @@ public class AniDB_Anime : IAnidbAnime
                 if (title is not null)
                     return _defaultTitle = title;
 
-                var titleHelper = Utils.ServiceContainer.GetRequiredService<AniDBTitleHelper>();
+                var titleHelper = ISystemService.StaticServices.GetRequiredService<AniDBTitleHelper>();
                 if (titleHelper.SearchAnimeID(AnimeID) is { } titleResponse)
                     return _preferredTitle = titleResponse.Titles.First(title => title.TitleType == TitleType.Main);
 
@@ -515,10 +517,10 @@ public class AniDB_Anime : IAnidbAnime
         => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
 
     public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null)
-        => Utils.ServiceContainer.GetRequiredService<IImageManager>().GetImagesForEntity(this, imageSource, imageType);
+        => ISystemService.StaticServices.GetRequiredService<IImageManager>().GetImagesForEntity(this, imageSource, imageType);
 
     public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null)
-        => Utils.ServiceContainer.GetRequiredService<IImageManager>().GetImageCrossReferencesForEntity(this, imageSource, imageType);
+        => ISystemService.StaticServices.GetRequiredService<IImageManager>().GetImageCrossReferencesForEntity(this, imageSource, imageType);
 
     #endregion
 

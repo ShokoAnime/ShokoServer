@@ -1,8 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Enums;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Utilities;
 
@@ -44,7 +46,7 @@ public static class Languages
         }
         set
         {
-            if (Utils.ServiceContainer is null)
+            if (ISystemService.StaticServices is null)
                 return;
 
             lock (_lockObj)
@@ -84,7 +86,7 @@ public static class Languages
         }
         set
         {
-            if (Utils.ServiceContainer is null)
+            if (ISystemService.StaticServices is null)
                 return;
 
             lock (_lockObj)
@@ -124,7 +126,7 @@ public static class Languages
         }
         set
         {
-            if (Utils.ServiceContainer is null)
+            if (ISystemService.StaticServices is null)
                 return;
 
             lock (_lockObj)

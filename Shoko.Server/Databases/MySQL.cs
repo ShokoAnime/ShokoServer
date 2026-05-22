@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using NHibernate;
 using NHibernate.Driver.MySqlConnector;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -15,7 +16,7 @@ using Shoko.Server.Utilities;
 
 // ReSharper disable InconsistentNaming
 
-
+#pragma warning disable CS0618
 namespace Shoko.Server.Databases;
 
 public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(systemService)
@@ -176,7 +177,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
                 prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
-            }).SetInterceptor(new NHibernateDependencyInjector(Utils.ServiceContainer)))
+            }).SetInterceptor(new NHibernateDependencyInjector(ISystemService.StaticServices)))
             .BuildSessionFactory();
     }
 
@@ -1167,7 +1168,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
             $"WHERE table_schema = '{settings.Database.Schema}' " +
             "AND collation_name != 'utf8mb4_unicode_ci'";
         using var conn = new MySqlConnection(ConnectionString);
-        var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+        var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
         conn.Open();
         var rows = mySQL.ExecuteReader(conn, sql);
         if (rows.Count > 0)
@@ -1196,7 +1197,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
             $"WHERE table_schema = '{settings.Database.Schema}' " +
             "AND collation_name IN ('utf8_general_ci', 'utf8mb3_general_ci')";
         var conn = (MySqlConnection)connection;
-        var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+        var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
         var rows = mySQL.ExecuteReader(conn, sql);
         if (rows.Count > 0)
         {
@@ -1221,7 +1222,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         var settings = Utils.SettingsProvider.GetSettings();
 
         var conn = (MySqlConnection)connection;
-        var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+        var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
         mySQL.Execute(conn, $"ALTER DATABASE `{settings.Database.Schema}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
         return new Tuple<bool, string>(true, null);
     }

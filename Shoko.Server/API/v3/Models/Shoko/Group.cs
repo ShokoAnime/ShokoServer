@@ -6,18 +6,19 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Converters;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -342,11 +343,11 @@ public class Group : BaseModel
                 }
 
                 // Move the series over to the new group.
-                var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+                var seriesService = ISystemService.StaticServices.GetRequiredService<AnimeSeriesService>();
                 foreach (var series in seriesList)
                     seriesService.MoveSeries(series, group, updateGroupStats: false, updateEvent: false);
 
-                var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+                var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
                 // Set the main series and maybe update the group
                 // name/description.
                 if (PreferredSeriesID.HasValue)

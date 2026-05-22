@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.IO;
 using System.Threading;
@@ -7,6 +6,7 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#nullable enable
 namespace Shoko.IntegrationTests;
 
 /// <summary>
@@ -67,7 +67,7 @@ public sealed class DatabaseMigrationFixture : IDisposable
         };
 
         // StartAsync builds the full DI container (including all services used by database fixes)
-        // and sets Utils.ServiceContainer before LateStart triggers InitializeDatabase.
+        // and sets ISystemService.StaticServices before LateStart triggers InitializeDatabase.
         _host = systemService.StartAsync().GetAwaiter().GetResult();
         if (_host is null)
         {

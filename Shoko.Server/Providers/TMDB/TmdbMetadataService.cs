@@ -12,8 +12,9 @@ using Polly.Bulkhead;
 using Polly.RateLimit;
 using Polly.Retry;
 using Quartz;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Server.Models.Interfaces;
@@ -36,9 +37,10 @@ using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.People;
 using TMDbLib.Objects.TvShows;
 
-using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 using MovieCredits = TMDbLib.Objects.Movies.Credits;
+using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 
+#pragma warning disable CS0618
 // Suggestions we don't need in this file.
 #pragma warning disable CA1822
 #pragma warning disable CA1826
@@ -66,7 +68,7 @@ public class TmdbMetadataService : ITmdbMetadataService
                 if (_instance is not null)
                     return _instance;
 
-                return _instance = Utils.ServiceContainer?.GetService<TmdbMetadataService>();
+                return _instance = ISystemService.StaticServices?.GetService<TmdbMetadataService>();
             }
         }
     }
