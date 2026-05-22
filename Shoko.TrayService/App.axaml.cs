@@ -40,7 +40,7 @@ public partial class App : Application
         Console.CancelKeyPress += OnConsoleOnCancelKeyPress;
         InitialiseTrayIcon();
 
-        _systemService = new SystemService(Program.StartupArgs);
+        _systemService = new SystemService();
         _systemService.Shutdown += (_, _) => DispatchShutdown();
         var host = _systemService.StartAsync()
             .ConfigureAwait(true)

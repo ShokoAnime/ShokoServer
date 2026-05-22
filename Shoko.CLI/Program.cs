@@ -15,7 +15,7 @@ public static class Program
 {
     private static ILogger _logger = null!;
 
-    public static async Task<int> Main(string[] args)
+    public static async Task<int> Main()
     {
         try
         {
@@ -26,7 +26,7 @@ public static class Program
             Console.WriteLine(ex.ToString());
         }
 
-        var systemService = new SystemService(args);
+        var systemService = new SystemService();
         systemService.StartupFailed += OnStartupFailed;
         systemService.AboutToStart += (_, args) => AddEventHandlers(args.ServiceProvider);
         var host = await systemService.StartAsync();

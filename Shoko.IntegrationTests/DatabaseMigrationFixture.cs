@@ -35,13 +35,9 @@ public sealed class DatabaseMigrationFixture : IDisposable
         _tempDir = Path.Combine(Path.GetTempPath(), $"shoko-integration-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempDir);
 
-        // SHOKO_HOME controls Utils.ApplicationPath. Must be set before SystemService() reads it.
-        // Forward slashes avoid bad JSON escape sequences when the config service parses env vars.
-        Environment.SetEnvironmentVariable("SHOKO_HOME", _tempDir.Replace('\\', '/'));
-
         // SystemService() bootstraps Utils.SettingsProvider with default settings (FirstRun=true).
         // No settings file yet — defaults are valid and pass schema validation.
-        var systemService = new SystemService();
+        var systemService = new SystemService(["--config", _tempDir.Replace('\\', '/')]);
 
         // Mutate the live settings: disable first-run, inject fake AniDB credentials so the
         // settings custom-validator is satisfied, and move the web port away from 8111 so this

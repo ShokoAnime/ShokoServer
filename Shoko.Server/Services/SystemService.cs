@@ -89,9 +89,10 @@ public class SystemService : ISystemService
     {
         var now = DateTime.UtcNow;
         var args = startupArgs ?? Environment.GetCommandLineArgs().Skip(1).ToArray();
-        _databaseConversionOptions = DatabaseConversionOptions.TryParse(args, out var conversionOptions) ? conversionOptions : null;
 
         ApplicationPaths.SetHome(args);
+
+        _databaseConversionOptions = DatabaseConversionOptions.TryParse(args, out var conversionOptions) ? conversionOptions : null;
 
         LogService.InitLogger(ApplicationPaths.Instance);
         var loggerFactory = LoggerFactory.Create(o => o.AddNLog());

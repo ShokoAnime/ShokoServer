@@ -6,12 +6,9 @@ namespace Shoko.TrayService;
 
 public static class Program
 {
-    internal static string[] StartupArgs { get; private set; } = Array.Empty<string>();
-
     [STAThread]
     public static int Main(string[] args)
     {
-        StartupArgs = args;
         try
         {
             UnhandledExceptionManager.AddHandler();
