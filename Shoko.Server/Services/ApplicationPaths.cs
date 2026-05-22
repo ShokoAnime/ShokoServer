@@ -29,7 +29,7 @@ public class ApplicationPaths : IApplicationPaths
     /// <inheritdoc/>
     public string WebPath
         => s_dataPathOverride.Value is { Length: > 0 }
-            ? Path.Combine(DataPath, Utils.SettingsProvider.GetSettings().Web.WebUIPath)
+            ? Path.Combine(DataPath, ISettingsProvider.Instance.GetSettings().Web.WebUIPath)
             : _webPath ??= Path.Combine(DataPath, ISettingsProvider.Instance.GetSettings().Web.WebUIPath);
 
     private static string? _dataPath = null;
@@ -101,9 +101,6 @@ public class ApplicationPaths : IApplicationPaths
 
     /// <inheritdoc/>
     public string ImagesPath
-        => _imagesPath ??= ISettingsProvider.Instance.GetSettings().ImagesPath is { Length: > 0 } imagePath
-            ? Path.Combine(DataPath, imagePath)
-            : DefaultImagePath;
         => s_dataPathOverride.Value is { Length: > 0 }
             ? ISettingsProvider.Instance.GetSettings().ImagesPath is { Length: > 0 } configuredImagePath
                 ? Path.Combine(DataPath, configuredImagePath)
