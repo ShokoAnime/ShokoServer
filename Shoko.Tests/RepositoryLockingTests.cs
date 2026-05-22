@@ -1,10 +1,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 using Xunit;
 
 namespace Shoko.Tests;
@@ -119,13 +118,13 @@ public class RepositoryLockingTests
 
         public SettingsScope(IServerSettings settings)
         {
-            _previous = Utils.SettingsProvider;
-            Utils.SettingsProvider = new TestSettingsProvider(settings);
+            _previous = ISettingsProvider.Instance;
+            ISettingsProvider.Instance = new TestSettingsProvider(settings);
         }
 
         public void Dispose()
         {
-            Utils.SettingsProvider = _previous;
+            ISettingsProvider.Instance = _previous;
         }
     }
 

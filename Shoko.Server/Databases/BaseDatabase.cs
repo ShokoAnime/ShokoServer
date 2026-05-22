@@ -16,7 +16,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 using Constants = Shoko.Server.Server.Constants;
 
@@ -39,7 +39,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
             if (_databaseBackupDirectoryPath != null)
                 return _databaseBackupDirectoryPath;
 
-            var dirPath = Utils.SettingsProvider.GetSettings().Database.DatabaseBackupDirectory;
+            var dirPath = ISettingsProvider.Instance.GetSettings().Database.DatabaseBackupDirectory;
             if (string.IsNullOrWhiteSpace(dirPath))
                 return _databaseBackupDirectoryPath = ApplicationPaths.StaticDataPath;
 
@@ -51,7 +51,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
 
     public string GetDatabaseBackupName(int version)
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         try
         {
             Directory.CreateDirectory(DatabaseBackupDirectoryPath);
@@ -294,7 +294,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
             return;
         }
 
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
 
         var defaultPassword = settings.Database.DefaultUserPassword == ""
             ? ""

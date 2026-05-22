@@ -10,7 +10,7 @@ using NLog;
 using Quartz;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Scheduling.GenericJobBuilder;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 #pragma warning disable CS0618
 #nullable enable
@@ -49,7 +49,7 @@ public static class QuartzExtensions
     /// <returns></returns>
     public static Task StartJob<T>(this IScheduler scheduler, Action<T>? data = null, bool prioritize = false, DateTimeOffset? startTime = null) where T : class, IJob
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var job = data != null
             ? JobBuilder<T>.Create().UsingJobData(data).WithGeneratedIdentity().Build()
             : JobBuilder<T>.Create().WithGeneratedIdentity().Build();
@@ -67,7 +67,7 @@ public static class QuartzExtensions
     private static void PerhapsFlush(bool force = false)
     {
         (IJobDetail job, int priority, DateTimeOffset? startTime)[]? jobs = null;
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         if (!force && (_jobTimer?.Enabled ?? false) && _pendingJobs.Count < settings.Quartz.BatchMaxInsertSize) return;
         lock (_flushLock)
         {

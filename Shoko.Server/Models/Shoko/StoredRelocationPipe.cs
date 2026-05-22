@@ -1,7 +1,7 @@
 using System;
-using Shoko.Abstractions.Video.Relocation;
 using Shoko.Abstractions.Utilities;
-using Shoko.Server.Utilities;
+using Shoko.Abstractions.Video.Relocation;
+using Shoko.Server.Settings;
 
 #nullable enable
 namespace Shoko.Server.Models.Shoko;
@@ -40,5 +40,5 @@ public class StoredRelocationPipe : IStoredRelocationPipe
         => _id ??= UuidUtility.GetV5($"StoredRelocationPipe-{StoredRelocationPipeID}");
 
     public bool IsDefault
-        => Utils.SettingsProvider.GetSettings().Plugins.Renamer.DefaultRenamer == Name;
+        => ISettingsProvider.Instance.GetSettings().Plugins.Renamer.DefaultRenamer == Name;
 }

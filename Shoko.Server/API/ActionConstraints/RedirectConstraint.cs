@@ -1,7 +1,6 @@
-
 using System;
 using Microsoft.AspNetCore.Mvc.ActionConstraints;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.ActionConstraints;
 
@@ -15,7 +14,7 @@ public class RedirectConstraint : IActionConstraint
         if (!string.Equals(requestPath, "/", StringComparison.OrdinalIgnoreCase))
             return false;
 
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         return settings.Web.EnableIndexRedirect && settings.Web.EnableWebUI && !string.Equals(settings.Web.WebUIPublicPath, "/", StringComparison.OrdinalIgnoreCase);
     }
 }

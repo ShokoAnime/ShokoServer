@@ -8,7 +8,7 @@ using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.AniDB.UDP;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Providers.AniDB;
 
@@ -50,7 +50,7 @@ public static class AniDBStartup
                 client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
                 client.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("deflate"));
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1");
-                client.BaseAddress = new Uri(Utils.SettingsProvider.GetSettings().AniDb.HTTPServerUrl);
+                client.BaseAddress = new Uri(ISettingsProvider.Instance.GetSettings().AniDb.HTTPServerUrl);
             })
             .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
             .UseSocketsHttpHandler((handler, _) =>

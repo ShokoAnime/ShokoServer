@@ -17,7 +17,6 @@ using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Delegates;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
 #pragma warning disable CS8618
@@ -99,7 +98,7 @@ public class ThreadPooledJobStore : JobStoreTX
             }
         }
 
-        if (Utils.SettingsProvider.GetSettings().Quartz.LimitedConcurrencyOverrides is { Count: > 0 } overrides)
+        if (ISettingsProvider.Instance.GetSettings().Quartz.LimitedConcurrencyOverrides is { Count: > 0 } overrides)
         {
             foreach (var kv in overrides)
             {

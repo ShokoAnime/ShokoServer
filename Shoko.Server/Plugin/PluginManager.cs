@@ -25,7 +25,6 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Relocation;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
 #nullable enable
@@ -240,7 +239,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         var directories = GetPluginDirectories().ToArray();
         logger.LogTrace("Scanning {Count} directories for plugins...", directories.Length);
         var settingsChanged = false;
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         foreach (var (dirPath, dlls, isSystem) in directories)
             if (LoadInternalPluginInfo(dirPath, dlls, isSystem, settings, ref settingsChanged) is { } internalPluginInfo)
                 internalPlugins.Add(internalPluginInfo);
@@ -249,7 +248,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         GC.WaitForPendingFinalizers();
 
         if (settingsChanged)
-            Utils.SettingsProvider.SaveSettings();
+            ISettingsProvider.Instance.SaveSettings();
 
         foreach (var grouping in internalPlugins.OrderBy(a => a.Priority).GroupBy(a => a.ID))
         {
@@ -511,10 +510,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     private InternalPluginInfo? LoadInternalPluginInfo(string? containingDirectory, string[] dlls)
     {
         var settingsChanged = false;
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var internalPluginInfo = LoadInternalPluginInfo(containingDirectory, dlls, false, settings, ref settingsChanged);
         if (settingsChanged)
-            Utils.SettingsProvider.SaveSettings();
+            ISettingsProvider.Instance.SaveSettings();
 
         if (internalPluginInfo is not null)
             logger.LogInformation("Loaded inactive plugin \"{Name}\". ({DllName}, {Version})", internalPluginInfo.Name, Path.GetFileNameWithoutExtension(internalPluginInfo.DLLs[0]), internalPluginInfo.Version);
@@ -1006,9 +1005,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
             // Remove it from the enabled plugins dictionary.
             var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             if (settings.Plugins.EnabledPlugins.Remove(dllName))
-                Utils.SettingsProvider.SaveSettings(settings);
+                ISettingsProvider.Instance.SaveSettings(settings);
 
             // Purge configuration if requested.
             if (purgeConfiguration)
@@ -1207,7 +1206,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     private LocalPluginInfo TogglePlugin(LocalPluginInfo pluginInfo, bool enabled)
     {
         var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         if (enabled)
         {
             if (!pluginInfo.IsInstalled)
@@ -1216,7 +1215,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             if ((!settings.Plugins.EnabledPlugins.ContainsKey(dllName)) || !settings.Plugins.EnabledPlugins[dllName])
             {
                 settings.Plugins.EnabledPlugins[dllName] = true;
-                Utils.SettingsProvider.SaveSettings(settings);
+                ISettingsProvider.Instance.SaveSettings(settings);
             }
         }
         else
@@ -1224,7 +1223,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             if (settings.Plugins.EnabledPlugins.TryGetValue(dllName, out var value) && value)
             {
                 settings.Plugins.EnabledPlugins[dllName] = false;
-                Utils.SettingsProvider.SaveSettings(settings);
+                ISettingsProvider.Instance.SaveSettings(settings);
             }
         }
 

@@ -55,7 +55,6 @@ using Shoko.Server.Services.Connectivity;
 using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
-using Shoko.Server.Utilities;
 using Trinet.Core.IO.Ntfs;
 
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
@@ -104,7 +103,7 @@ public class SystemService : ISystemService
         BootstrappedAt = now;
 
         // Set the singleton instance for the settings provider.
-        Utils.SettingsProvider = _settingsProvider;
+        ISettingsProvider.Instance = _settingsProvider;
     }
 
     #region General

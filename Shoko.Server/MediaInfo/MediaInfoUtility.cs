@@ -12,7 +12,7 @@ using NLog;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.MediaInfo.Converters;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.MediaInfo;
 
@@ -547,7 +547,7 @@ public static class MediaInfoUtility
             if (File.Exists(path)) return path;
         }
 
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         path = settings.Import.MediaInfoPath;
         if (!string.IsNullOrEmpty(path) && File.Exists(path)) return path;
 
@@ -563,7 +563,7 @@ public static class MediaInfoUtility
         if (settings.Import.MediaInfoPath == null)
         {
             settings.Import.MediaInfoPath = appPath;
-            Utils.SettingsProvider.SaveSettings();
+            ISettingsProvider.Instance.SaveSettings();
         }
 
         return appPath;
@@ -574,7 +574,7 @@ public static class MediaInfoUtility
         MediaContainer m = null;
         var mediaTask = Task.Run(() => GetMediaInfo_Internal(filename));
 
-        var timeout = Utils.SettingsProvider.GetSettings().Import.MediaInfoTimeoutMinutes;
+        var timeout = ISettingsProvider.Instance.GetSettings().Import.MediaInfoTimeoutMinutes;
         if (timeout > 0)
         {
             var task = Task.WhenAny(mediaTask, Task.Delay(TimeSpan.FromMinutes(timeout))).Result;

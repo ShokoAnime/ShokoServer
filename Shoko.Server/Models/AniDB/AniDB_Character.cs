@@ -13,7 +13,7 @@ using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 #pragma warning disable CS0618
 #nullable enable
@@ -71,7 +71,7 @@ public class AniDB_Character : ICharacter
         }
         : null;
 
-    IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && Utils.SettingsProvider.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
+    IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && ISettingsProvider.Instance.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
         ? new TextStub()
         {
             Language = TitleLanguage.English,

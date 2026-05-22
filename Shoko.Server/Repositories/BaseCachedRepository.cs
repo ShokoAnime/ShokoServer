@@ -11,7 +11,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Repositories;
@@ -59,7 +59,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         }
 
         // This is only called from main thread, so we don't need to lock
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         Cache = new PocoCache<S, T>(session.CreateCriteria(typeof(T)).SetTimeout(settings.CachingDatabaseTimeout).List<T>(), SelectKey);
         PopulateIndexes();
     }

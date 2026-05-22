@@ -28,6 +28,7 @@ using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
@@ -242,7 +243,7 @@ public class AnimeSeries : IShokoSeries
                     Type = TitleType.Main,
                 };
 
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             var sourceOrder = settings.Language.SeriesTitleSourceOrder;
             var languageOrder = Languages.PreferredNamingLanguages;
             var anime = AniDB_Anime;
@@ -382,7 +383,7 @@ public class AnimeSeries : IShokoSeries
                 return _preferredOverview;
             _preferredOverviewLoaded = true;
 
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             var sourceOrder = settings.Language.DescriptionSourceOrder;
             var languageOrder = Languages.PreferredDescriptionNamingLanguages;
             var anidbOverview = AniDB_Anime?.Description;

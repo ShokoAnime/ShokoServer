@@ -6,6 +6,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 #nullable enable
 namespace Shoko.Server.Providers.AniDB.Titles;
@@ -51,7 +52,7 @@ public class ResponseAniDBTitles
                         return title;
 
                     // Then check for _any_ title at all, if there is no main or official title in the language.
-                    if (Utils.SettingsProvider.GetSettings().Language.UseSynonyms)
+                    if (ISettingsProvider.Instance.GetSettings().Language.UseSynonyms)
                     {
                         title = Titles.FirstOrDefault(t => t.Language == language);
                         if (title != null)

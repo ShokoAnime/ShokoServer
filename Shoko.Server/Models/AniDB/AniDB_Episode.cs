@@ -19,6 +19,7 @@ using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
@@ -197,7 +198,7 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
         }
         : null;
 
-    IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && Utils.SettingsProvider.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
+    IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && ISettingsProvider.Instance.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
         ? new TextStub()
         {
             Language = TitleLanguage.English,

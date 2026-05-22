@@ -10,7 +10,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Tasks;
@@ -70,7 +70,7 @@ public class AutoAnimeGroupCalculator
     /// <returns>The created <see cref="AutoAnimeGroupCalculator"/>.</returns>
     public static AutoAnimeGroupCalculator CreateFromServerSettings()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var mainAnimeSelectionStrategy = settings.AutoGroupSeriesUseScoreAlgorithm
             ? MainAnimeSelectionStrategy.Weighted
             : MainAnimeSelectionStrategy.MinAirDate;

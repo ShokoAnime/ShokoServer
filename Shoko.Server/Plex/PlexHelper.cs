@@ -18,7 +18,7 @@ using Shoko.Server.Plex.Models.Connections;
 using Shoko.Server.Plex.Models.Login;
 using Shoko.Server.Plugin;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 using Directory = Shoko.Server.Plex.Models.Libraries.Directory;
 using MediaContainer = Shoko.Server.Plex.Models.Connections.MediaContainer;
@@ -59,7 +59,7 @@ public class PlexHelper
     {
         get
         {
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             if (string.IsNullOrEmpty(settings.Plex.Server))
             {
                 return null;
@@ -333,7 +333,7 @@ public class PlexHelper
 
     public void UseServer(MediaDevice server)
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         if (server == null)
         {
             settings.Plex.Server = null;
@@ -347,7 +347,7 @@ public class PlexHelper
 
         settings.Plex.Server = server.ClientIdentifier;
         ServerCache = server;
-        Utils.SettingsProvider.SaveSettings();
+        ISettingsProvider.Instance.SaveSettings();
     }
 
     public Directory[] GetDirectories()

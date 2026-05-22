@@ -17,6 +17,7 @@ using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities;
 
@@ -148,7 +149,7 @@ public static partial class AVDumpHelper
         if (!PrepareAVDump())
             return new("Failed to install or update the AVDump component.");
 
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey) || string.IsNullOrWhiteSpace(settings.AniDb.Username))
         {
             var message = "Missing AVDump API Key in the settings.";

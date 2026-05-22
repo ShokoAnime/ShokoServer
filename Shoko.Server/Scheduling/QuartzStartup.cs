@@ -20,7 +20,7 @@ using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Scheduling;
@@ -29,7 +29,7 @@ public static class QuartzStartup
 {
     public static async Task ScheduleRecurringJobs(bool replace)
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
 
         // this needs to run immediately upon scheduling, so it replaces always. Others will run on other schedules
         // Also give it a high priority, since it affects Acquisition Filters
@@ -118,7 +118,7 @@ public static class QuartzStartup
         services.AddJobs();
         services.AddQuartz(q =>
         {
-            var settings = Utils.SettingsProvider.GetSettings().Quartz;
+            var settings = ISettingsProvider.Instance.GetSettings().Quartz;
             var threadPoolSize = settings.MaxThreadPoolSize;
             // if it's not set in the settings, then do the number of logical processors + 2. This is to allow a couple to rate limit in the queue
             if (threadPoolSize <= 0) threadPoolSize = Environment.ProcessorCount + 2;
@@ -150,7 +150,7 @@ public static class QuartzStartup
     {
         q.UsePersistentStore<ThreadPooledJobStore>(options =>
         {
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             if (string.IsNullOrEmpty(settings.Quartz?.ConnectionString))
                 throw new ArgumentNullException(nameof(settings.Quartz.ConnectionString), @"The connection string for Quartz was null");
 

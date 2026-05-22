@@ -14,7 +14,7 @@ using Shoko.Server.Databases.SqliteFixes;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 // ReSharper disable InconsistentNaming
 
@@ -34,7 +34,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         .Max(x => x.Version);
 
     private static string GetDatabaseFilePath()
-        => Path.Combine(DatabasePath, Utils.SettingsProvider.GetSettings().Database.SQLite_DatabaseFile);
+        => Path.Combine(DatabasePath, ISettingsProvider.Instance.GetSettings().Database.SQLite_DatabaseFile);
 
     private static string _databasePath;
 
@@ -45,7 +45,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
             if (_databasePath != null)
                 return _databasePath;
 
-            var dirPath = Utils.SettingsProvider.GetSettings().Database.MySqliteDirectory;
+            var dirPath = ISettingsProvider.Instance.GetSettings().Database.MySqliteDirectory;
             if (string.IsNullOrWhiteSpace(dirPath))
                 return _databasePath = ApplicationPaths.StaticDataPath;
 
@@ -113,7 +113,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
 
     public override string GetConnectionString()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         // we are assuming that if you have overridden the connection string, you know what you're doing, and have set up the database and perms
         if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
             return settings.Database.OverrideConnectionString;
@@ -125,7 +125,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
 
     public override ISessionFactory CreateSessionFactory()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         return Fluently.Configure()
             .Database(MsSqliteConfiguration.Standard.ConnectionString(c => c.Is(GetConnectionString()))
                 .Dialect<SqliteDialectFix>()
@@ -166,7 +166,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
             return;
         if (!Directory.Exists(DatabasePath))
             Directory.CreateDirectory(DatabasePath);
-        Utils.SettingsProvider.GetSettings().Database.SQLite_DatabaseFile = GetDatabaseFilePath();
+        ISettingsProvider.Instance.GetSettings().Database.SQLite_DatabaseFile = GetDatabaseFilePath();
     }
 
     public override void CreateAndUpdateSchema()

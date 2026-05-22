@@ -23,6 +23,7 @@ using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
@@ -321,7 +322,7 @@ public class AniDB_Anime : IAnidbAnime
                     return _preferredTitle = title;
 
                 // Then check for _any_ title at all, if there is no main or official title in the language.
-                if (Utils.SettingsProvider.GetSettings().Language.UseSynonyms)
+                if (ISettingsProvider.Instance.GetSettings().Language.UseSynonyms)
                 {
                     title = titles.FirstOrDefault(t => t.Language == thisLanguage);
                     if (title != null)
@@ -486,7 +487,7 @@ public class AniDB_Anime : IAnidbAnime
         }
         : null;
 
-    IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && Utils.SettingsProvider.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
+    IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && ISettingsProvider.Instance.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
         ? new TextStub()
         {
             Language = TitleLanguage.English,

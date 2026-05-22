@@ -3,7 +3,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;
 
@@ -37,7 +37,7 @@ public class AniDBHttpConnectionHandler : ConnectionHandler, IHttpConnectionHand
         var response = await _rateLimiter.EnsureRate(async () =>
         {
             var httpClient = _httpClientFactory.CreateClient("AniDB");
-            var baseAddress = new Uri(Utils.SettingsProvider.GetSettings().AniDb.HTTPServerUrl);
+            var baseAddress = new Uri(ISettingsProvider.Instance.GetSettings().AniDb.HTTPServerUrl);
             if (httpClient.BaseAddress is null || !httpClient.BaseAddress.Equals(baseAddress))
                 httpClient.BaseAddress = baseAddress;
 

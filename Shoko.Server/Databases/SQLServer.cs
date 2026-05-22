@@ -15,7 +15,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 // ReSharper disable InconsistentNaming
 
@@ -93,7 +93,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         //2) The SqlServer running account should have read write access to our backup dir which is nono
         // So we backup in the default SQL SERVER BACKUP DIRECTORY.
 
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var cmd = "BACKUP DATABASE[" + settings.Database.Schema + "] TO DISK = '" +
                   fileName.Replace("'", "''") + "'";
 
@@ -126,7 +126,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     public override string GetTestConnectionString()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         // we are assuming that if you have overridden the connection string, you know what you're doing, and have set up the database and perms
         if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
             return settings.Database.OverrideConnectionString;
@@ -135,7 +135,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     public override string GetConnectionString()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
             return settings.Database.OverrideConnectionString;
         return
@@ -144,7 +144,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     public override ISessionFactory CreateSessionFactory()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         return Fluently.Configure()
             .Database(MsSqlConfiguration.MsSql2012.ConnectionString(GetConnectionString()).Driver<MicrosoftDataSqlClientDriver>())
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<SystemService>())
@@ -160,7 +160,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     public override bool DatabaseAlreadyExists()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var cmd = $"Select count(*) from sysdatabases where name = '{settings.Database.Schema}'";
         using var tmpConn = new SqlConnection(GetTestConnectionString());
         tmpConn.Open();
@@ -174,7 +174,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
     {
         if (DatabaseAlreadyExists()) return;
 
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var cmd = $"CREATE DATABASE {settings.Database.Schema}";
         using var connection = new SqlConnection(GetTestConnectionString());
         var command = new SqlCommand(cmd, connection);

@@ -45,8 +45,8 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services;
+using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
-using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
 #pragma warning disable CA2012
@@ -1252,7 +1252,7 @@ public class DatabaseFixes
         var factory = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
         var configurationService = ISystemService.StaticServices.GetRequiredService<IConfigurationService>();
         var renamerService = ISystemService.StaticServices.GetRequiredService<IVideoRelocationService>();
-        var settingsProvider = Utils.SettingsProvider;
+        var settingsProvider = ISettingsProvider.Instance;
 
         var sessionFactory = factory.CreateSessionFactory();
         using var session = sessionFactory.OpenSession();

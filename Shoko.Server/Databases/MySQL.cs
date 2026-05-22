@@ -12,7 +12,7 @@ using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 // ReSharper disable InconsistentNaming
 
@@ -124,7 +124,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
     {
         get
         {
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
                 return settings.Database.OverrideConnectionString;
             return
@@ -134,7 +134,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
 
     public override string GetTestConnectionString()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         // we are assuming that if you have overridden the connection string, you know what you're doing, and have set up the database and perms
         if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
             return settings.Database.OverrideConnectionString;
@@ -157,7 +157,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
 
     public override ISessionFactory CreateSessionFactory()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
 
         var connectionConfig = MySQLConfiguration.Standard
             .Driver<MySqlConnectorDriver>();
@@ -183,7 +183,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
 
     public override bool DatabaseAlreadyExists()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         try
         {
             var connStr = GetConnectionString();
@@ -213,7 +213,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
 
     public override void CreateDatabase()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         try
         {
             if (DatabaseAlreadyExists()) return;
@@ -236,7 +236,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
     {
         ConnectionWrapper(GetConnectionString(), myConn =>
         {
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             var create = false;
             var fixTablesForLinux = false;
             var count = ExecuteScalar(myConn,
@@ -531,7 +531,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new( 34,  1),
         new( 35,  1, "CREATE TABLE `CustomTag` ( `CustomTagID` INT NOT NULL AUTO_INCREMENT, `TagName` text character set utf8, `TagDescription` text character set utf8, PRIMARY KEY (`CustomTagID`) ) ; "),
         new( 35,  2, "CREATE TABLE `CrossRef_CustomTag` ( `CrossRef_CustomTagID` INT NOT NULL AUTO_INCREMENT, `CustomTagID` int NOT NULL, `CrossRefID` int NOT NULL, `CrossRefType` int NOT NULL, PRIMARY KEY (`CrossRef_CustomTagID`) ) ; "),
-        new( 36,  1, $"ALTER DATABASE {Utils.SettingsProvider.GetSettings().Database.Schema} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;"),
+        new( 36,  1, $"ALTER DATABASE {ISettingsProvider.Instance.GetSettings().Database.Schema} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;"),
         new( 37,  1, "ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_AnimeID` ;"),
         new( 37,  2, "ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_Anime` ;"),
         new( 37,  3, "ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_MALID` (`MALID` ASC) ;"),
@@ -1161,7 +1161,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
 
     private static void MySQLFixUTF8()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var sql =
             "SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
             "FROM information_schema.COLUMNS " +
@@ -1190,7 +1190,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
 
     private static Tuple<bool, string> MySQLFixUTF8MB4(object connection)
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var sql =
             "SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
             "FROM information_schema.COLUMNS " +
@@ -1219,7 +1219,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
 
     private static Tuple<bool, string> SetDefaultCollationToUTF8MB4(object connection)
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
 
         var conn = (MySqlConnection)connection;
         var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;

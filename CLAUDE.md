@@ -147,7 +147,7 @@ Plugin controllers are registered via `AddPluginControllers` during API setup.
 **No `appsettings.json`** exists in the repo. Configuration is code-based:
 - **`ServerSettings`** — primary settings class, persisted to `settings-server.json` via `[StorageLocation]` attribute
 - **`ConfigurationProvider<T>`** — generic provider using `INewtonsoftJsonConfiguration` for JSON serialization
-- **`SettingsProvider`** — singleton accessor (`Utils.SettingsProvider`) for runtime settings access
+- **`SettingsProvider`** — singleton accessor (`ISettingsProvider.Instance`) for runtime settings access
 - `appsettings.json` is configured as an **optional** overlay in the host builder but is not shipped
 
 ### Testing

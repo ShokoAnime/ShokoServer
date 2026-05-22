@@ -16,7 +16,7 @@ using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 using TMDbLib.Objects.TvShows;
 
 #pragma warning disable CS0618
@@ -127,7 +127,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
     };
 
     /// <inheritdoc/>
-    public ITitle? GetPreferredTitle() => Utils.SettingsProvider.GetSettings().Language.SeriesTitleLanguageOrder.Contains("en-US")
+    public ITitle? GetPreferredTitle() => ISettingsProvider.Instance.GetSettings().Language.SeriesTitleLanguageOrder.Contains("en-US")
         ? new TitleStub()
         {
             Language = TitleLanguage.EnglishAmerican,

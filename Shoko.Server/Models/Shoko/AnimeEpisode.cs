@@ -24,6 +24,7 @@ using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
@@ -128,7 +129,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
                     Type = TitleType.Main,
                 };
 
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             var sourceOrder = settings.Language.EpisodeTitleSourceOrder;
             var languageOrder = Languages.PreferredEpisodeNamingLanguages;
 
@@ -218,7 +219,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
     {
         get
         {
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             var sourceOrder = settings.Language.DescriptionSourceOrder;
             var languageOrder = Languages.PreferredDescriptionNamingLanguages;
             var anidbOverview = AniDB_Episode?.Description;
