@@ -93,7 +93,7 @@ public static class QuartzStartup
 
     private static async Task RemoveRecurringJobs(IEnumerable<JobKey> jobKeys)
     {
-        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+        var scheduler = await ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler();
 
         using var _ = await QuartzExtensions.SchedulerLock.WriterLockAsync();
         foreach (var jobKey in jobKeys)
