@@ -1060,7 +1060,8 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             if (_rotationEnabled != logging.RotationEnabled)
             {
                 _rotationEnabled = logging.RotationEnabled;
-                ISystemService.StaticServices?.GetRequiredService<ILogService>().StartMaintenance();
+                if (ISystemService.HasStaticServices)
+                    ISystemService.StaticServices.GetRequiredService<ILogService>().StartMaintenance();
             }
         }
     }

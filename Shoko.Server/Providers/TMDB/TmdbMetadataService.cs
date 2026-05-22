@@ -68,7 +68,10 @@ public class TmdbMetadataService : ITmdbMetadataService
                 if (_instance is not null)
                     return _instance;
 
-                return _instance = ISystemService.StaticServices?.GetService<TmdbMetadataService>();
+                if (!ISystemService.HasStaticServices)
+                    return null;
+
+                return _instance = ISystemService.StaticServices.GetService<TmdbMetadataService>();
             }
         }
     }

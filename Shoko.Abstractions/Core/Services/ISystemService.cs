@@ -234,6 +234,11 @@ public interface ISystemService
     private static IServiceProvider? _services = null;
 
     /// <summary>
+    ///   Determines if the static services are available yet.
+    /// </summary>
+    public static bool HasStaticServices => _services is not null;
+
+    /// <summary>
     ///   Get or set the static service provider. DO NOT USE UNLESS ABSOLUTELY
     ///   NECESSARY.
     /// </summary>
