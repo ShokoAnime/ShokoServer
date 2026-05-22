@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Quartz;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -20,6 +21,7 @@ using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Utilities;
 
 public class Scanner
@@ -166,9 +168,9 @@ public class Scanner
         var files = ActiveErrorFiles.ToList();
         ActiveErrorFiles.Clear();
         var seriesToUpdate = new HashSet<AnimeSeries>();
-        var vlpService = (VideoService)Utils.ServiceContainer.GetRequiredService<IVideoService>();
-        var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
-        var databaseFactory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>();
+        var vlpService = (VideoService)ISystemService.StaticServices.GetRequiredService<IVideoService>();
+        var scheduler = ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
+        var databaseFactory = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>();
         using (var session = databaseFactory.SessionFactory.OpenSession())
         {
             files.ForEach(file =>
@@ -191,7 +193,7 @@ public class Scanner
     {
         if (RunScan != null && RunScan.Status != ScanStatus.Finished)
         {
-            var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
+            var scheduler = ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
             scheduler.PauseAll();
             var s = RunScan;
             s.Status = ScanStatus.Running;
@@ -199,7 +201,7 @@ public class Scanner
             Refresh();
             var files = RepoFactory.ScanFile.GetWaiting(s.ScanID);
             var cnt = 0;
-            var hashingService = Utils.ServiceContainer.GetRequiredService<IVideoHashingService>();
+            var hashingService = ISystemService.StaticServices.GetRequiredService<IVideoHashingService>();
             var hasher = hashingService.GetProviderInfo<CoreHashProvider>().Provider;
             foreach (var sf in files)
             {

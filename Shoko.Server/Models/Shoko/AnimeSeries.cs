@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -10,8 +11,8 @@ using Shoko.Abstractions.Metadata.Anilist.CrossReferences;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
-using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
@@ -27,8 +28,10 @@ using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Models.Shoko;
 
@@ -185,7 +188,7 @@ public class AnimeSeries : IShokoSeries
                 if (AniDB_Anime is { } anime)
                     return _defaultTitle = anime.DefaultTitle;
 
-                var titleHelper = Utils.ServiceContainer.GetRequiredService<AniDBTitleHelper>();
+                var titleHelper = ISystemService.StaticServices.GetRequiredService<AniDBTitleHelper>();
                 if (titleHelper.SearchAnimeID(AniDB_ID) is { } titleResponse && titleResponse.Titles.FirstOrDefault(title => title.TitleType == TitleType.Main) is { } defaultTitle)
                     return _defaultTitle = defaultTitle;
 
@@ -240,7 +243,7 @@ public class AnimeSeries : IShokoSeries
                     Type = TitleType.Main,
                 };
 
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             var sourceOrder = settings.Language.SeriesTitleSourceOrder;
             var languageOrder = Languages.PreferredNamingLanguages;
             var anime = AniDB_Anime;
@@ -380,7 +383,7 @@ public class AnimeSeries : IShokoSeries
                 return _preferredOverview;
             _preferredOverviewLoaded = true;
 
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             var sourceOrder = settings.Language.DescriptionSourceOrder;
             var languageOrder = Languages.PreferredDescriptionNamingLanguages;
             var anidbOverview = AniDB_Anime?.Description;
@@ -694,11 +697,11 @@ public class AnimeSeries : IShokoSeries
         => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
 
     public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
-        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+        => ISystemService.StaticServices.GetRequiredService<IImageManager>()
             .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
 
     public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
-        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+        => ISystemService.StaticServices.GetRequiredService<IImageManager>()
             .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
 
     #endregion

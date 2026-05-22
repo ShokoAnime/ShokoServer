@@ -5,11 +5,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Enums;
@@ -27,6 +28,7 @@ using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.API.v1.Implementations;
 
 public partial class ShokoServiceImplementation
@@ -77,7 +79,7 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            var seriesService = Utils.ServiceContainer.GetService<AnimeSeriesService>();
+            var seriesService = ISystemService.StaticServices.GetService<AnimeSeriesService>();
             var series = RepoFactory.AnimeSeries.GetByID(animeSeriesID);
             if (series is null)
                 return null;
@@ -995,9 +997,9 @@ public partial class ShokoServiceImplementation
 
             _userDataService.SetEpisodeWatchedStatus(ep, user, watchedStatus, DateTime.Now).GetAwaiter().GetResult();
             var series = ep.AnimeSeries;
-            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            var seriesService = ISystemService.StaticServices.GetRequiredService<AnimeSeriesService>();
             seriesService.UpdateStats(series, true, false);
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
             groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, true, true);
 
             // refresh from db
@@ -1239,7 +1241,7 @@ public partial class ShokoServiceImplementation
                 return "Could not find user record";
 
             AnimeSeries ser = null;
-            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            var seriesService = ISystemService.StaticServices.GetRequiredService<AnimeSeriesService>();
             foreach (var ep in eps)
             {
                 if (ep?.AniDB_Episode is null)
@@ -1273,7 +1275,7 @@ public partial class ShokoServiceImplementation
             if (ser != null)
             {
                 seriesService.UpdateStats(ser, true, true);
-                var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+                var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
                 groupService.UpdateStatsFromTopLevel(ser.AnimeGroup?.TopLevelAnimeGroup, true, true);
             }
 
@@ -1429,7 +1431,7 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
             groupService.RenameAllGroups();
         }
         catch (Exception ex)
@@ -1457,7 +1459,7 @@ public partial class ShokoServiceImplementation
                 return "Group must be empty to be deleted. Move the series out of the group first.";
             }
 
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
             groupService.DeleteGroup(grp);
 
             return string.Empty;
@@ -1530,7 +1532,7 @@ public partial class ShokoServiceImplementation
                 contractout.ErrorMessage = "Could not find user with ID: " + userID;
                 return contractout;
             }
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
             AnimeGroup group;
             var updated = false;
             if (contract.AnimeGroupID is > 0)
@@ -1692,7 +1694,7 @@ public partial class ShokoServiceImplementation
                 return contractout;
             }
 
-            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            var seriesService = ISystemService.StaticServices.GetRequiredService<AnimeSeriesService>();
             seriesService.MoveSeries(series, group);
 
             contractout.Result = _legacyV1Service.GetV1UserContract(series, userID);
@@ -1710,7 +1712,7 @@ public partial class ShokoServiceImplementation
     [HttpPost("Series/{userID}")]
     public CL_Response<CL_AnimeSeries_User> SaveSeries(CL_AnimeSeries_Save_Request contract, int userID)
     {
-        var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+        var seriesService = ISystemService.StaticServices.GetRequiredService<AnimeSeriesService>();
         var contractout = new CL_Response<CL_AnimeSeries_User> { ErrorMessage = string.Empty, Result = null };
         try
         {
@@ -1952,7 +1954,7 @@ public partial class ShokoServiceImplementation
                 return;
             }
 
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
             groupService.SetMainSeries(grp, ser);
         }
         catch (Exception ex)
@@ -1972,7 +1974,7 @@ public partial class ShokoServiceImplementation
                 return;
             }
 
-            var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+            var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
             groupService.SetMainSeries(grp, null);
         }
         catch (Exception ex)
@@ -2164,7 +2166,7 @@ public partial class ShokoServiceImplementation
                 }
                 else
                 {
-                    var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+                    var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
                     groupService.UpdateStatsFromTopLevel(grp.TopLevelAnimeGroup, true, true);
                 }
             }
@@ -2876,7 +2878,7 @@ public partial class ShokoServiceImplementation
             RepoFactory.CrossRef_CustomTag.Save(xref);
 
             contractRet.Result = xref.ToClient();
-            var jobFactory = Utils.ServiceContainer.GetRequiredService<JobFactory>();
+            var jobFactory = ISystemService.StaticServices.GetRequiredService<JobFactory>();
             jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = contract.CrossRefID).Process().GetAwaiter().GetResult();
         }
         catch (Exception ex)
@@ -2924,7 +2926,7 @@ public partial class ShokoServiceImplementation
                 return "Custom Tag not found";
 
             RepoFactory.CrossRef_CustomTag.Delete(xref.CrossRef_CustomTagID);
-            var jobFactory = Utils.ServiceContainer.GetRequiredService<JobFactory>();
+            var jobFactory = ISystemService.StaticServices.GetRequiredService<JobFactory>();
             jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = crossRefID).Process().GetAwaiter().GetResult();
             return string.Empty;
         }
@@ -2998,7 +3000,7 @@ public partial class ShokoServiceImplementation
             RepoFactory.CustomTag.Delete(customTagID);
 
             // update cached data for any anime that were affected
-            var jobFactory = Utils.ServiceContainer.GetRequiredService<JobFactory>();
+            var jobFactory = ISystemService.StaticServices.GetRequiredService<JobFactory>();
             Task.WhenAll(xrefs.Select(xref => jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = xref.CrossRefID).Process())).GetAwaiter().GetResult();
 
             return string.Empty;
@@ -3060,7 +3062,7 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+            var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
             username = username.Replace("+", " ");
             if (service.AuthenticateUser(username, password) is not JMMUser user)
                 return null;
@@ -3097,7 +3099,7 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+            var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
             var user = service.GetUserByID(userID);
             if (user is null)
                 return "User not found";
@@ -3126,7 +3128,7 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+            var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
             JMMUser jmmUser = null;
             var tags = user.HideCategories?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .SelectMany(RepoFactory.AniDB_Tag.GetByName)
@@ -3202,7 +3204,7 @@ public partial class ShokoServiceImplementation
             if (jmmUser is null)
                 return "User not found";
 
-            Utils.ServiceContainer.GetRequiredService<IUserService>().DeleteUser(jmmUser)
+            ISystemService.StaticServices.GetRequiredService<IUserService>().DeleteUser(jmmUser)
                 .ConfigureAwait(false)
                 .GetAwaiter()
                 .GetResult();

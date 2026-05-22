@@ -1,17 +1,18 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #pragma warning disable ASP0023
 #pragma warning disable CA2012
 namespace Shoko.Server.API.v1.Implementations;
@@ -41,7 +42,7 @@ public partial class ShokoServiceImplementation
 
         try
         {
-            using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+            using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
             if (anime == null)
             {

@@ -7,7 +7,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
-using Shoko.Server.Utilities;
+using Shoko.Server.Services;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -33,7 +33,7 @@ public class RenameMoveFileJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = Utils.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
+        _fileName = VideoService.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
 
     public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };

@@ -21,15 +21,16 @@ using Shoko.Server.Scheduling.Jobs;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Scheduling;
 
 public static class QuartzStartup
 {
     public static async Task ScheduleRecurringJobs(bool replace)
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         await RemoveUnsupportedRecurringJobs([
             JobKeyBuilder<CheckNetworkAvailabilityJob>.Create().WithGroup(JobKeyGroup.System).Build(),
         ]);
@@ -53,7 +54,7 @@ public static class QuartzStartup
 
         // this is called when clearing the queue, so the lock is needed to prevent conflicts with StartJob and StartJobNow
 
-        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+        var scheduler = await ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler();
 
         bool exists;
         IReadOnlyCollection<ITrigger> existingTriggers;
@@ -106,7 +107,7 @@ public static class QuartzStartup
 
     private static async Task RemoveUnsupportedRecurringJobs(IReadOnlyCollection<JobKey> supportedJobKeys)
     {
-        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+        var scheduler = await ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler();
 
         using var _ = await QuartzExtensions.SchedulerLock.WriterLockAsync();
         foreach (var jobKey in await scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup()))
@@ -150,7 +151,7 @@ public static class QuartzStartup
         services.AddJobs();
         services.AddQuartz(q =>
         {
-            var settings = Utils.SettingsProvider.GetSettings().Quartz;
+            var settings = ISettingsProvider.Instance.GetSettings().Quartz;
             var threadPoolSize = settings.MaxThreadPoolSize;
             // if it's not set in the settings, then do the number of logical processors + 2. This is to allow a couple to rate limit in the queue
             if (threadPoolSize <= 0) threadPoolSize = Environment.ProcessorCount + 2;
@@ -182,7 +183,7 @@ public static class QuartzStartup
     {
         q.UsePersistentStore<ThreadPooledJobStore>(options =>
         {
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             if (string.IsNullOrEmpty(settings.Quartz?.ConnectionString))
                 throw new ArgumentNullException(nameof(settings.Quartz.ConnectionString), @"The connection string for Quartz was null");
 

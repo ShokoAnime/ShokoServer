@@ -1,7 +1,7 @@
 ﻿using NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Databases;
 
@@ -34,7 +34,7 @@ public class DatabaseFactory(SystemService systemService)
         {
             if (_instance != null) return _instance;
 
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             if (settings.Database.Type is Constants.DatabaseType.SQLServer)
                 _instance = new SQLServer(systemService);
             else if (settings.Database.Type is Constants.DatabaseType.MySQL)

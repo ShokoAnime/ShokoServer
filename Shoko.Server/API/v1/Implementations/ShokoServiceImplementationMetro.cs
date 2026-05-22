@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
@@ -161,7 +162,7 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
     {
         try
         {
-            var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+            var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
             if (service.AuthenticateUser(username, password) is not JMMUser user)
                 return null;
 

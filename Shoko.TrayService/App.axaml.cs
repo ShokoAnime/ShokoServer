@@ -13,10 +13,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.TrayService;
 
 public partial class App : Application
@@ -99,7 +100,7 @@ public partial class App : Application
     {
         try
         {
-            var settings = Utils.ServiceContainer.GetRequiredService<ISettingsProvider>().GetSettings();
+            var settings = ISystemService.StaticServices.GetRequiredService<ISettingsProvider>().GetSettings();
             OpenUrl($"http://localhost:{settings.Web.Port}");
         }
         catch (Exception e)
@@ -117,7 +118,7 @@ public partial class App : Application
     /// </summary>
     private async Task ShutdownQuartz()
     {
-        var quartz = Utils.ServiceContainer.GetServices<IHostedService>().FirstOrDefault(a => a is QuartzHostedService);
+        var quartz = ISystemService.StaticServices.GetServices<IHostedService>().FirstOrDefault(a => a is QuartzHostedService);
         if (quartz == null)
         {
             _logger?.LogError("Could not get QuartzHostedService");

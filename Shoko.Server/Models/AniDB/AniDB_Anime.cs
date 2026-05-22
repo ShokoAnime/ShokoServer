@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -22,8 +23,10 @@ using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Models.AniDB;
 
@@ -259,7 +262,7 @@ public class AniDB_Anime : IAnidbAnime
                 if (title is not null)
                     return _defaultTitle = title;
 
-                var titleHelper = Utils.ServiceContainer.GetRequiredService<AniDBTitleHelper>();
+                var titleHelper = ISystemService.StaticServices.GetRequiredService<AniDBTitleHelper>();
                 if (titleHelper.SearchAnimeID(AnimeID) is { } titleResponse)
                     return _preferredTitle = titleResponse.Titles.First(title => title.TitleType == TitleType.Main);
 
@@ -319,7 +322,7 @@ public class AniDB_Anime : IAnidbAnime
                     return _preferredTitle = title;
 
                 // Then check for _any_ title at all, if there is no main or official title in the language.
-                if (Utils.SettingsProvider.GetSettings().Language.UseSynonyms)
+                if (ISettingsProvider.Instance.GetSettings().Language.UseSynonyms)
                 {
                     title = titles.FirstOrDefault(t => t.Language == thisLanguage);
                     if (title != null)
@@ -484,7 +487,7 @@ public class AniDB_Anime : IAnidbAnime
         }
         : null;
 
-    IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && Utils.SettingsProvider.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
+    IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && ISettingsProvider.Instance.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
         ? new TextStub()
         {
             Language = TitleLanguage.English,
@@ -515,10 +518,10 @@ public class AniDB_Anime : IAnidbAnime
         => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
 
     public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null)
-        => Utils.ServiceContainer.GetRequiredService<IImageManager>().GetImagesForEntity(this, imageSource, imageType);
+        => ISystemService.StaticServices.GetRequiredService<IImageManager>().GetImagesForEntity(this, imageSource, imageType);
 
     public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null)
-        => Utils.ServiceContainer.GetRequiredService<IImageManager>().GetImageCrossReferencesForEntity(this, imageSource, imageType);
+        => ISystemService.StaticServices.GetRequiredService<IImageManager>().GetImageCrossReferencesForEntity(this, imageSource, imageType);
 
     #endregion
 

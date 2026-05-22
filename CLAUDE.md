@@ -43,7 +43,7 @@ Entry points: `Shoko.CLI/Program.cs` (headless) or `Shoko.TrayService/Program.cs
 
 **Note:** `LateStart()` is skipped during first-run setup mode (`InSetupMode == true`). It runs either on normal startup or when `CompleteSetup()` transitions out of setup mode.
 
-Global service container is exposed via `Utils.ServiceContainer = _webHost.Services` for legacy code that predates DI,
+Global service container is exposed via `ISystemService.StaticServices = _webHost.Services` for legacy code that predates DI,
 and should not be used for new code unless DI is not an option and only as a last resort.
 
 ### API Pipeline
@@ -126,7 +126,7 @@ Two variants in `Shoko.Server/Repositories/`:
 
 Always prefer a cached repository over a direct one when both exist for the same entity.
 
-**Access pattern**: Repositories are accessed via the `RepoFactory` static class (e.g., `RepoFactory.AnimeSeries.GetByID(id)`). `RepoFactory` is DI-registered but exposes static fields for convenience — this is a legacy pattern similar to `Utils.ServiceContainer`. This exists for compatibility where DI is unavailable, but DI should be used if possible.
+**Access pattern**: Repositories are accessed via the `RepoFactory` static class (e.g., `RepoFactory.AnimeSeries.GetByID(id)`). `RepoFactory` is DI-registered but exposes static fields for convenience — this is a legacy pattern similar to `ISystemService.StaticServices`. This exists for compatibility where DI is unavailable, but DI should be used if possible.
 
 ### Scheduling
 
@@ -147,7 +147,7 @@ Plugin controllers are registered via `AddPluginControllers` during API setup.
 **No `appsettings.json`** exists in the repo. Configuration is code-based:
 - **`ServerSettings`** — primary settings class, persisted to `settings-server.json` via `[StorageLocation]` attribute
 - **`ConfigurationProvider<T>`** — generic provider using `INewtonsoftJsonConfiguration` for JSON serialization
-- **`SettingsProvider`** — singleton accessor (`Utils.SettingsProvider`) for runtime settings access
+- **`SettingsProvider`** — singleton accessor (`ISettingsProvider.Instance`) for runtime settings access
 - `appsettings.json` is configured as an **optional** overlay in the host builder but is not shipped
 
 ### Testing

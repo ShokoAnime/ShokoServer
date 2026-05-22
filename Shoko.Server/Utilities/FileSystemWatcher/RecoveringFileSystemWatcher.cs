@@ -9,8 +9,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Utilities.FileSystemWatcher;
 
 public class RecoveringFileSystemWatcher : IDisposable
@@ -35,7 +37,7 @@ public class RecoveringFileSystemWatcher : IDisposable
         if (path == null) throw new ArgumentException(nameof(path) + " cannot be null");
         if (!Directory.Exists(path)) throw new ArgumentException(nameof(path) + $" must be a directory that exists: {path}");
         // bad, but meh for now
-        _logger = Utils.ServiceContainer.GetRequiredService<ILoggerFactory>().CreateLogger("RecoveringFileSystemWatcher:" + path);
+        _logger = ISystemService.StaticServices.GetRequiredService<ILoggerFactory>().CreateLogger("RecoveringFileSystemWatcher:" + path);
         _path = path;
         _filters = filters;
         _pathExclusions = pathExclusions;

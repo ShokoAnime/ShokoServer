@@ -17,8 +17,8 @@ using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Delegates;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #pragma warning disable CS8618
 #nullable enable
 namespace Shoko.Server.Scheduling;
@@ -98,7 +98,7 @@ public class ThreadPooledJobStore : JobStoreTX
             }
         }
 
-        if (Utils.SettingsProvider.GetSettings().Quartz.LimitedConcurrencyOverrides is { Count: > 0 } overrides)
+        if (ISettingsProvider.Instance.GetSettings().Quartz.LimitedConcurrencyOverrides is { Count: > 0 } overrides)
         {
             foreach (var kv in overrides)
             {
@@ -760,7 +760,7 @@ public class ThreadPooledJobStore : JobStoreTX
 
     private async Task<int> GetThreadPoolSize(CancellationToken cancellationToken)
     {
-        var schedulerFactory = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>();
+        var schedulerFactory = ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>();
         var scheduler = await schedulerFactory.GetScheduler(cancellationToken);
         var metadata = await scheduler.GetMetaData(cancellationToken);
         return metadata.ThreadPoolSize;

@@ -5,17 +5,18 @@ using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
-using Shoko.Abstractions.Metadata.Containers;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.API.v3.Models.AniDB;
 
@@ -27,7 +28,7 @@ public class AnidbAnime
     private static AniDBTitleHelper? _titleHelper = null;
 
     private static AniDBTitleHelper TitleHelper
-        => _titleHelper ??= Utils.ServiceContainer.GetService<AniDBTitleHelper>()!;
+        => _titleHelper ??= ISystemService.StaticServices.GetService<AniDBTitleHelper>()!;
 
     /// <summary>
     /// AniDB ID

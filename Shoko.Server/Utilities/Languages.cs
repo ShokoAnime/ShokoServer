@@ -1,8 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Server.Settings;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Utilities;
 
@@ -32,7 +35,7 @@ public static class Languages
                 if (_preferredNamingLanguages is not null)
                     return _preferredNamingLanguages;
 
-                var preference = Utils.SettingsProvider.GetSettings().Language.SeriesTitleLanguageOrder;
+                var preference = ISettingsProvider.Instance.GetSettings().Language.SeriesTitleLanguageOrder;
                 _preferredNamingLanguages = preference
                     .Where(l => !string.IsNullOrEmpty(l))
                     .Select(l => new NamingLanguage(l))
@@ -44,12 +47,12 @@ public static class Languages
         }
         set
         {
-            if (Utils.ServiceContainer is null)
+            if (ISystemService.StaticServices is null)
                 return;
 
             lock (_lockObj)
             {
-                var preference = Utils.SettingsProvider.GetSettings().Language.SeriesTitleLanguageOrder;
+                var preference = ISettingsProvider.Instance.GetSettings().Language.SeriesTitleLanguageOrder;
                 _preferredNamingLanguages = preference
                     .Where(l => !string.IsNullOrEmpty(l))
                     .Select(l => new NamingLanguage(l))
@@ -72,7 +75,7 @@ public static class Languages
                 if (_preferredEpisodeNamingLanguages is not null)
                     return _preferredEpisodeNamingLanguages;
 
-                var preference = Utils.SettingsProvider.GetSettings().Language.EpisodeTitleLanguageOrder;
+                var preference = ISettingsProvider.Instance.GetSettings().Language.EpisodeTitleLanguageOrder;
                 _preferredEpisodeNamingLanguages = preference
                     .Where(l => !string.IsNullOrEmpty(l))
                     .Select(l => new NamingLanguage(l))
@@ -84,12 +87,12 @@ public static class Languages
         }
         set
         {
-            if (Utils.ServiceContainer is null)
+            if (ISystemService.StaticServices is null)
                 return;
 
             lock (_lockObj)
             {
-                var preference = Utils.SettingsProvider.GetSettings().Language.EpisodeTitleLanguageOrder;
+                var preference = ISettingsProvider.Instance.GetSettings().Language.EpisodeTitleLanguageOrder;
                 _preferredEpisodeNamingLanguages = preference
                     .Where(l => !string.IsNullOrEmpty(l))
                     .Select(l => new NamingLanguage(l))
@@ -112,7 +115,7 @@ public static class Languages
                 if (_preferredDescriptionNamingLanguages is not null)
                     return _preferredDescriptionNamingLanguages;
 
-                var preference = Utils.SettingsProvider.GetSettings().Language.DescriptionLanguageOrder;
+                var preference = ISettingsProvider.Instance.GetSettings().Language.DescriptionLanguageOrder;
                 _preferredDescriptionNamingLanguages = preference
                     .Where(l => !string.IsNullOrEmpty(l))
                     .Select(l => new NamingLanguage(l))
@@ -124,12 +127,12 @@ public static class Languages
         }
         set
         {
-            if (Utils.ServiceContainer is null)
+            if (ISystemService.StaticServices is null)
                 return;
 
             lock (_lockObj)
             {
-                var preference = Utils.SettingsProvider.GetSettings().Language.DescriptionLanguageOrder;
+                var preference = ISettingsProvider.Instance.GetSettings().Language.DescriptionLanguageOrder;
                 _preferredDescriptionNamingLanguages = preference
                     .Where(l => !string.IsNullOrEmpty(l))
                     .Select(l => new NamingLanguage(l))

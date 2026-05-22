@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -10,8 +10,9 @@ using F23.StringSimilarity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.Extensions;
@@ -27,6 +28,7 @@ using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.API.v1.Implementations;
 
 public partial class ShokoServiceImplementation
@@ -353,7 +355,7 @@ public partial class ShokoServiceImplementation
 
         try
         {
-            var titleHelper = Utils.ServiceContainer.GetRequiredService<AniDBTitleHelper>();
+            var titleHelper = ISystemService.StaticServices.GetRequiredService<AniDBTitleHelper>();
 
             // user  may be directly entering the anime id, so search for that.
             if (int.TryParse(titleQuery, out var aid) && titleHelper.SearchAnimeID(aid) is { } anime)

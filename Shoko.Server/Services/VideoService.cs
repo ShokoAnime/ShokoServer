@@ -1119,7 +1119,7 @@ public class VideoService : IVideoService
                         var level = path == directoryToClean ? 0 : path[(directoryToClean.Length + 1)..].Split(Path.DirectorySeparatorChar).Length;
                         if (path == directoryToClean)
                             break;
-                        if (Utils.SettingsProvider.GetSettings().Import.ExcludeExpressions.Any(reg => reg.IsMatch(path)))
+                        if (ISettingsProvider.Instance.GetSettings().Import.ExcludeExpressions.Any(reg => reg.IsMatch(path)))
                             isExcludedAt = level;
                         paths.Add((path, level));
                         path = Path.GetDirectoryName(path);
@@ -1224,6 +1224,22 @@ public class VideoService : IVideoService
 
         _logger.LogError("File {Place} failed to read MediaInfo", path);
         return false;
+    }
+
+    #endregion
+
+    #region Static Helpers
+
+    [return: NotNullIfNotNull(nameof(fullPath))]
+    public static string? GetDistinctPath(string? fullPath)
+    {
+        if (string.IsNullOrEmpty(fullPath))
+            return null;
+
+        var parent = Path.GetDirectoryName(fullPath);
+        return string.IsNullOrEmpty(parent)
+            ? fullPath
+            : Path.Combine(Path.GetFileName(parent), Path.GetFileName(fullPath));
     }
 
     #endregion

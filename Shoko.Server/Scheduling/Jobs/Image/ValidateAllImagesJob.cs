@@ -1,12 +1,13 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Scheduling.Jobs.Image;
 
@@ -22,7 +23,7 @@ public class ValidateAllImagesJob : BaseJob
     public override async Task Process()
     {
         _logger.LogInformation("Processing {Job}", nameof(ValidateAllImagesJob));
-        var imageManager = Utils.ServiceContainer.GetRequiredService<IImageManager>();
+        var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();
         var queued = await imageManager.ValidateAllImages().ConfigureAwait(false);
         _logger.LogInformation("Validation finished. Queued {Count} images for forced re-download.", queued);
     }

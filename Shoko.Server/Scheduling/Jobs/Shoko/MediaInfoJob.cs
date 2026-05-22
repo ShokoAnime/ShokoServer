@@ -9,7 +9,6 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
@@ -32,7 +31,7 @@ public class MediaInfoJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = Utils.GetDistinctPath(_vlocal.FirstValidPlace?.Path);
+        _fileName = VideoService.GetDistinctPath(_vlocal.FirstValidPlace?.Path);
     }
 
     public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? VideoLocalID.ToString() } };

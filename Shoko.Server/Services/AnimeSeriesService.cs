@@ -7,9 +7,10 @@ using Force.DeepCloner;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Quartz;
+using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Extensions;
@@ -25,6 +26,7 @@ using Shoko.Server.Utilities;
 using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Services;
 
@@ -494,7 +496,7 @@ public class AnimeSeriesService
 
     internal async Task DeleteSeriesInternal(AnimeSeries series, bool deleteFiles, bool updateGroups, bool removeFromMylist = true)
     {
-        var service = Utils.ServiceContainer.GetRequiredService<IVideoService>();
+        var service = ISystemService.StaticServices.GetRequiredService<IVideoService>();
         foreach (var ep in series.AllAnimeEpisodes)
         {
             foreach (var place in series.VideoLocals.SelectMany(a => a.Places).WhereNotNull())

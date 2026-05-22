@@ -7,15 +7,16 @@ using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using NHibernate;
 using NHibernate.Driver.MySqlConnector;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 // ReSharper disable InconsistentNaming
 
-
+#pragma warning disable CS0618
 namespace Shoko.Server.Databases;
 
 public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(systemService)
@@ -123,7 +124,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
     {
         get
         {
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
                 return settings.Database.OverrideConnectionString;
             return
@@ -133,7 +134,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
 
     public override string GetTestConnectionString()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         // we are assuming that if you have overridden the connection string, you know what you're doing, and have set up the database and perms
         if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
             return settings.Database.OverrideConnectionString;
@@ -156,7 +157,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
 
     public override ISessionFactory CreateSessionFactory()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
 
         var connectionConfig = MySQLConfiguration.Standard
             .Driver<MySqlConnectorDriver>();
@@ -176,13 +177,13 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
             .ExposeConfiguration(c => c.DataBaseIntegration(prop =>
             {
                 prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
-            }).SetInterceptor(new NHibernateDependencyInjector(Utils.ServiceContainer)))
+            }).SetInterceptor(new NHibernateDependencyInjector(ISystemService.StaticServices)))
             .BuildSessionFactory();
     }
 
     public override bool DatabaseAlreadyExists()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         try
         {
             var connStr = GetConnectionString();
@@ -212,7 +213,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
 
     public override void CreateDatabase()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         try
         {
             if (DatabaseAlreadyExists()) return;
@@ -235,7 +236,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
     {
         ConnectionWrapper(GetConnectionString(), myConn =>
         {
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             var create = false;
             var fixTablesForLinux = false;
             var count = ExecuteScalar(myConn,
@@ -530,7 +531,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new( 34,  1),
         new( 35,  1, "CREATE TABLE `CustomTag` ( `CustomTagID` INT NOT NULL AUTO_INCREMENT, `TagName` text character set utf8, `TagDescription` text character set utf8, PRIMARY KEY (`CustomTagID`) ) ; "),
         new( 35,  2, "CREATE TABLE `CrossRef_CustomTag` ( `CrossRef_CustomTagID` INT NOT NULL AUTO_INCREMENT, `CustomTagID` int NOT NULL, `CrossRefID` int NOT NULL, `CrossRefType` int NOT NULL, PRIMARY KEY (`CrossRef_CustomTagID`) ) ; "),
-        new( 36,  1, $"ALTER DATABASE {Utils.SettingsProvider.GetSettings().Database.Schema} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;"),
+        new( 36,  1, $"ALTER DATABASE {ISettingsProvider.Instance.GetSettings().Database.Schema} CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci;"),
         new( 37,  1, "ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_AnimeID` ;"),
         new( 37,  2, "ALTER TABLE `CrossRef_AniDB_MAL` DROP INDEX `UIX_CrossRef_AniDB_MAL_Anime` ;"),
         new( 37,  3, "ALTER TABLE `CrossRef_AniDB_MAL` ADD UNIQUE INDEX `UIX_CrossRef_AniDB_MAL_MALID` (`MALID` ASC) ;"),
@@ -1032,8 +1033,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(161,  4, "ALTER TABLE `CrossRef_AniDB_MAL` DROP COLUMN `CrossRefSource`;"),
         new(161,  5, "ALTER TABLE `AnimeGroup_User` DROP COLUMN `IsFave`;"),
         new(161,  6, DatabaseFixes.EnsureNoOrphanedGroupsOrSeries),
-        new(162,  1, @"CREATE TABLE `ShokoImage` (`ID` CHAR(36) NOT NULL, `LocalID` INT NOT NULL, `PrimaryID` VARCHAR(36) NOT NULL, `ResourceID` VARCHAR(128) NOT NULL, `LanguageCode` VARCHAR(8), `CountryCode` VARCHAR(8), `Width` INT, `Height` INT, `ContentType` VARCHAR(64) NOT NULL, `DownloadAttempts` TINYINT NOT NULL DEFAULT 0, `Source` TINYINT NOT NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`ID`));"),
-        new(162,  2, @"CREATE TABLE `ShokoImage_Entity` (`ID` INT NOT NULL AUTO_INCREMENT, `ImageID` VARCHAR(36) NOT NULL, `PrimaryImageID` VARCHAR(36) NOT NULL, `ImageType` TINYINT NOT NULL, `ImageSource` TINYINT NOT NULL, `EntitySource` TINYINT NOT NULL, `EntityType` TINYINT NOT NULL, `EntityID` VARCHAR(128) NOT NULL, `EntitySeasonNumber` INT, `EntityEpisodeNumber` INT, `EntityReleasedAt` DATE, `IsEnabled` TINYINT NOT NULL DEFAULT 1, `IsDesired` TINYINT NOT NULL DEFAULT 1, `IsPreferred` TINYINT NOT NULL DEFAULT 0, `Ordering` INT NOT NULL DEFAULT 0, `Rating` decimal(6,2), `RatingVotes` INT, `Source` TINYINT NOT NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`ID`));"),
+        new(162,  1, @"CREATE TABLE `ShokoImage` (`ID` CHAR(36) NOT NULL, `LocalID` INT NOT NULL, `PrimaryID` VARCHAR(36) NOT NULL, `ResourceID` VARCHAR(128) NOT NULL, `LanguageCode` VARCHAR(8), `CountryCode` VARCHAR(8), `Width` INT, `Height` INT, `ContentType` VARCHAR(64) NOT NULL, `DownloadAttempts` TINYINT UNSIGNED NOT NULL DEFAULT 0, `Source` TINYINT UNSIGNED NOT NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`ID`));"),
+        new(162,  2, @"CREATE TABLE `ShokoImage_Entity` (`ID` INT NOT NULL AUTO_INCREMENT, `ImageID` VARCHAR(36) NOT NULL, `PrimaryImageID` VARCHAR(36) NOT NULL, `ImageType` TINYINT NOT NULL, `ImageSource` TINYINT UNSIGNED NOT NULL, `EntitySource` TINYINT UNSIGNED NOT NULL, `EntityType` TINYINT NOT NULL, `EntityID` VARCHAR(128) NOT NULL, `EntitySeasonNumber` INT, `EntityEpisodeNumber` INT, `EntityReleasedAt` DATE, `IsEnabled` TINYINT NOT NULL DEFAULT 1, `IsDesired` TINYINT NOT NULL DEFAULT 1, `IsPreferred` TINYINT NOT NULL DEFAULT 0, `Ordering` INT NOT NULL DEFAULT 0, `Rating` decimal(6,2), `RatingVotes` INT, `Source` TINYINT UNSIGNED NOT NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`ID`));"),
         new(162,  3, DatabaseFixes.MigrateToUnifiedImages),
         new(162,  4, DatabaseFixes.ScheduleTmdbImageUpdates),
         new(163,  1, "DROP TABLE IF EXISTS AniDB_Vote;"),
@@ -1160,14 +1161,14 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
 
     private static void MySQLFixUTF8()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var sql =
             "SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
             "FROM information_schema.COLUMNS " +
             $"WHERE table_schema = '{settings.Database.Schema}' " +
             "AND collation_name != 'utf8mb4_unicode_ci'";
         using var conn = new MySqlConnection(ConnectionString);
-        var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+        var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
         conn.Open();
         var rows = mySQL.ExecuteReader(conn, sql);
         if (rows.Count > 0)
@@ -1189,14 +1190,14 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
 
     private static Tuple<bool, string> MySQLFixUTF8MB4(object connection)
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var sql =
             "SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
             "FROM information_schema.COLUMNS " +
             $"WHERE table_schema = '{settings.Database.Schema}' " +
             "AND collation_name IN ('utf8_general_ci', 'utf8mb3_general_ci')";
         var conn = (MySqlConnection)connection;
-        var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+        var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
         var rows = mySQL.ExecuteReader(conn, sql);
         if (rows.Count > 0)
         {
@@ -1218,10 +1219,10 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
 
     private static Tuple<bool, string> SetDefaultCollationToUTF8MB4(object connection)
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
 
         var conn = (MySqlConnection)connection;
-        var mySQL = (MySQL)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+        var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
         mySQL.Execute(conn, $"ALTER DATABASE `{settings.Database.Schema}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
         return new Tuple<bool, string>(true, null);
     }

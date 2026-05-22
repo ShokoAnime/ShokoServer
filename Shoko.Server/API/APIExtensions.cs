@@ -32,11 +32,12 @@ using Shoko.Server.API.v1.Services;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 using File = System.IO.File;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.API;
 
 public static partial class APIExtensions
@@ -80,8 +81,8 @@ public static partial class APIExtensions
             {
                 // Resolve the services we'll need from the static service provider
                 // since the app is running at this point.
-                var provider = Utils.ServiceContainer.GetRequiredService<IApiVersionDescriptionProvider>();
-                var webSettings = Utils.SettingsProvider.GetSettings().Web;
+                var provider = ISystemService.StaticServices.GetRequiredService<IApiVersionDescriptionProvider>();
+                var webSettings = ISettingsProvider.Instance.GetSettings().Web;
 
                 // Add a swagger document for each discovered API version (server-only).
                 foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
@@ -222,7 +223,7 @@ public static partial class APIExtensions
                 if (defaultProvider is not null)
                     manager.FeatureProviders.Remove(defaultProvider);
 
-                var webSettings = Utils.SettingsProvider.GetSettings().Web;
+                var webSettings = ISettingsProvider.Instance.GetSettings().Web;
                 manager.FeatureProviders.Add(new ApiVersionControllerFeatureProvider(webSettings));
             })
             .AddPluginControllers(pluginManager)
@@ -230,7 +231,7 @@ public static partial class APIExtensions
 
         services.AddApiVersioning(o =>
         {
-            var webSettings = Utils.SettingsProvider.GetSettings().Web;
+            var webSettings = ISettingsProvider.Instance.GetSettings().Web;
 
             o.ReportApiVersions = true;
             o.AssumeDefaultVersionWhenUnspecified = true;
@@ -397,7 +398,7 @@ public static partial class APIExtensions
 
     public static IApplicationBuilder UseAPI(this IApplicationBuilder app, IPluginManager pluginManager)
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var webSettings = settings.Web;
         if (!settings.SentryOptOut)
         {

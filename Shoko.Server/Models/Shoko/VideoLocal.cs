@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
@@ -20,7 +21,6 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
 using MediaContainer = Shoko.Server.MediaInfo.MediaContainer;
 
@@ -193,11 +193,11 @@ public class VideoLocal : IVideo
         => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
 
     public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
-        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+        => ISystemService.StaticServices.GetRequiredService<IImageManager>()
             .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
 
     public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
-        => Utils.ServiceContainer.GetRequiredService<IImageManager>()
+        => ISystemService.StaticServices.GetRequiredService<IImageManager>()
             .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
 
     #endregion

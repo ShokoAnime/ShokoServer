@@ -70,7 +70,7 @@ public static class FileQualityFilter
     reference said enum through a CompareByType
 
     */
-    public static FileQualityPreferences Settings => Utils.SettingsProvider.GetSettings().FileQualityPreferences;
+    public static FileQualityPreferences Settings => ISettingsProvider.Instance.GetSettings().FileQualityPreferences;
 
     #region Checks
 
@@ -78,7 +78,7 @@ public static class FileQualityFilter
     {
         // Don't delete files with missing info. If it's not getting updated, then do it manually
         var anidbFile = video.ReleaseInfo;
-        var allowUnknown = Utils.SettingsProvider.GetSettings().FileQualityPreferences.AllowDeletingFilesWithMissingInfo;
+        var allowUnknown = ISettingsProvider.Instance.GetSettings().FileQualityPreferences.AllowDeletingFilesWithMissingInfo;
         if (IsNullOrUnknown(anidbFile) && !allowUnknown) return true;
 
         var result = true;

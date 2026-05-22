@@ -16,9 +16,10 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Scheduling.Delegates;
 
 public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredDriverDelegate
@@ -105,7 +106,7 @@ public class SQLiteDelegate : Quartz.Impl.AdoJobStore.SQLiteDelegate, IFilteredD
     public override void Initialize(IJobStore jobStore, DelegateInitializationArgs args)
     {
         base.Initialize(jobStore, args);
-        _logger = Utils.ServiceContainer.GetRequiredService<ILogger<SQLiteDelegate>>();
+        _logger = ISystemService.StaticServices.GetRequiredService<ILogger<SQLiteDelegate>>();
         _schedulerName = args.InstanceName;
     }
 

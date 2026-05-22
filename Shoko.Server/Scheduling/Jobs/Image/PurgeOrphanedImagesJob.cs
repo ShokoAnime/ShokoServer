@@ -2,12 +2,13 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Scheduling.Jobs.Image;
 
@@ -33,7 +34,7 @@ public class PurgeOrphanedImagesJob : BaseJob
     {
         _logger.LogInformation("Processing {Job} for {Days} (ImageSource: {ImageSource})", nameof(PurgeOrphanedImagesJob), DaysOld, ImageSource);
 
-        var imageManager = Utils.ServiceContainer.GetRequiredService<IImageManager>();
+        var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();
         await imageManager.PurgeOrphanedImages(DaysOld, ImageSource);
     }
 }

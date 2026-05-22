@@ -17,8 +17,8 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
@@ -50,7 +50,7 @@ public class AddFileToMyListJob : BaseJob
     public override Dictionary<string, object> Details => new()
     {
         {
-            "File Path", Utils.GetDistinctPath(_videoLocal?.FirstValidPlace?.Path) ?? Hash
+            "File Path", VideoService.GetDistinctPath(_videoLocal?.FirstValidPlace?.Path) ?? Hash
         }
     };
 

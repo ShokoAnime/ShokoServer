@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
@@ -8,8 +8,8 @@ using Shoko.Abstractions.Metadata.Image;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.API;
 
 public static class APIHelper
@@ -36,7 +36,7 @@ public static class APIHelper
 
     public static JMMUser GetUser(this ClaimsPrincipal identity)
     {
-        var systemService = Utils.ServiceContainer.GetRequiredService<ISystemService>();
+        var systemService = ISystemService.StaticServices.GetRequiredService<ISystemService>();
         if (!systemService.IsStarted)
         {
             if (systemService.InSetupMode || systemService.StartupFailedException is not null)

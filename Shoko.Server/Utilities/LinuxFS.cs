@@ -1,8 +1,10 @@
 ﻿using System;
 using Microsoft.Extensions.DependencyInjection;
 using Mono.Unix;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Services;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Utilities;
 
 public static class LinuxFS
@@ -40,7 +42,7 @@ public static class LinuxFS
         // if we didn't change anything, then return
         if (!shouldChangeOwner && !shouldChangePermissions) return;
 
-        var fileWatcherService = Utils.ServiceContainer.GetRequiredService<FileWatcherService>();
+        var fileWatcherService = ISystemService.StaticServices.GetRequiredService<FileWatcherService>();
         fileWatcherService.AddFileWatcherExclusion(path);
         try
         {

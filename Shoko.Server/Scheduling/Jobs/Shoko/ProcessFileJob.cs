@@ -8,7 +8,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Utilities;
+using Shoko.Server.Services;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -27,7 +27,7 @@ public class ProcessFileJob : BaseJob
 
     private VideoLocal _vlocal;
 
-    private string _fileName;
+    private string? _fileName;
 
     public int VideoLocalID { get; set; }
 
@@ -60,7 +60,7 @@ public class ProcessFileJob : BaseJob
     {
         _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
         if (_vlocal == null) throw new JobExecutionException($"VideoLocal not Found: {VideoLocalID}");
-        _fileName = Utils.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
+        _fileName = VideoService.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
 
     public override async Task Process()

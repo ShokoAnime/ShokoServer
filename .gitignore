@@ -5,6 +5,7 @@
 *.suo
 *.user
 *.sln.docstates
+.memory
 
 # Build results
 [Bb]in/
@@ -177,3 +178,6 @@ UpgradeLog*.htm
 /Shoko.Server.VC.db
 
 .env
+
+# Python
+__pycache__

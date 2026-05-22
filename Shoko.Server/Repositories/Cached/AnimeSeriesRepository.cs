@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using NutzCode.InMemoryIndex;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
@@ -15,8 +16,8 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Tasks;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #pragma warning disable CA1822
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
@@ -83,7 +84,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
             var max = sers.Count;
             SystemService.StartupMessage = $"Database - Validating - {nameof(AnimeSeries)} Database Regeneration - Ensuring Groups Exist...";
 
-            var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
+            var groupCreator = ISystemService.StaticServices.GetRequiredService<AnimeGroupCreator>();
             for (var i = 0; i < max; i++)
             {
                 var s = sers[i];

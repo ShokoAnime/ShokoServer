@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Repositories;
 
@@ -50,7 +50,7 @@ public class BaseRepository
 
     public static void ReadLock(Action action)
     {
-        var useLock = Utils.SettingsProvider.GetSettings().Database.UseDatabaseLock;
+        var useLock = ISettingsProvider.Instance.GetSettings().Database.UseDatabaseLock;
         if (useLock)
         {
             s_lock.EnterReadLock();
@@ -71,7 +71,7 @@ public class BaseRepository
 
     public static T ReadLock<T>(Func<T> action)
     {
-        var useLock = Utils.SettingsProvider.GetSettings().Database.UseDatabaseLock;
+        var useLock = ISettingsProvider.Instance.GetSettings().Database.UseDatabaseLock;
         T result;
         if (useLock)
         {
@@ -95,7 +95,7 @@ public class BaseRepository
 
     public static void WriteLock(Action action)
     {
-        var useLock = Utils.SettingsProvider.GetSettings().Database.UseDatabaseLock;
+        var useLock = ISettingsProvider.Instance.GetSettings().Database.UseDatabaseLock;
         if (useLock)
         {
             s_lock.EnterWriteLock();
@@ -116,7 +116,7 @@ public class BaseRepository
 
     public static T WriteLock<T>(Func<T> action)
     {
-        var useLock = Utils.SettingsProvider.GetSettings().Database.UseDatabaseLock;
+        var useLock = ISettingsProvider.Instance.GetSettings().Database.UseDatabaseLock;
         T result;
         if (useLock)
         {

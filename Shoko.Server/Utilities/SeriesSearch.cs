@@ -4,12 +4,13 @@ using System.IO;
 using System.Linq;
 using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities;
 
@@ -414,7 +415,7 @@ public static class SeriesSearch
 
     private static Func<AnimeSeries, IEnumerable<string>> CreateSeriesTitleDelegate()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var languages = new HashSet<string> { "en", "x-jat" };
         languages.UnionWith(settings.Language.SeriesTitleLanguageOrder);
         return series => RepoFactory.AniDB_Anime_Title.GetByAnimeID(series.AniDB_ID)
