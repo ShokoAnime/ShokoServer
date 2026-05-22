@@ -16,7 +16,6 @@ using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Plex;
-using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
@@ -70,7 +69,7 @@ public class ActionController : BaseController
     #region Common Actions
 
     /// <summary>
-    /// Run Import. This checks for new files, hashes them etc, scans Drop Folders, checks and scans for community site links (tmdb, trakt, etc), and downloads missing images.
+    /// Run Import. This checks for new files, hashes them etc, scans Drop Folders, checks and scans for community site links (tmdb, etc), and downloads missing images.
     /// </summary>
     /// <returns></returns>
     [HttpGet("RunImport")]
@@ -117,44 +116,6 @@ public class ActionController : BaseController
 
         var scheduler = await _schedulerFactory.GetScheduler();
         await scheduler.StartJob<SyncAniDBVotesJob>(c => (c.UserID, c.Export) = (User.JMMUserID, export));
-        return Ok();
-    }
-
-    /// <summary>
-    /// Send local watch states to Trakt for the whole collection
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("SendWatchStatesToTrakt")]
-    public async Task<ActionResult> SendWatchStatesToTrakt()
-    {
-        var settings = SettingsProvider.GetSettings().TraktTv;
-        if (!settings.Enabled || string.IsNullOrEmpty(settings.AuthToken))
-        {
-            return BadRequest("Trakt account is not linked!");
-        }
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SendWatchStatesToTraktJob>(c => c.ForceRefresh = true, prioritize: true);
-
-        return Ok();
-    }
-
-    /// <summary>
-    /// Get remote watch states from Trakt for the whole collection
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet("GetWatchStatesFromTrakt")]
-    public async Task<ActionResult> GetWatchStatesFromTrakt()
-    {
-        var settings = SettingsProvider.GetSettings().TraktTv;
-        if (!settings.Enabled || string.IsNullOrEmpty(settings.AuthToken))
-        {
-            return BadRequest("Trakt account is not linked!");
-        }
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<GetWatchStatesFromTraktJob>(c => c.ForceRefresh = true, prioritize: true);
-
         return Ok();
     }
 

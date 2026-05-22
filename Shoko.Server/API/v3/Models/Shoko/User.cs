@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -16,8 +17,8 @@ using Shoko.Abstractions.User.Update;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -42,7 +43,7 @@ public class User
     public bool IsAdmin { get; set; }
 
     /// <summary>
-    /// This is a list of services that the user is set to use. AniDB, Trakt, and Plex, for example
+    /// This is a list of services that the user is set to use. AniDB, and Plex, for example
     /// </summary>
     [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     [Required]
@@ -78,8 +79,6 @@ public class User
         CommunitySites = [];
         if (user.IsAniDBUser == 1)
             CommunitySites.Add(CommunitySite.AniDB);
-        if (user.IsTraktUser == 1)
-            CommunitySites.Add(CommunitySite.Trakt);
         if (!string.IsNullOrEmpty(user.PlexToken))
             CommunitySites.Add(CommunitySite.Plex);
 
@@ -126,7 +125,7 @@ public class User
 
                 try
                 {
-                    var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+                    var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
                     var initialData = new UserUpdate();
                     if (Username is not null)
                         initialData.Username = Username;
@@ -154,17 +153,6 @@ public class User
                     // Extra handling for things not exposed to the plugin API
                     // and probably never will.
                     var saved = false;
-                    if (CommunitySites is not null)
-                    {
-                        var oldTraktUser = user.IsTraktUser == 1;
-                        var newTraktUser = CommunitySites.Contains(CommunitySite.Trakt);
-                        if (oldTraktUser != newTraktUser)
-                        {
-                            saved = true;
-                            user.IsTraktUser = CommunitySites.Contains(CommunitySite.Trakt) ? 1 : 0;
-                        }
-                    }
-
                     if (PlexUsernames is not null)
                     {
                         var oldPlexUsernames = user.PlexUsers;
@@ -263,7 +251,7 @@ public class User
 
                 try
                 {
-                    var service = Utils.ServiceContainer.GetRequiredService<IUserService>();
+                    var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
                     var updateData = new UserUpdate();
                     if (Username is not null)
                         updateData.Username = Username;
@@ -289,17 +277,6 @@ public class User
                     // Extra handling for things not exposed to the plugin API
                     // and probably never will.
                     var saved = false;
-                    if (CommunitySites is not null)
-                    {
-                        var oldTraktUser = user.IsTraktUser == 1;
-                        var newTraktUser = CommunitySites.Contains(CommunitySite.Trakt);
-                        if (oldTraktUser != newTraktUser)
-                        {
-                            saved = true;
-                            user.IsTraktUser = CommunitySites.Contains(CommunitySite.Trakt) ? 1 : 0;
-                        }
-                    }
-
                     if (PlexUsernames is not null)
                     {
                         var oldPlexUsernames = user.PlexUsers;

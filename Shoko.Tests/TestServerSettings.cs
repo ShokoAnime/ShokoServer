@@ -33,7 +33,6 @@ public class TestServerSettings
     public DataSource SeriesDescriptionSource { get; set; } = DataSource.AniDB;
     public DataSource SeriesNameSource { get; set; } = DataSource.AniDB;
     public string ImagesPath { get; set; }
-    public TraktSettings TraktTv { get; set; } = new();
     public string UpdateChannel { get; set; } = "Stable";
     public LinuxSettings Linux { get; set; } = new();
 }

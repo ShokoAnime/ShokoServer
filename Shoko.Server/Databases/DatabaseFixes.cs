@@ -18,6 +18,7 @@ using NLog;
 using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
@@ -44,11 +45,11 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services;
+using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
-using Shoko.Server.Utilities;
 
-#pragma warning disable CA2012
 #pragma warning disable CS0618
+#pragma warning disable CA2012
 namespace Shoko.Server.Databases;
 
 public class DatabaseFixes
@@ -59,15 +60,15 @@ public class DatabaseFixes
 
     public static void UpdateAllStats()
     {
-        var scheduler = Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
+        var scheduler = ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
         Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID))).GetAwaiter()
             .GetResult();
     }
 
     public static void MigrateGroupFilterToFilterPreset()
     {
-        var legacyConverter = Utils.ServiceContainer.GetRequiredService<LegacyFilterConverter>();
-        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+        var legacyConverter = ISystemService.StaticServices.GetRequiredService<LegacyFilterConverter>();
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         var groupFilters = session.CreateSQLQuery(
                 "SELECT GroupFilterID, " +
                 "ParentGroupFilterID, " +
@@ -139,7 +140,7 @@ public class DatabaseFixes
 
     public static void DropGroupFilter()
     {
-        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         session.CreateSQLQuery("DROP TABLE GroupFilter; DROP TABLE GroupFilterCondition").ExecuteUpdate();
     }
 
@@ -154,12 +155,12 @@ public class DatabaseFixes
 
     public static void RefreshAniDBInfoFromXML()
     {
-        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
+        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
         var i = 0;
         var list = RepoFactory.AniDB_Episode.GetAll().Where(a => string.IsNullOrEmpty(a.Description))
             .Select(a => a.AnimeID).Distinct().ToList();
 
-        var anidbService = Utils.ServiceContainer.GetRequiredService<IAnidbService>();
+        var anidbService = ISystemService.StaticServices.GetRequiredService<IAnidbService>();
         foreach (var animeID in list)
         {
             if (i % 10 == 0)
@@ -182,7 +183,7 @@ public class DatabaseFixes
 
     public static void RefreshAnimeSeriesUserStats()
     {
-        var userDataService = (UserDataService)Utils.ServiceContainer.GetRequiredService<IUserDataService>();
+        var userDataService = (UserDataService)ISystemService.StaticServices.GetRequiredService<IUserDataService>();
         foreach (var series in RepoFactory.AnimeSeries.GetAll())
             userDataService.UpdateWatchedStats(series, series.AllAnimeEpisodes);
     }
@@ -221,8 +222,8 @@ public class DatabaseFixes
         var emptyGroups = RepoFactory.AnimeGroup.GetAll().Where(a => a.AllSeries.Count == 0).ToArray();
         RepoFactory.AnimeGroup.Delete(emptyGroups);
         var orphanedSeries = RepoFactory.AnimeSeries.GetAll().Where(a => a.AnimeGroupID == 0 || a.AnimeGroup is null).ToArray();
-        var groupCreator = Utils.ServiceContainer.GetRequiredService<AnimeGroupCreator>();
-        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+        var groupCreator = ISystemService.StaticServices.GetRequiredService<AnimeGroupCreator>();
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         foreach (var series in orphanedSeries)
         {
             try
@@ -308,7 +309,7 @@ public class DatabaseFixes
             .GroupBy(record => record.AnimeSeriesID)
             .Select(records => (RepoFactory.AnimeSeries.GetByID(records.Key),
                 records.Select(record => record.JMMUserID).Distinct())).ToList();
-        var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+        var seriesService = ISystemService.StaticServices.GetRequiredService<AnimeSeriesService>();
         foreach (var (series, userIDs) in seriesList)
         {
             // No idea why we would have episode entries for a deleted series, but just in case.
@@ -332,7 +333,7 @@ public class DatabaseFixes
             seriesService.UpdateStats(series, true, true);
         }
 
-        var groupService = Utils.ServiceContainer.GetRequiredService<AnimeGroupService>();
+        var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
         var groups = seriesList.Select(a => a.Item1.AnimeGroup).WhereNotNull().DistinctBy(a => a.AnimeGroupID);
         foreach (var group in groups)
         {
@@ -342,8 +343,8 @@ public class DatabaseFixes
 
     public static void FixTagParentIDsAndNameOverrides()
     {
-        var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
-        var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
+        var xmlUtils = ISystemService.StaticServices.GetRequiredService<HttpXmlUtils>();
+        var animeParser = ISystemService.StaticServices.GetRequiredService<HttpAnimeParser>();
         var animeList = RepoFactory.AniDB_Anime.GetAll();
         _logger.Info($"Updating anidb tags for {animeList.Count} local anidb anime entries...");
 
@@ -412,9 +413,9 @@ public class DatabaseFixes
 
     public static void FixEpisodeDateTimeUpdated()
     {
-        var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
-        var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
-        var anidbService = Utils.ServiceContainer.GetRequiredService<IAnidbService>();
+        var xmlUtils = ISystemService.StaticServices.GetRequiredService<HttpXmlUtils>();
+        var animeParser = ISystemService.StaticServices.GetRequiredService<HttpAnimeParser>();
+        var anidbService = ISystemService.StaticServices.GetRequiredService<IAnidbService>();
         var anidbAnimeDict = RepoFactory.AniDB_Anime.GetAll()
             .ToDictionary(an => an.AnimeID);
         var anidbEpisodeDict = RepoFactory.AniDB_Episode.GetAll()
@@ -525,14 +526,14 @@ public class DatabaseFixes
             .WhereNotNull()
             .ToList();
 
-        var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+        var seriesService = ISystemService.StaticServices.GetRequiredService<AnimeSeriesService>();
         foreach (var series in seriesList)
             seriesService.UpdateStats(series, false, true);
     }
 
     public static void FixOrphanedShokoEpisodes()
     {
-        var videoReleaseService = Utils.ServiceContainer.GetRequiredService<IVideoReleaseService>();
+        var videoReleaseService = ISystemService.StaticServices.GetRequiredService<IVideoReleaseService>();
         var allSeries = RepoFactory.AnimeSeries.GetAll()
             .ToDictionary(series => series.AnimeSeriesID);
         var allSeriesAnidbId = allSeries.Values
@@ -633,7 +634,7 @@ public class DatabaseFixes
 
     public static void CleanupAfterAddingTMDB()
     {
-        var service = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
+        var service = ISystemService.StaticServices.GetRequiredService<TmdbMetadataService>();
 
         // Remove the "MovieDB" directory in the image directory, since it's no longer used,
         var dir = new DirectoryInfo(Path.Join(ApplicationPaths.Instance.ImagesPath, "MovieDB"));
@@ -656,14 +657,14 @@ public class DatabaseFixes
 
     public static void ClearQuartzQueue()
     {
-        var queueHandler = Utils.ServiceContainer.GetRequiredService<QueueHandler>();
+        var queueHandler = ISystemService.StaticServices.GetRequiredService<QueueHandler>();
         queueHandler.Clear().ConfigureAwait(false).GetAwaiter().GetResult();
     }
 
     public static void RepairMissingTMDBPersons()
     {
-        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
-        var service = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
+        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
+        var service = ISystemService.StaticServices.GetRequiredService<TmdbMetadataService>();
         var missingIds = new HashSet<int>();
         var updateCount = 0;
         var skippedCount = 0;
@@ -697,11 +698,11 @@ public class DatabaseFixes
 
     public static void RecreateAnimeCharactersAndCreators()
     {
-        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
-        var xmlUtils = Utils.ServiceContainer.GetRequiredService<HttpXmlUtils>();
-        var animeParser = Utils.ServiceContainer.GetRequiredService<HttpAnimeParser>();
-        var animeCreator = Utils.ServiceContainer.GetRequiredService<AnimeCreator>();
-        var anidbService = Utils.ServiceContainer.GetRequiredService<IAnidbService>();
+        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
+        var xmlUtils = ISystemService.StaticServices.GetRequiredService<HttpXmlUtils>();
+        var animeParser = ISystemService.StaticServices.GetRequiredService<HttpAnimeParser>();
+        var animeCreator = ISystemService.StaticServices.GetRequiredService<AnimeCreator>();
+        var anidbService = ISystemService.StaticServices.GetRequiredService<IAnidbService>();
         var animeList = RepoFactory.AniDB_Anime.GetAll();
         var str = systemService.StartupMessage ?? "";
         systemService.StartupMessage = $"{str} - 0 / {animeList.Count}";
@@ -754,8 +755,8 @@ public class DatabaseFixes
 
     public static void ScheduleTmdbImageUpdates()
     {
-        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
-        var tmdbMetadataService = Utils.ServiceContainer.GetRequiredService<TmdbMetadataService>();
+        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
+        var tmdbMetadataService = ISystemService.StaticServices.GetRequiredService<TmdbMetadataService>();
         var tmdbMovies = RepoFactory.TMDB_Movie.GetAll();
         var tmdbShows = RepoFactory.TMDB_Show.GetAll();
         var movies = tmdbMovies.Count;
@@ -797,7 +798,7 @@ public class DatabaseFixes
 
     public static void MoveTmdbImagesOnDisc()
     {
-        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
+        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
         var imageDir = Path.Join(ApplicationPaths.Instance.ImagesPath, "TMDB");
         if (!Directory.Exists(imageDir))
             return;
@@ -907,7 +908,7 @@ public class DatabaseFixes
 
     public static void MoveAnidbFileDataToReleaseInfoFormat()
     {
-        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
 
         // get anidb files, xrefs, anidb release groups
         var videos = new List<DBF_VideoLocal>();
@@ -1095,8 +1096,8 @@ public class DatabaseFixes
         RepoFactory.VideoLocalHashDigest.Save(videoLocalHashDigests);
 
         // create the releases using the above info
-        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
-        var anidbProvider = Utils.ServiceContainer.GetRequiredService<IVideoReleaseService>().GetProviderInfo<AnidbReleaseProvider>();
+        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
+        var anidbProvider = ISystemService.StaticServices.GetRequiredService<IVideoReleaseService>().GetProviderInfo<AnidbReleaseProvider>();
         var potentialReleases = RepoFactory.CrossRef_File_Episode.GetAll()
             .GroupBy(x => (x.Hash, x.FileSize, crossRefTypes[x.CrossRef_File_EpisodeID]))
             .ToList();
@@ -1248,10 +1249,10 @@ public class DatabaseFixes
 
     public static Tuple<bool, string> MigrateRenamers(object connection)
     {
-        var factory = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
-        var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
-        var renamerService = Utils.ServiceContainer.GetRequiredService<IVideoRelocationService>();
-        var settingsProvider = Utils.SettingsProvider;
+        var factory = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+        var configurationService = ISystemService.StaticServices.GetRequiredService<IConfigurationService>();
+        var renamerService = ISystemService.StaticServices.GetRequiredService<IVideoRelocationService>();
+        var settingsProvider = ISettingsProvider.Instance;
 
         var sessionFactory = factory.CreateSessionFactory();
         using var session = sessionFactory.OpenSession();
@@ -1473,7 +1474,7 @@ public class DatabaseFixes
             ?? allUsers.FirstOrDefault(u => u.IsAdmin == 1)
             ?? allUsers[0];
 
-        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         const string SelectCommand = "SELECT EntityID, VoteValue, VoteType FROM AniDB_Vote;";
         const string DropCommand = "DROP TABLE IF EXISTS AniDB_Vote;";
         var rawVotes = session.CreateSQLQuery(SelectCommand)
@@ -1557,9 +1558,9 @@ public class DatabaseFixes
 
     public static void MigrateToUnifiedImages()
     {
-        var systemService = Utils.ServiceContainer.GetRequiredService<SystemService>();
+        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
         var imagesPath = ApplicationPaths.Instance.ImagesPath;
-        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         var str = systemService.StartupMessage ?? string.Empty;
 
         foreach (var (oldName, newName) in new (string, string)[]

@@ -16,10 +16,11 @@ using Quartz;
 using Quartz.Impl;
 using Quartz.Impl.AdoJobStore;
 using Quartz.Spi;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.DatabaseLocks;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Scheduling.Delegates;
 
 public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFilteredDriverDelegate
@@ -106,7 +107,7 @@ public class SqlServerDelegate : Quartz.Impl.AdoJobStore.SqlServerDelegate, IFil
     public override void Initialize(IJobStore jobStore, DelegateInitializationArgs args)
     {
         base.Initialize(jobStore, args);
-        _logger = Utils.ServiceContainer.GetRequiredService<ILogger<SqlServerDelegate>>();
+        _logger = ISystemService.StaticServices.GetRequiredService<ILogger<SqlServerDelegate>>();
         _schedulerName = args.InstanceName;
         lockHandler = new NoLockSemaphore();
     }

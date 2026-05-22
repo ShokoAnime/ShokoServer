@@ -89,11 +89,6 @@ public interface IServerSettings
     PlexSettings Plex { get; set; }
 
     /// <summary>
-    /// The TraktTV settings.
-    /// </summary>
-    TraktSettings TraktTv { get; set; }
-
-    /// <summary>
     /// The plugin settings.
     /// </summary>
     PluginSettings Plugins { get; set; }

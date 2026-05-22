@@ -1,12 +1,11 @@
-#nullable enable
 using System;
 using System.IO;
 using System.Threading;
 using Microsoft.Extensions.Hosting;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
+#nullable enable
 namespace Shoko.IntegrationTests;
 
 /// <summary>
@@ -24,10 +23,12 @@ namespace Shoko.IntegrationTests;
 public sealed class DatabaseMigrationFixture : IDisposable
 {
     public bool Success { get; private set; }
+
     public string? FailureMessage { get; private set; }
 
     private readonly string _tempDir;
-    private IHost? _host;
+
+    private readonly IHost? _host;
 
     public DatabaseMigrationFixture()
     {
@@ -35,19 +36,23 @@ public sealed class DatabaseMigrationFixture : IDisposable
         _tempDir = Path.Combine(Path.GetTempPath(), $"shoko-integration-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempDir);
 
-        // SystemService() bootstraps Utils.SettingsProvider with default settings (FirstRun=true).
+        // SHOKO_HOME controls Utils.ApplicationPath. Must be set before SystemService() reads it.
+        // Forward slashes avoid bad JSON escape sequences when the config service parses env vars.
+        Environment.SetEnvironmentVariable("SHOKO_HOME", _tempDir.Replace('\\', '/'));
+
+        // SystemService() bootstraps ISettingsProvider.Instance with default settings (FirstRun=true).
         // No settings file yet — defaults are valid and pass schema validation.
         var systemService = new SystemService(["--home", _tempDir.Replace('\\', '/')]);
 
         // Mutate the live settings: disable first-run, inject fake AniDB credentials so the
         // settings custom-validator is satisfied, and move the web port away from 8111 so this
         // doesn't conflict with a real Shoko instance.
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         settings.FirstRun = false;
         settings.AniDb.Username = "integration-test";
         settings.AniDb.Password = "integration-test";
         settings.Web.Port = 28111;
-        Utils.SettingsProvider.SaveSettings(settings);
+        ISettingsProvider.Instance.SaveSettings(settings);
 
         var started = new ManualResetEventSlim(false);
         systemService.Started += (_, _) =>
@@ -63,7 +68,7 @@ public sealed class DatabaseMigrationFixture : IDisposable
         };
 
         // StartAsync builds the full DI container (including all services used by database fixes)
-        // and sets Utils.ServiceContainer before LateStart triggers InitializeDatabase.
+        // and sets ISystemService.StaticServices before LateStart triggers InitializeDatabase.
         _host = systemService.StartAsync().GetAwaiter().GetResult();
         if (_host is null)
         {

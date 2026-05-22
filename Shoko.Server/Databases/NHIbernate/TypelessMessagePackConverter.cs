@@ -9,8 +9,9 @@ using NHibernate;
 using NHibernate.Engine;
 using NHibernate.SqlTypes;
 using NHibernate.UserTypes;
-using Shoko.Server.Utilities;
+using Shoko.Abstractions.Core.Services;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Databases.NHibernate;
 
 public class TypelessMessagePackConverter : TypeConverter, IUserType
@@ -35,7 +36,7 @@ public class TypelessMessagePackConverter : TypeConverter, IUserType
         }
         catch (Exception ex)
         {
-            Utils.ServiceContainer.GetRequiredService<ILogger<TypelessMessagePackConverter>>().LogError(ex, "Failed to deserialize {Type} from {Value}",
+            ISystemService.StaticServices.GetRequiredService<ILogger<TypelessMessagePackConverter>>().LogError(ex, "Failed to deserialize {Type} from {Value}",
                 value.GetType(), Convert.ToBase64String((byte[])value));
             return null;
         }
@@ -63,7 +64,7 @@ public class TypelessMessagePackConverter : TypeConverter, IUserType
         }
         catch (Exception ex)
         {
-            Utils.ServiceContainer.GetRequiredService<ILogger<TypelessMessagePackConverter>>().LogError(ex, "Failed to serialize {Type} from {Value}",
+            ISystemService.StaticServices.GetRequiredService<ILogger<TypelessMessagePackConverter>>().LogError(ex, "Failed to serialize {Type} from {Value}",
                 value.GetType(), Convert.ToBase64String((byte[])value));
             return null;
         }

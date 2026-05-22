@@ -6,7 +6,7 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Utilities;
+using Shoko.Server.Services;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -35,7 +35,7 @@ public class HashFileJob : BaseJob
     {
         get
         {
-            var result = new Dictionary<string, object> { { "File Path", Utils.GetDistinctPath(FilePath) } };
+            var result = new Dictionary<string, object> { { "File Path", VideoService.GetDistinctPath(FilePath) } };
             if (ForceHash) result["Force"] = true;
             if (!SkipMyList) result["Add to MyList"] = true;
             if (!SkipFindRelease) result["Find Release"] = true;
@@ -54,12 +54,12 @@ public class HashFileJob : BaseJob
     {
         try
         {
-            _logger.LogInformation("Processing {Job}: {FileName}", nameof(HashFileJob), Utils.GetDistinctPath(FilePath));
+            _logger.LogInformation("Processing {Job}: {FileName}", nameof(HashFileJob), VideoService.GetDistinctPath(FilePath));
             await _videoHashingService.GetHashesForPath(FilePath, useExistingHashes: !ForceHash, skipFindRelease: SkipFindRelease, skipMylist: SkipMyList);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing {Job}: {FileName}", nameof(HashFileJob), Utils.GetDistinctPath(FilePath));
+            _logger.LogError(ex, "Error processing {Job}: {FileName}", nameof(HashFileJob), VideoService.GetDistinctPath(FilePath));
         }
     }
 }

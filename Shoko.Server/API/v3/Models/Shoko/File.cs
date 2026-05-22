@@ -7,16 +7,18 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Abstractions.Video.Hashing;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Services;
+using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Media;
 using Shoko.Server.API.v3.Models.Release;
+using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
-using Shoko.Server.Models.Release;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -360,7 +362,7 @@ public partial class File
 
         public FileUserData MergeWithExisting(JMMUser user, VideoLocal file)
         {
-            var userDataService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
+            var userDataService = ISystemService.StaticServices.GetRequiredService<IUserDataService>();
             var userData = userDataService.SaveVideoUserData(file, user, new()
             {
                 LastPlayedAt = LastWatchedAt,

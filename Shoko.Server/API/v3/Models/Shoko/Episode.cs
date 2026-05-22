@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Services;
@@ -15,12 +16,12 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
 using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
 using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.TmdbEpisode;
 using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.TmdbMovie;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -377,7 +378,7 @@ public class Episode : BaseModel
 
         public EpisodeUserData MergeWithExisting(JMMUser user, AnimeEpisode episode)
         {
-            var userDataService = Utils.ServiceContainer.GetRequiredService<IUserDataService>();
+            var userDataService = ISystemService.StaticServices.GetRequiredService<IUserDataService>();
             var userData = userDataService.SaveEpisodeUserData(episode, user, new()
             {
                 IsFavorite = IsFavorite,

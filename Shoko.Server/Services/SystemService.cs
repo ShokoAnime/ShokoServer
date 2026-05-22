@@ -29,8 +29,8 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Logging.Services;
 using Shoko.Abstractions.Metadata.Anidb.Services;
-using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Utilities;
@@ -47,7 +47,6 @@ using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
@@ -57,7 +56,6 @@ using Shoko.Server.Services.Connectivity;
 using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
-using Shoko.Server.Utilities;
 using Trinet.Core.IO.Ntfs;
 
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
@@ -111,7 +109,7 @@ public class SystemService : ISystemService
         BootstrappedAt = now;
 
         // Set the singleton instance for the settings provider.
-        Utils.SettingsProvider = _settingsProvider;
+        ISettingsProvider.Instance = _settingsProvider;
     }
 
     #region General
@@ -283,7 +281,6 @@ public class SystemService : ISystemService
 #pragma warning disable CS0618 // Type or member is obsolete
             ISystemService.StaticServices = _webHost.Services;
 #pragma warning restore CS0618 // Type or member is obsolete
-            Utils.ServiceContainer = _webHost.Services;
 
             StartupMessage = "Web Host & Services initialized.";
 
@@ -451,7 +448,6 @@ public class SystemService : ISystemService
 
             services.AddSingleton<IPluginPackageManager, PluginPackageManager>();
             services.AddSingleton<FileWatcherService>();
-            services.AddSingleton<TraktTVHelper>();
             services.AddSingleton<TmdbImageService>();
             services.AddSingleton<TmdbLinkingService>();
             services.AddSingleton<ITmdbLinkingService>(sp => sp.GetRequiredService<TmdbLinkingService>());

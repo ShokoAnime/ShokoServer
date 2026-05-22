@@ -12,8 +12,10 @@ using Polly.Bulkhead;
 using Polly.RateLimit;
 using Polly.Retry;
 using Quartz;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.TMDB;
@@ -35,9 +37,10 @@ using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.People;
 using TMDbLib.Objects.TvShows;
 
-using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 using MovieCredits = TMDbLib.Objects.Movies.Credits;
+using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 
+#pragma warning disable CS0618
 // Suggestions we don't need in this file.
 #pragma warning disable CA1822
 #pragma warning disable CA1826
@@ -65,7 +68,7 @@ public class TmdbMetadataService : ITmdbMetadataService
                 if (_instance is not null)
                     return _instance;
 
-                return _instance = Utils.ServiceContainer?.GetService<TmdbMetadataService>();
+                return _instance = ISystemService.StaticServices?.GetService<TmdbMetadataService>();
             }
         }
     }
@@ -457,21 +460,28 @@ public class TmdbMetadataService : ITmdbMetadataService
         }
     }
 
-    public async Task ScheduleUpdateOfMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadCollections = null)
+    public async Task ScheduleUpdateOfMovie(TmdbMovieUpdateOptions options)
     {
         // Schedule the movie info to be downloaded or updated.
         await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<UpdateTmdbMovieJob>(c =>
         {
-            c.TmdbMovieID = movieId;
-            c.ForceRefresh = forceRefresh;
-            c.DownloadImages = downloadImages;
-            c.DownloadCrewAndCast = downloadCrewAndCast;
-            c.DownloadCollections = downloadCollections;
+            c.TmdbMovieID = options.MovieId;
+            c.ForceRefresh = options.ForceRefresh;
+            c.DownloadImages = options.DownloadImages;
+            c.DownloadCrewAndCast = options.DownloadCrewAndCast;
+            c.DownloadCollections = options.DownloadCollections;
         }).ConfigureAwait(false);
     }
 
-    public async Task<bool> UpdateMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadCollections = false)
+    public async Task<bool> UpdateMovie(TmdbMovieUpdateOptions options)
     {
+        var movieId = options.MovieId;
+        var forceRefresh = options.ForceRefresh;
+        var downloadImages = options.DownloadImages;
+        var settings = _settingsProvider.GetSettings();
+        var downloadCrewAndCast = options.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast;
+        var downloadCollections = options.DownloadCollections ?? settings.TMDB.AutoDownloadCollections;
+
         using (await GetLockForEntity(DataEntityType.Movie, movieId, "metadata", "Update").ConfigureAwait(false))
         {
             // Abort if we're within a certain time frame as to not try and get us rate-limited.
@@ -491,7 +501,6 @@ public class TmdbMetadataService : ITmdbMetadataService
             if (movie is null)
                 return false;
 
-            var settings = _settingsProvider.GetSettings();
             var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
             var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
             var contentRantingLanguages = settings.TMDB.DownloadAllContentRatings
@@ -1026,25 +1035,34 @@ public class TmdbMetadataService : ITmdbMetadataService
     public Task<bool> WaitForShowUpdateAsync(int showId)
         => WaitIfEntityLockedAsync(DataEntityType.Show, showId, "metadata");
 
-    public async Task ScheduleUpdateOfShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadAlternateOrdering = null, bool? downloadNetworks = null)
+    public async Task ScheduleUpdateOfShow(TmdbShowUpdateOptions options)
     {
-        if (showId is 0)
+        if (options.ShowId is 0)
             return;
 
         // Schedule the show info to be downloaded or updated.
         await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<UpdateTmdbShowJob>(c =>
         {
-            c.TmdbShowID = showId;
-            c.ForceRefresh = forceRefresh;
-            c.DownloadImages = downloadImages;
-            c.DownloadCrewAndCast = downloadCrewAndCast;
-            c.DownloadAlternateOrdering = downloadAlternateOrdering;
-            c.DownloadNetworks = downloadNetworks;
+            c.TmdbShowID = options.ShowId;
+            c.ForceRefresh = options.ForceRefresh;
+            c.DownloadImages = options.DownloadImages;
+            c.DownloadCrewAndCast = options.DownloadCrewAndCast;
+            c.DownloadAlternateOrdering = options.DownloadAlternateOrdering;
+            c.DownloadNetworks = options.DownloadNetworks;
         }).ConfigureAwait(false);
     }
 
-    public async Task<bool> UpdateShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadAlternateOrdering = false, bool downloadNetworks = false, bool quickRefresh = false)
+    public async Task<bool> UpdateShow(TmdbShowUpdateOptions options)
     {
+        var showId = options.ShowId;
+        var forceRefresh = options.ForceRefresh;
+        var downloadImages = options.DownloadImages;
+        var quickRefresh = options.QuickRefresh;
+        var settings = _settingsProvider.GetSettings();
+        var downloadCrewAndCast = options.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast;
+        var downloadAlternateOrdering = options.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering;
+        var downloadNetworks = options.DownloadNetworks ?? settings.TMDB.AutoDownloadNetworks;
+
         if (showId is 0)
             return false;
 
@@ -1073,7 +1091,6 @@ public class TmdbMetadataService : ITmdbMetadataService
             if (show is null)
                 return false;
 
-            var settings = _settingsProvider.GetSettings();
             var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
             var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
             var contentRantingLanguages = settings.TMDB.DownloadAllContentRatings
@@ -2554,7 +2571,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         {
             _logger.LogDebug("Scheduling {count} shows to be updated. (Person={PersonId})", showIds.Count, personId);
             foreach (var showId in showIds)
-                await ScheduleUpdateOfShow(showId, downloadCrewAndCast: true);
+                await ScheduleUpdateOfShow(new() { ShowId = showId, DownloadCrewAndCast = true });
         }
 
         var movieIds = new HashSet<int>([
@@ -2567,7 +2584,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         {
             _logger.LogDebug("Scheduling {count} movies to be updated. (Person={PersonId})", movieIds.Count, personId);
             foreach (var movieId in movieIds)
-                await ScheduleUpdateOfMovie(movieId, downloadCrewAndCast: true);
+                await ScheduleUpdateOfMovie(new() { MovieId = movieId, DownloadCrewAndCast = true });
         }
     }
 

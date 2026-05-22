@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Extensions;
@@ -15,10 +16,11 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 using Constants = Shoko.Server.Server.Constants;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Databases;
 
 public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
@@ -37,7 +39,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
             if (_databaseBackupDirectoryPath != null)
                 return _databaseBackupDirectoryPath;
 
-            var dirPath = Utils.SettingsProvider.GetSettings().Database.DatabaseBackupDirectory;
+            var dirPath = ISettingsProvider.Instance.GetSettings().Database.DatabaseBackupDirectory;
             if (string.IsNullOrWhiteSpace(dirPath))
                 return _databaseBackupDirectoryPath = ApplicationPaths.StaticDataPath;
 
@@ -49,7 +51,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
 
     public string GetDatabaseBackupName(int version)
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         try
         {
             Directory.CreateDirectory(DatabaseBackupDirectoryPath);
@@ -292,7 +294,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
             return;
         }
 
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
 
         var defaultPassword = settings.Database.DefaultUserPassword == ""
             ? ""
@@ -303,7 +305,6 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
             HideCategories = string.Empty,
             IsAdmin = 1,
             IsAniDBUser = 1,
-            IsTraktUser = 1,
             Password = defaultPassword,
             Username = settings.Database.DefaultUserUsername
         };
@@ -315,8 +316,8 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
         if (RepoFactory.StoredRelocationPipe.GetAll().Any())
             return;
 
-        var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
-        var relocationService = Utils.ServiceContainer.GetRequiredService<IVideoRelocationService>();
+        var configurationService = ISystemService.StaticServices.GetRequiredService<IConfigurationService>();
+        var relocationService = ISystemService.StaticServices.GetRequiredService<IVideoRelocationService>();
         var provider = relocationService.GetProviderInfo<WebAOMRenamer>();
         var configuration = provider.ConfigurationInfo is null ? null : Encoding.UTF8.GetBytes(
             configurationService.Serialize(

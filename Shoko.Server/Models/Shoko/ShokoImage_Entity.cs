@@ -1,6 +1,7 @@
 using System;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
@@ -10,8 +11,8 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Models.Shoko;
 
@@ -98,7 +99,7 @@ public partial class ShokoImage_Entity : IImageCrossReference
 
     public ShokoImage_Entity(IImage image, IWithImages entity, ImageCrossReferenceData data, int xrefsCount)
     {
-        var imageManager = Utils.ServiceContainer.GetRequiredService<IImageManager>();
+        var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();
         if (!imageManager.TryGetMetadataForEntity(
             entity,
             out var entitySource,
@@ -181,7 +182,7 @@ public partial class ShokoImage_Entity : IImageCrossReference
 
         if (entity is not null)
         {
-            var imageManager = Utils.ServiceContainer.GetRequiredService<IImageManager>();
+            var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();
             if (!imageManager.TryGetMetadataForEntity(
                 entity,
                 out var entitySource,

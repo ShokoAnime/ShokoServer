@@ -143,11 +143,6 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public PlexSettings Plex { get; set; } = new();
 
     /// <inheritdoc />
-    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
-    [Visibility(Advanced = true)]
-    public TraktSettings TraktTv { get; set; } = new();
-
-    /// <inheritdoc />
     public PluginSettings Plugins { get; set; } = new();
 
     /// <inheritdoc />

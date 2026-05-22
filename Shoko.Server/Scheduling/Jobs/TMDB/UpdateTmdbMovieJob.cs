@@ -6,7 +6,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Settings;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -19,8 +18,6 @@ namespace Shoko.Server.Scheduling.Jobs.TMDB;
 public class UpdateTmdbMovieJob : BaseJob
 {
     private readonly TmdbMetadataService _tmdbService;
-
-    private readonly ISettingsProvider _settingsProvider;
 
     public virtual int TmdbMovieID { get; set; }
 
@@ -61,14 +58,19 @@ public class UpdateTmdbMovieJob : BaseJob
     public override async Task Process()
     {
         _logger.LogInformation("Processing UpdateTmdbMovieJob: {TmdbMovieId}", TmdbMovieID);
-        var settings = _settingsProvider.GetSettings();
-        await _tmdbService.UpdateMovie(TmdbMovieID, ForceRefresh, DownloadImages, DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, DownloadCollections ?? settings.TMDB.AutoDownloadCollections).ConfigureAwait(false);
+        await _tmdbService.UpdateMovie(new()
+        {
+            MovieId = TmdbMovieID,
+            ForceRefresh = ForceRefresh,
+            DownloadImages = DownloadImages,
+            DownloadCrewAndCast = DownloadCrewAndCast,
+            DownloadCollections = DownloadCollections,
+        }).ConfigureAwait(false);
     }
 
-    public UpdateTmdbMovieJob(TmdbMetadataService tmdbService, ISettingsProvider settingsProvider)
+    public UpdateTmdbMovieJob(TmdbMetadataService tmdbService)
     {
         _tmdbService = tmdbService;
-        _settingsProvider = settingsProvider;
     }
 
     protected UpdateTmdbMovieJob() { }

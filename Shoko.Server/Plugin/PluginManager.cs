@@ -25,8 +25,8 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Relocation;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Plugin;
 
@@ -239,7 +239,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         var directories = GetPluginDirectories().ToArray();
         logger.LogTrace("Scanning {Count} directories for plugins...", directories.Length);
         var settingsChanged = false;
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         foreach (var (dirPath, dlls, isSystem) in directories)
             if (LoadInternalPluginInfo(dirPath, dlls, isSystem, settings, ref settingsChanged) is { } internalPluginInfo)
                 internalPlugins.Add(internalPluginInfo);
@@ -248,7 +248,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         GC.WaitForPendingFinalizers();
 
         if (settingsChanged)
-            Utils.SettingsProvider.SaveSettings();
+            ISettingsProvider.Instance.SaveSettings();
 
         foreach (var grouping in internalPlugins.OrderBy(a => a.Priority).GroupBy(a => a.ID))
         {
@@ -360,7 +360,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             }
 
             var pluginType = localPluginInfo.PluginType!;
-            var pluginInstance = (IPlugin)ActivatorUtilities.CreateInstance(Utils.ServiceContainer, pluginType);
+            var pluginInstance = (IPlugin)ActivatorUtilities.CreateInstance(ISystemService.StaticServices, pluginType);
             _pluginTypes[localPluginInfo.LoadOrder] = new()
             {
                 ID = pluginInstance.ID,
@@ -391,20 +391,20 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             logger.LogInformation("Initialized plugin \"{Name}\". ({DllName}, {Version})", pluginInstance.Name, dllName, localPluginInfo.Version);
         }
 
-        var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
+        var configurationService = ISystemService.StaticServices.GetRequiredService<IConfigurationService>();
         configurationService.AddParts(GetTypes<IConfiguration>());
 
-        var videoService = Utils.ServiceContainer.GetRequiredService<IVideoService>();
+        var videoService = ISystemService.StaticServices.GetRequiredService<IVideoService>();
         videoService.AddParts(GetExports<IManagedFolderIgnoreRule>());
 
         // Used to store the updated priorities for the providers in the settings file.
-        var videoReleaseService = Utils.ServiceContainer.GetRequiredService<IVideoReleaseService>();
+        var videoReleaseService = ISystemService.StaticServices.GetRequiredService<IVideoReleaseService>();
         videoReleaseService.AddParts(GetExports<IReleaseInfoProvider>());
 
-        var videoHashingService = Utils.ServiceContainer.GetRequiredService<IVideoHashingService>();
+        var videoHashingService = ISystemService.StaticServices.GetRequiredService<IVideoHashingService>();
         videoHashingService.AddParts(GetExports<IHashProvider>());
 
-        var relocationService = Utils.ServiceContainer.GetRequiredService<IVideoRelocationService>();
+        var relocationService = ISystemService.StaticServices.GetRequiredService<IVideoRelocationService>();
         relocationService.AddParts(GetExports<IRelocationProvider>());
     }
 
@@ -510,10 +510,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     private InternalPluginInfo? LoadInternalPluginInfo(string? containingDirectory, string[] dlls)
     {
         var settingsChanged = false;
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var internalPluginInfo = LoadInternalPluginInfo(containingDirectory, dlls, false, settings, ref settingsChanged);
         if (settingsChanged)
-            Utils.SettingsProvider.SaveSettings();
+            ISettingsProvider.Instance.SaveSettings();
 
         if (internalPluginInfo is not null)
             logger.LogInformation("Loaded inactive plugin \"{Name}\". ({DllName}, {Version})", internalPluginInfo.Name, Path.GetFileNameWithoutExtension(internalPluginInfo.DLLs[0]), internalPluginInfo.Version);
@@ -1005,9 +1005,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
             // Remove it from the enabled plugins dictionary.
             var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
-            var settings = Utils.SettingsProvider.GetSettings();
+            var settings = ISettingsProvider.Instance.GetSettings();
             if (settings.Plugins.EnabledPlugins.Remove(dllName))
-                Utils.SettingsProvider.SaveSettings(settings);
+                ISettingsProvider.Instance.SaveSettings(settings);
 
             // Purge configuration if requested.
             if (purgeConfiguration)
@@ -1021,7 +1021,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 if (pluginInfo.Plugin is not null)
                 {
                     pluginConfigDir += Path.DirectorySeparatorChar;
-                    var configurationService = Utils.ServiceContainer.GetRequiredService<IConfigurationService>();
+                    var configurationService = ISystemService.StaticServices.GetRequiredService<IConfigurationService>();
                     var configInfos = configurationService.GetConfigurationInfo(pluginInfo.Plugin);
                     foreach (var configInfo in configInfos)
                     {
@@ -1206,7 +1206,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     private LocalPluginInfo TogglePlugin(LocalPluginInfo pluginInfo, bool enabled)
     {
         var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         if (enabled)
         {
             if (!pluginInfo.IsInstalled)
@@ -1215,7 +1215,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             if ((!settings.Plugins.EnabledPlugins.ContainsKey(dllName)) || !settings.Plugins.EnabledPlugins[dllName])
             {
                 settings.Plugins.EnabledPlugins[dllName] = true;
-                Utils.SettingsProvider.SaveSettings(settings);
+                ISettingsProvider.Instance.SaveSettings(settings);
             }
         }
         else
@@ -1223,7 +1223,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             if (settings.Plugins.EnabledPlugins.TryGetValue(dllName, out var value) && value)
             {
                 settings.Plugins.EnabledPlugins[dllName] = false;
-                Utils.SettingsProvider.SaveSettings(settings);
+                ISettingsProvider.Instance.SaveSettings(settings);
             }
         }
 
@@ -1283,7 +1283,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             : [];
 
     public T? GetExport<T>(Type type)
-        => !typeof(T).IsAssignableFrom(type) ? default : typeof(T).IsValueType ? (T?)Activator.CreateInstance(type) : (T?)ActivatorUtilities.GetServiceOrCreateInstance(Utils.ServiceContainer, type);
+        => !typeof(T).IsAssignableFrom(type) ? default : typeof(T).IsValueType ? (T?)Activator.CreateInstance(type) : (T?)ActivatorUtilities.GetServiceOrCreateInstance(ISystemService.StaticServices, type);
 
     public IEnumerable<T> GetExports<T>()
         => GetTypes<T>()
@@ -1291,7 +1291,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             {
                 try
                 {
-                    return ActivatorUtilities.GetServiceOrCreateInstance(Utils.ServiceContainer, t);
+                    return ActivatorUtilities.GetServiceOrCreateInstance(ISystemService.StaticServices, t);
                 }
                 catch (Exception ex)
                 {
@@ -1308,7 +1308,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             {
                 try
                 {
-                    return ActivatorUtilities.GetServiceOrCreateInstance(Utils.ServiceContainer, t);
+                    return ActivatorUtilities.GetServiceOrCreateInstance(ISystemService.StaticServices, t);
                 }
                 catch (Exception ex)
                 {
@@ -1320,16 +1320,16 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             .Cast<T>();
 
     public object? GetService(Type type)
-        => Utils.ServiceContainer.GetService(type);
+        => ISystemService.StaticServices.GetService(type);
 
     public T? GetService<T>()
-        => Utils.ServiceContainer.GetService<T>();
+        => ISystemService.StaticServices.GetService<T>();
 
     public object GetRequiredService(Type type)
-        => Utils.ServiceContainer.GetRequiredService(type);
+        => ISystemService.StaticServices.GetRequiredService(type);
 
     public T GetRequiredService<T>() where T : notnull
-        => Utils.ServiceContainer.GetRequiredService<T>();
+        => ISystemService.StaticServices.GetRequiredService<T>();
 
     #endregion
 }

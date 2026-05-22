@@ -34,7 +34,6 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
-using Shoko.Server.Scheduling.Jobs.Trakt;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -1161,7 +1160,7 @@ public class SeriesController : BaseController
 
         var needRefresh = RepoFactory.TMDB_Movie.GetByTmdbMovieID(body.ID) is null || body.Refresh;
         if (needRefresh)
-            await _tmdbMetadataService.ScheduleUpdateOfMovie(body.ID, forceRefresh: body.Refresh, downloadImages: true);
+            await _tmdbMetadataService.ScheduleUpdateOfMovie(new() { MovieId = body.ID, ForceRefresh = body.Refresh, DownloadImages = true });
 
         return NoContent();
     }
@@ -1234,14 +1233,14 @@ public class SeriesController : BaseController
                 RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID)
                     .Select(xref => body.SkipIfExists && RepoFactory.TMDB_Movie.GetByTmdbMovieID(xref.TmdbMovieID) is not null
                         ? Task.CompletedTask
-                        : _tmdbMetadataService.UpdateMovie(xref.TmdbMovieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast, body.DownloadCollections ?? settings.TMDB.AutoDownloadCollections)
+                        : _tmdbMetadataService.UpdateMovie(new() { MovieId = xref.TmdbMovieID, ForceRefresh = body.Force, DownloadImages = body.DownloadImages, DownloadCrewAndCast = body.DownloadCrewAndCast, DownloadCollections = body.DownloadCollections })
                     )
             );
             return Ok();
         }
 
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID))
-            await _tmdbMetadataService.ScheduleUpdateOfMovie(xref.TmdbMovieID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadCollections);
+            await _tmdbMetadataService.ScheduleUpdateOfMovie(new() { MovieId = xref.TmdbMovieID, ForceRefresh = body.Force, DownloadImages = body.DownloadImages, DownloadCrewAndCast = body.DownloadCrewAndCast, DownloadCollections = body.DownloadCollections });
 
         return NoContent();
     }
@@ -1367,7 +1366,7 @@ public class SeriesController : BaseController
 
         var needRefresh = body.Refresh || RepoFactory.TMDB_Show.GetByTmdbShowID(body.ID) is not { } tmdbShow || tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt;
         if (needRefresh)
-            await _tmdbMetadataService.ScheduleUpdateOfShow(body.ID, forceRefresh: body.Refresh, downloadImages: true);
+            await _tmdbMetadataService.ScheduleUpdateOfShow(new() { ShowId = body.ID, ForceRefresh = body.Refresh, DownloadImages = true });
 
         // Reset series/group titles/descriptions when a new link is added.
         series.ResetAnimeTitles();
@@ -1441,21 +1440,22 @@ public class SeriesController : BaseController
             var settings = SettingsProvider.GetSettings();
             await Task.WhenAll(
                 RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID)
-                    .Select(xref => _tmdbMetadataService.UpdateShow(
-                        showId: xref.TmdbShowID,
-                        forceRefresh: body.Force,
-                        downloadImages: body.DownloadImages,
-                        downloadCrewAndCast: body.DownloadCrewAndCast ?? settings.TMDB.AutoDownloadCrewAndCast,
-                        downloadAlternateOrdering: body.DownloadAlternateOrdering ?? settings.TMDB.AutoDownloadAlternateOrdering,
-                        downloadNetworks: body.DownloadNetworks ?? settings.TMDB.AutoDownloadNetworks,
-                        quickRefresh: body.QuickRefresh)
-                    )
+                    .Select(xref => _tmdbMetadataService.UpdateShow(new()
+                    {
+                        ShowId = xref.TmdbShowID,
+                        ForceRefresh = body.Force,
+                        DownloadImages = body.DownloadImages,
+                        DownloadCrewAndCast = body.DownloadCrewAndCast,
+                        DownloadAlternateOrdering = body.DownloadAlternateOrdering,
+                        DownloadNetworks = body.DownloadNetworks,
+                        QuickRefresh = body.QuickRefresh,
+                    }))
             );
             return Ok();
         }
 
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID))
-            await _tmdbMetadataService.ScheduleUpdateOfShow(xref.TmdbShowID, body.Force, body.DownloadImages, body.DownloadCrewAndCast, body.DownloadAlternateOrdering, body.DownloadNetworks);
+            await _tmdbMetadataService.ScheduleUpdateOfShow(new() { ShowId = xref.TmdbShowID, ForceRefresh = body.Force, DownloadImages = body.DownloadImages, DownloadCrewAndCast = body.DownloadCrewAndCast, DownloadAlternateOrdering = body.DownloadAlternateOrdering, DownloadNetworks = body.DownloadNetworks });
 
         return NoContent();
     }
@@ -1650,7 +1650,7 @@ public class SeriesController : BaseController
             if (RepoFactory.TMDB_Show.GetByTmdbShowID(showId) is not { } tmdbShow || tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt)
             {
                 scheduled = true;
-                await _tmdbMetadataService.ScheduleUpdateOfShow(showId, downloadImages: true);
+                await _tmdbMetadataService.ScheduleUpdateOfShow(new() { ShowId = showId, DownloadImages = true });
             }
 
         if (scheduled)
@@ -1779,7 +1779,7 @@ public class SeriesController : BaseController
 
         if (tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt)
         {
-            await _tmdbMetadataService.ScheduleUpdateOfShow(tmdbShow.Id, downloadImages: true);
+            await _tmdbMetadataService.ScheduleUpdateOfShow(new() { ShowId = tmdbShow.Id, DownloadImages = true });
             return Created();
         }
 
@@ -1893,92 +1893,6 @@ public class SeriesController : BaseController
     }
 
     #endregion
-
-    #endregion
-
-    #region Trakt
-
-    /// <summary>
-    /// Queue a job for sending series watch states to Trakt
-    /// </summary>
-    /// <param name="seriesID">Shoko ID</param>
-    /// <returns></returns>
-    [HttpPost("{seriesID}/Trakt/SendWatchStates")]
-    public async Task<ActionResult> SendWatchStatesToTraktBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
-    {
-        var settings = SettingsProvider.GetSettings().TraktTv;
-        if (!settings.Enabled || string.IsNullOrEmpty(settings.AuthToken))
-        {
-            return BadRequest("Trakt account is not linked!");
-        }
-
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
-        {
-            return NotFound(SeriesNotFoundWithSeriesID);
-        }
-
-        if (!User.AllowedSeries(series))
-        {
-            return Forbid(SeriesForbiddenForUser);
-        }
-
-        var anidb = series.AniDB_Anime;
-        if (anidb == null)
-        {
-            return InternalError(AnidbNotFoundForSeriesID);
-        }
-
-        if (series.TmdbShowCrossReferences.Count == 0 && series.TmdbMovieCrossReferences.Count == 0)
-        {
-            return ValidationProblem(TmdbLinkNotFoundForSeriesID);
-        }
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SendSeriesWatchStatesToTraktJob>(c => c.AnimeSeriesID = seriesID);
-        return Ok();
-    }
-
-    /// <summary>
-    /// Queue a job for getting series watch states from Trakt
-    /// </summary>
-    /// <param name="seriesID">Shoko ID</param>
-    /// <returns></returns>
-    [HttpPost("{seriesID}/Trakt/GetWatchStates")]
-    public async Task<ActionResult> GetWatchStatesFromTraktBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
-    {
-        var settings = SettingsProvider.GetSettings().TraktTv;
-        if (!settings.Enabled || string.IsNullOrEmpty(settings.AuthToken))
-        {
-            return BadRequest("Trakt account is not linked!");
-        }
-
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
-        {
-            return NotFound(SeriesNotFoundWithSeriesID);
-        }
-
-        if (!User.AllowedSeries(series))
-        {
-            return Forbid(SeriesForbiddenForUser);
-        }
-
-        var anidb = series.AniDB_Anime;
-        if (anidb == null)
-        {
-            return InternalError(AnidbNotFoundForSeriesID);
-        }
-
-        if (series.TmdbShowCrossReferences.Count == 0 && series.TmdbMovieCrossReferences.Count == 0)
-        {
-            return ValidationProblem(TmdbLinkNotFoundForSeriesID);
-        }
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<GetSeriesWatchStatesFromTraktJob>(c => c.AnimeSeriesID = seriesID);
-        return Ok();
-    }
 
     #endregion
 

@@ -18,6 +18,7 @@ using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.User.Services;
+using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.common;
@@ -122,7 +123,19 @@ public class Common : BaseController
 
         try
         {
-            var result = RepoFactory.ShokoManagedFolder.SaveFolder(folder.ToServer());
+            var dropFolderType = DropFolderType.Excluded;
+            if (folder.IsDropSource == 1)
+                dropFolderType |= DropFolderType.Source;
+            if (folder.IsDropDestination == 1)
+                dropFolderType |= DropFolderType.Destination;
+
+            var result = (ShokoManagedFolder)_videoService.AddManagedFolder(new()
+            {
+                Name = folder.ImportFolderName,
+                Path = folder.ImportFolderLocation,
+                DropFolderType = dropFolderType,
+                WatchForNewFiles = folder.IsWatched == 1,
+            });
             return result.ToClient();
         }
         catch (Exception e)
@@ -147,8 +160,24 @@ public class Common : BaseController
 
         try
         {
-            var response = RepoFactory.ShokoManagedFolder.SaveFolder(folder.ToServer());
-            return response.ToClient();
+            var existingFolder = RepoFactory.ShokoManagedFolder.GetByID(folder.ImportFolderID);
+            if (existingFolder == null)
+                return new APIMessage(StatusCodes.Status400BadRequest, "ImportFolder not found");
+
+            var dropFolderType = DropFolderType.Excluded;
+            if (folder.IsDropSource == 1)
+                dropFolderType |= DropFolderType.Source;
+            if (folder.IsDropDestination == 1)
+                dropFolderType |= DropFolderType.Destination;
+
+            var result = (ShokoManagedFolder)_videoService.UpdateManagedFolder(existingFolder, new()
+            {
+                Name = folder.ImportFolderName,
+                Path = folder.ImportFolderLocation,
+                DropFolderType = dropFolderType,
+                WatchForNewFiles = folder.IsWatched == 1,
+            });
+            return result.ToClient();
         }
         catch (Exception e)
         {

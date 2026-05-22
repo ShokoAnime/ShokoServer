@@ -36,23 +36,15 @@ public interface ITmdbMetadataService
     /// <summary>
     /// Schedules a movie update job.
     /// </summary>
-    /// <param name="movieId">The TMDB movie ID.</param>
-    /// <param name="forceRefresh">Force refresh even if recently updated.</param>
-    /// <param name="downloadImages">Whether to download images.</param>
-    /// <param name="downloadCrewAndCast">Whether to download crew and cast. If null, uses settings default.</param>
-    /// <param name="downloadCollections">Whether to download collection info. If null, uses settings default.</param>
-    Task ScheduleUpdateOfMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadCollections = null);
+    /// <param name="options">The update options.</param>
+    Task ScheduleUpdateOfMovie(TmdbMovieUpdateOptions options);
 
     /// <summary>
     /// Updates a TMDB movie's metadata.
     /// </summary>
-    /// <param name="movieId">The TMDB movie ID.</param>
-    /// <param name="forceRefresh">Force refresh even if recently updated.</param>
-    /// <param name="downloadImages">Whether to download images.</param>
-    /// <param name="downloadCrewAndCast">Whether to download crew and cast.</param>
-    /// <param name="downloadCollections">Whether to download collection info.</param>
+    /// <param name="options">The update options.</param>
     /// <returns>True if the movie was updated, false otherwise.</returns>
-    Task<bool> UpdateMovie(int movieId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadCollections = false);
+    Task<bool> UpdateMovie(TmdbMovieUpdateOptions options);
 
     /// <summary>
     /// Schedules a job to download all images for a movie.
@@ -97,26 +89,15 @@ public interface ITmdbMetadataService
     /// <summary>
     /// Schedules a show update job.
     /// </summary>
-    /// <param name="showId">The TMDB show ID.</param>
-    /// <param name="forceRefresh">Force refresh even if recently updated.</param>
-    /// <param name="downloadImages">Whether to download images.</param>
-    /// <param name="downloadCrewAndCast">Whether to download crew and cast. If null, uses settings default.</param>
-    /// <param name="downloadAlternateOrdering">Whether to download alternate ordering. If null, uses settings default.</param>
-    /// <param name="downloadNetworks">Whether to download network info. If null, uses settings default.</param>
-    Task ScheduleUpdateOfShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool? downloadCrewAndCast = null, bool? downloadAlternateOrdering = null, bool? downloadNetworks = null);
+    /// <param name="options">The update options.</param>
+    Task ScheduleUpdateOfShow(TmdbShowUpdateOptions options);
 
     /// <summary>
     /// Updates a TMDB show's metadata.
     /// </summary>
-    /// <param name="showId">The TMDB show ID.</param>
-    /// <param name="forceRefresh">Force refresh even if recently updated.</param>
-    /// <param name="downloadImages">Whether to download images.</param>
-    /// <param name="downloadCrewAndCast">Whether to download crew and cast.</param>
-    /// <param name="downloadAlternateOrdering">Whether to download alternate ordering.</param>
-    /// <param name="downloadNetworks">Whether to download network info.</param>
-    /// <param name="quickRefresh">Whether to perform a quick refresh (skip some operations).</param>
+    /// <param name="options">The update options.</param>
     /// <returns>True if the show was updated, false otherwise.</returns>
-    Task<bool> UpdateShow(int showId, bool forceRefresh = false, bool downloadImages = false, bool downloadCrewAndCast = false, bool downloadAlternateOrdering = false, bool downloadNetworks = false, bool quickRefresh = false);
+    Task<bool> UpdateShow(TmdbShowUpdateOptions options);
 
     /// <summary>
     /// Schedules a job to download all images for a show.

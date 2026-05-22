@@ -10,8 +10,9 @@ using NHibernate;
 using NHibernate.Engine;
 using NHibernate.SqlTypes;
 using NHibernate.UserTypes;
-using Shoko.Server.Utilities;
+using Shoko.Abstractions.Core.Services;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Databases.NHibernate;
 
 public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
@@ -38,7 +39,7 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
         catch (Exception ex)
         {
 
-            Utils.ServiceContainer.GetRequiredService<ILogger<MessagePackConverter<T>>>().LogError(ex, "Failed to deserialize {Type} from {Value}",
+            ISystemService.StaticServices.GetRequiredService<ILogger<MessagePackConverter<T>>>().LogError(ex, "Failed to deserialize {Type} from {Value}",
                 value.GetType(), Convert.ToBase64String((byte[])value));
             return null;
         }
@@ -67,7 +68,7 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
         }
         catch (Exception ex)
         {
-            Utils.ServiceContainer.GetRequiredService<ILogger<MessagePackConverter<T>>>()
+            ISystemService.StaticServices.GetRequiredService<ILogger<MessagePackConverter<T>>>()
                 .LogError(ex, "Failed to serialize {Type} from {Value}", value.GetType(), JsonConvert.SerializeObject(value));
             return null;
         }

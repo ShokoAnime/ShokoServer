@@ -7,16 +7,18 @@ using FluentNHibernate.Cfg.Db;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Databases.SqliteFixes;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 // ReSharper disable InconsistentNaming
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Databases;
 
 public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection>(systemService)
@@ -32,7 +34,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         .Max(x => x.Version);
 
     private static string GetDatabaseFilePath()
-        => Path.Combine(DatabasePath, Utils.SettingsProvider.GetSettings().Database.SQLite_DatabaseFile);
+        => Path.Combine(DatabasePath, ISettingsProvider.Instance.GetSettings().Database.SQLite_DatabaseFile);
 
     private static string _databasePath;
 
@@ -43,7 +45,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
             if (_databasePath != null)
                 return _databasePath;
 
-            var dirPath = Utils.SettingsProvider.GetSettings().Database.MySqliteDirectory;
+            var dirPath = ISettingsProvider.Instance.GetSettings().Database.MySqliteDirectory;
             if (string.IsNullOrWhiteSpace(dirPath))
                 return _databasePath = ApplicationPaths.StaticDataPath;
 
@@ -111,7 +113,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
 
     public override string GetConnectionString()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         // we are assuming that if you have overridden the connection string, you know what you're doing, and have set up the database and perms
         if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
             return settings.Database.OverrideConnectionString;
@@ -123,7 +125,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
 
     public override ISessionFactory CreateSessionFactory()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         return Fluently.Configure()
             .Database(MsSqliteConfiguration.Standard.ConnectionString(c => c.Is(GetConnectionString()))
                 .Dialect<SqliteDialectFix>()
@@ -134,7 +136,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
             {
                 prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
             })
-            .SetInterceptor(new NHibernateDependencyInjector(Utils.ServiceContainer)))
+            .SetInterceptor(new NHibernateDependencyInjector(ISystemService.StaticServices)))
             .BuildSessionFactory();
     }
 
@@ -164,7 +166,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
             return;
         if (!Directory.Exists(DatabasePath))
             Directory.CreateDirectory(DatabasePath);
-        Utils.SettingsProvider.GetSettings().Database.SQLite_DatabaseFile = GetDatabaseFilePath();
+        ISettingsProvider.Instance.GetSettings().Database.SQLite_DatabaseFile = GetDatabaseFilePath();
     }
 
     public override void CreateAndUpdateSchema()
@@ -857,6 +859,9 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(144,  5, "UPDATE ShokoImage SET Source = 1 WHERE Source = 'TMDB';"),
         new(144,  6, "UPDATE ShokoImage SET Source = 0 WHERE Source = 'AniDB';"),
         new(144,  7, "UPDATE ShokoImage SET Source = 254 WHERE Source = 'User';"),
+        new(145,  1, "DROP TABLE IF EXISTS AniDB_Vote;"),
+        new(145,  2, "DROP TABLE IF EXISTS CrossRef_AniDB_TvDBV2;"),
+        new(146,  1, "ALTER TABLE JMMUser DROP COLUMN IsTraktUser;"),
     ];
 
     #endregion
@@ -868,7 +873,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         try
         {
             var myConn = (SqliteConnection)connection;
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
 
             var addCommand = "ALTER TABLE CrossRef_Languages_AniDB_File ADD LanguageName TEXT NOT NULL DEFAULT '';";
             var updateCommand = "UPDATE CrossRef_Languages_AniDB_File SET LanguageName = l.LanguageName FROM CrossRef_Languages_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';";
@@ -901,7 +906,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Anime",
@@ -969,7 +974,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Anime_Character",
@@ -1001,7 +1006,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Character",
@@ -1033,7 +1038,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.Execute((SqliteConnection)connection, [
                 "ALTER TABLE AniDB_GroupStatus RENAME TO AniDB_GroupStatus_old;",
                 "CREATE TABLE AniDB_GroupStatus ( AniDB_GroupStatusID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, GroupID INTEGER NOT NULL, GroupName TEXT NOT NULL, CompletionState INTEGER NOT NULL, LastEpisodeNumber INTEGER NOT NULL, Rating decimal(6,2) NOT NULL, Votes INTEGER NOT NULL, EpisodeRange TEXT NOT NULL ); ",
@@ -1057,7 +1062,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_File",
@@ -1116,7 +1121,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AnimeEpisode_User",
@@ -1151,7 +1156,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "VideoLocal",
@@ -1200,7 +1205,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Episode",
@@ -1237,7 +1242,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.Execute((SqliteConnection)connection, [
                 """
                     CREATE TABLE CrossRef_AniDB_TvDB_Episode_Override(
@@ -1262,7 +1267,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Anime",
@@ -1320,7 +1325,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "VideoLocal",
@@ -1368,7 +1373,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "TvDB_Episode",
@@ -1409,7 +1414,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     {
         try
         {
-            var factory = (SQLite)Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
             factory.Alter(
                 (SqliteConnection)connection,
                 "VideoLocal_User",

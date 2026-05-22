@@ -205,22 +205,20 @@ public interface IMetadataService
     /// <summary>
     /// Creates a custom tag with the given name and optional description.
     /// </summary>
-    /// <param name="name">The name of the custom tag.</param>
-    /// <param name="description">The description of the custom tag.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is empty.</exception>
+    /// <param name="data">The custom tag data.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is <see langword="null"/> or <see cref="CustomTagData.Name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <see cref="CustomTagData.Name"/> is empty.</exception>
     /// <exception cref="DuplicateNameException">Thrown when a tag with the same name already exists.</exception>
     /// <returns>The created custom tag.</returns>
-    IShokoTag CreateCustomTag(string name, string? description = null);
+    IShokoTag CreateCustomTag(CustomTagData data);
 
     /// <summary>
     /// Updates a custom tag with the given name and optional description.
     /// </summary>
     /// <param name="tag">The custom tag to update.</param>
-    /// <param name="name">Optional. The new name of the custom tag.</param>
-    /// <param name="description">Optional. The new description of the custom tag.</param>
+    /// <param name="data">The custom tag update data.</param>
     /// <returns>The updated custom tag.</returns>
-    IShokoTag UpdateCustomTag(IShokoTag tag, string? name = null, string? description = null);
+    IShokoTag UpdateCustomTag(IShokoTag tag, CustomTagUpdateData data);
 
     /// <summary>
     /// Deletes a custom tag, and removes it from all series.

@@ -1,15 +1,18 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
+using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Tasks;
 
 /// <remarks>
@@ -67,7 +70,7 @@ public class AutoAnimeGroupCalculator
     /// <returns>The created <see cref="AutoAnimeGroupCalculator"/>.</returns>
     public static AutoAnimeGroupCalculator CreateFromServerSettings()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var mainAnimeSelectionStrategy = settings.AutoGroupSeriesUseScoreAlgorithm
             ? MainAnimeSelectionStrategy.Weighted
             : MainAnimeSelectionStrategy.MinAirDate;
@@ -100,7 +103,7 @@ public class AutoAnimeGroupCalculator
         AnimeRelationType relationsToFuzzyTitleTest = AnimeRelationType.SecondaryRelations,
         MainAnimeSelectionStrategy mainAnimeSelectionStrategy = MainAnimeSelectionStrategy.MinAirDate)
     {
-        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         var relationshipList = BaseRepository.Lock(session, s => s.CreateSQLQuery(@"
                 SELECT    fromAnime.AnimeID AS fromAnimeId
                         , toAnime.AnimeID AS toAnimeId
@@ -122,8 +125,8 @@ public class AutoAnimeGroupCalculator
             .AddScalar("toAnimeType", NHibernateUtil.Int32)
             .AddScalar("fromMainTitle", NHibernateUtil.String)
             .AddScalar("toMainTitle", NHibernateUtil.String)
-            .AddScalar("fromAirDate", NHibernateUtil.DateTime)
-            .AddScalar("toAirDate", NHibernateUtil.DateTime)
+            .AddScalar("fromAirDate", NHibernateUtil.String)
+            .AddScalar("toAirDate", NHibernateUtil.String)
             .AddScalar("relationType", NHibernateUtil.String)
             .List<object[]>());
 
@@ -137,47 +140,23 @@ public class AutoAnimeGroupCalculator
                     ToType = (AnimeType)r[3],
                     FromMainTitle = (string)r[4],
                     ToMainTitle = (string)r[5],
-                    FromAirDate = (DateTime?)r[6],
-                    ToAirDate = (DateTime?)r[7]
+                    FromAirDate = PartialDateOnly.TryParse((string)r[6], out var fromAirDate) ? fromAirDate : null,
+                    ToAirDate = PartialDateOnly.TryParse((string)r[7], out var toAirDate) ? toAirDate : null,
+                    RelationType = ((string)r[8]).ToLowerInvariant() switch
+                    {
+                        "full story" => AnimeRelationType.FullStory,
+                        "summary" => AnimeRelationType.Summary,
+                        "parent story" => AnimeRelationType.ParentStory,
+                        "side story" => AnimeRelationType.SideStory,
+                        "prequel" => AnimeRelationType.Prequel,
+                        "sequel" => AnimeRelationType.Sequel,
+                        "alternative setting" => AnimeRelationType.AlternativeSetting,
+                        "alternative version" => AnimeRelationType.AlternativeVersion,
+                        "same setting" => AnimeRelationType.SameSetting,
+                        "character" => AnimeRelationType.Character,
+                        _ => AnimeRelationType.Other,
+                    },
                 };
-
-                switch (((string)r[8]).ToLowerInvariant())
-                {
-                    case "full story":
-                        relation.RelationType = AnimeRelationType.FullStory;
-                        break;
-                    case "summary":
-                        relation.RelationType = AnimeRelationType.Summary;
-                        break;
-                    case "parent story":
-                        relation.RelationType = AnimeRelationType.ParentStory;
-                        break;
-                    case "side story":
-                        relation.RelationType = AnimeRelationType.SideStory;
-                        break;
-                    case "prequel":
-                        relation.RelationType = AnimeRelationType.Prequel;
-                        break;
-                    case "sequel":
-                        relation.RelationType = AnimeRelationType.Sequel;
-                        break;
-                    case "alternative setting":
-                        relation.RelationType = AnimeRelationType.AlternativeSetting;
-                        break;
-                    case "alternative version":
-                        relation.RelationType = AnimeRelationType.AlternativeVersion;
-                        break;
-                    case "same setting":
-                        relation.RelationType = AnimeRelationType.SameSetting;
-                        break;
-                    case "character":
-                        relation.RelationType = AnimeRelationType.Character;
-                        break;
-                    default:
-                        relation.RelationType = AnimeRelationType.Other;
-                        break;
-                }
-
                 return relation;
             })
             .ToLookup(k => k.FromId);
@@ -238,7 +217,7 @@ public class AutoAnimeGroupCalculator
         HashSet<RelationEdge> edges)
     {
         var animeId = nodes.Values
-            .OrderBy(n => n.AirDate ?? DateTime.MaxValue)
+            .OrderBy(n => n.AirDate ?? PartialDateOnly.MaxValue)
             .Select(n => n.AnimeId)
             .FirstOrDefault();
 
@@ -494,20 +473,13 @@ public class AutoAnimeGroupCalculator
     }
 
     [DebuggerDisplay("{AnimeId} ({Type})")]
-    private sealed class RelationNode
+    private sealed class RelationNode(int animeId, AnimeType type, PartialDateOnly? airDate)
     {
-        public RelationNode(int animeId, AnimeType type, DateTime? airDate)
-        {
-            AnimeId = animeId;
-            Type = type;
-            AirDate = airDate;
-        }
+        public int AnimeId { get; } = animeId;
 
-        public int AnimeId { get; }
+        public AnimeType Type { get; } = type;
 
-        public AnimeType Type { get; }
-
-        public DateTime? AirDate { get; }
+        public PartialDateOnly? AirDate { get; } = airDate;
     }
 
     [DebuggerDisplay("{AnimeId1} ({RelationType1}) -> {AnimeId2} ({RelationType2})")]
@@ -615,11 +587,11 @@ public class AutoAnimeGroupCalculator
         public int FromId;
         public AnimeType FromType;
         public string FromMainTitle;
-        public DateTime? FromAirDate;
+        public PartialDateOnly? FromAirDate;
         public int ToId;
         public AnimeType ToType;
         public string ToMainTitle;
-        public DateTime? ToAirDate;
+        public PartialDateOnly? ToAirDate;
         public AnimeRelationType RelationType;
     }
 

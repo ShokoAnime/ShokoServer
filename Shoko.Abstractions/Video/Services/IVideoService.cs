@@ -397,22 +397,13 @@ public interface IVideoService
     /// <summary>
     ///   Adds a new managed folder.
     /// </summary>
-    /// <param name="name">
-    ///   The name of the managed folder.
-    /// </param>
-    /// <param name="path">
-    ///   The path of the managed folder.
-    /// </param>
-    /// <param name="dropFolderType">
-    ///   The drop folder type.
-    /// </param>
-    /// <param name="watchForNewFiles">
-    ///   Whether to watch for new files in the managed folder.
+    /// <param name="folderData">
+    ///   The data for the new managed folder.
     /// </param>
     /// <returns>
     ///   The added managed folder.
     /// </returns>
-    IManagedFolder AddManagedFolder(string name, string path, DropFolderType dropFolderType = DropFolderType.Excluded, bool watchForNewFiles = false);
+    IManagedFolder AddManagedFolder(ManagedFolderData folderData);
 
     /// <summary>
     ///   Edits a managed folder.
@@ -420,22 +411,13 @@ public interface IVideoService
     /// <param name="folder">
     ///   The managed folder to update.
     /// </param>
-    /// <param name="name">
-    ///   The new name of the managed folder.
-    /// </param>
-    /// <param name="path">
-    ///   The new path of the managed folder.
-    /// </param>
-    /// <param name="dropFolderType">
-    ///   The new drop folder type.
-    /// </param>
-    /// <param name="watchForNewFiles">
-    ///   Whether to watch for new files in the managed folder.
+    /// <param name="folderUpdate">
+    ///   The update data for the managed folder.
     /// </param>
     /// <returns>
     ///   The updated managed folder.
     /// </returns>
-    IManagedFolder UpdateManagedFolder(IManagedFolder folder, string? name = null, string? path = null, DropFolderType? dropFolderType = null, bool? watchForNewFiles = null);
+    IManagedFolder UpdateManagedFolder(IManagedFolder folder, ManagedFolderUpdateData folderUpdate);
 
     /// <summary>
     ///   Removes a managed folder.

@@ -370,9 +370,12 @@ public class PluginPackageController(
         try
         {
             var repository = await packageManager.AddPackageRepository(
-                body.Name,
-                body.Url,
-                body.StaleTime
+                new()
+                {
+                    Name = body.Name,
+                    Url = body.Url,
+                    StaleTime = body.StaleTime,
+                }
             ).ConfigureAwait(false);
 
             return new PackageRepositoryInfo(repository);

@@ -16,6 +16,7 @@ using NLog.Filters;
 using NLog.Layouts;
 using NLog.Targets;
 using Quartz.Logging;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Logging.Models;
@@ -26,11 +27,11 @@ using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Extensions;
 using Shoko.Server.Logging;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 using ELogLevel = Microsoft.Extensions.Logging.LogLevel;
 using NLogLevel = NLog.LogLevel;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Services;
 
@@ -1059,7 +1060,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             if (_rotationEnabled != logging.RotationEnabled)
             {
                 _rotationEnabled = logging.RotationEnabled;
-                Utils.ServiceContainer?.GetRequiredService<ILogService>().StartMaintenance();
+                ISystemService.StaticServices?.GetRequiredService<ILogService>().StartMaintenance();
             }
         }
     }

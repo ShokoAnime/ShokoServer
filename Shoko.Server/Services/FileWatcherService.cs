@@ -8,12 +8,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Events;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.FileSystemWatcher;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Services;
 
@@ -72,7 +73,7 @@ public class FileWatcherService
 
     public void StartWatchingFiles()
     {
-        _videoService ??= Utils.ServiceContainer.GetRequiredService<IVideoService>();
+        _videoService ??= ISystemService.StaticServices.GetRequiredService<IVideoService>();
         _fileWatchers = [];
         var settings = _settingsProvider.Load();
 

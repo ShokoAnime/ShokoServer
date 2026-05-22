@@ -1,19 +1,18 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Jobs.Trakt;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #pragma warning disable ASP0023
 #pragma warning disable CA2012
 namespace Shoko.Server.API.v1.Implementations;
@@ -43,7 +42,7 @@ public partial class ShokoServiceImplementation
 
         try
         {
-            using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+            using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
             var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
             if (anime == null)
             {
@@ -371,29 +370,7 @@ public partial class ShokoServiceImplementation
     [HttpPost("Trakt/Sync/{animeID}")]
     public string SyncTraktSeries(int animeID)
     {
-        try
-        {
-            if (!_settingsProvider.GetSettings().TraktTv.Enabled)
-            {
-                return string.Empty;
-            }
-
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
-            if (ser == null)
-            {
-                return "Could not find Anime Series";
-            }
-
-            var scheduler = _schedulerFactory.GetScheduler().Result;
-            scheduler.StartJob<SendSeriesWatchStatesToTraktJob>(c => c.AnimeSeriesID = ser.AnimeSeriesID).GetAwaiter().GetResult();
-
-            return string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{ex}", ex.ToString());
-            return ex.Message;
-        }
+        return string.Empty;
     }
 
     [HttpPost("Trakt/Comment/{traktID}/{isSpoiler}")]
@@ -423,16 +400,7 @@ public partial class ShokoServiceImplementation
     [HttpGet("Trakt/DeviceCode")]
     public CL_TraktDeviceCode GetTraktDeviceCode()
     {
-        try
-        {
-            var response = _traktHelper.GetTraktDeviceCode();
-            return new CL_TraktDeviceCode { VerificationUrl = response.VerificationUrl, UserCode = response.UserCode };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in GetTraktDeviceCode: {ex}", ex.ToString());
-            return null;
-        }
+        return null;
     }
 
     #endregion
@@ -474,7 +442,7 @@ public partial class ShokoServiceImplementation
                     if (!episodeId.HasValue || episodeId <= 0)
                         return $"Could not find first episode for AniDB Anime {animeID} to link to for TMDB Movie {id}";
                     _tmdbLinkingService.AddMovieLinkForEpisode(episodeId.Value, id).ConfigureAwait(false).GetAwaiter().GetResult();
-                    _tmdbMetadataService.ScheduleUpdateOfMovie(id, downloadImages: true).ConfigureAwait(false).GetAwaiter().GetResult();
+                    _tmdbMetadataService.ScheduleUpdateOfMovie(new() { MovieId = id, DownloadImages = true }).ConfigureAwait(false).GetAwaiter().GetResult();
                     break;
             }
 
@@ -589,7 +557,7 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            _tmdbMetadataService.ScheduleUpdateOfMovie(movieID, downloadImages: true, forceRefresh: true).ConfigureAwait(false).GetAwaiter().GetResult();
+            _tmdbMetadataService.ScheduleUpdateOfMovie(new() { MovieId = movieID, DownloadImages = true, ForceRefresh = true }).ConfigureAwait(false).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {

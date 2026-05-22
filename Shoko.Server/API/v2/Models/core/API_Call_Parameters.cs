@@ -77,17 +77,17 @@ public class API_Call_Parameters
     public int all { get; set; }
 
     /// <summary>
-    /// passthru progres value (ex. in Trakt)
+    /// passthru progres value
     /// </summary>
     public int progress { get; set; } = -1;
 
     /// <summary>
-    /// status passthru (ex. in Trakt)
+    /// status passthru
     /// </summary>
     public int status { get; set; } = -1;
 
     /// <summary>
-    /// passthru ismovie mark for function to determinate if object is movie or episode (ex. Trakt)
+    /// passthru ismovie mark for function to determinate if object is movie or episode
     /// </summary>
     public int ismovie { get; set; }
 

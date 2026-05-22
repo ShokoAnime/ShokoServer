@@ -9,15 +9,17 @@ using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NHibernate.AdoNet;
 using NHibernate.Driver;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 // ReSharper disable InconsistentNaming
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Databases;
 
 public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection>(systemService)
@@ -91,7 +93,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         //2) The SqlServer running account should have read write access to our backup dir which is nono
         // So we backup in the default SQL SERVER BACKUP DIRECTORY.
 
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var cmd = "BACKUP DATABASE[" + settings.Database.Schema + "] TO DISK = '" +
                   fileName.Replace("'", "''") + "'";
 
@@ -124,7 +126,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     public override string GetTestConnectionString()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         // we are assuming that if you have overridden the connection string, you know what you're doing, and have set up the database and perms
         if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
             return settings.Database.OverrideConnectionString;
@@ -133,7 +135,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     public override string GetConnectionString()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
             return settings.Database.OverrideConnectionString;
         return
@@ -142,7 +144,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     public override ISessionFactory CreateSessionFactory()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         return Fluently.Configure()
             .Database(MsSqlConfiguration.MsSql2012.ConnectionString(GetConnectionString()).Driver<MicrosoftDataSqlClientDriver>())
             .Mappings(m => m.FluentMappings.AddFromAssemblyOf<SystemService>())
@@ -152,13 +154,13 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
                 prop.BatchSize = 0;
                 prop.LogSqlInConsole = settings.Database.LogSqlInConsole;
             })
-            .SetInterceptor(new NHibernateDependencyInjector(Utils.ServiceContainer)))
+            .SetInterceptor(new NHibernateDependencyInjector(ISystemService.StaticServices)))
             .BuildSessionFactory();
     }
 
     public override bool DatabaseAlreadyExists()
     {
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var cmd = $"Select count(*) from sysdatabases where name = '{settings.Database.Schema}'";
         using var tmpConn = new SqlConnection(GetTestConnectionString());
         tmpConn.Open();
@@ -172,7 +174,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
     {
         if (DatabaseAlreadyExists()) return;
 
-        var settings = Utils.SettingsProvider.GetSettings();
+        var settings = ISettingsProvider.Instance.GetSettings();
         var cmd = $"CREATE DATABASE {settings.Database.Schema}";
         using var connection = new SqlConnection(GetTestConnectionString());
         var command = new SqlCommand(cmd, connection);
@@ -937,6 +939,9 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(157,  2, @"CREATE TABLE ShokoImage_Entity (ID INT IDENTITY(1,1) NOT NULL, ImageID UNIQUEIDENTIFIER NOT NULL, PrimaryImageID UNIQUEIDENTIFIER NOT NULL, ImageType TINYINT NOT NULL, ImageSource TINYINT NOT NULL, EntitySource TINYINT NOT NULL, EntityType TINYINT NOT NULL, EntityID NVARCHAR(128) NOT NULL, EntitySeasonNumber INT, EntityEpisodeNumber INT, EntityReleasedAt DATE, IsEnabled BIT NOT NULL DEFAULT 1, IsDesired BIT NOT NULL DEFAULT 1, IsPreferred BIT NOT NULL DEFAULT 0, Ordering INT NOT NULL DEFAULT 0, Rating decimal(6,2) NULL, RatingVotes INT NULL, Source TINYINT NOT NULL, CreatedAt DATETIME2 NOT NULL, LastUpdatedAt DATETIME2 NOT NULL);"),
         new(157,  3, DatabaseFixes.MigrateToUnifiedImages),
         new(157,  4, DatabaseFixes.ScheduleTmdbImageUpdates),
+        new(158,  1, "DROP TABLE IF EXISTS AniDB_Vote;"),
+        new(158,  2, "DROP TABLE IF EXISTS CrossRef_AniDB_TvDBV2;"),
+        new(159,  1, "ALTER TABLE JMMUser DROP COLUMN IsTraktUser;"),
     ];
 
     #endregion
@@ -947,7 +952,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
     {
         DropColumnWithDefaultConstraint("TMDB_Movie", "ImdbMovieID");
 
-        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
         using var transaction = session.BeginTransaction();
 
         const string alterCommand = "ALTER TABLE TMDB_Movie ADD ImdbMovieID NVARCHAR(12) NULL DEFAULT NULL;";
@@ -1006,7 +1011,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     private static void DropColumnWithDefaultConstraint(string table, string column)
     {
-        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
         using var trans = session.BeginTransaction();
         var query = $@"SELECT Name FROM sys.default_constraints
                         WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')
@@ -1028,7 +1033,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     private static void DropDefaultConstraint(string table, string column)
     {
-        using var session = Utils.ServiceContainer.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
         using var trans = session.BeginTransaction();
         var query = $@"SELECT Name FROM sys.default_constraints
                         WHERE PARENT_OBJECT_ID = OBJECT_ID('{table}')

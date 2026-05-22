@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Threading;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Utilities;
-using Shoko.Server.Utilities;
+using Shoko.Server.Settings;
 
 #nullable enable
 namespace Shoko.Server.Services;
@@ -30,7 +30,7 @@ public class ApplicationPaths : IApplicationPaths
     public string WebPath
         => s_dataPathOverride.Value is { Length: > 0 }
             ? Path.Combine(DataPath, Utils.SettingsProvider.GetSettings().Web.WebUIPath)
-            : _webPath ??= Path.Combine(DataPath, Utils.SettingsProvider.GetSettings().Web.WebUIPath);
+            : _webPath ??= Path.Combine(DataPath, ISettingsProvider.Instance.GetSettings().Web.WebUIPath);
 
     private static string? _dataPath = null;
 
@@ -101,11 +101,14 @@ public class ApplicationPaths : IApplicationPaths
 
     /// <inheritdoc/>
     public string ImagesPath
+        => _imagesPath ??= ISettingsProvider.Instance.GetSettings().ImagesPath is { Length: > 0 } imagePath
+            ? Path.Combine(DataPath, imagePath)
+            : DefaultImagePath;
         => s_dataPathOverride.Value is { Length: > 0 }
-            ? Utils.SettingsProvider.GetSettings().ImagesPath is { Length: > 0 } configuredImagePath
+            ? ISettingsProvider.Instance.GetSettings().ImagesPath is { Length: > 0 } configuredImagePath
                 ? Path.Combine(DataPath, configuredImagePath)
                 : DefaultImagePath
-            : _imagesPath ??= Utils.SettingsProvider.GetSettings().ImagesPath is { Length: > 0 } cachedConfiguredImagePath
+            : _imagesPath ??= ISettingsProvider.Instance.GetSettings().ImagesPath is { Length: > 0 } cachedConfiguredImagePath
                 ? Path.Combine(DataPath, cachedConfiguredImagePath)
                 : DefaultImagePath;
 

@@ -611,7 +611,6 @@ public class VideoService : IVideoService
                 RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.Path), place.ManagedFolder!.Path);
 
             await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
-            // For deletion of files from Trakt, we will rely on the Daily sync
         }
         catch (Exception ex)
         {
@@ -877,22 +876,22 @@ public class VideoService : IVideoService
     public IManagedFolder? GetManagedFolderByPath(string path)
          => string.IsNullOrWhiteSpace(path) ? null : _managedFolderRepository.GetByImportLocation(path);
 
-    public IManagedFolder AddManagedFolder(string name, string path, DropFolderType dropFolderType = DropFolderType.Excluded, bool watchForNewFiles = false)
+    public IManagedFolder AddManagedFolder(ManagedFolderData folderData)
         => _managedFolderRepository.SaveFolder(new ShokoManagedFolder()
         {
-            Name = name,
-            Path = path,
-            DropFolderType = dropFolderType,
-            IsWatched = watchForNewFiles,
+            Name = folderData.Name,
+            Path = folderData.Path,
+            DropFolderType = folderData.DropFolderType,
+            IsWatched = folderData.WatchForNewFiles,
         });
 
-    public IManagedFolder UpdateManagedFolder(IManagedFolder folder, string? name = null, string? path = null, DropFolderType? dropFolderType = null, bool? watchForNewFiles = null)
+    public IManagedFolder UpdateManagedFolder(IManagedFolder folder, ManagedFolderUpdateData folderUpdate)
     {
         var managedFolder = (ShokoManagedFolder)folder;
-        if (name is { Length: > 0 }) managedFolder.Name = name;
-        if (path is { Length: > 0 }) managedFolder.Path = path;
-        if (dropFolderType is not null) managedFolder.DropFolderType = dropFolderType.Value;
-        if (watchForNewFiles is not null) managedFolder.IsWatched = watchForNewFiles.Value;
+        if (folderUpdate.Name is { Length: > 0 }) managedFolder.Name = folderUpdate.Name;
+        if (folderUpdate.Path is { Length: > 0 }) managedFolder.Path = folderUpdate.Path;
+        if (folderUpdate.DropFolderType is not null) managedFolder.DropFolderType = folderUpdate.DropFolderType.Value;
+        if (folderUpdate.WatchForNewFiles is not null) managedFolder.IsWatched = folderUpdate.WatchForNewFiles.Value;
         return _managedFolderRepository.SaveFolder(managedFolder);
     }
 
@@ -1120,7 +1119,7 @@ public class VideoService : IVideoService
                         var level = path == directoryToClean ? 0 : path[(directoryToClean.Length + 1)..].Split(Path.DirectorySeparatorChar).Length;
                         if (path == directoryToClean)
                             break;
-                        if (Utils.SettingsProvider.GetSettings().Import.ExcludeExpressions.Any(reg => reg.IsMatch(path)))
+                        if (ISettingsProvider.Instance.GetSettings().Import.ExcludeExpressions.Any(reg => reg.IsMatch(path)))
                             isExcludedAt = level;
                         paths.Add((path, level));
                         path = Path.GetDirectoryName(path);
@@ -1225,6 +1224,22 @@ public class VideoService : IVideoService
 
         _logger.LogError("File {Place} failed to read MediaInfo", path);
         return false;
+    }
+
+    #endregion
+
+    #region Static Helpers
+
+    [return: NotNullIfNotNull(nameof(fullPath))]
+    public static string? GetDistinctPath(string? fullPath)
+    {
+        if (string.IsNullOrEmpty(fullPath))
+            return null;
+
+        var parent = Path.GetDirectoryName(fullPath);
+        return string.IsNullOrEmpty(parent)
+            ? fullPath
+            : Path.Combine(Path.GetFileName(parent), Path.GetFileName(fullPath));
     }
 
     #endregion

@@ -185,14 +185,8 @@ public interface IPluginPackageManager
     /// <summary>
     ///   Add a new repository.
     /// </summary>
-    /// <param name="name">
-    ///   Friendly name of the repository.
-    /// </param>
-    /// <param name="url">
-    ///   Repository API endpoint URL.
-    /// </param>
-    /// <param name="staleTime">
-    ///   Optional. Custom stale time for this specific repository.
+    /// <param name="data">
+    ///   The repository data.
     /// </param>
     /// <param name="cancellationToken">
     ///   Optional. Cancellation token.
@@ -207,7 +201,7 @@ public interface IPluginPackageManager
     ///   Thrown if the add was cancelled by the
     ///   <paramref name="cancellationToken"/>.
     /// </exception>
-    Task<PackageRepositoryInfo> AddPackageRepository(string name, string url, TimeSpan? staleTime = null, CancellationToken cancellationToken = default);
+    Task<PackageRepositoryInfo> AddPackageRepository(PackageRepositoryData data, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Removes a repository.

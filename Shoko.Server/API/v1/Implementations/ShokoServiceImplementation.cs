@@ -8,9 +8,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Quartz;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Services;
@@ -23,7 +24,6 @@ using Shoko.Server.Plex;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Providers.TraktTV;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
@@ -33,8 +33,8 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
-using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.API.v1.Implementations;
 
 [EmitEmptyEnumerableInsteadOfNull]
@@ -45,7 +45,6 @@ public partial class ShokoServiceImplementation : Controller
 {
     private readonly ILogger<ShokoServiceImplementation> _logger;
     private readonly AnimeGroupCreator _groupCreator;
-    private readonly TraktTVHelper _traktHelper;
     private readonly TmdbLinkingService _tmdbLinkingService;
     private readonly TmdbMetadataService _tmdbMetadataService;
     private readonly TmdbSearchService _tmdbSearchService;
@@ -60,7 +59,6 @@ public partial class ShokoServiceImplementation : Controller
     private readonly IVideoReleaseService _videoReleaseService;
 
     public ShokoServiceImplementation(
-        TraktTVHelper traktHelper,
         TmdbLinkingService tmdbLinkingService,
         TmdbMetadataService tmdbMetadataService,
         TmdbSearchService tmdbSearchService,
@@ -77,7 +75,6 @@ public partial class ShokoServiceImplementation : Controller
         IVideoReleaseService videoReleaseService
     )
     {
-        _traktHelper = traktHelper;
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbSearchService = tmdbSearchService;
@@ -441,13 +438,6 @@ public partial class ShokoServiceImplementation : Controller
             settings.Language.EpisodeTitleSourceOrder = [(DataSource)contractIn.EpisodeTitleSource];
             settings.Language.DescriptionSourceOrder = [(DataSource)contractIn.SeriesDescriptionSource];
             settings.Language.SeriesTitleSourceOrder = [(DataSource)contractIn.SeriesNameSource];
-
-            // Trakt
-            settings.TraktTv.Enabled = contractIn.Trakt_IsEnabled;
-            settings.TraktTv.AuthToken = contractIn.Trakt_AuthToken;
-            settings.TraktTv.RefreshToken = contractIn.Trakt_RefreshToken;
-            settings.TraktTv.TokenExpirationDate = contractIn.Trakt_TokenExpirationDate;
-            settings.TraktTv.SyncFrequency = (ScheduledUpdateFrequency)contractIn.Trakt_SyncFrequency;
 
             //Plex
             settings.Plex.Server = contractIn.Plex_ServerHost;
@@ -820,7 +810,7 @@ public partial class ShokoServiceImplementation : Controller
     {
         try
         {
-            Utils.ServiceContainer.GetRequiredService<ActionService>().CheckForCalendarUpdate(true).GetAwaiter().GetResult();
+            ISystemService.StaticServices.GetRequiredService<ActionService>().CheckForCalendarUpdate(true).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -845,7 +835,7 @@ public partial class ShokoServiceImplementation : Controller
 
         try
         {
-            var seriesService = Utils.ServiceContainer.GetRequiredService<AnimeSeriesService>();
+            var seriesService = ISystemService.StaticServices.GetRequiredService<AnimeSeriesService>();
             var user = RepoFactory.JMMUser.GetByID(userID);
             if (user == null)
                 return recs;
