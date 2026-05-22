@@ -1,7 +1,7 @@
 using System;
 using Shoko.Abstractions.Filtering;
-using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Extensions;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.Strings;
 

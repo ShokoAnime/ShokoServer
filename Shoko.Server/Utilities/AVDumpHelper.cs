@@ -1,4 +1,3 @@
-﻿#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -19,6 +18,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
+#nullable enable
 namespace Shoko.Server.Utilities;
 
 public static partial class AVDumpHelper

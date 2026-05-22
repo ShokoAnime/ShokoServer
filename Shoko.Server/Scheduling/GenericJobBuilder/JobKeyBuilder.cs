@@ -1,4 +1,3 @@
-﻿#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,9 +5,11 @@ using System.Reflection;
 using Newtonsoft.Json;
 using Quartz;
 using Shoko.Server.Scheduling.GenericJobBuilder.Utils;
+
 using JobKeyGroupAttribute = Shoko.Server.Scheduling.Attributes.JobKeyGroupAttribute;
 using JobKeyMemberAttribute = Shoko.Server.Scheduling.Attributes.JobKeyMemberAttribute;
 
+#nullable enable
 namespace Shoko.Server.Scheduling.GenericJobBuilder;
 
 public class JobKeyBuilder<T> where T : class, IJob

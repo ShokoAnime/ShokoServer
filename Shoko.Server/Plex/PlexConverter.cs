@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using Newtonsoft.Json;
+using Shoko.Server.Plex.Collection;
+using Shoko.Server.Plex.Libraries;
 using Shoko.Server.Plex.Models.Collection;
 using Shoko.Server.Plex.Models.Libraries;
 using Shoko.Server.Plex.Models.TVShow;
-using Shoko.Server.Plex.Collection;
-using Shoko.Server.Plex.Libraries;
 using Shoko.Server.Plex.TVShow;
 
 namespace Shoko.Server.Plex;

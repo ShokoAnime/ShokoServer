@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Server.API.v3.Models.Common;
 

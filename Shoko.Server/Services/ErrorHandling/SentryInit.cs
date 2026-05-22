@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -20,7 +20,6 @@ using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 #nullable enable
-
 namespace Shoko.Server.Services.ErrorHandling;
 
 public static class SentryInit

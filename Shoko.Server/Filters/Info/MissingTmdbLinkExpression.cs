@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Server.Filters.Info;
 

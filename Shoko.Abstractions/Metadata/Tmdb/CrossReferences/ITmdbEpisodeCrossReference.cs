@@ -1,5 +1,5 @@
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 
 namespace Shoko.Abstractions.Metadata.Tmdb.CrossReferences;

@@ -1,4 +1,3 @@
-#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata.Enums;
@@ -6,6 +5,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Server;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Direct.TMDB.Text;
 
 public class TMDB_OverviewRepository : BaseDirectRepository<TMDB_Overview, int>

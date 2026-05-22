@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
-using Shoko.Abstractions.Video.Media;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Video.Media;
 
 namespace Shoko.Server.API.v1.Models;
 

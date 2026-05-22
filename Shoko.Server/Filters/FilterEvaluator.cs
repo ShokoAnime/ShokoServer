@@ -5,12 +5,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.User;
 using Shoko.Server.Filters.SortingSelectors;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Abstractions.User;
 
 #nullable enable
 namespace Shoko.Server.Filters;

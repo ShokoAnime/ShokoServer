@@ -4,14 +4,14 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Video.Hashing;
+using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Hashing;
 using Shoko.Server.API.v3.Models.Hashing.Input;
 using Shoko.Server.Settings;
-using Shoko.Abstractions.Video.Services;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;

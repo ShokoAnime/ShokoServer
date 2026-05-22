@@ -11,8 +11,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Utilities;
+using Shoko.Abstractions.Video.Hashing;
 using Shoko.Server.Hashing.HashAlgorithms;
 
 #nullable enable

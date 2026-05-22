@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Shoko.Abstractions.Video;
 using Shoko.Abstractions.User.Enums;
+using Shoko.Abstractions.Video;
 
 namespace Shoko.Abstractions.User.Events;
 

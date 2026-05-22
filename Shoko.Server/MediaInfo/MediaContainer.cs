@@ -4,12 +4,13 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using MessagePack;
 using Newtonsoft.Json;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Media;
 
 // ReSharper disable InconsistentNaming
 // ReSharper disable IdentifierTypo
+
 #pragma warning disable IDE0019
 #pragma warning disable IDE1006
 #pragma warning disable MsgPack015

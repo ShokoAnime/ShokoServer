@@ -30,11 +30,11 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
+using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
+using File = Shoko.Server.API.v3.Models.Shoko.File;
 using MatchRating = Shoko.Abstractions.Metadata.Enums.MatchRating;
 using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
-using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
-using File = Shoko.Server.API.v3.Models.Shoko.File;
 
 #pragma warning disable CA1822
 #nullable enable

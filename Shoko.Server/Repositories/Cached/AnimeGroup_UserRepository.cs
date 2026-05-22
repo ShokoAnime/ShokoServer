@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
-using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Repositories.NHibernate;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;

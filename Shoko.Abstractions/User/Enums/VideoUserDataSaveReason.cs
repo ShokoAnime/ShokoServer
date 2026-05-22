@@ -1,6 +1,6 @@
-using Shoko.Abstractions.Video;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
+using Shoko.Abstractions.Video;
 
 namespace Shoko.Abstractions.User.Enums;
 

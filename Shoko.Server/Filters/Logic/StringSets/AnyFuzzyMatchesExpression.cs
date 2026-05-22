@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Filtering;
-using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Extensions;
+using Shoko.Server.Filters.Interfaces;
 
 namespace Shoko.Server.Filters.Logic.StringSets;
 

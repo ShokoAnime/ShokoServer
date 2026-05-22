@@ -1,5 +1,6 @@
 using System;
 using System.Text.RegularExpressions;
+
 // ReSharper disable VirtualMemberCallInConstructor
 
 namespace Shoko.Server.Providers.AniDB.UDP.Exceptions;

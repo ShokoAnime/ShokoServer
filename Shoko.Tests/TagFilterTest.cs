@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Shoko.Server;
 using Xunit;
 using Xunit.Abstractions;
+
 // ReSharper disable StringLiteralTypo
 
 namespace Shoko.Tests

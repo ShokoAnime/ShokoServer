@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Enums;
 
-
 namespace Shoko.Server.API.v3.Models.Common;
 
 public class SeasonWithYear(int year, YearlySeason animeSeason) : IComparable<SeasonWithYear>

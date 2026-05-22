@@ -1,7 +1,7 @@
 using FluentNHibernate.Mapping;
+using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Release;
-using Shoko.Abstractions.Video.Enums;
 
 namespace Shoko.Server.Mappings;
 

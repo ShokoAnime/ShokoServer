@@ -7,8 +7,8 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 
-#nullable enable
 #pragma warning disable CS8618
+#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.TMDB;
 
 [DatabaseRequired]

@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Server.Models.AniDB;
 using TMDbLib.Objects.Search;

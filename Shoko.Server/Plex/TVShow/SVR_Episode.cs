@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
-using Shoko.Server.Plex.Models.TVShow;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Plex.Models.TVShow;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Plex.TVShow;

@@ -1,11 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Shoko.Server.Extensions;
 
 // ReSharper disable StringLiteralTypo
-
 // ReSharper disable InconsistentNaming
 
 namespace Shoko.Server.MediaInfo.Subtitles;
