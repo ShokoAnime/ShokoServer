@@ -1227,4 +1227,20 @@ public class VideoService : IVideoService
     }
 
     #endregion
+
+    #region Static Helpers
+
+    [return: NotNullIfNotNull(nameof(fullPath))]
+    public static string? GetDistinctPath(string? fullPath)
+    {
+        if (string.IsNullOrEmpty(fullPath))
+            return null;
+
+        var parent = Path.GetDirectoryName(fullPath);
+        return string.IsNullOrEmpty(parent)
+            ? fullPath
+            : Path.Combine(Path.GetFileName(parent), Path.GetFileName(fullPath));
+    }
+
+    #endregion
 }
