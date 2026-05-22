@@ -18,7 +18,6 @@ using MySqlConnector;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
@@ -407,7 +406,7 @@ internal static class DatabaseConversionService
 
     private sealed class ConversionIsolationScope : IDisposable
     {
-        private readonly IDisposable _settingsOverride;
+        private readonly ISettingsProvider _previousSettingsProvider;
         private readonly IDisposable _dataPathOverride;
         private readonly string _temporaryHomePath;
         private bool _disposed;
@@ -416,7 +415,10 @@ internal static class DatabaseConversionService
         {
             _temporaryHomePath = context.TemporaryHomePath;
             Directory.CreateDirectory(_temporaryHomePath);
-            _settingsOverride = Utils.PushSettingsProviderOverride(context.RuntimeSettingsProvider);
+
+            _previousSettingsProvider = ISettingsProvider.Instance;
+            ISettingsProvider.Instance = context.RuntimeSettingsProvider;
+
             _dataPathOverride = ApplicationPaths.PushDataPathOverride(_temporaryHomePath);
         }
 
@@ -428,7 +430,7 @@ internal static class DatabaseConversionService
             }
 
             _dataPathOverride.Dispose();
-            _settingsOverride.Dispose();
+            ISettingsProvider.Instance = _previousSettingsProvider;
 
             try
             {
