@@ -9,6 +9,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using Quartz;
+using Quartz.Impl.Matchers;
 using Quartz.Spi;
 using Quartz.Util;
 using Shoko.Abstractions.Core.Services;
@@ -29,6 +30,9 @@ public static class QuartzStartup
     public static async Task ScheduleRecurringJobs(bool replace)
     {
         var settings = Utils.SettingsProvider.GetSettings();
+        await RemoveUnsupportedRecurringJobs([
+            JobKeyBuilder<CheckNetworkAvailabilityJob>.Create().WithGroup(JobKeyGroup.System).Build(),
+        ]);
 
         // this needs to run immediately upon scheduling, so it replaces always. Others will run on other schedules
         // Also give it a high priority, since it affects Acquisition Filters
@@ -86,17 +90,46 @@ public static class QuartzStartup
         }
     }
 
-    private static async Task RemoveRecurringJob<T>() where T : class, IJob
+    private static async Task RemoveRecurringJobs(IEnumerable<JobKey> jobKeys)
     {
-        var groupName = typeof(T).GetCustomAttribute<JobKeyGroupAttribute>()?.GroupName;
-        var jobKey = JobKeyBuilder<T>.Create().WithGroup(groupName).Build();
         var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
 
         using var _ = await QuartzExtensions.SchedulerLock.WriterLockAsync();
-        if (await scheduler.CheckExists(jobKey))
+        foreach (var jobKey in jobKeys)
         {
+            if (await scheduler.CheckExists(jobKey))
+            {
+                await scheduler.DeleteJob(jobKey);
+            }
+        }
+    }
+
+    private static async Task RemoveUnsupportedRecurringJobs(IReadOnlyCollection<JobKey> supportedJobKeys)
+    {
+        var scheduler = await Utils.ServiceContainer.GetRequiredService<ISchedulerFactory>().GetScheduler();
+
+        using var _ = await QuartzExtensions.SchedulerLock.WriterLockAsync();
+        foreach (var jobKey in await scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup()))
+        {
+            var triggers = await scheduler.GetTriggersOfJob(jobKey);
+            if (!triggers.Any(IsRecurringTrigger)) continue;
+            if (supportedJobKeys.Contains(jobKey)) continue;
+
             await scheduler.DeleteJob(jobKey);
         }
+    }
+
+    private static bool IsRecurringTrigger(ITrigger trigger)
+    {
+        if (trigger is ICronTrigger) return true;
+        return trigger is ISimpleTrigger { RepeatCount: not 0 };
+    }
+
+    private static Task RemoveRecurringJob<T>() where T : class, IJob
+    {
+        var groupName = typeof(T).GetCustomAttribute<JobKeyGroupAttribute>()?.GroupName;
+        var jobKey = JobKeyBuilder<T>.Create().WithGroup(groupName).Build();
+        return RemoveRecurringJobs([jobKey]);
     }
 
     internal static void AddQuartz(this IServiceCollection services, ISystemService systemService)
