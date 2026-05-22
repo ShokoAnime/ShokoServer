@@ -51,7 +51,6 @@ internal sealed class DatabaseConversionOptions
             var argument = args[index];
             switch (argument)
             {
-                case "convert-db":
                 case "--convert-db":
                     break;
                 case "--source-type":
@@ -82,26 +81,7 @@ internal sealed class DatabaseConversionOptions
     }
 
     private static bool DetectConversionMode(string[] args)
-    {
-        if (args.Any(argument => string.Equals(argument, "--convert-db", StringComparison.OrdinalIgnoreCase)))
-        {
-            return true;
-        }
-
-        for (var index = 0; index < args.Length; index++)
-        {
-            var argument = args[index];
-            if (argument.StartsWith("-", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            return string.Equals(argument, "convert-db", StringComparison.OrdinalIgnoreCase) &&
-                   (index is 0 || !args[index - 1].StartsWith("-", StringComparison.Ordinal));
-        }
-
-        return false;
-    }
+        => args.Any(argument => string.Equals(argument, "--convert-db", StringComparison.OrdinalIgnoreCase));
 
     private static string GetRequiredValue(string[] args, ref int index, string argumentName)
     {

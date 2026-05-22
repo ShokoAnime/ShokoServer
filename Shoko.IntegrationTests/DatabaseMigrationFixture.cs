@@ -37,7 +37,7 @@ public sealed class DatabaseMigrationFixture : IDisposable
 
         // SystemService() bootstraps Utils.SettingsProvider with default settings (FirstRun=true).
         // No settings file yet — defaults are valid and pass schema validation.
-        var systemService = new SystemService(["--config", _tempDir.Replace('\\', '/')]);
+        var systemService = new SystemService(["--home", _tempDir.Replace('\\', '/')]);
 
         // Mutate the live settings: disable first-run, inject fake AniDB credentials so the
         // settings custom-validator is satisfied, and move the web port away from 8111 so this

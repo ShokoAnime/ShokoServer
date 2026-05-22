@@ -12,8 +12,7 @@ public class DatabaseConversionOptionsTests
     public static TheoryData<string[]> ConversionModeArguments =>
     [
         ["--convert-db"],
-        ["--config", "/config", "--convert-db"],
-        ["convert-db", "--config", "/config"],
+        ["--home", "/tmp/shoko", "--convert-db"],
     ];
 
     [Theory]
@@ -31,8 +30,8 @@ public class DatabaseConversionOptionsTests
     {
         var args = new[]
         {
-            "convert-db",
-            "--config", "/config",
+            "--convert-db",
+            "--home", "/tmp/shoko",
             "--source-type", "mariadb",
             "--source-connection-string", "Server=127.0.0.1;Database=shoko;",
             "--target-file", "/tmp/Shoko.db3",
@@ -52,16 +51,16 @@ public class DatabaseConversionOptionsTests
     [Fact]
     public void ShouldNotDetectConversionModeWhenModeArgumentIsMissing()
     {
-        var detected = DatabaseConversionOptions.TryParse(["--config", "/config"], out var options);
+        var detected = DatabaseConversionOptions.TryParse(["--home", "/tmp/shoko"], out var options);
 
         Assert.False(detected);
         Assert.Null(options);
     }
 
     [Fact]
-    public void ShouldNotDetectConversionModeWhenConfigValueMatchesModeToken()
+    public void ShouldNotDetectConversionModeWhenHomeValueMatchesModeToken()
     {
-        var detected = DatabaseConversionOptions.TryParse(["--config", "convert-db"], out var options);
+        var detected = DatabaseConversionOptions.TryParse(["--home", "convert-db"], out var options);
 
         Assert.False(detected);
         Assert.Null(options);
@@ -80,6 +79,15 @@ public class DatabaseConversionOptionsTests
     public void ShouldNotDetectConversionModeWhenFutureOptionValueMatchesModeToken()
     {
         var detected = DatabaseConversionOptions.TryParse(["--some-future-option", "convert-db"], out var options);
+
+        Assert.False(detected);
+        Assert.Null(options);
+    }
+
+    [Fact]
+    public void ShouldNotDetectConversionModeForBareConvertDbToken()
+    {
+        var detected = DatabaseConversionOptions.TryParse(["convert-db"], out var options);
 
         Assert.False(detected);
         Assert.Null(options);
