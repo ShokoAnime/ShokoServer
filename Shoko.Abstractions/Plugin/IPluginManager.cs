@@ -27,6 +27,20 @@ public interface IPluginManager
     /// </summary>
     string RuntimeIdentifier { get; }
 
+    /// <summary>
+    ///   Checks if a plugin ABI and runtime ID is compatible with the current system.
+    /// </summary>
+    /// <param name="abstractionVersion">
+    ///   The plugin ABI version.
+    /// </param>
+    /// <param name="runtimeIdentifier">
+    ///   The plugin runtime identifier.
+    /// </param>
+    /// <returns>
+    ///   <c>true</c> if compatible, <c>false</c> otherwise.
+    /// </returns>
+    bool IsAbiAndRuntimeCompatible(Version abstractionVersion, string runtimeIdentifier);
+
     #endregion
 
     #region Setup

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Shoko.Abstractions.Core;
-
+using Shoko.Abstractions.Plugin;
 using AbstractPackageReleaseInfo = Shoko.Abstractions.Plugin.Models.PackageReleaseInfo;
 
 #nullable enable
@@ -12,7 +12,7 @@ namespace Shoko.Server.API.v3.Models.Plugin;
 /// <summary>
 /// Information about a package release.
 /// </summary>
-public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo)
+public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo, IPluginManager pluginManager)
 {
     /// <summary>
     ///   Unique package repository identifier for the release.
@@ -62,6 +62,6 @@ public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo)
     /// </summary>
     [Required]
     public IReadOnlyList<PackageArchiveInfo> Archives { get; init; } = releaseInfo.Archives
-        .Select(a => new PackageArchiveInfo(a))
+        .Select(a => new PackageArchiveInfo(a, pluginManager))
         .ToList();
 }

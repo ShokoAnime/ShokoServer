@@ -29,6 +29,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// </summary>
 /// <param name="settingsProvider">Settings provider.</param>
 /// <param name="packageManager">Plugin installation manager.</param>
+/// <param name="pluginManager">Plugin manager.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/Plugin/Package")]
 [ApiV3]
@@ -37,7 +38,8 @@ namespace Shoko.Server.API.v3.Controllers;
 [InitFriendly]
 public class PluginPackageController(
     ISettingsProvider settingsProvider,
-    IPluginPackageManager packageManager
+    IPluginPackageManager packageManager,
+    IPluginManager pluginManager
 ) : BaseController(settingsProvider)
 {
     #region Settings
@@ -144,7 +146,7 @@ public class PluginPackageController(
                 .Search(query, p => [p.Manifest.Name, p.Manifest.Overview, .. p.Manifest.Tags])
                 .Select(p => p.Result);
 
-        return packages.ToListResult(p => new PackageInfo(p), page, pageSize);
+        return packages.ToListResult(p => new PackageInfo(p, pluginManager), page, pageSize);
     }
 
     /// <summary>
@@ -176,7 +178,7 @@ public class PluginPackageController(
                 .Search(query, p => [p.Manifest.Name, p.Manifest.Overview, .. p.Manifest.Tags])
                 .Select(p => p.Result);
 
-        return packages.ToListResult(p => new PackageInfo(p), page, pageSize);
+        return packages.ToListResult(p => new PackageInfo(p, pluginManager), page, pageSize);
     }
 
     /// <summary>
@@ -188,7 +190,7 @@ public class PluginPackageController(
     [HttpGet("Installed")]
     public ActionResult<List<PackageInfo>> GetInstalledPackages()
         => packageManager.GetInstalledPackages()
-            .Select(p => new PackageInfo(p))
+            .Select(p => new PackageInfo(p, pluginManager))
             .ToList();
 
     /// <summary>
@@ -235,7 +237,7 @@ public class PluginPackageController(
         );
 
         return packages
-            .Select(p => new PackageInfo(p))
+            .Select(p => new PackageInfo(p, pluginManager))
             .ToList();
     }
 
@@ -267,7 +269,7 @@ public class PluginPackageController(
         if (manifest is null)
             return NotFound("Package not found");
 
-        return new PackageManifestInfo(manifest);
+        return new PackageManifestInfo(manifest, pluginManager);
     }
 
     /// <summary>

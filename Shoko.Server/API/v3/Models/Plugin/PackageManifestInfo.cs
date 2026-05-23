@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-
+using Shoko.Abstractions.Plugin;
 using AbstractPackageManifestInfo = Shoko.Abstractions.Plugin.Models.PackageManifestInfo;
 
 #nullable enable
@@ -11,7 +11,7 @@ namespace Shoko.Server.API.v3.Models.Plugin;
 /// <summary>
 /// Information about a package manifest.
 /// </summary>
-public class PackageManifestInfo(AbstractPackageManifestInfo manifestInfo)
+public class PackageManifestInfo(AbstractPackageManifestInfo manifestInfo, IPluginManager pluginManager)
 {
     /// <summary>
     ///   Unique package identifier.
@@ -55,7 +55,7 @@ public class PackageManifestInfo(AbstractPackageManifestInfo manifestInfo)
     /// </summary>
     [Required]
     public IReadOnlyList<PackageReleaseInfo> Releases { get; init; } = manifestInfo.Releases
-        .Select(r => new PackageReleaseInfo(r))
+        .Select(r => new PackageReleaseInfo(r, pluginManager))
         .ToList();
 
     /// <summary>

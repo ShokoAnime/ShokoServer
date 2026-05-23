@@ -40,9 +40,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     private readonly List<LocalPluginInfo> _pluginTypes = [];
 
+    private SemverVersionComparer? _semverComparer;
+
     private static readonly Version _invalidVersion = new(0, 0, 0, 0);
 
-    #region Setup
+    #region Compatibility
 
     /// <inheritdoc/>
     public Version AbstractionVersion { get; private init; } = systemService.Version.AbstractionVersion;
@@ -65,6 +67,14 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     };
 
     internal const string AnyRuntimeIdentifier = "any";
+
+    public bool IsAbiAndRuntimeCompatible(Version abstractionVersion, string runtimeIdentifier) =>
+        (runtimeIdentifier is "any" || runtimeIdentifier == RuntimeIdentifier) &&
+        (_semverComparer ??= new()).Compare(abstractionVersion, AbstractionVersion) >= 0;
+
+    #endregion
+
+    #region Setup
 
     /// <summary>
     ///   Basic information about a plugin, used during initial loading before

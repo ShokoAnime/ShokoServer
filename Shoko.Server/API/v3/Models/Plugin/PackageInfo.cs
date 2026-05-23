@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-
+using Shoko.Abstractions.Plugin;
 using AbstractPackageInfo = Shoko.Abstractions.Plugin.Models.PackageInfo;
 
 #nullable enable
@@ -8,7 +8,7 @@ namespace Shoko.Server.API.v3.Models.Plugin;
 /// <summary>
 /// A package with version information for installation.
 /// </summary>
-public class PackageInfo(AbstractPackageInfo packageInfo)
+public class PackageInfo(AbstractPackageInfo packageInfo, IPluginManager pluginManager)
 {
     /// <summary>
     ///   The repository this package came from.
@@ -21,19 +21,19 @@ public class PackageInfo(AbstractPackageInfo packageInfo)
     ///   The package metadata.
     /// </summary>
     [Required]
-    public PackageManifestInfo Manifest { get; init; } = new(packageInfo.Manifest);
+    public PackageManifestInfo Manifest { get; init; } = new(packageInfo.Manifest, pluginManager);
 
     /// <summary>
     ///   The specific version to install.
     /// </summary>
     [Required]
-    public PackageReleaseInfo Release { get; init; } = new(packageInfo.Release);
+    public PackageReleaseInfo Release { get; init; } = new(packageInfo.Release, pluginManager);
 
     /// <summary>
     ///   The archive information for downloading the package.
     /// </summary>
     [Required]
-    public PackageArchiveInfo Archive { get; init; } = new(packageInfo.Archive);
+    public PackageArchiveInfo Archive { get; init; } = new(packageInfo.Archive, pluginManager);
 
     /// <summary>
     ///   The installed plugin info if this package is installed locally,
