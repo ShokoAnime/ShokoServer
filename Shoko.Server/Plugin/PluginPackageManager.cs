@@ -671,6 +671,9 @@ public partial class PluginPackageManager(
             {
                 try
                 {
+                    if (Path.GetFileName(dirPath) is not { Length: > 0 } dirName || !Guid.TryParse(dirName, out _))
+                        continue;
+
                     var filePath = Path.Join(dirPath, RepoInfoFile);
                     var fileContent = File.ReadAllText(filePath, Encoding.UTF8);
                     var repo = JsonConvert.DeserializeObject<PackageRepositoryInfo>(fileContent);
