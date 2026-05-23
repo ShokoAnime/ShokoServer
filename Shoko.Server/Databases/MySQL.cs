@@ -1021,7 +1021,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(159, 17, "ALTER TABLE `AnimeEpisode_User` ADD COLUMN `IsFavorite` INT NOT NULL DEFAULT 0;"),
         new(159, 18, "ALTER TABLE `AnimeEpisode_User` ADD COLUMN `LastUpdated` datetime NOT NULL DEFAULT '0001-01-01 00:00:00';"),
         new(159, 19, "ALTER TABLE `AnimeEpisode_User` ADD COLUMN `UserTags` TEXT NOT NULL DEFAULT '';"),
-        new(159, 20, DatabaseFixes.MigrateAnidbVotes),
+        new(159, 20),
         new(159, 21, DatabaseFixes.RefreshAnimeSeriesUserStats),
         new(159, 22, "ALTER TABLE `TMDB_Person` ADD COLUMN `LastOrphanedAt` DATETIME;"),
         new(159, 23, "ALTER TABLE `TMDB_Network` ADD COLUMN `LastOrphanedAt` DATETIME;"),
@@ -1037,7 +1037,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(162,  2, @"CREATE TABLE `ShokoImage_Entity` (`ID` INT NOT NULL AUTO_INCREMENT, `ImageID` VARCHAR(36) NOT NULL, `PrimaryImageID` VARCHAR(36) NOT NULL, `ImageType` TINYINT NOT NULL, `ImageSource` TINYINT UNSIGNED NOT NULL, `EntitySource` TINYINT UNSIGNED NOT NULL, `EntityType` TINYINT NOT NULL, `EntityID` VARCHAR(128) NOT NULL, `EntitySeasonNumber` INT, `EntityEpisodeNumber` INT, `EntityReleasedAt` DATE, `IsEnabled` TINYINT NOT NULL DEFAULT 1, `IsDesired` TINYINT NOT NULL DEFAULT 1, `IsPreferred` TINYINT NOT NULL DEFAULT 0, `Ordering` INT NOT NULL DEFAULT 0, `Rating` decimal(6,2), `RatingVotes` INT, `Source` TINYINT UNSIGNED NOT NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`ID`));"),
         new(162,  3, DatabaseFixes.MigrateToUnifiedImages),
         new(162,  4, DatabaseFixes.ScheduleTmdbImageUpdates),
-        new(163,  1, "DROP TABLE IF EXISTS AniDB_Vote;"),
+        new(163,  1, DatabaseFixes.MigrateAnidbVotes),
         new(163,  2, "DROP TABLE IF EXISTS CrossRef_AniDB_TvDBV2;"),
         new(164,  1, "ALTER TABLE JMMUser DROP COLUMN IsTraktUser;"),
     ];

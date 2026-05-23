@@ -830,7 +830,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(140, 18, "ALTER TABLE AnimeEpisode_User ADD COLUMN IsFavorite INTEGER NOT NULL DEFAULT 0;"),
         new(140, 19, "ALTER TABLE AnimeEpisode_User ADD COLUMN LastUpdated DATETIME NOT NULL DEFAULT '0001-01-01 00:00:00';"),
         new(140, 20, "ALTER TABLE AnimeEpisode_User ADD COLUMN UserTags NOT NULL DEFAULT '';"),
-        new(140, 21, DatabaseFixes.MigrateAnidbVotes),
+        new(140, 21),
         new(140, 22, DatabaseFixes.RefreshAnimeSeriesUserStats),
         new(140, 23, "ALTER TABLE TMDB_Person ADD COLUMN LastOrphanedAt DATETIME;"),
         new(140, 24, "ALTER TABLE TMDB_Network ADD COLUMN LastOrphanedAt DATETIME;"),
@@ -859,7 +859,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(144,  5, "UPDATE ShokoImage SET Source = 1 WHERE Source = 'TMDB';"),
         new(144,  6, "UPDATE ShokoImage SET Source = 0 WHERE Source = 'AniDB';"),
         new(144,  7, "UPDATE ShokoImage SET Source = 254 WHERE Source = 'User';"),
-        new(145,  1, "DROP TABLE IF EXISTS AniDB_Vote;"),
+        new(145,  1, DatabaseFixes.MigrateAnidbVotes),
         new(145,  2, "DROP TABLE IF EXISTS CrossRef_AniDB_TvDBV2;"),
         new(146,  1, "ALTER TABLE JMMUser DROP COLUMN IsTraktUser;"),
     ];

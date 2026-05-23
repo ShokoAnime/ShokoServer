@@ -895,7 +895,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(151, 17, "ALTER TABLE AnimeEpisode_User ADD IsFavorite INT NOT NULL DEFAULT 0;"),
         new(151, 18, "ALTER TABLE AnimeEpisode_User ADD LastUpdated datetime2 NOT NULL DEFAULT '0001-01-01 00:00:00';"),
         new(151, 19, "ALTER TABLE AnimeEpisode_User ADD UserTags TEXT NOT NULL DEFAULT '';"),
-        new(151, 20, DatabaseFixes.MigrateAnidbVotes),
+        new(151, 20),
         new(151, 21, DatabaseFixes.RefreshAnimeSeriesUserStats),
         new(151, 22, "ALTER TABLE TMDB_Person ADD LastOrphanedAt DATETIME2;"),
         new(151, 23, "ALTER TABLE TMDB_Network ADD LastOrphanedAt DATETIME2;"),
@@ -939,7 +939,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(157,  2, @"CREATE TABLE ShokoImage_Entity (ID INT IDENTITY(1,1) NOT NULL, ImageID UNIQUEIDENTIFIER NOT NULL, PrimaryImageID UNIQUEIDENTIFIER NOT NULL, ImageType TINYINT NOT NULL, ImageSource TINYINT NOT NULL, EntitySource TINYINT NOT NULL, EntityType TINYINT NOT NULL, EntityID NVARCHAR(128) NOT NULL, EntitySeasonNumber INT, EntityEpisodeNumber INT, EntityReleasedAt DATE, IsEnabled BIT NOT NULL DEFAULT 1, IsDesired BIT NOT NULL DEFAULT 1, IsPreferred BIT NOT NULL DEFAULT 0, Ordering INT NOT NULL DEFAULT 0, Rating decimal(6,2) NULL, RatingVotes INT NULL, Source TINYINT NOT NULL, CreatedAt DATETIME2 NOT NULL, LastUpdatedAt DATETIME2 NOT NULL);"),
         new(157,  3, DatabaseFixes.MigrateToUnifiedImages),
         new(157,  4, DatabaseFixes.ScheduleTmdbImageUpdates),
-        new(158,  1, "DROP TABLE IF EXISTS AniDB_Vote;"),
+        new(158,  1, DatabaseFixes.MigrateAnidbVotes),
         new(158,  2, "DROP TABLE IF EXISTS CrossRef_AniDB_TvDBV2;"),
         new(159,  1, "ALTER TABLE JMMUser DROP COLUMN IsTraktUser;"),
     ];

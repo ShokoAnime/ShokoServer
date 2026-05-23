@@ -1463,25 +1463,36 @@ public class DatabaseFixes
 
     public static void MigrateAnidbVotes()
     {
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+        const string SelectCommand = "SELECT EntityID, VoteValue, VoteType FROM AniDB_Vote;";
+        const string DropCommand = "DROP TABLE IF EXISTS AniDB_Vote;";
+        IList<object[]> rawVotes;
+        try
+        {
+            rawVotes = session.CreateSQLQuery(SelectCommand)
+                    .AddScalar("EntityID", NHibernateUtil.Int32)
+                    .AddScalar("VoteValue", NHibernateUtil.Int32)
+                    .AddScalar("VoteType", NHibernateUtil.Int32)
+                    .List<object[]>();
+        }
+        catch (GenericADOException)
+        {
+            return;
+        }
+
         // If we have no user, then this is a new install, so skip the migration.
         var allUsers = RepoFactory.JMMUser.GetAll();
         if (allUsers.Count == 0)
+        {
+            session.CreateSQLQuery(DropCommand).ExecuteUpdate();
             return;
+        }
 
         // Find the most qualified user to add the AniDB_Vote data to.
         var user = allUsers.FirstOrDefault(u => u.IsAdmin == 1 && u.IsAniDBUser == 1)
             ?? allUsers.FirstOrDefault(u => u.IsAniDBUser == 1)
             ?? allUsers.FirstOrDefault(u => u.IsAdmin == 1)
             ?? allUsers[0];
-
-        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
-        const string SelectCommand = "SELECT EntityID, VoteValue, VoteType FROM AniDB_Vote;";
-        const string DropCommand = "DROP TABLE IF EXISTS AniDB_Vote;";
-        var rawVotes = session.CreateSQLQuery(SelectCommand)
-                .AddScalar("EntityID", NHibernateUtil.Int32)
-                .AddScalar("VoteValue", NHibernateUtil.Int32)
-                .AddScalar("VoteType", NHibernateUtil.Int32)
-                .List<object[]>();
 
         var toSaveSeries = new List<AnimeSeries_User>();
         var toSaveEpisode = new List<AnimeEpisode_User>();
