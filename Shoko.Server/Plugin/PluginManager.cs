@@ -1077,14 +1077,17 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     private LocalPluginInfo? LoadFromDirectoryOrDLL(string? containingDirectory, string[] dlls)
     {
+        LocalPluginInfo? existingPluginInfo = null;
         if (!string.IsNullOrEmpty(containingDirectory))
         {
-            if (_pluginTypes.Find(p => p.IsInstalled && p.ContainingDirectory == containingDirectory) is { } existingPluginInfo)
+            existingPluginInfo = _pluginTypes.Find(p => p.ContainingDirectory == containingDirectory);
+            if (existingPluginInfo?.IsInstalled ?? false)
                 return existingPluginInfo;
         }
         else if (dlls.Length is 1)
         {
-            if (_pluginTypes.Find(p => p.IsInstalled && p.ContainingDirectory is null && p.DLLs[0] == dlls[0]) is { } existingPluginInfo)
+            existingPluginInfo = _pluginTypes.Find(p => p.IsInstalled && p.DLLs[0] == dlls[0]);
+            if (existingPluginInfo?.IsInstalled ?? false)
                 return existingPluginInfo;
         }
         else
@@ -1109,19 +1112,22 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             InstalledAt = internalPluginInfo.InstalledAt,
             IsEnabled = internalPluginInfo.IsEnabled,
             IsPinned = internalPluginInfo.IsPinned,
-            IsActive = false,
+            IsActive = existingPluginInfo?.IsActive ?? false,
             CanLoad = internalPluginInfo.CanLoad,
             CanUninstall = internalPluginInfo.CanUninstall,
-            Plugin = null,
-            PluginType = null,
-            ServiceRegistrationType = null,
-            ApplicationRegistrationType = null,
+            Plugin = existingPluginInfo?.Plugin,
+            PluginType = existingPluginInfo?.PluginType,
+            ServiceRegistrationType = existingPluginInfo?.ServiceRegistrationType,
+            ApplicationRegistrationType = existingPluginInfo?.ApplicationRegistrationType,
             ContainingDirectory = internalPluginInfo.ContainingDirectory,
             DLLs = internalPluginInfo.DLLs,
-            Types = [],
+            Types = existingPluginInfo?.Types ?? [],
             Thumbnail = LoadPluginThumbnailInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail),
         };
-        _pluginTypes.Add(pluginInfo);
+        if (existingPluginInfo is not null && _pluginTypes.IndexOf(existingPluginInfo) is { } index && index is not -1)
+            _pluginTypes[index] = pluginInfo;
+        else
+            _pluginTypes.Add(pluginInfo);
         return pluginInfo;
     }
 
