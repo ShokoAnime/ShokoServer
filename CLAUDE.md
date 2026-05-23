@@ -29,7 +29,6 @@ Target framework: `.NET 10.0`. Configurations: `Debug`, `Release`, `ApiLogging`,
 - **`Shoko.Server`** — All implementation: API, database, repositories, services, scheduling, providers, models.
 - **`Shoko.CLI`** — Headless server entry point. Instantiates and manages `SystemService` directly.
 - **`Shoko.TrayService`** — Cross-platform tray app (Avalonia) embedding the server. Runs on Windows, Linux, and macOS.
-- **`Plugins/`** — Built-in plugins (`ReleaseExporter`, `RelocationPlus`, `OfflineImporter`) built as separate projects and loaded at runtime.
 - **`Shoko.Tests`** — Unit tests.
 - **`Shoko.IntegrationTests`** — Integration tests.
 - **`Shoko.TestData`** — Shared test data.
