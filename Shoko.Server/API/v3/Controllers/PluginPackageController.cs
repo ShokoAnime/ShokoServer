@@ -13,7 +13,6 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Plugin;
 using Shoko.Server.API.v3.Models.Plugin.Input;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -28,6 +27,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// Interacts with the <see cref="IPluginPackageManager"/>.
 /// </summary>
 /// <param name="settingsProvider">Settings provider.</param>
+/// <param name="applicationPaths">Application paths.</param>
 /// <param name="packageManager">Plugin installation manager.</param>
 /// <param name="pluginManager">Plugin manager.</param>
 [ApiController]
@@ -38,6 +38,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [InitFriendly]
 public class PluginPackageController(
     ISettingsProvider settingsProvider,
+    IApplicationPaths applicationPaths,
     IPluginPackageManager packageManager,
     IPluginManager pluginManager
 ) : BaseController(settingsProvider)
@@ -287,10 +288,10 @@ public class PluginPackageController(
     {
         var manifests = await packageManager.GetAvailablePackageManifests(allowSync: false).ConfigureAwait(false);
         var manifest = manifests.FirstOrDefault(m => m.PackageID == packageID);
-        if (manifest?.Thumbnail is null)
+        if (manifest?.Thumbnail?.GetStream(applicationPaths) is not { } stream)
             return NotFound("Package or thumbnail not found");
 
-        return File(manifest.Thumbnail.GetStream(ApplicationPaths.Instance), manifest.Thumbnail.MimeType);
+        return File(stream, manifest.Thumbnail.MimeType);
     }
 
     #endregion

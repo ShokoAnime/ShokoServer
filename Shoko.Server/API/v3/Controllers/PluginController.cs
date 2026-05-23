@@ -10,7 +10,6 @@ using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Plugin.Input;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -25,6 +24,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// Controller responsible for managing plugins. Interacts with the <see cref="IPluginManager"/>.
 /// </summary>
 /// <param name="settingsProvider">Settings provider.</param>
+/// <param name="applicationPaths">Application paths.</param>
 /// <param name="pluginManager">Plugin manager.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
@@ -32,7 +32,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize(Roles = "admin,init")]
 [DatabaseBlockedExempt]
 [InitFriendly]
-public class PluginController(ISettingsProvider settingsProvider, IPluginManager pluginManager) : BaseController(settingsProvider)
+public class PluginController(ISettingsProvider settingsProvider, IApplicationPaths applicationPaths, IPluginManager pluginManager) : BaseController(settingsProvider)
 {
     /// <summary>
     ///   Gets information about the server/plugin compatibility.
@@ -179,8 +179,9 @@ public class PluginController(ISettingsProvider settingsProvider, IPluginManager
     [AllowAnonymous]
     [HttpGet("{pluginID}/Thumbnail")]
     public ActionResult GetThumbnailForPluginByID([FromRoute] Guid pluginID)
-        => pluginManager.GetPluginInfo(pluginID) is { Thumbnail: { } } pluginInfo
-            ? File(pluginInfo.Thumbnail.GetStream(ApplicationPaths.Instance), pluginInfo.Thumbnail.MimeType)
+        => pluginManager.GetPluginInfo(pluginID) is { Thumbnail: { } } pluginInfo &&
+        pluginInfo.Thumbnail.GetStream(applicationPaths) is { } stream
+            ? File(stream, pluginInfo.Thumbnail.MimeType)
             : NotFound("Plugin not found");
 
     /// <summary>
@@ -303,8 +304,9 @@ public class PluginController(ISettingsProvider settingsProvider, IPluginManager
     /// </returns>
     [HttpGet("{pluginID}/{pluginVersion}/Thumbnail")]
     public ActionResult GetThumbnailForPluginByIDAndVersion([FromRoute] Guid pluginID, [FromRoute] Version pluginVersion)
-        => pluginManager.GetPluginInfo(pluginID, pluginVersion) is { Thumbnail: { } } pluginInfo
-            ? File(pluginInfo.Thumbnail.GetStream(ApplicationPaths.Instance), pluginInfo.Thumbnail.MimeType)
+        => pluginManager.GetPluginInfo(pluginID, pluginVersion) is { Thumbnail: { } } pluginInfo &&
+            pluginInfo.Thumbnail.GetStream(applicationPaths) is { } stream
+            ? File(stream, pluginInfo.Thumbnail.MimeType)
             : NotFound("Plugin not found");
 
     /// <summary>
