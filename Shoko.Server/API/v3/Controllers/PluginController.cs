@@ -15,6 +15,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 using AbstractPluginInfo = Shoko.Abstractions.Plugin.Models.LocalPluginInfo;
+using PluginCompatibilityInfo = Shoko.Server.API.v3.Models.Plugin.PluginCompatibilityInfo;
 using PluginInfo = Shoko.Server.API.v3.Models.Plugin.PluginInfo;
 
 #nullable enable
@@ -33,6 +34,16 @@ namespace Shoko.Server.API.v3.Controllers;
 [InitFriendly]
 public class PluginController(ISettingsProvider settingsProvider, IPluginManager pluginManager) : BaseController(settingsProvider)
 {
+    /// <summary>
+    ///   Gets information about the server/plugin compatibility.
+    /// </summary>
+    [HttpGet("Compatibility")]
+    public PluginCompatibilityInfo GetPluginCompatibilityInfo() => new()
+    {
+        AbstractionVersion = pluginManager.AbstractionVersion,
+        RuntimeIdentifier = pluginManager.RuntimeIdentifier,
+    };
+
     /// <summary>
     ///   Gets a list of all registered plugins.
     /// </summary>
