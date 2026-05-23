@@ -80,6 +80,16 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     public string? Authors { get; set; } = pluginInfo.Authors;
 
     /// <summary>
+    ///   The repository URL for the plugin, if provided.
+    /// </summary>
+    public string? RepositoryUrl { get; init; } = pluginInfo.RepositoryUrl;
+
+    /// <summary>
+    ///   The home-page URL for the plugin, if provided.
+    /// </summary>
+    public string? HomepageUrl { get; init; } = pluginInfo.HomepageUrl;
+
+    /// <summary>
     ///   The order in which the plugin was loaded.
     /// </summary>
     [Required]
