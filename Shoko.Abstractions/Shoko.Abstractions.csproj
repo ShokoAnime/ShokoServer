@@ -29,6 +29,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="NJsonSchema" Version="11.6.0" />
+      <PackageReference Include="NJsonSchema" Version="11.6.1" />
     </ItemGroup>
 </Project>
