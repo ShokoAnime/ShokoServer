@@ -281,6 +281,7 @@ public class PluginPackageController(
     /// <returns>
     ///   The thumbnail image if available.
     /// </returns>
+    [AllowAnonymous]
     [HttpGet("{packageID}/Thumbnail")]
     public async Task<ActionResult> GetThumbnailForManifestByPackageID([FromRoute] Guid packageID)
     {

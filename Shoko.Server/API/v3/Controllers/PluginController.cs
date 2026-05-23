@@ -176,6 +176,7 @@ public class PluginController(ISettingsProvider settingsProvider, IPluginManager
     /// <returns>
     ///   The <see cref="PluginInfo"/> if a plugin is found.
     /// </returns>
+    [AllowAnonymous]
     [HttpGet("{pluginID}/Thumbnail")]
     public ActionResult GetThumbnailForPluginByID([FromRoute] Guid pluginID)
         => pluginManager.GetPluginInfo(pluginID) is { Thumbnail: { } } pluginInfo
