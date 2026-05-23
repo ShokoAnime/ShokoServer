@@ -1012,7 +1012,7 @@ public partial class PluginPackageManager(
             if (extension is not null)
             {
                 Directory.CreateDirectory(imagesDir);
-                var imagePath = Path.Join(imagesDir, $"{imageId}{extension}");
+                var imagePath = Path.Join(imagesDir, $"{imageId}.{extension}");
                 await using var fileStream = File.Create(imagePath);
                 await response.Content.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
 
