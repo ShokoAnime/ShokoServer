@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Quartz;
 using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Events;
 using Shoko.Abstractions.Plugin.Exceptions;
@@ -338,7 +339,7 @@ public partial class PluginPackageManager(
             throw ex;
         }
 
-        var extractPath = Path.Join(_applicationPaths.PluginsPath, $"{packageInfo.Manifest.Name}-{packageInfo.Release.Version}-{packageInfo.Archive.RuntimeIdentifier}");
+        var extractPath = Path.Join(_applicationPaths.PluginsPath, $"{packageInfo.Manifest.Name.ReplaceInvalidPathCharacters()}-{packageInfo.Release.Version}-{packageInfo.Archive.RuntimeIdentifier}");
         var zipPath = extractPath + ".zip";
         try
         {
