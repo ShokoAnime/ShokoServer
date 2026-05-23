@@ -40,8 +40,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     private readonly List<LocalPluginInfo> _pluginTypes = [];
 
-    private readonly Guid _coreID = typeof(CorePlugin).FullName!.ToUuidV5();
-
     private static readonly Version _invalidVersion = new(0, 0, 0, 0);
 
     #region Setup
@@ -214,7 +212,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         {
             new()
             {
-                ID = _coreID,
+                ID = CorePlugin.StaticID,
                 Name = "Shoko Core",
                 DllName = Path.GetFileNameWithoutExtension(Assembly.GetCallingAssembly().Location!),
                 Description = string.Empty,
@@ -693,7 +691,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         settingsChanged = true;
                     }
                     var instance = (IPlugin)Activator.CreateInstance(pluginImpl[0])!;
-                    if (instance.ID == _coreID)
+                    if (instance.ID == CorePlugin.StaticID)
                     {
                         logger.LogWarning("Skipping {DllName} because it has the same ID as the core plugin.", dllPath);
                         continue;

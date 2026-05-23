@@ -11,8 +11,10 @@ namespace Shoko.Server.Plugin;
 /// </summary>
 public class CorePlugin : IPlugin
 {
+    public static Guid StaticID = UuidUtility.GetV5(typeof(CorePlugin).FullName!);
+
     /// <inheritdoc/>
-    public Guid ID { get => UuidUtility.GetV5(GetType().FullName!); }
+    public Guid ID { get => StaticID; }
 
     /// <inheritdoc/>
     public string Name { get; private init; } = "Shoko Core";

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Shoko.Abstractions.Core;
+using Shoko.Server.Plugin;
 using Shoko.Server.Services;
 
 using AbstractPluginInfo = Shoko.Abstractions.Plugin.Models.LocalPluginInfo;
@@ -144,6 +145,12 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     /// </summary>
     [Required]
     public bool CanUninstall { get; init; } = pluginInfo.CanUninstall;
+
+    /// <summary>
+    ///   Indicates if the plugin can be enabled or disabled by the user.
+    /// </summary>
+    [Required]
+    public bool CanEnableOrDisable { get; init; } = pluginInfo.ID != CorePlugin.StaticID && pluginInfo.IsInstalled;
 
     /// <summary>
     ///   The directory containing the plugin DLLs, if the plugin is not placed
