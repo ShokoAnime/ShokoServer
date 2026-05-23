@@ -40,6 +40,50 @@ public class PluginPackageController(
     IPluginPackageManager packageManager
 ) : BaseController(settingsProvider)
 {
+    #region Settings
+
+    /// <summary>
+    ///   Gets the settings for the plugin package manager.
+    /// </summary>
+    /// <returns>
+    ///   A <see cref="PluginPackageSettings"/> containing the current settings.
+    /// </returns>
+    [HttpGet("Settings")]
+    public ActionResult<PluginPackageSettings> GetPluginPackageSettings()
+        => new PluginPackageSettings
+        {
+            IsAutoSyncEnabled = packageManager.IsAutoSyncEnabled,
+            IsAutoUpgradeEnabled = packageManager.IsAutoUpgradeEnabled,
+            DefaultRepositoryStaleTime = packageManager.DefaultRepositoryStaleTime,
+            InactivePluginVersionRetention = packageManager.InactivePluginVersionRetention,
+        };
+
+    /// <summary>
+    ///   Updates the plugin package manager settings.
+    /// </summary>
+    /// <param name="body">
+    ///   The settings to update.
+    /// </param>
+    /// <returns>
+    ///   An empty <see cref="ActionResult"/>.
+    /// </returns>
+    [HttpPost("Settings")]
+    public ActionResult UpdatePluginPackageSettings([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdatePluginPackageSettingsBody body)
+    {
+        if (body.IsAutoSyncEnabled.HasValue)
+            packageManager.IsAutoSyncEnabled = body.IsAutoSyncEnabled.Value;
+        if (body.IsAutoUpgradeEnabled.HasValue)
+            packageManager.IsAutoUpgradeEnabled = body.IsAutoUpgradeEnabled.Value;
+        if (body.DefaultRepositoryStaleTime.HasValue)
+            packageManager.DefaultRepositoryStaleTime = body.DefaultRepositoryStaleTime.Value;
+        if (body.InactivePluginVersionRetention.HasValue)
+            packageManager.InactivePluginVersionRetention = body.InactivePluginVersionRetention.Value;
+
+        return Ok();
+    }
+
+    #endregion
+
     #region Package Listing
 
     /// <summary>
