@@ -173,7 +173,8 @@ public interface IPluginManager
     LocalPluginInfo? LoadFromPath(string path);
 
     /// <summary>
-    ///   Enables the plugin for the next session onwards.
+    ///   Enables the plugin for the next session onwards. Will pin the plugin
+    ///   version if it's not the latest version.
     /// </summary>
     /// <param name="pluginInfo">
     ///   The plugin info to enable.
@@ -187,7 +188,8 @@ public interface IPluginManager
     LocalPluginInfo EnablePlugin(LocalPluginInfo pluginInfo);
 
     /// <summary>
-    ///   Disables the plugin for the next session onwards.
+    ///   Disables the plugin for the next session onwards. Will unpin the
+    ///   plugin version if it's pinned.
     /// </summary>
     /// <param name="pluginInfo">
     ///   The plugin info to disable.
@@ -196,6 +198,28 @@ public interface IPluginManager
     ///   The updated <see cref="LocalPluginInfo"/> for the plugin.
     /// </returns>
     LocalPluginInfo DisablePlugin(LocalPluginInfo pluginInfo);
+
+    /// <summary>
+    ///   Pins the current plugin version.
+    /// </summary>
+    /// <param name="pluginInfo">
+    ///   The plugin info to pin.
+    /// </param>
+    /// <returns>
+    ///   The updated <see cref="LocalPluginInfo"/> for the plugin.
+    /// </returns>
+    LocalPluginInfo PinPlugin(LocalPluginInfo pluginInfo);
+
+    /// <summary>
+    ///   Unpins the current plugin version.
+    /// </summary>
+    /// <param name="pluginInfo">
+    ///   The plugin info to unpin.
+    /// </param>
+    /// <returns>
+    ///   The updated <see cref="LocalPluginInfo"/> for the plugin.
+    /// </returns>
+    LocalPluginInfo UnpinPlugin(LocalPluginInfo pluginInfo);
 
     /// <summary>
     ///   Disables and uninstalls the plugin. The plugin will still be active in

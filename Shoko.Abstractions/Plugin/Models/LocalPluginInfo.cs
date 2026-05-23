@@ -96,6 +96,11 @@ public sealed class LocalPluginInfo
     public required bool IsEnabled { get; set; }
 
     /// <summary>
+    ///   Indicates the current version of the plugin is pinned.
+    /// </summary>
+    public required bool IsPinned { get; set; }
+
+    /// <summary>
     ///   Indicates the plugin is currently loaded in the current session.
     /// </summary>
     [MemberNotNullWhen(true, nameof(Plugin), nameof(PluginType))]

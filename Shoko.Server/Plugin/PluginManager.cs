@@ -275,6 +275,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         LoadOrder = _pluginTypes.Count,
                         InstalledAt = internalPluginInfo.InstalledAt,
                         IsEnabled = false,
+                        IsPinned = internalPluginInfo.IsPinned,
                         IsActive = false,
                         CanLoad = internalPluginInfo.CanLoad,
                         CanUninstall = internalPluginInfo.CanUninstall,
@@ -307,6 +308,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     LoadOrder = _pluginTypes.Count,
                     InstalledAt = internalPluginInfo.InstalledAt,
                     IsEnabled = true,
+                    IsPinned = internalPluginInfo.IsPinned,
                     IsActive = false,
                     CanLoad = internalPluginInfo.CanLoad,
                     CanUninstall = internalPluginInfo.CanUninstall,
@@ -372,6 +374,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 LoadOrder = localPluginInfo.LoadOrder,
                 InstalledAt = localPluginInfo.InstalledAt,
                 IsEnabled = true,
+                IsPinned = localPluginInfo.IsPinned,
                 IsActive = true,
                 CanLoad = localPluginInfo.CanLoad,
                 CanUninstall = localPluginInfo.CanUninstall,
@@ -964,6 +967,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     public LocalPluginInfo DisablePlugin(LocalPluginInfo pluginInfo)
         => TogglePlugin(pluginInfo, false);
 
+    public LocalPluginInfo PinPlugin(LocalPluginInfo pluginInfo)
+        => TogglePluginPin(pluginInfo, true);
+
+    public LocalPluginInfo UnpinPlugin(LocalPluginInfo pluginInfo)
+        => TogglePluginPin(pluginInfo, false);
+
     public LocalPluginInfo UninstallPlugin(LocalPluginInfo pluginInfo, bool purgeConfiguration = true)
     {
         if (!pluginInfo.CanUninstall || !pluginInfo.IsInstalled)
@@ -1089,6 +1098,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             LoadOrder = _pluginTypes.Count,
             InstalledAt = internalPluginInfo.InstalledAt,
             IsEnabled = internalPluginInfo.IsEnabled,
+            IsPinned = internalPluginInfo.IsPinned,
             IsActive = false,
             CanLoad = internalPluginInfo.CanLoad,
             CanUninstall = internalPluginInfo.CanUninstall,
@@ -1230,39 +1240,36 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         // Disable other versions of the same plugin, and pin the version that is enabled if necessary.
         var pluginInfos = _pluginTypes.Where(p => p.ID == pluginInfo.ID).ToList();
         var highestVersion = pluginInfos.MaxBy(p => p.Version);
-        if (enabled && highestVersion != pluginInfo)
+        foreach (var plugin in pluginInfos.Except([pluginInfo]))
+            plugin.IsEnabled = false;
+
+        return TogglePluginPin(pluginInfo, enabled && highestVersion != pluginInfo);
+    }
+
+    private LocalPluginInfo TogglePluginPin(LocalPluginInfo pluginInfo, bool pinned)
+    {
+        var pluginInfos = _pluginTypes.Where(p => p.ID == pluginInfo.ID).ToList();
+        if (pinned && pluginInfo.IsEnabled)
         {
+            pluginInfo.IsPinned = true;
             var pinnedFile = string.IsNullOrEmpty(pluginInfo.ContainingDirectory)
                 ? Path.ChangeExtension(pluginInfo.DLLs[0], Pinned)
                 : Path.Join(pluginInfo.ContainingDirectory, Pinned);
             if (!File.Exists(pinnedFile))
                 File.WriteAllText(pinnedFile, string.Empty);
-            foreach (var plugin in pluginInfos)
-            {
-                if (plugin == pluginInfo)
-                    continue;
-
-                plugin.IsEnabled = false;
-                pinnedFile = string.IsNullOrEmpty(plugin.ContainingDirectory)
-                    ? Path.ChangeExtension(plugin.DLLs[0], Pinned)
-                    : Path.Join(plugin.ContainingDirectory, Pinned);
-                if (File.Exists(pinnedFile))
-                    File.Delete(pinnedFile);
-            }
         }
-        else
-        {
-            foreach (var plugin in pluginInfos)
-            {
-                if (plugin != pluginInfo)
-                    plugin.IsEnabled = false;
 
-                var pinnedFile = string.IsNullOrEmpty(plugin.ContainingDirectory)
-                    ? Path.ChangeExtension(plugin.DLLs[0], Pinned)
-                    : Path.Join(plugin.ContainingDirectory, Pinned);
-                if (File.Exists(pinnedFile))
-                    File.Delete(pinnedFile);
-            }
+        foreach (var plugin in pluginInfos)
+        {
+            if (pinned && plugin == pluginInfo && pluginInfo.IsEnabled)
+                continue;
+
+            plugin.IsPinned = false;
+            var pinnedFile = string.IsNullOrEmpty(plugin.ContainingDirectory)
+                ? Path.ChangeExtension(plugin.DLLs[0], Pinned)
+                : Path.Join(plugin.ContainingDirectory, Pinned);
+            if (File.Exists(pinnedFile))
+                File.Delete(pinnedFile);
         }
 
         return pluginInfo;

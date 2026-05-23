@@ -122,6 +122,12 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     public bool IsEnabled { get; init; } = pluginInfo.IsEnabled;
 
     /// <summary>
+    ///   Indicates the current version of the plugin is pinned.
+    /// </summary>
+    [Required]
+    public bool IsPinned { get; set; } = pluginInfo.IsPinned;
+
+    /// <summary>
     ///   Indicates the plugin is currently loaded in the current session.
     /// </summary>
     [Required]
