@@ -70,6 +70,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     public bool IsAbiAndRuntimeCompatible(Version abstractionVersion, string runtimeIdentifier) =>
         (runtimeIdentifier is "any" || runtimeIdentifier == RuntimeIdentifier) &&
+        AbstractionVersion.Major == abstractionVersion.Major &&
         (_semverComparer ??= new()).Compare(AbstractionVersion, abstractionVersion) >= 0;
 
     #endregion
