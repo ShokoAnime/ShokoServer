@@ -15,7 +15,7 @@ namespace Shoko.Abstractions.Plugin;
 /// </summary>
 public interface IPluginManager
 {
-    #region Setup
+    #region Compatibility
 
     /// <summary>
     ///   Gets the current plugin abstraction ABI in use.
@@ -26,6 +26,10 @@ public interface IPluginManager
     ///   Gets the current runtime identifier for the platform in use.
     /// </summary>
     string RuntimeIdentifier { get; }
+
+    #endregion
+
+    #region Setup
 
     /// <summary>
     ///   Searches for plugins.
