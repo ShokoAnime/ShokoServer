@@ -158,6 +158,7 @@ public static class QuartzStartup
             if (settings.Quartz.DatabaseType is Constants.DatabaseType.SQLServer)
             {
                 EnsureQuartzDatabaseExists_SQLServer(settings.Quartz.ConnectionString);
+                RemoveUnsupportedJobs().GetAwaiter().GetResult();
                 options.SetProperty("quartz.jobStore.driverDelegateType", typeof(SqlServerDelegate).AssemblyQualifiedNameWithoutVersion());
                 options.SetProperty("quartz.jobStore.dataSource", DefaultSource);
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.provider", "SqlServer");
@@ -166,6 +167,7 @@ public static class QuartzStartup
             else if (settings.Quartz.DatabaseType is Constants.DatabaseType.MySQL)
             {
                 EnsureQuartzDatabaseExists_MySQL(settings.Quartz.ConnectionString);
+                RemoveUnsupportedJobs().GetAwaiter().GetResult();
                 options.SetProperty("quartz.jobStore.driverDelegateType", typeof(MySQLDelegate).AssemblyQualifiedNameWithoutVersion());
                 options.SetProperty("quartz.jobStore.dataSource", DefaultSource);
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.provider", "MySqlConnector");
@@ -174,6 +176,7 @@ public static class QuartzStartup
             else if (settings.Quartz.DatabaseType is Constants.DatabaseType.SQLite)
             {
                 EnsureQuartzDatabaseExists_SQLite(settings.Quartz.ConnectionString);
+                RemoveUnsupportedJobs().GetAwaiter().GetResult();
                 options.SetProperty("quartz.jobStore.driverDelegateType", typeof(SQLiteDelegate).AssemblyQualifiedNameWithoutVersion());
                 options.SetProperty("quartz.jobStore.dataSource", DefaultSource);
                 options.SetProperty($"quartz.dataSource.{DefaultSource}.provider", "SQLite-Microsoft");
@@ -1001,5 +1004,124 @@ CREATE INDEX IDX_QRTZ_T_NFT_ST_MISFIRE_GRP ON QRTZ_TRIGGERS(SCHED_NAME,MISFIRE_I
         var cmd = new SqliteCommand(Script, conn);
         cmd.ExecuteNonQuery();
         conn.Close();
+    }
+
+    private static Task RemoveUnsupportedJobs()
+    {
+        var settings = ISettingsProvider.Instance.GetSettings();
+        if (string.IsNullOrEmpty(settings.Quartz?.ConnectionString))
+            throw new ArgumentNullException(nameof(settings.Quartz.ConnectionString), @"The connection string for Quartz was null");
+
+        var jobTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a => a.IsAssignableTo(typeof(IJob))).ToArray();
+
+        // JOB_CLASS_NAME is stored as "FullTypeName, AssemblyShortName" (no version/culture/token)
+        var inClause = string.Join(", ", jobTypes.Select(t => $"'{t.FullName}, {t.Assembly.GetName().Name}'"));
+
+        // Build the statements once; they are backend-agnostic.
+        // Deletion order is chosen to satisfy FK constraints on all three backends:
+        //   SQL Server: QRTZ_TRIGGERS → sub-tables CASCADE; QRTZ_JOB_DETAILS → QRTZ_TRIGGERS no cascade
+        //   MySQL:      no cascade anywhere — every child table must be deleted explicitly
+        //   SQLite:     DELETE triggers cascade QRTZ_TRIGGERS → sub-tables; QRTZ_JOB_DETAILS → QRTZ_TRIGGERS no cascade
+        // Explicitly deleting sub-tables before QRTZ_TRIGGERS is harmless for SQL Server/SQLite (cascade is a no-op on already-deleted rows).
+        string[] statements =
+        [
+            // 1. Fired triggers — no FK, correlated via QRTZ_JOB_DETAILS
+            $"""
+            DELETE FROM QRTZ_FIRED_TRIGGERS
+            WHERE EXISTS (
+                SELECT 1 FROM QRTZ_JOB_DETAILS jd
+                WHERE jd.SCHED_NAME = QRTZ_FIRED_TRIGGERS.SCHED_NAME
+                  AND jd.JOB_NAME   = QRTZ_FIRED_TRIGGERS.JOB_NAME
+                  AND jd.JOB_GROUP  = QRTZ_FIRED_TRIGGERS.JOB_GROUP
+                  AND jd.JOB_CLASS_NAME NOT IN ({inClause})
+            )
+            """,
+            // 2a–d. Sub-trigger tables — FK to QRTZ_TRIGGERS (required explicit delete for MySQL)
+            $"""
+            DELETE FROM QRTZ_SIMPLE_TRIGGERS
+            WHERE EXISTS (
+                SELECT 1 FROM QRTZ_TRIGGERS t
+                INNER JOIN QRTZ_JOB_DETAILS jd
+                    ON t.SCHED_NAME = jd.SCHED_NAME AND t.JOB_NAME = jd.JOB_NAME AND t.JOB_GROUP = jd.JOB_GROUP
+                WHERE t.SCHED_NAME    = QRTZ_SIMPLE_TRIGGERS.SCHED_NAME
+                  AND t.TRIGGER_NAME  = QRTZ_SIMPLE_TRIGGERS.TRIGGER_NAME
+                  AND t.TRIGGER_GROUP = QRTZ_SIMPLE_TRIGGERS.TRIGGER_GROUP
+                  AND jd.JOB_CLASS_NAME NOT IN ({inClause})
+            )
+            """,
+            $"""
+            DELETE FROM QRTZ_CRON_TRIGGERS
+            WHERE EXISTS (
+                SELECT 1 FROM QRTZ_TRIGGERS t
+                INNER JOIN QRTZ_JOB_DETAILS jd
+                    ON t.SCHED_NAME = jd.SCHED_NAME AND t.JOB_NAME = jd.JOB_NAME AND t.JOB_GROUP = jd.JOB_GROUP
+                WHERE t.SCHED_NAME    = QRTZ_CRON_TRIGGERS.SCHED_NAME
+                  AND t.TRIGGER_NAME  = QRTZ_CRON_TRIGGERS.TRIGGER_NAME
+                  AND t.TRIGGER_GROUP = QRTZ_CRON_TRIGGERS.TRIGGER_GROUP
+                  AND jd.JOB_CLASS_NAME NOT IN ({inClause})
+            )
+            """,
+            $"""
+            DELETE FROM QRTZ_SIMPROP_TRIGGERS
+            WHERE EXISTS (
+                SELECT 1 FROM QRTZ_TRIGGERS t
+                INNER JOIN QRTZ_JOB_DETAILS jd
+                    ON t.SCHED_NAME = jd.SCHED_NAME AND t.JOB_NAME = jd.JOB_NAME AND t.JOB_GROUP = jd.JOB_GROUP
+                WHERE t.SCHED_NAME    = QRTZ_SIMPROP_TRIGGERS.SCHED_NAME
+                  AND t.TRIGGER_NAME  = QRTZ_SIMPROP_TRIGGERS.TRIGGER_NAME
+                  AND t.TRIGGER_GROUP = QRTZ_SIMPROP_TRIGGERS.TRIGGER_GROUP
+                  AND jd.JOB_CLASS_NAME NOT IN ({inClause})
+            )
+            """,
+            $"""
+            DELETE FROM QRTZ_BLOB_TRIGGERS
+            WHERE EXISTS (
+                SELECT 1 FROM QRTZ_TRIGGERS t
+                INNER JOIN QRTZ_JOB_DETAILS jd
+                    ON t.SCHED_NAME = jd.SCHED_NAME AND t.JOB_NAME = jd.JOB_NAME AND t.JOB_GROUP = jd.JOB_GROUP
+                WHERE t.SCHED_NAME    = QRTZ_BLOB_TRIGGERS.SCHED_NAME
+                  AND t.TRIGGER_NAME  = QRTZ_BLOB_TRIGGERS.TRIGGER_NAME
+                  AND t.TRIGGER_GROUP = QRTZ_BLOB_TRIGGERS.TRIGGER_GROUP
+                  AND jd.JOB_CLASS_NAME NOT IN ({inClause})
+            )
+            """,
+            // 3. Triggers — FK to QRTZ_JOB_DETAILS; cascade handles sub-tables on SQL Server/SQLite
+            $"""
+            DELETE FROM QRTZ_TRIGGERS
+            WHERE EXISTS (
+                SELECT 1 FROM QRTZ_JOB_DETAILS jd
+                WHERE jd.SCHED_NAME = QRTZ_TRIGGERS.SCHED_NAME
+                  AND jd.JOB_NAME   = QRTZ_TRIGGERS.JOB_NAME
+                  AND jd.JOB_GROUP  = QRTZ_TRIGGERS.JOB_GROUP
+                  AND jd.JOB_CLASS_NAME NOT IN ({inClause})
+            )
+            """,
+            // 4. Job details — the root record
+            $"DELETE FROM QRTZ_JOB_DETAILS WHERE JOB_CLASS_NAME NOT IN ({inClause})",
+        ];
+
+        if (settings.Quartz.DatabaseType is Constants.DatabaseType.SQLServer)
+        {
+            using var conn = new SqlConnection(settings.Quartz.ConnectionString);
+            conn.Open();
+            foreach (var sql in statements)
+                new SqlCommand(sql, conn).ExecuteNonQuery();
+        }
+        else if (settings.Quartz.DatabaseType is Constants.DatabaseType.MySQL)
+        {
+            using var conn = new MySqlConnection(settings.Quartz.ConnectionString);
+            conn.Open();
+            foreach (var sql in statements)
+                new MySqlCommand(sql, conn).ExecuteNonQuery();
+        }
+        else if (settings.Quartz.DatabaseType is Constants.DatabaseType.SQLite)
+        {
+            using var conn = new SqliteConnection(settings.Quartz.ConnectionString);
+            conn.Open();
+            foreach (var sql in statements)
+                new SqliteCommand(sql, conn).ExecuteNonQuery();
+        }
+
+        return Task.CompletedTask;
     }
 }
