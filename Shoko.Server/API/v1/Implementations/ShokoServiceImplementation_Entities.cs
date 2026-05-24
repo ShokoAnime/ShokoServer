@@ -167,7 +167,7 @@ public partial class ShokoServiceImplementation
             if (gf is null) return retEps;
 
             var evaluator = HttpContext.RequestServices.GetRequiredService<IFilterEvaluator>();
-            var comboGroups = evaluator.EvaluateFilter(gf, user).Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).WhereNotNull()
+            var comboGroups = evaluator.EvaluateFilterWithGrouping(gf, user).Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).WhereNotNull()
                 .Select(a => _legacyV1Service.GetV1Contract(a, userID));
 
             foreach (var group in comboGroups)
@@ -1485,7 +1485,7 @@ public partial class ShokoServiceImplementation
             if (gf != null)
             {
                 var evaluator = HttpContext.RequestServices.GetRequiredService<IFilterEvaluator>();
-                var results = evaluator.EvaluateFilter(gf, user);
+                var results = evaluator.EvaluateFilterWithGrouping(gf, user);
                 retGroups = results.Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).WhereNotNull().Select(a => _legacyV1Service.GetV1Contract(a, userID))
                     .ToList();
             }

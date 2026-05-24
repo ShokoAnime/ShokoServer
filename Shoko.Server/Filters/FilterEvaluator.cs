@@ -17,7 +17,10 @@ namespace Shoko.Server.Filters;
 
 public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupRepository _groups, AnimeSeriesRepository _series) : IFilterEvaluator
 {
-    public IReadOnlyList<IGrouping<int, int>> EvaluateFilter(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyList<IGrouping<int, int>> EvaluateFilterWithGrouping(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
+        => EvaluateFilterWithTuples(filter, user, time, skipSorting).GroupBy(a => a.GroupID, a => a.SeriesID).ToArray();
+
+    public IReadOnlyList<(int GroupID, int SeriesID)> EvaluateFilterWithTuples(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
     {
         ArgumentNullException.ThrowIfNull(filter);
         var needsUser = (filter.Expression?.UserDependent ?? false) || (filter.SortingExpression?.UserDependent ?? false);
@@ -69,16 +72,28 @@ public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupReposit
             ? (IEnumerable<FilterableWithID>)filtered
             : OrderFilterable(filter, filtered, now);
         var result = filter.ApplyAtSeriesLevel
-            ? sorted.GroupBy(a => a.GroupID, a => a.SeriesID)
-            : sorted.Select(a => new Grouping(a.GroupID, _series.GetByGroupID(a.GroupID).Select(ser => ser.AnimeSeriesID)));
+            ? sorted.Select(a => (a.GroupID, a.SeriesID))
+            : sorted.SelectMany(a => _series.GetByGroupID(a.GroupID).Select(ser => (a.GroupID, ser.AnimeSeriesID)));
         return result.ToArray();
     }
 
-    public IReadOnlyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>> BatchPrepareFilters<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset
+    public IReadOnlyDictionary<TFilter, IReadOnlyList<(int GroupID, int SeriesID)>> BatchPrepareFiltersWithTuples<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset
+        => InternalBatchPrepareFilters(filters, a => a, user, time, skipSorting);
+
+    public IReadOnlyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>> BatchPrepareFiltersWithGrouping<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset
+        => InternalBatchPrepareFilters(filters, a => a.GroupBy(a => a.GroupID, a => a.SeriesID), user, time, skipSorting);
+
+    private IReadOnlyDictionary<TFilter, IReadOnlyList<TValue>> InternalBatchPrepareFilters<TFilter, TValue>(
+        IReadOnlyList<TFilter> filters,
+        Func<IEnumerable<(int GroupID, int SeriesID)>, IEnumerable<TValue>> convert,
+        IUser? user,
+        DateTime? time = null,
+        bool skipSorting = false
+    ) where TFilter : IFilterPreset
     {
         ArgumentNullException.ThrowIfNull(filters);
         if (filters.Count == 0)
-            return new LazyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>>();
+            return new LazyDictionary<TFilter, IReadOnlyList<TValue>>();
         var hasSeries = filters.Any(a => a.ApplyAtSeriesLevel);
         var seriesNeedsUser = hasSeries && filters.Any(a =>
         {
@@ -120,7 +135,7 @@ public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupReposit
                 .Where(a => shokoUser?.AllowedGroup(a) ?? true)
                 .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now)))
                 .ToArray();
-        var results = new Dictionary<TFilter, Lazy<IReadOnlyList<IGrouping<int, int>>>>();
+        var results = new Dictionary<TFilter, Lazy<IReadOnlyList<TValue>>>();
         foreach (var filter in filters.Where(a => !a.IsDirectory))
         {
             var filterable = filter.ApplyAtSeriesLevel ? series : groups;
@@ -150,16 +165,16 @@ public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupReposit
                 ? (IEnumerable<FilterableWithID>)filtered
                 : OrderFilterable(filter, filtered, now);
             var result = filter.ApplyAtSeriesLevel
-                ? sorted.GroupBy(a => a.GroupID, a => a.SeriesID)
-                : sorted.Select(a => new Grouping(a.GroupID, _series.GetByGroupID(a.GroupID).Select(ser => ser.AnimeSeriesID)));
-            results[filter] = new(() => result.ToArray());
+                ? sorted.Select(a => (a.GroupID, a.SeriesID))
+                : sorted.SelectMany(a => _series.GetByGroupID(a.GroupID).Select(ser => (a.GroupID, ser.AnimeSeriesID)));
+            results[filter] = new(() => convert(result).ToArray());
         }
 
         // Add Directory Filters
         foreach (var filter in filters.Except(results.Keys))
             results.Add(filter, new(() => []));
 
-        return new LazyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>>(results);
+        return new LazyDictionary<TFilter, IReadOnlyList<TValue>>(results);
     }
 
     private static IOrderedEnumerable<FilterableWithID> OrderFilterable(IFilterPreset filter, IEnumerable<FilterableWithID> filtered, DateTime now)

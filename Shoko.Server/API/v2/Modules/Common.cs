@@ -2518,7 +2518,7 @@ public class Common : BaseController
         var allFPs = level > 0
             ? RepoFactory.FilterPreset.GetAllFiltersForLegacy().Where(a => !a.Hidden && (!a.FilterType.HasFlag(FilterPresetType.Tag) || !hideCategories.Contains(a.Name))).ToList()
             : RepoFactory.FilterPreset.GetAllFiltersForLegacy(true).Where(a => !a.Hidden).ToList();
-        var result = evaluator.BatchPrepareFilters(allFPs, user, skipSorting: true);
+        var result = evaluator.BatchPrepareFiltersWithGrouping(allFPs, user, skipSorting: true);
         allFPs = allFPs.Where(a => a.IsDirectory || result[a].Any()).ToList();
 
         foreach (var gf in allFPs)

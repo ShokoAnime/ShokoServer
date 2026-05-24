@@ -44,7 +44,7 @@ public class Filter : Filters
         if (evaluatedResults == null)
         {
             var evaluator = ctx.RequestServices.GetRequiredService<IFilterEvaluator>();
-            evaluatedResults = evaluator.EvaluateFilter(gf, ctx.GetUser()).ToList();
+            evaluatedResults = evaluator.EvaluateFilterWithGrouping(gf, ctx.GetUser()).ToList();
         }
 
         if (evaluatedResults.Count == 0)

@@ -60,14 +60,14 @@ public class LegacyFilterConverter
         {
             foreach (var user in RepoFactory.JMMUser.GetAll())
             {
-                var results = _evaluator.EvaluateFilter(filter, user).ToList();
+                var results = _evaluator.EvaluateFilterWithGrouping(filter, user).ToList();
                 groupIds[user.JMMUserID] = results.Select(a => a.Key).ToHashSet();
                 seriesIds[user.JMMUserID] = results.SelectMany(a => a).ToHashSet();
             }
         }
         else
         {
-            var results = _evaluator.EvaluateFilter(filter, null).ToList();
+            var results = _evaluator.EvaluateFilterWithGrouping(filter, null).ToList();
             var groupIdSet = results.Select(a => a.Key).ToHashSet();
             var seriesIdSet = results.SelectMany(a => a).ToHashSet();
             foreach (var userID in RepoFactory.JMMUser.GetAll().Select(a => a.JMMUserID))
@@ -115,7 +115,7 @@ public class LegacyFilterConverter
 
     private List<CL_GroupFilter> SetOtherFilters(List<FilterPreset> otherFilters)
     {
-        var results = _evaluator.BatchPrepareFilters(otherFilters, null, skipSorting: true);
+        var results = _evaluator.BatchPrepareFiltersWithGrouping(otherFilters, null, skipSorting: true);
         var models = results.Select(kv =>
         {
             var filter = kv.Key;
@@ -162,11 +162,11 @@ public class LegacyFilterConverter
     private List<CL_GroupFilter> SetUserFilters(int? userID, List<FilterPreset> userFilters)
     {
         var userResults = userID.HasValue
-            ? _evaluator.BatchPrepareFilters(userFilters, RepoFactory.JMMUser.GetByID(userID.Value), skipSorting: true)
+            ? _evaluator.BatchPrepareFiltersWithGrouping(userFilters, RepoFactory.JMMUser.GetByID(userID.Value), skipSorting: true)
                 .Select(a => (a.Key, JMMUserID: userID.Value, a.Value))
                 .GroupBy(a => a.Key, a => (a.JMMUserID, a.Value))
             : RepoFactory.JMMUser.GetAll()
-                .SelectMany(user => _evaluator.BatchPrepareFilters(userFilters, user, skipSorting: true).Select(a => (a.Key, user.JMMUserID, a.Value)))
+                .SelectMany(user => _evaluator.BatchPrepareFiltersWithGrouping(userFilters, user, skipSorting: true).Select(a => (a.Key, user.JMMUserID, a.Value)))
                 .GroupBy(a => a.Key, a => (a.JMMUserID, a.Value));
         var userModels = userResults.Select(group =>
         {

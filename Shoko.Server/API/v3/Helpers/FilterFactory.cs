@@ -62,7 +62,7 @@ public class FilterFactory
         filter.Size = filter.IsDirectory
             ? RepoFactory.FilterPreset.GetByParentID(groupFilter.FilterPresetID).Count
             // Only count top level groups
-            : _evaluator.EvaluateFilter(groupFilter, user).Count(a =>
+            : _evaluator.EvaluateFilterWithGrouping(groupFilter, user).Count(a =>
             {
                 var group = RepoFactory.AnimeGroup.GetByID(a.Key);
                 return group is { AnimeGroupParentID: null } && (includeEmpty || group.AllSeries
@@ -75,7 +75,7 @@ public class FilterFactory
     {
         var user = _context.GetUser();
         var evaluate = groupFilters.Any(a => !a.IsDirectory);
-        var results = evaluate ? _evaluator.BatchPrepareFilters(groupFilters, user, skipSorting: true) : null;
+        var results = evaluate ? _evaluator.BatchPrepareFiltersWithGrouping(groupFilters, user, skipSorting: true) : null;
         var filters = groupFilters.Select(groupFilter =>
         {
             var filter = new Filter
