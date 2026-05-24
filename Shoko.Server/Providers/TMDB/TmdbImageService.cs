@@ -63,7 +63,11 @@ public class TmdbImageService(ILogger<TmdbImageService> logger, IImageManager im
             .ToHashSet();
         var orderedImages = images
             .Where(a => !string.IsNullOrEmpty(a.FilePath))
-            .Select((image, index) => (image, index))
+            .Select((image, index) => (Image: image, Language: (image?.Iso_639_1 ?? string.Empty).GetTitleLanguage(), Index: index))
+            .OrderByDescending(tuple => languages.Contains(tuple.Language))
+            .ThenBy(tuple => languages.IndexOf(tuple.Language))
+            .ThenBy(tuple => tuple.Index)
+            .Select((tuple, index) => (tuple.Image, index))
             .ToList();
         var xrefs = imageManager.GetImageCrossReferencesForEntity(entity, imageSource: DataSource.TMDB, imageType: imageType, xrefSource: DataSource.TMDB)
             .ToDictionary(xref => xref.ImageID);
