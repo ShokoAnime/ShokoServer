@@ -1124,6 +1124,12 @@ public partial class PluginPackageManager(
             if (localPackage == null)
                 continue;
 
+            if (localPackage.Plugin!.IsPinned)
+            {
+                _logger.LogInformation("Skipping auto-upgrade for pinned plugin {PluginName} at version {Version}", availablePackage.Manifest.Name, localPackage.Release.Version);
+                continue;
+            }
+
             // Compare versions - upgrade if newer version available
             if (comparer.Compare(availablePackage.Release.Version, localPackage.Release.Version) > 0)
             {
