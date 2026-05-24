@@ -469,6 +469,256 @@ public class AnimeGroup : IShokoGroup
 
     #endregion
 
+    #region IWithPrimaryImage Implementation
+
+    public IImage? PrimaryImage
+    {
+        get
+        {
+            if (GetPreferredImageForType(ImageEntityType.Primary) is { } preferredImage)
+                return preferredImage;
+
+            var mainSeries = (this as IShokoGroup).MainSeries;
+            if (mainSeries.GetPreferredImageForType(ImageEntityType.Primary) is { } mainSeriesPreferredImage)
+                return mainSeriesPreferredImage;
+
+            var groupImage = GetImages(imageType: ImageEntityType.Primary, primaryImage: true) is { Count: > 0 } images ? (
+                images.FirstOrDefault(i => i is { IsEnabled: true, IsAvailable: true }) ??
+                images.FirstOrDefault(i => i is { IsEnabled: true }) ??
+                images.FirstOrDefault()
+            ) : null;
+            if (groupImage is not null)
+                return groupImage;
+
+            return mainSeries.DefaultPrimaryImage;
+        }
+    }
+
+    public IImageCrossReference? PrimaryImageCrossReference
+    {
+        get
+        {
+            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Primary) is { } preferredImage)
+                return preferredImage;
+
+            var mainSeries = (this as IShokoGroup).MainSeries;
+            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Primary) is { } mainSeriesPreferredImage)
+                return mainSeriesPreferredImage;
+
+            var groupXref = GetImageCrossReferences(imageType: ImageEntityType.Primary) is { Count: > 0 } xrefs ? (
+                xrefs.FirstOrDefault(xref => xref.GetPrimaryImage() is { IsEnabled: true, IsAvailable: true }) ??
+                xrefs.FirstOrDefault(xref => xref is { IsEnabled: true }) ??
+                xrefs.FirstOrDefault()
+            ) : null;
+            if (groupXref is not null)
+                return groupXref;
+
+            return mainSeries.DefaultPrimaryImageCrossReference;
+        }
+    }
+
+    #endregion
+
+    #region IWithBackdropImage Implementation
+
+    public IImage? BackdropImage
+    {
+        get
+        {
+            if (GetPreferredImageForType(ImageEntityType.Backdrop) is { } preferredImage)
+                return preferredImage;
+
+            var mainSeries = (this as IShokoGroup).MainSeries;
+            if (mainSeries.GetPreferredImageForType(ImageEntityType.Backdrop) is { } mainSeriesPreferredImage)
+                return mainSeriesPreferredImage;
+
+            var groupImage = GetImages(imageType: ImageEntityType.Backdrop) is { Count: > 0 } images ? (
+                images.FirstOrDefault(i => i is { IsEnabled: true, IsAvailable: true }) ??
+                images.FirstOrDefault(i => i is { IsEnabled: true }) ??
+                images.FirstOrDefault()
+            ) : null;
+            if (groupImage is not null)
+                return groupImage;
+
+            return mainSeries.DefaultBackdropImage;
+        }
+    }
+
+    public IImageCrossReference? BackdropImageCrossReference
+    {
+        get
+        {
+            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Backdrop) is { } preferredImage)
+                return preferredImage;
+
+            var mainSeries = (this as IShokoGroup).MainSeries;
+            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Backdrop) is { } mainSeriesPreferredImage)
+                return mainSeriesPreferredImage;
+
+            var groupXref = GetImageCrossReferences(imageType: ImageEntityType.Backdrop) is { Count: > 0 } xrefs ? (
+                xrefs.FirstOrDefault(xref => xref.GetPrimaryImage() is { IsEnabled: true, IsAvailable: true }) ??
+                xrefs.FirstOrDefault(xref => xref is { IsEnabled: true }) ??
+                xrefs.FirstOrDefault()
+            ) : null;
+            if (groupXref is not null)
+                return groupXref;
+
+            return mainSeries.DefaultBackdropImageCrossReference;
+        }
+    }
+
+    #endregion
+
+    #region IWithLogoImage Implementation
+
+    public IImage? LogoImage
+    {
+        get
+        {
+            if (GetPreferredImageForType(ImageEntityType.Logo) is { } preferredImage)
+                return preferredImage;
+
+            var mainSeries = (this as IShokoGroup).MainSeries;
+            if (mainSeries.GetPreferredImageForType(ImageEntityType.Logo) is { } mainSeriesPreferredImage)
+                return mainSeriesPreferredImage;
+
+            var groupImage = GetImages(imageType: ImageEntityType.Logo) is { Count: > 0 } images ? (
+                images.FirstOrDefault(i => i is { IsEnabled: true, IsAvailable: true }) ??
+                images.FirstOrDefault(i => i is { IsEnabled: true }) ??
+                images.FirstOrDefault()
+            ) : null;
+            if (groupImage is not null)
+                return groupImage;
+
+            return mainSeries.DefaultLogoImage;
+        }
+    }
+
+    public IImageCrossReference? LogoImageCrossReference
+    {
+        get
+        {
+            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Logo) is { } preferredImage)
+                return preferredImage;
+
+            var mainSeries = (this as IShokoGroup).MainSeries;
+            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Logo) is { } mainSeriesPreferredImage)
+                return mainSeriesPreferredImage;
+
+            var groupXref = GetImageCrossReferences(imageType: ImageEntityType.Logo) is { Count: > 0 } xrefs ? (
+                xrefs.FirstOrDefault(xref => xref.GetPrimaryImage() is { IsEnabled: true, IsAvailable: true }) ??
+                xrefs.FirstOrDefault(xref => xref is { IsEnabled: true }) ??
+                xrefs.FirstOrDefault()
+            ) : null;
+            if (groupXref is not null)
+                return groupXref;
+
+            return mainSeries.DefaultLogoImageCrossReference;
+        }
+    }
+
+    #endregion
+
+    #region IWithBannerImage Implementation
+
+    public IImage? BannerImage
+    {
+        get
+        {
+            if (GetPreferredImageForType(ImageEntityType.Banner) is { } preferredImage)
+                return preferredImage;
+
+            var mainSeries = (this as IShokoGroup).MainSeries;
+            if (mainSeries.GetPreferredImageForType(ImageEntityType.Banner) is { } mainSeriesPreferredImage)
+                return mainSeriesPreferredImage;
+
+            var groupImage = GetImages(imageType: ImageEntityType.Banner) is { Count: > 0 } images ? (
+                images.FirstOrDefault(i => i is { IsEnabled: true, IsAvailable: true }) ??
+                images.FirstOrDefault(i => i is { IsEnabled: true }) ??
+                images.FirstOrDefault()
+            ) : null;
+            if (groupImage is not null)
+                return groupImage;
+
+            return mainSeries.DefaultBannerImage;
+        }
+    }
+
+    public IImageCrossReference? BannerImageCrossReference
+    {
+        get
+        {
+            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Banner) is { } preferredImage)
+                return preferredImage;
+
+            var mainSeries = (this as IShokoGroup).MainSeries;
+            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Banner) is { } mainSeriesPreferredImage)
+                return mainSeriesPreferredImage;
+
+            var groupXref = GetImageCrossReferences(imageType: ImageEntityType.Banner) is { Count: > 0 } xrefs ? (
+                xrefs.FirstOrDefault(xref => xref.GetPrimaryImage() is { IsEnabled: true, IsAvailable: true }) ??
+                xrefs.FirstOrDefault(xref => xref is { IsEnabled: true }) ??
+                xrefs.FirstOrDefault()
+            ) : null;
+            if (groupXref is not null)
+                return groupXref;
+
+            return mainSeries.DefaultBannerImageCrossReference;
+        }
+    }
+
+    #endregion
+
+    #region IWithDiscImage Implementation
+
+    public IImage? DiscImage
+    {
+        get
+        {
+            if (GetPreferredImageForType(ImageEntityType.Disc) is { } preferredImage)
+                return preferredImage;
+
+            var mainSeries = (this as IShokoGroup).MainSeries;
+            if (mainSeries.GetPreferredImageForType(ImageEntityType.Disc) is { } mainSeriesPreferredImage)
+                return mainSeriesPreferredImage;
+
+            var groupImage = GetImages(imageType: ImageEntityType.Disc) is { Count: > 0 } images ? (
+                images.FirstOrDefault(i => i is { IsEnabled: true, IsAvailable: true }) ??
+                images.FirstOrDefault(i => i is { IsEnabled: true }) ??
+                images.FirstOrDefault()
+            ) : null;
+            if (groupImage is not null)
+                return groupImage;
+
+            return mainSeries.DefaultDiscImage;
+        }
+    }
+
+    public IImageCrossReference? DiscImageCrossReference
+    {
+        get
+        {
+            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Disc) is { } preferredImage)
+                return preferredImage;
+
+            var mainSeries = (this as IShokoGroup).MainSeries;
+            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Disc) is { } mainSeriesPreferredImage)
+                return mainSeriesPreferredImage;
+
+            var groupXref = GetImageCrossReferences(imageType: ImageEntityType.Disc) is { Count: > 0 } xrefs ? (
+                xrefs.FirstOrDefault(xref => xref.GetPrimaryImage() is { IsEnabled: true, IsAvailable: true }) ??
+                xrefs.FirstOrDefault(xref => xref is { IsEnabled: true }) ??
+                xrefs.FirstOrDefault()
+            ) : null;
+            if (groupXref is not null)
+                return groupXref;
+
+            return mainSeries.DefaultDiscImageCrossReference;
+        }
+    }
+
+    #endregion
+
     #region IWithCreationDate Implementation
 
     DateTime IWithCreationDate.CreatedAt => DateTimeCreated.ToUniversalTime();
