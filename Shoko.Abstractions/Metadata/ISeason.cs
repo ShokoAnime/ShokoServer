@@ -6,7 +6,7 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Season Metadata.
 /// </summary>
-public interface ISeason : IWithTitles, IWithDescriptions, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithCastAndCrew, IWithYearlySeasons, IMetadata<string>
+public interface ISeason : IWithTitles, IWithDescriptions, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithBannerImage, IWithDiscImage, IWithCastAndCrew, IWithYearlySeasons, IMetadata<string>
 {
     /// <summary>
     /// The TMDB show ID.
