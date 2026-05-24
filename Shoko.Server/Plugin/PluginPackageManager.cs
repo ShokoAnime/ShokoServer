@@ -755,6 +755,9 @@ public partial class PluginPackageManager(
     /// <inheritdoc/>
     public async Task<PackageRepositoryInfo> SyncPackageRepository(PackageRepositoryInfo repositoryInfo, bool forceSync = false, CancellationToken cancellationToken = default)
     {
+        if (repositoryInfo.ID == _localRepositoryInfo.ID)
+            return repositoryInfo;
+
         var eventArgs = new RepositorySyncStartedEventArgs()
         {
             Repository = repositoryInfo,
@@ -1046,6 +1049,9 @@ public partial class PluginPackageManager(
     {
         foreach (var repositoryInfo in ListPackageRepositories())
         {
+            if (repositoryInfo == _localRepositoryInfo)
+                continue;
+
             try
             {
                 await SyncPackageRepository(repositoryInfo, forceSync, cancellationToken).ConfigureAwait(false);
