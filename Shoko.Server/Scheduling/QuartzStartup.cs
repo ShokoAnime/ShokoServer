@@ -31,7 +31,7 @@ public static class QuartzStartup
     public static async Task ScheduleRecurringJobs(bool replace)
     {
         var settings = ISettingsProvider.Instance.GetSettings();
-        await RemoveUnsupportedRecurringJobs([
+        await RemoveUnsupportedScheduledRecurringJobs([
             JobKeyBuilder<CheckNetworkAvailabilityJob>.Create().WithGroup(JobKeyGroup.System).Build(),
         ]);
 
@@ -105,7 +105,7 @@ public static class QuartzStartup
         }
     }
 
-    private static async Task RemoveUnsupportedRecurringJobs(IReadOnlyCollection<JobKey> supportedJobKeys)
+    private static async Task RemoveUnsupportedScheduledRecurringJobs(IReadOnlyCollection<JobKey> supportedJobKeys)
     {
         var scheduler = await ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler();
 
