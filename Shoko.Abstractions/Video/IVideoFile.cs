@@ -23,6 +23,19 @@ public interface IVideoFile
     int ManagedFolderID { get; }
 
     /// <summary>
+    /// The platform-specific unique identifier for the file.
+    /// </summary>
+    /// <remarks>
+    /// This property holds the unique identifier for the file, which is the
+    /// inode number on Unix-based systems, or the file ID on Windows
+    /// systems. These identifiers are unique within a specific volume, but
+    /// not guaranteed to be unique across different volumes. This property
+    /// is nullable, meaning it can have a value of null if the unique
+    /// identifier cannot be obtained or the file does not exist.
+    /// </remarks>
+    public long? OnDiskUniqueID { get; }
+
+    /// <summary>
     /// True if the file currently exists on disk and is usable by Shoko.
     /// </summary>
     bool IsAvailable { get; }

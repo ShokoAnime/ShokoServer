@@ -317,7 +317,14 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, ISchedu
             .Select(places => RepoFactory.VideoLocal.GetByID(places.Key))
             .WhereNotNull()
             .OrderBy(file => file.DateTimeCreated)
-            .ToListResult(file => new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
-            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)), page, pageSize);
+            .ToListResult(file => new File(
+                HttpContext,
+                file,
+                include.Contains(FileNonDefaultIncludeType.XRefs),
+                include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+                include.Contains(FileNonDefaultIncludeType.MediaInfo),
+                include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
+                include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+            ), page, pageSize);
     }
 }

@@ -441,7 +441,7 @@ public class WebUI
                                 .ToList()
                             : null,
                         Locations = withLocationDetails
-                            ? list.Select(episode => new File.Location(episode.Location, false))
+                            ? list.Select(episode => new File.Location(episode.Location))
                                 .OrderBy(location => location.ManagedFolderID)
                                 .ThenBy(location => location.FileID)
                                 .ThenBy(location => location.RelativePath)

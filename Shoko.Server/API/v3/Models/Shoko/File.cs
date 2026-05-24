@@ -139,11 +139,11 @@ public partial class File
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public MediaInfo? MediaInfo { get; set; }
 
-    public File(HttpContext context, VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false) :
-        this(RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.VideoLocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths)
+    public File(HttpContext context, VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeLocationUID = false) :
+        this(RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.VideoLocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths, includeLocationUID)
     { }
 
-    public File(VideoLocal_User? userRecord, VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false)
+    public File(VideoLocal_User? userRecord, VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeLocationUID = false)
     {
         var mediaInfo = file.MediaInfo as IMediaInfo;
         ID = file.VideoLocalID;
@@ -154,7 +154,7 @@ public partial class File
             ? hashes.Select(h => new HashDigest(h)).ToList()
             : [new() { Type = "ED2K", Value = file.Hash }];
         Resolution = mediaInfo?.VideoStream?.Resolution;
-        Locations = file.Places.Select(location => new Location(location, includeAbsolutePaths)).ToList();
+        Locations = file.Places.Select(location => new Location(location, includeAbsolutePaths, includeLocationUID)).ToList();
         AVDump = new AVDumpInfo(file);
         Duration = file.DurationTimeSpan;
         ResumePosition = userRecord?.ProgressPosition;
@@ -197,6 +197,20 @@ public partial class File
         public int ManagedFolderID { get; set; }
 
         /// <summary>
+        /// The platform-specific unique identifier for the file.
+        /// </summary>
+        /// <remarks>
+        /// This property holds the unique identifier for the file, which is the
+        /// inode number on Unix-based systems, or the file ID on Windows
+        /// systems. These identifiers are unique within a specific volume, but
+        /// not guaranteed to be unique across different volumes. This property
+        /// is nullable, meaning it can have a value of null if the unique
+        /// identifier cannot be obtained or the file does not exist.
+        /// </remarks>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public long? OnDiskUniqueID { get; set; }
+
+        /// <summary>
         /// The relative path from the managed folder's path on the server. The
         /// file name can be easily extracted from this.
         /// </summary>
@@ -216,11 +230,12 @@ public partial class File
         [JsonRequired]
         public bool IsAccessible { get; set; }
 
-        public Location(VideoLocal_Place location, bool includeAbsolutePaths)
+        public Location(VideoLocal_Place location, bool includeAbsolutePaths = false, bool includeLocationUID = false)
         {
             ID = location.ID;
             FileID = location.VideoID;
             ManagedFolderID = location.ManagedFolderID;
+            OnDiskUniqueID = includeLocationUID ? location.OnDiskUniqueID : null;
             RelativePath = location.RelativePath;
             AbsolutePath = includeAbsolutePaths ? location.Path : null;
             IsAccessible = location.IsAvailable;

@@ -37,32 +37,35 @@ public class PlaylistController : BaseController
     /// Generate an on-demand playlist for the specified list of items.
     /// </summary>
     /// <param name="items">The list of item IDs to include in the playlist. If no prefix is provided for an id then it will be assumed to be a series id.</param>
-    /// <param name="includeMediaInfo">Include media info data.</param>
-    /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
-    /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
-    /// <param name="includeReleaseInfo">Include release info data.</param>
+    /// <param name="include">Include items that are not included by default</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("Generate")]
     public ActionResult<IReadOnlyList<PlaylistItem>> GetGeneratedPlaylistJson(
         [FromQuery(Name = "playlist"), ModelBinder(typeof(CommaDelimitedModelBinder))] string[]? items = null,
-        [FromQuery] bool includeMediaInfo = false,
-        [FromQuery] bool includeAbsolutePaths = false,
-        [FromQuery] bool includeXRefs = false,
-        [FromQuery] bool includeReleaseInfo = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null
     )
     {
+        include ??= [];
         if (!_playlistService.TryParsePlaylist(items ?? [], out var playlist, ModelState))
             return ValidationProblem(ModelState);
 
         return playlist
             .Select(tuple => new PlaylistItem(
                 tuple.episodes
-                    .Select(episode => new Episode(HttpContext, (episode as AnimeEpisode)!, includeDataFrom, withXRefs: includeXRefs))
+                    .Select(episode => new Episode(HttpContext, (episode as AnimeEpisode)!, includeDataFrom, withXRefs: include.Contains(FileNonDefaultIncludeType.XRefs)))
                     .ToList(),
                 tuple.videos
-                    .Select(video => new File(HttpContext, (video as VideoLocal)!, withXRefs: includeXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths))
+                    .Select(video => new File(
+                        HttpContext,
+                        (video as VideoLocal)!,
+                        include.Contains(FileNonDefaultIncludeType.XRefs),
+                        include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+                        include.Contains(FileNonDefaultIncludeType.MediaInfo),
+                        include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
+                        include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+                    ))
                     .ToList()
             ))
             .ToList();

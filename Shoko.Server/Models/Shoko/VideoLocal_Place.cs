@@ -4,6 +4,7 @@ using System.IO;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Models.Shoko;
@@ -24,6 +25,19 @@ public class VideoLocal_Place : IVideoFile
 
     /// <inheritdoc/>
     public int ManagedFolderID { get; set; }
+
+    /// <summary>
+    /// The platform-specific unique identifier for the file.
+    /// </summary>
+    /// <remarks>
+    /// This property holds the unique identifier for the file, which is the
+    /// inode number on Unix-based systems, or the file ID on Windows
+    /// systems. These identifiers are unique within a specific volume, but
+    /// not guaranteed to be unique across different volumes. This property
+    /// is nullable, meaning it can have a value of null if the unique
+    /// identifier cannot be obtained or the file does not exist.
+    /// </remarks>
+    public long? OnDiskUniqueID => FileSystemHelpers.GetVideoFileUID(Path);
 
     private string _relativePath = string.Empty;
 

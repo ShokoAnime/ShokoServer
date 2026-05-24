@@ -188,8 +188,15 @@ public class FileController(
             return NotFound(FileNotFoundWithHash);
 
         include ??= [];
-        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
-            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
+        return new File(
+            HttpContext,
+            file,
+            include.Contains(FileNonDefaultIncludeType.XRefs),
+            include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+            include.Contains(FileNonDefaultIncludeType.MediaInfo),
+            include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
+            include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+        );
     }
 
     /// <summary>
@@ -213,8 +220,15 @@ public class FileController(
             return NotFound(FileNotFoundWithHash);
 
         include ??= [];
-        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
-            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
+        return new File(
+            HttpContext,
+            file,
+            include.Contains(FileNonDefaultIncludeType.XRefs),
+            include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+            include.Contains(FileNonDefaultIncludeType.MediaInfo),
+            include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
+            include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+        );
     }
 
     /// <summary>
@@ -238,8 +252,15 @@ public class FileController(
             return NotFound(FileNotFoundWithHash);
 
         include ??= [];
-        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
-            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
+        return new File(
+            HttpContext,
+            file,
+            include.Contains(FileNonDefaultIncludeType.XRefs),
+            include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+            include.Contains(FileNonDefaultIncludeType.MediaInfo),
+            include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
+            include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+        );
     }
 
     /// <summary>
@@ -263,8 +284,15 @@ public class FileController(
             return NotFound(FileNotFoundWithHash);
 
         include ??= [];
-        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
-            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
+        return new File(
+            HttpContext,
+            file,
+            include.Contains(FileNonDefaultIncludeType.XRefs),
+            include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+            include.Contains(FileNonDefaultIncludeType.MediaInfo),
+            include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
+            include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+        );
     }
 
     #endregion
@@ -285,8 +313,15 @@ public class FileController(
             return NotFound(FileNotFoundWithFileID);
 
         include ??= [];
-        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
-            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
+        return new File(
+            HttpContext,
+            file,
+            include.Contains(FileNonDefaultIncludeType.XRefs),
+            include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+            include.Contains(FileNonDefaultIncludeType.MediaInfo),
+            include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
+            include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+        );
     }
 
     /// <summary>
@@ -316,16 +351,17 @@ public class FileController(
     /// </summary>
     /// <param name="fileID">File ID</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
+    /// <param name="includeLocationUID">Include location UID for the file locations.</param>
     /// <returns>A list of file locations associated with the specified file ID.</returns>
     [HttpGet("{fileID}/Location")]
-    public ActionResult<List<File.Location>> GetFileLocations([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool includeAbsolutePaths = false)
+    public ActionResult<List<File.Location>> GetFileLocations([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool includeAbsolutePaths = false, [FromQuery] bool includeLocationUID = false)
     {
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileLocationNotFoundWithLocationID);
 
         return file.Places
-            .Select(location => new File.Location(location, includeAbsolutePaths))
+            .Select(location => new File.Location(location, includeAbsolutePaths, includeLocationUID))
             .ToList();
     }
 
@@ -376,7 +412,7 @@ public class FileController(
         if (RepoFactory.VideoLocalPlace.GetByID(locationID) is not { } fileLocation)
             return NotFound(FileLocationNotFoundWithLocationID);
 
-        return new File.Location(fileLocation, true);
+        return new File.Location(fileLocation, true, true);
     }
 
     /// <summary>
@@ -542,8 +578,15 @@ public class FileController(
         if (file == null)
             return NotFound(AnidbReleaseNotFoundForAnidbFileID);
 
-        return new File(HttpContext, file, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
-            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths));
+        return new File(
+            HttpContext,
+            file,
+            include.Contains(FileNonDefaultIncludeType.XRefs),
+            include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+            include.Contains(FileNonDefaultIncludeType.MediaInfo),
+            include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
+            include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+        );
     }
 
     /// <summary>
@@ -1122,14 +1165,28 @@ public class FileController(
         include ??= [];
         if (limit <= 0)
             return results
-                .Select(a => new File(HttpContext, a, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
-            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)))
+                .Select(file => new File(
+                    HttpContext,
+                    file,
+                    include.Contains(FileNonDefaultIncludeType.XRefs),
+                    include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+                    include.Contains(FileNonDefaultIncludeType.MediaInfo),
+                    include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
+                    include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+                ))
                 .ToList();
 
         return results
             .Take(limit)
-            .Select(a => new File(HttpContext, a, include.Contains(FileNonDefaultIncludeType.XRefs), include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
-            include.Contains(FileNonDefaultIncludeType.MediaInfo), include.Contains(FileNonDefaultIncludeType.AbsolutePaths)))
+            .Select(file => new File(
+                HttpContext,
+                file,
+                include.Contains(FileNonDefaultIncludeType.XRefs),
+                include.Contains(FileNonDefaultIncludeType.ReleaseInfo),
+                include.Contains(FileNonDefaultIncludeType.MediaInfo),
+                include.Contains(FileNonDefaultIncludeType.AbsolutePaths),
+                include.Contains(FileNonDefaultIncludeType.LocationUIDs)
+            ))
             .ToList();
     }
 
