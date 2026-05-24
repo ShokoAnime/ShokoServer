@@ -19,7 +19,11 @@ public interface IWithLogoImage : IWithImages
         get =>
             GetPreferredImageForType(ImageEntityType.Logo) ??
             DefaultLogoImage ??
-            GetImages(imageType: ImageEntityType.Logo, primaryImage: true).FirstOrDefault();
+            (GetImages(imageType: ImageEntityType.Logo, primaryImage: true) is { Count: > 0 } images ? (
+                images.FirstOrDefault(i => i is { IsEnabled: true, IsAvailable: true }) ??
+                images.FirstOrDefault(i => i is { IsEnabled: true }) ??
+                images.FirstOrDefault()
+            ) : null);
     }
 
     /// <summary>
@@ -33,7 +37,11 @@ public interface IWithLogoImage : IWithImages
         get =>
             GetPreferredImageCrossReferenceForType(ImageEntityType.Logo) ??
             DefaultLogoImageCrossReference ??
-            GetImageCrossReferences(imageType: ImageEntityType.Logo, primaryImage: true).FirstOrDefault();
+            (GetImageCrossReferences(imageType: ImageEntityType.Logo) is { Count: > 0 } xrefs ? (
+                xrefs.FirstOrDefault(xref => xref.GetPrimaryImage() is { IsEnabled: true, IsAvailable: true }) ??
+                xrefs.FirstOrDefault(xref => xref is { IsEnabled: true }) ??
+                xrefs.FirstOrDefault()
+            ) : null);
     }
 
     /// <summary>

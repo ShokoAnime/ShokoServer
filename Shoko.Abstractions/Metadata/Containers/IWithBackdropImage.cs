@@ -19,7 +19,11 @@ public interface IWithBackdropImage : IWithImages
         get =>
             GetPreferredImageForType(ImageEntityType.Backdrop) ??
             DefaultBackdropImage ??
-            GetImages(imageType: ImageEntityType.Backdrop, primaryImage: true).FirstOrDefault();
+            (GetImages(imageType: ImageEntityType.Backdrop, primaryImage: true) is { Count: > 0 } images ? (
+                images.FirstOrDefault(i => i is { IsEnabled: true, IsAvailable: true }) ??
+                images.FirstOrDefault(i => i is { IsEnabled: true }) ??
+                images.FirstOrDefault()
+            ) : null);
     }
 
     /// <summary>
@@ -33,7 +37,11 @@ public interface IWithBackdropImage : IWithImages
         get =>
             GetPreferredImageCrossReferenceForType(ImageEntityType.Backdrop) ??
             DefaultBackdropImageCrossReference ??
-            GetImageCrossReferences(imageType: ImageEntityType.Backdrop, primaryImage: true).FirstOrDefault();
+            (GetImageCrossReferences(imageType: ImageEntityType.Backdrop) is { Count: > 0 } xrefs ? (
+                xrefs.FirstOrDefault(xref => xref.GetPrimaryImage() is { IsEnabled: true, IsAvailable: true }) ??
+                xrefs.FirstOrDefault(xref => xref is { IsEnabled: true }) ??
+                xrefs.FirstOrDefault()
+            ) : null);
     }
 
     /// <summary>
