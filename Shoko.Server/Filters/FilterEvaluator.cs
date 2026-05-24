@@ -28,6 +28,9 @@ public class FilterEvaluator(ILogger<FilterEvaluator> _logger, AnimeGroupReposit
             ArgumentNullException.ThrowIfNull(user);
         if (needsUser && user is not JMMUser)
             throw new ArgumentException("Input user must be of type JMMUser.", nameof(user));
+        if (filter.IsDirectory)
+            return [];
+
         var now = time?.ToLocalTime() ?? DateTime.Now;
         var shokoUser = user as JMMUser;
         var filterable = filter.ApplyAtSeriesLevel switch

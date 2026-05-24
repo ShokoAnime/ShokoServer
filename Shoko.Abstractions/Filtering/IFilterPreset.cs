@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 
 namespace Shoko.Abstractions.Filtering;
 
@@ -14,19 +13,19 @@ public interface IFilterPreset
     bool ApplyAtSeriesLevel { get; }
 
     /// <summary>
-    /// ///  Indicates that this is a directory filter.
+    ///   Indicates that this is a directory filter, and therefore will always
+    ///   return empty results.
     /// </summary>
-    [MemberNotNullWhen(false, nameof(Expression), nameof(SortingExpression))]
     bool IsDirectory { get; }
 
     /// <summary>
-    /// The expression to evaluate. Omitting will disable filtering and return
-    /// all results.
+    ///   The expression to evaluate. Omitting will disable filtering and return
+    ///   all results.
     /// </summary>
     IFilterExpression<bool>? Expression { get; }
 
     /// <summary>
-    /// The sorting expression to evaluate. Leave blank for default sorting.
+    ///   The sorting expression to evaluate. Leave blank for default sorting.
     /// </summary>
     ISortingExpression? SortingExpression { get; }
 }
