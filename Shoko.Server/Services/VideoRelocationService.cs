@@ -928,6 +928,18 @@ public class VideoRelocationService(
         // Check if we're attempting to move the file onto itself.
         if (string.Equals(newFullPath, oldFullPath, StringComparison.OrdinalIgnoreCase))
         {
+            if (!string.Equals(newFullPath, oldFullPath, StringComparison.Ordinal))
+            {
+                logger.LogWarning(
+                    "Resolved to relocate {OldFilePath} to {NewFilePath}. Which is the same location in a case-insensitive file system. Aborting.",
+                    oldFullPath,
+                    newFullPath
+                );
+                return (RelocationResponse.FromError(
+                    "Resolved to relocate onto the same location in a case-insensitive file system."
+                ), false);
+            }
+
             logger.LogTrace("Resolved to relocate {FilePath} onto itself. Nothing to do.", newFullPath);
             return (RelocationResponse.FromResult(request.ManagedFolder, newRelativePath), false);
         }
