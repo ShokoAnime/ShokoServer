@@ -12,7 +12,7 @@ public class WatchedDateSelector : FilterExpression<DateTime?>
     public override DateTime? Evaluate(IFilterableInfo filterable, IFilterableUserInfo userInfo, DateTime? time)
     {
         ArgumentNullException.ThrowIfNull(userInfo);
-        return userInfo.WatchedDate;
+        return userInfo.WatchedDate ?? DateTime.MaxValue;
     }
 
     protected bool Equals(WatchedDateSelector other)
