@@ -6,6 +6,7 @@ using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Server.API.v1.Services;
@@ -101,42 +102,22 @@ public class Episode : BaseDirectory
             ep.epnumber = cae.EpisodeNumber;
         }
 
+        if (pic > 0 && (aep as IWithBackdropImage).BackdropImage is { IsEnabled: true, IsAvailable: true } backdropImage)
+        {
+            ep.art.thumb.Add(new Art
+            {
+                index = 0,
+                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdropImage),
+            });
+            ep.art.fanart.Add(new Art
+            {
+                index = 0,
+                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdropImage),
+            });
+        }
         if (aep.TmdbEpisodes is { Count: > 0 } tmdbEpisodes)
         {
-            IImage thumbnail = null;
             var tmdbEpisode = tmdbEpisodes[0];
-            if (pic > 0 && tmdbEpisode.GetImages(imageType: ImageEntityType.Backdrop) is { Count: > 0 } thumbnailImages)
-            {
-                thumbnail = thumbnailImages
-                    .Where(image => image.Type is ImageEntityType.Backdrop && image.IsAvailable)
-                    .OrderByDescending(image => image.IsPreferred)
-                    .FirstOrDefault();
-                if (thumbnail is not null)
-                {
-                    ep.art.thumb.Add(new Art
-                    {
-                        index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, thumbnail),
-                    });
-                }
-            }
-            if (pic > 0 && tmdbEpisode.GetImages(imageType: ImageEntityType.Backdrop) is { Count: > 0 } backdropImages)
-            {
-                var backdrop = backdropImages
-                    .Where(image => image.Type == ImageEntityType.Backdrop && image.IsAvailable)
-                    .OrderByDescending(image => image.IsPreferred)
-                    .FirstOrDefault();
-                backdrop ??= thumbnail;
-                if (backdrop is not null)
-                {
-                    ep.art.fanart.Add(new Art
-                    {
-                        index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop),
-                    });
-                }
-            }
-
             if (!string.IsNullOrEmpty(tmdbEpisode.EnglishTitle))
             {
                 ep.name = tmdbEpisode.EnglishTitle;
