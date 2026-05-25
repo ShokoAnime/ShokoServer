@@ -39,9 +39,7 @@ public class TreeController(ISettingsProvider settingsProvider) : BaseController
     public ActionResult<List<Group>> GetSubGroups([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool randomImages = false,
         [FromQuery] bool includeEmpty = true)
     {
-        // Check if the group exists.
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
-        if (group == null)
+        if (RepoFactory.AnimeGroup.GetByID(groupID) is not { } group)
             return NotFound(GroupController.GroupNotFound);
 
         var user = User;
@@ -49,19 +47,9 @@ public class TreeController(ISettingsProvider settingsProvider) : BaseController
             return Forbid(GroupController.GroupForbiddenForUser);
 
         return group.Children
-            .Where(subGroup =>
-            {
-                if (subGroup == null)
-                    return false;
-
-                if (!user.AllowedGroup(subGroup))
-                    return false;
-
-                return includeEmpty || subGroup.AllSeries
-                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
-            })
+            .Where(a => user.AllowedGroup(a) && (includeEmpty || !a.AllSeries.Any(s => s.VideoLocals.Count > 0)))
             .OrderBy(g => g.SortName)
-            .Select(g => new Group(g, User.JMMUserID, randomImages))
+            .Select(g => new Group(g, user.JMMUserID, randomImages))
             .ToList();
     }
 
@@ -83,12 +71,13 @@ public class TreeController(ISettingsProvider settingsProvider) : BaseController
         [FromQuery] bool includeMissing = true, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
-        // Check if the group exists.
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
-        if (group == null)
+        if (RepoFactory.AnimeGroup.GetByID(groupID) is not { } group)
             return NotFound(GroupController.GroupNotFound);
 
         var user = User;
+        if (!user.AllowedGroup(group))
+            return Forbid(GroupController.GroupForbiddenForUser);
+
         return (recursive ? group.AllSeries : group.Series)
             .Where(a => user.AllowedSeries(a) && (includeMissing || a.VideoLocals.Count > 0))
             .OrderBy(a => a?.AirDate ?? PartialDateOnly.MaxValue)
@@ -112,9 +101,7 @@ public class TreeController(ISettingsProvider settingsProvider) : BaseController
     public ActionResult<Series> GetMainSeriesInGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
-        // Check if the group exists.
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
-        if (group == null)
+        if (RepoFactory.AnimeGroup.GetByID(groupID) is not { } group)
             return NotFound(GroupController.GroupNotFound);
 
         var user = User;
@@ -153,11 +140,10 @@ public class TreeController(ISettingsProvider settingsProvider) : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null
     )
     {
-        var user = User;
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
-        if (series == null)
+        if (RepoFactory.AnimeSeries.GetByID(seriesID) is not { } series)
             return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
 
+        var user = User;
         if (!user.AllowedSeries(series))
             return Forbid(SeriesController.SeriesForbiddenForUser);
 
@@ -189,18 +175,17 @@ public class TreeController(ISettingsProvider settingsProvider) : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null
     )
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
-        if (episode == null)
+        if (RepoFactory.AnimeEpisode.GetByID(episodeID) is not { } episode)
             return NotFound(EpisodeController.EpisodeNotFoundWithEpisodeID);
 
-        var series = episode.AnimeSeries;
-        if (series == null)
+        if (episode.AnimeSeries is not { } series)
             return InternalError("No Series entry for given Episode");
 
-        if (!User.AllowedSeries(series))
+        var user = User;
+        if (!user.AllowedSeries(series))
             return Forbid(EpisodeController.EpisodeForbiddenForUser);
 
-        return ModelHelper.FilterFiles(episode.VideoLocals, User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder);
+        return ModelHelper.FilterFiles(episode.VideoLocals, user, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder);
     }
 
     #endregion
