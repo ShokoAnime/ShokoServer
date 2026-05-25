@@ -41,7 +41,9 @@ else
     useradd  -N -o -u "$PUID" -g "$PGID" -d /home/shoko $USER
 
     mkdir -p /home/shoko/
-    chown $USER:$GROUP /home/shoko
+    if [ "${NO_CHOWN:-}" != "true" ]; then
+        chown $USER:$GROUP /home/shoko
+    fi
 fi
 
 # Make sure SHOKO_HOME directory is correctly set.
@@ -65,7 +67,7 @@ fi
 
 # Set ownership of application data to shoko user.
 OWNER=$(stat -c '%u:%g' "$SHOKO_HOME" 2>/dev/null)
-if [ "$OWNER" != "$PUID:$PGID" ]; then
+if [ "$OWNER" != "$PUID:$PGID" ] && [ "${NO_CHOWN:-}" != "true" ]; then
     echo "Changing ownership of /home/shoko and all it's sub-directories…"
     chown -R $PUID:$PGID /home/shoko/
 fi
