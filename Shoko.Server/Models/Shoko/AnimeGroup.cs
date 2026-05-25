@@ -136,17 +136,13 @@ public class AnimeGroup : IShokoGroup
     {
         get
         {
-            var stack = new Stack<AnimeGroup>();
-            foreach (var child in Children)
-            {
-                stack.Push(child);
-            }
-
+            var stack = new Stack<AnimeGroup>(Children);
             while (stack.Count > 0)
             {
                 var current = stack.Pop();
                 yield return current;
-                foreach (var childGroup in current.Children) stack.Push(childGroup);
+                foreach (var childGroup in current.Children)
+                    stack.Push(childGroup);
             }
         }
     }
@@ -155,93 +151,44 @@ public class AnimeGroup : IShokoGroup
     {
         get
         {
-            if (DefaultAnimeSeriesID.HasValue)
+            var seriesList = AllSeries;
+            if (DefaultAnimeSeriesID.HasValue || MainAniDBAnimeID.HasValue)
             {
-                var series = RepoFactory.AnimeSeries.GetByID(DefaultAnimeSeriesID.Value);
-                if (series != null)
-                    return series;
+                AnimeSeries? mainSeries = null;
+                if (DefaultAnimeSeriesID.HasValue)
+                    mainSeries = seriesList.FirstOrDefault(ser => ser.AnimeSeriesID == DefaultAnimeSeriesID.Value);
+                if (mainSeries is null && MainAniDBAnimeID.HasValue)
+                    mainSeries = seriesList.FirstOrDefault(ser => ser.AniDB_ID == MainAniDBAnimeID.Value);
+                if (mainSeries is not null)
+                    return mainSeries;
             }
-
-            // Auto selected main series.
-            if (MainAniDBAnimeID.HasValue)
-            {
-                var series = RepoFactory.AnimeSeries.GetByAnimeID(MainAniDBAnimeID.Value);
-                if (series != null)
-                    return series;
-            }
-
-            return null;
+            return seriesList
+                .FirstOrDefault();
         }
     }
 
-    public List<AnimeSeries> Series
-    {
-        get
-        {
-            var seriesList = RepoFactory.AnimeSeries
-                .GetByGroupID(AnimeGroupID)
-                .OrderByDescending(a => a.AirDate.HasValue)
-                .ThenByDescending(a => a.AirDate?.IsComplete ?? false)
-                .ThenBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
-                .ToList();
-
-            // Make sure the default/main series is the first, if it's directly
-            // within the group.
-            if (!DefaultAnimeSeriesID.HasValue && !MainAniDBAnimeID.HasValue) return seriesList;
-
-            var mainSeries = MainSeries;
-            if (mainSeries != null && seriesList.Remove(mainSeries)) seriesList.Insert(0, mainSeries);
-
-            return seriesList;
-        }
-    }
+    public List<AnimeSeries> Series => RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID)
+        .OrderBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
+        .ToList();
 
     public List<AnimeSeries> AllSeries
     {
         get
         {
             var seriesList = new List<AnimeSeries>();
-            var stack = new Stack<AnimeGroup>();
-            stack.Push(this);
-
+            var stack = new Stack<AnimeGroup>([this]);
             while (stack.Count > 0)
             {
                 var current = stack.Pop();
-
-                // get the series for this group
-                var thisSeries = current.Series;
-                seriesList.AddRange(thisSeries);
-
+                seriesList.AddRange(current.Series);
                 foreach (var childGroup in current.Children)
-                {
                     stack.Push(childGroup);
-                }
             }
-
-            seriesList = seriesList
-                .OrderByDescending(a => a.AirDate.HasValue)
-                .ThenByDescending(a => a.AirDate?.IsComplete ?? false)
-                .ThenBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
+            return seriesList
+                .OrderBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
                 .ToList();
-
-            // Make sure the default/main series is the first if it's somewhere
-            // within the group.
-            if (DefaultAnimeSeriesID.HasValue || MainAniDBAnimeID.HasValue)
-            {
-                AnimeSeries? mainSeries = null;
-                if (DefaultAnimeSeriesID.HasValue)
-                    mainSeries = seriesList.FirstOrDefault(ser => ser.AnimeSeriesID == DefaultAnimeSeriesID.Value);
-
-                if (mainSeries == null && MainAniDBAnimeID.HasValue)
-                    mainSeries = seriesList.FirstOrDefault(ser => ser.AniDB_ID == MainAniDBAnimeID.Value);
-
-                if (mainSeries != null && seriesList.Remove(mainSeries)) seriesList.Insert(0, mainSeries);
-            }
-
-            return seriesList;
         }
     }
-
 
     public List<AniDB_Tag> Tags => AllSeries
         .SelectMany(ser => ser.AniDB_Anime?.AnimeTags ?? [])
@@ -755,7 +702,7 @@ public class AnimeGroup : IShokoGroup
 
     IReadOnlyList<IShokoGroup> IShokoGroup.AllGroups => AllChildren.ToList();
 
-    IShokoSeries IShokoGroup.MainSeries => MainSeries ?? AllSeries.FirstOrDefault() ??
+    IShokoSeries IShokoGroup.MainSeries => MainSeries ??
         throw new NullReferenceException($"Unable to get main series for group {AnimeGroupID} when accessed through IShokoGroup.MainSeries");
 
     IReadOnlyList<IShokoSeries> IShokoGroup.Series => Series;

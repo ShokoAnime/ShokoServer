@@ -105,7 +105,7 @@ public class AnimeGroupService
             if (grp.IsManuallyNamed == 1 && grp.OverrideDescription == 1)
                 continue;
 
-            var series = grp.MainSeries ?? grp.AllSeries.FirstOrDefault();
+            var series = grp.MainSeries;
             if (series != null)
             {
                 // Reset the name/description as needed.
@@ -160,7 +160,7 @@ public class AnimeGroupService
         var seriesList = group.AllSeries;
 
         // Reset the name/description for the group if needed.
-        var mainSeries = group.IsManuallyNamed == 0 || group.OverrideDescription == 0 ? group.MainSeries ?? seriesList.FirstOrDefault() : null;
+        var mainSeries = group.IsManuallyNamed == 0 || group.OverrideDescription == 0 ? group.MainSeries : null;
         if (mainSeries is not null)
         {
             if (group.IsManuallyNamed == 0)

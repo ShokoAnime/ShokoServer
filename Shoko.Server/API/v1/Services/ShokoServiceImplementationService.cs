@@ -380,7 +380,7 @@ public class ShokoServiceImplementationService(
     {
         if (group == null) return null;
         var groupSeries = group.AllSeries;
-        var mainSeries = group.MainSeries ?? groupSeries.FirstOrDefault();
+        var mainSeries = group.MainSeries;
         var userDict = groupSeries
             .Select(a => _seriesUsers.GetByUserAndSeriesID(userid, a.AnimeSeriesID))
             .WhereNotNull()

@@ -131,9 +131,7 @@ public partial class ShokoServiceImplementation
                 return null;
             }
 
-            var allSeries = group.AllSeries.OrderBy(a => a.AirDate).ToList();
-
-
+            var allSeries = group.AllSeries;
             foreach (var ser in allSeries)
             {
                 var contract = GetNextUnwatchedEpisode(ser.AnimeSeriesID, userID);
@@ -1590,7 +1588,7 @@ public partial class ShokoServiceImplementation
                 }
             }
 
-            var mainSeries = group.MainSeries ?? group.AllSeries.FirstOrDefault();
+            var mainSeries = group.MainSeries;
             var customName = !string.IsNullOrEmpty(contract.GroupName) && (group.IsManuallyNamed == 1 || !string.Equals(group.GroupName, contract.GroupName));
             var customDesc = !string.IsNullOrEmpty(contract.Description) && (group.OverrideDescription == 1 || !string.Equals(group.Description, contract.Description));
             if (customName || mainSeries is null)

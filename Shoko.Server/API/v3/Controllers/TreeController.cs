@@ -121,8 +121,7 @@ public class TreeController(ISettingsProvider settingsProvider) : BaseController
         if (!user.AllowedGroup(group))
             return Forbid(GroupController.GroupForbiddenForUser);
 
-        var mainSeries = group.MainSeries ?? group.AllSeries.FirstOrDefault();
-        if (mainSeries == null)
+        if (group.MainSeries is not { } mainSeries)
             return InternalError("Unable to find main series for group.");
 
         return new Series(mainSeries, user.JMMUserID, randomImages, includeDataFrom);

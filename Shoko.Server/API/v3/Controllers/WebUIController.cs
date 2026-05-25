@@ -284,7 +284,7 @@ public partial class WebUIController(
                     return null;
                 }
 
-                var series = group.MainSeries ?? group.AllSeries.FirstOrDefault();
+                var series = group.MainSeries;
                 var anime = series?.AniDB_Anime;
                 if (anime is null)
                 {

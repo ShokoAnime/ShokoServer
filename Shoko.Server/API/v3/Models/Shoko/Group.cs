@@ -372,7 +372,7 @@ public class Group : BaseModel
                 else
                 {
                     group.IsManuallyNamed = 0;
-                    group.GroupName = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.Title ?? group.GroupName;
+                    group.GroupName = (preferredSeries ?? group.MainSeries)?.Title ?? group.GroupName;
                 }
 
                 // Same as above, but for the description.
@@ -392,7 +392,7 @@ public class Group : BaseModel
                 else
                 {
                     group.OverrideDescription = 0;
-                    group.Description = (preferredSeries ?? group.MainSeries ?? group.AllSeries.FirstOrDefault())?.PreferredOverview?.Value ?? group.Description;
+                    group.Description = (preferredSeries ?? group.MainSeries)?.PreferredOverview?.Value ?? group.Description;
                 }
 
                 // Update stats for all groups in the chain
