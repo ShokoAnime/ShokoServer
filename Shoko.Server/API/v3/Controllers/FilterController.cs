@@ -425,7 +425,10 @@ public class FilterController(
     {
         // Return sub-groups with no group filter applied.
         if (filterID is 0)
+        {
+            treeController.ControllerContext = ControllerContext;
             return treeController.GetSubGroups(groupID, randomImages, includeEmpty);
+        }
 
         if (RepoFactory.FilterPreset.GetByID(filterID) is not { } filterPreset)
             return NotFound(FilterNotFound);
@@ -513,14 +516,20 @@ public class FilterController(
     {
         // Return the groups with no group filter applied.
         if (filterID is 0)
+        {
+            treeController.ControllerContext = ControllerContext;
             return treeController.GetSeriesInGroup(groupID, recursive, includeMissing, randomImages, includeDataFrom);
+        }
 
         // Check if the group filter exists.
         if (RepoFactory.FilterPreset.GetByID(filterID) is not { } filterPreset)
-            return NotFound(FilterController.FilterNotFound);
+            return NotFound(FilterNotFound);
 
         if (!filterPreset.ApplyAtSeriesLevel)
+        {
+            treeController.ControllerContext = ControllerContext;
             return treeController.GetSeriesInGroup(groupID, recursive, includeMissing, randomImages);
+        }
 
         // Check if the group exists.
         if (RepoFactory.AnimeGroup.GetByID(groupID) is not { } group)
