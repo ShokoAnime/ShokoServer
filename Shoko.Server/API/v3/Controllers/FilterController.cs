@@ -477,7 +477,7 @@ public class FilterController(
             return groupIDs
                 .Select(RepoFactory.AnimeGroup.GetByID)
                 .Where(a => user.AllowedGroup(a) && (includeEmpty || !a.AllSeries.Any(s => s.VideoLocals.Count > 0)))
-                .OrderBy(g => g.GroupName)
+                .OrderBy(g => g.SortName)
                 .Select(g => new Group(g, User.JMMUserID, randomImages))
                 .ToList();
 

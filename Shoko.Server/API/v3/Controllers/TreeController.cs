@@ -60,7 +60,7 @@ public class TreeController(ISettingsProvider settingsProvider) : BaseController
                 return includeEmpty || subGroup.AllSeries
                     .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             })
-            .OrderBy(g => g.GroupName)
+            .OrderBy(g => g.SortName)
             .Select(g => new Group(g, User.JMMUserID, randomImages))
             .ToList();
     }
