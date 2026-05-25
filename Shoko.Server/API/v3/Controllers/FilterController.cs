@@ -283,6 +283,16 @@ public class FilterController(
         if (results.Count is 0)
             return new ListResult<Group>();
 
+        var seriesIDs = results.SelectMany(a => a).ToHashSet();
+        var groupIDChains = results
+            .Select(a =>
+                RepoFactory.AnimeGroup.GetByID(a.Key)!.AllGroupsAbove
+                    .Select(b => b.AnimeGroupID)
+                    .Append(a.Key)
+                    .ToArray()
+            )
+            .ToArray();
+
         // Sort the results because they're unordered.
         if (filterPreset.SortingExpression is null)
             return results
@@ -291,7 +301,7 @@ public class FilterController(
                 .DistinctBy(group => group.AnimeGroupID)
                 .Where(group => includeEmpty || group.AllSeries.Any(s => s.VideoLocals.Count > 0))
                 .OrderBy(group => group.SortName)
-                .ToListResult(group => new Group(group, User.JMMUserID, randomImages), page, pageSize);
+                .ToListResult(group => new Group(group, User.JMMUserID, randomImages, groupIDChains, seriesIDs), page, pageSize);
 
         // The results are pre-sorted, so just return them as-is.
         return results
@@ -299,7 +309,7 @@ public class FilterController(
             .WhereNotNull()
             .DistinctBy(group => group.AnimeGroupID)
             .Where(group => includeEmpty || group.AllSeries.Any(s => s.VideoLocals.Count > 0))
-            .ToListResult(group => new Group(group, User.JMMUserID, randomImages), page, pageSize);
+            .ToListResult(group => new Group(group, User.JMMUserID, randomImages, groupIDChains, seriesIDs), page, pageSize);
     }
 
     /// <summary>
@@ -461,7 +471,7 @@ public class FilterController(
             return [];
 
         var groupIDs = group.Children.Select(a => a.AnimeGroupID).ToHashSet();
-        var orderedGroupIDs = results
+        var groupIDChains = results
             .Select(a =>
                 RepoFactory.AnimeGroup.GetByID(a.Key)!.AllGroupsAbove
                     .Select(b => b.AnimeGroupID)
@@ -469,9 +479,15 @@ public class FilterController(
                     .ToArray()
             )
             .Where(groupIDs.Overlaps)
+            .ToArray();
+        var orderedGroupIDs = groupIDChains
             .SelectMany(a => a)
             .ToArray();
         groupIDs.IntersectWith(orderedGroupIDs);
+        var seriesIDs = results
+            .IntersectBy(groupIDs, a => a.Key)
+            .SelectMany(a => a)
+            .ToHashSet();
         if (groupIDs.Count is 0)
             return [];
 
@@ -481,7 +497,7 @@ public class FilterController(
                 .Select(RepoFactory.AnimeGroup.GetByID)
                 .Where(a => user.AllowedGroup(a) && (includeEmpty || !a.AllSeries.Any(s => s.VideoLocals.Count > 0)))
                 .OrderBy(g => g.SortName)
-                .Select(g => new Group(g, User.JMMUserID, randomImages))
+                .Select(g => new Group(g, User.JMMUserID, randomImages, groupIDChains, seriesIDs))
                 .ToList();
 
         // The results are pre-sorted, so just return them as-is.
@@ -489,7 +505,7 @@ public class FilterController(
             .OrderBy(a => Array.IndexOf(orderedGroupIDs, a))
             .Select(RepoFactory.AnimeGroup.GetByID)
             .Where(a => user.AllowedGroup(a) && (includeEmpty || !a.AllSeries.Any(s => s.VideoLocals.Count > 0)))
-            .Select(g => new Group(g, user.JMMUserID, randomImages))
+            .Select(g => new Group(g, User.JMMUserID, randomImages, groupIDChains, seriesIDs))
             .ToList();
     }
 

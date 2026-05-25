@@ -90,11 +90,11 @@ public class Group : BaseModel
 
     #region Constructors
 
-    public Group(AnimeGroup group, int userID = 0, bool randomizeImages = false)
+    public Group(AnimeGroup group, int userID = 0, bool randomizeImages = false, IReadOnlyList<IReadOnlyList<int>>? groupIDChains = null, HashSet<int>? seriesIDs = null)
     {
-        var subGroupCount = group.Children.Count;
-        var allSeries = group.AllSeries;
-        var mainSeries = allSeries.FirstOrDefault();
+        var subGroupCount = groupIDChains is null ? group.Children.Count : group.Children.Count(a => groupIDChains.Any(b => b.Contains(a.AnimeGroupID)));
+        var allSeries = seriesIDs is null ? group.AllSeries : group.AllSeries.Where(a => seriesIDs.Contains(a.AnimeSeriesID)).ToList();
+        var mainSeries = group.MainSeries;
         var episodes = allSeries.SelectMany(a => a.AllAnimeEpisodes).ToList();
         IDs = new GroupIDs { ID = group.AnimeGroupID };
         if (group.DefaultAnimeSeriesID != null)
