@@ -255,8 +255,10 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
             tmdbShow.PreferredAlternateOrderingID is not { Length: > 0 } ||
             tmdbShow.PreferredAlternateOrderingID == TmdbShowID.ToString()
         )
-            ? this
-            : RepoFactory.TMDB_AlternateOrdering_Episode.GetByEpisodeGroupCollectionAndEpisodeIDs(tmdbShow.PreferredAlternateOrderingID, TmdbEpisodeID);
+            ? GetTmdbEpisode() as TMDB_Episode
+            : TmdbShow is { } tmdbShow0 && string.Equals(tmdbShow0.PreferredAlternateOrderingID, TmdbEpisodeGroupCollectionID)
+                ? this
+                : RepoFactory.TMDB_AlternateOrdering_Episode.GetByEpisodeGroupCollectionAndEpisodeIDs(tmdbShow.PreferredAlternateOrderingID, TmdbEpisodeID);
 
     IReadOnlyList<ITmdbEpisodeOrderingInformation> ITmdbEpisode.AllOrderings => [this, .. RepoFactory.TMDB_AlternateOrdering_Episode.GetByTmdbEpisodeID(TmdbEpisodeID)];
 
