@@ -112,6 +112,16 @@ public class Filter : Filters
 
     private static bool SeriesHasArt(AnimeSeries series)
     {
-        return series.GetImages(imageType: ImageEntityType.Backdrop).Count is > 0;
+        // Use direct indexed xref lookups instead of the full GetImagesForEntity pipeline,
+        // since this is called for every series in the filter to pre-filter candidates.
+        if (RepoFactory.ShokoImage_Entity.GetByEntityForType(DataSource.Shoko, DataEntityType.Anime, series.AnimeSeriesID.ToString(), ImageEntityType.Backdrop).Count > 0)
+            return true;
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID))
+            if (RepoFactory.ShokoImage_Entity.GetByEntityForType(DataSource.TMDB, DataEntityType.Show, xref.TmdbShowID.ToString(), ImageEntityType.Backdrop).Count > 0)
+                return true;
+        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID))
+            if (RepoFactory.ShokoImage_Entity.GetByEntityForType(DataSource.TMDB, DataEntityType.Movie, xref.TmdbMovieID.ToString(), ImageEntityType.Backdrop).Count > 0)
+                return true;
+        return false;
     }
 }

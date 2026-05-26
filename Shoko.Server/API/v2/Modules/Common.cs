@@ -945,10 +945,11 @@ public class Common : BaseController
         var list = new List<RawFile.RecentFile>();
         foreach (var file in RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, User.JMMUserID))
         {
+            var firstEp = file.AnimeEpisodes.FirstOrDefault();
             list.Add(new RawFile.RecentFile(HttpContext, file, level, User.JMMUserID)
             {
-                ep_id = file.AnimeEpisodes.FirstOrDefault()?.AnimeEpisodeID ?? 0,
-                series_id = file.AnimeEpisodes.FirstOrDefault()?.AnimeSeries?.AnimeSeriesID ?? 0
+                ep_id = firstEp?.AnimeEpisodeID ?? 0,
+                series_id = firstEp?.AnimeSeries?.AnimeSeriesID ?? 0
             });
         }
 
@@ -1965,27 +1966,24 @@ public class Common : BaseController
     internal List<Serie> GetSeriesByFolder(int id, int uid, bool nocast, bool notag, int level, bool all, int limit,
         bool allpic, int pic, TagFilter.Filter tagfilter)
     {
-        var allseries = new List<Serie>();
-        var vlpall = RepoFactory.VideoLocalPlace.GetByManagedFolderID(id)
-            .Select(a => a.VideoLocal)
-            .ToList();
-
         if (limit == 0)
         {
             // hardcoded limit
             limit = 100;
         }
 
-        foreach (var vl in vlpall)
-        {
-            var ser = Serie.GenerateFromVideoLocal(HttpContext, vl, uid, nocast, notag, level, all, allpic, pic,
-                tagfilter);
-            allseries.Add(ser);
-            if (allseries.Count >= limit)
-            {
-                break;
-            }
-        }
+        // Deduplicate by series: multiple files in the same folder often belong to the same series,
+        // so resolve unique AnimeSeries first and generate one Serie per series.
+        var allseries = RepoFactory.VideoLocalPlace.GetByManagedFolderID(id)
+            .Select(a => a.VideoLocal)
+            .WhereNotNull()
+            .SelectMany(vl => vl.AnimeEpisodes)
+            .Select(ep => ep.AnimeSeries)
+            .WhereNotNull()
+            .DistinctBy(ser => ser.AnimeSeriesID)
+            .Take(limit)
+            .Select(ser => Serie.GenerateFromAnimeSeries(HttpContext, ser, uid, nocast, notag, level, all, allpic, pic, tagfilter))
+            .ToList();
 
         return allseries;
     }
@@ -2811,7 +2809,7 @@ public class Common : BaseController
 
         var group_list = new List<Group>();
         var groups = new List<AnimeGroup>();
-        var allGroups = RepoFactory.AnimeGroup.GetAll().Where(a => !RepoFactory.AnimeSeries.GetByGroupID(a.AnimeGroupID).Any(user.AllowedSeries));
+        var allGroups = RepoFactory.AnimeGroup.GetAll().Where(a => RepoFactory.AnimeSeries.GetByGroupID(a.AnimeGroupID).Any(user.AllowedSeries));
 
         #region Search_TitlesOnly
 

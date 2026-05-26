@@ -6,7 +6,6 @@ using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
-using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Server.API.v1.Services;
@@ -102,18 +101,24 @@ public class Episode : BaseDirectory
             ep.epnumber = cae.EpisodeNumber;
         }
 
-        if (pic > 0 && (aep as IWithBackdropImage).BackdropImage is { IsEnabled: true, IsAvailable: true } backdropImage)
+        if (pic > 0)
         {
-            ep.art.thumb.Add(new Art
+            var backdrops = aep.GetImages(imageType: ImageEntityType.Backdrop);
+            var backdropImage = backdrops.FirstOrDefault(x => x.IsPreferred)
+                ?? backdrops.FirstOrDefault(x => x is { IsEnabled: true, IsAvailable: true });
+            if (backdropImage is not null)
             {
-                index = 0,
-                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdropImage),
-            });
-            ep.art.fanart.Add(new Art
-            {
-                index = 0,
-                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdropImage),
-            });
+                ep.art.thumb.Add(new Art
+                {
+                    index = 0,
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdropImage),
+                });
+                ep.art.fanart.Add(new Art
+                {
+                    index = 0,
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdropImage),
+                });
+            }
         }
         if (aep.TmdbEpisodes is { Count: > 0 } tmdbEpisodes)
         {

@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Shoko.Server.API.v0.Controllers;
+using Shoko.Server.API.v1.Implementations;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API;
@@ -24,6 +25,11 @@ public class ApiVersionControllerFeatureProvider(WebSettings webSettings) : Cont
 
         // Only filter controllers from the core assembly.
         if (typeInfo.Assembly != _serverAssembly)
+            return true;
+
+        // Stream endpoint is used by legacy clients (e.g. Shokodi) and must remain
+        // available regardless of whether the rest of APIv1 is enabled.
+        if (typeInfo == typeof(ShokoServiceImplementationStream))
             return true;
 
         var ns = typeInfo.Namespace;

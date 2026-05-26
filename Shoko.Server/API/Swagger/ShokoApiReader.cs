@@ -15,7 +15,7 @@ public class ShokoApiReader(bool enableV1, bool enableV2) : IApiVersionReader
         "/api/file", "/api/queue", "/api/myid", "/api/news", "/api/search", "/api/remove_missing_files",
         "/api/stats_update", "/api/medainfo_update", "/api/hash", "/api/rescan", "/api/rescanunlinked",
         "/api/folder", "/api/rescanmanuallinks", "/api/rehash", "/api/config", "/api/rehashunlinked",
-        "/api/rehashmanuallinks", "/api/ep", "/api/trakt"
+        "/api/rehashmanuallinks", "/api/ep", "/api/ping", "/api/avdumpmismatchedfiles"
     ];
     public void AddParameters(IApiVersionParameterDescriptionContext context)
     {

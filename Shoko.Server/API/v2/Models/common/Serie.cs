@@ -393,9 +393,10 @@ public class Serie : BaseDirectory, IComparable
         // (i.e. posters), so backdrops and banners would always come back empty.
         var series = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
         IWithImages imageEntity = series ?? (IWithImages)anime;
-        var backdrops = imageEntity.GetImages(imageType: ImageEntityType.Backdrop);
-        var banners = imageEntity.GetImages(imageType: ImageEntityType.Banner);
-        var posters = imageEntity.GetImages(imageType: ImageEntityType.Primary);
+        var allImages = imageEntity.GetImages();
+        var backdrops = allImages.Where(x => x.Type == ImageEntityType.Backdrop).ToList();
+        var banners = allImages.Where(x => x.Type == ImageEntityType.Banner).ToList();
+        var posters = allImages.Where(x => x.Type == ImageEntityType.Primary).ToList();
         if (allPictures || maxPictures > 1)
         {
             if (allPictures)
@@ -436,7 +437,10 @@ public class Serie : BaseDirectory, IComparable
         }
         else if (maxPictures > 0)
         {
-            var poster = (imageEntity as IWithPrimaryImage)?.PrimaryImage;
+            var poster = posters.FirstOrDefault(x => x.IsPreferred)
+                ?? posters.FirstOrDefault(x => x is { IsEnabled: true, IsAvailable: true })
+                ?? posters.FirstOrDefault(x => x is { IsEnabled: true })
+                ?? posters.FirstOrDefault();
             sr.art.thumb.Add(new Art
             {
                 index = 0,
@@ -444,43 +448,23 @@ public class Serie : BaseDirectory, IComparable
             });
             if (backdrops.Count > 0)
             {
-                if ((imageEntity as IWithBackdropImage)?.BackdropImage is { } preferredBackdrop)
+                var backdrop = backdrops.FirstOrDefault(x => x.IsPreferred)
+                    ?? backdrops.FirstOrDefault(x => x is { IsEnabled: true, IsAvailable: true })
+                    ?? backdrops[rand.Next(backdrops.Count)];
+                sr.art.fanart.Add(new Art
                 {
-                    sr.art.fanart.Add(new Art
-                    {
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBackdrop),
-                        index = 0
-                    });
-                }
-                else
-                {
-                    var backdrop = backdrops[rand.Next(backdrops.Count)];
-                    sr.art.fanart.Add(new Art
-                    {
-                        index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop),
-                    });
-                }
+                    index = 0,
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, backdrop),
+                });
             }
             if (banners.Count > 0)
             {
-                if (imageEntity.GetPreferredImageForType(ImageEntityType.Banner) is { } preferredBanner)
+                var banner = banners.FirstOrDefault(x => x.IsPreferred) ?? banners[rand.Next(banners.Count)];
+                sr.art.banner.Add(new Art
                 {
-                    sr.art.banner.Add(new Art
-                    {
-                        index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, preferredBanner),
-                    });
-                }
-                else
-                {
-                    var banner = banners[rand.Next(banners.Count)];
-                    sr.art.banner.Add(new Art
-                    {
-                        index = 0,
-                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner),
-                    });
-                }
+                    index = 0,
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, banner),
+                });
             }
         }
     }
