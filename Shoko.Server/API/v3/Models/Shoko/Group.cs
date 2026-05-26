@@ -74,6 +74,10 @@ public class Group : BaseModel
     [Required]
     public GroupSizes Sizes { get; set; }
 
+    /// <summary>
+    /// Total series count within the group and across all sub-groups, not
+    /// affected by the current filtering.
+    /// </summary>
     public int TotalSize { get; set; }
 
     /// <summary>
