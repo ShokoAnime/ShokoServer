@@ -28,7 +28,7 @@ public class Filterable : IFilterableInfo
     private readonly Lazy<int> _missingAnilistEpisodeLinks;
     private readonly Lazy<double> _highestAniDBRating;
     private readonly Lazy<bool> _isFinished;
-    private readonly Lazy<DateTime> _lastAddedDate;
+    private readonly Lazy<DateTime?> _lastAddedDate;
     private readonly Lazy<PartialDateOnly?> _lastAirDate;
     private readonly Lazy<double> _lowestAniDBRating;
     private readonly Lazy<int> _missingEpisodes;
@@ -380,11 +380,11 @@ public class Filterable : IFilterableInfo
         init => _addedDate = new Lazy<DateTime>(value);
     }
 
-    public DateTime LastAddedDate => _lastAddedDate.Value;
+    public DateTime? LastAddedDate => _lastAddedDate.Value;
 
-    public required Func<DateTime> LastAddedDateDelegate
+    public required Func<DateTime?> LastAddedDateDelegate
     {
-        init => _lastAddedDate = new Lazy<DateTime>(value);
+        init => _lastAddedDate = new Lazy<DateTime?>(value);
     }
 
     public int EpisodeCount => _episodeCount.Value;

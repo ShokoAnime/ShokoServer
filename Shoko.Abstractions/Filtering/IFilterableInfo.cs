@@ -219,7 +219,7 @@ public interface IFilterableInfo
     /// <summary>
     /// When it was most recently added to the collection
     /// </summary>
-    DateTime LastAddedDate { get; }
+    DateTime? LastAddedDate { get; }
 
     /// <summary>
     /// Highest Episode Count

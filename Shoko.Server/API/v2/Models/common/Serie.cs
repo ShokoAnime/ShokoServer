@@ -387,9 +387,15 @@ public class Serie : BaseDirectory, IComparable
         int maxPictures)
     {
         var rand = (Random)ctx.Items["Random"];
-        var backdrops = anime.GetImages(imageType: ImageEntityType.Backdrop);
-        var banners = anime.GetImages(imageType: ImageEntityType.Banner);
-        var posters = anime.GetImages(imageType: ImageEntityType.Primary);
+        // Use AnimeSeries for image lookups — it implements IShokoSeries, which causes
+        // ImageManager to traverse TMDB-linked entities for backdrops and banners.
+        // Calling GetImages directly on AniDB_Anime only returns AniDB-native images
+        // (i.e. posters), so backdrops and banners would always come back empty.
+        var series = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
+        IWithImages imageEntity = series ?? (IWithImages)anime;
+        var backdrops = imageEntity.GetImages(imageType: ImageEntityType.Backdrop);
+        var banners = imageEntity.GetImages(imageType: ImageEntityType.Banner);
+        var posters = imageEntity.GetImages(imageType: ImageEntityType.Primary);
         if (allPictures || maxPictures > 1)
         {
             if (allPictures)
@@ -430,7 +436,7 @@ public class Serie : BaseDirectory, IComparable
         }
         else if (maxPictures > 0)
         {
-            var poster = (anime as IWithPrimaryImage).PrimaryImage;
+            var poster = (imageEntity as IWithPrimaryImage)?.PrimaryImage;
             sr.art.thumb.Add(new Art
             {
                 index = 0,
@@ -438,7 +444,7 @@ public class Serie : BaseDirectory, IComparable
             });
             if (backdrops.Count > 0)
             {
-                if ((anime as IWithBackdropImage).BackdropImage is { } preferredBackdrop)
+                if ((imageEntity as IWithBackdropImage)?.BackdropImage is { } preferredBackdrop)
                 {
                     sr.art.fanart.Add(new Art
                     {
@@ -458,7 +464,7 @@ public class Serie : BaseDirectory, IComparable
             }
             if (banners.Count > 0)
             {
-                if (anime.GetPreferredImageForType(ImageEntityType.Banner) is { } preferredBanner)
+                if (imageEntity.GetPreferredImageForType(ImageEntityType.Banner) is { } preferredBanner)
                 {
                     sr.art.banner.Add(new Art
                     {

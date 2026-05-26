@@ -17,7 +17,7 @@ public static class AniDBExtensions
         => GetAniDBDateAsDate(secs) is { } date ? DateOnly.FromDateTime(date) : null;
 
     public static PartialDateOnly? GetAniDBDateAsPartialDateOnly(int secs)
-        => GetAniDBDateAsDate(secs) is { } date ? PartialDateOnly.FromDateTime(date) : null;
+        => GetAniDBDateAsDate(secs) is { Year: > 0, Month: > 0, Day: > 0 } date ? PartialDateOnly.FromDateTime(date) : null;
 
     public static int GetAniDBDateAsSeconds(DateTime? dtDate)
     {

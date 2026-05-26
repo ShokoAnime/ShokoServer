@@ -124,7 +124,7 @@ public static class FilterExtensions
             IsFinishedDelegate = () =>
                 series.AniDB_Anime?.EndDate is { } endDate && endDate < now.Date,
             LastAirDateDelegate = () =>
-                series.EndDate ?? series.AllAnimeEpisodes.Select(a => a.AniDB_Episode?.GetAirDateAsPartialDateOnly()).WhereNotNull().DefaultIfEmpty().Max(),
+                series.EndDate ?? series.AllAnimeEpisodes.Select(a => a.AniDB_Episode?.GetAirDateAsPartialDateOnly()).WhereNotNull().Cast<PartialDateOnly?>().Max(),
             AddedDateDelegate = () =>
                 series.DateTimeCreated,
             LastAddedDateDelegate = () =>
@@ -268,7 +268,7 @@ public static class FilterExtensions
             AirDateDelegate = () =>
                 series.Select(a => a.AirDate).WhereNotNull().DefaultIfEmpty(PartialDateOnly.MaxValue).Min(),
             LastAirDateDelegate = () =>
-                series.SelectMany(a => a.AllAnimeEpisodes).Select(a => a.AniDB_Episode?.GetAirDateAsPartialDateOnly()).WhereNotNull().DefaultIfEmpty().Max(),
+                series.SelectMany(a => a.AllAnimeEpisodes).Select(a => a.AniDB_Episode?.GetAirDateAsPartialDateOnly()).WhereNotNull().Cast<PartialDateOnly?>().Max(),
             MissingEpisodesDelegate = () =>
                 group.MissingEpisodeCount,
             MissingEpisodesCollectingDelegate = () =>

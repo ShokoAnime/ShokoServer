@@ -53,7 +53,7 @@ public class TestFilterable : IFilterableInfo
     public PartialDateOnly? AirDate { get; init; }
     public PartialDateOnly? LastAirDate { get; init; }
     public DateTime AddedDate { get; init; }
-    public DateTime LastAddedDate { get; init; }
+    public DateTime? LastAddedDate { get; init; }
     public int EpisodeCount { get; init; }
     public int TotalEpisodeCount { get; init; }
     public double LowestAniDBRating { get; init; }
