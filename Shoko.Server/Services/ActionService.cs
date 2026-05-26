@@ -523,6 +523,7 @@ public class ActionService
                 await _videoReleaseService.ScheduleFindReleaseForVideo(vl);
             }
         }
+        await ScheduleMissingAnidbAnimeForFiles();
 
         schedule ??= new()
         {

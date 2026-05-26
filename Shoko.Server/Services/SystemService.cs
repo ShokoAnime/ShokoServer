@@ -576,6 +576,9 @@ public class SystemService : ISystemService
                 scheduler.StartJob<ScanDropFoldersJob>().GetAwaiter().GetResult();
             if (settings.Import.RunOnStart)
                 scheduler.StartJob<ImportJob>().GetAwaiter().GetResult();
+            else
+                _webHost.Services.GetRequiredService<ActionService>()
+                    .ScheduleMissingAnidbAnimeForFiles().GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
