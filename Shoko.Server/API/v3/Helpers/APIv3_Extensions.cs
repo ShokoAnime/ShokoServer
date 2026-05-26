@@ -104,6 +104,9 @@ public static class APIv3_Extensions
     public static Images ToDto(
         this IEnumerable<IImage> imageList,
         IReadOnlySet<TitleLanguage>? language = null,
+        IImage? preferredPoster = null,
+        IImage? preferredBackdrop = null,
+        IImage? preferredLogo = null,
         bool preferredImages = false,
         bool randomizeImages = false,
         bool showLinkedIDs = false)
@@ -114,19 +117,26 @@ public static class APIv3_Extensions
             if (language != null && !language.Contains(image.Language))
                 continue;
 
+            bool? preferredOverride = null;
             switch (image.Type)
             {
                 case ImageEntityType.Primary:
-                    images.Posters.Add(new(image, showLinkedIDs));
+                    if (preferredPoster is not null)
+                        preferredOverride = image.IsEnabled && preferredPoster.Equals(image);
+                    images.Posters.Add(new(image, showLinkedIDs, preferredOverride));
                     break;
                 case ImageEntityType.Banner:
                     images.Banners.Add(new(image, showLinkedIDs));
                     break;
                 case ImageEntityType.Backdrop:
-                    images.Backdrops.Add(new(image, showLinkedIDs));
+                    if (preferredBackdrop is not null)
+                        preferredOverride = image.IsEnabled && preferredBackdrop.Equals(image);
+                    images.Backdrops.Add(new(image, showLinkedIDs, preferredOverride));
                     break;
                 case ImageEntityType.Logo:
-                    images.Logos.Add(new(image, showLinkedIDs));
+                    if (preferredLogo is not null)
+                        preferredOverride = image.IsEnabled && preferredLogo.Equals(image);
+                    images.Logos.Add(new(image, showLinkedIDs, preferredOverride));
                     break;
                 case ImageEntityType.Disc:
                     images.Discs.Add(new(image, showLinkedIDs));

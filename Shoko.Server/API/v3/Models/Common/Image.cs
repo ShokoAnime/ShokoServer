@@ -129,7 +129,7 @@ public class Image
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public ImageSeriesInfo? Series { get; set; } = null;
 
-    public Image(IImage imageMetadata, bool showLinkedIDs = false)
+    public Image(IImage imageMetadata, bool showLinkedIDs = false, bool? preferredOverride = null)
     {
         UID = imageMetadata.ID;
         ID = imageMetadata.LocalID;
@@ -142,7 +142,7 @@ public class Image
         ContentType = imageMetadata.ContentType;
         Available = imageMetadata.IsAvailable;
         Disabled = !imageMetadata.IsEnabled;
-        Preferred = imageMetadata.IsPreferred;
+        Preferred = preferredOverride ?? imageMetadata.IsPreferred;
         Desired = imageMetadata.IsDesired;
         LanguageCode = imageMetadata.LanguageCode;
         CountryCode = imageMetadata.CountryCode;
