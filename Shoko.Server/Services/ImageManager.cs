@@ -474,8 +474,7 @@ public class ImageManager(
             ResourceID = md5,
             Height = (int)info.Height,
             Width = (int)info.Width,
-            CountryCode = string.Empty,
-            LanguageCode = string.Empty,
+            ContentType = expectedContentType,
             CreatedAt = DateTime.UtcNow,
             LastUpdatedAt = DateTime.UtcNow,
         };
