@@ -126,15 +126,17 @@ public class SettingsProvider : ISettingsProvider, IDisposable
     public void SaveSettings()
         => _configurationProvider.Save();
 
+    private static JsonSerializerSettings? _nonIndentedSettings;
     public static string Serialize(object obj, bool indent = false)
     {
-        var serializerSettings = new JsonSerializerSettings
+        var serializerSettings = ServerSettings.SerializationSettings;
+        if (!indent)
         {
-            Formatting = indent ? Formatting.Indented : Formatting.None,
-            DefaultValueHandling = DefaultValueHandling.Include,
-            MissingMemberHandling = MissingMemberHandling.Ignore,
-            Converters = [new StringEnumConverter()]
-        };
+            _nonIndentedSettings ??= new JsonSerializerSettings(ServerSettings.SerializationSettings);
+            _nonIndentedSettings.Formatting = Formatting.None;
+            serializerSettings = _nonIndentedSettings;
+        }
+
         return JsonConvert.SerializeObject(obj, serializerSettings);
     }
 

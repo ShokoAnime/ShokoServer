@@ -23,6 +23,14 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public static string ApplyMigrations(string config, IApplicationPaths applicationPaths)
         => FixNonEmittedDefaults(SettingsMigrations.MigrateSettings(config, applicationPaths));
 
+    public static readonly JsonSerializerSettings SerializationSettings = new()
+    {
+        Formatting = Formatting.Indented,
+        DefaultValueHandling = DefaultValueHandling.Include,
+        MissingMemberHandling = MissingMemberHandling.Ignore,
+        Converters = [new StringEnumConverter()]
+    };
+
     /// <summary>
     /// Fix the behavior of missing members in pre-4.0
     /// </summary>
@@ -38,15 +46,8 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
             MissingMemberHandling = MissingMemberHandling.Ignore,
             DefaultValueHandling = DefaultValueHandling.Populate
         };
-        var serializerSettings = new JsonSerializerSettings
-        {
-            Formatting = Formatting.Indented,
-            DefaultValueHandling = DefaultValueHandling.Include,
-            MissingMemberHandling = MissingMemberHandling.Ignore,
-            Converters = [new StringEnumConverter()]
-        };
         var result = JsonConvert.DeserializeObject<ServerSettings>(settings, deserializerSettings);
-        return JsonConvert.SerializeObject(result, serializerSettings);
+        return JsonConvert.SerializeObject(result, SerializationSettings);
     }
 
     public static IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ServerSettings config, IConfigurationService configurationService, IPluginManager pluginManager)

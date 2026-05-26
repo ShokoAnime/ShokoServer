@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
@@ -166,7 +167,7 @@ public static partial class SettingsMigrations
         };
         currentSettings["Language"] = JObject.Parse(JsonConvert.SerializeObject(language));
 
-        return currentSettings.ToString();
+        return currentSettings.ToString(Formatting.Indented, ServerSettings.SerializationSettings.Converters.ToArray());
     }
 
     private static string MigrateRenamerFromImportToPluginsSettings(string settings)
@@ -203,6 +204,20 @@ public static partial class SettingsMigrations
         return currentSettings.ToString();
     }
 
+    private static string MigrateServerPortToWebPort(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        var serverPort = currentSettings["ServerPort"]?.Value<ushort>() ?? 0;
+        if (serverPort == 0)
+            return settings;
+
+        var webSettings = currentSettings["Web"] ?? (currentSettings["Web"] = new JObject());
+        webSettings["Port"] = serverPort;
+        currentSettings.Remove("ServerPort");
+
+        return currentSettings.ToString();
+    }
+
     private static string MigrateLanguageSourceOrders(string settings)
     {
         var currentSettings = JObject.Parse(settings);
@@ -224,21 +239,7 @@ public static partial class SettingsMigrations
             DataSource.AniDB, DataSource.TMDB
         };
 
-        return currentSettings.ToString();
-    }
-
-    private static string MigrateServerPortToWebPort(string settings)
-    {
-        var currentSettings = JObject.Parse(settings);
-        var serverPort = currentSettings["ServerPort"]?.Value<ushort>() ?? 0;
-        if (serverPort == 0)
-            return settings;
-
-        var webSettings = currentSettings["Web"] ?? (currentSettings["Web"] = new JObject());
-        webSettings["Port"] = serverPort;
-        currentSettings.Remove("ServerPort");
-
-        return currentSettings.ToString();
+        return currentSettings.ToString(Formatting.Indented, new StringEnumConverter());
     }
 
     private static string MigrateLogRotatorToLogging(string settings)
