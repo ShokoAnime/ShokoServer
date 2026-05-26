@@ -74,6 +74,8 @@ public class Group : BaseModel
     [Required]
     public GroupSizes Sizes { get; set; }
 
+    public int TotalSize { get; set; }
+
     /// <summary>
     /// The time when the group was created.
     /// </summary>
@@ -92,10 +94,11 @@ public class Group : BaseModel
 
     public Group(AnimeGroup group, int userID = 0, bool randomizeImages = false, IReadOnlyList<IReadOnlyList<int>>? groupIDChains = null, HashSet<int>? seriesIDs = null)
     {
+        var allSeries = group.AllSeries;
         var subGroupCount = groupIDChains is null ? group.Children.Count : group.Children.Count(a => groupIDChains.Any(b => b.Contains(a.AnimeGroupID)));
-        var allSeries = seriesIDs is null ? group.AllSeries : group.AllSeries.Where(a => seriesIDs.Contains(a.AnimeSeriesID)).ToList();
+        var filteredSeries = seriesIDs is null ? allSeries : allSeries.Where(a => seriesIDs.Contains(a.AnimeSeriesID)).ToList();
         var mainSeries = group.MainSeries;
-        var episodes = allSeries.SelectMany(a => a.AllAnimeEpisodes).ToList();
+        var episodes = filteredSeries.SelectMany(a => a.AllAnimeEpisodes).ToList();
         IDs = new GroupIDs { ID = group.AnimeGroupID };
         if (group.DefaultAnimeSeriesID != null)
             IDs.PreferredSeries = group.DefaultAnimeSeriesID.Value;
@@ -110,8 +113,9 @@ public class Group : BaseModel
         Name = group.GroupName;
         SortName = group.SortName;
         Description = group.Description;
-        Sizes = ModelHelper.GenerateGroupSizes(allSeries, episodes, subGroupCount, userID);
-        Size = allSeries.Count(series => series.AnimeGroupID == group.AnimeGroupID);
+        Sizes = ModelHelper.GenerateGroupSizes(filteredSeries, episodes, subGroupCount, userID);
+        Size = filteredSeries.Count(series => series.AnimeGroupID == group.AnimeGroupID);
+        TotalSize = allSeries.Count;
         Created = group.DateTimeCreated.ToUniversalTime();
         Updated = group.DateTimeUpdated.ToUniversalTime();
         HasCustomName = group.IsManuallyNamed == 1;
