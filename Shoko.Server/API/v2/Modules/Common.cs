@@ -17,6 +17,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Services;
@@ -994,7 +995,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpPost("file/offset")]
-    public ActionResult SetFileOffset([FromBody] API_Call_Parameters para)
+    public async Task<ActionResult> SetFileOffset([FromBody] API_Call_Parameters para)
     {
         var videoId = para.id;
         var resumePosition = TimeSpan.FromMilliseconds(para.offset);
@@ -1005,16 +1006,9 @@ public class Common : BaseController
             return NotFound();
 
         var user = HttpContext.GetUser();
-        var videoUserData = _userDataService.GetVideoUserData(video, user);
-        _userDataService.SaveVideoUserData(
-            video,
-            user,
-            new(videoUserData)
-            {
-                ProgressPosition = resumePosition,
-                LastUpdatedAt = DateTime.Now
-            }
-        ).GetAwaiter().GetResult();
+
+        await _userDataService.SaveVideoUserData(video, user, new() { ProgressPosition = resumePosition, LastUpdatedAt = DateTime.Now },
+            VideoUserDataSaveReason.PlaybackProgress);
         return Ok();
     }
 
