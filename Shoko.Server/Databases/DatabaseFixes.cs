@@ -1584,7 +1584,7 @@ public class DatabaseFixes
         {
             var oldDir = Path.Join(imagesPath, oldName);
             var backupDir = Path.Join(imagesPath, newName);
-            if (Directory.Exists(oldDir) && !Directory.Exists(backupDir))
+            if (Directory.Exists(oldDir) && !Directory.Exists(backupDir) && Directory.EnumerateFiles(oldDir, "*.*", SearchOption.AllDirectories).Any())
                 Directory.Move(oldDir, backupDir);
         }
 
@@ -1780,6 +1780,7 @@ public class DatabaseFixes
             var oldPath = Path.Join(imagesPath, "TMDB_old", oldHashedName[..2], oldHashedName + oldFileExt);
             var newPath = Path.Join(imagesPath, "TMDB", guidStr[..2], guidStr);
             var oldPathExists = File.Exists(oldPath);
+            var newPathExists = File.Exists(newPath);
 
             var languageCode = old.Language is { Length: 2 } ? old.Language : null;
             var contentType = MimeMapping.MimeUtility.GetMimeMapping(resourceID);
@@ -1800,6 +1801,20 @@ public class DatabaseFixes
                 {
                     _logger.Warn(ex, "Failed to get image metadata for {Path}", oldPath);
                     oldPathExists = false;
+                }
+            }
+            else if (newPathExists)
+            {
+                try
+                {
+                    var metadata = new MagickImageInfo(newPath);
+                    width = (int)metadata.Width;
+                    height = (int)metadata.Height;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn(ex, "Failed to get image metadata for {Path}", newPath);
+                    File.Delete(newPath);
                 }
             }
 
@@ -2260,6 +2275,7 @@ public class DatabaseFixes
     {
         var guid = IImageManager.GetIDForImageSourceAndResourceID(source, resourceID);
         var oldPathExists = File.Exists(oldPath);
+        var newPathExists = File.Exists(newPath);
 
         var contentType = MimeMapping.MimeUtility.GetMimeMapping(resourceID);
         if (string.IsNullOrEmpty(contentType) || contentType == MimeMapping.MimeUtility.UnknownMimeType)
@@ -2279,6 +2295,20 @@ public class DatabaseFixes
             {
                 _logger.Error(ex, "Could not get metadata for {Path}", oldPath);
                 oldPathExists = false;
+            }
+        }
+        else if (newPathExists)
+        {
+            try
+            {
+                var metadata = new MagickImageInfo(newPath);
+                width = (int)metadata.Width;
+                height = (int)metadata.Height;
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Failed to get image metadata for {Path}", newPath);
+                File.Delete(newPath);
             }
         }
 
