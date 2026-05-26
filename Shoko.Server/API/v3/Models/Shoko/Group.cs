@@ -78,6 +78,7 @@ public class Group : BaseModel
     /// Total series count within the group and across all sub-groups, not
     /// affected by the current filtering.
     /// </summary>
+    [Required]
     public int TotalSize { get; set; }
 
     /// <summary>
