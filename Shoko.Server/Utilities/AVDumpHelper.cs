@@ -167,20 +167,28 @@ public static partial class AVDumpHelper
             var checkedIds = new HashSet<int>();
             foreach (var videoId in videoDict.Keys)
             {
-                if (ActiveSessions.TryGetValue(videoId, out _) ||
-                    !ActiveSessions.TryAdd(videoId, session))
+                if (!ActiveSessions.TryAdd(videoId, session))
                 {
-                    var message = "Unable start an AVDump session for a VideoLocal already in a session.";
-                    logger.Warn(message);
-                    foreach (var checkedVideoId in checkedIds)
-                        ActiveSessions.TryRemove(checkedVideoId, out _);
+                    var absolutePath = videoDict[videoId];
+                    var message = $"Unable start an AVDump session for video already in a session. Video ID: {videoId}, Absolute Path: {absolutePath}";
 
-                    session.IsRunning = false;
-                    session.StandardOutput = message;
-                    return session;
+                    logger.Warn(message);
+                    ShokoEventHandler.Instance.OnAVDumpMessage(AnidbAvdumpEventType.Error, message);
+
+                    session.VideoIDs.Remove(videoId);
+                    session.AbsolutePaths.Remove(absolutePath);
+                    continue;
                 }
 
                 checkedIds.Add(videoId);
+            }
+
+            if (checkedIds.Count is 0)
+            {
+                session.IsRunning = false;
+                session.VideoIDs.Clear();
+                session.AbsolutePaths.Clear();
+                return session;
             }
         }
 
@@ -507,9 +515,9 @@ public static partial class AVDumpHelper
 
         public int SessionID { get; }
 
-        public IReadOnlyList<int> VideoIDs { get; }
+        public List<int> VideoIDs { get; }
 
-        public IReadOnlyList<string> AbsolutePaths { get; }
+        public List<string> AbsolutePaths { get; }
 
         public bool IsRunning { get; set; }
 
