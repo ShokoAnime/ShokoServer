@@ -9,8 +9,8 @@ using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Concurrency;
+using Shoko.QueueProcessor;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -65,9 +65,13 @@ public class QueueController : BaseController
     /// <returns>A dictionary of all the queued and active command types, and the count for each type.</returns>
     [HttpGet("Types")]
     [InitFriendly]
-    public async Task<ActionResult<Dictionary<string, int>>> GetTypesForItemsInAllQueues()
+    public ActionResult<Dictionary<string, int>> GetTypesForItemsInAllQueues()
     {
-        return await _queueHandler.GetJobCounts();
+        var metrics = _queueHandler.GetMetrics();
+        var result = new Dictionary<string, int>();
+        foreach (var (typeName, typeMetrics) in metrics.ByType)
+            result[typeName] = typeMetrics.Waiting + typeMetrics.Executing;
+        return result;
     }
 
     /// <summary>
@@ -119,7 +123,7 @@ public class QueueController : BaseController
     /// <returns>A full or partial representation of the queued items, depending on the page and page size used, and the remaining items in the queue.</returns>
     [Authorize("admin")]
     [HttpGet("Items")]
-    public async Task<ActionResult<ListResult<Queue.QueueItem>>> GetItemsInQueue(
+    public ActionResult<ListResult<Queue.QueueItem>> GetItemsInQueue(
         [FromQuery, Range(0, 1000)] int pageSize = 10,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool showAll = false
@@ -132,7 +136,7 @@ public class QueueController : BaseController
         var offset = (page - 1) * pageSize;
         var executing = _queueHandler.GetExecutingJobs();
         // simplified from (page - 1) * pageSize + pageSize
-        if (showAll && page * pageSize <= executing.Length + _settingsProvider.GetSettings().Quartz.WaitingCacheSize)
+        if (showAll && page * pageSize <= executing.Length + _settingsProvider.GetSettings().Queue.WaitingCacheSize)
         {
             var results = new List<QueueItem>();
             if (offset < executing.Length)
@@ -147,7 +151,7 @@ public class QueueController : BaseController
             return new ListResult<Queue.QueueItem>(total, results.Select(ToQueueItem).ToList());
         }
 
-        var result = (await _queueHandler.GetJobs(pageSize, offset, !showAll)).Select(ToQueueItem).ToList();
+        var result = _queueHandler.GetJobs(pageSize, offset, !showAll).Select(ToQueueItem).ToList();
         return new ListResult<Queue.QueueItem>(total, result);
     }
 
@@ -156,9 +160,9 @@ public class QueueController : BaseController
         return new Queue.QueueItem
         {
             Key = a.Key,
-            Type = a.JobType,
-            Title = a.Title,
-            Details = a.Details,
+            Type = a.JobType ?? string.Empty,
+            Title = a.Title ?? string.Empty,
+            Details = a.Details ?? [],
             StartTime = a.StartTime,
             IsRunning = a.Running,
             IsBlocked = a.Blocked
@@ -168,7 +172,7 @@ public class QueueController : BaseController
     [HttpGet("DebugStats")]
     public ActionResult<DebugStats> GetDebugStats()
     {
-        return new DebugStats(GetQueue(), _queueHandler.GetTypes(), _queueHandler.GetAcquisitionFilterResults());
+        return new DebugStats(GetQueue(), _queueHandler.GetAcquisitionFilterResults());
     }
 
     [HttpGet("AcquisitionFilters")]
@@ -177,15 +181,9 @@ public class QueueController : BaseController
         return _queueHandler.GetAcquisitionFilterResults();
     }
 
-    public class DebugStats(Queue queue, JobTypes typeFilters, Dictionary<string, string[]> acquisitionFilters)
+    public class DebugStats(Queue queue, Dictionary<string, string[]> acquisitionFilters)
     {
         public Queue Queue { get; init; } = queue;
-
-        public IEnumerable<Type> TypesToExclude { get; init; } = typeFilters.TypesToExclude;
-
-        public IDictionary<Type, int> TypesToLimit { get; init; } = typeFilters.TypesToLimit;
-
-        public IEnumerable<IEnumerable<Type>> AvailableConcurrencyGroups { get; init; } = typeFilters.AvailableConcurrencyGroups;
 
         public Dictionary<string, string[]> AcquisitionFilters { get; init; } = acquisitionFilters;
     }

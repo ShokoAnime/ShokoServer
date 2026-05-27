@@ -11,7 +11,6 @@ using Polly;
 using Polly.Bulkhead;
 using Polly.RateLimit;
 using Polly.Retry;
-using Quartz;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
@@ -24,6 +23,7 @@ using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct.TMDB;
 using Shoko.Server.Repositories.Direct.TMDB.Optional;
 using Shoko.Server.Repositories.Direct.TMDB.Text;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
@@ -125,7 +125,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private readonly ILogger<TmdbMetadataService> _logger;
 
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
 
     private readonly ISettingsProvider _settingsProvider;
 
@@ -246,7 +246,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public TmdbMetadataService(
         ILogger<TmdbMetadataService> logger,
-        ISchedulerFactory commandFactory,
+        IQueueScheduler scheduler,
         ISettingsProvider settingsProvider,
         TmdbImageService imageService,
         TmdbLinkingService linkingService,
@@ -277,7 +277,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     )
     {
         _logger = logger;
-        _schedulerFactory = commandFactory;
+        _scheduler = scheduler;
         _settingsProvider = settingsProvider;
         _imageService = imageService;
         _linkingService = linkingService;
@@ -357,7 +357,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public async Task ScheduleSearchForMatch(int anidbId, bool force)
     {
-        await (await _schedulerFactory.GetScheduler()).StartJob<SearchTmdbJob>(c =>
+        await _scheduler.StartJob<SearchTmdbJob>(c =>
         {
             c.AnimeID = anidbId;
             c.ForceRefresh = force;
@@ -371,7 +371,6 @@ public class TmdbMetadataService : ITmdbMetadataService
             return;
 
         var allSeries = _animeSeries.GetAll();
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var ser in allSeries)
         {
             if (ser.IsTmdbAutoMatchingDisabled)
@@ -391,7 +390,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
             _logger.LogTrace("Found anime without TMDB association: {MainTitle}", anime.MainTitle);
 
-            await scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = ser.AniDB_ID);
+            await _scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = ser.AniDB_ID);
         }
     }
 
@@ -446,13 +445,12 @@ public class TmdbMetadataService : ITmdbMetadataService
     {
         var allXRefs = _xrefAnidbTmdbMovies.GetAll();
         _logger.LogInformation("Scheduling {Count} movies to be updated.", allXRefs.Count);
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var xref in allXRefs)
         {
             if (xref.AnimeSeries is null)
                 continue;
 
-            await scheduler.StartJob<UpdateTmdbMovieJob>(
+            await _scheduler.StartJob<UpdateTmdbMovieJob>(
                 c =>
                 {
                     c.TmdbMovieID = xref.TmdbMovieID;
@@ -466,7 +464,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     public async Task ScheduleUpdateOfMovie(TmdbMovieUpdateOptions options)
     {
         // Schedule the movie info to be downloaded or updated.
-        await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<UpdateTmdbMovieJob>(c =>
+        await _scheduler.StartJob<UpdateTmdbMovieJob>(c =>
         {
             c.TmdbMovieID = options.MovieId;
             c.ForceRefresh = options.ForceRefresh;
@@ -774,7 +772,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     public async Task ScheduleDownloadAllMovieImages(int movieId, bool forceDownload = false)
     {
         // Schedule the movie info to be downloaded or updated.
-        await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<DownloadTmdbMovieImagesJob>(c =>
+        await _scheduler.StartJob<DownloadTmdbMovieImagesJob>(c =>
         {
             c.TmdbMovieID = movieId;
             c.ForceDownload = forceDownload;
@@ -840,14 +838,13 @@ public class TmdbMetadataService : ITmdbMetadataService
             .ToHashSet();
 
         _logger.LogInformation("Scheduling {Count} out of {AllCount} movies to be purged.", toBePurged.Count, allMovies.Count);
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var movieID in toBePurged)
-            await scheduler.StartJob<PurgeTmdbMovieJob>(c => c.TmdbMovieID = movieID);
+            await _scheduler.StartJob<PurgeTmdbMovieJob>(c => c.TmdbMovieID = movieID);
     }
 
     public async Task SchedulePurgeOfMovie(int movieId)
     {
-        await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<PurgeTmdbMovieJob>(c =>
+        await _scheduler.StartJob<PurgeTmdbMovieJob>(c =>
         {
             c.TmdbMovieID = movieId;
         });
@@ -1009,7 +1006,6 @@ public class TmdbMetadataService : ITmdbMetadataService
     {
         var allXRefs = _xrefAnidbTmdbShows.GetAll();
         _logger.LogInformation("Scheduling {Count} shows to be updated.", allXRefs.Count);
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var xref in allXRefs)
         {
             if (xref.TmdbShowID is 0)
@@ -1018,7 +1014,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             if (xref.AnimeSeries is null)
                 continue;
 
-            await scheduler.StartJob<UpdateTmdbShowJob>(
+            await _scheduler.StartJob<UpdateTmdbShowJob>(
                 c =>
                 {
                     c.TmdbShowID = xref.TmdbShowID;
@@ -1044,7 +1040,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             return;
 
         // Schedule the show info to be downloaded or updated.
-        await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<UpdateTmdbShowJob>(c =>
+        await _scheduler.StartJob<UpdateTmdbShowJob>(c =>
         {
             c.TmdbShowID = options.ShowId;
             c.ForceRefresh = options.ForceRefresh;
@@ -1805,7 +1801,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     public async Task ScheduleDownloadAllShowImages(int showId, bool forceDownload = false)
     {
         // Schedule the movie info to be downloaded or updated.
-        await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<DownloadTmdbShowImagesJob>(c =>
+        await _scheduler.StartJob<DownloadTmdbShowImagesJob>(c =>
         {
             c.TmdbShowID = showId;
             c.ForceDownload = forceDownload;
@@ -1929,14 +1925,13 @@ public class TmdbMetadataService : ITmdbMetadataService
             .ToHashSet();
 
         _logger.LogInformation("Scheduling {Count} out of {AllCount} shows to be purged.", toBePurged.Count, allShows.Count);
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
         foreach (var showID in toBePurged)
-            await scheduler.StartJob<PurgeTmdbShowJob>(c => c.TmdbShowID = showID);
+            await _scheduler.StartJob<PurgeTmdbShowJob>(c => c.TmdbShowID = showID);
     }
 
     public async Task SchedulePurgeOfShow(int showId)
     {
-        await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<PurgeTmdbShowJob>(c =>
+        await _scheduler.StartJob<PurgeTmdbShowJob>(c =>
         {
             c.TmdbShowID = showId;
         });

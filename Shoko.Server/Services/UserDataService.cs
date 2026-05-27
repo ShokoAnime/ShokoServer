@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
@@ -16,6 +15,7 @@ using Shoko.Abstractions.User.Update;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Settings;
@@ -26,7 +26,7 @@ namespace Shoko.Server.Services;
 public class UserDataService(
     ILogger<UserDataService> logger,
     ISettingsProvider settingsProvider,
-    ISchedulerFactory schedulerFactory,
+    IQueueScheduler schedulerFactory,
     VideoLocal_UserRepository videoUserDataRepository,
     AnimeEpisode_UserRepository episodeUserDataRepository,
     AnimeSeries_UserRepository seriesUserDataRepository,
@@ -275,8 +275,7 @@ public class UserDataService(
                 ((userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetWatched) || (!userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetUnwatched));
             if (syncAnidb)
             {
-                var scheduler = await schedulerFactory.GetScheduler();
-                await scheduler.StartJob<UpdateMyListFileStatusJob>(c =>
+                await schedulerFactory.StartJob<UpdateMyListFileStatusJob>(c =>
                 {
                     c.Hash = video.ED2K;
                     c.Watched = userDataUpdate.LastPlayedAt.HasValue;
@@ -480,8 +479,7 @@ public class UserDataService(
             if (user.IsAnidbUser && reason.HasFlag(EpisodeUserDataSaveReason.UserRating))
             {
                 // Schedule the AniDB vote job
-                var scheduler = await schedulerFactory.GetScheduler();
-                await scheduler.StartJob<VoteAniDBEpisodeJob>(c =>
+                await schedulerFactory.StartJob<VoteAniDBEpisodeJob>(c =>
                 {
                     c.EpisodeID = episode.AnidbEpisodeID;
                     c.VoteValue = userData.UserRating ?? -1;
@@ -799,8 +797,7 @@ public class UserDataService(
             if (user.IsAnidbUser && reason.HasFlag(SeriesUserDataSaveReason.UserRating))
             {
                 // Schedule the AniDB vote job
-                var scheduler = await schedulerFactory.GetScheduler();
-                await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
+                await schedulerFactory.StartJob<VoteAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = series.AnidbAnimeID;
                     c.VoteType = providerVoteType;

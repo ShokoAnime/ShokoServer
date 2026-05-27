@@ -1,18 +1,17 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Quartz;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 
 namespace Shoko.Server.Scheduling.Jobs;
 
 [UsedImplicitly(ImplicitUseTargetFlags.WithInheritors)]
-public abstract class BaseJob : IJob
+public abstract class BaseJob : IQueueJob
 {
     [XmlIgnore, JsonIgnore]
     public ILogger _logger;
@@ -26,37 +25,38 @@ public abstract class BaseJob : IJob
     [XmlIgnore, JsonIgnore]
     public virtual Dictionary<string, object> Details { get; } = [];
 
-    public async ValueTask Execute(IJobExecutionContext context)
+    /// <summary>
+    /// Called by the worker. Catches AniDB transient exceptions and converts them to
+    /// <see cref="RequeueJobException"/> so the job re-queues without incrementing its retry count.
+    /// </summary>
+    public async Task Process()
     {
         try
         {
-            await Process();
+            await Execute();
         }
         catch (NotLoggedInException)
         {
-            await context.RescheduleJob();
+            throw new RequeueJobException();
         }
         catch (LoginFailedException)
         {
-            await context.RescheduleJob();
+            throw new RequeueJobException();
         }
         catch (AniDBBannedException)
         {
-            await context.RescheduleJob();
-        }
-        catch (Exception ex)
-        {
-            // _logger.LogError(ex, "Job threw an error on Execution: {Job} | Error -> {Ex}", context.JobDetail.Key, ex);
-            throw new JobExecutionException(ex.Message, ex);
+            throw new RequeueJobException();
         }
     }
 
-    public abstract Task Process();
+    /// <summary>Implement job logic here. Exceptions propagate to the retry policy.</summary>
+    public abstract Task Execute();
 
     public virtual void PostInit() { }
 }
 
 public abstract class BaseJob<T> : BaseJob
 {
-    public override abstract Task<T> Process();
+    public sealed override async Task Execute() => await Process();
+    public new abstract Task<T> Process();
 }

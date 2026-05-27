@@ -1,16 +1,17 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using NHibernate.Linq;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
 namespace Shoko.Server.Repositories.Direct;
 
 public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatus, int>
 {
-    private readonly JobFactory _jobFactory;
+    private readonly IServiceProvider _serviceProvider;
 
     public List<AniDB_GroupStatus> GetByAnimeID(int id)
     {
@@ -28,15 +29,16 @@ public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatu
         Lock(() =>
         {
             using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
-            // Query can't batch delete, while Query can
             session.Query<AniDB_GroupStatus>().Where(a => a.AnimeID == animeid).Delete();
         });
 
-        _jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = animeid).Process().GetAwaiter().GetResult();
+        var job = _serviceProvider.GetRequiredService<RefreshAnimeStatsJob>();
+        job.AnimeID = animeid;
+        job.Process().GetAwaiter().GetResult();
     }
 
-    public AniDB_GroupStatusRepository(DatabaseFactory databaseFactory, JobFactory jobFactory) : base(databaseFactory)
+    public AniDB_GroupStatusRepository(DatabaseFactory databaseFactory, IServiceProvider serviceProvider) : base(databaseFactory)
     {
-        _jobFactory = jobFactory;
+        _serviceProvider = serviceProvider;
     }
 }

@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using Quartz;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Services;
+using Shoko.QueueProcessor.Concurrency;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
@@ -26,7 +26,7 @@ internal class RemoveMissingFilesJob : BaseJob
         }
     };
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         await _actionService.RemoveRecordsWithoutPhysicalFiles(RemoveMyList);
     }

@@ -618,12 +618,11 @@ public partial class ShokoServiceImplementation
     public void RemoveMissingMyListFiles(List<CL_MissingFile> myListFiles)
     {
         // TODO maybe rework this
-        var scheduler = _schedulerFactory.GetScheduler().Result;
         foreach (var missingFile in myListFiles)
         {
             var vl = RepoFactory.VideoLocal.GetByMyListID(missingFile.FileID);
             if (vl == null) continue;
-            scheduler.StartJob<DeleteFileFromMyListJob>(
+            _scheduler.StartJob<DeleteFileFromMyListJob>(
                 c =>
                 {
                     c.Hash = vl.Hash;

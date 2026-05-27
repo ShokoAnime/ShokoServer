@@ -2,10 +2,10 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Quartz;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Settings;
@@ -23,10 +23,10 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class AVDumpController : BaseController
 {
-    private readonly ISchedulerFactory _schedulerFactory;
-    public AVDumpController(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory) : base(settingsProvider)
+    private readonly IQueueScheduler _scheduler;
+    public AVDumpController(ISettingsProvider settingsProvider, IQueueScheduler scheduler) : base(settingsProvider)
     {
-        _schedulerFactory = schedulerFactory;
+        _scheduler = scheduler;
     }
 
     /// <summary>
@@ -102,9 +102,7 @@ public class AVDumpController : BaseController
 
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = fileDictionary, prioritize: true).ConfigureAwait(false);
+        await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = fileDictionary, prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }

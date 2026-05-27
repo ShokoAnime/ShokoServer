@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
 using NLog;
-using Quartz;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Logging.Models;
@@ -24,6 +23,7 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Services;
@@ -40,7 +40,7 @@ public class Core : BaseController
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
 
     private readonly IUserService _userService;
 
@@ -52,13 +52,13 @@ public class Core : BaseController
 
     public Core(
         ISettingsProvider settingsProvider,
-        ISchedulerFactory schedulerFactory,
+        IQueueScheduler scheduler,
         IUserService userService,
         IAnidbService anidbService,
         ActionService actionService
     ) : base(settingsProvider)
     {
-        _schedulerFactory = schedulerFactory;
+        _scheduler = scheduler;
         _userService = userService;
         _anidbService = anidbService;
         _actionService = actionService;
@@ -261,9 +261,7 @@ public class Core : BaseController
     {
         if (User.IsAniDBUser != 1)
             return BadRequest("User is not an AniDB user. Nothing to do.");
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBVotesJob>(c => c.UserID = User.JMMUserID);
+        await _scheduler.StartJob<SyncAniDBVotesJob>(c => c.UserID = User.JMMUserID);
         return APIStatus.OK();
     }
 
@@ -274,8 +272,7 @@ public class Core : BaseController
     [HttpGet("anidb/list/sync")]
     public async Task<ActionResult> SyncAniDBList()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBMyListJob>();
+        await _scheduler.StartJob<SyncAniDBMyListJob>();
         return APIStatus.OK();
     }
 

@@ -130,7 +130,11 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public DatabaseSettings Database { get; set; } = new();
 
     /// <inheritdoc />
-    public QuartzSettings Quartz { get; set; } = new();
+    public QueueProcessorSettings Queue { get; set; } = new();
+
+    // Backwards compatibility: old settings.json used "Quartz" key — copy on first load
+    [Newtonsoft.Json.JsonProperty("Quartz")]
+    private QueueProcessorSettings? QuartzLegacy { set { if (Queue.ConnectionString.Contains("Queue.db3")) Queue = value ?? Queue; } }
 
     /// <inheritdoc />
     public ConnectivitySettings Connectivity { get; set; } = new();

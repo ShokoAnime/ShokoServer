@@ -625,9 +625,7 @@ public partial class ShokoServiceImplementation
                 _logger.LogError("Unable to hash videolocal with id = {VideoLocalID}, it has no assigned place", videoLocalID);
                 return;
             }
-
-            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            scheduler.StartJob<HashFileJob>(
+            _scheduler.StartJob<HashFileJob>(
                 c => (c.FilePath, c.ForceHash) = (pl.Path, true),
                 prioritize: true
             ).GetAwaiter().GetResult();
@@ -819,9 +817,7 @@ public partial class ShokoServiceImplementation
         {
             return;
         }
-
-        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJob<DeleteFileFromMyListJob>(
+        _scheduler.StartJob<DeleteFileFromMyListJob>(
             c => (c.Hash, c.FileSize) = (vl.Hash, vl.FileSize),
             prioritize: true
         ).GetAwaiter().GetResult();
@@ -832,8 +828,7 @@ public partial class ShokoServiceImplementation
     {
         try
         {
-            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = hash, prioritize: true).GetAwaiter().GetResult();
+            _scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = hash, prioritize: true).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -1873,8 +1868,7 @@ public partial class ShokoServiceImplementation
             // if not we will download it now
             if (RepoFactory.AniDB_GroupStatus.GetByAnimeID(anime.AnimeID).Count == 0)
             {
-                var scheduler = _schedulerFactory.GetScheduler().Result;
-                scheduler.StartJob<GetAniDBReleaseGroupStatusJob>(c => c.AnimeID = anime.AnimeID).GetAwaiter().GetResult();
+                _scheduler.StartJob<GetAniDBReleaseGroupStatusJob>(c => c.AnimeID = anime.AnimeID).GetAwaiter().GetResult();
             }
 
             response.Result = _legacyV1Service.GetV1UserContract(ser, userID);
@@ -1913,8 +1907,7 @@ public partial class ShokoServiceImplementation
             var anime = _anidbService.Process(animeID, AnidbRefreshMethod.Remote).GetAwaiter().GetResult();
 
             // update group status information
-            var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-            scheduler.StartJob<GetAniDBReleaseGroupStatusJob>(
+            _scheduler.StartJob<GetAniDBReleaseGroupStatusJob>(
                 c => (c.AnimeID, c.ForceRefresh) = (animeID, true),
                 prioritize: true
             ).GetAwaiter().GetResult();
@@ -2876,8 +2869,7 @@ public partial class ShokoServiceImplementation
             RepoFactory.CrossRef_CustomTag.Save(xref);
 
             contractRet.Result = xref.ToClient();
-            var jobFactory = ISystemService.StaticServices.GetRequiredService<JobFactory>();
-            jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = contract.CrossRefID).Process().GetAwaiter().GetResult();
+            var refreshJobInst = ISystemService.StaticServices.GetRequiredService<RefreshAnimeStatsJob>(); refreshJobInst.AnimeID = contract.CrossRefID; refreshJobInst.Process().GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -2924,8 +2916,7 @@ public partial class ShokoServiceImplementation
                 return "Custom Tag not found";
 
             RepoFactory.CrossRef_CustomTag.Delete(xref.CrossRef_CustomTagID);
-            var jobFactory = ISystemService.StaticServices.GetRequiredService<JobFactory>();
-            jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = crossRefID).Process().GetAwaiter().GetResult();
+            var refreshJobInst = ISystemService.StaticServices.GetRequiredService<RefreshAnimeStatsJob>(); refreshJobInst.AnimeID = crossRefID; refreshJobInst.Process().GetAwaiter().GetResult();
             return string.Empty;
         }
         catch (Exception ex)
@@ -2998,8 +2989,13 @@ public partial class ShokoServiceImplementation
             RepoFactory.CustomTag.Delete(customTagID);
 
             // update cached data for any anime that were affected
-            var jobFactory = ISystemService.StaticServices.GetRequiredService<JobFactory>();
-            Task.WhenAll(xrefs.Select(xref => jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = xref.CrossRefID).Process())).GetAwaiter().GetResult();
+            var sp = ISystemService.StaticServices;
+            Task.WhenAll(xrefs.Select(xref =>
+            {
+                var j = sp.GetRequiredService<RefreshAnimeStatsJob>();
+                j.AnimeID = xref.CrossRefID;
+                return j.Process();
+            })).GetAwaiter().GetResult();
 
             return string.Empty;
         }

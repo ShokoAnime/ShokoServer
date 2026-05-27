@@ -1,12 +1,13 @@
+using Shoko.QueueProcessor.Abstractions;
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
 
@@ -19,13 +20,13 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 public class GetAniDBNotifyJob : BaseJob
 {
     private readonly IRequestFactory _requestFactory;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
 
     public override string TypeName => "Fetch Unread AniDB Messages List";
 
     public override string Title => "Fetching Unread AniDB Messages List";
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job}", nameof(GetAniDBNotifyJob));
 
@@ -69,16 +70,15 @@ public class GetAniDBNotifyJob : BaseJob
         var messages = RepoFactory.AniDB_NotifyQueue.GetByType(AniDBNotifyType.Message);
         if (messages.Count > 0)
         {
-            var scheduler = await _schedulerFactory.GetScheduler();
             foreach (var msg in messages)
-                await scheduler.StartJob<GetAniDBMessageJob>(r => r.MessageID = msg.ID);
+                await _scheduler.StartJob<GetAniDBMessageJob>(r => r.MessageID = msg.ID);
         }
     }
 
-    public GetAniDBNotifyJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory)
+    public GetAniDBNotifyJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory)
     {
         _requestFactory = requestFactory;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = schedulerFactory;
     }
 
     protected GetAniDBNotifyJob()

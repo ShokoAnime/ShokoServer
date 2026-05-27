@@ -12,7 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
@@ -23,6 +22,7 @@ using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Plugin.Models;
 using Shoko.Server.Repositories;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Server;
@@ -40,7 +40,7 @@ public partial class PluginPackageManager(
     IHttpClientFactory httpClientFactory,
     IPluginManager pluginManager,
     IApplicationPaths applicationPaths,
-    ISchedulerFactory schedulerFactory
+    IQueueScheduler schedulerFactory
 ) : IPluginPackageManager
 {
     internal const string Repositories = "repositories";
@@ -1159,8 +1159,7 @@ public partial class PluginPackageManager(
     /// <inheritdoc/>
     public async Task ScheduleCheckForUpdates(bool? forceSync = null, bool? performUpgrade = null, CancellationToken cancellationToken = default)
     {
-        var scheduler = await schedulerFactory.GetScheduler(cancellationToken).ConfigureAwait(false);
-        await scheduler.StartJob<CheckPluginUpdatesJob>(c => (c.ForceSync, c.PerformUpgrade) = (forceSync, performUpgrade)).ConfigureAwait(false);
+        await schedulerFactory.StartJob<CheckPluginUpdatesJob>(c => (c.ForceSync, c.PerformUpgrade) = (forceSync, performUpgrade)).ConfigureAwait(false);
     }
 
     #endregion

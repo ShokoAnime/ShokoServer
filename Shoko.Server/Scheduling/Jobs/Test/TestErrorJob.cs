@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Builder;
 
 namespace Shoko.Server.Scheduling.Jobs.Test;
 
@@ -12,7 +12,7 @@ public class TestErrorJob : BaseJob
     public override string TypeName => "Test Error";
     public override string Title => "Throwing an Error";
 
-    public override Task Process()
+    public override Task Execute()
     {
         _logger.LogInformation("Processing {Job}", nameof(TestErrorJob));
         throw new Exception("TEST TEST TEST ERROR!!!");

@@ -1,7 +1,7 @@
+using Shoko.QueueProcessor.Abstractions;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.Models.Shoko;
@@ -9,7 +9,8 @@ using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Settings;
 
@@ -21,7 +22,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class SyncAniDBVotesJob : BaseJob
 {
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
 
     private readonly IRequestFactory _requestFactory;
 
@@ -37,7 +38,7 @@ public class SyncAniDBVotesJob : BaseJob
 
     public bool Export { get; set; }
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job}", nameof(SyncAniDBVotesJob));
         var user = RepoFactory.JMMUser.GetByID(UserID);
@@ -78,7 +79,6 @@ public class SyncAniDBVotesJob : BaseJob
     private async Task ExportVotes(JMMUser user, List<ResponseVote> votes)
     {
         _logger.LogInformation("Exporting votes for user {UserID} to AniDB.", user.JMMUserID);
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var userData in RepoFactory.AnimeSeries_User.GetByUserID(user.JMMUserID))
         {
             if (RepoFactory.AnimeSeries.GetByID(userData.AnimeSeriesID) is not { } series)
@@ -93,7 +93,7 @@ public class SyncAniDBVotesJob : BaseJob
                 : SeriesVoteType.Temporary;
             if (vote is null)
             {
-                await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
+                await _scheduler.StartJob<VoteAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = series.AniDB_ID;
                     c.VoteValue = userData.UserRating.Value;
@@ -104,7 +104,7 @@ public class SyncAniDBVotesJob : BaseJob
             }
             else if (!userData.HasUserRating)
             {
-                await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
+                await _scheduler.StartJob<VoteAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = series.AniDB_ID;
                     c.VoteValue = -1;
@@ -114,7 +114,7 @@ public class SyncAniDBVotesJob : BaseJob
             // TODO: Handle the unsetting of permanent vote to set a temporary vote if needed.
             else if (vote.VoteValue != userData.UserRating.Value || (voteType != userData.UserRatingVoteType.Value && voteType is not SeriesVoteType.Permanent))
             {
-                await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
+                await _scheduler.StartJob<VoteAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = series.AniDB_ID;
                     c.VoteValue = userData.UserRating.Value;
@@ -136,7 +136,7 @@ public class SyncAniDBVotesJob : BaseJob
 
             if (vote is null)
             {
-                await scheduler.StartJob<VoteAniDBEpisodeJob>(c =>
+                await _scheduler.StartJob<VoteAniDBEpisodeJob>(c =>
                 {
                     c.EpisodeID = episode.AniDB_EpisodeID;
                     c.VoteValue = userData.UserRating.Value;
@@ -144,7 +144,7 @@ public class SyncAniDBVotesJob : BaseJob
             }
             else if (!userData.HasUserRating)
             {
-                await scheduler.StartJob<VoteAniDBEpisodeJob>(c =>
+                await _scheduler.StartJob<VoteAniDBEpisodeJob>(c =>
                 {
                     c.EpisodeID = episode.AniDB_EpisodeID;
                     c.VoteValue = -1;
@@ -152,7 +152,7 @@ public class SyncAniDBVotesJob : BaseJob
             }
             else if (vote.VoteValue != userData.UserRating.Value)
             {
-                await scheduler.StartJob<VoteAniDBEpisodeJob>(c =>
+                await _scheduler.StartJob<VoteAniDBEpisodeJob>(c =>
                 {
                     c.EpisodeID = episode.AniDB_EpisodeID;
                     c.VoteValue = userData.UserRating.Value;
@@ -200,9 +200,9 @@ public class SyncAniDBVotesJob : BaseJob
         _logger.LogInformation("Processed Votes: {Count} Items", votes.Count);
     }
 
-    public SyncAniDBVotesJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, IUserDataService userDataService, ISettingsProvider settingsProvider)
+    public SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory, IUserDataService userDataService, ISettingsProvider settingsProvider)
     {
-        _schedulerFactory = schedulerFactory;
+        _scheduler = schedulerFactory;
         _requestFactory = requestFactory;
         _userDataService = userDataService;
         _settingsProvider = settingsProvider;

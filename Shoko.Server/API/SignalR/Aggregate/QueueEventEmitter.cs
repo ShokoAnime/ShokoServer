@@ -1,9 +1,10 @@
 using System;
 using System.Linq;
 using Microsoft.AspNetCore.SignalR;
+using Shoko.QueueProcessor;
+using Shoko.QueueProcessor.Events;
 using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Scheduling;
 
 #nullable enable
 namespace Shoko.Server.API.SignalR.Aggregate;
@@ -44,9 +45,9 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
             CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(a => new Queue.QueueItem
             {
                 Key = a.Key,
-                Type = a.JobType,
-                Title = a.Title,
-                Details = a.Details,
+                Type = a.JobType ?? string.Empty,
+                Title = a.Title ?? string.Empty,
+                Details = a.Details ?? [],
                 IsRunning = true,
                 StartTime = a.StartTime?.ToUniversalTime()
             }).OrderBy(a => a.StartTime).ToList()
@@ -101,9 +102,9 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
             CurrentlyExecuting = e.ExecutingItems.Select(a => new Queue.QueueItem
             {
                 Key = a.Key,
-                Type = a.JobType,
-                Title = a.Title,
-                Details = a.Details,
+                Type = a.JobType ?? string.Empty,
+                Title = a.Title ?? string.Empty,
+                Details = a.Details ?? [],
                 IsRunning = true,
                 StartTime = a.StartTime?.ToUniversalTime()
             }).OrderBy(a => a.StartTime).ToList()

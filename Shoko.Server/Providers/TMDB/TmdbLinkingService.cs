@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.Metadata.Tmdb.Services;
@@ -15,6 +14,7 @@ using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.TMDB;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Settings;
@@ -49,7 +49,7 @@ public class TmdbLinkingService : ITmdbLinkingService
 
     private readonly ILogger<TmdbLinkingService> _logger;
 
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
 
     private readonly ISettingsProvider _settingsProvider;
 
@@ -75,7 +75,7 @@ public class TmdbLinkingService : ITmdbLinkingService
 
     public TmdbLinkingService(
         ILogger<TmdbLinkingService> logger,
-        ISchedulerFactory schedulerFactory,
+        IQueueScheduler schedulerFactory,
         ISettingsProvider settingsProvider,
         TmdbImageService imageService,
         AnimeSeriesRepository animeSeries,
@@ -90,7 +90,7 @@ public class TmdbLinkingService : ITmdbLinkingService
     )
     {
         _logger = logger;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = schedulerFactory;
         _settingsProvider = settingsProvider;
         _imageService = imageService;
         _animeSeries = animeSeries;
@@ -251,7 +251,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         _xrefAnidbTmdbMovies.Delete(xref);
 
         if (purge)
-            await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<PurgeTmdbMovieJob>(c =>
+            await _scheduler.StartJob<PurgeTmdbMovieJob>(c =>
             {
                 c.TmdbMovieID = xref.TmdbMovieID;
             });
@@ -332,10 +332,8 @@ public class TmdbLinkingService : ITmdbLinkingService
             xrefs.AddRange(extraXrefs);
         _logger.LogInformation("Removing {XRefsCount} episodes cross-references for AniDB anime (AnimeID={AnidbID}) and TMDB show (ID={TmdbID})", xrefs.Count, xref.AnidbAnimeID, xref.TmdbShowID);
         _xrefAnidbTmdbEpisodes.Delete(xrefs);
-
-        var scheduler = await _schedulerFactory.GetScheduler();
         if (purge)
-            await (await _schedulerFactory.GetScheduler().ConfigureAwait(false)).StartJob<PurgeTmdbShowJob>(c =>
+            await _scheduler.StartJob<PurgeTmdbShowJob>(c =>
             {
                 c.TmdbShowID = xref.TmdbShowID;
             });

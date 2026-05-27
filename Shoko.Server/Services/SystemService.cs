@@ -16,7 +16,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using NLog.Web;
-using Quartz;
+using Shoko.QueueProcessor;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Connectivity.Services;
@@ -404,7 +404,34 @@ public class SystemService : ISystemService
 
             services.AddRepositories();
             services.AddSentryConfig(settingsProvider);
-            services.AddQuartz(systemService);
+            // Wire the new queue processor
+            var queueSettings = ISettingsProvider.Instance.GetSettings().Queue;
+            var maxWorkers = queueSettings.MaxTotalWorkers > 0 ? queueSettings.MaxTotalWorkers : System.Environment.ProcessorCount + 4;
+            services.AddQueueProcessor(opts =>
+            {
+                opts.Provider = queueSettings.Provider;
+                opts.ConnectionString = queueSettings.ConnectionString;
+                opts.MaxTotalWorkers = maxWorkers;
+                opts.DefaultPoolMaxWorkers = System.Math.Max(1, maxWorkers - 2);
+                opts.FlushIntervalMs = queueSettings.FlushIntervalMs;
+                opts.MaxFlushBatch = queueSettings.MaxFlushBatch;
+                opts.WaitingCacheSize = queueSettings.WaitingCacheSize;
+                opts.LimitedConcurrencyOverrides = queueSettings.LimitedConcurrencyOverrides;
+            }, typeof(SystemService).Assembly);
+
+            // Register acquisition filters
+            services.AddSingleton<Shoko.QueueProcessor.Abstractions.IAcquisitionFilter, Shoko.Server.Scheduling.Acquisition.Filters.AniDBUdpRateLimitedAcquisitionFilter>();
+            services.AddSingleton<Shoko.QueueProcessor.Abstractions.IAcquisitionFilter, Shoko.Server.Scheduling.Acquisition.Filters.AniDBHttpRateLimitedAcquisitionFilter>();
+            services.AddSingleton<Shoko.QueueProcessor.Abstractions.IAcquisitionFilter, Shoko.Server.Scheduling.Acquisition.Filters.DatabaseRequiredAcquisitionFilter>();
+            services.AddSingleton<Shoko.QueueProcessor.Abstractions.IAcquisitionFilter, Shoko.Server.Scheduling.Acquisition.Filters.NetworkRequiredAcquisitionFilter>();
+
+            // Register recurring jobs
+            systemService.Started += async (_, _) =>
+            {
+                var registry = ISystemService.StaticServices.GetRequiredService<Shoko.QueueProcessor.Scheduling.RecurringJobRegistry>();
+                registry.Register<Shoko.Server.Scheduling.Jobs.Actions.CheckNetworkAvailabilityJob>(
+                    System.TimeSpan.FromMinutes(30), runImmediately: true);
+            };
 
             services.AddHttpClient("GitHub", client =>
                 {
@@ -499,7 +526,7 @@ public class SystemService : ISystemService
         var settings = _settingsProvider.GetSettings();
         try
         {
-            var schedulerFactory = _webHost!.Services.GetRequiredService<ISchedulerFactory>();
+            var scheduler = _webHost!.Services.GetRequiredService<Shoko.QueueProcessor.Abstractions.IQueueScheduler>();
             var databaseFactory = _webHost.Services.GetRequiredService<DatabaseFactory>();
             var repoFactory = _webHost.Services.GetRequiredService<RepoFactory>();
             var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
@@ -571,11 +598,10 @@ public class SystemService : ISystemService
             _startupTaskSource?.SetResult();
             _startupTaskSource = null;
 
-            var scheduler = schedulerFactory.GetScheduler().Result;
             if (settings.Import.ScanDropFoldersOnStart)
-                scheduler.StartJob<ScanDropFoldersJob>().GetAwaiter().GetResult();
+                scheduler.Enqueue<ScanDropFoldersJob>().GetAwaiter().GetResult();
             if (settings.Import.RunOnStart)
-                scheduler.StartJob<ImportJob>().GetAwaiter().GetResult();
+                scheduler.Enqueue<ImportJob>().GetAwaiter().GetResult();
             else
                 _webHost.Services.GetRequiredService<ActionService>()
                     .ScheduleMissingAnidbAnimeForFiles().GetAwaiter().GetResult();

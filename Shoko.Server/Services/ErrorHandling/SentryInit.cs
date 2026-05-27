@@ -9,7 +9,6 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using NHibernate.Exceptions;
-using Quartz;
 using Sentry;
 using Sentry.AspNetCore;
 using Shoko.Abstractions.Core;
@@ -75,17 +74,14 @@ public static class SentryInit
     }
 
     private static readonly HashSet<Type> _ignoredEvents = new() {
-        typeof (ObjectAlreadyExistsException),
         typeof(FileNotFoundException),
         typeof(DirectoryNotFoundException),
         typeof(UnauthorizedAccessException),
-        typeof(HttpRequestException),
-        typeof(ObjectAlreadyExistsException)
+        typeof(HttpRequestException)
     };
 
     private static readonly HashSet<Type> _includedEvents = new()
     {
-        typeof(JobPersistenceException),
         typeof(InvalidOperationException),
         typeof(NullReferenceException),
         typeof(ArgumentException),
@@ -117,7 +113,7 @@ public static class SentryInit
 
             if (type.GetCustomAttribute<SentryIgnoreAttribute>() is not null) return false;
 
-            if (ex is GenericADOException or JobPersistenceException)
+            if (ex is GenericADOException)
             {
                 // Error codes: https://www.sqlite.org/rescode.html
                 if (ex.InnerException is SqliteException
@@ -145,8 +141,9 @@ public static class SentryInit
 
             if (ex is HttpRequestException { StatusCode: HttpStatusCode.NotFound or HttpStatusCode.Forbidden }) return false;
 
-            if (ex is not JobExecutionException jobEx) return false;
-            ex = jobEx.InnerException;
+            // JobExecutionException no longer exists — unwrap any remaining exception and continue
+            if (ex?.InnerException != null) ex = ex.InnerException;
+            else return false;
         }
     }
 }

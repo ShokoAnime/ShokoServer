@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -42,7 +42,7 @@ public class CheckPluginUpdatesJob : BaseJob
         { "PerformUpgrade", PerformUpgrade?.ToString() ?? "Auto" },
     };
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing CheckPluginUpdatesJob: ForceSync={ForceSync}, PerformUpgrade={PerformUpgrade}", ForceSync, PerformUpgrade);
         await _pluginPackageManager.CheckForUpdates(ForceSync, PerformUpgrade).ConfigureAwait(false);

@@ -13,7 +13,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
-using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
@@ -35,6 +34,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Image;
 using Shoko.Server.Server;
@@ -47,7 +47,7 @@ public class ImageManager(
     ILogger<ImageManager> logger,
     IApplicationPaths applicationPaths,
     ISettingsProvider settingsProvider,
-    ISchedulerFactory schedulerFactory,
+    IQueueScheduler schedulerFactory,
     IServiceProvider services,
     IHttpClientFactory httpClientFactory,
     ConfigurationProvider<ServerSettings> configurationProvider,
@@ -740,9 +740,7 @@ public class ImageManager(
     {
         if (!force && image.IsAvailable)
             return;
-
-        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await scheduler.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force)).ConfigureAwait(false);
+        await schedulerFactory.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force)).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -754,14 +752,13 @@ public class ImageManager(
         bool force = false
     )
     {
-        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
         var images = GetImagesForEntity(entity, imageSource: imageSource, imageType: imageType, xrefSource: xrefSource, isEnabled: true, isDesired: true);
         foreach (var image in images)
         {
             if (!force && (image.IsAvailable || image.DownloadAttempts > 3))
                 continue;
 
-            await scheduler.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force)).ConfigureAwait(false);
+            await schedulerFactory.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force)).ConfigureAwait(false);
         }
     }
 
@@ -773,14 +770,13 @@ public class ImageManager(
         bool force = false
     )
     {
-        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
         var images = GetAllImages(imageSource: imageSource, imageType: imageType, xrefSource: xrefSource, isEnabled: true, isDesired: true);
         foreach (var image in images)
         {
             if (!force && (image.IsAvailable || image.DownloadAttempts > 3))
                 continue;
 
-            await scheduler.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force)).ConfigureAwait(false);
+            await schedulerFactory.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force)).ConfigureAwait(false);
         }
     }
 
@@ -846,8 +842,7 @@ public class ImageManager(
     /// <inheritdoc/>
     public async Task SchedulePurgeOfImage(IImage image)
     {
-        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await scheduler.StartJob<PurgeImageJob>(c => (c.Source, c.ResourceID) = (image.Source, image.ResourceID)).ConfigureAwait(false);
+        await schedulerFactory.StartJob<PurgeImageJob>(c => (c.Source, c.ResourceID) = (image.Source, image.ResourceID)).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -867,8 +862,7 @@ public class ImageManager(
     /// <inheritdoc/>
     public async Task SchedulePurgeOfOrphanedImages(int daysOld = 7, DataSource? imageSource = null)
     {
-        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await scheduler.StartJob<PurgeOrphanedImagesJob>(c => (c.DaysOld, c.ImageSource) = (daysOld, imageSource)).ConfigureAwait(false);
+        await schedulerFactory.StartJob<PurgeOrphanedImagesJob>(c => (c.DaysOld, c.ImageSource) = (daysOld, imageSource)).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -925,8 +919,7 @@ public class ImageManager(
     /// <inheritdoc/>
     public async Task ScheduleValidateAllImages(bool prioritize = true)
     {
-        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await scheduler.StartJob<ValidateAllImagesJob>(prioritize: prioritize).ConfigureAwait(false);
+        await schedulerFactory.StartJob<ValidateAllImagesJob>(prioritize: prioritize).ConfigureAwait(false);
     }
 
     #endregion

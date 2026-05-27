@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.StaticFiles;
-using Quartz;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
@@ -28,6 +27,7 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -48,7 +48,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]
 [Authorize]
 public class FileController(
-    ISchedulerFactory _schedulerFactory,
+    IQueueScheduler _schedulerFactory,
     IVideoService _videoService,
     IVideoReleaseService _videoReleaseService,
     IUserDataService _userDataService,
@@ -1005,8 +1005,7 @@ public class FileController(
             AVDumpHelper.DumpFiles(files, true);
         else
         {
-            var scheduler = await _schedulerFactory.GetScheduler();
-            await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = files, prioritize: priority).ConfigureAwait(false);
+            await _schedulerFactory.StartJob<AVDumpFilesJob>(a => a.Videos = files, prioritize: priority).ConfigureAwait(false);
         }
 
         return Ok();
@@ -1052,9 +1051,7 @@ public class FileController(
         var filePath = file.FirstResolvedPlace?.Path;
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<HashFileJob>(
+        await _schedulerFactory.StartJob<HashFileJob>(
             c => (c.FilePath, c.ForceHash) = (filePath, true),
             prioritize: priority
         ).ConfigureAwait(false);
@@ -1073,9 +1070,7 @@ public class FileController(
         var file = RepoFactory.VideoLocal.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = file.Hash, prioritize: true).ConfigureAwait(false);
+        await _schedulerFactory.StartJob<AddFileToMyListJob>(c => c.Hash = file.Hash, prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }

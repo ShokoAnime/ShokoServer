@@ -14,7 +14,6 @@ using MimeDetective.Definitions.Licensing;
 using MimeDetective.Storage;
 using Namotion.Reflection;
 using Polly;
-using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Plugin;
@@ -30,6 +29,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plugin;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
@@ -40,7 +40,7 @@ namespace Shoko.Server.Services;
 public class VideoHashingService(
     ILogger<VideoHashingService> logger,
     IServiceProvider serviceProvider,
-    ISchedulerFactory schedulerFactory,
+    IQueueScheduler schedulerFactory,
     IConfigurationService configurationService,
     IVideoReleaseService videoReleaseService,
     IPluginManager pluginManager,
@@ -410,9 +410,7 @@ public class VideoHashingService(
         // Verify that the _unknown_ file we're going to hash is, in fact, a video file.
         if (locationRepository.GetByRelativePathAndManagedFolderID(relativePath, managedFolder.ID) is null && !IsVideoFile(resolvedPath))
             throw new InvalidOperationException($"File is not a known video file format: {resolvedPath}");
-
-        var scheduler = await schedulerFactory.GetScheduler();
-        await scheduler.StartJob<HashFileJob>(b => (b.FilePath, b.ForceHash, b.SkipFindRelease, b.SkipMyList) = (path, !useExistingHashes, skipFindRelease, skipMylist), prioritize: prioritize);
+        await schedulerFactory.StartJob<HashFileJob>(b => (b.FilePath, b.ForceHash, b.SkipFindRelease, b.SkipMyList) = (path, !useExistingHashes, skipFindRelease, skipMylist), prioritize: prioritize);
     }
 
     public async Task<HashingResult> GetHashesForFile(IVideoFile file, bool useExistingHashes = true, bool skipFindRelease = false, bool skipMylist = false, CancellationToken cancellationToken = default)
@@ -453,9 +451,7 @@ public class VideoHashingService(
             if (!File.Exists(resolvedPath))
                 throw new FileNotFoundException($"Symbolic link points to file that does not exist: {resolvedPath}", resolvedPath);
         }
-
-        var scheduler = await schedulerFactory.GetScheduler();
-        await scheduler.StartJob<HashFileJob>(b => (b.FilePath, b.ForceHash, b.SkipFindRelease, b.SkipMyList) = (path, !useExistingHashes, skipFindRelease, skipMylist), prioritize: prioritize);
+        await schedulerFactory.StartJob<HashFileJob>(b => (b.FilePath, b.ForceHash, b.SkipFindRelease, b.SkipMyList) = (path, !useExistingHashes, skipFindRelease, skipMylist), prioritize: prioritize);
     }
 
     #region Internals

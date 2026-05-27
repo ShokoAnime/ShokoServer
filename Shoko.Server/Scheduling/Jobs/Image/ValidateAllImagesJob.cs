@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
-using Shoko.Server.Scheduling.Concurrency;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 
 #pragma warning disable CS0618
 #nullable enable
@@ -20,7 +20,7 @@ public class ValidateAllImagesJob : BaseJob
 
     public override string Title => "Validating All Images";
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job}", nameof(ValidateAllImagesJob));
         var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();

@@ -5,7 +5,7 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Builder;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
@@ -21,7 +21,7 @@ public class ProcessFileMovedMessageJob : BaseJob
 
     public int MessageID { get; set; }
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job}: {MessageId}", nameof(ProcessFileMovedMessageJob), MessageID);
 

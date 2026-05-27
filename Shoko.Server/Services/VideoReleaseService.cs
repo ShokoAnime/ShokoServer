@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Extensions;
@@ -29,6 +28,7 @@ using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -45,7 +45,7 @@ public class VideoReleaseService(
     IUDPConnectionHandler udpConnection,
     ISettingsProvider settingsProvider,
     ConfigurationProvider<VideoReleaseServiceSettings> configurationProvider,
-    ISchedulerFactory schedulerFactory,
+    IQueueScheduler schedulerFactory,
     IRequestFactory requestFactory,
     IUserService userService,
     IServiceProvider serviceProvider,
@@ -377,7 +377,6 @@ public class VideoReleaseService(
 
     public async Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool addToMylist = true, bool relocateFiles = true, bool prioritize = false)
     {
-        var scheduler = await schedulerFactory.GetScheduler();
         if (!AutoMatchEnabled)
         {
             if (relocateFiles)
@@ -392,7 +391,7 @@ public class VideoReleaseService(
             return;
         }
 
-        await scheduler.StartJob<ProcessFileJob>(b => (b.VideoLocalID, b.ForceRecheck, b.ShouldRelocate) = (video.ID, true, relocateFiles), prioritize: prioritize);
+        await schedulerFactory.StartJob<ProcessFileJob>(b => (b.VideoLocalID, b.ForceRecheck, b.ShouldRelocate) = (video.ID, true, relocateFiles), prioritize: prioritize);
     }
 
     public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool addToMylist = true, bool isAutomatic = true, CancellationToken cancellationToken = default)
@@ -640,7 +639,6 @@ public class VideoReleaseService(
         xrefRepository.Save(legacyXrefs);
 
         // Mark the video as imported if needed.
-        var scheduler = await schedulerFactory.GetScheduler();
         if (video is VideoLocal videoLocal && videoLocal.DateTimeImported is null)
         {
             videoLocal.DateTimeImported = DateTime.Now;
@@ -649,7 +647,7 @@ public class VideoReleaseService(
 
         // Schedule the release group to be fetched if needed.
         if (missingGroupId is not null)
-            await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = missingGroupId.Value);
+            await schedulerFactory.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = missingGroupId.Value);
 
         await ScheduleAnimeForRelease(legacyXrefs);
 
@@ -657,14 +655,14 @@ public class VideoReleaseService(
 
         // Sync to mylist if needed.
         if (addToMylist && !releaseUriMatches && _settings.AniDb.MyList_AddFiles)
-            await scheduler.StartJob<AddFileToMyListJob>(c =>
+            await schedulerFactory.StartJob<AddFileToMyListJob>(c =>
             {
                 c.Hash = video.ED2K;
                 c.ReadStates = true;
             }).ConfigureAwait(false);
         // Rename and/or move the physical file(s) if needed.
         if (_settings.Plugins.Renamer.RelocateOnImport)
-            await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.ID).ConfigureAwait(false);
+            await schedulerFactory.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.ID).ConfigureAwait(false);
 
         try
         {
@@ -911,8 +909,6 @@ public class VideoReleaseService(
             );
         if (animeIDs.Count == 0)
             return;
-
-        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
         var refreshMethod = AnidbRefreshMethod.Default | AnidbRefreshMethod.CreateShokoSeries;
         if (_settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime)
             refreshMethod |= AnidbRefreshMethod.DownloadRelations;
@@ -939,12 +935,12 @@ public class VideoReleaseService(
             }
             else
             {
-                await scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
+                await schedulerFactory.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
             }
 
             var tmdbShowXrefs = crossRefAnidbTmdbRepository.GetByAnidbAnimeID(animeID);
             foreach (var xref in tmdbShowXrefs)
-                await scheduler.StartJob<UpdateTmdbShowJob>(job =>
+                await schedulerFactory.StartJob<UpdateTmdbShowJob>(job =>
                 {
                     job.TmdbShowID = xref.TmdbShowID;
                     job.DownloadImages = true;
@@ -1061,11 +1057,9 @@ public class VideoReleaseService(
             logger.LogInformation("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", releaseInfo.ED2K);
             return;
         }
-
-        var scheduler = await schedulerFactory.GetScheduler();
         if (releaseInfo is { ReleaseURI: not null } && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
         {
-            await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+            await schedulerFactory.StartJob<DeleteFileFromMyListJob>(c =>
                 {
                     c.Hash = releaseInfo.ED2K;
                     c.FileSize = releaseInfo.FileSize;
@@ -1083,7 +1077,7 @@ public class VideoReleaseService(
                 if (anidbEpisode is null)
                     continue;
 
-                await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+                await schedulerFactory.StartJob<DeleteFileFromMyListJob>(c =>
                     {
                         c.AnimeID = xref.AnidbAnimeID.Value;
                         c.EpisodeType = anidbEpisode.EpisodeType;

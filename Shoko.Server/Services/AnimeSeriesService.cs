@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Force.DeepCloner;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Services;
@@ -19,6 +18,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Utilities;
@@ -35,17 +35,17 @@ public class AnimeSeriesService
     private readonly ILogger<AnimeSeriesService> _logger;
     private readonly VideoLocal_UserRepository _vlUsers;
     private readonly AnimeGroupService _groupService;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly UserDataService _userDataService;
     private readonly IServiceProvider _serviceProvider;
     private IAnidbService? _anidbService;
 
-    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, IServiceProvider serviceProvider, ISchedulerFactory schedulerFactory, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService, IUserDataService userDataService)
+    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, IServiceProvider serviceProvider, IQueueScheduler schedulerFactory, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService, IUserDataService userDataService)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = schedulerFactory;
         _groupService = groupService;
         _vlUsers = vlUsers;
         _videoReleaseService = videoReleaseService;
@@ -72,7 +72,6 @@ public class AnimeSeriesService
 
         // remove the current release and schedule a recheck for the file if
         // auto match is enabled.
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var video in vlIDsToUpdate)
         {
             await _videoReleaseService.ClearReleaseForVideo(video);
@@ -203,8 +202,7 @@ public class AnimeSeriesService
     public async Task QueueUpdateStats(AnimeSeries series)
     {
         if (series == null) return;
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<RefreshAnimeStatsJob>(c => c.AnimeID = series.AniDB_ID);
+        await _scheduler.StartJob<RefreshAnimeStatsJob>(c => c.AnimeID = series.AniDB_ID);
     }
 
     public void UpdateStats(AnimeSeries? series, bool watchedStats, bool missingEpsStats)

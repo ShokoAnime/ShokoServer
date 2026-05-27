@@ -1,11 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentNHibernate.Utils;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
@@ -19,6 +18,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -32,7 +32,7 @@ public class ActionService
 {
     private readonly ILogger<ActionService> _logger;
 
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
 
     private readonly IRequestFactory _requestFactory;
 
@@ -56,7 +56,7 @@ public class ActionService
 
     public ActionService(
         ILogger<ActionService> logger,
-        ISchedulerFactory schedulerFactory,
+        IQueueScheduler schedulerFactory,
         IRequestFactory requestFactory,
         ISettingsProvider settingsProvider,
         IVideoReleaseService videoReleaseService,
@@ -70,7 +70,7 @@ public class ActionService
     )
     {
         _logger = logger;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = schedulerFactory;
         _requestFactory = requestFactory;
         _settingsProvider = settingsProvider;
         _videoReleaseService = videoReleaseService;
@@ -85,7 +85,6 @@ public class ActionService
 
     public async Task RunImport_IntegrityCheck()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
         // files which have not been hashed yet
         // or files which do not have a VideoInfo record
         var filesToHash = RepoFactory.VideoLocal.GetVideosWithoutHash();
@@ -96,7 +95,7 @@ public class ActionService
             var p = vl.FirstResolvedPlace;
             if (p == null) continue;
 
-            await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path);
+            await _scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path);
         }
 
         foreach (var vl in filesToHash)
@@ -109,7 +108,7 @@ public class ActionService
                 var p = vl.FirstResolvedPlace;
                 if (p == null) continue;
 
-                await scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path);
+                await _scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path);
             }
             catch (Exception ex)
             {
@@ -157,7 +156,6 @@ public class ActionService
 
     public async Task RemoveRecordsWithoutPhysicalFiles(bool removeMyList = true)
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
         _logger.LogInformation("Remove Missing Files: Start");
         var seriesToUpdate = new HashSet<AnimeSeries>();
         using var session = _databaseFactory.SessionFactory.OpenSession();
@@ -324,15 +322,14 @@ public class ActionService
         // NOTE: use 'purge unused releases' if you want to remove the cross-references too.
 
         // update everything we modified
-        await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        await Task.WhenAll(seriesToUpdate.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
 
         _logger.LogInformation("Remove Missing Files: Finished");
     }
 
     public async Task UpdateAllStats()
     {
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        await Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
     public async Task<int> UpdateAnidbReleaseInfo(bool countOnly = false)
@@ -363,9 +360,8 @@ public class ActionService
                 .Select(a => int.Parse(a.GroupID))
                 .ToHashSet();
             _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", incorrectGroups.Count);
-            var scheduler = await _schedulerFactory.GetScheduler();
             foreach (var a in incorrectGroups)
-                await scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = a);
+                await _scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = a);
         }
 
         return missingFiles.Count;
@@ -401,9 +397,7 @@ public class ActionService
 
         schedule.LastUpdate = DateTime.Now;
         RepoFactory.ScheduledUpdate.Save(schedule);
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<GetAniDBNotifyJob>();
+        await _scheduler.StartJob<GetAniDBNotifyJob>();
 
         // process any unhandled moved file messages
         await RefreshAniDBMovedFiles(false);
@@ -417,10 +411,9 @@ public class ActionService
             var messages = RepoFactory.AniDB_Message.GetUnhandledFileMoveMessages();
             if (messages.Count > 0)
             {
-                var scheduler = await _schedulerFactory.GetScheduler();
                 foreach (var msg in messages)
                 {
-                    await scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = msg.MessageID);
+                    await _scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = msg.MessageID);
                 }
             }
         }
@@ -430,7 +423,6 @@ public class ActionService
     {
         var settings = _settingsProvider.GetSettings();
         if (settings.AniDb.Calendar_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-        var scheduler = await _schedulerFactory.GetScheduler();
 
         var freqHours = settings.AniDb.Calendar_UpdateFrequency.Hours;
 
@@ -445,14 +437,13 @@ public class ActionService
             if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
         }
 
-        await scheduler.StartJob<GetAniDBCalendarJob>(c => c.ForceRefresh = forceRefresh);
+        await _scheduler.StartJob<GetAniDBCalendarJob>(c => c.ForceRefresh = forceRefresh);
     }
 
     public async Task CheckForAnimeUpdate()
     {
         var settings = _settingsProvider.GetSettings();
         if (settings.AniDb.Anime_UpdateFrequency == ScheduledUpdateFrequency.Never) return;
-        var scheduler = await _schedulerFactory.GetScheduler();
 
         var freqHours = settings.AniDb.Anime_UpdateFrequency.Hours;
 
@@ -466,15 +457,13 @@ public class ActionService
             if (tsLastRun.TotalHours < freqHours) return;
         }
 
-        await scheduler.StartJob<GetUpdatedAniDBAnimeJob>(c => c.ForceRefresh = true);
+        await _scheduler.StartJob<GetUpdatedAniDBAnimeJob>(c => c.ForceRefresh = true);
     }
 
     public async Task CheckForMyListSyncUpdate(bool forceRefresh)
     {
         var settings = _settingsProvider.GetSettings();
         if (settings.AniDb.MyList_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-
-        var scheduler = await _schedulerFactory.GetScheduler();
         var freqHours = settings.AniDb.MyList_UpdateFrequency.Hours;
 
         // update the calendar every 24 hours
@@ -488,7 +477,7 @@ public class ActionService
             if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
         }
 
-        await scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = forceRefresh);
+        await _scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = forceRefresh);
     }
 
     public async Task CheckForAniDBFileUpdate(bool forceRefresh)
@@ -709,11 +698,10 @@ public class ActionService
 
         var startedAt = DateTime.Now;
         _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh.", allMissingCreators.Count);
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
         var progressCount = 0;
         foreach (var creatorID in allMissingCreators)
         {
-            await scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorID).ConfigureAwait(false);
+            await _scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorID).ConfigureAwait(false);
 
             if (++progressCount % 10 == 0)
                 _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh. (Progress={Count}/{Total})", allMissingCreators.Count, progressCount, allMissingCreators.Count);
@@ -724,7 +712,6 @@ public class ActionService
 
     public async Task CreateMissingSeries()
     {
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
         var missingSeries = RepoFactory.VideoLocal.GetAll().SelectMany(vid =>
         {
             var xrefs = RepoFactory.CrossRef_File_Episode.GetByEd2k(vid.Hash);

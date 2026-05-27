@@ -2,5 +2,6 @@ using System;
 
 namespace Shoko.Server.Scheduling.Acquisition.Attributes;
 
-[AttributeUsage(AttributeTargets.Class)]
-public class NetworkRequiredAttribute : AcquisitionFilterAttribute { }
+/// <summary>Marks a job as requiring internet connectivity.</summary>
+[AttributeUsage(AttributeTargets.Class, Inherited = true)]
+public sealed class NetworkRequiredAttribute : Attribute { }

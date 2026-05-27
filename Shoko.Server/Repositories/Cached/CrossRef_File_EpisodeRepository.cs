@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using NutzCode.InMemoryIndex;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
 #nullable enable
@@ -14,7 +15,7 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
 {
     private readonly ILogger<CrossRef_File_EpisodeRepository> _logger;
 
-    private readonly JobFactory _jobFactory;
+    private readonly IServiceProvider _serviceProvider;
 
     private PocoIndex<int, CrossRef_File_Episode, string>? _ed2k;
 
@@ -24,13 +25,14 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
 
     private PocoIndex<int, CrossRef_File_Episode, (string FileName, long FileSize)>? _fileNames;
 
-    public CrossRef_File_EpisodeRepository(ILogger<CrossRef_File_EpisodeRepository> logger, JobFactory jobFactory, DatabaseFactory databaseFactory) : base(databaseFactory)
+    public CrossRef_File_EpisodeRepository(ILogger<CrossRef_File_EpisodeRepository> logger, IServiceProvider serviceProvider, DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         _logger = logger;
-        _jobFactory = jobFactory;
+        _serviceProvider = serviceProvider;
         EndSaveCallback = obj =>
         {
-            var job = _jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = obj.AnimeID);
+            var job = _serviceProvider.GetRequiredService<RefreshAnimeStatsJob>();
+            job.AnimeID = obj.AnimeID;
             job.Process().GetAwaiter().GetResult();
         };
         EndDeleteCallback = obj =>
@@ -38,7 +40,8 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
             if (obj is not { AnimeID: > 0 }) return;
 
             _logger.LogTrace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {AnimeID}", obj.AnimeID);
-            var job = _jobFactory.CreateJob<RefreshAnimeStatsJob>(a => a.AnimeID = obj.AnimeID);
+            var job = _serviceProvider.GetRequiredService<RefreshAnimeStatsJob>();
+            job.AnimeID = obj.AnimeID;
             job.Process().GetAwaiter().GetResult();
         };
     }

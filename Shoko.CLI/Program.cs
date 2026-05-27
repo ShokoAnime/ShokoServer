@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Events;
+using Shoko.QueueProcessor.Events;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Server;
 using Shoko.Server.Services;

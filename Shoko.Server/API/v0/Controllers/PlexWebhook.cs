@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Quartz;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.Extensions;
@@ -18,6 +17,7 @@ using Shoko.Server.Plex;
 using Shoko.Server.Plex.Models.Connections;
 using Shoko.Server.Plex.Models.Libraries;
 using Shoko.Server.Repositories;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Plex;
 using Shoko.Server.Settings;
@@ -35,13 +35,13 @@ namespace Shoko.Server.API.v0.Controllers;
 public class PlexWebhook : BaseController
 {
     private readonly ILogger<PlexWebhook> _logger;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
     private readonly IUserDataService _userDataService;
 
-    public PlexWebhook(ILogger<PlexWebhook> logger, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IUserDataService userDataService) : base(settingsProvider)
+    public PlexWebhook(ILogger<PlexWebhook> logger, ISettingsProvider settingsProvider, IQueueScheduler scheduler, IUserDataService userDataService) : base(settingsProvider)
     {
         _logger = logger;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = scheduler;
         _userDataService = userDataService;
     }
 
@@ -200,8 +200,7 @@ public class PlexWebhook : BaseController
     [HttpGet("sync")]
     public async Task<ActionResult> Sync()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = HttpContext.GetUser());
+        await _scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = HttpContext.GetUser());
         return Ok();
     }
 
@@ -209,11 +208,10 @@ public class PlexWebhook : BaseController
     [HttpGet("sync/all")]
     public async Task<ActionResult> SyncAll()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var user in RepoFactory.JMMUser.GetAll())
         {
             if (string.IsNullOrEmpty(user.PlexToken)) continue;
-            await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = user);
+            await _scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = user);
         }
         return Ok();
     }
@@ -227,9 +225,7 @@ public class PlexWebhook : BaseController
         {
             return BadRequest("Invalid User ID");
         }
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = HttpContext.GetUser());
+        await _scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = HttpContext.GetUser());
         return Ok();
     }
 

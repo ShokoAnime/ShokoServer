@@ -54,9 +54,9 @@ public interface IServerSettings
     DatabaseSettings Database { get; set; }
 
     /// <summary>
-    /// The Quartz.NET settings.
+    /// The queue processor settings.
     /// </summary>
-    QuartzSettings Quartz { get; set; }
+    QueueProcessorSettings Queue { get; set; }
 
     /// <summary>
     /// The connectivity settings.

@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
-using Shoko.Server.Scheduling.Concurrency;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -43,7 +43,7 @@ public class PurgeTmdbMovieJob : BaseJob
             {"MovieID", TmdbMovieID},
         };
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing PurgeTmdbMovieJob: {TmdbMovieId}", TmdbMovieID);
         await _tmdbService.PurgeMovie(TmdbMovieID).ConfigureAwait(false);

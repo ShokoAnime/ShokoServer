@@ -2,5 +2,6 @@ using System;
 
 namespace Shoko.Server.Scheduling.Acquisition.Attributes;
 
-[AttributeUsage(AttributeTargets.Class)]
-public class DatabaseRequiredAttribute : AcquisitionFilterAttribute { }
+/// <summary>Marks a job as requiring the database to be available (not blocked/initializing).</summary>
+[AttributeUsage(AttributeTargets.Class, Inherited = true)]
+public sealed class DatabaseRequiredAttribute : Attribute { }

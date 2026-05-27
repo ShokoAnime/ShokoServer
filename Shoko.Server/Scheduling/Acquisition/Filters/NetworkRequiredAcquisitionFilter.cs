@@ -1,13 +1,12 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Quartz;
-using Quartz.Util;
 using Shoko.Abstractions.Connectivity.Enums;
 using Shoko.Abstractions.Connectivity.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 
-#nullable enable
 namespace Shoko.Server.Scheduling.Acquisition.Filters;
 
 public class NetworkRequiredAcquisitionFilter : IAcquisitionFilter
@@ -19,24 +18,21 @@ public class NetworkRequiredAcquisitionFilter : IAcquisitionFilter
     {
         _connectivityService = connectivityService;
         _connectivityService.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
-        _types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a =>
-            typeof(IJob).IsAssignableFrom(a) && !a.IsAbstract && ObjectUtils.IsAttributePresent(a, typeof(NetworkRequiredAttribute))).ToArray();
+        _types = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(a => a.GetTypes())
+            .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract &&
+                        a.IsDefined(typeof(NetworkRequiredAttribute), true))
+            .ToArray();
     }
 
-    ~NetworkRequiredAcquisitionFilter()
-    {
-        _connectivityService.NetworkAvailabilityChanged -= OnNetworkAvailabilityChanged;
-    }
+    ~NetworkRequiredAcquisitionFilter() => _connectivityService.NetworkAvailabilityChanged -= OnNetworkAvailabilityChanged;
 
-    private void OnNetworkAvailabilityChanged(object? sender, EventArgs e)
-    {
-        StateChanged?.Invoke(null, EventArgs.Empty);
-    }
+    public Type? WatchedAttributeType => null; // global filter — applies to Default pool
+
+    private void OnNetworkAvailabilityChanged(object? sender, EventArgs e) => StateChanged?.Invoke(null, EventArgs.Empty);
 
     public IEnumerable<Type> GetTypesToExclude() =>
-        _connectivityService.NetworkAvailability >= NetworkAvailability.PartialInternet
-            ? []
-            : _types;
+        _connectivityService.NetworkAvailability >= NetworkAvailability.PartialInternet ? [] : _types;
 
     public event EventHandler? StateChanged;
 }

@@ -6,7 +6,7 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
@@ -47,7 +47,7 @@ public class GetAniDBImagesJob : BaseJob
         _title = _anime?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title;
     }
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job} for {Anime}", nameof(GetAniDBImagesJob), _anime?.Title ?? AnimeID.ToString());
         if (_anime == null)

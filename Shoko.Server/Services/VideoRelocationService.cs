@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
-using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Config.Services;
@@ -30,6 +29,7 @@ using Shoko.Server.Plugin;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
@@ -44,7 +44,7 @@ public class VideoRelocationService(
     IServiceProvider serviceProvider,
     IPluginManager pluginManager,
     ISettingsProvider settingsProvider,
-    ISchedulerFactory schedulerFactory,
+    IQueueScheduler schedulerFactory,
     IConfigurationService configurationService,
     FileWatcherService fileWatcherService,
     VideoLocal_PlaceRepository videoLocalPlace,
@@ -471,8 +471,7 @@ public class VideoRelocationService(
         }
 
         logger.LogTrace("Scheduling relocation for video: {FileName} (Video={VideoID})", fileName, video.ID);
-        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await scheduler.StartJob<RenameMoveFileJob>(b => b.VideoLocalID = video.ID, prioritize: prioritize).ConfigureAwait(false);
+        await schedulerFactory.StartJob<RenameMoveFileJob>(b => b.VideoLocalID = video.ID, prioritize: prioritize).ConfigureAwait(false);
     }
 
     public async Task ScheduleAutoRelocationForVideoFile(IVideoFile file, bool prioritize = false)
@@ -498,8 +497,7 @@ public class VideoRelocationService(
         }
 
         logger.LogTrace("Scheduling relocation for video file: {Path} (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
-        var scheduler = await schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await scheduler.StartJob<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (file.ManagedFolderID, file.RelativePath), prioritize: prioritize).ConfigureAwait(false);
+        await schedulerFactory.StartJob<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (file.ManagedFolderID, file.RelativePath), prioritize: prioritize).ConfigureAwait(false);
     }
 
     /// <summary>

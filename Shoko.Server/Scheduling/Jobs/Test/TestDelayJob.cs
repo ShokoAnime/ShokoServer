@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Builder;
 
 namespace Shoko.Server.Scheduling.Jobs.Test;
 
@@ -13,7 +13,7 @@ public class TestDelayJob : BaseJob
     public override string TypeName => "Test spin/wait";
     public override string Title => $"Waiting for {DelaySeconds} seconds";
 
-    public override Task Process()
+    public override Task Execute()
     {
         _logger.LogInformation("Processing {Job} -> {Time} seconds", nameof(TestDelayJob), DelaySeconds);
         return Task.Delay(TimeSpan.FromSeconds(DelaySeconds));

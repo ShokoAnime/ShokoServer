@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Builder;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -41,7 +41,7 @@ public class PurgeAniDBAnimeJob : BaseJob
         _title = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID)?.MainTitle;
     }
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job} for {Anime}", nameof(PurgeAniDBAnimeJob), _title ?? AnimeID.ToString());
         await _anidbService.PurgeAnimeByID(AnimeID, RemoveFromMylist).ConfigureAwait(false);

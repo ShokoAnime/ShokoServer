@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.Annotations;
@@ -12,6 +11,7 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -37,14 +37,14 @@ public class ActionController : BaseController
     private readonly TmdbLinkingService _tmdbLinkingService;
     private readonly IVideoService _videoService;
     private readonly IVideoReleaseService _videoReleaseService;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
     private readonly IImageManager _imageManager;
 
     public ActionController(
         ILogger<ActionController> logger,
         TmdbMetadataService tmdbMetadataService,
         TmdbLinkingService tmdbLinkingService,
-        ISchedulerFactory schedulerFactory,
+        IQueueScheduler scheduler,
         IVideoService videoService,
         IVideoReleaseService videoReleaseService,
         ISettingsProvider settingsProvider,
@@ -59,7 +59,7 @@ public class ActionController : BaseController
         _tmdbLinkingService = tmdbLinkingService;
         _videoService = videoService;
         _videoReleaseService = videoReleaseService;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = scheduler;
         _actionService = actionService;
         _groupCreator = groupCreator;
         _groupService = groupService;
@@ -75,8 +75,7 @@ public class ActionController : BaseController
     [HttpGet("RunImport")]
     public async Task<ActionResult> RunImport()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<ImportJob>();
+        await _scheduler.StartJob<ImportJob>();
         return Ok();
     }
 
@@ -113,9 +112,7 @@ public class ActionController : BaseController
 
         if (export && import)
             return BadRequest("Cannot export and import at the same time.");
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBVotesJob>(c => (c.UserID, c.Export) = (User.JMMUserID, export));
+        await _scheduler.StartJob<SyncAniDBVotesJob>(c => (c.UserID, c.Export) = (User.JMMUserID, export));
         return Ok();
     }
 
@@ -341,9 +338,8 @@ public class ActionController : BaseController
             .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.Path, tuple.Video))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
             .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var (fileId, filePath) in mismatchedFiles)
-            await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = new() { { fileId, filePath } });
+            await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = new() { { fileId, filePath } });
 
         _logger.LogInformation("Queued {QueuedAnimeCount} files for avdumping", mismatchedFiles.Count);
 
@@ -391,8 +387,7 @@ public class ActionController : BaseController
     [HttpGet("SyncMyList")]
     public async Task<ActionResult> SyncMyList()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = true);
+        await _scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = true);
         return Ok();
     }
 
@@ -416,8 +411,7 @@ public class ActionController : BaseController
     [HttpGet("UpdateAllMediaInfo")]
     public async Task<ActionResult> UpdateAllMediaInfo()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<MediaInfoAllFilesJob>();
+        await _scheduler.StartJob<MediaInfoAllFilesJob>();
         return Ok();
     }
 
@@ -511,11 +505,10 @@ public class ActionController : BaseController
     [HttpGet("PlexSyncAll")]
     public async Task<ActionResult> PlexSyncAll()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var user in RepoFactory.JMMUser.GetAll())
         {
             if (string.IsNullOrEmpty(user.PlexToken)) continue;
-            await scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = user);
+            await _scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = user);
         }
         return Ok();
     }
@@ -528,11 +521,10 @@ public class ActionController : BaseController
     [HttpGet("AddAllManualLinksToMyList")]
     public async Task<ActionResult> AddAllManualLinksToMyList()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
         var files = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
         foreach (var vl in files)
         {
-            await scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = vl.Hash);
+            await _scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = vl.Hash);
         }
 
         return Ok($"Saved {files.Count} AddToMyList Commands");

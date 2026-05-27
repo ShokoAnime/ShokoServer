@@ -6,7 +6,7 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Builder;
 
 #pragma warning disable CS0618
 #nullable enable
@@ -32,7 +32,7 @@ public class PurgeImageJob : BaseJob
             { "Resource ID", ResourceID },
         };
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job} for {Source}: {ResourceID}", nameof(PurgeImageJob), Source, ResourceID);
 

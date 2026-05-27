@@ -2,5 +2,6 @@ using System;
 
 namespace Shoko.Server.Scheduling.Acquisition.Attributes;
 
-[AttributeUsage(AttributeTargets.Class)]
-public class AniDBUdpRateLimitedAttribute : NetworkRequiredAttribute { }
+/// <summary>Marks a job as requiring the AniDB UDP connection to be available and not rate-limited.</summary>
+[AttributeUsage(AttributeTargets.Class, Inherited = true)]
+public sealed class AniDBUdpRateLimitedAttribute : Attribute { }

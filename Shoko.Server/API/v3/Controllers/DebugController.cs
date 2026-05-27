@@ -10,11 +10,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Quartz;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Test;
@@ -38,13 +38,13 @@ public class DebugController : BaseController
     private readonly ILogger<DebugController> _logger;
 
     private readonly IUDPConnectionHandler _udpHandler;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
 
-    public DebugController(ILogger<DebugController> logger, IUDPConnectionHandler udpHandler, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory) : base(settingsProvider)
+    public DebugController(ILogger<DebugController> logger, IUDPConnectionHandler udpHandler, ISettingsProvider settingsProvider, IQueueScheduler scheduler) : base(settingsProvider)
     {
         _logger = logger;
         _udpHandler = udpHandler;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = scheduler;
     }
 
     /// <summary>
@@ -55,9 +55,8 @@ public class DebugController : BaseController
     [HttpGet("ScheduleJobs/Delay/{count}")]
     public async Task<ActionResult> ScheduleTestJobs(int count, [FromQuery] int seconds = 60)
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
         for (var i = 0; i < count; i++)
-            await scheduler.StartJob<TestDelayJob>(t => (t.DelaySeconds, t.Offset) = (seconds, i), prioritize: true).ConfigureAwait(false);
+            await _scheduler.StartJob<TestDelayJob>(t => (t.DelaySeconds, t.Offset) = (seconds, i), prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }
@@ -69,9 +68,8 @@ public class DebugController : BaseController
     [HttpGet("ScheduleJobs/Error/{count}")]
     public async Task<ActionResult> ScheduleTestErrorJobs(int count)
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
         for (var i = 0; i < count; i++)
-            await scheduler.StartJob<TestErrorJob>(t => t.Offset = i, prioritize: true).ConfigureAwait(false);
+            await _scheduler.StartJob<TestErrorJob>(t => t.Offset = i, prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }
@@ -84,8 +82,7 @@ public class DebugController : BaseController
     [HttpGet("FetchAniDBMessage/{id}")]
     public async Task<ActionResult> FetchAniDBMessage(int id)
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<GetAniDBMessageJob>(r => r.MessageID = id, prioritize: true).ConfigureAwait(false);
+        await _scheduler.StartJob<GetAniDBMessageJob>(r => r.MessageID = id, prioritize: true).ConfigureAwait(false);
         return Ok();
     }
 

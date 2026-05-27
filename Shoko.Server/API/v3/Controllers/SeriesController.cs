@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Quartz;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
@@ -32,6 +31,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
@@ -62,7 +62,7 @@ public class SeriesController : BaseController
 
     private readonly AniDBTitleHelper _titleHelper;
 
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
 
     private readonly TmdbLinkingService _tmdbLinkingService;
 
@@ -84,7 +84,7 @@ public class SeriesController : BaseController
         AnimeSeriesService seriesService,
         AnimeGroupService groupService,
         AniDBTitleHelper titleHelper,
-        ISchedulerFactory schedulerFactory,
+        IQueueScheduler scheduler,
         TmdbLinkingService tmdbLinkingService,
         TmdbMetadataService tmdbMetadataService,
         TmdbSearchService tmdbSearchService,
@@ -98,7 +98,7 @@ public class SeriesController : BaseController
         _seriesService = seriesService;
         _groupService = groupService;
         _titleHelper = titleHelper;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = scheduler;
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbSearchService = tmdbSearchService;
@@ -2361,15 +2361,13 @@ public class SeriesController : BaseController
 
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
-
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in series.VideoLocals)
         {
             var filePath = file.FirstResolvedPlace?.Path;
             if (string.IsNullOrEmpty(filePath))
                 continue;
 
-            await scheduler.StartJob<HashFileJob>(
+            await _scheduler.StartJob<HashFileJob>(
                 c => (c.FilePath, c.ForceHash) = (filePath, true),
                 prioritize: true
             ).ConfigureAwait(false);
@@ -2397,15 +2395,13 @@ public class SeriesController : BaseController
         var settings = SettingsProvider.GetSettings();
         if (!settings.Plugins.Renamer.RelocateOnImport)
             return Ok();
-
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var file in series.VideoLocals)
         {
             var filePath = file.FirstResolvedPlace?.Path;
             if (string.IsNullOrEmpty(filePath))
                 continue;
 
-            await scheduler.StartJob<RenameMoveFileJob>(c =>
+            await _scheduler.StartJob<RenameMoveFileJob>(c =>
                 {
                     c.VideoLocalID = file.VideoLocalID;
                 }
