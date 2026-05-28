@@ -12,7 +12,6 @@ using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.Exceptions;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.ImageManagement;

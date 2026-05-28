@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Image;
 using Shoko.Server.API.v1.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
