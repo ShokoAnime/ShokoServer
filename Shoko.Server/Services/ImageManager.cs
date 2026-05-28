@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +32,10 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
@@ -43,7 +47,7 @@ using Shoko.Server.Settings;
 #nullable enable
 namespace Shoko.Server.Services;
 
-public class ImageManager(
+public partial class ImageManager(
     ILogger<ImageManager> logger,
     IApplicationPaths applicationPaths,
     ISettingsProvider settingsProvider,
@@ -789,6 +793,16 @@ public class ImageManager(
     #region Image | Purge
 
     /// <inheritdoc/>
+    public IEnumerable<IImage> GetOrphanedImages(int daysOld = 7, DataSource? imageSource = null)
+    {
+        var threshold = DateTime.UtcNow.AddDays(-daysOld);
+        var images = imageRepository.GetOrphanedImages(threshold);
+        if (imageSource.HasValue)
+            images = images.Where(image => image.Source == imageSource.Value).ToList();
+        return images;
+    }
+
+    /// <inheritdoc/>
     public async Task<bool> PurgeImage(IImage image)
     {
         var updated = false;
@@ -1378,6 +1392,95 @@ public class ImageManager(
         }
         return false;
     }
+
+    internal const int SeasonIdHexLength = 24;
+
+    [GeneratedRegex(@"^(?:[0-9]{1,23}|[a-f0-9]{24})$")]
+    internal static partial Regex SeasonIdRegex();
+
+    /// <inheritdoc/>
+    public IWithImages? GetEntityForImage(DataSource entitySource, DataEntityType entityType, string entityID) => (entitySource, entityType) switch
+    {
+        // Shoko
+        (DataSource.Shoko, DataEntityType.Group) => !int.TryParse(entityID, out var shokoGroupID)
+            ? null : Repositories.RepoFactory.AnimeGroup.GetByID(shokoGroupID),
+
+        (DataSource.Shoko, DataEntityType.Series) => !int.TryParse(entityID, out var shokoSeriesID)
+            ? null : Repositories.RepoFactory.AnimeSeries.GetByID(shokoSeriesID),
+
+        (DataSource.Shoko, DataEntityType.Season) =>
+            entityID.Split(':') is not { Length: 3 } parts ||
+            !int.TryParse(parts[0], out var shokoSeriesID) ||
+            Repositories.RepoFactory.AnimeSeries.GetByID(shokoSeriesID) is not { } shokoSeries ||
+            !Enum.TryParse<EpisodeType>(parts[1], true, out var episodeType) ||
+            !int.TryParse(parts[2], out var seasonNumber)
+                ? null : new AnimeSeason(shokoSeries, episodeType, seasonNumber),
+
+        (DataSource.Shoko, DataEntityType.Episode) => !int.TryParse(entityID, out var shokoEpisodeID)
+            ? null : Repositories.RepoFactory.AnimeEpisode.GetByID(shokoEpisodeID),
+
+        (DataSource.Shoko, DataEntityType.Video) => !int.TryParse(entityID, out var videoID)
+            ? null : Repositories.RepoFactory.VideoLocal.GetByID(videoID),
+
+        (DataSource.Shoko, DataEntityType.User) => !int.TryParse(entityID, out var userID)
+            ? null : Repositories.RepoFactory.JMMUser.GetByID(userID),
+
+        // AniDB
+        (DataSource.AniDB, DataEntityType.Anime) => !int.TryParse(entityID, out var anidbAnimeID)
+            ? null : Repositories.RepoFactory.AniDB_Anime.GetByAnimeID(anidbAnimeID),
+
+        (DataSource.AniDB, DataEntityType.Season) =>
+            entityID.Split(':') is not { Length: 3 } parts ||
+            !int.TryParse(parts[0], out var anidbAnimeID) ||
+            Repositories.RepoFactory.AniDB_Anime.GetByAnimeID(anidbAnimeID) is not { } anidbAnime ||
+            !Enum.TryParse<EpisodeType>(parts[1], true, out var episodeType) ||
+            !int.TryParse(parts[2], out var seasonNumber)
+                ? null : new AniDB_Season(anidbAnime, episodeType, seasonNumber),
+
+        (DataSource.AniDB, DataEntityType.Episode) => !int.TryParse(entityID, out var anidbEpisodeID)
+            ? null : Repositories.RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID),
+
+        (DataSource.AniDB, DataEntityType.Studio) =>
+            !int.TryParse(entityID, out var anidbStudioID) ||
+            Repositories.RepoFactory.AniDB_Creator.GetByCreatorID(anidbStudioID) is not { } creator
+                ? null : new AniDB_Studio(creator),
+
+        (DataSource.AniDB, DataEntityType.Creator) => !int.TryParse(entityID, out var anidbCreatorID)
+            ? null : Repositories.RepoFactory.AniDB_Creator.GetByCreatorID(anidbCreatorID),
+
+        (DataSource.AniDB, DataEntityType.Character) => !int.TryParse(entityID, out var anidbCharacterID)
+            ? null : Repositories.RepoFactory.AniDB_Character.GetByCharacterID(anidbCharacterID),
+
+        // TMDB
+        (DataSource.TMDB, DataEntityType.Collection) => !int.TryParse(entityID, out var tmdbCollectionID)
+            ? null : Repositories.RepoFactory.TMDB_Collection.GetByTmdbCollectionID(tmdbCollectionID),
+
+        (DataSource.TMDB, DataEntityType.Movie) => !int.TryParse(entityID, out var tmdbMovieID)
+            ? null : Repositories.RepoFactory.TMDB_Movie.GetByTmdbMovieID(tmdbMovieID),
+
+        (DataSource.TMDB, DataEntityType.Show) => !int.TryParse(entityID, out var tmdbShowID)
+            ? null : Repositories.RepoFactory.TMDB_Show.GetByTmdbShowID(tmdbShowID),
+
+        (DataSource.TMDB, DataEntityType.Season) => !SeasonIdRegex().IsMatch(entityID)
+            ? null : entityID is { Length: SeasonIdHexLength }
+                ? Repositories.RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(entityID)
+                : Repositories.RepoFactory.TMDB_Season.GetByTmdbSeasonID(int.Parse(entityID)),
+
+        (DataSource.TMDB, DataEntityType.Episode) => !int.TryParse(entityID, out var tmdbEpisodeID)
+            ? null : Repositories.RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(tmdbEpisodeID),
+
+        (DataSource.TMDB, DataEntityType.Person) => !int.TryParse(entityID, out var tmdbPersonID)
+            ? null : Repositories.RepoFactory.TMDB_Person.GetByTmdbPersonID(tmdbPersonID),
+
+        (DataSource.TMDB, DataEntityType.Studio) => !int.TryParse(entityID, out var tmdbCompanyID)
+            ? null : Repositories.RepoFactory.TMDB_Company.GetByTmdbCompanyID(tmdbCompanyID),
+
+        (DataSource.TMDB, DataEntityType.Network) => !int.TryParse(entityID, out var tmdbNetworkID)
+            ? null : Repositories.RepoFactory.TMDB_Network.GetByTmdbNetworkID(tmdbNetworkID),
+
+        // Default
+        _ => null,
+    };
 
     public static bool IsImageValid(string path)
     {
