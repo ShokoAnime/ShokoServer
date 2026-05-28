@@ -129,30 +129,10 @@ public class QueueController : BaseController
         [FromQuery] bool showAll = false
     )
     {
-        var total = showAll
-            ? _queueHandler.WaitingCount + _queueHandler.BlockedCount + _queueHandler.GetExecutingJobs().Length
-            : _queueHandler.WaitingCount + _queueHandler.GetExecutingJobs().Length;
-
         var offset = (page - 1) * pageSize;
-        var executing = _queueHandler.GetExecutingJobs();
-        // simplified from (page - 1) * pageSize + pageSize
-        if (showAll && page * pageSize <= executing.Length + _settingsProvider.GetSettings().Queue.WaitingCacheSize)
-        {
-            var results = new List<QueueItem>();
-            if (offset < executing.Length)
-            {
-                results.AddRange(executing.Skip(offset).Take(pageSize));
-                offset = 0;
-            }
-            else offset -= executing.Length;
-            if (pageSize - results.Count <= 0) return new ListResult<Queue.QueueItem>(total, results.Select(ToQueueItem).ToList());
-
-            results.AddRange(_queueHandler.GetWaitingJobs().Skip(offset).Take(pageSize - results.Count));
-            return new ListResult<Queue.QueueItem>(total, results.Select(ToQueueItem).ToList());
-        }
-
-        var result = _queueHandler.GetJobs(pageSize, offset, !showAll).Select(ToQueueItem).ToList();
-        return new ListResult<Queue.QueueItem>(total, result);
+        var items = _queueHandler.GetJobs(pageSize, offset, !showAll).Select(ToQueueItem).ToList();
+        var total = showAll ? _queueHandler.TotalCount : _queueHandler.WaitingCount + _queueHandler.GetExecutingJobs().Length;
+        return new ListResult<Queue.QueueItem>(total, items);
     }
 
     private static Queue.QueueItem ToQueueItem(QueueItem a)

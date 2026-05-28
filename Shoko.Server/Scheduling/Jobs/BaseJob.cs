@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.QueueProcessor.Abstractions;
@@ -15,6 +17,12 @@ public abstract class BaseJob : IQueueJob
 {
     [XmlIgnore, JsonIgnore]
     public ILogger _logger;
+
+    /// <inheritdoc/>
+    public virtual void Setup(IServiceProvider serviceProvider)
+    {
+        _logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(GetType());
+    }
 
     [XmlIgnore, JsonIgnore]
     public abstract string TypeName { get; }

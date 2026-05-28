@@ -114,6 +114,14 @@ public class ConcurrencyRegistry
             }
         }
 
+        // [DisallowConcurrencyGroup] without any [LimitConcurrency] in the group means
+        // mutual exclusion: only one job from the group may run at a time.
+        foreach (var group in typeGroups.Values)
+        {
+            if (group != null && !groupLimits.ContainsKey(group))
+                groupLimits[group] = 1;
+        }
+
         return new ConcurrencyRegistry(typeLimits, typeGroups, groupLimits);
     }
 }

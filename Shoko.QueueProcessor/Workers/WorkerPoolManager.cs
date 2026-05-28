@@ -10,6 +10,7 @@ using Shoko.QueueProcessor.Analytics;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Storage;
+using Shoko.QueueProcessor;
 
 namespace Shoko.QueueProcessor.Workers;
 
@@ -37,6 +38,7 @@ public sealed class WorkerPoolManager : IHostedService
     private readonly QueueStateEventHandler _events;
     private readonly IEnumerable<IAcquisitionFilter> _acquisitionFilters;
     private readonly IServiceProvider _serviceProvider;
+    private readonly QueueJobTypeRegistry _jobTypeRegistry;
 
     private IReadOnlyList<WorkerPool> _pools = [];
     private CancellationTokenSource? _cts;
@@ -52,7 +54,8 @@ public sealed class WorkerPoolManager : IHostedService
         QueueMetrics metrics,
         QueueStateEventHandler events,
         IEnumerable<IAcquisitionFilter> acquisitionFilters,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        QueueJobTypeRegistry jobTypeRegistry)
     {
         _logger = logger;
         _repo = repo;
@@ -63,11 +66,15 @@ public sealed class WorkerPoolManager : IHostedService
         _events = events;
         _acquisitionFilters = acquisitionFilters;
         _serviceProvider = serviceProvider;
+        _jobTypeRegistry = jobTypeRegistry;
     }
 
     public async Task StartAsync(CancellationToken ct)
     {
         _logger.LogInformation("WorkerPoolManager starting");
+
+        // Apply any pending migrations (creates schema on first run)
+        await _serviceProvider.MigrateQueueDatabaseAsync(ct);
 
         // Load persisted jobs
         var persistedJobs = await _repo.LoadAllAsync(ct);
@@ -118,12 +125,5 @@ public sealed class WorkerPoolManager : IHostedService
         _events.InvokeQueueStarted();
     }
 
-    private System.Collections.Generic.IEnumerable<System.Type> DiscoverJobTypes()
-    {
-        // All types registered in DI as IQueueJob (registered as transient by AddQueueProcessor)
-        var descriptor = _serviceProvider.GetService(typeof(System.Collections.Generic.IEnumerable<IQueueJob>));
-        if (descriptor is System.Collections.Generic.IEnumerable<IQueueJob> instances)
-            foreach (var i in instances)
-                yield return i.GetType();
-    }
+    private IEnumerable<Type> DiscoverJobTypes() => _jobTypeRegistry.JobTypes;
 }

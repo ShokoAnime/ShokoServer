@@ -26,7 +26,7 @@ public class DatabaseRequiredAcquisitionFilter : IAcquisitionFilter
 
     ~DatabaseRequiredAcquisitionFilter() => _systemService.DatabaseBlockedChanged -= ServerOnDBSetupCompleted;
 
-    public Type? WatchedAttributeType => null; // global filter — applies to Default pool
+    public Type? WatchedAttributeType => typeof(DatabaseRequiredAttribute);
 
     private void ServerOnDBSetupCompleted(object? sender, EventArgs e) => StateChanged?.Invoke(null, EventArgs.Empty);
 

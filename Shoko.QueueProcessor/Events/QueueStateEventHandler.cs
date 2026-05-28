@@ -65,7 +65,6 @@ public class QueueStateEventHandler
     public void OnJobExecuting(
         ExecutingEntry entry,
         IReadOnlyList<QueueItem> executingItems,
-        IReadOnlyList<QueueItem> waitingItems,
         int waitingCount,
         int blockedCount,
         int threadCount,
@@ -75,15 +74,16 @@ public class QueueStateEventHandler
         {
             AddedItems = [new QueueItem
             {
-                Key = entry.Id.ToString(),
+                Key = entry.JobKey,
                 JobType = entry.JobType.Name,
+                Title = entry.Title,
+                Details = entry.Details,
                 Running = true,
                 StartTime = entry.StartedAt,
                 PoolName = entry.PoolName,
                 RetryCount = entry.RetryCount
             }],
             ExecutingItems = executingItems,
-            WaitingItems = waitingItems,
             WaitingJobsCount = waitingCount,
             BlockedJobsCount = blockedCount,
             TotalJobsCount = waitingCount + blockedCount + executingItems.Count,
@@ -96,7 +96,6 @@ public class QueueStateEventHandler
     public void OnJobCompleted(
         Guid completedId,
         IReadOnlyList<QueueItem> executingItems,
-        IReadOnlyList<QueueItem> waitingItems,
         int waitingCount,
         int blockedCount,
         int threadCount,
@@ -106,7 +105,6 @@ public class QueueStateEventHandler
         {
             RemovedItems = [new QueueItem { Key = completedId.ToString() }],
             ExecutingItems = executingItems,
-            WaitingItems = waitingItems,
             WaitingJobsCount = waitingCount,
             BlockedJobsCount = blockedCount,
             TotalJobsCount = waitingCount + blockedCount + executingItems.Count,
@@ -118,8 +116,19 @@ public class QueueStateEventHandler
 
     private static QueueItem ToItem(QueuedJob job) => new()
     {
-        Key = job.Id.ToString(),
-        JobType = Type.GetType(job.JobType)?.Name ?? job.JobType,
+        Key = job.JobKey,
+        JobType = GetShortTypeName(job.JobType),
         RetryCount = job.RetryCount
     };
+
+    /// <summary>
+    /// Extracts the short class name from an assembly-qualified type name without reflection.
+    /// e.g. "Shoko.Server.Scheduling.Jobs.AniDB.GetAniDBAnimeJob, Shoko.Server" → "GetAniDBAnimeJob"
+    /// </summary>
+    private static string GetShortTypeName(string assemblyQualifiedName)
+    {
+        var nameOnly = assemblyQualifiedName.Split(',')[0].Trim();
+        var dot = nameOnly.LastIndexOf('.');
+        return dot >= 0 ? nameOnly[(dot + 1)..] : nameOnly;
+    }
 }

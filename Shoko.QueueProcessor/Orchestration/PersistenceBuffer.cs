@@ -64,6 +64,23 @@ public sealed class PersistenceBuffer : IAsyncDisposable
     }
 
     /// <summary>
+    /// Buffers a batch of jobs for insertion under a single lock acquisition.
+    /// Used by <see cref="QueueOrchestrator.EnqueueRangeAsync"/> for bulk enqueue.
+    /// </summary>
+    public void OnEnqueueBatch(IEnumerable<QueuedJob> jobs)
+    {
+        bool shouldFlush;
+        lock (_bufferLock)
+        {
+            foreach (var job in jobs)
+                _pendingInserts[job.Id] = job;
+            shouldFlush = _pendingInserts.Count + _pendingDeletes.Count >= _maxFlushBatch;
+            if (!shouldFlush) ArmTimerLocked();
+        }
+        if (shouldFlush) _ = FlushNowAsync(CancellationToken.None);
+    }
+
+    /// <summary>
     /// Marks a completed job for deletion. If the job was still in the insert buffer
     /// (completed before the flush fired), it is cancelled out and never written to the DB.
     /// </summary>

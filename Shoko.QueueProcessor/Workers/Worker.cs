@@ -48,8 +48,23 @@ internal sealed class Worker
         _maxIdlePollMs = maxIdlePollMs;
     }
 
-    public void Start(CancellationToken ct) =>
-        Task.Factory.StartNew(() => RunAsync(ct), ct, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+    public void Start(CancellationToken ct)
+    {
+        // Use a real OS thread rather than Task.Factory.StartNew with LongRunning.
+        // StartNew with an async lambda only uses the LongRunning thread for the synchronous
+        // prefix of RunAsync (up to the first await), then that thread exits and all async
+        // continuations — including job execution — run on ThreadPool threads. With many
+        // workers blocked on synchronous NHibernate/SQLite calls this saturates the ThreadPool
+        // and starves Kestrel request processing.
+        // A dedicated Thread holds the OS thread alive across the entire worker lifetime,
+        // keeping job execution off the ThreadPool.
+        var thread = new Thread(() => RunAsync(ct).GetAwaiter().GetResult())
+        {
+            IsBackground = true,
+            Name = $"Worker-{_pool.Name}"
+        };
+        thread.Start();
+    }
 
     private async Task RunAsync(CancellationToken ct)
     {
@@ -76,8 +91,8 @@ internal sealed class Worker
             var sw = Stopwatch.StartNew();
             try
             {
-                // Resolve the job instance — type lives in Shoko.Server, no compile-time dep
-                var jobType = Type.GetType(job.JobType);
+                // Resolve the job instance using the pool's pre-built type cache
+                var jobType = _pool.ResolveJobType(job.JobType);
                 if (jobType == null)
                 {
                     _logger.LogError("Worker cannot resolve type '{JobType}' — skipping job {Id}", job.JobType, job.Id);
@@ -88,14 +103,18 @@ internal sealed class Worker
                 using var scope = _serviceProvider.CreateScope();
                 var instance = (IQueueJob)scope.ServiceProvider.GetRequiredService(jobType);
                 JobDataSerializer.Apply(instance, job.JobDataJson);
+                instance.Setup(scope.ServiceProvider);
                 instance.PostInit();
+
+                // Store Title/Details from the resolved instance so API snapshots show them
+                _orchestrator.UpdateExecutingItem(job.Id, instance.Title, instance.Details);
 
                 var executingEntries = _orchestrator.GetExecuting();
                 var thisEntry = System.Linq.Enumerable.FirstOrDefault(executingEntries, e => e.Id == job.Id);
                 _events.OnJobExecuting(
                     thisEntry,
-                    BuildExecutingItems(executingEntries), BuildWaitingItems(), _orchestrator.WaitingCount,
-                    0, _pool.MaxWorkers);
+                    BuildExecutingItems(executingEntries), _orchestrator.WaitingCount,
+                    _orchestrator.BlockedWaitingCount, _orchestrator.TotalWorkerCount);
 
                 await instance.Process().ConfigureAwait(false);
 
@@ -105,8 +124,9 @@ internal sealed class Worker
 
                 _events.OnJobCompleted(
                     job.Id,
-                    BuildExecutingItems(_orchestrator.GetExecuting()), BuildWaitingItems(),
-                    _orchestrator.WaitingCount, 0, _pool.MaxWorkers, _orchestrator.GetMetrics());
+                    BuildExecutingItems(_orchestrator.GetExecuting()),
+                    _orchestrator.WaitingCount, _orchestrator.BlockedWaitingCount,
+                    _orchestrator.TotalWorkerCount, _orchestrator.GetMetrics());
             }
             catch (RequeueJobException requeueEx)
             {
@@ -131,13 +151,13 @@ internal sealed class Worker
         System.Collections.Generic.IReadOnlyList<ExecutingEntry> entries) =>
         System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(entries, e => new Abstractions.QueueItem
         {
-            Key = e.Id.ToString(),
+            Key = e.JobKey,
             JobType = e.JobType.Name,
+            Title = e.Title,
+            Details = e.Details,
             Running = true,
             StartTime = e.StartedAt,
             PoolName = e.PoolName,
             RetryCount = e.RetryCount
         }));
-
-    private static System.Collections.Generic.IReadOnlyList<Abstractions.QueueItem> BuildWaitingItems() => [];
 }

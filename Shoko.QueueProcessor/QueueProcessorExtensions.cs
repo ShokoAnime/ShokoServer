@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
@@ -44,12 +45,29 @@ public static class QueueProcessorExtensions
         RegisterDbContext(services, options);
         services.AddScoped<IJobRepository, JobRepository>();
 
-        // ── Orchestration ────────────────────────────────────────────────────
-        services.AddSingleton(sp =>
+        // ── Job type registration ─────────────────────────────────────────────
+        // Jobs are resolved from DI by their concrete type only — never via IQueueJob.
+        // The interface is used solely for reflection-based discovery (attributes, TypeName,
+        // etc.), not for DI service lookup. Registering them as IQueueJob would allow
+        // GetServices<IQueueJob>() to instantiate every job at singleton-build time,
+        // causing a circular dependency with ConcurrencyRegistry.
+        var jobTypes = new List<Type>();
+        var assemblies = scanAssemblies.Prepend(Assembly.GetCallingAssembly()).Distinct();
+        foreach (var asm in assemblies)
         {
-            var jobTypes = sp.GetServices<IQueueJob>().Select(j => j.GetType()).Distinct();
-            return ConcurrencyRegistry.Build(jobTypes, options.LimitedConcurrencyOverrides, options.MaxTotalWorkers);
-        });
+            foreach (var type in asm.GetTypes()
+                .Where(t => t.IsClass && !t.IsAbstract && typeof(IQueueJob).IsAssignableFrom(t)))
+            {
+                services.TryAddTransient(type);
+                jobTypes.Add(type);
+            }
+        }
+
+        var jobTypeRegistry = new QueueJobTypeRegistry(jobTypes);
+        services.AddSingleton(jobTypeRegistry);
+
+        // ── Orchestration ────────────────────────────────────────────────────
+        services.AddSingleton(_ => ConcurrencyRegistry.Build(jobTypeRegistry.JobTypes.Distinct(), options.LimitedConcurrencyOverrides, options.MaxTotalWorkers));
 
         services.AddSingleton(new RetryPolicy
         {
@@ -95,31 +113,20 @@ public static class QueueProcessorExtensions
         services.AddSingleton<RecurringJobRegistry>();
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<RecurringJobRegistry>());
 
-        // ── Job type registration ─────────────────────────────────────────────
-        var assemblies = scanAssemblies.Prepend(Assembly.GetCallingAssembly()).Distinct();
-        foreach (var asm in assemblies)
-        {
-            foreach (var type in asm.GetTypes()
-                .Where(t => t.IsClass && !t.IsAbstract && typeof(IQueueJob).IsAssignableFrom(t)))
-            {
-                services.TryAddTransient(type);
-                services.TryAddTransient(typeof(IQueueJob), type);
-            }
-        }
-
         return services;
     }
 
     /// <summary>
-    /// Applies EF Core migrations and verifies the queue DB is ready.
-    /// Call this from <c>IHost.StartAsync</c> or in the <c>WorkerPoolManager</c> start sequence.
+    /// Applies any pending EF Core migrations to the queue database, creating it if it does not exist.
+    /// Call this from <c>IHost.StartAsync</c> or at the start of <c>WorkerPoolManager.StartAsync</c>.
     /// </summary>
     public static async System.Threading.Tasks.Task MigrateQueueDatabaseAsync(
-        this IServiceProvider serviceProvider)
+        this IServiceProvider serviceProvider,
+        System.Threading.CancellationToken ct = default)
     {
         using var scope = serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<QueueDbContext>();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(ct);
     }
 
     private static void RegisterDbContext(IServiceCollection services, QueueProcessorOptions options)

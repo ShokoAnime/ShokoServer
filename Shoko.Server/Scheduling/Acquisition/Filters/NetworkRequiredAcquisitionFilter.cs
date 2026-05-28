@@ -18,16 +18,18 @@ public class NetworkRequiredAcquisitionFilter : IAcquisitionFilter
     {
         _connectivityService = connectivityService;
         _connectivityService.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
+        // Use OfType<NetworkRequiredAttribute>() rather than IsDefined so that subclasses
+        // of NetworkRequiredAttribute (e.g. AniDBHttpRateLimitedAttribute) are also matched.
         _types = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(a => a.GetTypes())
             .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract &&
-                        a.IsDefined(typeof(NetworkRequiredAttribute), true))
+                        a.GetCustomAttributes(inherit: true).OfType<NetworkRequiredAttribute>().Any())
             .ToArray();
     }
 
     ~NetworkRequiredAcquisitionFilter() => _connectivityService.NetworkAvailabilityChanged -= OnNetworkAvailabilityChanged;
 
-    public Type? WatchedAttributeType => null; // global filter — applies to Default pool
+    public Type? WatchedAttributeType => typeof(NetworkRequiredAttribute);
 
     private void OnNetworkAvailabilityChanged(object? sender, EventArgs e) => StateChanged?.Invoke(null, EventArgs.Empty);
 

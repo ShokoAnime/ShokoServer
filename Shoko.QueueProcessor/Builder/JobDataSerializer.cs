@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 using Shoko.QueueProcessor.Abstractions;
 
@@ -28,14 +29,16 @@ public static class JobDataSerializer
     /// default instance. Only changed (non-default) properties are included in the returned map.
     /// This is used by <see cref="JobKeyBuilder{T}.UsingJobData"/> for key generation.
     /// </summary>
+    /// <remarks>
+    /// Uses <see cref="RuntimeHelpers.GetUninitializedObject"/> to bypass constructors entirely,
+    /// so jobs are not required to have a parameterless constructor. Key-building only reads
+    /// and writes public settable properties (job data), which never depend on injected services.
+    /// </remarks>
     public static Dictionary<string, object?> DiffFromDefault<T>(Action<T> configure)
         where T : class, IQueueJob
     {
-        var ctor = typeof(T).GetConstructor(Type.EmptyTypes)
-            ?? throw new InvalidOperationException($"Type {typeof(T).Name} must have a parameterless constructor for key building.");
-
-        var baseline = (T)ctor.Invoke(null);
-        var modified = (T)ctor.Invoke(null);
+        var baseline = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
+        var modified = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
         configure(modified);
 
         var result = new Dictionary<string, object?>(StringComparer.Ordinal);

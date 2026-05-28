@@ -46,6 +46,9 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     private readonly Dictionary<string, WorkerPool> _poolsByName = new();
     private IReadOnlyList<WorkerPool> _allPools = [];
 
+    // O(1) type resolution — avoids Type.GetType() (assembly scan) on every enqueue/acquire call
+    private readonly Dictionary<string, Type> _typeByName = new(StringComparer.Ordinal);
+
     // O(1) dedup index: JobKey → Id (covers waiting + executing + pending-insert)
     private readonly Dictionary<string, Guid> _jobKeyIndex = new(StringComparer.Ordinal);
 
@@ -82,7 +85,10 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         {
             _poolsByName[pool.Name] = pool;
             foreach (var type in pool.HandledTypes)
+            {
                 _poolsByType[type] = pool;
+                _typeByName[type.FullName + ", " + type.Assembly.GetName().Name] = type;
+            }
             pool.TryRegisterExecuting = TryRegisterExecuting;
         }
 
@@ -135,11 +141,58 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         return Task.CompletedTask;
     }
 
-    /// <summary>Enqueues multiple jobs.</summary>
-    public async Task EnqueueRangeAsync(IEnumerable<QueuedJob> jobs, CancellationToken ct = default)
+    /// <summary>
+    /// Enqueues a batch of jobs. Uses a single gate-lock pass for dedup, a single lock per
+    /// affected pool for sub-queue insertion, and one persistence-buffer call for the whole batch —
+    /// far cheaper than calling <see cref="EnqueueAsync"/> per job when enqueueing thousands of items.
+    /// </summary>
+    public Task EnqueueRangeAsync(IEnumerable<QueuedJob> jobs, CancellationToken ct = default)
     {
+        // Resolve types and pools first — these are stable after Initialize(), no lock needed.
+        var resolved = new List<(QueuedJob Job, Type Type, WorkerPool Pool)>();
         foreach (var job in jobs)
-            await EnqueueAsync(job, ct);
+        {
+            var type = ResolveType(job.JobType);
+            if (type == null) continue;
+            if (!_poolsByType.TryGetValue(type, out var pool)) continue;
+            resolved.Add((job, type, pool));
+        }
+
+        if (resolved.Count == 0) return Task.CompletedTask;
+
+        // Single gate-lock pass: dedup and register all keys atomically.
+        var toEnqueue = new List<(QueuedJob Job, Type Type, WorkerPool Pool)>(resolved.Count);
+        lock (_gate)
+        {
+            foreach (var entry in resolved)
+            {
+                if (_jobKeyIndex.ContainsKey(entry.Job.JobKey)) continue;
+                _jobKeyIndex[entry.Job.JobKey] = entry.Job.Id;
+                toEnqueue.Add(entry);
+            }
+        }
+
+        if (toEnqueue.Count == 0) return Task.CompletedTask;
+
+        // Group by pool and batch-insert into each pool's sub-queue (one lock per pool).
+        var poolBatches = new Dictionary<WorkerPool, List<QueuedJob>>();
+        foreach (var (job, type, pool) in toEnqueue)
+        {
+            if (!poolBatches.TryGetValue(pool, out var batch))
+                poolBatches[pool] = batch = new List<QueuedJob>();
+            batch.Add(job);
+            _metrics.RecordEnqueue(type.Name, pool.Name);
+        }
+
+        foreach (var (pool, batch) in poolBatches)
+            pool.AddRangeToQueue(batch);
+
+        // Single persistence-buffer call for the entire batch.
+        _persistenceBuffer.OnEnqueueBatch(System.Linq.Enumerable.Select(toEnqueue, e => e.Job));
+
+        if (!_paused) SignalAllPools();
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -303,6 +356,32 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
     public int WaitingCount => _allPools.Sum(p => p.WaitingCount);
 
+    /// <summary>
+    /// Number of waiting jobs whose type is currently excluded by an acquisition filter.
+    /// Computed on demand — do not call on the hot path.
+    /// </summary>
+    public int BlockedWaitingCount => _allPools.Sum(p => p.BlockedCount);
+
+    /// <summary>Total worker slots across all pools.</summary>
+    public int TotalWorkerCount => _allPools.Sum(p => p.MaxWorkers);
+
+    /// <summary>
+    /// Resolves a fully-qualified job type name to its <see cref="Type"/> using the
+    /// pre-built startup cache. Returns <c>null</c> if the type is not registered.
+    /// </summary>
+    public Type? TryResolveType(string typeName) => ResolveType(typeName);
+
+    /// <summary>
+    /// Returns true if the job's type is currently excluded by an acquisition filter on its pool.
+    /// Used to populate <see cref="Abstractions.QueueItem.Blocked"/> for waiting jobs.
+    /// </summary>
+    public bool IsJobBlocked(Storage.QueuedJob job)
+    {
+        var type = ResolveType(job.JobType);
+        if (type == null) return false;
+        return _poolsByType.TryGetValue(type, out var pool) && pool.IsTypeBlocked(type);
+    }
+
     /// <summary>Returns waiting jobs across all pools in priority order, optionally paginated.</summary>
     public IReadOnlyList<Storage.QueuedJob> GetWaiting(int maxCount, int offset, Func<Storage.QueuedJob, bool>? filter = null)
     {
@@ -356,6 +435,20 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         return _metrics.GetSnapshot(poolStatus, typeCounts, totalBlocked, totalRetrying);
     }
 
+    /// <summary>
+    /// Called by the worker after the job instance has been resolved and
+    /// <see cref="Abstractions.IQueueJob.PostInit"/> has run, to store the display-friendly
+    /// title and detail pairs on the executing entry.
+    /// </summary>
+    public void UpdateExecutingItem(Guid id, string title, Dictionary<string, object> details)
+    {
+        lock (_gate)
+        {
+            if (_executingSet.TryGetValue(id, out var entry))
+                _executingSet[id] = entry with { Title = title, Details = details };
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         await _persistenceBuffer.DisposeAsync();
@@ -377,6 +470,6 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         foreach (var pool in _allPools) pool.Signal();
     }
 
-    private static Type? ResolveType(string jobTypeName) =>
-        Type.GetType(jobTypeName, throwOnError: false);
+    private Type? ResolveType(string jobTypeName) =>
+        _typeByName.TryGetValue(jobTypeName, out var t) ? t : null;
 }

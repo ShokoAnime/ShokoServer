@@ -21,6 +21,7 @@ public class RecurringJobRegistry : IHostedService, IDisposable
 
     private readonly List<RecurringRegistration> _registrations = [];
     private readonly List<Timer> _timers = [];
+    private volatile bool _started;
 
     public RecurringJobRegistry(IQueueScheduler scheduler, ILogger<RecurringJobRegistry> logger)
     {
@@ -29,44 +30,54 @@ public class RecurringJobRegistry : IHostedService, IDisposable
     }
 
     /// <summary>
-    /// Registers a recurring job. Call this before <see cref="StartAsync"/> (e.g., at startup
-    /// in a <c>systemService.Started</c> handler or DI setup).
+    /// Registers a recurring job. Safe to call before or after <see cref="StartAsync"/>:
+    /// if the registry has already started, the timer is armed immediately and the job is
+    /// enqueued right away when <paramref name="runImmediately"/> is <c>true</c>.
     /// </summary>
     /// <typeparam name="T">The job type.</typeparam>
     /// <param name="interval">How often to (re-)enqueue the job.</param>
     /// <param name="configure">Optional job data configurator.</param>
     /// <param name="runImmediately">
-    /// If true, enqueue once immediately on <see cref="StartAsync"/> in addition to the timer.
+    /// If true, enqueue once immediately (or right now if already started) in addition to the timer.
     /// </param>
     public void Register<T>(TimeSpan interval, Action<T>? configure = null, bool runImmediately = true)
         where T : class, IQueueJob
     {
-        _registrations.Add(new RecurringRegistration(
+        var reg = new RecurringRegistration(
             typeof(T),
             interval,
             runImmediately,
-            ct => _scheduler.Enqueue(configure, ct: ct)));
+            ct => _scheduler.Enqueue(configure, ct: ct));
+
+        _registrations.Add(reg);
+
+        if (_started)
+            _ = ActivateRegistration(reg, CancellationToken.None);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        _started = true;
         foreach (var reg in _registrations)
-        {
-            if (reg.RunImmediately)
-            {
-                try { await reg.Enqueue(cancellationToken); }
-                catch (Exception ex) { _logger.LogError(ex, "Failed to enqueue recurring job {Type}", reg.JobType.Name); }
-            }
-
-            var timer = new Timer(
-                _ => _ = EnqueueSafe(reg, CancellationToken.None),
-                null,
-                reg.Interval,
-                reg.Interval);
-            _timers.Add(timer);
-        }
+            await ActivateRegistration(reg, cancellationToken);
 
         _logger.LogInformation("RecurringJobRegistry started {Count} recurring jobs", _registrations.Count);
+    }
+
+    private async Task ActivateRegistration(RecurringRegistration reg, CancellationToken ct)
+    {
+        if (reg.RunImmediately)
+        {
+            try { await reg.Enqueue(ct); }
+            catch (Exception ex) { _logger.LogError(ex, "Failed to enqueue recurring job {Type}", reg.JobType.Name); }
+        }
+
+        var timer = new Timer(
+            _ => _ = EnqueueSafe(reg, CancellationToken.None),
+            null,
+            reg.Interval,
+            reg.Interval);
+        _timers.Add(timer);
     }
 
     public Task StopAsync(CancellationToken cancellationToken)

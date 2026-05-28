@@ -20,6 +20,9 @@ public sealed class WorkerPool : IWorkerPool
     private readonly SortedSet<QueuedJob> _subQueue = new(QueuedJobComparer.Instance);
     private readonly object _subQueueLock = new();
 
+    // O(1) type resolution — avoids Type.GetType() (assembly scan) on every TryAcquire call
+    private readonly Dictionary<string, Type> _typeByName;
+
     // Per-pool wake signal: capacity=1, drop on full (idempotent wake)
     private readonly Channel<bool> _wakeChannel =
         Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropWrite });
@@ -63,6 +66,10 @@ public sealed class WorkerPool : IWorkerPool
         HandledTypes = handledTypes;
         AcquisitionFilters = acquisitionFilters;
 
+        _typeByName = new Dictionary<string, Type>(handledTypes.Count, StringComparer.Ordinal);
+        foreach (var t in handledTypes)
+            _typeByName[t.FullName + ", " + t.Assembly.GetName().Name] = t;
+
         foreach (var filter in acquisitionFilters)
             filter.StateChanged += OnFilterStateChanged;
 
@@ -77,6 +84,19 @@ public sealed class WorkerPool : IWorkerPool
     {
         lock (_subQueueLock)
             _subQueue.Add(job);
+    }
+
+    /// <summary>
+    /// Adds multiple jobs to the sub-queue under a single lock acquisition.
+    /// Used by <see cref="Orchestration.QueueOrchestrator.EnqueueRangeAsync"/> for bulk enqueue.
+    /// </summary>
+    public void AddRangeToQueue(List<QueuedJob> jobs)
+    {
+        lock (_subQueueLock)
+        {
+            foreach (var job in jobs)
+                _subQueue.Add(job);
+        }
     }
 
     /// <summary>Removes <paramref name="id"/> from the sub-queue (called on forced discard).</summary>
@@ -108,6 +128,23 @@ public sealed class WorkerPool : IWorkerPool
     }
 
     /// <summary>
+    /// Number of waiting jobs whose type is currently excluded by an acquisition filter.
+    /// Computed on demand — do not call on the hot path.
+    /// </summary>
+    public int BlockedCount
+    {
+        get
+        {
+            var exclusions = _filterExclusions;
+            lock (_subQueueLock)
+                return _subQueue.Count(j => _typeByName.TryGetValue(j.JobType, out var t) && exclusions.Contains(t));
+        }
+    }
+
+    /// <summary>Returns true if <paramref name="type"/> is currently excluded by any acquisition filter on this pool.</summary>
+    public bool IsTypeBlocked(Type type) => _filterExclusions.Contains(type);
+
+    /// <summary>
     /// Scans the sub-queue for the next eligible job and attempts to register it with the orchestrator.
     /// Returns the claimed job or <c>null</c> if nothing is eligible right now.
     /// </summary>
@@ -122,8 +159,7 @@ public sealed class WorkerPool : IWorkerPool
             {
                 if (job.ScheduledAt.HasValue && job.ScheduledAt.Value > now) continue;
 
-                var type = Type.GetType(job.JobType);
-                if (type != null && exclusions.Contains(type)) continue;
+                if (_typeByName.TryGetValue(job.JobType, out var type) && exclusions.Contains(type)) continue;
 
                 if (TryRegisterExecuting == null || !TryRegisterExecuting(job)) continue;
 
@@ -175,6 +211,13 @@ public sealed class WorkerPool : IWorkerPool
     internal void DecrementActive() => Interlocked.Decrement(ref _activeWorkers);
 
     internal ChannelReader<bool> WakeReader => _wakeChannel.Reader;
+
+    /// <summary>
+    /// Resolves a job type name to its <see cref="Type"/> using the pre-built cache.
+    /// Avoids <c>Type.GetType()</c> (assembly scan) on the hot execution path.
+    /// </summary>
+    internal Type? ResolveJobType(string jobTypeName) =>
+        _typeByName.TryGetValue(jobTypeName, out var t) ? t : null;
 
     private void OnFilterStateChanged(object? sender, EventArgs e) => RebuildExclusions();
 

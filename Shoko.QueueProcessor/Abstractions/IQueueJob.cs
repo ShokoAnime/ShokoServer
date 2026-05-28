@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -6,7 +7,7 @@ namespace Shoko.QueueProcessor.Abstractions;
 
 /// <summary>
 /// Base interface for all queue jobs. Implementations live in Shoko.Server; this library
-/// resolves them at runtime via <see cref="System.IServiceProvider"/> so there is no
+/// resolves them at runtime via <see cref="IServiceProvider"/> so there is no
 /// compile-time dependency between the queue engine and job implementations.
 /// </summary>
 public interface IQueueJob
@@ -19,6 +20,14 @@ public interface IQueueJob
 
     /// <summary>Key/value pairs surfaced in the queue API for display purposes.</summary>
     Dictionary<string, object> Details { get; }
+
+    /// <summary>
+    /// Called once by the worker immediately after the job is resolved from DI and before
+    /// <see cref="PostInit"/> runs. Use to acquire infrastructure services (loggers, etc.)
+    /// that cannot be constructor-injected due to the job's registration pattern.
+    /// The default implementation is a no-op; override only when needed.
+    /// </summary>
+    void Setup(IServiceProvider serviceProvider) { }
 
     /// <summary>
     /// Called once by the worker after the job's properties have been populated from

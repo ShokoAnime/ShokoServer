@@ -22,7 +22,7 @@ namespace Shoko.QueueProcessor.Orchestration;
 ///   </item>
 ///   <item>
 ///     <c>[DisallowConcurrencyGroup("X")]</c> only
-///     → pool named <c>"X"</c>, max workers = MaxTotalWorkers
+///     → pool named <c>"X"</c>, max workers = 1 (mutual exclusion default)
 ///   </item>
 ///   <item>
 ///     <c>[LimitConcurrency(N)]</c> only (no group)
@@ -89,7 +89,9 @@ public class PoolDiscovery
             if (groupAttr != null)
             {
                 poolName = groupAttr.Group;
-                poolWorkers = limit > 0 ? limit : _maxTotalWorkers;
+                // [DisallowConcurrencyGroup] without [LimitConcurrency] defaults to 1 worker
+                // (mutual exclusion — only one job from the group runs at a time)
+                poolWorkers = limit > 0 ? limit : 1;
             }
             else if (limit > 0)
             {
@@ -130,7 +132,11 @@ public class PoolDiscovery
                         // Global filters (no WatchedAttributeType) attach to the Default pool only
                         return poolName == "Default";
                     }
-                    return types.Any(t => t.GetCustomAttribute(watchedAttr) != null);
+                    // IsInstanceOfType matches the exact attribute type AND any subclass,
+                    // so filters with a base-class WatchedAttributeType attach to pools that
+                    // contain types decorated with derived attributes too.
+                    return types.Any(t => t.GetCustomAttributes(inherit: true)
+                        .Any(a => watchedAttr.IsInstanceOfType(a)));
                 })
                 .ToList();
 

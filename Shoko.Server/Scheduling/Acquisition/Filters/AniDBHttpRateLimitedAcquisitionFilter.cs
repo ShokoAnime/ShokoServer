@@ -21,7 +21,7 @@ public class AniDBHttpRateLimitedAcquisitionFilter : IAcquisitionFilter
         _types = AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(a => a.GetTypes())
             .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract &&
-                        a.IsDefined(typeof(AniDBHttpRateLimitedAttribute), true))
+                        a.GetCustomAttributes(inherit: true).OfType<AniDBHttpRateLimitedAttribute>().Any())
             .ToArray();
     }
 
@@ -31,8 +31,11 @@ public class AniDBHttpRateLimitedAcquisitionFilter : IAcquisitionFilter
 
     private void OnAniDBStateUpdate(object? sender, AniDBStateUpdate e) => StateChanged?.Invoke(null, EventArgs.Empty);
 
+    // Network availability is handled by NetworkRequiredAcquisitionFilter.
+    // HTTP does not require login (unlike UDP), so IsAlive / session state is irrelevant here.
+    // Only block when actively banned.
     public IEnumerable<Type> GetTypesToExclude() =>
-        !_connectionHandler.IsAlive || _connectionHandler.IsBanned ? _types : [];
+        _connectionHandler.IsBanned ? _types : [];
 
     public event EventHandler? StateChanged;
 }

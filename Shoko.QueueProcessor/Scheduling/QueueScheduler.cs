@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.QueueProcessor.Abstractions;
@@ -38,8 +39,11 @@ public sealed class QueueScheduler : IQueueScheduler
         if (_orchestrator.IsQueued(key))
             return Task.CompletedTask;
 
-        // Serialize data: all public settable properties
-        IQueueJob instance = Activator.CreateInstance<T>();
+        // Serialize data: all public settable properties.
+        // RuntimeHelpers.GetUninitializedObject bypasses constructors so jobs are not required
+        // to have a parameterless constructor — injected services are constructor parameters,
+        // not settable properties, and are irrelevant for serialisation.
+        IQueueJob instance = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
         configure?.Invoke((T)instance);
         var dataJson = JobDataSerializer.Serialize(instance);
 
