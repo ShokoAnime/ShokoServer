@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-using Shoko.Server.Filters.Files;
-using Shoko.Server.Filters.Functions;
-using Shoko.Server.Filters.Info;
-using Shoko.Server.Filters.Logic.DateTimes;
-using Shoko.Server.Filters.Logic.Expressions;
-using Shoko.Server.Filters.Selectors.DateSelectors;
-using Shoko.Server.Filters.User;
+using Shoko.Abstractions.Filtering.Expressions.Files;
+using Shoko.Abstractions.Filtering.Expressions.Functions;
+using Shoko.Abstractions.Filtering.Expressions.Info;
+using Shoko.Abstractions.Filtering.Expressions.Logic.DateTimes;
+using Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
+using Shoko.Abstractions.Filtering.Expressions.Selectors.DateSelectors;
+using Shoko.Abstractions.Filtering.Expressions.User;
 using Xunit;
 
 namespace Shoko.Tests;

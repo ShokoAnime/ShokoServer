@@ -348,7 +348,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <returns></returns>
     [HttpGet("{seriesID}/Images/{imageType}")]
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromRoute] Image.ImageType imageType)
+        [FromRoute] Image.LegacyImageType imageType)
     {
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
@@ -383,14 +383,18 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <summary>
     /// Set the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
+    /// <remarks>
+    /// <b>Deprecated:</b> Use the image management controller's set preferred endpoint instead.
+    /// </remarks>
     /// <param name="groupID">Shoko Group ID</param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPut("{seriesID}/Images/{imageType}")]
+    [Obsolete("Use the image management controller's set preferred endpoint instead.")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
+        [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
@@ -418,12 +422,16 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <summary>
     /// Unset the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
+    /// <remarks>
+    /// <b>Deprecated:</b> Use the image management controller's unset preferred endpoint instead.
+    /// </remarks>
     /// <param name="groupID">Shoko Group ID</param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{seriesID}/Images/{imageType}")]
-    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID, [FromRoute] Image.ImageType imageType)
+    [Obsolete("Use the image management controller's unset preferred endpoint instead.")]
+    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID, [FromRoute] Image.LegacyImageType imageType)
     {
         // Check if the series exists and if the user can access the series.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);

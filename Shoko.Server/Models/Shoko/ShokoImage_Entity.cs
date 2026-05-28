@@ -1,5 +1,4 @@
 using System;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Containers;
@@ -7,9 +6,6 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
-using Shoko.Server.Models.AniDB;
-using Shoko.Server.Models.AniDB.Embedded;
-using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
@@ -21,13 +17,8 @@ namespace Shoko.Server.Models.Shoko;
 /// an image and an entity (series, group, episode, video). It stores the image type
 /// for this association, preferred status, ordering, and other metadata.
 /// </summary>
-public partial class ShokoImage_Entity : IImageCrossReference
+public class ShokoImage_Entity : IImageCrossReference
 {
-    internal const int SeasonIdHexLength = 24;
-
-    [GeneratedRegex(@"^(?:[0-9]{1,23}|[a-f0-9]{24})$")]
-    private static partial Regex SeasonIdRegex();
-
     #region Properties
 
     /// <inheritdoc/>
@@ -229,87 +220,9 @@ public partial class ShokoImage_Entity : IImageCrossReference
 
     public ShokoImage? GetPrimaryImage() => RepoFactory.ShokoImage.GetByID(PrimaryImageID);
 
-    public IWithImages? GetEntity() => (EntitySource, EntityType) switch
-    {
-        // Shoko
-        (DataSource.Shoko, DataEntityType.Group) => !int.TryParse(EntityID, out var shokoGroupID)
-            ? null : RepoFactory.AnimeGroup.GetByID(shokoGroupID),
-
-        (DataSource.Shoko, DataEntityType.Series) => !int.TryParse(EntityID, out var shokoSeriesID)
-            ? null : RepoFactory.AnimeSeries.GetByID(shokoSeriesID),
-
-        (DataSource.Shoko, DataEntityType.Season) =>
-            EntityID.Split(':') is not { Length: 3 } parts ||
-            !int.TryParse(parts[0], out var shokoSeriesID) ||
-            RepoFactory.AnimeSeries.GetByID(shokoSeriesID) is not { } shokoSeries ||
-            !Enum.TryParse<EpisodeType>(parts[1], true, out var episodeType) ||
-            !int.TryParse(parts[2], out var seasonNumber)
-                ? null : new AnimeSeason(shokoSeries, episodeType, seasonNumber),
-
-        (DataSource.Shoko, DataEntityType.Episode) => !int.TryParse(EntityID, out var shokoEpisodeID)
-            ? null : RepoFactory.AnimeEpisode.GetByID(shokoEpisodeID),
-
-        (DataSource.Shoko, DataEntityType.Video) => !int.TryParse(EntityID, out var videoID)
-            ? null : RepoFactory.VideoLocal.GetByID(videoID),
-
-        (DataSource.Shoko, DataEntityType.User) => !int.TryParse(EntityID, out var userID)
-            ? null : RepoFactory.JMMUser.GetByID(userID),
-        // AniDB
-        (DataSource.AniDB, DataEntityType.Anime) => !int.TryParse(EntityID, out var anidbAnimeID)
-            ? null : RepoFactory.AniDB_Anime.GetByAnimeID(anidbAnimeID),
-
-        (DataSource.AniDB, DataEntityType.Season) =>
-            EntityID.Split(':') is not { Length: 3 } parts ||
-            !int.TryParse(parts[0], out var anidbAnimeID) ||
-            RepoFactory.AniDB_Anime.GetByAnimeID(anidbAnimeID) is not { } anidbAnime ||
-            !Enum.TryParse<EpisodeType>(parts[1], true, out var episodeType) ||
-            !int.TryParse(parts[2], out var seasonNumber)
-                ? null : new AniDB_Season(anidbAnime, episodeType, seasonNumber),
-
-        (DataSource.AniDB, DataEntityType.Episode) => !int.TryParse(EntityID, out var anidbEpisodeID)
-            ? null : RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID),
-
-        (DataSource.AniDB, DataEntityType.Studio) =>
-            !int.TryParse(EntityID, out var anidbStudioID) ||
-            RepoFactory.AniDB_Creator.GetByCreatorID(anidbStudioID) is not { } creator
-                ? null : new AniDB_Studio(creator),
-
-        (DataSource.AniDB, DataEntityType.Creator) => !int.TryParse(EntityID, out var anidbCreatorID)
-            ? null : RepoFactory.AniDB_Creator.GetByCreatorID(anidbCreatorID),
-
-        (DataSource.AniDB, DataEntityType.Character) => !int.TryParse(EntityID, out var anidbCharacterID)
-            ? null : RepoFactory.AniDB_Character.GetByCharacterID(anidbCharacterID),
-
-        // TMDB
-        (DataSource.TMDB, DataEntityType.Collection) => !int.TryParse(EntityID, out var tmdbCollectionID)
-            ? null : RepoFactory.TMDB_Collection.GetByTmdbCollectionID(tmdbCollectionID),
-
-        (DataSource.TMDB, DataEntityType.Movie) => !int.TryParse(EntityID, out var tmdbMovieID)
-            ? null : RepoFactory.TMDB_Movie.GetByTmdbMovieID(tmdbMovieID),
-
-        (DataSource.TMDB, DataEntityType.Show) => !int.TryParse(EntityID, out var tmdbShowID)
-            ? null : RepoFactory.TMDB_Show.GetByTmdbShowID(tmdbShowID),
-
-        (DataSource.TMDB, DataEntityType.Season) => !SeasonIdRegex().IsMatch(EntityID)
-            ? null : EntityID is { Length: SeasonIdHexLength }
-                ? RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(EntityID)
-                : RepoFactory.TMDB_Season.GetByTmdbSeasonID(int.Parse(EntityID)),
-
-        (DataSource.TMDB, DataEntityType.Episode) => !int.TryParse(EntityID, out var tmdbEpisodeID)
-            ? null : RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(tmdbEpisodeID),
-
-        (DataSource.TMDB, DataEntityType.Person) => !int.TryParse(EntityID, out var tmdbPersonID)
-            ? null : RepoFactory.TMDB_Person.GetByTmdbPersonID(tmdbPersonID),
-
-        (DataSource.TMDB, DataEntityType.Studio) => !int.TryParse(EntityID, out var tmdbCompanyID)
-            ? null : RepoFactory.TMDB_Company.GetByTmdbCompanyID(tmdbCompanyID),
-
-        (DataSource.TMDB, DataEntityType.Network) => !int.TryParse(EntityID, out var tmdbNetworkID)
-            ? null : RepoFactory.TMDB_Network.GetByTmdbNetworkID(tmdbNetworkID),
-
-        // Default
-        _ => null,
-    };
+    public IWithImages? GetEntity() =>
+        ISystemService.StaticServices.GetRequiredService<IImageManager>()
+            .GetEntityForImage(EntitySource, EntityType, EntityID);
 
     #endregion
 

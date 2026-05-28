@@ -1,12 +1,15 @@
 using System.Collections.Generic;
 using Shoko.Abstractions.Filtering;
-using Shoko.Server.Filters;
+using Shoko.Abstractions.Filtering.Expressions;
+using Shoko.Abstractions.Filtering.Sorting;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Models.Shoko;
 
-public class FilterPreset : IFilterPreset
+public class FilterPreset : IStoredFilterPreset
 {
     #region Database Columns
 
@@ -40,11 +43,25 @@ public class FilterPreset : IFilterPreset
 
     #endregion
 
+    #region IMetadata Implementation
+
+    int IMetadata<int>.ID => FilterPresetID;
+
+    DataSource IMetadata.Source => DataSource.Shoko;
+
+    #endregion
+
     #region IFilterPreset Implementation
 
     IFilterExpression<bool>? IFilterPreset.Expression => Expression;
 
     ISortingExpression? IFilterPreset.SortingExpression => SortingExpression;
+
+    #endregion
+
+    #region IStoredFilterPreset Implementation
+
+    int? IStoredFilterPreset.ParentFilterID => ParentFilterPresetID;
 
     #endregion
 }

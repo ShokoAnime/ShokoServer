@@ -5,10 +5,11 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Filtering.Expressions;
+using Shoko.Abstractions.Filtering.Expressions.Containers;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Filters;
-using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -20,9 +21,9 @@ public class FilterFactory
     private readonly Dictionary<string, Type> _expressionTypes;
     private readonly Dictionary<string, Type> _sortingTypes;
     private readonly HttpContext _context;
-    private readonly IFilterEvaluator _evaluator;
+    private readonly IFilteringEngine _evaluator;
 
-    public FilterFactory(IHttpContextAccessor context, IFilterEvaluator evaluator)
+    public FilterFactory(IHttpContextAccessor context, IFilteringEngine evaluator)
     {
         _context = context.HttpContext;
         _evaluator = evaluator;

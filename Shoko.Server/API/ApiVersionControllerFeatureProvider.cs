@@ -29,7 +29,7 @@ public class ApiVersionControllerFeatureProvider(WebSettings webSettings) : Cont
 
         // Stream endpoint is used by legacy clients (e.g. Shokodi) and must remain
         // available regardless of whether the rest of APIv1 is enabled.
-        if (typeInfo == typeof(ShokoServiceImplementationStream))
+        if (typeInfo == typeof(ShokoServiceImplementationStream) && (webSettings.EnableAPIv1 || webSettings.EnableAPIv2))
             return true;
 
         var ns = typeInfo.Namespace;

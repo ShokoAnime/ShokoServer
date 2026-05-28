@@ -2493,7 +2493,7 @@ public class Common : BaseController
         };
 
         var filterList = new List<APIFilters>();
-        var evaluator = HttpContext.RequestServices.GetRequiredService<IFilterEvaluator>();
+        var evaluator = HttpContext.RequestServices.GetRequiredService<IFilteringEngine>();
         var user = HttpContext.GetUser();
         var hideCategories = user.GetHideCategories();
         var allFPs = level > 0

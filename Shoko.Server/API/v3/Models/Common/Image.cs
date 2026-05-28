@@ -44,12 +44,18 @@ public class Image
     public IReadOnlyList<Guid>? LinkedUIDs { get; set; }
 
     /// <summary>
-    ///   The image type. Will always be <see cref="ImageEntityType.None"/> when
+    ///   The image type. Will always be <see cref="LegacyImageType.None"/> when
     ///   the image is directly retrieved from image manager. Will be set to any
     ///   other type when retrieved from a cross-reference or from an entity.
     /// </summary>
+    /// <remarks>
+    ///   This property intentionally continues to use <see cref="LegacyImageType"/>
+    ///   rather than <see cref="ImageEntityType"/> to maintain backwards compatibility
+    ///   with existing API consumers and auto-generated clients. New endpoints in the
+    ///   image management controller use <see cref="ImageEntityType"/> directly.
+    /// </remarks>
     [Required]
-    public ImageType Type { get; set; }
+    public LegacyImageType Type { get; set; }
 
     /// <summary>
     /// The image source.
@@ -66,6 +72,7 @@ public class Image
     /// <summary>
     /// The image's content type.
     /// </summary>
+    [Required]
     public string ContentType { get; set; }
 
     /// <summary>
@@ -136,7 +143,7 @@ public class Image
         PrimaryUID = imageMetadata.PrimaryID;
         if (showLinkedIDs)
             LinkedUIDs = imageMetadata.LinkedIDs;
-        Type = imageMetadata.Type.ToV3Dto();
+        Type = imageMetadata.Type.ToLegacyDto();
         Source = imageMetadata.Source;
         ResourceID = imageMetadata.ResourceID;
         ContentType = imageMetadata.ContentType;
@@ -175,13 +182,13 @@ public class Image
         DataSource.TMDB,
     ];
 
-    internal static DataSource GetRandomImageSource(ImageType imageType)
+    internal static DataSource GetRandomImageSource(LegacyImageType imageType)
     {
         var sourceList = imageType switch
         {
-            ImageType.Poster => _posterImageSources,
-            ImageType.Banner => _bannerImageSources,
-            ImageType.Backdrop => _backdropImageSources,
+            LegacyImageType.Poster => _posterImageSources,
+            LegacyImageType.Banner => _bannerImageSources,
+            LegacyImageType.Backdrop => _backdropImageSources,
             _ => [],
         };
 
@@ -189,10 +196,11 @@ public class Image
     }
 
     /// <summary>
-    /// Image type.
+    /// Legacy image type. Kept for backwards compatibility on existing API
+    /// routes. New endpoints should use <see cref="ImageEntityType"/> directly.
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum ImageType
+    public enum LegacyImageType
     {
         None = 0,
 
@@ -319,33 +327,33 @@ public class Image
 
 public static class ImageExtensions
 {
-    public static ImageEntityType ToServer(this Image.ImageType type)
+    public static ImageEntityType ToServer(this Image.LegacyImageType type)
         => type switch
         {
-            Image.ImageType.Primary => ImageEntityType.Primary,
-            Image.ImageType.Poster => ImageEntityType.Primary,
-            Image.ImageType.Character => ImageEntityType.Primary,
-            Image.ImageType.Creator => ImageEntityType.Primary,
-            Image.ImageType.Staff => ImageEntityType.Primary,
-            Image.ImageType.Avatar => ImageEntityType.Primary,
-            Image.ImageType.Banner => ImageEntityType.Banner,
-            Image.ImageType.Backdrop => ImageEntityType.Backdrop,
-            Image.ImageType.Thumbnail => ImageEntityType.Backdrop,
-            Image.ImageType.Thumb => ImageEntityType.Backdrop,
-            Image.ImageType.Fanart => ImageEntityType.Backdrop,
-            Image.ImageType.Logo => ImageEntityType.Logo,
-            Image.ImageType.Disc => ImageEntityType.Disc,
+            Image.LegacyImageType.Primary => ImageEntityType.Primary,
+            Image.LegacyImageType.Poster => ImageEntityType.Primary,
+            Image.LegacyImageType.Character => ImageEntityType.Primary,
+            Image.LegacyImageType.Creator => ImageEntityType.Primary,
+            Image.LegacyImageType.Staff => ImageEntityType.Primary,
+            Image.LegacyImageType.Avatar => ImageEntityType.Primary,
+            Image.LegacyImageType.Banner => ImageEntityType.Banner,
+            Image.LegacyImageType.Backdrop => ImageEntityType.Backdrop,
+            Image.LegacyImageType.Thumbnail => ImageEntityType.Backdrop,
+            Image.LegacyImageType.Thumb => ImageEntityType.Backdrop,
+            Image.LegacyImageType.Fanart => ImageEntityType.Backdrop,
+            Image.LegacyImageType.Logo => ImageEntityType.Logo,
+            Image.LegacyImageType.Disc => ImageEntityType.Disc,
             _ => ImageEntityType.None,
         };
 
-    public static Image.ImageType ToV3Dto(this ImageEntityType type)
+    public static Image.LegacyImageType ToLegacyDto(this ImageEntityType type)
         => type switch
         {
-            ImageEntityType.Primary => Image.ImageType.Primary,
-            ImageEntityType.Backdrop => Image.ImageType.Backdrop,
-            ImageEntityType.Banner => Image.ImageType.Banner,
-            ImageEntityType.Logo => Image.ImageType.Logo,
-            ImageEntityType.Disc => Image.ImageType.Disc,
-            _ => Image.ImageType.None,
+            ImageEntityType.Primary => Image.LegacyImageType.Primary,
+            ImageEntityType.Backdrop => Image.LegacyImageType.Backdrop,
+            ImageEntityType.Banner => Image.LegacyImageType.Banner,
+            ImageEntityType.Logo => Image.LegacyImageType.Logo,
+            ImageEntityType.Disc => Image.LegacyImageType.Disc,
+            _ => Image.LegacyImageType.None,
         };
 }

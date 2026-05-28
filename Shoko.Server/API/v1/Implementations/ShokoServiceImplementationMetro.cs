@@ -524,7 +524,7 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
 
             if (gf is null) return retAnime;
 
-            var evaluator = HttpContext.RequestServices.GetRequiredService<IFilterEvaluator>();
+            var evaluator = HttpContext.RequestServices.GetRequiredService<IFilteringEngine>();
             var results = evaluator.EvaluateFilterWithGrouping(gf, user);
 
             var comboGroups = results.Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).Where(a => a is not null)

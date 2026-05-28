@@ -510,6 +510,24 @@ public interface IImageManager
     #region Image | Purge
 
     /// <summary>
+    ///   Get all orphaned images — images that have no cross-references and
+    ///   haven't been updated in the specified number of days.
+    /// </summary>
+    /// <param name="daysOld">
+    ///   Optional. Number of days an image must be unused before being
+    ///   considered orphaned. Set to <c>0</c> to include all images regardless
+    ///   of age. Defaults to <c>7</c> days.
+    /// </param>
+    /// <param name="imageSource">
+    ///   Optional. Filter to a specific image source. If set to <c>null</c>,
+    ///   returns all orphaned images regardless of image source.
+    /// </param>
+    /// <returns>
+    ///   An enumerable of orphaned images matching the filter criteria.
+    /// </returns>
+    IEnumerable<IImage> GetOrphanedImages(int daysOld = 7, DataSource? imageSource = null);
+
+    /// <summary>
     ///   Attempts to purge an image from disk if it is no longer linked to any
     ///   cross-references.
     /// </summary>
@@ -947,6 +965,26 @@ public interface IImageManager
         out int? entityEpisodeNumber,
         out DateOnly? releasedAt
     );
+
+    /// <summary>
+    ///   Resolve an entity from its source, type, and stringified identifier.
+    ///   This is the inverse of <see cref="TryGetMetadataForEntity"/> and is
+    ///   useful for looking up entities when only their metadata triplet is
+    ///   available (e.g. from API route parameters or cross-reference data).
+    /// </summary>
+    /// <param name="entitySource">
+    ///   The source of the entity (e.g. Shoko, AniDB, TMDB).
+    /// </param>
+    /// <param name="entityType">
+    ///   The type of the entity (e.g. Series, Episode, Group).
+    /// </param>
+    /// <param name="entityID">
+    ///   The stringified identifier of the entity, source- and type-specific.
+    /// </param>
+    /// <returns>
+    ///   The resolved entity, or <c>null</c> if not found.
+    /// </returns>
+    IWithImages? GetEntityForImage(DataSource entitySource, DataEntityType entityType, string entityID);
 
     #endregion
 }

@@ -383,7 +383,9 @@ public class SystemService : ISystemService
             services.AddSingleton<ITmdbMetadataService>(sp => sp.GetRequiredService<TmdbMetadataService>());
             services.AddSingleton<TmdbSearchService>();
             services.AddSingleton<ITmdbSearchService>(sp => sp.GetRequiredService<TmdbSearchService>());
-            services.AddSingleton<IFilterEvaluator, FilterEvaluator>();
+            services.AddSingleton<IFilteringEngine, FilteringEngine>();
+            services.AddSingleton<IMetadataFilteringService, MetadataFilteringService>();
+            services.AddSingleton<IFilterPresetManager, FilterPresetManager>();
             services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();
             services.AddSingleton<AnimeSeriesService>();

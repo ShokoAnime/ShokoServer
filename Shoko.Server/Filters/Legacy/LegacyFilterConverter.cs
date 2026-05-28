@@ -10,9 +10,9 @@ namespace Shoko.Server.Filters.Legacy;
 
 public class LegacyFilterConverter
 {
-    private readonly IFilterEvaluator _evaluator;
+    private readonly IFilteringEngine _evaluator;
 
-    public LegacyFilterConverter(IFilterEvaluator evaluator)
+    public LegacyFilterConverter(IFilteringEngine evaluator)
     {
         _evaluator = evaluator;
     }

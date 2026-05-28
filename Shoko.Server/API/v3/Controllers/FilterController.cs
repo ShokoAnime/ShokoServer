@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.Annotations;
@@ -15,7 +16,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
-using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -31,7 +31,7 @@ public class FilterController(
     ISettingsProvider settingsProvider,
     TreeController treeController,
     FilterFactory factory,
-    IFilterEvaluator filterEvaluator
+    IFilteringEngine filterEvaluator
 ) : BaseController(settingsProvider)
 {
     internal const string FilterNotFound = "No Filter entry for the given filterID";
@@ -773,88 +773,21 @@ public class FilterController(
     /// <param name="groups">Optional. The Expression groups to return</param>
     [HttpGet("Expressions")]
     public ActionResult<Filter.FilterExpressionHelp[]> GetExpressions(
-        [FromQuery] Filter.FilterExpressionHelp.FilterExpressionParameterType[]? types = null,
-        [FromQuery] Filter.FilterExpressionHelp.FilterExpressionGroup[]? groups = null
+        [FromQuery] FilterExpressionParameterType[]? types = null,
+        [FromQuery] FilterExpressionGroup[]? groups = null
     )
     {
         types ??= [];
         groups ??= [];
+        _expressionTypes ??= ExpressionDiscovery.GetExpressionHelp()
+            .Select(a => new Filter.FilterExpressionHelp(a))
+            .ToArray();
+        if (types.Length == 0 && groups.Length == 0)
+            return _expressionTypes;
 
-        // get all classes that derive from FilterExpression, but not SortingExpression
-        _expressionTypes ??= AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(a => a.GetTypes())
-            .Where(a =>
-                a != typeof(FilterExpression) && !a.IsGenericType &&
-                typeof(FilterExpression).IsAssignableFrom(a) &&
-                !typeof(SortingExpression).IsAssignableFrom(a)
-            )
-            .OrderBy(a => a.FullName)
-            .Select(a =>
-            {
-                var expression = (FilterExpression?)Activator.CreateInstance(a);
-                if (expression == null)
-                    return null;
-                Filter.FilterExpressionHelp.FilterExpressionParameterType? left = expression switch
-                {
-                    IWithExpressionParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Expression,
-                    IWithDateSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
-                    IWithNumberSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
-                    IWithStringSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
-                    IWithStringSetSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSetSelector,
-                    _ => null
-                };
-                Filter.FilterExpressionHelp.FilterExpressionParameterType? right = expression switch
-                {
-                    IWithSecondExpressionParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Expression,
-                    IWithSecondDateSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
-                    IWithSecondNumberSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
-                    IWithSecondStringSelectorParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
-                    _ => null
-                };
-                Filter.FilterExpressionHelp.FilterExpressionParameterType? parameter = expression switch
-                {
-                    IWithBoolParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Bool,
-                    IWithDateParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Date,
-                    IWithNumberParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.Number,
-                    IWithStringParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.String,
-                    IWithStringSetParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSet,
-                    IWithTimeSpanParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.TimeSpan,
-                    _ => null
-                };
-                Filter.FilterExpressionHelp.FilterExpressionParameterType? secondParameter = expression switch
-                {
-                    IWithSecondStringParameter => Filter.FilterExpressionHelp.FilterExpressionParameterType.String,
-                    _ => null
-                };
-                var type = expression switch
-                {
-                    FilterExpression<bool> => Filter.FilterExpressionHelp.FilterExpressionParameterType.Expression,
-                    FilterExpression<DateTime?> => Filter.FilterExpressionHelp.FilterExpressionParameterType.DateSelector,
-                    FilterExpression<double> => Filter.FilterExpressionHelp.FilterExpressionParameterType.NumberSelector,
-                    FilterExpression<string> => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSelector,
-                    FilterExpression<IReadOnlySet<string>> => Filter.FilterExpressionHelp.FilterExpressionParameterType.StringSetSelector,
-                    _ => throw new Exception($"Expression {a.Name} is not a handled type for Filter Expression Help")
-                };
-                return new Filter.FilterExpressionHelp
-                {
-                    Expression = a.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim(),
-                    Name = expression.Name,
-                    Group = (Filter.FilterExpressionHelp.FilterExpressionGroup)expression.Group,
-                    Description = expression.HelpDescription,
-                    PossibleParameters = expression.HelpPossibleParameters,
-                    PossibleSecondParameters = expression.HelpPossibleSecondParameters,
-                    PossibleParameterPairs = expression.HelpPossibleParameterPairs,
-                    Left = left,
-                    Right = right,
-                    Parameter = parameter,
-                    SecondParameter = secondParameter,
-                    Type = type
-                };
-            })
-            .WhereNotNull()
+        return _expressionTypes
             .Where(a => (types.Length == 0 || types.Contains(a.Type)) && (groups.Length == 0 || groups.Contains(a.Group)))
             .ToArray();
-        return _expressionTypes;
     }
 
     /// <summary>
@@ -869,23 +802,9 @@ public class FilterController(
     /// </remarks>
     [HttpGet("SortingCriteria")]
     public ActionResult<Filter.SortingCriteriaHelp[]> GetSortingCriteria()
-    {
-        // get all classes that derive from FilterExpression, but not SortingExpression
-        _sortingTypes ??= AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).Where(a =>
-                a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType && typeof(SortingExpression).IsAssignableFrom(a)).OrderBy(a => a.FullName)
-            .Select(a =>
-            {
-                var criteria = (SortingExpression?)Activator.CreateInstance(a);
-                if (criteria == null) return null;
-                return new Filter.SortingCriteriaHelp
-                {
-                    Type = a.Name.TrimEnd("SortingSelector").Trim(),
-                    Name = criteria.Name,
-                    Description = criteria.HelpDescription
-                };
-            }).WhereNotNull().ToArray();
-        return _sortingTypes;
-    }
+        => _sortingTypes ??= ExpressionDiscovery.GetSortingCriteriaHelp()
+            .Select(a => new Filter.SortingCriteriaHelp(a))
+            .ToArray();
 
     #endregion
 }

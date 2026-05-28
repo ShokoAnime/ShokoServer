@@ -61,6 +61,10 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     /// <summary>
     /// Returns the image for the given <paramref name="source"/>, <paramref name="type"/> and <paramref name="value"/>.
     /// </summary>
+    /// <remarks>
+    /// <b>Deprecated:</b> Legacy endpoint for backwards compatibility only. Clients are advised to switch to using
+    /// <c>{imageID}</c> instead.
+    /// </remarks>
     /// <param name="source">AniDB, TMDB, Shoko, etc.</param>
     /// <param name="type">Poster, Backdrop, Banner, Thumbnail, etc.</param>
     /// <param name="value">The image ID.</param>
@@ -72,7 +76,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     [Obsolete("Legacy endpoint for backwards compatibility only. Clients are advised to switch to using {imageID} instead.")]
     public ActionResult GetLegacyImage(
         [FromRoute] DataSource source,
-        [FromRoute] Image.ImageType type,
+        [FromRoute] Image.LegacyImageType type,
         [FromRoute, Range(1, int.MaxValue)] int value
     )
     {
@@ -87,6 +91,10 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     /// Enable or disable an image. Disabled images are hidden unless explicitly
     /// asked for.
     /// </summary>
+    /// <remarks>
+    /// <b>Deprecated:</b> Use the management controller's enabled endpoint for
+    /// the image or cross-reference, preferably the cross-reference.
+    /// </remarks>
     /// <param name="source">AniDB, TMDB, Shoko, etc.</param>
     /// <param name="type">Poster, Backdrop, Banner, Thumbnail, etc.</param>
     /// <param name="value">The image ID.</param>
@@ -94,10 +102,10 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{source}/{type}/{value}/Enabled")]
-    [Obsolete]
+    [Obsolete("Use the management controller's enabled endpoint for the image or cross-reference, preferably the cross-reference.")]
     public async Task<ActionResult> EnableOrDisableLegacyImage(
         [FromRoute] DataSource source,
-        [FromRoute] Image.ImageType type,
+        [FromRoute] Image.LegacyImageType type,
         [FromRoute, Range(1, int.MaxValue)] int value,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Image.Input.EnableImageBody body
     )
@@ -125,9 +133,9 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public ActionResult GetRandomImageForType([FromRoute] Image.ImageType imageType)
+    public ActionResult GetRandomImageForType([FromRoute] Image.LegacyImageType imageType)
     {
-        if (imageType == Image.ImageType.Avatar)
+        if (imageType == Image.LegacyImageType.Avatar)
             return ValidationProblem("Unsupported image type for random image.", "imageType");
 
         var dataSource = Image.GetRandomImageSource(imageType);
@@ -172,13 +180,13 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
     public ActionResult<Image> GetRandomImageMetadataForType(
-        [FromRoute] Image.ImageType imageType,
+        [FromRoute] Image.LegacyImageType imageType,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? seriesType = null,
         [FromQuery, Range(0, 100)] int maxAttempts = 5
     )
     {
-        if (imageType == Image.ImageType.Avatar)
+        if (imageType == Image.LegacyImageType.Avatar)
             return ValidationProblem("Unsupported image type for random image.", "imageType");
 
         var dataSource = Image.GetRandomImageSource(imageType);

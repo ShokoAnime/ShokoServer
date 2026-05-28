@@ -1,10 +1,10 @@
 using System.Collections.Generic;
+using Shoko.Abstractions.Filtering.Expressions.Info;
+using Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
+using Shoko.Abstractions.Filtering.Expressions.User;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v1.Models;
-using Shoko.Server.Filters.Info;
 using Shoko.Server.Filters.Legacy;
-using Shoko.Server.Filters.Logic.Expressions;
-using Shoko.Server.Filters.User;
 using Shoko.Server.Models.Shoko;
 using Xunit;
 

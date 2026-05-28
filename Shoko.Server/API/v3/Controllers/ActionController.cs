@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.Annotations;
@@ -135,6 +136,27 @@ public class ActionController : BaseController
     public ActionResult UpdateAllImages()
     {
         Task.Factory.StartNew(() => _imageManager.ScheduleAllAutoDownloads());
+        return Ok();
+    }
+
+    /// <summary>
+    /// Schedule auto-downloads for all images across all entities, optionally
+    /// filtered by image source, image type, and/or cross-reference source.
+    /// </summary>
+    /// <param name="imageSource">Optional. Filter to a specific image source.</param>
+    /// <param name="imageType">Optional. Filter to a specific image type.</param>
+    /// <param name="xrefSource">Optional. Filter to a specific cross-reference source.</param>
+    /// <param name="force">Optional. Re-download even if images already exist locally.</param>
+    /// <returns></returns>
+    [HttpGet("DownloadAllImages")]
+    public ActionResult DownloadAllImages(
+        [FromQuery] DataSource? imageSource = null,
+        [FromQuery] ImageEntityType? imageType = null,
+        [FromQuery] DataSource? xrefSource = null,
+        [FromQuery] bool force = false
+    )
+    {
+        Task.Factory.StartNew(() => _imageManager.ScheduleAllAutoDownloads(imageSource, imageType, xrefSource, force));
         return Ok();
     }
 
