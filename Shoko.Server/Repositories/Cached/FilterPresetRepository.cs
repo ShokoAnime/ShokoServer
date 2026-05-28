@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using NutzCode.InMemoryIndex;
+using Shoko.Abstractions.Filtering.Expressions.Functions;
+using Shoko.Abstractions.Filtering.Expressions.Info;
+using Shoko.Abstractions.Filtering.Expressions.Logic.DateTimes;
+using Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
+using Shoko.Abstractions.Filtering.Expressions.Selectors.DateSelectors;
+using Shoko.Abstractions.Filtering.Expressions.User;
+using Shoko.Abstractions.Filtering.Sorting.Selectors;
 using Shoko.Server.Databases;
-using Shoko.Server.Filters.Functions;
-using Shoko.Server.Filters.Info;
-using Shoko.Server.Filters.Logic.DateTimes;
-using Shoko.Server.Filters.Logic.Expressions;
-using Shoko.Server.Filters.Selectors.DateSelectors;
-using Shoko.Server.Filters.SortingSelectors;
-using Shoko.Server.Filters.User;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Server;
 
@@ -96,7 +96,7 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
         // Do to DatabaseFixes, some filters may be made, namely directory filters
         // All, Continue Watching, Years, Seasons, Tags... 6 seems to be enough to tell for now
         // We can't just check the existence of anything specific, as the user can delete most of these
-        if (GetTopLevel().Count > 6) return;
+        if (GetTopLevel().Count > 0) return;
 
         // Favorites
         var gf = new FilterPreset
@@ -278,7 +278,7 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
                 Locked = true,
                 FilterType = FilterPresetType.Season,
                 ApplyAtSeriesLevel = true,
-                Expression = new InSeasonExpression { Season = season.Season, Year = season.Year },
+                Expression = new InSeasonExpression(season.Year, season.Season),
                 SortingExpression = new NameSortingSelector()
             })
             .ToList();

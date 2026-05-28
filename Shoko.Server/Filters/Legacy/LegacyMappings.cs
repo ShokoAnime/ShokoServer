@@ -1,15 +1,16 @@
 using System;
 using System.Linq;
+using Shoko.Abstractions.Filtering.Expressions;
+using Shoko.Abstractions.Filtering.Expressions.Files;
+using Shoko.Abstractions.Filtering.Expressions.Functions;
+using Shoko.Abstractions.Filtering.Expressions.Info;
+using Shoko.Abstractions.Filtering.Expressions.Logic.DateTimes;
+using Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
+using Shoko.Abstractions.Filtering.Expressions.Logic.Numbers;
+using Shoko.Abstractions.Filtering.Expressions.Selectors.DateSelectors;
+using Shoko.Abstractions.Filtering.Expressions.Selectors.NumberSelectors;
+using Shoko.Abstractions.Filtering.Expressions.User;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.Filters.Files;
-using Shoko.Server.Filters.Functions;
-using Shoko.Server.Filters.Info;
-using Shoko.Server.Filters.Logic.DateTimes;
-using Shoko.Server.Filters.Logic.Expressions;
-using Shoko.Server.Filters.Logic.Numbers;
-using Shoko.Server.Filters.Selectors.DateSelectors;
-using Shoko.Server.Filters.Selectors.NumberSelectors;
-using Shoko.Server.Filters.User;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Filters.Legacy;

@@ -9,7 +9,7 @@ using NHibernate.Engine;
 using NHibernate.SqlTypes;
 using NHibernate.UserTypes;
 using NLog;
-using Shoko.Server.Filters;
+using Shoko.Abstractions.Filtering.Expressions;
 
 namespace Shoko.Server.Databases.NHibernate;
 

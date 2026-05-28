@@ -43,7 +43,7 @@ public class Filter : Filters
         var filter = new Filter { name = gf.Name, id = gf.FilterPresetID, size = 0 };
         if (evaluatedResults == null)
         {
-            var evaluator = ctx.RequestServices.GetRequiredService<IFilterEvaluator>();
+            var evaluator = ctx.RequestServices.GetRequiredService<IFilteringEngine>();
             evaluatedResults = evaluator.EvaluateFilterWithGrouping(gf, ctx.GetUser()).ToList();
         }
 

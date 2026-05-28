@@ -1,9 +1,11 @@
+using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Filtering.Sorting;
 
 namespace Shoko.Abstractions.Filtering;
 
 /// <summary>
-///   A generic filter preset to use with the <see cref="IFilterEvaluator"/>.
+///   A generic filter preset to use with the <see cref="IFilteringEngine"/>.
 /// </summary>
 public class GenericFilterPreset : IFilterPreset
 {

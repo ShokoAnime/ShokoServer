@@ -6,7 +6,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Filtering.Expressions;
+using Shoko.Abstractions.Filtering.Expressions.Containers;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -14,8 +17,6 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
-using Shoko.Server.Filters;
-using Shoko.Server.Filters.Interfaces;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
@@ -31,7 +32,7 @@ public class FilterController(
     ISettingsProvider settingsProvider,
     TreeController treeController,
     FilterFactory factory,
-    IFilterEvaluator filterEvaluator
+    IFilteringEngine filterEvaluator
 ) : BaseController(settingsProvider)
 {
     internal const string FilterNotFound = "No Filter entry for the given filterID";

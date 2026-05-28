@@ -164,7 +164,7 @@ public partial class ShokoServiceImplementation
             var gf = lockedGFs?.FirstOrDefault(a => a.Name == "Continue Watching");
             if (gf is null) return retEps;
 
-            var evaluator = HttpContext.RequestServices.GetRequiredService<IFilterEvaluator>();
+            var evaluator = HttpContext.RequestServices.GetRequiredService<IFilteringEngine>();
             var comboGroups = evaluator.EvaluateFilterWithGrouping(gf, user).Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).WhereNotNull()
                 .Select(a => _legacyV1Service.GetV1Contract(a, userID));
 
@@ -1482,7 +1482,7 @@ public partial class ShokoServiceImplementation
 
             if (gf != null)
             {
-                var evaluator = HttpContext.RequestServices.GetRequiredService<IFilterEvaluator>();
+                var evaluator = HttpContext.RequestServices.GetRequiredService<IFilteringEngine>();
                 var results = evaluator.EvaluateFilterWithGrouping(gf, user);
                 retGroups = results.Select(a => RepoFactory.AnimeGroup.GetByID(a.Key)).WhereNotNull().Select(a => _legacyV1Service.GetV1Contract(a, userID))
                     .ToList();

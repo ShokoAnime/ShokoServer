@@ -48,7 +48,7 @@ public class Group : BaseDirectory
         if (filterID > 0 && evaluatedSeriesIDs == null)
         {
             var filter = RepoFactory.FilterPreset.GetByID(filterID);
-            var evaluator = ctx.RequestServices.GetRequiredService<IFilterEvaluator>();
+            var evaluator = ctx.RequestServices.GetRequiredService<IFilteringEngine>();
             evaluatedSeriesIDs = evaluator.EvaluateFilterWithGrouping(filter, ctx.GetUser()).FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList();
         }
 

@@ -1,8 +1,10 @@
+using Shoko.Abstractions.Filtering.Expressions;
+using Shoko.Abstractions.Filtering.Sorting;
 
 namespace Shoko.Abstractions.Filtering;
 
 /// <summary>
-/// 
+/// Represents a saved filter configuration with an expression and optional sorting.
 /// </summary>
 public interface IFilterPreset
 {
