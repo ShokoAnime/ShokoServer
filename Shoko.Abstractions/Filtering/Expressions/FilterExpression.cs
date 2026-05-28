@@ -27,7 +27,7 @@ public class FilterExpression : IFilterExpression, IEquatable<FilterExpression>
     /// </summary>
     [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual string Name =>
-        GetType().Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").CamelCaseToNatural();
+        GetType().Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("SortingSelector").TrimEnd("Selector").CamelCaseToNatural();
 
     /// <summary>
     /// The group this expression belongs to, used for categorization in UI.

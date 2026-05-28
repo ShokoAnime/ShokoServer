@@ -83,7 +83,7 @@ internal static class ExpressionDiscovery
         return new FilterExpressionHelpEntry
         {
             InternalType = filterType,
-            Expression = filterType.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim().CamelCaseToNatural(),
+            Expression = filterType.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim(),
             Name = expression.Name,
             Group = expression.Group,
             Description = expression.HelpDescription,
@@ -121,7 +121,7 @@ internal static class ExpressionDiscovery
         return new SortingCriteriaHelpEntry
         {
             InternalType = sortingType,
-            Type = sortingType.Name.TrimEnd("SortingSelector").Trim().CamelCaseToNatural(),
+            Type = sortingType.Name.TrimEnd("SortingSelector").Trim(),
             Name = criteria.Name,
             Description = criteria.HelpDescription,
         };

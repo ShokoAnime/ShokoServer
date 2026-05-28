@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Filtering.Expressions;
+using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Server.API.v3.Models.Common;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
@@ -113,47 +115,47 @@ public class Filter : BaseModel
         public string? SecondParameter { get; set; }
     }
 
-    public class FilterExpressionHelp
+    public class FilterExpressionHelp(IFilterExpressionHelp help)
     {
         /// <summary>
         /// The internal type name of the FilterExpression<br/>
         /// This is what you give the API, not actually the internal type (it is the internal type without the word Expression)
         /// </summary>
         [Required]
-        public string Expression { get; init; } = string.Empty;
+        public string Expression { get; init; } = help.Expression;
 
         /// <summary>
         /// The human readable name of the Expression
         /// </summary>
         [Required]
-        public string Name { get; init; } = string.Empty;
+        public string Name { get; init; } = help.Name;
 
         /// <summary>
         /// The group that this filter expression belongs to. This can help with filtering the expression types
         /// </summary>
         [Required]
         [JsonConverter(typeof(StringEnumConverter))]
-        public FilterExpressionGroup Group { get; init; }
+        public FilterExpressionGroup Group { get; init; } = help.Group;
 
         /// <summary>
         /// A description of what the expression is doing, comparing, etc
         /// </summary>
         [Required]
-        public string Description { get; init; } = string.Empty;
+        public string Description { get; init; } = help.Description;
 
         /// <summary>
         /// This is what the expression would be considered for parameters, for example, Air Date is a Date Selector
         /// </summary>
         [Required]
         [JsonConverter(typeof(StringEnumConverter))]
-        public FilterExpressionParameterType Type { get; init; }
+        public FilterExpressionParameterType Type { get; init; } = help.Type;
 
         /// <summary>
         /// The parameter type that the <see cref="FilterCondition.Left"/> property requires
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(StringEnumConverter))]
-        public FilterExpressionParameterType? Left { get; init; }
+        public FilterExpressionParameterType? Left { get; init; } = help.Left;
 
         /// <summary>
         /// The parameter types that the <see cref="FilterCondition.Right"/> property requires<br/>
@@ -161,7 +163,7 @@ public class Filter : BaseModel
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(StringEnumConverter))]
-        public FilterExpressionParameterType? Right { get; init; }
+        public FilterExpressionParameterType? Right { get; init; } = help.Right;
 
         /// <summary>
         /// The parameter type that the <see cref="FilterCondition.Parameter"/> property requires.<br/>
@@ -169,22 +171,7 @@ public class Filter : BaseModel
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(StringEnumConverter))]
-        public FilterExpressionParameterType? Parameter { get; init; }
-
-        /// <summary>
-        /// This will list the possible parameters, usually with the most common ones first.
-        /// </summary>
-        public string[]? PossibleParameters { get; init; }
-
-        /// <summary>
-        /// This will list the possible parameters, usually with the most common ones first.
-        /// </summary>
-        public string[]? PossibleSecondParameters { get; init; }
-
-        /// <summary>
-        /// This will list the possible parameter pairs, usually with the most common ones first.
-        /// </summary>
-        public string[][]? PossibleParameterPairs { get; init; }
+        public FilterExpressionParameterType? Parameter { get; init; } = help.Parameter;
 
         /// <summary>
         /// The parameter type that the <see cref="FilterCondition.SecondParameter"/> property requires<br/>
@@ -192,83 +179,44 @@ public class Filter : BaseModel
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(StringEnumConverter))]
-        public FilterExpressionParameterType? SecondParameter { get; init; }
+        public FilterExpressionParameterType? SecondParameter { get; init; } = help.SecondParameter;
 
         /// <summary>
-        /// Magical Json.Net stuff
+        /// This will list the possible parameters, usually with the most common ones first.
         /// </summary>
-        public bool ShouldSerializePossibleParameters()
-        {
-            return PossibleParameters?.Length > 0;
-        }
+        public string[]? PossibleParameters { get; init; } = help.PossibleParameters;
 
         /// <summary>
-        /// Magical Json.Net stuff
+        /// This will list the possible parameters, usually with the most common ones first.
         /// </summary>
-        public bool ShouldSerializePossibleSecondParameters()
-        {
-            return PossibleSecondParameters?.Length > 0;
-        }
+        public string[]? PossibleSecondParameters { get; init; } = help.PossibleSecondParameters;
 
         /// <summary>
-        /// Magical Json.Net stuff
+        /// This will list the possible parameter pairs, usually with the most common ones first.
         /// </summary>
-        public bool ShouldSerializePossibleParameterPairs()
-        {
-            return PossibleParameterPairs?.Length > 0;
-        }
-
-        [JsonConverter(typeof(StringEnumConverter))]
-        public enum FilterExpressionGroup
-        {
-            Info,
-            Logic,
-            Function,
-            Selector
-        }
-
-        /// <summary>
-        /// The type of the parameter. Expressions return a boolean, Selectors return the type of their name, and the rest are values from the user.<br/>
-        /// Dates are in yyyy-MM-dd format<br/>
-        /// TimeSpans are in d:HH:mm:ss.ffff format (f is milliseconds)
-        /// </summary>
-        [JsonConverter(typeof(StringEnumConverter))]
-        public enum FilterExpressionParameterType
-        {
-            Expression,
-            DateSelector,
-            NumberSelector,
-            StringSelector,
-            StringSetSelector,
-            Date,
-            Number,
-            String,
-            TimeSpan,
-            Bool,
-            StringSet,
-        }
+        public string[][]? PossibleParameterPairs { get; init; } = help.PossibleParameterPairs;
     }
 
-    public class SortingCriteriaHelp
+    public class SortingCriteriaHelp(ISortingCriteriaHelp help)
     {
         /// <summary>
         /// The internal type name of the FilterExpression<br/>
         /// This is what you give the API, not actually the internal type (it is the internal type without the word Expression)
         /// </summary>
         [Required]
-        public string Type { get; init; } = string.Empty;
+        public string Type { get; init; } = help.Type;
 
         /// <summary>
         /// Human readable name
         /// </summary>
         [Required]
-        public string Name { get; set; } = string.Empty;
+        public string Name { get; set; } = help.Name;
 
         /// <summary>
         /// A description of what the expression is doing, comparing, etc
         /// </summary>
         [Required]
-        public string Description { get; init; } = string.Empty;
+        public string Description { get; init; } = help.Description;
     }
 
     /// <summary>
