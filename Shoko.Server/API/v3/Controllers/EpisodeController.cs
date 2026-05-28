@@ -753,7 +753,7 @@ public class EpisodeController : BaseController
     /// <returns></returns>
     [HttpGet("{episodeID}/Images/{imageType}")]
     public ActionResult<Image> GetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
-        [FromRoute] Image.ImageType imageType)
+        [FromRoute] Image.LegacyImageType imageType)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -793,7 +793,7 @@ public class EpisodeController : BaseController
     [Authorize("admin")]
     [HttpPut("{episodeID}/Images/{imageType}")]
     public ActionResult<Image> SetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
-        [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
+        [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)
@@ -829,7 +829,7 @@ public class EpisodeController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{episodeID}/Images/{imageType}")]
-    public ActionResult DeleteEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] Image.ImageType imageType)
+    public ActionResult DeleteEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] Image.LegacyImageType imageType)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
         if (episode == null)

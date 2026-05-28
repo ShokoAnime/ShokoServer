@@ -2501,7 +2501,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [HttpGet("{seriesID}/Images/{imageType}")]
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromRoute] Image.ImageType imageType)
+        [FromRoute] Image.LegacyImageType imageType)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -2542,7 +2542,7 @@ public class SeriesController : BaseController
     [Authorize("admin")]
     [HttpPut("{seriesID}/Images/{imageType}")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
+        [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);
         if (series == null)
@@ -2574,7 +2574,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{seriesID}/Images/{imageType}")]
-    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute] Image.ImageType imageType)
+    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute] Image.LegacyImageType imageType)
     {
         // Check if the series exists and if the user can access the series.
         var series = RepoFactory.AnimeSeries.GetByID(seriesID);

@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Extensions;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.ImageManagement;
@@ -38,7 +37,7 @@ public class ImageCrossReference
     ///   Banner).
     /// </summary>
     [Required]
-    public Image.ImageType ImageType { get; set; }
+    public ImageEntityType ImageType { get; set; }
 
     /// <summary>
     ///   The image source.
@@ -142,7 +141,7 @@ public class ImageCrossReference
         ID = xref.ID;
         ImageID = xref.ImageID;
         PrimaryImageID = xref.PrimaryImageID;
-        ImageType = xref.ImageType.ToV3Dto();
+        ImageType = xref.ImageType;
         ImageSource = xref.ImageSource;
         EntityID = xref.EntityID;
         EntityType = xref.EntityType;

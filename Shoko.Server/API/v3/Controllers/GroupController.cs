@@ -348,7 +348,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <returns></returns>
     [HttpGet("{seriesID}/Images/{imageType}")]
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromRoute] Image.ImageType imageType)
+        [FromRoute] Image.LegacyImageType imageType)
     {
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
@@ -390,7 +390,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [Authorize("admin")]
     [HttpPut("{seriesID}/Images/{imageType}")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromRoute] Image.ImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
+        [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
         var group = RepoFactory.AnimeGroup.GetByID(groupID);
         if (group == null)
@@ -423,7 +423,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{seriesID}/Images/{imageType}")]
-    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID, [FromRoute] Image.ImageType imageType)
+    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID, [FromRoute] Image.LegacyImageType imageType)
     {
         // Check if the series exists and if the user can access the series.
         var group = RepoFactory.AnimeGroup.GetByID(groupID);

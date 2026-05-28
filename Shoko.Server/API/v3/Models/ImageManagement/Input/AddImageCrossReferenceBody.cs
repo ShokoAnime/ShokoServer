@@ -2,8 +2,6 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
-using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Extensions;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.ImageManagement.Input;
@@ -24,7 +22,7 @@ public class AddImageCrossReferenceBody
     ///   etc.).
     /// </summary>
     [Required]
-    public Image.ImageType ImageType { get; set; }
+    public ImageEntityType ImageType { get; set; }
 
     /// <summary>
     ///   Source of the cross-reference. Defaults to User.
@@ -65,7 +63,7 @@ public class AddImageCrossReferenceBody
     {
         var data = new ImageCrossReferenceData
         {
-            ImageType = ImageType.ToServer(),
+            ImageType = ImageType,
             Source = Source,
             IsEnabled = IsEnabled,
             IsDesired = IsDesired,
