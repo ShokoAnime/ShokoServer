@@ -48,6 +48,12 @@ public class Image
     ///   the image is directly retrieved from image manager. Will be set to any
     ///   other type when retrieved from a cross-reference or from an entity.
     /// </summary>
+    /// <remarks>
+    ///   This property intentionally continues to use <see cref="LegacyImageType"/>
+    ///   rather than <see cref="ImageEntityType"/> to maintain backwards compatibility
+    ///   with existing API consumers and auto-generated clients. New endpoints in the
+    ///   image management controller use <see cref="ImageEntityType"/> directly.
+    /// </remarks>
     [Required]
     public LegacyImageType Type { get; set; }
 

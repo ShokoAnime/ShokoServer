@@ -786,12 +786,16 @@ public class EpisodeController : BaseController
     /// <summary>
     /// Set the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Episode"/>.
     /// </summary>
+    /// <remarks>
+    /// <b>Deprecated:</b> Use the image management controller's set preferred endpoint instead.
+    /// </remarks>
     /// <param name="episodeID">Episode ID</param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPut("{episodeID}/Images/{imageType}")]
+    [Obsolete("Use the image management controller's set preferred endpoint instead.")]
     public ActionResult<Image> SetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
@@ -824,11 +828,15 @@ public class EpisodeController : BaseController
     /// <summary>
     /// Unset the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Episode"/>.
     /// </summary>
+    /// <remarks>
+    /// <b>Deprecated:</b> Use the image management controller's unset preferred endpoint instead.
+    /// </remarks>
     /// <param name="episodeID">Episode ID</param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{episodeID}/Images/{imageType}")]
+    [Obsolete("Use the image management controller's unset preferred endpoint instead.")]
     public ActionResult DeleteEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] Image.LegacyImageType imageType)
     {
         var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
