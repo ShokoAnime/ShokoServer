@@ -66,6 +66,7 @@ public class Image
     /// <summary>
     /// The image's content type.
     /// </summary>
+    [Required]
     public string ContentType { get; set; }
 
     /// <summary>

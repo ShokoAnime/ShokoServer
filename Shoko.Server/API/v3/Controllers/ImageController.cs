@@ -87,6 +87,10 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     /// Enable or disable an image. Disabled images are hidden unless explicitly
     /// asked for.
     /// </summary>
+    /// <remarks>
+    /// <b>Deprecated:</b> Use the management controller's enabled endpoint for
+    /// the image or cross-reference, preferably the cross-reference.
+    /// </remarks>
     /// <param name="source">AniDB, TMDB, Shoko, etc.</param>
     /// <param name="type">Poster, Backdrop, Banner, Thumbnail, etc.</param>
     /// <param name="value">The image ID.</param>
@@ -94,7 +98,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPost("{source}/{type}/{value}/Enabled")]
-    [Obsolete]
+    [Obsolete("Use the management controller's enabled endpoint for the image or cross-reference, preferably the cross-reference.")]
     public async Task<ActionResult> EnableOrDisableLegacyImage(
         [FromRoute] DataSource source,
         [FromRoute] Image.ImageType type,
