@@ -61,6 +61,10 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     /// <summary>
     /// Returns the image for the given <paramref name="source"/>, <paramref name="type"/> and <paramref name="value"/>.
     /// </summary>
+    /// <remarks>
+    /// <b>Deprecated:</b> Legacy endpoint for backwards compatibility only. Clients are advised to switch to using
+    /// <c>{imageID}</c> instead.
+    /// </remarks>
     /// <param name="source">AniDB, TMDB, Shoko, etc.</param>
     /// <param name="type">Poster, Backdrop, Banner, Thumbnail, etc.</param>
     /// <param name="value">The image ID.</param>
