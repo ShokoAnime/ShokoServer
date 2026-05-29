@@ -1,7 +1,7 @@
-#nullable enable
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
 public class LanguageDetails

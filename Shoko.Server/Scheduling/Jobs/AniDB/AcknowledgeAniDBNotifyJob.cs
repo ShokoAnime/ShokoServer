@@ -1,12 +1,12 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.QueueProcessor.Builder;
-using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
 

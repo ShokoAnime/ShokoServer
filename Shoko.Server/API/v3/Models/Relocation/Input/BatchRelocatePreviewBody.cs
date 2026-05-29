@@ -1,9 +1,9 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json.Linq;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Relocation.Input;
 
 /// <summary>

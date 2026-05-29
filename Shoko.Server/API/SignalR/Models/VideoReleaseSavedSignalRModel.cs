@@ -1,6 +1,6 @@
-#nullable enable
 using Shoko.Abstractions.Video.Events;
 
+#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 /// <summary>

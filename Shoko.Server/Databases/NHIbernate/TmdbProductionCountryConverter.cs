@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,6 +13,7 @@ using NHibernate.UserTypes;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Models.TMDB;
 
+#nullable enable
 namespace Shoko.Server.Databases.NHibernate;
 
 public class TmdbProductionCountryConverter : TypeConverter, IUserType

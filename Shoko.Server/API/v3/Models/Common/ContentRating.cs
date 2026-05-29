@@ -1,7 +1,7 @@
-#nullable enable
 using System.ComponentModel.DataAnnotations;
 using Shoko.Server.Models.TMDB;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
 public class ContentRating

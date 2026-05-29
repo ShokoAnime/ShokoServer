@@ -6,15 +6,15 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.User.Services;
+using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plex;
 using Shoko.Server.Plex.Collection;
 using Shoko.Server.Plex.Libraries;
 using Shoko.Server.Plex.TVShow;
 using Shoko.Server.Repositories.Cached;
-using Shoko.QueueProcessor.Acquisition.Attributes;
-using Shoko.QueueProcessor.Builder;
-using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Scheduling.Jobs.Plex;

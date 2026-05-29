@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NutzCode.InMemoryIndex;
-using Microsoft.Extensions.DependencyInjection;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Scheduling.Jobs.Actions;

@@ -11,15 +11,14 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.User.Services;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plex;
 using Shoko.Server.Plex.Models.Connections;
 using Shoko.Server.Plex.Models.Libraries;
 using Shoko.Server.Repositories;
-using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Plex;
 using Shoko.Server.Settings;
 

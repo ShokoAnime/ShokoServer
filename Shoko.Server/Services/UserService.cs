@@ -12,13 +12,12 @@ using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Events;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
-using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
 #nullable enable

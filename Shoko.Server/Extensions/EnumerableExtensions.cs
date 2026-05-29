@@ -1,10 +1,10 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Shoko.Abstractions.Extensions;
 
+#nullable enable
 namespace Shoko.Server.Extensions;
 
 public static class EnumerableExtensions

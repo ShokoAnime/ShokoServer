@@ -1,7 +1,7 @@
-#nullable enable
 using System;
 using Shoko.Abstractions.Extensions;
 
+#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 [Serializable]

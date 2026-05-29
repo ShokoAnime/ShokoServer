@@ -1,4 +1,3 @@
-﻿#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -8,6 +7,7 @@ using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 public class AnimeEpisode_User : IEpisodeUserData

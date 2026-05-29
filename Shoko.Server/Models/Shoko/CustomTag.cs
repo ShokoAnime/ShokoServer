@@ -1,4 +1,3 @@
-#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Extensions;
@@ -7,6 +6,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 public class CustomTag : IShokoTag

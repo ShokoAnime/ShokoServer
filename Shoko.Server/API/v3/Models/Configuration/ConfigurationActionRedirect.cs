@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+
 using AbstractConfigurationActionRedirect = Shoko.Abstractions.Config.ConfigurationActionRedirect;
 
 namespace Shoko.Server.API.v3.Models.Configuration;

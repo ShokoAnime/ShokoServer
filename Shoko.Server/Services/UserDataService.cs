@@ -13,11 +13,10 @@ using Shoko.Abstractions.User.Events;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
 using Shoko.Abstractions.Video;
-using Shoko.Server.Models.Shoko;
-using Shoko.Server.Repositories.Cached;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
-using Shoko.Server.Scheduling;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Settings;
 

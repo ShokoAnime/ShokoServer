@@ -1,8 +1,8 @@
-#nullable enable
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Shoko.Server.API.v3.Models.Shoko;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Relocation;
 
 /// <summary>

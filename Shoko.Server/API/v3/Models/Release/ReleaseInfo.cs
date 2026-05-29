@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -10,6 +9,7 @@ using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.API.v3.Models.Shoko;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Release;
 
 public class ReleaseInfo : IReleaseInfo

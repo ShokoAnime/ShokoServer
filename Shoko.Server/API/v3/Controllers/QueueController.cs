@@ -5,12 +5,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Web.Attributes;
-using Shoko.Server.API.Annotations;
-using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
+using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;

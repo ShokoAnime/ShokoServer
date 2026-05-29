@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +12,7 @@ using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 
+#nullable enable
 namespace Shoko.Server.Models.Shoko.Embedded;
 
 public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seasonNumber) : IShokoSeason

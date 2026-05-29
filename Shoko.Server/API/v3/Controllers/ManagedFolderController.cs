@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -16,9 +18,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 

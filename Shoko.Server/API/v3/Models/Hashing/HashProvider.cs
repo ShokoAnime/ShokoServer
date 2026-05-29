@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -7,6 +6,7 @@ using Shoko.Abstractions.Video.Hashing;
 using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.API.v3.Models.Plugin;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Hashing;
 
 /// <summary>

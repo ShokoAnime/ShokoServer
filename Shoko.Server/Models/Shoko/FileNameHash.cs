@@ -1,6 +1,6 @@
-﻿#nullable enable
 using System;
 
+#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 public class FileNameHash

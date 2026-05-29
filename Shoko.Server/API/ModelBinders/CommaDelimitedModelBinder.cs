@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
 namespace Shoko.Server.API.ModelBinders;
 
 public class CommaDelimitedModelBinder : IModelBinder

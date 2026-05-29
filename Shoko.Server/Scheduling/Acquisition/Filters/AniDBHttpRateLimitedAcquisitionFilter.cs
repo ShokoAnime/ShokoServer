@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +6,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 
+#nullable enable
 namespace Shoko.Server.Scheduling.Acquisition.Filters;
 
 public class AniDBHttpRateLimitedAcquisitionFilter : IAcquisitionFilter

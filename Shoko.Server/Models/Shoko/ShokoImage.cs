@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -12,6 +11,7 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 
+#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 /// <summary>

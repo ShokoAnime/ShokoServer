@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Services;
 
 #pragma warning disable CS8618

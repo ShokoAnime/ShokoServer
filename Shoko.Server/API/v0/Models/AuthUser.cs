@@ -1,6 +1,6 @@
-#nullable enable
 using System.ComponentModel.DataAnnotations;
 
+#nullable enable
 namespace Shoko.Server.API.v0.Models;
 
 public class AuthUser

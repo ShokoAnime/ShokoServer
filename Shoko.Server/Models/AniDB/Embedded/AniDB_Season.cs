@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +11,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Models.Shoko;
 
+#nullable enable
 namespace Shoko.Server.Models.AniDB.Embedded;
 
 public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int seasonNumber) : IAnidbSeason

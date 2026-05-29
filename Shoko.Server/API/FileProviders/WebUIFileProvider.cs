@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.IO;
 using System.Text;
@@ -6,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
 using Shoko.Abstractions.Core.Services;
 
+#nullable enable
 namespace Shoko.Server.API.FileProviders;
 
 public class WebUiFileProvider : PhysicalFileProvider, IFileProvider

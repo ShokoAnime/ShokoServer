@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
@@ -6,6 +5,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
 public class Tag

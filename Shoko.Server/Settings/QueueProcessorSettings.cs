@@ -7,7 +7,6 @@ using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.QueueProcessor;
 using Shoko.Server.Scheduling.Jobs.Shoko;
-using Shoko.Server.Server;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Settings;

@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections;
 using System.ComponentModel;
@@ -11,6 +10,7 @@ using NHibernate.SqlTypes;
 using NHibernate.UserTypes;
 using Shoko.Server.Extensions;
 
+#nullable enable
 namespace Shoko.Server.Databases.NHibernate;
 
 public class DateOnlyConverter : TypeConverter, IUserType

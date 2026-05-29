@@ -4,10 +4,10 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
-using Shoko.Server.Models.Shoko;
-using Shoko.Server.Repositories;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;

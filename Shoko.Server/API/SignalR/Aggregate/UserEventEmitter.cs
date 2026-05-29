@@ -1,10 +1,10 @@
-#nullable enable
 using System;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Abstractions.User.Events;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.SignalR.Models;
 
+#nullable enable
 namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class UserEventEmitter : BaseEventEmitter, IDisposable

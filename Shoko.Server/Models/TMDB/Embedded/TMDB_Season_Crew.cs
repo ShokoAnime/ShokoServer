@@ -1,7 +1,7 @@
-#nullable enable
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 /// <summary>

@@ -24,14 +24,13 @@ using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Hashing;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plugin;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
-using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 

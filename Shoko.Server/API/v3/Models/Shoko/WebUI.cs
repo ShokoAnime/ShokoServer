@@ -16,6 +16,7 @@ using Shoko.Server.MediaInfo;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
+
 using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
 using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 

@@ -1,5 +1,4 @@
-using Shoko.QueueProcessor;
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
+using Shoko.QueueProcessor;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
@@ -15,7 +15,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.NHibernate;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 

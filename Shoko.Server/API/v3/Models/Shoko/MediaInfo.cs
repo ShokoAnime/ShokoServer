@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +7,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Media;
 using Shoko.Server.Models.Shoko;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 /// <summary>

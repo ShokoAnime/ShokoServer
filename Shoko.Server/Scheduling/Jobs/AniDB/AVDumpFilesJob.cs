@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Shoko.QueueProcessor.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Utilities;
