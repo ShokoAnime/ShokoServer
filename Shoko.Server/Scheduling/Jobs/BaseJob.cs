@@ -6,22 +6,28 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Shoko.Abstractions.Core.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Scheduling.Jobs;
 
 [UsedImplicitly(ImplicitUseTargetFlags.WithInheritors)]
 public abstract class BaseJob : IQueueJob
 {
     [XmlIgnore, JsonIgnore]
-    public ILogger _logger;
+    protected ILogger _logger;
+
+    [XmlIgnore, JsonIgnore]
+    private bool _setupRan = false;
 
     /// <inheritdoc/>
     public virtual void Setup(IServiceProvider serviceProvider)
     {
         _logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(GetType());
+        _setupRan = true;
     }
 
     [XmlIgnore, JsonIgnore]
@@ -39,6 +45,7 @@ public abstract class BaseJob : IQueueJob
     /// </summary>
     public async Task Process()
     {
+        if (!_setupRan) Setup(ISystemService.StaticServices);
         try
         {
             await Execute();
