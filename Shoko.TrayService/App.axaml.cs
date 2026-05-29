@@ -134,10 +134,23 @@ public partial class App : Application
         DispatchShutdown();
     }
 
-    private void DispatchShutdown()
+    private async void DispatchShutdown()
     {
-        // stupid
-        Task.Run(ShutdownQueue);
+        try
+        {
+            // Await queue teardown before the UI exits. WorkerPoolManager.StopAsync cancels
+            // workers, waits for in-flight Process() calls to finish, and flushes the
+            // PersistenceBuffer. The prior fire-and-forget Task.Run let desktop.Shutdown race
+            // ahead — the process could exit mid-flush, leaving completed jobs in the DB to
+            // re-run on next startup. async void is fine here: the three callers
+            // (Console.CancelKeyPress, tray exit, SystemService.Shutdown) all return
+            // immediately, and the process stays alive until desktop.Shutdown actually fires.
+            await ShutdownQueue().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Queue shutdown failed; proceeding to exit anyway");
+        }
 
         try
         {

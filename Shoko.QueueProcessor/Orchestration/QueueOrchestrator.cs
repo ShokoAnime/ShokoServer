@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
+using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Storage;
 using Shoko.QueueProcessor.Workers;
 
@@ -34,6 +35,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     private readonly ConcurrencyRegistry _concurrency;
     private readonly RetryPolicyResolver _retryPolicies;
     private readonly QueueMetrics _metrics;
+    private readonly QueueStateEventHandler _events;
     private readonly int _maxTotalWorkers;
 
     // Executing state — all fields guarded by _gate
@@ -67,6 +69,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         ConcurrencyRegistry concurrency,
         RetryPolicyResolver retryPolicies,
         QueueMetrics metrics,
+        QueueStateEventHandler events,
         int maxTotalWorkers)
     {
         _logger = logger;
@@ -75,6 +78,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         _concurrency = concurrency;
         _retryPolicies = retryPolicies;
         _metrics = metrics;
+        _events = events;
         _maxTotalWorkers = maxTotalWorkers;
     }
 
@@ -120,14 +124,18 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
     /// <summary>
     /// Enqueues a job: dedup check (O(1)), routes to pool sub-queue, buffers insert, signals pool.
+    /// Everything the orchestrator needs is in <paramref name="context"/>; nothing is rebuilt
+    /// here. The scheduler has already pre-resolved the <see cref="Type"/> and pulled
+    /// <see cref="QueueItem.TypeName"/>/<see cref="QueueItem.Title"/>/<see cref="QueueItem.Details"/>
+    /// from the live job instance, so this method is O(few lock acquisitions).
     /// </summary>
-    public Task EnqueueAsync(QueuedJob job, CancellationToken ct = default)
+    public Task EnqueueAsync(EnqueueContext context, CancellationToken ct = default)
     {
-        var type = ResolveType(job.JobType)
-            ?? throw new InvalidOperationException($"Cannot enqueue: type '{job.JobType}' not found.");
+        var job = context.Job;
+        var type = context.Type;
 
         if (!_poolsByType.TryGetValue(type, out var pool))
-            throw new InvalidOperationException($"No pool handles job type '{job.JobType}'.");
+            throw new InvalidOperationException($"No pool handles job type '{type.FullName}'.");
 
         lock (_gate)
         {
@@ -141,36 +149,40 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         _metrics.RecordEnqueue(type.Name, pool.Name);
 
         if (!_paused) pool.Signal();
+
+        // PoolName is the one display field the scheduler can't fill (it doesn't know pool routing).
+        var item = string.IsNullOrEmpty(context.DisplayItem.PoolName)
+            ? context.DisplayItem with { PoolName = pool.Name }
+            : context.DisplayItem;
+        FireJobsAdded([item]);
         return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Enqueues a batch of jobs. Uses a single gate-lock pass for dedup, a single lock per
+    /// Enqueues a batch of contexts. Uses a single gate-lock pass for dedup, a single lock per
     /// affected pool for sub-queue insertion, and one persistence-buffer call for the whole batch —
     /// far cheaper than calling <see cref="EnqueueAsync"/> per job when enqueueing thousands of items.
     /// </summary>
-    public Task EnqueueRangeAsync(IEnumerable<QueuedJob> jobs, CancellationToken ct = default)
+    public Task EnqueueRangeAsync(IEnumerable<EnqueueContext> contexts, CancellationToken ct = default)
     {
-        // Resolve types and pools first — these are stable after Initialize(), no lock needed.
-        var resolved = new List<(QueuedJob Job, Type Type, WorkerPool Pool)>();
-        foreach (var job in jobs)
+        // Resolve pools first — _poolsByType is stable after Initialize(), no lock needed.
+        var resolved = new List<(EnqueueContext Ctx, WorkerPool Pool)>();
+        foreach (var ctx in contexts)
         {
-            var type = ResolveType(job.JobType);
-            if (type == null) continue;
-            if (!_poolsByType.TryGetValue(type, out var pool)) continue;
-            resolved.Add((job, type, pool));
+            if (!_poolsByType.TryGetValue(ctx.Type, out var pool)) continue;
+            resolved.Add((ctx, pool));
         }
 
         if (resolved.Count == 0) return Task.CompletedTask;
 
         // Single gate-lock pass: dedup and register all keys atomically.
-        var toEnqueue = new List<(QueuedJob Job, Type Type, WorkerPool Pool)>(resolved.Count);
+        var toEnqueue = new List<(EnqueueContext Ctx, WorkerPool Pool)>(resolved.Count);
         lock (_gate)
         {
             foreach (var entry in resolved)
             {
-                if (_jobKeyIndex.ContainsKey(entry.Job.JobKey)) continue;
-                _jobKeyIndex[entry.Job.JobKey] = entry.Job.Id;
+                if (_jobKeyIndex.ContainsKey(entry.Ctx.Job.JobKey)) continue;
+                _jobKeyIndex[entry.Ctx.Job.JobKey] = entry.Ctx.Job.Id;
                 toEnqueue.Add(entry);
             }
         }
@@ -179,23 +191,43 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
         // Group by pool and batch-insert into each pool's sub-queue (one lock per pool).
         var poolBatches = new Dictionary<WorkerPool, List<QueuedJob>>();
-        foreach (var (job, type, pool) in toEnqueue)
+        foreach (var (ctx, pool) in toEnqueue)
         {
             if (!poolBatches.TryGetValue(pool, out var batch))
                 poolBatches[pool] = batch = new List<QueuedJob>();
-            batch.Add(job);
-            _metrics.RecordEnqueue(type.Name, pool.Name);
+            batch.Add(ctx.Job);
+            _metrics.RecordEnqueue(ctx.Type.Name, pool.Name);
         }
 
         foreach (var (pool, batch) in poolBatches)
             pool.AddRangeToQueue(batch);
 
         // Single persistence-buffer call for the entire batch.
-        _persistenceBuffer.OnEnqueueBatch(toEnqueue.Select(e => e.Job));
+        _persistenceBuffer.OnEnqueueBatch(toEnqueue.Select(e => e.Ctx.Job));
 
         if (!_paused) SignalAllPools();
 
+        var items = toEnqueue.Select(e => string.IsNullOrEmpty(e.Ctx.DisplayItem.PoolName)
+            ? e.Ctx.DisplayItem with { PoolName = e.Pool.Name }
+            : e.Ctx.DisplayItem).ToList();
+        FireJobsAdded(items);
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Fires <see cref="QueueStateEventHandler.OnJobsAdded"/> with pre-built display items.
+    /// Passes only cheap counts: <see cref="BlockedWaitingCount"/> scans every pool's sub-queue,
+    /// so we skip it on the hot path. Consumers needing blocked-count should re-query state.
+    /// </summary>
+    private void FireJobsAdded(IReadOnlyList<QueueItem> items)
+    {
+        _events.OnJobsAdded(
+            items,
+            [],
+            WaitingCount,
+            blockedCount: 0,
+            ExecutingCount,
+            MaxConcurrentJobs);
     }
 
     /// <summary>

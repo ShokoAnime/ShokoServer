@@ -37,51 +37,70 @@ public sealed class QueueScheduler : IQueueScheduler
         if (_orchestrator.IsQueued(key))
             return Task.CompletedTask;
 
-        // Serialize data: all public settable properties.
         // RuntimeHelpers.GetUninitializedObject bypasses constructors so jobs are not required
         // to have a parameterless constructor — injected services are constructor parameters,
         // not settable properties, and are irrelevant for serialisation.
         IQueueJob instance = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
         configure?.Invoke((T)instance);
-        var dataJson = JobDataSerializer.Serialize(instance);
 
-        var typeName = typeof(T).FullName + ", " + typeof(T).Assembly.GetName().Name;
-
-        var job = new QueuedJob
-        {
-            Id = Guid.NewGuid(),
-            JobType = string.Intern(typeName),
-            JobKey = key,
-            JobDataJson = dataJson,
-            Priority = prioritize ? 10 : 0,
-            QueuedAt = DateTimeOffset.UtcNow,
-            ScheduledAt = scheduledAt
-        };
-
-        return _orchestrator.EnqueueAsync(job, ct);
+        return _orchestrator.EnqueueAsync(
+            BuildContext(typeof(T), key, instance, prioritize ? 10 : 0, scheduledAt),
+            ct);
     }
 
     public Task EnqueueRange(
         IEnumerable<(Type JobType, string JobKey, string DataJson, int Priority, DateTimeOffset? ScheduledAt)> jobs,
         CancellationToken ct = default)
     {
-        var queuedJobs = new List<QueuedJob>();
+        var contexts = new List<EnqueueContext>();
         foreach (var (jobType, jobKey, dataJson, priority, scheduledAt) in jobs)
         {
             if (_orchestrator.IsQueued(jobKey)) continue;
-            var typeName = jobType.FullName + ", " + jobType.Assembly.GetName().Name;
-            queuedJobs.Add(new QueuedJob
+
+            // No live instance was provided — rehydrate one to read TypeName/Title/Details once.
+            // We still serialize from `instance` rather than reuse `dataJson` so the canonical
+            // round-trip happens in one place.
+            var instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
+            JobDataSerializer.Apply(instance, dataJson);
+
+            contexts.Add(BuildContext(jobType, jobKey, instance, priority, scheduledAt));
+        }
+        return _orchestrator.EnqueueRangeAsync(contexts, ct);
+    }
+
+    /// <summary>
+    /// Single place that assembles a full <see cref="EnqueueContext"/> from a live
+    /// <see cref="IQueueJob"/> instance: persisted <see cref="QueuedJob"/> + display
+    /// <see cref="QueueItem"/> + pre-resolved <see cref="Type"/>. PoolName is left blank — the
+    /// orchestrator stamps it from pool routing.
+    /// </summary>
+    private static EnqueueContext BuildContext(Type type, string jobKey, IQueueJob instance, int priority, DateTimeOffset? scheduledAt)
+    {
+        var asmQualified = type.FullName + ", " + type.Assembly.GetName().Name;
+        var shortTypeName = type.Name;
+        return new EnqueueContext
+        {
+            Type = type,
+            Job = new QueuedJob
             {
                 Id = Guid.NewGuid(),
-                JobType = string.Intern(typeName),
+                JobType = string.Intern(asmQualified),
                 JobKey = jobKey,
-                JobDataJson = dataJson,
+                JobDataJson = JobDataSerializer.Serialize(instance),
                 Priority = priority,
                 QueuedAt = DateTimeOffset.UtcNow,
                 ScheduledAt = scheduledAt
-            });
-        }
-        return _orchestrator.EnqueueRangeAsync(queuedJobs, ct);
+            },
+            DisplayItem = new QueueItem
+            {
+                Key = jobKey,
+                JobType = shortTypeName,
+                TypeName = string.IsNullOrEmpty(instance.TypeName) ? shortTypeName : instance.TypeName,
+                Title = instance.Title,
+                Details = instance.Details,
+                RetryCount = 0
+            }
+        };
     }
 
     public Task Clear(CancellationToken ct = default) => _orchestrator.ClearAsync(ct);

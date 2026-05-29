@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Shoko.QueueProcessor.Abstractions;
 
 /// <summary>A lightweight snapshot of a single queued or executing job for API/SignalR responses.</summary>
-public struct QueueItem
+public record struct QueueItem
 {
     /// <summary>Unique string key identifying this job instance (pool/type/data-derived).</summary>
     public string Key { get; init; }

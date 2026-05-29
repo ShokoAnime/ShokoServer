@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
 using Shoko.QueueProcessor.Orchestration;
-using Shoko.QueueProcessor.Storage;
 
 namespace Shoko.QueueProcessor.Events;
 
@@ -40,7 +38,7 @@ public class QueueStateEventHandler
     }
 
     public void OnJobsAdded(
-        IEnumerable<QueuedJob> added,
+        IReadOnlyList<QueueItem> addedItems,
         IReadOnlyList<QueueItem> waitingItems,
         int waitingCount,
         int blockedCount,
@@ -50,7 +48,7 @@ public class QueueStateEventHandler
     {
         QueueItemsAdded?.Invoke(null, new QueueItemsAddedEventArgs
         {
-            AddedItems = added.Select(ToItem).ToList(),
+            AddedItems = addedItems,
             WaitingItems = waitingItems,
             WaitingJobsCount = waitingCount,
             BlockedJobsCount = blockedCount,
@@ -93,7 +91,7 @@ public class QueueStateEventHandler
     }
 
     public void OnJobCompleted(
-        Guid completedId,
+        ExecutingEntry entry,
         IReadOnlyList<QueueItem> executingItems,
         int waitingCount,
         int blockedCount,
@@ -102,7 +100,18 @@ public class QueueStateEventHandler
     {
         ExecutingJobsChanged?.Invoke(null, new QueueChangedEventArgs
         {
-            RemovedItems = [new QueueItem { Key = completedId.ToString() }],
+            RemovedItems = [new QueueItem
+            {
+                Key = entry.JobKey,
+                JobType = entry.JobType.Name,
+                TypeName = string.IsNullOrEmpty(entry.TypeName) ? entry.JobType.Name : entry.TypeName,
+                Title = entry.Title,
+                Details = entry.Details,
+                Running = false,
+                StartTime = entry.StartedAt,
+                PoolName = entry.PoolName,
+                RetryCount = entry.RetryCount
+            }],
             ExecutingItems = executingItems,
             WaitingJobsCount = waitingCount,
             BlockedJobsCount = blockedCount,
@@ -113,21 +122,4 @@ public class QueueStateEventHandler
         });
     }
 
-    private static QueueItem ToItem(QueuedJob job) => new()
-    {
-        Key = job.JobKey,
-        JobType = GetShortTypeName(job.JobType),
-        RetryCount = job.RetryCount
-    };
-
-    /// <summary>
-    /// Extracts the short class name from an assembly-qualified type name without reflection.
-    /// e.g. "Shoko.Server.Scheduling.Jobs.AniDB.GetAniDBAnimeJob, Shoko.Server" → "GetAniDBAnimeJob"
-    /// </summary>
-    private static string GetShortTypeName(string assemblyQualifiedName)
-    {
-        var nameOnly = assemblyQualifiedName.Split(',')[0].Trim();
-        var dot = nameOnly.LastIndexOf('.');
-        return dot >= 0 ? nameOnly[(dot + 1)..] : nameOnly;
-    }
 }

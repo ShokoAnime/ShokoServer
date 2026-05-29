@@ -85,6 +85,10 @@ public static class QueueProcessorExtensions
             options.FlushIntervalMs,
             options.MaxFlushBatch));
 
+        // ── Events ───────────────────────────────────────────────────────────
+        // Registered before the orchestrator so the factory below can resolve it.
+        services.AddSingleton<QueueStateEventHandler>();
+
         services.AddSingleton(sp => new QueueOrchestrator(
             sp.GetRequiredService<ILogger<QueueOrchestrator>>(),
             sp.GetRequiredService<PersistenceBuffer>(),
@@ -92,6 +96,7 @@ public static class QueueProcessorExtensions
             sp.GetRequiredService<ConcurrencyRegistry>(),
             sp.GetRequiredService<RetryPolicyResolver>(),
             sp.GetRequiredService<QueueMetrics>(),
+            sp.GetRequiredService<QueueStateEventHandler>(),
             options.MaxTotalWorkers));
 
         services.AddSingleton(sp => new PoolDiscovery(
@@ -99,9 +104,6 @@ public static class QueueProcessorExtensions
             options.MaxTotalWorkers,
             options.DefaultPoolMaxWorkers,
             options.LimitedConcurrencyOverrides));
-
-        // ── Events ───────────────────────────────────────────────────────────
-        services.AddSingleton<QueueStateEventHandler>();
 
         // ── Scheduler façade ─────────────────────────────────────────────────
         services.AddSingleton<IQueueScheduler, QueueScheduler>();

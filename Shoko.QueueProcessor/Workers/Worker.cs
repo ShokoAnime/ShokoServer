@@ -137,8 +137,11 @@ internal sealed class Worker
                 _orchestrator.OnComplete(job.Id);
                 _metrics.RecordCompletion(jobType.Name, _pool.Name, sw.Elapsed);
 
+                // Reuse the entry captured pre-Process: it carries TypeName/Title/Details set by
+                // UpdateExecutingItem, and by this point the orchestrator has already removed it
+                // from _executingSet via OnComplete, so re-querying would return nothing.
                 _events.OnJobCompleted(
-                    job.Id,
+                    thisEntry,
                     BuildExecutingItems(_orchestrator.GetExecuting()),
                     _orchestrator.WaitingCount, _orchestrator.BlockedWaitingCount,
                     _orchestrator.MaxConcurrentJobs, _orchestrator.GetMetrics());
