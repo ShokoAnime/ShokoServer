@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Title>Interfaces for Shoko Plugins</Title>
+    <Title>Shoko's Queue Processor, for use in Plugins or standalone</Title>
     <Authors>Shoko Team</Authors>
     <PackageProjectUrl>https://shokoanime.com</PackageProjectUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -37,5 +37,17 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Shoko.Abstractions\Shoko.Abstractions.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\icon.png">
+      <Pack>true</Pack>
+      <PackagePath>/</PackagePath>
+      <Link>icon.png</Link>
+    </None>
+    <None Include="..\LICENSE">
+      <Pack>true</Pack>
+      <PackagePath>/</PackagePath>
+      <Link>LICENSE</Link>
+    </None>
   </ItemGroup>
 </Project>
