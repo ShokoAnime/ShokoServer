@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Expressions;
@@ -6,7 +7,6 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Server;
 
-#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 public class FilterPreset : IStoredFilterPreset

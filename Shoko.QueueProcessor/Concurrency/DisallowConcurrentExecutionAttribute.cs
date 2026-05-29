@@ -7,5 +7,5 @@ namespace Shoko.QueueProcessor.Concurrency;
 /// Only one job of this type (or its group) may execute at a time.
 /// Equivalent to Quartz's <c>[DisallowConcurrentExecution]</c>.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class, Inherited = true)]
+[AttributeUsage(AttributeTargets.Class)]
 public sealed class DisallowConcurrentExecutionAttribute : Attribute { }

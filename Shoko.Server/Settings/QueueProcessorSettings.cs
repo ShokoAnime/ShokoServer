@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.QueueProcessor;
@@ -21,13 +23,47 @@ public class QueueProcessorSettings
     public DatabaseProvider Provider { get; set; } = DatabaseProvider.SQLite;
 
     /// <summary>
-    /// The connection string for the queue database.
+    /// Path to the SQLite queue database file. Relative paths are resolved against
+    /// the application data directory. Only used when <see cref="Provider"/> is SQLite.
+    /// </summary>
+    [Display(Name = "Database File")]
+    [RequiresRestart]
+    [EnvironmentVariable("QUEUE_SQLITE_FILE")]
+    [Visibility(
+        Visibility = DisplayVisibility.Hidden,
+        ToggleWhenMemberIsSet = nameof(Provider),
+        ToggleWhenSetTo = DatabaseProvider.SQLite,
+        ToggleVisibilityTo = DisplayVisibility.Visible
+    )]
+    [field: JsonIgnore]
+    public string SQLiteFilePath
+    {
+        get;
+        set
+        {
+            // Strip StaticDataPath prefix to keep the stored value portable
+            if (value.StartsWith(ApplicationPaths.StaticDataPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                value = value[(ApplicationPaths.StaticDataPath.Length + 1)..];
+            else if (value.StartsWith(ApplicationPaths.StaticDataPath + '/', StringComparison.OrdinalIgnoreCase))
+                value = value[(ApplicationPaths.StaticDataPath.Length + 1)..];
+            field = value;
+        }
+    } = "SQLite/queue.db3";
+
+    /// <summary>
+    /// The connection string for the queue database. Only used when <see cref="Provider"/> is MySQL or SQL Server.
     /// </summary>
     [Display(Name = "Connection String")]
     [RequiresRestart]
     [EnvironmentVariable("QUEUE_CONNECTION_STRING")]
     [TextArea]
-    public string ConnectionString { get; set; } = $"Data Source={Path.Combine(ApplicationPaths.StaticDataPath, "SQLite", "Queue.db3")};Mode=ReadWriteCreate;Pooling=True";
+    [Visibility(
+        Visibility = DisplayVisibility.Visible,
+        ToggleWhenMemberIsSet = nameof(Provider),
+        ToggleWhenSetTo = DatabaseProvider.SQLite,
+        ToggleVisibilityTo = DisplayVisibility.Hidden
+    )]
+    public string ConnectionString { get; set; } = string.Empty;
 
     /// <summary>
     /// Maximum total concurrent workers across all pools. Defaults to CPU count + 4.
@@ -38,15 +74,6 @@ public class QueueProcessorSettings
     [EnvironmentVariable("QUEUE_MAX_WORKERS")]
     [Range(-1, int.MaxValue)]
     public int MaxTotalWorkers { get; set; }
-
-    /// <summary>
-    /// The number of waiting jobs to cache for API usage.
-    /// </summary>
-    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
-    [Visibility(Advanced = true)]
-    [EnvironmentVariable("QUEUE_WAITING_CACHE_SIZE")]
-    [Range(0, 1000)]
-    public int WaitingCacheSize { get; set; } = 100;
 
     /// <summary>
     /// Milliseconds between coalesced DB flush operations.

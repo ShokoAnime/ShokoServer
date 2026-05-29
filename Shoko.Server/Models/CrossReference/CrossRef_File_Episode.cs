@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,6 @@ using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Models.CrossReference;
 
 /// <summary>

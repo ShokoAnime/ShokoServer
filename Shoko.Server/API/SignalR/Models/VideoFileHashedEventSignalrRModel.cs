@@ -12,7 +12,7 @@ public class VideoFileHashedEventSignalRModel : VideoFileEventSignalRModel
         UsedExistingHashes = eventArgs.UsedExistingHashes;
         IsNewVideo = eventArgs.IsNewVideo;
         IsNewFile = eventArgs.IsNewFile;
-        Hashes = eventArgs.Hashes.Select(h => new HashDigest() { Type = h.Type, Value = h.Value, Metadata = h.Metadata }).ToList();
+        Hashes = eventArgs.Hashes.Select(h => new HashDigest { Type = h.Type, Value = h.Value, Metadata = h.Metadata }).ToList();
     }
 
     /// <summary>

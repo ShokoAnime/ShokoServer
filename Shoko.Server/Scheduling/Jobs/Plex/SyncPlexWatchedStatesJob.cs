@@ -12,7 +12,7 @@ using Shoko.Server.Plex.Collection;
 using Shoko.Server.Plex.Libraries;
 using Shoko.Server.Plex.TVShow;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
+using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Settings;

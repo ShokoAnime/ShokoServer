@@ -1,4 +1,4 @@
-#nullable enable
+using System;
 using System.Collections.Generic;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
@@ -8,7 +8,7 @@ namespace Shoko.QueueProcessor.Events;
 /// <summary>
 /// Fired when one or more jobs are added to the queue.
 /// </summary>
-public class QueueItemsAddedEventArgs : System.EventArgs
+public class QueueItemsAddedEventArgs : EventArgs
 {
     /// <summary>The newly enqueued items.</summary>
     public IReadOnlyList<QueueItem> AddedItems { get; init; } = [];

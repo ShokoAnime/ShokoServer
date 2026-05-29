@@ -5,8 +5,16 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
+    <Title>Interfaces for Shoko Plugins</Title>
     <Authors>Shoko Team</Authors>
+    <PackageProjectUrl>https://shokoanime.com</PackageProjectUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
+    <PackageTags>queuing, workers, background processing, shoko, anime, plugins</PackageTags>
+    <PackageReleaseNotes>Renamer Rewrite</PackageReleaseNotes>
+    <Version>6.0.0-alpha.1</Version>
+    <NoWarn>$(NoWarn);1591</NoWarn>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
   </PropertyGroup>
   <ItemGroup>
@@ -26,5 +34,8 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.8" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
     <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Shoko.Abstractions\Shoko.Abstractions.csproj" />
   </ItemGroup>
 </Project>

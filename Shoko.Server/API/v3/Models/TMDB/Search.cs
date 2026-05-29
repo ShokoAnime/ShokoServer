@@ -1,16 +1,14 @@
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Metadata.Tmdb;
-using Shoko.Server.Extensions;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using TMDbLib.Objects.Search;
-
 using RemoteMovie = TMDbLib.Objects.Movies.Movie;
 using RemoteShow = TMDbLib.Objects.TvShows.TvShow;
 
@@ -199,7 +197,7 @@ public static class Search
                 : null;
             Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
                 : null;
-            UserRating = new Rating()
+            UserRating = new Rating
             {
                 Value = movie.UserRating,
                 MaxValue = 10,
@@ -224,7 +222,7 @@ public static class Search
                 : null;
             Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
                 : null;
-            UserRating = new Rating()
+            UserRating = new Rating
             {
                 Value = movie.VoteAverage,
                 MaxValue = 10,
@@ -249,7 +247,7 @@ public static class Search
                 : null;
             Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
                 : null;
-            UserRating = new Rating()
+            UserRating = new Rating
             {
                 Value = movie.VoteAverage,
                 MaxValue = 10,
@@ -274,7 +272,7 @@ public static class Search
                 : null;
             Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
                 : null;
-            UserRating = new Rating()
+            UserRating = new Rating
             {
                 Value = (double)movie.UserRating,
                 MaxValue = 10,
@@ -362,7 +360,7 @@ public static class Search
             Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
                 ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
                 : null;
-            UserRating = new Rating()
+            UserRating = new Rating
             {
                 Value = show.UserRating,
                 MaxValue = 10,
@@ -387,7 +385,7 @@ public static class Search
             Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
                 ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
                 : null;
-            UserRating = new Rating()
+            UserRating = new Rating
             {
                 Value = show.VoteAverage,
                 MaxValue = 10,
@@ -412,7 +410,7 @@ public static class Search
             Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
                 ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
                 : null;
-            UserRating = new Rating()
+            UserRating = new Rating
             {
                 Value = show.VoteAverage,
                 MaxValue = 10,
@@ -437,7 +435,7 @@ public static class Search
             Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
                 ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
                 : null;
-            UserRating = new Rating()
+            UserRating = new Rating
             {
                 Value = (double)show.UserRating,
                 MaxValue = 10,

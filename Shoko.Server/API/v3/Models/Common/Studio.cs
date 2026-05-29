@@ -1,4 +1,4 @@
-
+#nullable enable
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -7,7 +7,6 @@ using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.TMDB;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
 /// <summary>

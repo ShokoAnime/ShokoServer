@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +7,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Abstractions.User;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Aggregate;
 
 public abstract class BaseEventEmitter : IEventEmitter

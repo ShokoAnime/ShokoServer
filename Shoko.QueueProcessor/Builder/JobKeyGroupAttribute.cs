@@ -6,7 +6,7 @@ namespace Shoko.QueueProcessor.Builder;
 /// Tags a job type with a logical group name for key namespacing.
 /// Used by <see cref="JobKeyBuilder{T}"/> to prefix the generated key.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class, Inherited = true)]
+[AttributeUsage(AttributeTargets.Class)]
 public sealed class JobKeyGroupAttribute : Attribute
 {
     /// <summary>The group/namespace prefix for the job key.</summary>

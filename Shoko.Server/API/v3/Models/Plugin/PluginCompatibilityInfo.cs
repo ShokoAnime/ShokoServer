@@ -1,6 +1,6 @@
+#nullable enable
 using System;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Plugin;
 
 public class PluginCompatibilityInfo

@@ -1,8 +1,7 @@
-
+#nullable enable
 using System;
 using Shoko.Abstractions.Metadata.Enums;
 
-#nullable enable
 namespace Shoko.Server.Models.Interfaces;
 
 public interface IEntityMetadata

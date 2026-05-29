@@ -1,5 +1,7 @@
 
 #nullable enable
+using System;
+
 namespace Shoko.Server.API.v3.Models.Plugin.Input;
 
 /// <summary>
@@ -20,10 +22,10 @@ public class UpdatePluginPackageSettingsBody
     /// <summary>
     ///   Default time before a repository's packages are considered stale.
     /// </summary>
-    public System.TimeSpan? DefaultRepositoryStaleTime { get; init; }
+    public TimeSpan? DefaultRepositoryStaleTime { get; init; }
 
     /// <summary>
     ///   Time to retain old plugin versions before auto-cleanup.
     /// </summary>
-    public System.TimeSpan? InactivePluginVersionRetention { get; init; }
+    public TimeSpan? InactivePluginVersionRetention { get; init; }
 }

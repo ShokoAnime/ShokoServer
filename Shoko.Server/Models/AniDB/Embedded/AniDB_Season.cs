@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +12,6 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Models.AniDB.Embedded;
 
 public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int seasonNumber) : IAnidbSeason
@@ -39,7 +39,7 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
 
     ITitle IWithTitles.DefaultTitle
         => seasonNumber is 0
-            ? new TitleStub()
+            ? new TitleStub
             {
                 Language = TitleLanguage.English,
                 LanguageCode = "en",
@@ -51,7 +51,7 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
 
     ITitle? IWithTitles.PreferredTitle
         => seasonNumber is 0
-            ? new TitleStub()
+            ? new TitleStub
             {
                 Language = TitleLanguage.English,
                 LanguageCode = "en",
@@ -63,7 +63,7 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
 
     IReadOnlyList<ITitle> IWithTitles.Titles => seasonNumber is 0
         ? [
-            new TitleStub()
+            new TitleStub
             {
                 Language = TitleLanguage.English,
                 LanguageCode = "en",
@@ -76,7 +76,7 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
 
     IText? IWithDescriptions.DefaultDescription
         => seasonNumber is 0
-            ? new TextStub()
+            ? new TextStub
             {
                 Language = TitleLanguage.English,
                 LanguageCode = "en",
@@ -87,7 +87,7 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
 
     IText? IWithDescriptions.PreferredDescription
         => seasonNumber is 0
-            ? new TextStub()
+            ? new TextStub
             {
                 Language = TitleLanguage.English,
                 LanguageCode = "en",
@@ -98,7 +98,7 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
 
     IReadOnlyList<IText> IWithDescriptions.Descriptions => seasonNumber is 0
         ? [
-            new TextStub()
+            new TextStub
             {
                 Language = TitleLanguage.English,
                 LanguageCode = "en",

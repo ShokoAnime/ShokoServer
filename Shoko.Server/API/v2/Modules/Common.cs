@@ -31,7 +31,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor;
-using Shoko.Server.Scheduling;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -11,7 +12,6 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public static class Dashboard
@@ -171,7 +171,7 @@ public static class Dashboard
             var shokoEpisode = shokoSeries is not null
                 ? anidbEpisode.ShokoEpisodes.FirstOrDefault()
                 : null;
-            IDs = new EpisodeDetailsIDs()
+            IDs = new EpisodeDetailsIDs
             {
                 ID = anidbEpisode.ID,
                 Series = anidbAnime.ID,

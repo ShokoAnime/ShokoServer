@@ -16,7 +16,6 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 using TMDbLib.Objects.People;
-
 using PersonGender = Shoko.Server.Providers.TMDB.PersonGender;
 
 #pragma warning disable CS0618
@@ -181,7 +180,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
     /// Cached reference to all biographies for the person, so we won't have to hit
     /// the database twice to get all biographies _and_ the preferred biography.
     /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allBiographies = null;
+    private IReadOnlyList<TMDB_Overview>? _allBiographies;
 
     /// <summary>
     /// Get all biographies for the person.
@@ -228,7 +227,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
 
     #region IWithDescriptions Implementation
 
-    IText? IWithDescriptions.DefaultDescription => new TextStub()
+    IText? IWithDescriptions.DefaultDescription => new TextStub
     {
         Language = TitleLanguage.EnglishAmerican,
         CountryCode = "US",
@@ -291,7 +290,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
                 var episodes = group.ToList();
                 var firstEpisode = episodes.First();
                 var seasonCount = episodes.GroupBy(a => a.TmdbSeasonID).Count();
-                return new TMDB_Show_Cast()
+                return new TMDB_Show_Cast
                 {
                     TmdbPersonID = firstEpisode.TmdbPersonID,
                     TmdbShowID = firstEpisode.TmdbShowID,
@@ -319,7 +318,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
                 var episodes = group.ToList();
                 var firstEpisode = episodes.First();
                 var seasonCount = episodes.GroupBy(a => a.TmdbSeasonID).Count();
-                return new TMDB_Show_Crew()
+                return new TMDB_Show_Crew
                 {
                     TmdbPersonID = firstEpisode.TmdbPersonID,
                     TmdbShowID = firstEpisode.TmdbShowID,

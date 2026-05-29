@@ -1,11 +1,9 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Analytics;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Storage;

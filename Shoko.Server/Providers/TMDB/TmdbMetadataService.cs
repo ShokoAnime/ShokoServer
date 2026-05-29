@@ -24,7 +24,7 @@ using Shoko.Server.Repositories.Direct.TMDB;
 using Shoko.Server.Repositories.Direct.TMDB.Optional;
 using Shoko.Server.Repositories.Direct.TMDB.Text;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Scheduling;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;

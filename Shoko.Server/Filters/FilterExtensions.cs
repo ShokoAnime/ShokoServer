@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +11,6 @@ using Shoko.Server.MediaInfo;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Filters;
 
 public static class FilterExtensions
@@ -41,7 +41,7 @@ public static class FilterExtensions
                 series.PreferredOverview?.Value ?? string.Empty,
             DescriptionsDelegate = () =>
                 (series as ISeries)!.Descriptions.Select(a => a.Value).ToHashSet(),
-            SeriesIDsDelegate = () => new HashSet<string>() { series.AnimeSeriesID.ToString() },
+            SeriesIDsDelegate = () => new HashSet<string> { series.AnimeSeriesID.ToString() },
             GroupIDDelegate = () =>
                 series.AnimeGroupID,
             TopLevelGroupIDDelegate = () =>
@@ -49,7 +49,7 @@ public static class FilterExtensions
             GroupIDsDelegate = () =>
                 series.AllGroupsAbove.Select(a => a.AnimeGroupID.ToString()).ToHashSet(),
             AnidbAnimeIDsDelegate = () =>
-                new HashSet<string>() { series.AniDB_ID.ToString() },
+                new HashSet<string> { series.AniDB_ID.ToString() },
             SeriesCountDelegate = () => 1,
             GroupCountDelegate = () => 0,
             TotalGroupCountDelegate = () => 0,
@@ -239,7 +239,7 @@ public static class FilterExtensions
                 group.GroupName.ToSortName(),
             NamesDelegate = () =>
             {
-                var result = new HashSet<string>() { group.GroupName };
+                var result = new HashSet<string> { group.GroupName };
                 foreach (var grp in group.AllGroupsAbove)
                     result.Add(grp.GroupName);
                 result.UnionWith(series.SelectMany(a => a.Titles.Select(t => t.Value)));

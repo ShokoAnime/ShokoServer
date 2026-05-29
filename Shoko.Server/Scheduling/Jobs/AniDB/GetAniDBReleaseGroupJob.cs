@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Interfaces;

@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +8,7 @@ using Shoko.QueueProcessor.Analytics;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
+using Shoko.QueueProcessor.Storage;
 using Shoko.QueueProcessor.Workers;
 
 namespace Shoko.QueueProcessor;
@@ -22,10 +22,6 @@ public class QueueHandler
     private readonly IQueueScheduler _scheduler;
     private readonly QueueOrchestrator _orchestrator;
     private readonly WorkerPoolManager _poolManager;
-    private readonly QueueStateEventHandler _events;
-
-    // Executing jobs cache — updated by ExecutingJobsChanged events
-    private readonly Dictionary<string, QueueItem> _executingJobs = new();
 
     public QueueHandler(
         IQueueScheduler scheduler,
@@ -36,39 +32,11 @@ public class QueueHandler
         _scheduler = scheduler;
         _orchestrator = orchestrator;
         _poolManager = poolManager;
-        _events = events;
-
-        _events.ExecutingJobsChanged += OnExecutingJobsChanged;
-        _events.QueueItemsAdded += OnQueueItemsAdded;
-    }
-
-    ~QueueHandler()
-    {
-        _events.ExecutingJobsChanged -= OnExecutingJobsChanged;
-        _events.QueueItemsAdded -= OnQueueItemsAdded;
-    }
-
-    // ── Event handlers ─────────────────────────────────────────────────────
-
-    private void OnExecutingJobsChanged(object? sender, QueueChangedEventArgs e)
-    {
-        lock (_executingJobs)
-        {
-            _executingJobs.Clear();
-            foreach (var item in e.ExecutingItems)
-                _executingJobs[item.Key] = item;
-        }
-
-        WaitingCount = e.WaitingJobsCount;
-        BlockedCount = e.BlockedJobsCount;
-        TotalCount = e.TotalJobsCount;
-    }
-
-    private void OnQueueItemsAdded(object? sender, QueueItemsAddedEventArgs e)
-    {
-        WaitingCount = e.WaitingJobsCount;
-        BlockedCount = e.BlockedJobsCount;
-        TotalCount = e.TotalJobsCount;
+        // events is intentionally unused: state is read straight from the orchestrator. Earlier
+        // versions kept a local cache primed by ExecutingJobsChanged / QueueItemsAdded, but those
+        // events fire concurrently from worker threads with no ordering guarantees — under burst
+        // load an older snapshot from worker A would arrive after a newer snapshot from worker B,
+        // overwriting fresh state and making the API report 0 executing while ~24 were actually running.
     }
 
     // ── Queue control ──────────────────────────────────────────────────────
@@ -91,18 +59,39 @@ public class QueueHandler
 
     // ── State counters ─────────────────────────────────────────────────────
 
-    public int WaitingCount { get; private set; }
-    public int BlockedCount { get; private set; }
-    public int TotalCount { get; private set; }
+    public int WaitingCount => _orchestrator.WaitingCount;
+    public int BlockedCount => _orchestrator.BlockedWaitingCount;
+    public int TotalCount => _orchestrator.WaitingCount + _orchestrator.BlockedWaitingCount + _orchestrator.ExecutingCount;
 
-    /// <summary>Total worker slots across all pools (equivalent to old ThreadPoolSize).</summary>
-    public int ThreadCount => _orchestrator.TotalWorkerCount;
+    /// <summary>
+    /// The maximum number of jobs that can execute concurrently across all pools.
+    /// Matches <see cref="QueueProcessorOptions.MaxTotalWorkers"/>.
+    /// </summary>
+    public int ThreadCount => _orchestrator.MaxConcurrentJobs;
 
     // ── Job queries ────────────────────────────────────────────────────────
 
     public QueueItem[] GetExecutingJobs()
     {
-        lock (_executingJobs) return [.._executingJobs.Values];
+        var entries = _orchestrator.GetExecuting();
+        var result = new QueueItem[entries.Count];
+        for (var i = 0; i < entries.Count; i++)
+        {
+            var e = entries[i];
+            result[i] = new QueueItem
+            {
+                Key = e.JobKey,
+                JobType = e.JobType.Name,
+                TypeName = string.IsNullOrEmpty(e.TypeName) ? e.JobType.Name : e.TypeName,
+                Title = e.Title,
+                Details = e.Details,
+                Running = true,
+                StartTime = e.StartedAt,
+                PoolName = e.PoolName,
+                RetryCount = e.RetryCount
+            };
+        }
+        return result;
     }
 
     /// <summary>
@@ -174,10 +163,11 @@ public class QueueHandler
 
     // ── Helpers ────────────────────────────────────────────────────────────
 
-    private QueueItem BuildWaitingItem(Storage.QueuedJob j, bool isRetryDelayed)
+    private QueueItem BuildWaitingItem(QueuedJob j, bool isRetryDelayed)
     {
         var type = _orchestrator.TryResolveType(j.JobType);
-        var typeName = type?.Name ?? GetShortTypeName(j.JobType);
+        var jobType = type?.Name ?? GetShortTypeName(j.JobType);
+        var typeName = jobType;
         var title = string.Empty;
         Dictionary<string, object> details = [];
 
@@ -188,16 +178,18 @@ public class QueueHandler
                 // Bypass constructor — job data properties are set separately, injected services not needed
                 var inst = (IQueueJob)RuntimeHelpers.GetUninitializedObject(type);
                 JobDataSerializer.Apply(inst, j.JobDataJson);
+                typeName = string.IsNullOrEmpty(inst.TypeName) ? jobType : inst.TypeName;
                 title = inst.Title;
                 details = inst.Details;
             }
-            catch { /* best-effort; leave title/details empty */ }
+            catch { /* best-effort; leave typeName/title/details at defaults */ }
         }
 
         return new QueueItem
         {
             Key = j.JobKey,
-            JobType = typeName,
+            JobType = jobType,
+            TypeName = typeName,
             Title = title,
             Details = details,
             RetryCount = j.RetryCount,

@@ -16,7 +16,7 @@ using Shoko.Server.Models.Legacy;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Scheduling;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Server;
 using Shoko.Server.Services;

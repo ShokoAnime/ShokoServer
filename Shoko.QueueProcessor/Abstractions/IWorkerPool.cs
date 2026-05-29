@@ -1,4 +1,4 @@
-#nullable enable
+using System;
 using System.Collections.Generic;
 
 namespace Shoko.QueueProcessor.Abstractions;
@@ -20,7 +20,7 @@ public interface IWorkerPool
     int MaxWorkers { get; }
 
     /// <summary>Job types whose execution is managed by this pool.</summary>
-    IReadOnlyList<System.Type> HandledTypes { get; }
+    IReadOnlyList<Type> HandledTypes { get; }
 
     /// <summary>Acquisition filters associated with this pool.</summary>
     IReadOnlyList<IAcquisitionFilter> AcquisitionFilters { get; }

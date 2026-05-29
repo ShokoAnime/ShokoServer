@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
+using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -11,6 +12,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Settings;
 

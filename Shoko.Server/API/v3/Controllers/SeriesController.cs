@@ -17,6 +17,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -31,14 +32,12 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Scheduling;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-
 using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
 using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 

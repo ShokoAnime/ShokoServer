@@ -1,10 +1,10 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Shoko.Abstractions.Extensions;
 
-#nullable enable
 namespace Shoko.Server.Extensions;
 
 public static class EnumerableExtensions
@@ -196,7 +196,7 @@ public static class EnumerableExtensions
         if (length == -1) length = list.Count();
         if (length == 1) return list.Select(t => new[] { t });
 
-        return GetPermutations(list, length - 1)
+        return list.GetPermutations(length - 1)
             .SelectMany(t => list.Where(e => !t.Contains(e)),
                 (t1, t2) => t1.Concat(new[] { t2 }));
     }

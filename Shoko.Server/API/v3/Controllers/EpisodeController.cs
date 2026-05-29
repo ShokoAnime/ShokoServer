@@ -488,7 +488,7 @@ public class EpisodeController : BaseController
         if (vote.Value > vote.MaxValue)
             return ValidationProblem($"Value must be less than or equal to the set max value ({vote.MaxValue}).", nameof(vote.Value));
 
-        await _userDataService.RateEpisode(episode, User, vote.GetRating(10));
+        await _userDataService.RateEpisode(episode, User, vote.GetRating());
 
         return NoContent();
     }

@@ -1,7 +1,7 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NHibernate.Util;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
@@ -11,7 +11,6 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using TMDbLib.Objects.TvShows;
 
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 /// <summary>
@@ -133,7 +132,7 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>, ITmdbShowOrderingInform
                 var episodes = group.ToList();
                 var firstEpisode = episodes.First();
                 var seasonCount = episodes.GroupBy(a => a.TmdbSeasonID).Count();
-                return new TMDB_Show_Cast()
+                return new TMDB_Show_Cast
                 {
                     TmdbPersonID = firstEpisode.TmdbPersonID,
                     TmdbShowID = firstEpisode.TmdbShowID,
@@ -162,7 +161,7 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>, ITmdbShowOrderingInform
                 var episodes = group.ToList();
                 var firstEpisode = episodes.First();
                 var seasonCount = episodes.GroupBy(a => a.TmdbSeasonID).Count();
-                return new TMDB_Show_Crew()
+                return new TMDB_Show_Crew
                 {
                     TmdbPersonID = firstEpisode.TmdbPersonID,
                     TmdbShowID = firstEpisode.TmdbShowID,

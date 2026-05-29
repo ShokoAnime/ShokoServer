@@ -18,6 +18,7 @@ using Shoko.Server.Plex.Models.Connections;
 using Shoko.Server.Plex.Models.Libraries;
 using Shoko.Server.Repositories;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Plex;
 using Shoko.Server.Settings;

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Shoko.Server.API.v3.Models.Plugin;
-
 using AbstractConfigurationInfo = Shoko.Abstractions.Config.ConfigurationInfo;
 
 #nullable enable

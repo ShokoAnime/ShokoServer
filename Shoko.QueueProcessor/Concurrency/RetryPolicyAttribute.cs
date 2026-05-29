@@ -6,7 +6,7 @@ namespace Shoko.QueueProcessor.Concurrency;
 /// Per-type override for the retry backoff policy. When not present, global defaults from
 /// <see cref="QueueProcessorOptions"/> apply.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class, Inherited = true)]
+[AttributeUsage(AttributeTargets.Class)]
 public sealed class RetryPolicyAttribute : Attribute
 {
     /// <summary>Maximum number of retry attempts before the job is discarded with an ERROR log.</summary>

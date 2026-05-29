@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Config.Enums;
-
 using AbstractConfigurationActionResultMessage = Shoko.Abstractions.Config.ConfigurationActionResultMessage;
 
 #nullable enable

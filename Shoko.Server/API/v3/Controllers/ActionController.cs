@@ -13,7 +13,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Scheduling;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Plex;

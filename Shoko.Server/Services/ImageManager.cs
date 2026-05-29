@@ -39,7 +39,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Scheduling;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Image;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;

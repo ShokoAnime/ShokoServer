@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -20,7 +21,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]

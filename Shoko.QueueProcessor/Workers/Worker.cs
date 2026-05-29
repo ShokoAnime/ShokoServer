@@ -1,6 +1,7 @@
-#nullable enable
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -21,6 +22,7 @@ namespace Shoko.QueueProcessor.Workers;
 internal sealed class Worker
 {
     private readonly WorkerPool _pool;
+    private readonly int _index;
     private readonly IServiceProvider _serviceProvider;
     private readonly QueueOrchestrator _orchestrator;
     private readonly QueueMetrics _metrics;
@@ -29,8 +31,16 @@ internal sealed class Worker
     private readonly ILogger<Worker> _logger;
     private readonly int _maxIdlePollMs;
 
+    // Completes when RunAsync exits — used by WorkerPool.WhenStoppedAsync so the
+    // WorkerPoolManager can wait for in-flight Process() calls to finish before flushing
+    // the PersistenceBuffer on shutdown. Without this, an in-flight job that completes
+    // after FlushNowAsync buffers a DELETE that never gets written.
+    private readonly TaskCompletionSource _completed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public Task Completion => _completed.Task;
+
     public Worker(
         WorkerPool pool,
+        int index,
         IServiceProvider serviceProvider,
         QueueOrchestrator orchestrator,
         QueueMetrics metrics,
@@ -39,6 +49,7 @@ internal sealed class Worker
         int maxIdlePollMs = 5000)
     {
         _pool = pool;
+        _index = index;
         _serviceProvider = serviceProvider;
         _orchestrator = orchestrator;
         _metrics = metrics;
@@ -58,10 +69,14 @@ internal sealed class Worker
         // and starves Kestrel request processing.
         // A dedicated Thread holds the OS thread alive across the entire worker lifetime,
         // keeping job execution off the ThreadPool.
-        var thread = new Thread(() => RunAsync(ct).GetAwaiter().GetResult())
+        var thread = new Thread(() =>
+        {
+            try { RunAsync(ct).GetAwaiter().GetResult(); }
+            finally { _completed.TrySetResult(); }
+        })
         {
             IsBackground = true,
-            Name = $"Worker-{_pool.Name}"
+            Name = $"Queue.{_pool.Name}.{_index}"
         };
         thread.Start();
     }
@@ -106,15 +121,15 @@ internal sealed class Worker
                 instance.Setup(scope.ServiceProvider);
                 instance.PostInit();
 
-                // Store Title/Details from the resolved instance so API snapshots show them
-                _orchestrator.UpdateExecutingItem(job.Id, instance.Title, instance.Details);
+                // Store TypeName/Title/Details from the resolved instance so API snapshots show them
+                _orchestrator.UpdateExecutingItem(job.Id, instance.TypeName, instance.Title, instance.Details);
 
                 var executingEntries = _orchestrator.GetExecuting();
-                var thisEntry = System.Linq.Enumerable.FirstOrDefault(executingEntries, e => e.Id == job.Id);
+                var thisEntry = executingEntries.FirstOrDefault(e => e.Id == job.Id);
                 _events.OnJobExecuting(
                     thisEntry,
                     BuildExecutingItems(executingEntries), _orchestrator.WaitingCount,
-                    _orchestrator.BlockedWaitingCount, _orchestrator.TotalWorkerCount);
+                    _orchestrator.BlockedWaitingCount, _orchestrator.MaxConcurrentJobs);
 
                 await instance.Process().ConfigureAwait(false);
 
@@ -126,7 +141,7 @@ internal sealed class Worker
                     job.Id,
                     BuildExecutingItems(_orchestrator.GetExecuting()),
                     _orchestrator.WaitingCount, _orchestrator.BlockedWaitingCount,
-                    _orchestrator.TotalWorkerCount, _orchestrator.GetMetrics());
+                    _orchestrator.MaxConcurrentJobs, _orchestrator.GetMetrics());
             }
             catch (RequeueJobException requeueEx)
             {
@@ -147,17 +162,18 @@ internal sealed class Worker
         }
     }
 
-    private static System.Collections.Generic.IReadOnlyList<Abstractions.QueueItem> BuildExecutingItems(
-        System.Collections.Generic.IReadOnlyList<ExecutingEntry> entries) =>
-        System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(entries, e => new Abstractions.QueueItem
+    private static IReadOnlyList<QueueItem> BuildExecutingItems(
+        IReadOnlyList<ExecutingEntry> entries) =>
+        entries.Select(e => new QueueItem
         {
             Key = e.JobKey,
             JobType = e.JobType.Name,
+            TypeName = string.IsNullOrEmpty(e.TypeName) ? e.JobType.Name : e.TypeName,
             Title = e.Title,
             Details = e.Details,
             Running = true,
             StartTime = e.StartedAt,
             PoolName = e.PoolName,
             RetryCount = e.RetryCount
-        }));
+        }).ToList();
 }

@@ -1,8 +1,10 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
+using MimeMapping;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
@@ -10,7 +12,6 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 
-#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 /// <summary>
@@ -62,7 +63,7 @@ public class ShokoImage : IImage
     public int? Height { get; set; }
 
     /// <inheritdoc/>
-    public string ContentType { get; set; } = MimeMapping.MimeUtility.UnknownMimeType;
+    public string ContentType { get; set; } = MimeUtility.UnknownMimeType;
 
     /// <summary>
     /// When the Image record was created.
@@ -130,7 +131,7 @@ public class ShokoImage : IImage
         get
         {
             var id = ID.ToString("N");
-            return Path.Join(ApplicationPaths.Instance.ImagesPath, Source.ToString(), id[0..2], id);
+            return Path.Join(ApplicationPaths.Instance.ImagesPath, Source.ToString(), id[..2], id);
         }
     }
 

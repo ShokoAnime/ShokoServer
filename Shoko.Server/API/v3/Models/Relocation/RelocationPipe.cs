@@ -1,8 +1,8 @@
+#nullable enable
 using System;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Video.Relocation;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Relocation;
 
 /// <summary>

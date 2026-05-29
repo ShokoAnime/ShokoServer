@@ -14,7 +14,7 @@ namespace Shoko.QueueProcessor.Concurrency;
 /// workers is created for this type.
 /// </para>
 /// </summary>
-[AttributeUsage(AttributeTargets.Class, Inherited = true)]
+[AttributeUsage(AttributeTargets.Class)]
 public sealed class LimitConcurrencyAttribute : Attribute
 {
     /// <summary>Default maximum concurrent workers for this type / group.</summary>

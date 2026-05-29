@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -150,11 +149,12 @@ public class PoolDiscovery
         // Ensure the Default pool always exists
         if (!poolGroups.ContainsKey("Default"))
         {
-            var defaultPool = new WorkerPool("Default", _defaultPoolMaxWorkers,
+            var defaultWorkers = Math.Min(_defaultPoolMaxWorkers, _maxTotalWorkers);
+            var defaultPool = new WorkerPool("Default", defaultWorkers,
                 Array.Empty<Type>(),
                 filters.Where(f => f.WatchedAttributeType == null).ToList());
             pools.Add(defaultPool);
-            _logger.LogInformation("Pool 'Default': 0 explicit types, {Workers} workers (catch-all)", _defaultPoolMaxWorkers);
+            _logger.LogInformation("Pool 'Default': 0 explicit types, {Workers} workers (catch-all)", defaultWorkers);
         }
 
         return pools;

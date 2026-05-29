@@ -18,7 +18,7 @@ public class CL_AniDB_Character : ICloneable
 
     public object Clone()
     {
-        var character = new CL_AniDB_Character()
+        var character = new CL_AniDB_Character
         {
             AniDB_CharacterID = AniDB_CharacterID,
             CharID = CharID,

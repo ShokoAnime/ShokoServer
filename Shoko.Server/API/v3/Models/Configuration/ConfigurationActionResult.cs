@@ -5,7 +5,6 @@ using JsonDiffPatchDotNet;
 using JsonDiffPatchDotNet.Formatters.JsonPatch;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Config.Services;
-
 using AbstractConfigurationActionResult = Shoko.Abstractions.Config.ConfigurationActionResult;
 using Operation = Microsoft.AspNetCore.JsonPatch.Operations.Operation;
 
@@ -21,14 +20,14 @@ public class ConfigurationActionResult
     /// Indicates that the default save message should be shown to the user.
     /// </summary>
     [Required]
-    public bool ShowSaveMessage { get; init; } = false;
+    public bool ShowSaveMessage { get; init; }
 
     /// <summary>
     /// Indicates that the configuration should be refreshed by the client
     /// because we've modified it.
     /// </summary>
     [Required]
-    public bool Refresh { get; init; } = false;
+    public bool Refresh { get; init; }
 
     /// <summary>
     /// JSON Patch operations to apply to the live configuration without saving.

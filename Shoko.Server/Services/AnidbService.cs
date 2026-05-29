@@ -23,6 +23,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.Shoko;

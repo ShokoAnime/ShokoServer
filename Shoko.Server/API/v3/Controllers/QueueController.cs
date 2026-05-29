@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -11,6 +10,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Analytics;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -25,11 +25,9 @@ namespace Shoko.Server.API.v3.Controllers;
 public class QueueController : BaseController
 {
     private readonly QueueHandler _queueHandler;
-    private readonly ISettingsProvider _settingsProvider;
 
     public QueueController(ISettingsProvider settingsProvider, QueueHandler queueHandler) : base(settingsProvider)
     {
-        _settingsProvider = settingsProvider;
         _queueHandler = queueHandler;
     }
 
@@ -47,15 +45,8 @@ public class QueueController : BaseController
             BlockedCount = _queueHandler.BlockedCount,
             TotalCount = _queueHandler.TotalCount,
             ThreadCount = _queueHandler.ThreadCount,
-            CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(a => new Queue.QueueItem
-            {
-                Key = a.Key,
-                Type = a.JobType,
-                Title = a.Title,
-                Details = a.Details,
-                IsRunning = true,
-                StartTime = a.StartTime?.ToUniversalTime()
-            }).OrderBy(a => a.StartTime).ToList()
+            CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(ToQueueItem).OrderBy(a => a.StartTime).ToList(),
+            Pools = _queueHandler.GetPoolStatus().Values.Select(ToPoolState).OrderBy(p => p.Name).ToList()
         };
     }
 
@@ -140,19 +131,37 @@ public class QueueController : BaseController
         return new Queue.QueueItem
         {
             Key = a.Key,
-            Type = a.JobType ?? string.Empty,
+            Type = a.TypeName ?? a.JobType ?? string.Empty,
             Title = a.Title ?? string.Empty,
             Details = a.Details ?? [],
             StartTime = a.StartTime,
             IsRunning = a.Running,
-            IsBlocked = a.Blocked
+            IsBlocked = a.Blocked,
+            PoolName = a.PoolName,
+            RetryCount = a.RetryCount
+        };
+    }
+
+    private static Queue.PoolState ToPoolState(PoolStatus p)
+    {
+        return new Queue.PoolState
+        {
+            Name = p.Name,
+            MaxWorkers = p.MaxWorkers,
+            ActiveWorkers = p.ActiveWorkers,
+            IdleWorkers = p.IdleWorkers,
+            WaitingCount = p.WaitingCount,
+            IsBlocked = p.IsBlocked,
+            HandledTypeNames = p.HandledTypeNames,
+            LastActiveAt = p.LastActiveAt?.UtcDateTime
         };
     }
 
     [HttpGet("DebugStats")]
     public ActionResult<DebugStats> GetDebugStats()
     {
-        return new DebugStats(GetQueue(), _queueHandler.GetAcquisitionFilterResults());
+        var metrics = _queueHandler.GetMetrics();
+        return new DebugStats(GetQueue(), _queueHandler.GetAcquisitionFilterResults(), metrics);
     }
 
     [HttpGet("AcquisitionFilters")]
@@ -161,10 +170,23 @@ public class QueueController : BaseController
         return _queueHandler.GetAcquisitionFilterResults();
     }
 
-    public class DebugStats(Queue queue, Dictionary<string, string[]> acquisitionFilters)
+    public class DebugStats(Queue queue, Dictionary<string, string[]> acquisitionFilters, QueueMetricsSnapshot metrics)
     {
+        /// <summary>
+        /// High-level queue state: counts and currently executing items.
+        /// </summary>
         public Queue Queue { get; init; } = queue;
 
+        /// <summary>
+        /// Acquisition filters that are currently active, keyed by filter class name.
+        /// Each entry lists the short type names of jobs that filter is currently blocking.
+        /// </summary>
         public Dictionary<string, string[]> AcquisitionFilters { get; init; } = acquisitionFilters;
+
+        /// <summary>
+        /// Live performance metrics: throughput, per-pool worker status, and per-type
+        /// job counts (waiting + executing) with friendly display names and rolling averages.
+        /// </summary>
+        public QueueMetricsSnapshot Metrics { get; init; } = metrics;
     }
 }

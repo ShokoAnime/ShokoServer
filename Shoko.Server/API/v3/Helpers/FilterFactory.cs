@@ -348,10 +348,10 @@ public class FilterFactory
             else
             {
                 if (parentFilter.Locked)
-                    modelState?.AddModelError(nameof(filter.ParentID), $"Unable to add a sub-filter to a filter that is locked.");
+                    modelState?.AddModelError(nameof(filter.ParentID), "Unable to add a sub-filter to a filter that is locked.");
 
                 if (!parentFilter.IsDirectory)
-                    modelState?.AddModelError(nameof(filter.ParentID), $"Unable to add a sub-filter to a filter that is not a directorty filter.");
+                    modelState?.AddModelError(nameof(filter.ParentID), "Unable to add a sub-filter to a filter that is not a directorty filter.");
             }
         }
 

@@ -36,7 +36,4 @@ public class CL_AnimeSeries_User
     public List<object> TvDB_Series { get; set; }
     public CL_MovieDB_Movie MovieDB_Movie { get; set; }
 
-    public CL_AnimeSeries_User()
-    {
-    }
 }

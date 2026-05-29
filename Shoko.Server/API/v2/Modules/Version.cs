@@ -1,11 +1,11 @@
-﻿using System.Collections.Generic;
+﻿#nullable enable
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.API.v3.Controllers;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.API.v2.Modules;
 
 [ApiController]

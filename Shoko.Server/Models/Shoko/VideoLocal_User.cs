@@ -1,9 +1,9 @@
+#nullable enable
 using System;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 public class VideoLocal_User : IVideoUserData

@@ -8,7 +8,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using GroupSizes = Shoko.Server.API.v3.Models.Shoko.GroupSizes;
 using SeriesSizes = Shoko.Server.API.v3.Models.Shoko.SeriesSizes;
@@ -227,7 +226,7 @@ public static class ModelHelper
     {
         return episodeList
             .Select(episode => episode.AniDB_Episode)
-            .Count(anidbEpisode => anidbEpisode != null && (EpisodeType)anidbEpisode.EpisodeType == episodeType);
+            .Count(anidbEpisode => anidbEpisode != null && anidbEpisode.EpisodeType == episodeType);
     }
 
     public static SeriesSizes GenerateSeriesSizes(IEnumerable<AnimeEpisode> episodeList, int userID)
@@ -310,7 +309,7 @@ public static class ModelHelper
                 continue;
             }
 
-            switch ((EpisodeType)anidbEpisode.EpisodeType)
+            switch (anidbEpisode.EpisodeType)
             {
                 case EpisodeType.Episode:
                     sizes.Total.Episodes++;

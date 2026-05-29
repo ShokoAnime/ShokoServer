@@ -17,7 +17,6 @@ using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
-
 using Constants = Shoko.Server.Server.Constants;
 
 #pragma warning disable CS0618
@@ -324,7 +323,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
                 configurationService.New(provider.ConfigurationInfo)
             )
         );
-        var pipe = new StoredRelocationPipe()
+        var pipe = new StoredRelocationPipe
         {
             Name = "Default",
             Configuration = configuration,

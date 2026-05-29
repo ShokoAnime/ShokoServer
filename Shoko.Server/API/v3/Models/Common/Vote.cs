@@ -1,8 +1,8 @@
+#nullable enable
 using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
 /// <summary>

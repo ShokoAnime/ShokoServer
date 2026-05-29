@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 
@@ -12,6 +11,13 @@ public struct QueueItem
 
     /// <summary>Short name of the job type (e.g., <c>"HashFileJob"</c>).</summary>
     public string? JobType { get; init; }
+
+    /// <summary>
+    /// Display-friendly type name from <see cref="IQueueJob.TypeName"/>. Falls back to
+    /// <see cref="JobType"/> when the job didn't override it. Populated after the job instance
+    /// is resolved and <see cref="IQueueJob.PostInit"/> has run.
+    /// </summary>
+    public string? TypeName { get; init; }
 
     /// <summary>Human-readable description of this specific job instance.</summary>
     public string? Title { get; init; }

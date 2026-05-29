@@ -1,4 +1,4 @@
-#nullable enable
+using System;
 using System.Collections.Generic;
 
 namespace Shoko.QueueProcessor.Analytics;
@@ -29,4 +29,11 @@ public record PoolStatus
 
     /// <summary>Short names of job types handled by this pool.</summary>
     public IReadOnlyList<string> HandledTypeNames { get; init; } = [];
+
+    /// <summary>
+    /// UTC timestamp of the most recent job acquisition (stamped in <c>IncrementActive</c>).
+    /// Null if the pool has never run a job. Lets throttled SignalR pushes report
+    /// "this group was active in the last N ms" even when <see cref="ActiveWorkers"/> is back to 0.
+    /// </summary>
+    public DateTimeOffset? LastActiveAt { get; init; }
 }

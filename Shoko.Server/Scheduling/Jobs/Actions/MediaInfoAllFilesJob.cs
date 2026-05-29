@@ -1,10 +1,12 @@
 using Shoko.QueueProcessor.Abstractions;
 using System.Threading.Tasks;
+using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Scheduling;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 

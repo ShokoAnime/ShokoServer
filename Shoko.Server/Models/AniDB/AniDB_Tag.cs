@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,6 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_Tag : IAnidbTag

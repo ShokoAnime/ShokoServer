@@ -1,8 +1,8 @@
+#nullable enable
 using System;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-#nullable enable
 namespace Shoko.Server.API.Swagger;
 
 public class EnumSchemaFilter<T> : ISchemaFilter where T : struct, Enum

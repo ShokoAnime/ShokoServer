@@ -1,8 +1,8 @@
+#nullable enable
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 /// <summary>

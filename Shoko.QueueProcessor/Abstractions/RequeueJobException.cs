@@ -1,3 +1,5 @@
+using System;
+
 namespace Shoko.QueueProcessor.Abstractions;
 
 /// <summary>
@@ -18,7 +20,7 @@ namespace Shoko.QueueProcessor.Abstractions;
 /// </code>
 /// </example>
 /// </summary>
-public sealed class RequeueJobException : System.Exception
+public sealed class RequeueJobException : Exception
 {
     public RequeueJobException() : base("Job requested re-queue without retry increment.") { }
 }

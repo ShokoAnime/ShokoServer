@@ -20,7 +20,7 @@ public class DatabaseSettings
     public string DefaultUserPassword { get; set; } = string.Empty;
 
     /// <summary>
-    /// Determines the database backend to use for everything besides Quartz.
+    /// Determines the database backend to use for the main Shoko database.
     /// </summary>
     [Display(Name = "Database Type")]
     [RequiresRestart]

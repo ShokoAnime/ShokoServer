@@ -1,7 +1,7 @@
+#nullable enable
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Movie_Cast : TMDB_Cast, ICast<IMovie>

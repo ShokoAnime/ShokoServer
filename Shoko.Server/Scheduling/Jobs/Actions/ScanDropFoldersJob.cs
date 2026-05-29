@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 using Shoko.Abstractions.Video.Services;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
+using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 

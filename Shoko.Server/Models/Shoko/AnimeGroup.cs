@@ -248,7 +248,7 @@ public class AnimeGroup : IShokoGroup
     }
 
     public bool IsDescendantOf(int groupID)
-        => IsDescendantOf(new int[] { groupID });
+        => IsDescendantOf(new[] { groupID });
 
     public bool IsDescendantOf(IEnumerable<int> groupIDs)
     {
@@ -330,7 +330,7 @@ public class AnimeGroup : IShokoGroup
                 {
                     if ((IsManuallyNamed == 1 || series.ID != mainSeriesId) && title.Type == TitleType.Main)
                     {
-                        titles.Add(new TitleStub()
+                        titles.Add(new TitleStub
                         {
                             Language = title.Language,
                             LanguageCode = title.LanguageCode,
@@ -354,7 +354,7 @@ public class AnimeGroup : IShokoGroup
     #region IWithDescription Implementation
 
     IText? IWithDescriptions.DefaultDescription => OverrideDescription == 1
-        ? new TextStub()
+        ? new TextStub
         {
             Source = DataSource.Shoko,
             Language = TitleLanguage.Unknown,
@@ -364,7 +364,7 @@ public class AnimeGroup : IShokoGroup
         : (this as IShokoGroup).MainSeries.DefaultDescription;
 
     IText? IWithDescriptions.PreferredDescription => OverrideDescription == 1
-        ? new TextStub()
+        ? new TextStub
         {
             Source = DataSource.Shoko,
             Language = TitleLanguage.Unknown,
@@ -380,7 +380,7 @@ public class AnimeGroup : IShokoGroup
             var titles = new List<IText>();
             if (OverrideDescription == 1)
             {
-                titles.Add(new TextStub()
+                titles.Add(new TextStub
                 {
                     Source = DataSource.Shoko,
                     Language = TitleLanguage.Unknown,

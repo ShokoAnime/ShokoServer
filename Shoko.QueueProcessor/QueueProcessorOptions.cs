@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 
@@ -23,8 +22,11 @@ public class QueueProcessorOptions
     /// </summary>
     public int MaxTotalWorkers { get; set; } = Environment.ProcessorCount + 4;
 
-    /// <summary>Worker count for the catch-all <c>"Default"</c> pool.</summary>
-    public int DefaultPoolMaxWorkers { get; set; } = Environment.ProcessorCount + 2;
+    /// <summary>
+    /// Worker count for the catch-all <c>"Default"</c> pool. Defaults to <see cref="MaxTotalWorkers"/>
+    /// so the default pool alone can saturate the global concurrency cap when no other pools are busy.
+    /// </summary>
+    public int DefaultPoolMaxWorkers { get; set; } = Environment.ProcessorCount + 4;
 
     // ── PersistenceBuffer ─────────────────────────────────────────────────────
 
@@ -36,12 +38,6 @@ public class QueueProcessorOptions
 
     /// <summary>Force-flush when the pending buffer reaches this size.</summary>
     public int MaxFlushBatch { get; set; } = 500;
-
-    /// <summary>
-    /// Rows per SQL statement during batch flush.
-    /// SQLite host-parameter limit is 999; SQL Server is 2100.
-    /// </summary>
-    public int MaxFlushChunkSize { get; set; } = 500;
 
     // ── Retry policy ──────────────────────────────────────────────────────────
 
@@ -69,11 +65,6 @@ public class QueueProcessorOptions
 
     /// <summary>Per-type rolling average sample count for execution time.</summary>
     public int MetricsRollingAvgSamples { get; set; } = 100;
-
-    // ── API ───────────────────────────────────────────────────────────────────
-
-    /// <summary>Maximum waiting-job cache returned in queue state snapshots.</summary>
-    public int WaitingCacheSize { get; set; } = 100;
 
     // ── Per-type overrides ────────────────────────────────────────────────────
 

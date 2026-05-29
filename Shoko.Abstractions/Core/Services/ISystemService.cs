@@ -231,7 +231,7 @@ public interface ISystemService
 
     #region Services
 
-    private static IServiceProvider? _services = null;
+    private static IServiceProvider? _services;
 
     /// <summary>
     ///   Determines if the static services are available yet.

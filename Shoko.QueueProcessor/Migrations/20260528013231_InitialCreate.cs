@@ -1,7 +1,7 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿#nullable disable
 
-#nullable disable
+using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Shoko.QueueProcessor.Migrations
 {

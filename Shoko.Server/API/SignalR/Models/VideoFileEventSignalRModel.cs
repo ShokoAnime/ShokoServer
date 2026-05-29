@@ -1,9 +1,9 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Events;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 public class VideoFileEventSignalRModel

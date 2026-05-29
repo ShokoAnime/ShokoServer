@@ -188,18 +188,18 @@ public class Group : BaseModel
             /// creating a new group, and omit it to keep the current parent or
             /// set it to 0 to move the group under a new parent group when modifying a series.
             /// </remarks>
-            public int? ParentGroupID { get; set; } = null;
+            public int? ParentGroupID { get; set; }
 
             /// <summary>
             /// Manually select the preferred series for the group. Set to 0 to
             /// remove the preferred series.
             /// </summary>
-            public int? PreferredSeriesID { get; set; } = null;
+            public int? PreferredSeriesID { get; set; }
 
             /// <summary>
             /// All the series to put into the group.
             /// </summary>
-            public List<int>? SeriesIDs { get; set; } = null;
+            public List<int>? SeriesIDs { get; set; }
 
             /// <summary>
             /// All groups to put into the group as sub-groups.
@@ -208,7 +208,7 @@ public class Group : BaseModel
             /// If the parent group is a sub-group of any of the groups in this
             /// array, then the request will be aborted.
             /// </remarks>
-            public List<int>? GroupIDs { get; set; } = null;
+            public List<int>? GroupIDs { get; set; }
 
             /// <summary>
             /// The group's custom name.
@@ -218,7 +218,7 @@ public class Group : BaseModel
             /// <see cref="Group.HasCustomName"/> or <see cref="HasCustomName"/>
             /// is set to true, and the value is not set to <c>null</c>.
             /// </remarks>
-            public string? Name { get; set; } = null;
+            public string? Name { get; set; }
 
             /// <summary>
             /// The group's custom description.
@@ -430,7 +430,7 @@ public class Group : BaseModel
 /// </summary>
 public class GroupSizes : SeriesSizes
 {
-    public GroupSizes() : base()
+    public GroupSizes()
     {
         SubGroups = 0;
         SeriesTypes = new SeriesTypeCounts();

@@ -1,21 +1,19 @@
-#nullable enable
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.QueueProcessor.Abstractions;
 
-namespace Shoko.Server.Scheduling;
+namespace Shoko.QueueProcessor.Scheduling;
 
 /// <summary>
-/// Extension methods that adapt <see cref="IQueueScheduler"/> to the old
-/// <c>IScheduler.StartJob&lt;T&gt;</c> call-site convention used throughout the server.
+/// Extension methods that adapt <see cref="IQueueScheduler"/> to the <c>StartJob&lt;T&gt;</c>
+/// call-site convention. Plugins and server-side callers use this as a thin wrapper around
+/// <see cref="IQueueScheduler.Enqueue{T}"/>.
 /// </summary>
 public static class SchedulerExtensions
 {
     /// <summary>
     /// Enqueue a job of type <typeparamref name="T"/>, optionally configuring its properties.
-    /// This is a thin wrapper around <see cref="IQueueScheduler.Enqueue{T}"/> that preserves
-    /// the existing <c>StartJob</c> call-site signatures.
     /// </summary>
     public static Task StartJob<T>(
         this IQueueScheduler scheduler,

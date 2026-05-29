@@ -306,7 +306,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     /// Cached reference to all titles for the movie, so we won't have to hit
     /// the database twice to get all titles _and_ the preferred title.
     /// </summary>
-    private IReadOnlyList<TMDB_Title>? _allTitles = null;
+    private IReadOnlyList<TMDB_Title>? _allTitles;
 
     /// <summary>
     /// Get all titles for the movie.
@@ -348,7 +348,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     /// Cached reference to all overviews for the movie, so we won't have to hit
     /// the database twice to get all overviews _and_ the preferred overview.
     /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allOverviews = null;
+    private IReadOnlyList<TMDB_Overview>? _allOverviews;
 
     /// <summary>
     /// Get all overviews for the movie.
@@ -463,7 +463,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
 
     string IWithTitles.Title => GetPreferredTitle()?.Value ?? EnglishTitle;
 
-    ITitle IWithTitles.DefaultTitle => new TitleStub()
+    ITitle IWithTitles.DefaultTitle => new TitleStub
     {
         Language = TitleLanguage.EnglishAmerican,
         CountryCode = "US",
@@ -480,7 +480,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
 
     #region IWithDescriptions
 
-    IText? IWithDescriptions.DefaultDescription => new TextStub()
+    IText? IWithDescriptions.DefaultDescription => new TextStub
     {
         Language = TitleLanguage.EnglishAmerican,
         CountryCode = "US",

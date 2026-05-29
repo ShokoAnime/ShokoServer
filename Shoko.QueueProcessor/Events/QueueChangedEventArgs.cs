@@ -1,4 +1,4 @@
-#nullable enable
+using System;
 using System.Collections.Generic;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
@@ -9,7 +9,7 @@ namespace Shoko.QueueProcessor.Events;
 /// Fired when the set of executing jobs changes (job started or completed).
 /// Replaces the Quartz-coupled version in <c>Shoko.Server/Scheduling</c>.
 /// </summary>
-public class QueueChangedEventArgs : System.EventArgs
+public class QueueChangedEventArgs : EventArgs
 {
     /// <summary>Jobs that started executing in this event.</summary>
     public IReadOnlyList<QueueItem> AddedItems { get; init; } = [];

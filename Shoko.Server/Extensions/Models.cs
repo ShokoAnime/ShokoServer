@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
@@ -6,7 +7,6 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Extensions;
 
 public static class Models
@@ -60,16 +60,16 @@ public static class Models
         => DateOnly.FromDateTime(date);
 
     public static IEnumerable<(int Year, YearlySeason Season)> GetYearlySeasons(this DateTime? startDate, DateTime? endDate = null)
-        => GetYearlySeasons(startDate?.ToDateOnly(), endDate?.ToDateOnly());
+        => (startDate?.ToDateOnly()).GetYearlySeasons(endDate?.ToDateOnly());
 
     public static IEnumerable<(int Year, YearlySeason Season)> GetYearlySeasons(this PartialDateOnly? startDate, PartialDateOnly? endDate)
-        => GetYearlySeasons(startDate?.ToDateOnly(), endDate?.ToDateOnly());
+        => (startDate?.ToDateOnly()).GetYearlySeasons(endDate?.ToDateOnly());
 
     public static IEnumerable<(int Year, YearlySeason Season)> GetYearlySeasons(this PartialDateOnly startDate, PartialDateOnly endDate)
-        => GetYearlySeasons((DateOnly?)startDate.ToDateOnly(), (DateOnly?)endDate.ToDateOnly());
+        => ((DateOnly?)startDate.ToDateOnly()).GetYearlySeasons(endDate.ToDateOnly());
 
     public static IEnumerable<(int Year, YearlySeason Season)> GetYearlySeasons(this DateOnly startDate, DateOnly endDate)
-        => GetYearlySeasons((DateOnly?)startDate, (DateOnly?)endDate);
+        => ((DateOnly?)startDate).GetYearlySeasons(endDate);
 
     public static IEnumerable<(int Year, YearlySeason Season)> GetYearlySeasons(this DateOnly? startDate, DateOnly? endDate = null)
     {

@@ -21,7 +21,7 @@ using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Legacy;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -1855,7 +1855,7 @@ public partial class ShokoServiceImplementation
             var refreshMethod = AnidbRefreshMethod.Default | AnidbRefreshMethod.CreateShokoSeries;
             if (settings.AutoGroupSeries || settings.AniDb.DownloadRelatedAnime)
                 refreshMethod |= AnidbRefreshMethod.DownloadRelations;
-            var anime = _anidbService.Process(animeID, refreshMethod, 0).Result;
+            var anime = _anidbService.Process(animeID, refreshMethod).Result;
             if (anime is null)
             {
                 response.ErrorMessage = "Could not get anime information from AniDB";

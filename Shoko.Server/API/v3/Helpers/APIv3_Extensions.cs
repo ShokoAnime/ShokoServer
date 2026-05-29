@@ -9,7 +9,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
-
 using AbstractAnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
 using AbstractEpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 using AbstractYearlySeason = Shoko.Abstractions.Metadata.Enums.YearlySeason;
@@ -140,8 +139,6 @@ public static class APIv3_Extensions
                     break;
                 case ImageEntityType.Disc:
                     images.Discs.Add(new(image, showLinkedIDs));
-                    break;
-                default:
                     break;
             }
         }

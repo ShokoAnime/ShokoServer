@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Events;
 using Shoko.QueueProcessor.Events;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 
@@ -88,7 +87,7 @@ public static class Program
         }
 
         _logger.LogTrace("Waiting: {Waiting} | Blocked: {Blocked} | Executing: {Executing}/{Pool} | Total: {Total}", e.WaitingJobsCount,
-            e.BlockedJobsCount, e.ExecutingItems?.Count ?? 0, e.ThreadCount, e.TotalJobsCount);
+            e.BlockedJobsCount, e.ExecutingItems.Count, e.ThreadCount, e.TotalJobsCount);
     }
 
     private static void OnStartupFailed(object? _, StartupFailedEventArgs args)

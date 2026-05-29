@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Web;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -63,7 +64,7 @@ public partial class ShokoServiceImplementation
 
             // MAL
             result.CrossRef_AniDB_MAL = anime.MalCrossReferences
-                .Select(x => new CL_CrossRef_AniDB_MAL()
+                .Select(x => new CL_CrossRef_AniDB_MAL
                 {
                     CrossRef_AniDB_MALID = x.CrossRef_AniDB_MALID,
                     AnimeID = x.AnimeID,
@@ -376,7 +377,7 @@ public partial class ShokoServiceImplementation
     [HttpPost("Trakt/Comment/{traktID}/{isSpoiler}")]
     public CL_Response<bool> PostTraktCommentShow(string traktID, string commentText, bool isSpoiler)
     {
-        return new CL_Response<bool>() { Result = false };
+        return new CL_Response<bool> { Result = false };
     }
 
     [HttpPost("Trakt/LinkValidity/{slug}/{removeDBEntries}")]
@@ -493,7 +494,7 @@ public partial class ShokoServiceImplementation
         var results = new List<CL_MovieDBMovieSearch_Response>();
         try
         {
-            var (movieResults, _) = _tmdbSearchService.SearchMovies(System.Web.HttpUtility.UrlDecode(criteria)).ConfigureAwait(false).GetAwaiter().GetResult();
+            var (movieResults, _) = _tmdbSearchService.SearchMovies(HttpUtility.UrlDecode(criteria)).ConfigureAwait(false).GetAwaiter().GetResult();
 
             results.AddRange(movieResults.Select(movie => movie.ToClient()));
 

@@ -24,7 +24,7 @@ public class DashboardModules : BaseController
     /// <summary>
     /// Return Dictionary with necessary items for Dashboard inside Webui
     /// </summary>
-    /// <returns><see cref="Dictionary{String, Object}"/></returns>
+    /// <returns><see cref="Dictionary{String,Object}"/></returns>
     [HttpGet]
     public object GetStats()
     {

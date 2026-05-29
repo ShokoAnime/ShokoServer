@@ -23,7 +23,7 @@ using Shoko.Server.Models.Internal;
 using Shoko.Server.Plugin.Models;
 using Shoko.Server.Repositories;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Scheduling;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;

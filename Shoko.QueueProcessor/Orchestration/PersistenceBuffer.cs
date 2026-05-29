@@ -1,10 +1,10 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Storage;
+using Timer = System.Timers.Timer;
 
 namespace Shoko.QueueProcessor.Orchestration;
 
@@ -36,7 +36,7 @@ public sealed class PersistenceBuffer : IAsyncDisposable
     private readonly object _bufferLock = new();
 
     private readonly SemaphoreSlim _flushGate = new(1, 1);
-    private System.Timers.Timer? _timer;
+    private Timer? _timer;
 
     public PersistenceBuffer(
         IJobRepository repo,
@@ -166,7 +166,7 @@ public sealed class PersistenceBuffer : IAsyncDisposable
     private void ArmTimerLocked()
     {
         if (_timer != null) return;
-        _timer = new System.Timers.Timer(_flushIntervalMs) { AutoReset = false };
+        _timer = new Timer(_flushIntervalMs) { AutoReset = false };
         _timer.Elapsed += (_, _) => _ = FlushNowAsync(CancellationToken.None);
         _timer.Start();
     }

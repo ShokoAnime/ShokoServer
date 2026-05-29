@@ -1,6 +1,6 @@
-﻿using System;
+﻿#nullable enable
+using System;
 
-#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 public class AnimeGroup_User

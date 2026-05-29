@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +7,6 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 
-#nullable enable
 namespace Shoko.Server.Extensions;
 
 public static class DependencyInjectionExtensions

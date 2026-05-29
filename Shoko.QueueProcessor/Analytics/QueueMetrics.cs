@@ -1,9 +1,7 @@
-#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 namespace Shoko.QueueProcessor.Analytics;
 
@@ -58,12 +56,14 @@ public class QueueMetrics
     }
 
     /// <summary>
-    /// Builds a snapshot. The caller supplies pool status and current queue counts
+    /// Builds a snapshot. The caller supplies pool status, current queue counts,
+    /// and an optional type-name → friendly-name map
     /// (from <see cref="Orchestration.QueueOrchestrator"/>) to avoid circular dependencies.
     /// </summary>
     public QueueMetricsSnapshot GetSnapshot(
         IReadOnlyDictionary<string, PoolStatus> poolStatus,
         IReadOnlyDictionary<string, (int Waiting, int Executing)> typeCounts,
+        IReadOnlyDictionary<string, string> friendlyNames,
         int totalBlocked,
         int totalRetrying)
     {
@@ -90,10 +90,12 @@ public class QueueMetrics
             _execTimes.TryGetValue(typeName, out var avg);
             _completedCounts.TryGetValue(typeName, out var completed);
             _failureCounts.TryGetValue(typeName, out var failed);
+            friendlyNames.TryGetValue(typeName, out var friendlyName);
 
             byType[typeName] = new TypeMetrics
             {
                 TypeName = typeName,
+                FriendlyName = friendlyName ?? string.Empty,
                 PoolName = pool ?? string.Empty,
                 Waiting = counts.Waiting,
                 Executing = counts.Executing,

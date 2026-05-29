@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -5,7 +6,6 @@ using Shoko.Abstractions.Video;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 /// <summary>

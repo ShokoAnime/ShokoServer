@@ -1,4 +1,5 @@
 using System;
+using Shoko.QueueProcessor.Acquisition.Attributes;
 
 namespace Shoko.Server.Scheduling.Acquisition.Attributes;
 

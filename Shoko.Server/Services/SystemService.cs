@@ -16,7 +16,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using NLog.Web;
-using Shoko.QueueProcessor;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Connectivity.Services;
@@ -35,6 +34,10 @@ using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.Web.Services;
+using Shoko.QueueProcessor;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Acquisition.Filters;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -47,7 +50,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services.Abstraction;
 using Shoko.Server.Services.Configuration;
@@ -56,7 +59,6 @@ using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Trinet.Core.IO.Ntfs;
-
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 using Timer = System.Timers.Timer;
 
@@ -408,31 +410,39 @@ public class SystemService : ISystemService
             services.AddSentryConfig(settingsProvider);
             // Wire the new queue processor
             var queueSettings = ISettingsProvider.Instance.GetSettings().Queue;
-            var maxWorkers = queueSettings.MaxTotalWorkers > 0 ? queueSettings.MaxTotalWorkers : System.Environment.ProcessorCount + 4;
+            var maxWorkers = queueSettings.MaxTotalWorkers > 0 ? queueSettings.MaxTotalWorkers : Environment.ProcessorCount + 4;
+            static string GetQueueConnectionString(QueueProcessorSettings q)
+            {
+                if (q.Provider != DatabaseProvider.SQLite)
+                    return q.ConnectionString;
+                var filePath = Path.IsPathRooted(q.SQLiteFilePath)
+                    ? q.SQLiteFilePath
+                    : Path.GetFullPath(Path.Combine(ApplicationPaths.StaticDataPath, q.SQLiteFilePath));
+                return $"Data Source={filePath};Mode=ReadWriteCreate;Pooling=True";
+            }
             services.AddQueueProcessor(opts =>
             {
                 opts.Provider = queueSettings.Provider;
-                opts.ConnectionString = queueSettings.ConnectionString;
+                opts.ConnectionString = GetQueueConnectionString(queueSettings);
                 opts.MaxTotalWorkers = maxWorkers;
-                opts.DefaultPoolMaxWorkers = System.Math.Max(1, maxWorkers - 2);
+                opts.DefaultPoolMaxWorkers = maxWorkers;
                 opts.FlushIntervalMs = queueSettings.FlushIntervalMs;
                 opts.MaxFlushBatch = queueSettings.MaxFlushBatch;
-                opts.WaitingCacheSize = queueSettings.WaitingCacheSize;
                 opts.LimitedConcurrencyOverrides = queueSettings.LimitedConcurrencyOverrides;
             }, typeof(SystemService).Assembly);
 
             // Register acquisition filters
-            services.AddSingleton<Shoko.QueueProcessor.Abstractions.IAcquisitionFilter, Shoko.Server.Scheduling.Acquisition.Filters.AniDBUdpRateLimitedAcquisitionFilter>();
-            services.AddSingleton<Shoko.QueueProcessor.Abstractions.IAcquisitionFilter, Shoko.Server.Scheduling.Acquisition.Filters.AniDBHttpRateLimitedAcquisitionFilter>();
-            services.AddSingleton<Shoko.QueueProcessor.Abstractions.IAcquisitionFilter, Shoko.Server.Scheduling.Acquisition.Filters.DatabaseRequiredAcquisitionFilter>();
-            services.AddSingleton<Shoko.QueueProcessor.Abstractions.IAcquisitionFilter, Shoko.Server.Scheduling.Acquisition.Filters.NetworkRequiredAcquisitionFilter>();
+            services.AddSingleton<IAcquisitionFilter, AniDBUdpRateLimitedAcquisitionFilter>();
+            services.AddSingleton<IAcquisitionFilter, AniDBHttpRateLimitedAcquisitionFilter>();
+            services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
+            services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
 
             // Register recurring jobs
-            systemService.Started += async (_, _) =>
+            systemService.Started += (_, _) =>
             {
-                var registry = ISystemService.StaticServices.GetRequiredService<Shoko.QueueProcessor.Scheduling.RecurringJobRegistry>();
-                registry.Register<Shoko.Server.Scheduling.Jobs.Actions.CheckNetworkAvailabilityJob>(
-                    System.TimeSpan.FromMinutes(30), runImmediately: true);
+                var registry = ISystemService.StaticServices.GetRequiredService<RecurringJobRegistry>();
+                registry.Register<CheckNetworkAvailabilityJob>(
+                    TimeSpan.FromMinutes(30), runImmediately: true);
             };
 
             services.AddHttpClient("GitHub", client =>
@@ -528,7 +538,7 @@ public class SystemService : ISystemService
         var settings = _settingsProvider.GetSettings();
         try
         {
-            var scheduler = _webHost!.Services.GetRequiredService<Shoko.QueueProcessor.Abstractions.IQueueScheduler>();
+            var scheduler = _webHost!.Services.GetRequiredService<IQueueScheduler>();
             var databaseFactory = _webHost.Services.GetRequiredService<DatabaseFactory>();
             var repoFactory = _webHost.Services.GetRequiredService<RepoFactory>();
             var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
@@ -789,7 +799,6 @@ public class SystemService : ISystemService
     public Task WaitForShutdownAsync()
         => _webHost?.WaitForShutdownAsync() ?? Task.CompletedTask;
 
-    /// <inheritdoc/>
     internal void OnShutdown()
     {
         // Mark the server as shutting down.
@@ -906,7 +915,6 @@ public class SystemService : ISystemService
     public Task WaitForDatabaseUnblockedAsync()
         => _databaseTaskSource?.Task ?? Task.CompletedTask;
 
-    /// <inheritdoc/>
     public void AddDatabaseBlockingTask(Task task)
     {
         lock (_databaseBlockingTasks)

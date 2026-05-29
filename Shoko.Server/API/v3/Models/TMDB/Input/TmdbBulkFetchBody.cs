@@ -1,12 +1,13 @@
+#nullable enable
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Metadata.Enums;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB.Input;
 
 public class TmdbBulkFetchBody<TDetails>
-    where TDetails : struct, System.Enum
+    where TDetails : struct, Enum
 {
     [Required]
     public List<int> IDs { get; set; } = [];

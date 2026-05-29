@@ -43,7 +43,7 @@ using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Scheduling;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;

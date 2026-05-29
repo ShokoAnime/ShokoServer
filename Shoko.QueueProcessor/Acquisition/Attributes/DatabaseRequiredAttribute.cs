@@ -1,6 +1,6 @@
-using System;
+﻿using System;
 
-namespace Shoko.Server.Scheduling.Acquisition.Attributes;
+namespace Shoko.QueueProcessor.Acquisition.Attributes;
 
 /// <summary>Marks a job as requiring the database to be available (not blocked/initializing).</summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = true)]

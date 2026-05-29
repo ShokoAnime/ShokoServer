@@ -3,8 +3,11 @@ namespace Shoko.QueueProcessor.Analytics;
 /// <summary>Per-job-type performance metrics snapshot.</summary>
 public record TypeMetrics
 {
-    /// <summary>Short type name (e.g., <c>"HashFileJob"</c>).</summary>
+    /// <summary>Short class name (e.g., <c>"HashFileJob"</c>).</summary>
     public string TypeName { get; init; } = string.Empty;
+
+    /// <summary>Human-readable display name (e.g., <c>"Hash File"</c>). Empty if not available.</summary>
+    public string FriendlyName { get; init; } = string.Empty;
 
     /// <summary>Name of the pool responsible for this type.</summary>
     public string PoolName { get; init; } = string.Empty;

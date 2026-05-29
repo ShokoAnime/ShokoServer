@@ -1,10 +1,11 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
 using Shoko.QueueProcessor.Storage;
 using Shoko.QueueProcessor.Workers;
@@ -43,11 +44,13 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
     // Pool routing — populated by Initialize()
     private readonly Dictionary<Type, WorkerPool> _poolsByType = new();
-    private readonly Dictionary<string, WorkerPool> _poolsByName = new();
     private IReadOnlyList<WorkerPool> _allPools = [];
 
     // O(1) type resolution — avoids Type.GetType() (assembly scan) on every enqueue/acquire call
     private readonly Dictionary<string, Type> _typeByName = new(StringComparer.Ordinal);
+
+    // Friendly display names per type (type.Name → IQueueJob.TypeName) — built once at Initialize()
+    private IReadOnlyDictionary<string, string> _typeFriendlyNames = new Dictionary<string, string>();
 
     // O(1) dedup index: JobKey → Id (covers waiting + executing + pending-insert)
     private readonly Dictionary<string, Guid> _jobKeyIndex = new(StringComparer.Ordinal);
@@ -83,7 +86,6 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         _allPools = pools;
         foreach (var pool in pools)
         {
-            _poolsByName[pool.Name] = pool;
             foreach (var type in pool.HandledTypes)
             {
                 _poolsByType[type] = pool;
@@ -112,6 +114,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             count++;
         }
 
+        _typeFriendlyNames = BuildFriendlyNames();
         _logger.LogInformation("QueueOrchestrator initialized with {Count} jobs across {Pools} pools", count, pools.Count);
     }
 
@@ -188,7 +191,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             pool.AddRangeToQueue(batch);
 
         // Single persistence-buffer call for the entire batch.
-        _persistenceBuffer.OnEnqueueBatch(System.Linq.Enumerable.Select(toEnqueue, e => e.Job));
+        _persistenceBuffer.OnEnqueueBatch(toEnqueue.Select(e => e.Job));
 
         if (!_paused) SignalAllPools();
 
@@ -362,8 +365,14 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     /// </summary>
     public int BlockedWaitingCount => _allPools.Sum(p => p.BlockedCount);
 
-    /// <summary>Total worker slots across all pools.</summary>
+    /// <summary>Total worker slots across all pools (sum of every pool's <see cref="WorkerPool.MaxWorkers"/>).</summary>
     public int TotalWorkerCount => _allPools.Sum(p => p.MaxWorkers);
+
+    /// <summary>
+    /// Hard ceiling on concurrent execution across all pools. Even when <see cref="TotalWorkerCount"/>
+    /// is larger, no more than this many jobs can be executing at once.
+    /// </summary>
+    public int MaxConcurrentJobs => _maxTotalWorkers;
 
     /// <summary>
     /// Resolves a fully-qualified job type name to its <see cref="Type"/> using the
@@ -375,7 +384,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     /// Returns true if the job's type is currently excluded by an acquisition filter on its pool.
     /// Used to populate <see cref="Abstractions.QueueItem.Blocked"/> for waiting jobs.
     /// </summary>
-    public bool IsJobBlocked(Storage.QueuedJob job)
+    public bool IsJobBlocked(QueuedJob job)
     {
         var type = ResolveType(job.JobType);
         if (type == null) return false;
@@ -383,9 +392,9 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     }
 
     /// <summary>Returns waiting jobs across all pools in priority order, optionally paginated.</summary>
-    public IReadOnlyList<Storage.QueuedJob> GetWaiting(int maxCount, int offset, Func<Storage.QueuedJob, bool>? filter = null)
+    public IReadOnlyList<QueuedJob> GetWaiting(int maxCount, int offset, Func<QueuedJob, bool>? filter = null)
     {
-        var result = new List<Storage.QueuedJob>();
+        var result = new List<QueuedJob>();
         // Collect from all pools (already sorted within each pool)
         var allWaiting = _allPools
             .SelectMany(p => p.GetWaitingSnapshot())
@@ -416,7 +425,6 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         var poolStatus = GetPoolStatus();
 
         Dictionary<string, (int Waiting, int Executing)> typeCounts;
-        int totalRetrying = 0;
         lock (_gate)
         {
             typeCounts = _typeRunningCounts.ToDictionary(
@@ -424,28 +432,38 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 kv => (0, kv.Value));
         }
 
-        // Count retrying jobs from pool sub-queues
+        // Count waiting jobs per type from pool sub-queues; derive retrying count from same snapshot.
+        var totalRetrying = 0;
         foreach (var pool in _allPools)
-            totalRetrying += pool.RetryingCount;
+        {
+            foreach (var job in pool.GetWaitingSnapshot())
+            {
+                if (job.RetryCount > 0) totalRetrying++;
+                var type = ResolveType(job.JobType);
+                if (type == null) continue;
+                typeCounts.TryGetValue(type.Name, out var existing);
+                typeCounts[type.Name] = (existing.Waiting + 1, existing.Executing);
+            }
+        }
 
         var totalBlocked = poolStatus.Values
             .Where(p => p.IsBlocked)
             .Sum(p => p.WaitingCount);
 
-        return _metrics.GetSnapshot(poolStatus, typeCounts, totalBlocked, totalRetrying);
+        return _metrics.GetSnapshot(poolStatus, typeCounts, _typeFriendlyNames, totalBlocked, totalRetrying);
     }
 
     /// <summary>
     /// Called by the worker after the job instance has been resolved and
     /// <see cref="Abstractions.IQueueJob.PostInit"/> has run, to store the display-friendly
-    /// title and detail pairs on the executing entry.
+    /// type name, title, and detail pairs on the executing entry.
     /// </summary>
-    public void UpdateExecutingItem(Guid id, string title, Dictionary<string, object> details)
+    public void UpdateExecutingItem(Guid id, string typeName, string title, Dictionary<string, object> details)
     {
         lock (_gate)
         {
             if (_executingSet.TryGetValue(id, out var entry))
-                _executingSet[id] = entry with { Title = title, Details = details };
+                _executingSet[id] = entry with { TypeName = typeName, Title = title, Details = details };
         }
     }
 
@@ -455,6 +473,28 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Builds a type.Name → IQueueJob.TypeName map for all registered job types using
+    /// uninitialized instances. TypeName is always a string-literal override so no injected
+    /// services are needed — best-effort; failures are silently skipped.
+    /// </summary>
+    private IReadOnlyDictionary<string, string> BuildFriendlyNames()
+    {
+        var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var type in _poolsByType.Keys)
+        {
+            try
+            {
+                var inst = (IQueueJob)RuntimeHelpers.GetUninitializedObject(type);
+                var friendly = inst.TypeName;
+                if (!string.IsNullOrEmpty(friendly))
+                    map[type.Name] = friendly;
+            }
+            catch { /* best-effort */ }
+        }
+        return map;
+    }
 
     private void DecrementCounts(Type jobType, string? group)
     {

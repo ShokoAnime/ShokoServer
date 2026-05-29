@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Config.Enums;
@@ -18,7 +19,6 @@ using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.Plugin;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-
 using ConfigurationActionType = Shoko.Abstractions.Config.Enums.ConfigurationActionType;
 
 #nullable enable
@@ -232,11 +232,11 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
 
         try
         {
-            var json = body.ToString(Newtonsoft.Json.Formatting.None, [new StringEnumConverter()]);
+            var json = body.ToString(Formatting.None, new StringEnumConverter());
             if (configInfo.HasCustomSave)
             {
                 if (configurationService.Validate(configInfo, json) is { Count: > 0 } errors)
-                    return Ok(new ConfigurationActionResult() { ValidationErrors = errors });
+                    return Ok(new ConfigurationActionResult { ValidationErrors = errors });
 
                 var config = configurationService.Deserialize(configInfo, json);
                 var result = configurationService.PerformReactiveAction(configInfo, config, "", ConfigurationActionType.Save, default, User, BaseUri);
@@ -244,11 +244,11 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
             }
 
             var modified = configurationService.Save(configInfo, json);
-            return Ok(new ConfigurationActionResult() { ShowSaveMessage = modified, Refresh = modified });
+            return Ok(new ConfigurationActionResult { ShowSaveMessage = modified, Refresh = modified });
         }
         catch (ConfigurationValidationException ex)
         {
-            return Ok(new ConfigurationActionResult() { ValidationErrors = ex.ValidationErrors });
+            return Ok(new ConfigurationActionResult { ValidationErrors = ex.ValidationErrors });
         }
     }
 
@@ -277,11 +277,11 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
             }
 
             var modified = configurationService.Save(configInfo, config);
-            return Ok(new ConfigurationActionResult() { ShowSaveMessage = modified, Refresh = modified });
+            return Ok(new ConfigurationActionResult { ShowSaveMessage = modified, Refresh = modified });
         }
         catch (ConfigurationValidationException ex)
         {
-            return Ok(new ConfigurationActionResult() { ValidationErrors = ex.ValidationErrors });
+            return Ok(new ConfigurationActionResult { ValidationErrors = ex.ValidationErrors });
         }
     }
 
@@ -355,17 +355,17 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
         if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
             return NotFound($"Configuration '{id}' not found!");
 
-        var json = body.ToString(Newtonsoft.Json.Formatting.None, [new StringEnumConverter()]);
+        var json = body.ToString(Formatting.None, new StringEnumConverter());
         var errors = configurationService.Validate(configInfo, json);
         if (errors.Count > 0)
-            return Ok(new ConfigurationActionResult() { ValidationErrors = errors });
+            return Ok(new ConfigurationActionResult { ValidationErrors = errors });
 
         if (configInfo.HasCustomValidation)
         {
             var config = configurationService.Deserialize(configInfo, json);
             var result = configurationService.PerformReactiveAction(configInfo, config, "", ConfigurationActionType.Validate, default, User, BaseUri);
             if (result.ValidationErrors is { Count: > 0 })
-                return Ok(new ConfigurationActionResult() { ValidationErrors = result.ValidationErrors });
+                return Ok(new ConfigurationActionResult { ValidationErrors = result.ValidationErrors });
         }
 
         return Ok(new ConfigurationActionResult());
@@ -397,7 +397,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
 
         try
         {
-            var json = body?.ToString(Newtonsoft.Json.Formatting.None, [new StringEnumConverter()]);
+            var json = body?.ToString(Formatting.None, new StringEnumConverter());
             json ??= configurationService.Serialize(configurationService.Load(configInfo));
             var config = configurationService.Deserialize(configInfo, json);
             var result = configurationService.PerformCustomAction(configInfo, config, path, actionName, User, BaseUri);
@@ -436,7 +436,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
 
         try
         {
-            var json = body?.ToString(Newtonsoft.Json.Formatting.None, [new StringEnumConverter()]) ?? "null";
+            var json = body?.ToString(Formatting.None, new StringEnumConverter()) ?? "null";
             var config = configurationService.Deserialize(configInfo, json);
             if (config is null)
                 return ValidationProblem("Unable to deserialize configuration!");

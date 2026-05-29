@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -10,10 +9,17 @@ using Shoko.QueueProcessor.Abstractions;
 namespace Shoko.QueueProcessor.Scheduling;
 
 /// <summary>
-/// Replaces <c>QuartzStartup.ScheduleRecurringJobs()</c>.
 /// Holds a set of named recurring job registrations and re-enqueues them on their schedule
 /// if they are not already waiting or executing.
 /// </summary>
+/// <remarks>
+/// Plugins resolve this registry from DI (constructor-inject it, or fetch it via
+/// <see cref="IServiceProvider.GetService"/>) and call <see cref="Register{T}"/> to register
+/// their own recurring jobs. The call site can live in a plugin's
+/// <c>IPluginServiceRegistration.RegisterServices</c> body (using a startup hook) or in
+/// <c>IPlugin.Load</c>. The plugin's job type itself must first be registered via
+/// <c>QueueProcessorExtensions.AddQueueJobsFromAssembly</c>.
+/// </remarks>
 public class RecurringJobRegistry : IHostedService, IDisposable
 {
     private readonly IQueueScheduler _scheduler;

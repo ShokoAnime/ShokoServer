@@ -1,13 +1,12 @@
-#nullable enable
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Connectivity.Enums;
 using Shoko.Abstractions.Connectivity.Services;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
+using Shoko.QueueProcessor.Acquisition.Attributes;
 
-namespace Shoko.Server.Scheduling.Acquisition.Filters;
+namespace Shoko.QueueProcessor.Acquisition.Filters;
 
 public class NetworkRequiredAcquisitionFilter : IAcquisitionFilter
 {

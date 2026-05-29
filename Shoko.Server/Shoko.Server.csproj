@@ -111,23 +111,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-  <ItemGroup>
-    <Reference Include="Quartz">
-      <HintPath>..\Dependencies\Quartz\Quartz.dll</HintPath>
-    </Reference>
-    <Reference Include="Quartz.Jobs">
-      <HintPath>..\Dependencies\Quartz\Quartz.Jobs.dll</HintPath>
-    </Reference>
-    <Reference Include="Quartz.Plugins">
-      <HintPath>..\Dependencies\Quartz\Quartz.Plugins.dll</HintPath>
-    </Reference>
-    <Reference Include="Quartz.Serialization.Newtonsoft">
-      <HintPath>..\Dependencies\Quartz\Quartz.Serialization.Newtonsoft.dll</HintPath>
-    </Reference>
-    <Reference Include="Quartz.Server">
-      <HintPath>..\Dependencies\Quartz\Quartz.Server.dll</HintPath>
-    </Reference>
-  </ItemGroup>
   <Target Name="PluginAssemblyVersion" BeforeTargets="GetAssemblyVersion;GenerateAssemblyInfo" Condition="Exists('../.git')">
     <PropertyGroup Condition="$(OS) == 'Windows_NT'">
       <GitDateFormat>%%aI</GitDateFormat>

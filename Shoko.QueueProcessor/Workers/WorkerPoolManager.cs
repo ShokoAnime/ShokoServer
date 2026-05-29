@@ -1,6 +1,6 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -10,7 +10,6 @@ using Shoko.QueueProcessor.Analytics;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Storage;
-using Shoko.QueueProcessor;
 
 namespace Shoko.QueueProcessor.Workers;
 
@@ -24,8 +23,11 @@ namespace Shoko.QueueProcessor.Workers;
 ///   <item>Seed <see cref="QueueOrchestrator"/> with persisted jobs and pool routes</item>
 ///   <item>Start worker tasks for each pool</item>
 /// </list>
-/// Shutdown: cancels workers (in-flight jobs complete naturally) then flushes the
-/// <see cref="PersistenceBuffer"/> so completed jobs are removed from the DB.
+/// Shutdown: cancels workers, waits for in-flight <c>Process()</c> calls to finish (so their
+/// <c>OnComplete</c>-buffered deletes are recorded), then flushes the
+/// <see cref="PersistenceBuffer"/> so completed jobs are removed from the DB and any
+/// not-yet-persisted inserts are committed. If workers don't exit within the host's shutdown
+/// timeout, the flush runs anyway with an uncancellable token so the buffer always lands.
 /// </summary>
 public sealed class WorkerPoolManager : IHostedService
 {
@@ -103,11 +105,29 @@ public sealed class WorkerPoolManager : IHostedService
         _logger.LogInformation("WorkerPoolManager stopping");
         _cts?.Cancel();
 
+        // Pause enqueue + concurrency gate so anything triggered by a completing job's
+        // event handlers (e.g. job chains) doesn't enter the queue during shutdown.
+        _orchestrator.Pause();
+
+        // Cancel every pool's CTS first so idle workers exit immediately, then in parallel
+        // wait for any worker still inside Process() to finish. This ordering is what
+        // makes the subsequent flush actually capture in-flight completions: each Process()
+        // ends with OnComplete → PersistenceBuffer.OnComplete (buffered DELETE). If we flushed
+        // before workers exited, that DELETE would land in the buffer with nothing to flush it.
         foreach (var pool in _pools)
             pool.Stop();
 
-        // Flush pending DB writes before exit
-        await _persistenceBuffer.FlushNowAsync(ct);
+        try
+        {
+            await Task.WhenAll(_pools.Select(p => p.WhenStoppedAsync())).WaitAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Workers did not exit within shutdown timeout — flushing buffer anyway");
+        }
+
+        // Use None so a cancelled shutdown ct doesn't abort the final DB write.
+        await _persistenceBuffer.FlushNowAsync(CancellationToken.None).ConfigureAwait(false);
 
         _events.InvokeQueuePaused();
         _logger.LogInformation("WorkerPoolManager stopped");

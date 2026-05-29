@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,7 +13,6 @@ using NHibernate.SqlTypes;
 using NHibernate.UserTypes;
 using Shoko.Abstractions.Extensions;
 
-#nullable enable
 namespace Shoko.Server.Databases.NHibernate;
 
 public class StringListConverter : TypeConverter, IUserType

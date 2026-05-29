@@ -1,10 +1,10 @@
+#nullable enable
 using System;
 using System.Globalization;
 using System.Numerics;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-#nullable enable
 namespace Shoko.Server.API.Converters;
 
 /// <summary>

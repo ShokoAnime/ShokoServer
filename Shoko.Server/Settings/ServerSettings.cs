@@ -125,16 +125,12 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
 
     /// <summary>
     /// Configure the main database settings. These settings will not affect the
-    /// Quartz database.
+    /// queue database.
     /// </summary>
     public DatabaseSettings Database { get; set; } = new();
 
     /// <inheritdoc />
     public QueueProcessorSettings Queue { get; set; } = new();
-
-    // Backwards compatibility: old settings.json used "Quartz" key — copy on first load
-    [Newtonsoft.Json.JsonProperty("Quartz")]
-    private QueueProcessorSettings? QuartzLegacy { set { if (Queue.ConnectionString.Contains("Queue.db3")) Queue = value ?? Queue; } }
 
     /// <inheritdoc />
     public ConnectivitySettings Connectivity { get; set; } = new();

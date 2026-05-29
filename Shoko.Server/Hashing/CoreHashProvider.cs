@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -15,7 +16,6 @@ using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Server.Hashing.HashAlgorithms;
 
-#nullable enable
 namespace Shoko.Server.Hashing;
 
 /// <summary>
@@ -34,7 +34,7 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
     """;
 
     /// <inheritdoc/>
-    public IReadOnlySet<string> AvailableHashTypes => new HashSet<string>() { "ED2K", "CRC32", "MD5", "SHA1", "SHA256", "SHA512" };
+    public IReadOnlySet<string> AvailableHashTypes => new HashSet<string> { "ED2K", "CRC32", "MD5", "SHA1", "SHA256", "SHA512" };
 
     static CoreHashProvider()
     {
@@ -98,7 +98,7 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
             if (versionPtr == UIntPtr.Zero)
                 return null;
 
-            var version = (uint)(ulong)versionPtr;
+            var version = (uint)versionPtr;
             var major = (version >> 24) & 0xFF;
             var minor = (version >> 16) & 0xFF;
             var patch = (version >> 8) & 0xFF;
@@ -117,7 +117,7 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
     {
         var (file, existingHashes, enabledHashTypes) = request;
         var config = configurationProvider.Load();
-        var coreRequest = new CoreHashingRequest()
+        var coreRequest = new CoreHashingRequest
         {
             Path = file.FullName,
             ED2K = !existingHashes.Any(h => h.Type is "ED2K") && enabledHashTypes.Contains("ED2K"),
@@ -138,7 +138,7 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
         logger.LogDebug("Calculated {Count} hashes for {File} in {Time}", calculatedHashes.Count, file.Name, time.Elapsed);
 
         var hashes = calculatedHashes
-            .Concat(existingHashes.Select(h => new HashDigest() { Type = h.Type, Value = h.Value, Metadata = h.Metadata }))
+            .Concat(existingHashes.Select(h => new HashDigest { Type = h.Type, Value = h.Value, Metadata = h.Metadata }))
             .DistinctBy(h => h.Type)
             .OrderBy(h => (h.Type, h.Value, h.Metadata))
             .ToList();
@@ -305,42 +305,42 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
         {
             Native.rhash_print(output, ctx, RHashIds.RHASH_ED2K, RhashPrintSumFlags.RHPR_DEFAULT);
             var e2dk = Marshal.PtrToStringAnsi(output)!;
-            hashes.Add(new HashDigest() { Type = "ED2K", Value = e2dk.ToUpperInvariant() });
+            hashes.Add(new HashDigest { Type = "ED2K", Value = e2dk.ToUpperInvariant() });
         }
 
         if (request.CRC32)
         {
             Native.rhash_print(output, ctx, RHashIds.RHASH_CRC32, RhashPrintSumFlags.RHPR_DEFAULT);
             var crc32 = Marshal.PtrToStringAnsi(output)!;
-            hashes.Add(new HashDigest() { Type = "CRC32", Value = crc32.ToUpperInvariant() });
+            hashes.Add(new HashDigest { Type = "CRC32", Value = crc32.ToUpperInvariant() });
         }
 
         if (request.MD5)
         {
             Native.rhash_print(output, ctx, RHashIds.RHASH_MD5, RhashPrintSumFlags.RHPR_DEFAULT);
             var md5 = Marshal.PtrToStringAnsi(output)!;
-            hashes.Add(new HashDigest() { Type = "MD5", Value = md5.ToUpperInvariant() });
+            hashes.Add(new HashDigest { Type = "MD5", Value = md5.ToUpperInvariant() });
         }
 
         if (request.SHA1)
         {
             Native.rhash_print(output, ctx, RHashIds.RHASH_SHA1, RhashPrintSumFlags.RHPR_DEFAULT);
             var sha1 = Marshal.PtrToStringAnsi(output)!;
-            hashes.Add(new HashDigest() { Type = "SHA1", Value = sha1.ToUpperInvariant() });
+            hashes.Add(new HashDigest { Type = "SHA1", Value = sha1.ToUpperInvariant() });
         }
 
         if (request.SHA256)
         {
             Native.rhash_print(output, ctx, RHashIds.RHASH_SHA256, RhashPrintSumFlags.RHPR_DEFAULT);
             var sha256 = Marshal.PtrToStringAnsi(output)!;
-            hashes.Add(new HashDigest() { Type = "SHA256", Value = sha256.ToUpperInvariant() });
+            hashes.Add(new HashDigest { Type = "SHA256", Value = sha256.ToUpperInvariant() });
         }
 
         if (request.SHA512)
         {
             Native.rhash_print(output, ctx, RHashIds.RHASH_SHA512, RhashPrintSumFlags.RHPR_DEFAULT);
             var sha512 = Marshal.PtrToStringAnsi(output)!;
-            hashes.Add(new HashDigest() { Type = "SHA512", Value = sha512 });
+            hashes.Add(new HashDigest { Type = "SHA512", Value = sha512 });
         }
 
         Marshal.FreeHGlobal(output);
