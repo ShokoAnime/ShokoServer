@@ -33,7 +33,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// Responsible for handling managed folders.
 /// </summary>
 /// <param name="settingsProvider"></param>
-/// <param name="schedulerFactory"></param>
+/// <param name="scheduler"></param>
 /// <param name="videoService"></param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
