@@ -57,8 +57,8 @@ flowchart TB
     end
 
     subgraph Pools["Worker Pools (built from attributes)"]
-        P1["Pool: AniDB-UDP<br/>workers = 4"]
-        P2["Pool: TMDB<br/>workers = 12"]
+        P1["Pool: AniDB-UDP<br/>workers = 1"]
+        P2["Pool: HashFileJob<br/>workers = 2"]
         P3["Pool: Default<br/>workers = N"]
     end
 
