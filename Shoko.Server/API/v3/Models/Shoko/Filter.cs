@@ -195,6 +195,24 @@ public class Filter : BaseModel
         /// This will list the possible parameter pairs, usually with the most common ones first.
         /// </summary>
         public string[][]? PossibleParameterPairs { get; init; } = help.PossibleParameterPairs;
+
+        /// <summary>
+        /// Magical Json.Net stuff
+        /// </summary>
+        public bool ShouldSerializePossibleParameters()
+            => PossibleParameters?.Length > 0;
+
+        /// <summary>
+        /// Magical Json.Net stuff
+        /// </summary>
+        public bool ShouldSerializePossibleSecondParameters()
+            => PossibleSecondParameters?.Length > 0;
+
+        /// <summary>
+        /// Magical Json.Net stuff
+        /// </summary>
+        public bool ShouldSerializePossibleParameterPairs()
+            => PossibleParameterPairs?.Length > 0;
     }
 
     public class SortingCriteriaHelp(ISortingCriteriaHelp help)
