@@ -1,8 +1,8 @@
+# nullable enable
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 
-# nullable enable
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_Anime_Title : ITitle

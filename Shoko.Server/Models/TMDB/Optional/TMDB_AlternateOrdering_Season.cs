@@ -117,7 +117,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
     }
 
     /// <inheritdoc/>
-    public ITitle GetDefaultTitle() => new TitleStub()
+    public ITitle GetDefaultTitle() => new TitleStub
     {
         Language = TitleLanguage.EnglishAmerican,
         CountryCode = "US",
@@ -128,7 +128,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
 
     /// <inheritdoc/>
     public ITitle? GetPreferredTitle() => ISettingsProvider.Instance.GetSettings().Language.SeriesTitleLanguageOrder.Contains("en-US")
-        ? new TitleStub()
+        ? new TitleStub
         {
             Language = TitleLanguage.EnglishAmerican,
             CountryCode = "US",
@@ -140,7 +140,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
 
     public IReadOnlyList<ITitle> GetAllTitles() =>
     [
-        new TitleStub()
+        new TitleStub
         {
             Language = TitleLanguage.EnglishAmerican,
             CountryCode = "US",
@@ -163,7 +163,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
             {
                 var episodes = group.ToList();
                 var firstEpisode = episodes.First();
-                return new TMDB_Season_Cast()
+                return new TMDB_Season_Cast
                 {
                     TmdbPersonID = firstEpisode.TmdbPersonID,
                     TmdbShowID = firstEpisode.TmdbShowID,
@@ -191,7 +191,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
             {
                 var episodes = group.ToList();
                 var firstEpisode = episodes.First();
-                return new TMDB_Season_Crew()
+                return new TMDB_Season_Crew
                 {
                     TmdbPersonID = firstEpisode.TmdbPersonID,
                     TmdbShowID = firstEpisode.TmdbShowID,
@@ -229,7 +229,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
 
     DataEntityType IMetadata.EntityType => DataEntityType.Season;
 
-    string IMetadata<string>.ID => TmdbEpisodeGroupID.ToString();
+    string IMetadata<string>.ID => TmdbEpisodeGroupID;
 
     DataSource IMetadata.Source => DataSource.TMDB;
 

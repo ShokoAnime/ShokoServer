@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Shoko.Server.Plex.Models;
 using Shoko.Server.Plex.Models.Collection;
 using Shoko.Server.Plex.Models.Libraries;

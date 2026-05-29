@@ -177,7 +177,7 @@ public class ShokoServiceImplementationService(
         }
 
         contract.CrossRefAniDBMAL = series.MalCrossReferences
-            .Select(x => new CL_CrossRef_AniDB_MAL()
+            .Select(x => new CL_CrossRef_AniDB_MAL
             {
                 CrossRef_AniDB_MALID = x.CrossRef_AniDB_MALID,
                 AnimeID = x.AnimeID,

@@ -58,7 +58,7 @@ public class DateOnlyConverter : TypeConverter, IUserType
             },
             "System.Int64" => value switch
             {
-                DateOnly i => (long)i.ToDateTime(TimeOnly.MinValue).Ticks,
+                DateOnly i => i.ToDateTime(TimeOnly.MinValue).Ticks,
                 _ => null,
             },
             "System.String" => value switch

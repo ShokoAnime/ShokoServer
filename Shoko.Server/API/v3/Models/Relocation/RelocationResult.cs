@@ -21,7 +21,7 @@ public class RelocationResult
     /// found.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public int? FileLocationID { get; set; } = null;
+    public int? FileLocationID { get; set; }
 
     /// <summary>
     /// The name of the config that produced the final location for the
@@ -29,7 +29,7 @@ public class RelocationResult
     /// a manual relocation.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public string? PipeName { get; set; } = null;
+    public string? PipeName { get; set; }
 
     /// <summary>
     /// The new id of the <see cref="ManagedFolder"/> where the file now
@@ -38,7 +38,7 @@ public class RelocationResult
     /// </summary>
     /// 
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public int? ManagedFolderID { get; set; } = null;
+    public int? ManagedFolderID { get; set; }
 
     /// <summary>
     /// Indicates whether the file was relocated successfully.
@@ -52,20 +52,20 @@ public class RelocationResult
     /// location.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public bool? IsRelocated { get; set; } = null;
+    public bool? IsRelocated { get; set; }
 
     /// <summary>
     /// Indicates if the result is only a preview and the file has not
     /// actually been relocated yet.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public bool? IsPreview { get; set; } = null;
+    public bool? IsPreview { get; set; }
 
     /// <summary>
     /// The error message if the relocation was not successful.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public string? ErrorMessage { get; set; } = null;
+    public string? ErrorMessage { get; set; }
 
     /// <summary>
     /// The new relative path from the <see cref="ManagedFolder"/>'s path
@@ -73,7 +73,7 @@ public class RelocationResult
     /// <see cref="IsSuccess"/> to see the status of the relocation.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public string? RelativePath { get; set; } = null;
+    public string? RelativePath { get; set; }
 
     /// <summary>
     /// The new absolute path for the file on the server, if relocation
@@ -81,5 +81,5 @@ public class RelocationResult
     /// the status of the relocation.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public string? AbsolutePath { get; set; } = null;
+    public string? AbsolutePath { get; set; }
 }

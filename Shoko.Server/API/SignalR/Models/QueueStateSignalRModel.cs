@@ -36,4 +36,11 @@ public class QueueStateSignalRModel
     /// The currently executing jobs and their details
     /// </summary>
     public List<Queue.QueueItem> CurrentlyExecuting { get; set; } = [];
+
+    /// <summary>
+    /// Per-pool (concurrency-group) status. <see cref="Queue.PoolState.ActiveWorkers"/>
+    /// is set at acquisition time, so clients can show "the group is processing" even when
+    /// jobs complete before per-job events make it through the SignalR pipeline.
+    /// </summary>
+    public List<Queue.PoolState> Pools { get; set; } = [];
 }

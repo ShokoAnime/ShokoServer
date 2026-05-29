@@ -1,7 +1,9 @@
 using System;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using NLog;
+
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 #nullable enable
 namespace Shoko.Server.API.SignalR.NLog;
@@ -50,7 +52,7 @@ public class LogEvent : EventArgs
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string? Exception { get; init; }
 
-    internal LogEvent(global::NLog.LogEventInfo eventInfo, string renderedMessage, int threadId, int processId)
+    internal LogEvent(LogEventInfo eventInfo, string renderedMessage, int threadId, int processId)
     {
         Level = eventInfo.Level.Ordinal switch
         {

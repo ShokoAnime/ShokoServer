@@ -25,7 +25,7 @@ namespace Shoko.Server.API.v3.Models.AniDB;
 /// </summary>
 public class AnidbAnime
 {
-    private static AniDBTitleHelper? _titleHelper = null;
+    private static AniDBTitleHelper? _titleHelper;
 
     private static AniDBTitleHelper TitleHelper
         => _titleHelper ??= ISystemService.StaticServices.GetService<AniDBTitleHelper>()!;

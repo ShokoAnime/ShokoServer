@@ -107,8 +107,6 @@ public class User
             [Required(ErrorMessage = "Password is required", AllowEmptyStrings = true)]
             public string? Password { get; set; } = string.Empty;
 
-            public CreateUserBody() : base() { }
-
             public User? Save(ModelStateDictionary modelState, bool isAdmin = false)
             {
                 if (RestrictedTags is not null && !isAdmin)
@@ -217,8 +215,6 @@ public class User
             /// The new user's Plex usernames.
             /// </summary>
             public string? PlexUsernames { get; set; }
-
-            public CreateOrUpdateUserBody() { }
 
             public virtual User? MergeWithExisting(IUser user, ModelStateDictionary modelState, bool isAdmin = false)
                 => MergeWithExisting((JMMUser)user, modelState, isAdmin);

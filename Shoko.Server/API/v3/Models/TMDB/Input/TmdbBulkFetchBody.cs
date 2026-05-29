@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Metadata.Enums;
@@ -6,7 +7,7 @@ using Shoko.Abstractions.Metadata.Enums;
 namespace Shoko.Server.API.v3.Models.TMDB.Input;
 
 public class TmdbBulkFetchBody<TDetails>
-    where TDetails : struct, System.Enum
+    where TDetails : struct, Enum
 {
     [Required]
     public List<int> IDs { get; set; } = [];

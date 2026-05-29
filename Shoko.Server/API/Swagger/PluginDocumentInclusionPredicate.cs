@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
@@ -69,7 +70,7 @@ public class PluginDocumentInclusionPredicate
                 return false;
 
             // Match by DLL name (without extension)
-            var expectedDllName = System.IO.Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
+            var expectedDllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
             return pluginDllName.Equals(expectedDllName, StringComparison.OrdinalIgnoreCase);
         }
 

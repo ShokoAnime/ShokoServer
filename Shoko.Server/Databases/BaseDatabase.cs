@@ -324,7 +324,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
                 configurationService.New(provider.ConfigurationInfo)
             )
         );
-        var pipe = new StoredRelocationPipe()
+        var pipe = new StoredRelocationPipe
         {
             Name = "Default",
             Configuration = configuration,

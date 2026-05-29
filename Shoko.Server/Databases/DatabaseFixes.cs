@@ -15,7 +15,6 @@ using Newtonsoft.Json;
 using NHibernate;
 using NHibernate.Exceptions;
 using NLog;
-using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core.Services;
@@ -29,6 +28,9 @@ using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Legacy;
@@ -42,7 +44,6 @@ using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -60,7 +61,7 @@ public class DatabaseFixes
 
     public static void UpdateAllStats()
     {
-        var scheduler = ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
+        var scheduler = ISystemService.StaticServices.GetRequiredService<IQueueScheduler>();
         Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID))).GetAwaiter()
             .GetResult();
     }

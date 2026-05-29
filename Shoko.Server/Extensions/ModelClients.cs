@@ -190,11 +190,11 @@ public static class ModelClients
         {
             MovieDB_FanartID = image.LocalID,
             Enabled = image.IsEnabled ? 1 : 0,
-            ImageHeight = (int?)image.Height ?? 0,
+            ImageHeight = image.Height ?? 0,
             ImageID = string.Empty,
             ImageSize = "original",
             ImageType = "backdrop",
-            ImageWidth = (int?)image.Width ?? 0,
+            ImageWidth = image.Width ?? 0,
             MovieId = 0,
             URL = image.ResourceID,
         };
@@ -204,11 +204,11 @@ public static class ModelClients
         {
             MovieDB_PosterID = image.LocalID,
             Enabled = image.IsEnabled ? 1 : 0,
-            ImageHeight = (int?)image.Height ?? 0,
+            ImageHeight = image.Height ?? 0,
             ImageID = string.Empty,
             ImageSize = "original",
             ImageType = "poster",
-            ImageWidth = (int?)image.Width ?? 0,
+            ImageWidth = image.Width ?? 0,
             MovieId = 0,
             URL = image.ResourceID,
         };
@@ -218,7 +218,7 @@ public static class ModelClients
         if (xref.ImageSource is not DataSource.TMDB || xref.GetImage() is not { IsAvailable: true } image)
             return null;
 
-        var contract = new CL_AniDB_Anime_DefaultImage()
+        var contract = new CL_AniDB_Anime_DefaultImage
         {
             AniDB_Anime_DefaultImageID = xref.ID,
             AnimeID = int.Parse(xref.EntityID),

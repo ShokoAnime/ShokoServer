@@ -125,12 +125,12 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
 
     /// <summary>
     /// Configure the main database settings. These settings will not affect the
-    /// Quartz database.
+    /// queue database.
     /// </summary>
     public DatabaseSettings Database { get; set; } = new();
 
     /// <inheritdoc />
-    public QuartzSettings Quartz { get; set; } = new();
+    public QueueProcessorSettings Queue { get; set; } = new();
 
     /// <inheritdoc />
     public ConnectivitySettings Connectivity { get; set; } = new();

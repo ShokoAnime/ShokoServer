@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Relocation;
 
 public class RelocationSummary

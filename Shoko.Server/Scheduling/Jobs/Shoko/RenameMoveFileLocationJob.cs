@@ -1,12 +1,12 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -34,13 +34,13 @@ public class RenameMoveFileLocationJob : BaseJob
     {
         _location = RepoFactory.VideoLocalPlace.GetByRelativePathAndManagedFolderID(RelativePath, ManagedFolderID);
         _fileName = _location?.Path;
-        if (_location == null || string.IsNullOrEmpty(_fileName)) throw new JobExecutionException($"VideoLocalPlace not Found: {RelativePath} (ManagedFolder={ManagedFolderID})");
+        if (_location == null || string.IsNullOrEmpty(_fileName)) throw new Exception($"VideoLocalPlace not Found: {RelativePath} (ManagedFolder={ManagedFolderID})");
     }
 
     public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? RelativePath } };
 
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job}: {FileName}", nameof(RenameMoveFileLocationJob), _fileName);
 

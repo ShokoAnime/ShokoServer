@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Quartz;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Services;
@@ -16,6 +15,8 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.Web.Attributes;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v1.Services;
 using Shoko.Server.Extensions;
@@ -25,7 +26,6 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -49,7 +49,7 @@ public partial class ShokoServiceImplementation : Controller
     private readonly TmdbMetadataService _tmdbMetadataService;
     private readonly TmdbSearchService _tmdbSearchService;
     private readonly ISettingsProvider _settingsProvider;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
     private readonly AnidbService _anidbService;
     private readonly ActionService _actionService;
     private readonly ShokoServiceImplementationService _legacyV1Service;
@@ -62,7 +62,7 @@ public partial class ShokoServiceImplementation : Controller
         TmdbLinkingService tmdbLinkingService,
         TmdbMetadataService tmdbMetadataService,
         TmdbSearchService tmdbSearchService,
-        ISchedulerFactory schedulerFactory,
+        IQueueScheduler scheduler,
         IAnidbService anidbService,
         ISettingsProvider settingsProvider,
         ILogger<ShokoServiceImplementation> logger,
@@ -78,7 +78,7 @@ public partial class ShokoServiceImplementation : Controller
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbSearchService = tmdbSearchService;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = scheduler;
         _anidbService = (AnidbService)anidbService;
         _settingsProvider = settingsProvider;
         _logger = logger;
@@ -495,8 +495,7 @@ public partial class ShokoServiceImplementation : Controller
     [HttpPost("Folder/Import")]
     public async void RunImport()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<ImportJob>();
+        await _scheduler.StartJob<ImportJob>();
     }
 
     [HttpPost("File/Hashes/Sync")]
@@ -513,8 +512,7 @@ public partial class ShokoServiceImplementation : Controller
     [HttpPost("Folder/Scan/{importFolderID}")]
     public void ScanFolder(int importFolderID)
     {
-        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJob<ScanFolderJob>(a => a.ManagedFolderID = importFolderID).GetAwaiter().GetResult();
+        _scheduler.StartJob<ScanFolderJob>(a => a.ManagedFolderID = importFolderID).GetAwaiter().GetResult();
     }
 
     [HttpPost("Folder/RemoveMissing")]
@@ -526,22 +524,19 @@ public partial class ShokoServiceImplementation : Controller
     [HttpPost("Folder/RefreshMediaInfo")]
     public void RefreshAllMediaInfo()
     {
-        var scheduler = _schedulerFactory.GetScheduler().Result;
-        scheduler.StartJob<MediaInfoAllFilesJob>().GetAwaiter().GetResult();
+        _scheduler.StartJob<MediaInfoAllFilesJob>().GetAwaiter().GetResult();
     }
 
     [HttpPost("AniDB/MyList/Sync")]
     public void SyncMyList()
     {
-        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = true, prioritize: true).GetAwaiter().GetResult();
+        _scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = true, prioritize: true).GetAwaiter().GetResult();
     }
 
     [HttpPost("AniDB/Vote/Sync")]
     public void SyncVotes()
     {
-        var scheduler = _schedulerFactory.GetScheduler().GetAwaiter().GetResult();
-        scheduler.StartJob<SyncAniDBMyListJob>().GetAwaiter().GetResult();
+        _scheduler.StartJob<SyncAniDBMyListJob>().GetAwaiter().GetResult();
     }
 
     #endregion

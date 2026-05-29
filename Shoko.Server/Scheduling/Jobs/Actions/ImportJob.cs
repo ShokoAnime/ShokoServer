@@ -1,8 +1,8 @@
-﻿using System.Threading.Tasks;
-using Quartz;
+using System.Threading.Tasks;
 using Shoko.Abstractions.Video.Services;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
@@ -19,7 +19,7 @@ public class ImportJob : BaseJob
     public override string TypeName => "Run Import";
     public override string Title => "Running Import";
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         await _service.RunImport_IntegrityCheck();
 

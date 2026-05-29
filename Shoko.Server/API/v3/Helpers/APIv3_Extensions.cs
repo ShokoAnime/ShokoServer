@@ -141,8 +141,6 @@ public static class APIv3_Extensions
                 case ImageEntityType.Disc:
                     images.Discs.Add(new(image, showLinkedIDs));
                     break;
-                default:
-                    break;
             }
         }
 

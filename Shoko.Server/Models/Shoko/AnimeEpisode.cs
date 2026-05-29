@@ -103,7 +103,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
                 if (RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.English) is { Count: > 0 } titles)
                     return _defaultTitle = titles[0];
 
-                return _defaultTitle = new TitleStub()
+                return _defaultTitle = new TitleStub
                 {
                     Language = TitleLanguage.Unknown,
                     LanguageCode = "unk",
@@ -120,7 +120,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
         {
             // Return the override if it's set.
             if (!string.IsNullOrEmpty(EpisodeNameOverride))
-                return new TitleStub()
+                return new TitleStub
                 {
                     Language = TitleLanguage.Unknown,
                     LanguageCode = "unk",
@@ -180,7 +180,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
             var episodeOverrideTitle = !string.IsNullOrEmpty(EpisodeNameOverride);
             if (episodeOverrideTitle)
             {
-                titles.Add(new TitleStub()
+                titles.Add(new TitleStub
                 {
                     Source = DataSource.User,
                     Language = TitleLanguage.Unknown,
@@ -197,7 +197,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
                 if (mainTitle is not null)
                 {
                     animeTitles.Remove(mainTitle);
-                    animeTitles.Insert(0, new TitleStub()
+                    animeTitles.Insert(0, new TitleStub
                     {
                         Language = mainTitle.Language,
                         LanguageCode = mainTitle.LanguageCode,
@@ -243,7 +243,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
                     {
                         DataSource.AniDB =>
                             language.Language is TitleLanguage.English && !string.IsNullOrEmpty(anidbOverview)
-                                ? new TextStub()
+                                ? new TextStub
                                 {
                                     Language = TitleLanguage.English,
                                     LanguageCode = "en",
@@ -341,7 +341,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
     #region IWithDescription Implementation
 
     IText? IWithDescriptions.DefaultDescription => AniDB_Episode?.Description is { Length: > 0 }
-        ? new TextStub()
+        ? new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",

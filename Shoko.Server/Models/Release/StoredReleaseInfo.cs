@@ -42,7 +42,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         }
         if (releaseInfo.Hashes is { } hashes)
         {
-            Hashes = hashes.Select(x => new HashDigest() { Type = x.Type, Value = x.Value, Metadata = x.Metadata }).ToList();
+            Hashes = hashes.Select(x => new HashDigest { Type = x.Type, Value = x.Value, Metadata = x.Metadata }).ToList();
         }
         if (releaseInfo.MediaInfo is { } mediaInfo)
         {

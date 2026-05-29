@@ -134,7 +134,7 @@ public class Image
     /// image.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public ImageSeriesInfo? Series { get; set; } = null;
+    public ImageSeriesInfo? Series { get; set; }
 
     public Image(IImage imageMetadata, bool showLinkedIDs = false, bool? preferredOverride = null)
     {

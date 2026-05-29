@@ -1,6 +1,6 @@
-﻿using System;
+﻿# nullable enable
+using System;
 
-# nullable enable
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_AnimeUpdate

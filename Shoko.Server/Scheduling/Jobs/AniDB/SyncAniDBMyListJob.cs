@@ -7,10 +7,14 @@ using System.Threading.Tasks;
 using Iesi.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Quartz;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User.Services;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
@@ -21,7 +25,6 @@ using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
@@ -39,7 +42,7 @@ public class SyncAniDBMyListJob : BaseJob
 {
     // TODO make this use Quartz scheduling
     private readonly IRequestFactory _requestFactory;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
     private readonly ISettingsProvider _settingsProvider;
     private IServerSettings _settings => _settingsProvider.GetSettings();
     private readonly AnimeSeriesService _seriesService;
@@ -53,7 +56,7 @@ public class SyncAniDBMyListJob : BaseJob
 
     public override string Title => "Syncing AniDB MyList";
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job}", nameof(SyncAniDBMyListJob));
 
@@ -141,7 +144,7 @@ public class SyncAniDBMyListJob : BaseJob
         {
             foreach (var id in filesToRemove)
             {
-                await (await _schedulerFactory.GetScheduler()).StartJob<DeleteFileFromMyListJob>(a => a.FileID = id);
+                await _scheduler.StartJob<DeleteFileFromMyListJob>(a => a.FileID = id);
             }
         }
 
@@ -258,7 +261,7 @@ public class SyncAniDBMyListJob : BaseJob
 
         if (!shouldUpdate) return modifiedItems;
 
-        await (await _schedulerFactory.GetScheduler()).StartJob<UpdateMyListFileStatusJob>(a =>
+        await _scheduler.StartJob<UpdateMyListFileStatusJob>(a =>
         {
             a.Hash = video.Hash;
             a.Watched = updateDate != null;
@@ -316,7 +319,7 @@ public class SyncAniDBMyListJob : BaseJob
             }
             else continue;
 
-            await (await _schedulerFactory.GetScheduler()).StartJob<AddFileToMyListJob>(a => a.Hash = vid.Hash);
+            await _scheduler.StartJob<AddFileToMyListJob>(a => a.Hash = vid.Hash);
         }
 
         _logger.LogInformation(
@@ -335,10 +338,10 @@ public class SyncAniDBMyListJob : BaseJob
         return fileID != 0;
     }
 
-    public SyncAniDBMyListJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, VideoLocal_UserRepository vlUsers, IUserDataService userDataService, IApplicationPaths applicationPaths)
+    public SyncAniDBMyListJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, VideoLocal_UserRepository vlUsers, IUserDataService userDataService, IApplicationPaths applicationPaths)
     {
         _requestFactory = requestFactory;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = schedulerFactory;
         _seriesService = seriesService;
         _vlUsers = vlUsers;
         _userDataService = userDataService;

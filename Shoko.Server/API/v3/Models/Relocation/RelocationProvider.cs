@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Video.Relocation;
 using Shoko.Server.API.v3.Models.Configuration;

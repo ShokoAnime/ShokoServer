@@ -176,7 +176,7 @@ public partial class File
     /// <summary>
     /// Represents a file location.
     /// </summary>
-    public partial class Location
+    public class Location
     {
         /// <summary>
         /// The file location id.
@@ -580,27 +580,27 @@ public partial class File
     private static Func<(VideoLocal Video, VideoLocal_Place? Location, IReadOnlyList<VideoLocal_Place>? Locations, StoredReleaseInfo? ReleaseInfo, VideoLocal_User? UserRecord), object?>? GetOrderFunction(FileSortCriteria criteria, bool isInverted) =>
         criteria switch
         {
-            FileSortCriteria.ManagedFolderName => (tuple) => tuple.Location?.ManagedFolder?.Name ?? string.Empty,
-            FileSortCriteria.ManagedFolderID => (tuple) => tuple.Location?.ManagedFolderID,
-            FileSortCriteria.AbsolutePath => (tuple) => tuple.Location?.Path,
-            FileSortCriteria.RelativePath => (tuple) => tuple.Location?.RelativePath,
-            FileSortCriteria.FileSize => (tuple) => tuple.Video.FileSize,
-            FileSortCriteria.FileName => (tuple) => tuple.Location?.FileName,
-            FileSortCriteria.FileID => (tuple) => tuple.Video.VideoLocalID,
-            FileSortCriteria.DuplicateCount => (tuple) => tuple.Locations?.Count ?? 0,
-            FileSortCriteria.CreatedAt => (tuple) => tuple.Video.DateTimeCreated,
-            FileSortCriteria.ImportedAt => isInverted ? (tuple) => tuple.Video.DateTimeImported ?? DateTime.MinValue : (tuple) => tuple.Video.DateTimeImported ?? DateTime.MaxValue,
-            FileSortCriteria.ViewedAt => isInverted ? (tuple) => tuple.UserRecord?.LastUpdated ?? DateTime.MinValue : (tuple) => tuple.UserRecord?.LastUpdated ?? DateTime.MaxValue,
-            FileSortCriteria.WatchedAt => isInverted ? (tuple) => tuple.UserRecord?.WatchedDate ?? DateTime.MinValue : (tuple) => tuple.UserRecord?.WatchedDate ?? DateTime.MaxValue,
-            FileSortCriteria.ED2K => (tuple) => tuple.Video.Hash,
-            FileSortCriteria.MD5 => (tuple) => tuple.Video.MD5,
-            FileSortCriteria.SHA1 => (tuple) => tuple.Video.SHA1,
-            FileSortCriteria.CRC32 => (tuple) => tuple.Video.CRC32,
-            FileSortCriteria.ReleaseProviderName => (tuple) => tuple.ReleaseInfo?.ProviderName,
-            FileSortCriteria.ReleaseProviderID => (tuple) => tuple.ReleaseInfo?.ID,
-            FileSortCriteria.ReleaseGroupName => (tuple) => tuple.ReleaseInfo?.GroupName,
-            FileSortCriteria.ReleaseGroupShortName => (tuple) => tuple.ReleaseInfo?.GroupShortName,
-            FileSortCriteria.ReleaseGroupID => (tuple) => tuple.ReleaseInfo?.GroupID,
+            FileSortCriteria.ManagedFolderName => tuple => tuple.Location?.ManagedFolder?.Name ?? string.Empty,
+            FileSortCriteria.ManagedFolderID => tuple => tuple.Location?.ManagedFolderID,
+            FileSortCriteria.AbsolutePath => tuple => tuple.Location?.Path,
+            FileSortCriteria.RelativePath => tuple => tuple.Location?.RelativePath,
+            FileSortCriteria.FileSize => tuple => tuple.Video.FileSize,
+            FileSortCriteria.FileName => tuple => tuple.Location?.FileName,
+            FileSortCriteria.FileID => tuple => tuple.Video.VideoLocalID,
+            FileSortCriteria.DuplicateCount => tuple => tuple.Locations?.Count ?? 0,
+            FileSortCriteria.CreatedAt => tuple => tuple.Video.DateTimeCreated,
+            FileSortCriteria.ImportedAt => isInverted ? tuple => tuple.Video.DateTimeImported ?? DateTime.MinValue : tuple => tuple.Video.DateTimeImported ?? DateTime.MaxValue,
+            FileSortCriteria.ViewedAt => isInverted ? tuple => tuple.UserRecord?.LastUpdated ?? DateTime.MinValue : tuple => tuple.UserRecord?.LastUpdated ?? DateTime.MaxValue,
+            FileSortCriteria.WatchedAt => isInverted ? tuple => tuple.UserRecord?.WatchedDate ?? DateTime.MinValue : tuple => tuple.UserRecord?.WatchedDate ?? DateTime.MaxValue,
+            FileSortCriteria.ED2K => tuple => tuple.Video.Hash,
+            FileSortCriteria.MD5 => tuple => tuple.Video.MD5,
+            FileSortCriteria.SHA1 => tuple => tuple.Video.SHA1,
+            FileSortCriteria.CRC32 => tuple => tuple.Video.CRC32,
+            FileSortCriteria.ReleaseProviderName => tuple => tuple.ReleaseInfo?.ProviderName,
+            FileSortCriteria.ReleaseProviderID => tuple => tuple.ReleaseInfo?.ID,
+            FileSortCriteria.ReleaseGroupName => tuple => tuple.ReleaseInfo?.GroupName,
+            FileSortCriteria.ReleaseGroupShortName => tuple => tuple.ReleaseInfo?.GroupShortName,
+            FileSortCriteria.ReleaseGroupID => tuple => tuple.ReleaseInfo?.GroupID,
             _ => null,
         };
 

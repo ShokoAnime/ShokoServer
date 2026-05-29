@@ -47,10 +47,6 @@ public class TMDB_Network : ITmdbNetwork
 
     #endregion
 
-    #region Constructors
-
-    #endregion
-
     #region Methods
 
     public IReadOnlyList<TMDB_Show_Network> GetTmdbNetworkCrossReferences() =>

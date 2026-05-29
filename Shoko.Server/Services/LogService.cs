@@ -15,7 +15,6 @@ using NLog.Config;
 using NLog.Filters;
 using NLog.Layouts;
 using NLog.Targets;
-using Quartz.Logging;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
@@ -1033,7 +1032,6 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
                 ?.EnableLoggingForLevel(NLogLevel.Debug);
 #endif
             LogManager.Configuration = config;
-            LogProvider.SetLogProvider(new NLog.Extensions.Logging.NLogLoggerFactory());
             LogManager.ReconfigExistingLoggers();
             IsLoggingInitialized = true;
         }
@@ -1147,8 +1145,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
     private static IReadOnlyList<LogLevelRuleConfiguration> GetDefaultLogLevelRules()
         => [
             new() { LoggerNamePattern = "Microsoft.AspNetCore.*", MaxLevel = ELogLevel.Information, Final = true },
-            new() { LoggerNamePattern = "Quartz*", MaxLevel = ELogLevel.Information, Final = true },
-            new() { LoggerNamePattern = "Shoko.Server.Scheduling.ThreadPooledJobStore", MaxLevel = ELogLevel.Information, Final = true },
+            new() { LoggerNamePattern = "Shoko.QueueProcessor*", MaxLevel = ELogLevel.Information, Final = true },
             new() { LoggerNamePattern = "Shoko.Server.Scheduling.Delegates.*", MaxLevel = ELogLevel.Information, Final = true },
             new() { LoggerNamePattern = "Shoko.Server.API.Authentication.CustomAuthHandler", MaxLevel = ELogLevel.Information, Final = true },
             new() { LoggerNamePattern = "Microsoft.Extensions.Http.Logging.*", MaxLevel = ELogLevel.Warning, Final = true },

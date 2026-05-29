@@ -3,15 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 
 #pragma warning disable CS8618
@@ -34,7 +36,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
     };
 
     private readonly IRequestFactory _requestFactory;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
     private readonly IVideoReleaseService _videoReleaseService;
 
     public int GroupID { get; set; }
@@ -50,7 +52,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
         }
     };
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job}: {GroupID}", nameof(GetAniDBReleaseGroupJob), GroupID);
 
@@ -84,7 +86,6 @@ public class GetAniDBReleaseGroupJob : BaseJob
         if (response.Response is null)
         {
             var xrefsToDelete = new List<CrossRef_File_Episode>();
-            var scheduler = await _schedulerFactory.GetScheduler();
             var videosToUpdate = new List<VideoLocal>();
             foreach (var databaseReleaseGroup in databaseReleaseGroups)
             {
@@ -138,10 +139,10 @@ public class GetAniDBReleaseGroupJob : BaseJob
         return;
     }
 
-    public GetAniDBReleaseGroupJob(IRequestFactory requestFactory, ISchedulerFactory schedulerFactory, IVideoReleaseService videoReleaseService)
+    public GetAniDBReleaseGroupJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory, IVideoReleaseService videoReleaseService)
     {
         _requestFactory = requestFactory;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = schedulerFactory;
         _videoReleaseService = videoReleaseService;
     }
 

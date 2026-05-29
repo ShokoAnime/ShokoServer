@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.v2.Models.core;

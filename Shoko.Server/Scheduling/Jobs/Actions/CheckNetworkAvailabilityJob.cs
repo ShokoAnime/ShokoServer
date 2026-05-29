@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
-using Quartz;
 using Shoko.Abstractions.Connectivity.Services;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
@@ -21,7 +21,7 @@ public class CheckNetworkAvailabilityJob : BaseJob
 
     protected CheckNetworkAvailabilityJob() { }
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         await _connectivityService.CheckAvailability();
     }

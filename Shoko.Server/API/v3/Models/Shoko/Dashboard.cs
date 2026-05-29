@@ -171,7 +171,7 @@ public static class Dashboard
             var shokoEpisode = shokoSeries is not null
                 ? anidbEpisode.ShokoEpisodes.FirstOrDefault()
                 : null;
-            IDs = new EpisodeDetailsIDs()
+            IDs = new EpisodeDetailsIDs
             {
                 ID = anidbEpisode.ID,
                 Series = anidbAnime.ID,

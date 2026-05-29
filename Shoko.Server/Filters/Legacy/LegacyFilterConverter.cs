@@ -67,7 +67,7 @@ public class LegacyFilterConverter
         }
         else
         {
-            var results = _evaluator.EvaluateFilterWithGrouping(filter, null).ToList();
+            var results = _evaluator.EvaluateFilterWithGrouping(filter).ToList();
             var groupIdSet = results.Select(a => a.Key).ToHashSet();
             var seriesIdSet = results.SelectMany(a => a).ToHashSet();
             foreach (var userID in RepoFactory.JMMUser.GetAll().Select(a => a.JMMUserID))
@@ -115,7 +115,7 @@ public class LegacyFilterConverter
 
     private List<CL_GroupFilter> SetOtherFilters(List<FilterPreset> otherFilters)
     {
-        var results = _evaluator.BatchPrepareFiltersWithGrouping(otherFilters, null, skipSorting: true);
+        var results = _evaluator.BatchPrepareFiltersWithGrouping(otherFilters, skipSorting: true);
         var models = results.Select(kv =>
         {
             var filter = kv.Key;

@@ -160,7 +160,7 @@ public class AnimeSeries : IShokoSeries
 
     public string Title => !string.IsNullOrEmpty(SeriesNameOverride) ? SeriesNameOverride : (PreferredTitle ?? DefaultTitle).Value;
 
-    private ITitle? _defaultTitle = null;
+    private ITitle? _defaultTitle;
 
     public ITitle DefaultTitle
     {
@@ -192,7 +192,7 @@ public class AnimeSeries : IShokoSeries
                 if (titleHelper.SearchAnimeID(AniDB_ID) is { } titleResponse && titleResponse.Titles.FirstOrDefault(title => title.TitleType == TitleType.Main) is { } defaultTitle)
                     return _defaultTitle = defaultTitle;
 
-                return _defaultTitle = new TitleStub()
+                return _defaultTitle = new TitleStub
                 {
                     Language = TitleLanguage.Unknown,
                     LanguageCode = "unk",
@@ -203,9 +203,9 @@ public class AnimeSeries : IShokoSeries
         }
     }
 
-    private bool _preferredTitleLoaded = false;
+    private bool _preferredTitleLoaded;
 
-    private ITitle? _preferredTitle = null;
+    private ITitle? _preferredTitle;
 
     public ITitle? PreferredTitle => LoadPreferredTitle();
 
@@ -289,7 +289,8 @@ public class AnimeSeries : IShokoSeries
             // TODO: Maybe add argumented season name support. Argumented in the sense that we add the season number or title to the show title per language.
             return tmdbShows[0].GetAllTitles();
         }
-        else if (TmdbMovies is { Count: 1 } tmdbMovies)
+
+        if (TmdbMovies is { Count: 1 } tmdbMovies)
         {
             return tmdbMovies[0].GetAllTitles();
         }
@@ -297,7 +298,7 @@ public class AnimeSeries : IShokoSeries
         return [];
     }
 
-    private List<ITitle>? _animeTitles = null;
+    private List<ITitle>? _animeTitles;
 
     public IReadOnlyList<ITitle> Titles => LoadAnimeTitles();
 
@@ -321,7 +322,7 @@ public class AnimeSeries : IShokoSeries
             var seriesOverrideTitle = false;
             if (!string.IsNullOrEmpty(SeriesNameOverride))
             {
-                titles.Add(new TitleStub()
+                titles.Add(new TitleStub
                 {
                     Source = DataSource.User,
                     Language = TitleLanguage.Unknown,
@@ -339,7 +340,7 @@ public class AnimeSeries : IShokoSeries
                 if (mainTitle is not null)
                 {
                     animeTitles.Remove(mainTitle);
-                    animeTitles.Insert(0, new TitleStub()
+                    animeTitles.Insert(0, new TitleStub
                     {
                         Language = mainTitle.Language,
                         LanguageCode = mainTitle.LanguageCode,
@@ -357,9 +358,9 @@ public class AnimeSeries : IShokoSeries
         }
     }
 
-    private bool _preferredOverviewLoaded = false;
+    private bool _preferredOverviewLoaded;
 
-    private IText? _preferredOverview = null;
+    private IText? _preferredOverview;
 
     public IText? PreferredOverview => LoadPreferredOverview();
 
@@ -461,7 +462,8 @@ public class AnimeSeries : IShokoSeries
 
             return tmdbSeasonCrossReference.TmdbSeason?.GetAllOverviews() ?? [];
         }
-        else if (TmdbMovies is { Count: 1 } tmdbMovies)
+
+        if (TmdbMovies is { Count: 1 } tmdbMovies)
         {
             return tmdbMovies[0].GetAllOverviews();
         }
@@ -673,7 +675,7 @@ public class AnimeSeries : IShokoSeries
     #region IWithDescription Implementation
 
     IText? IWithDescriptions.DefaultDescription => AniDB_Anime is { Description.Length: > 0 } anime
-        ? new TextStub()
+        ? new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",

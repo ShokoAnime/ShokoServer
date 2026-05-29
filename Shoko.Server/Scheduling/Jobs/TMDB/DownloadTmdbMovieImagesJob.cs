@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
-using Shoko.Server.Scheduling.Concurrency;
 
 #pragma warning disable CS8618
 #nullable enable
@@ -45,7 +45,7 @@ public class DownloadTmdbMovieImagesJob : BaseJob
             {"MovieID", TmdbMovieID},
         };
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing DownloadTmdbMovieImagesJob: {TmdbMovieId}", TmdbMovieID);
         await Task.Run(() => _tmdbService.DownloadAllMovieImages(TmdbMovieID, ForceDownload)).ConfigureAwait(false);

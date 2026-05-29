@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.User.Services;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -14,7 +18,6 @@ using Shoko.Server.Providers.AniDB.UDP.User;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services;
@@ -29,7 +32,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 public class AddFileToMyListJob : BaseJob
 {
     private readonly IRequestFactory _requestFactory;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
     private readonly ISettingsProvider _settingsProvider;
     private readonly VideoLocal_UserRepository _vlUsers;
     private readonly IUserDataService _userDataService;
@@ -41,7 +44,7 @@ public class AddFileToMyListJob : BaseJob
     public override void PostInit()
     {
         _videoLocal = RepoFactory.VideoLocal.GetByEd2k(Hash);
-        if (_videoLocal == null) throw new JobExecutionException($"VideoLocal not Found: {Hash}");
+        if (_videoLocal == null) throw new Exception($"VideoLocal not Found: {Hash}");
     }
 
     public override string TypeName => "Add File to MyList";
@@ -54,7 +57,7 @@ public class AddFileToMyListJob : BaseJob
         }
     };
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job}: {FileName} - {Hash} - {ReadStates}",
             nameof(AddFileToMyListJob), _videoLocal?.FirstValidPlace?.FileName, Hash, ReadStates);
@@ -197,16 +200,14 @@ public class AddFileToMyListJob : BaseJob
         {
             return;
         }
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await Task.WhenAll(series.Select(id => scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = id)));
+        await Task.WhenAll(series.Select(id => _scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = id)));
     }
 
-    public AddFileToMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, VideoLocal_UserRepository vlUsers, IUserDataService userDataService)
+    public AddFileToMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, IQueueScheduler schedulerFactory, VideoLocal_UserRepository vlUsers, IUserDataService userDataService)
     {
         _requestFactory = requestFactory;
         _settingsProvider = settingsProvider;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = schedulerFactory;
         _vlUsers = vlUsers;
         _userDataService = userDataService;
     }

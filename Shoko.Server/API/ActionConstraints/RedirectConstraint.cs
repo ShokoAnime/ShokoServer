@@ -19,7 +19,7 @@ public class RedirectConstraint : IActionConstraint
     }
 }
 
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public class RedirectConstraintAttribute : Attribute, IActionConstraintFactory
 {
     public bool IsReusable => true;

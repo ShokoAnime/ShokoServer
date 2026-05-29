@@ -17,13 +17,9 @@ public class CL_AniDB_Anime_DefaultImage : ICloneable
     public object TVFanart { get; set; }
     public object TVWideBanner { get; set; }
 
-    public CL_AniDB_Anime_DefaultImage()
-    {
-    }
-
     public object Clone()
     {
-        var image = new CL_AniDB_Anime_DefaultImage()
+        var image = new CL_AniDB_Anime_DefaultImage
         {
             AniDB_Anime_DefaultImageID = AniDB_Anime_DefaultImageID,
             AnimeID = AnimeID,

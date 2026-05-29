@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
 

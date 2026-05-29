@@ -175,7 +175,7 @@ public class CL_Media
             var atSymbol = formatProfile.IndexOf('@');
             if (atSymbol != -1)
             {
-                stream.Profile = TranslateProfile(codec.Simplified, formatProfile[0..atSymbol]);
+                stream.Profile = TranslateProfile(codec.Simplified, formatProfile[..atSymbol]);
                 if (int.TryParse(TranslateLevel(formatProfile[(atSymbol + 1)..]), out var level))
                     stream.Level = level;
             }
@@ -198,7 +198,7 @@ public class CL_Media
             {
                 var codec = audioStream.Codec;
                 var format = audioStream.Format;
-                var stream = new CL_MediaStream()
+                var stream = new CL_MediaStream
                 {
                     Id = audioStream.ID,
                     CodecID = codec.Raw,

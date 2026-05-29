@@ -227,7 +227,7 @@ public static class ModelHelper
     {
         return episodeList
             .Select(episode => episode.AniDB_Episode)
-            .Count(anidbEpisode => anidbEpisode != null && (EpisodeType)anidbEpisode.EpisodeType == episodeType);
+            .Count(anidbEpisode => anidbEpisode != null && anidbEpisode.EpisodeType == episodeType);
     }
 
     public static SeriesSizes GenerateSeriesSizes(IEnumerable<AnimeEpisode> episodeList, int userID)
@@ -310,7 +310,7 @@ public static class ModelHelper
                 continue;
             }
 
-            switch ((EpisodeType)anidbEpisode.EpisodeType)
+            switch (anidbEpisode.EpisodeType)
             {
                 case EpisodeType.Episode:
                     sizes.Total.Episodes++;

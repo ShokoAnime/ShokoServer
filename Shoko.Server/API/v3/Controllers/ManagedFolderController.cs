@@ -7,9 +7,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Quartz;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -17,7 +18,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 
@@ -32,13 +32,13 @@ namespace Shoko.Server.API.v3.Controllers;
 /// Responsible for handling managed folders.
 /// </summary>
 /// <param name="settingsProvider"></param>
-/// <param name="schedulerFactory"></param>
+/// <param name="scheduler"></param>
 /// <param name="videoService"></param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class ManagedFolderController(ISettingsProvider settingsProvider, ISchedulerFactory schedulerFactory, IVideoService videoService) : BaseController(settingsProvider)
+public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueScheduler scheduler, IVideoService videoService) : BaseController(settingsProvider)
 {
     /// <summary>
     /// List all managed folders
@@ -241,8 +241,6 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, ISchedu
     {
         if (RepoFactory.ShokoManagedFolder.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found");
-
-        var scheduler = await schedulerFactory.GetScheduler();
         await scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipMyList) = (folderID, relativePath, onlyNewFiles, skipMylist), prioritize: priority);
         return Ok();
     }

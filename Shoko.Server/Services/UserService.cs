@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
@@ -13,11 +12,12 @@ using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Events;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
 #nullable enable
@@ -25,7 +25,7 @@ namespace Shoko.Server.Services;
 
 public class UserService(
     ILogger<UserService> _logger,
-    ISchedulerFactory _schedulerFactory,
+    IQueueScheduler _scheduler,
     IImageManager _imageManager,
     JMMUserRepository _userRepository,
     AuthTokensRepository _authTokensRepository,
@@ -215,8 +215,7 @@ public class UserService(
 
             if (updateStats)
             {
-                var scheduler = await _schedulerFactory.GetScheduler();
-                await Task.WhenAll(_seriesRepository.GetAll().Select(ser => scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = ser.AniDB_ID)));
+                await Task.WhenAll(_seriesRepository.GetAll().Select(ser => _scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = ser.AniDB_ID)));
             }
         }
 

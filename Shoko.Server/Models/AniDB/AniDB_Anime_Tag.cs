@@ -1,4 +1,4 @@
-﻿using Shoko.Server.Repositories;
+using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.AniDB;

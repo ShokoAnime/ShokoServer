@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
@@ -20,6 +20,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -932,7 +933,7 @@ public class ShokoServiceImplementationMetro : IHttpContextAccessor
         try
         {
             var animeChars = RepoFactory.AniDB_Anime_Character.GetByAnimeID(animeID)
-                .OrderByDescending(item => item.AppearanceType is Server.CharacterAppearanceType.Main_Character)
+                .OrderByDescending(item => item.AppearanceType is CharacterAppearanceType.Main_Character)
                 .ToList();
             if (animeChars.Count == 0)
             {

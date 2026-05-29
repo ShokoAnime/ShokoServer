@@ -20,7 +20,7 @@ public class Scan
 
     public string TitleText =>
         CreationTIme.ToString(CultureInfo.CurrentUICulture) + " (" + string.Join(" | ",
-            this.ImportFolders.Split(',')
+            ImportFolders.Split(',')
                 .Select(int.Parse)
                 .Select(RepoFactory.ShokoManagedFolder.GetByID)
                 .WhereNotNull()

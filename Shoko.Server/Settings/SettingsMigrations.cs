@@ -33,10 +33,15 @@ public static partial class SettingsMigrations
         var versionString = versionRegex.Matches(settings).FirstOrDefault()?.Groups.Values.Skip(2).FirstOrDefault()?.Value;
         if (!int.TryParse(versionString, out var version)) version = 0;
 
+        var dataPath = applicationPaths.DataPath;
         var migrationsToApply = _migrations
-            .Where(a => a.Value is not null && a.Key > version)
+            .Where(a => a.Key > version)
+            .Select(a => (a.Key, Fn: a.Key == 15
+                ? (Func<string, string>?)(s => MigrateQuartzToQueue(s, dataPath))
+                : a.Value))
+            .Where(a => a.Fn is not null)
             .OrderBy(a => a.Key)
-            .Select(a => a.Value!)
+            .Select(a => a.Fn!)
             .ToList();
         if (migrationsToApply.Count == 0 && version == Version)
             return settings;
@@ -77,6 +82,9 @@ public static partial class SettingsMigrations
         { 12, null },
         { 13, MigrateLogRotatorToLogging },
         { 14, MigrateTraceLogToLogging },
+        // Note: path-dependent migration — the real function is injected in MigrateSettings
+        // using applicationPaths.DataPath. The null tombstone here ensures Version == 15.
+        { 15, null },
     };
 
     private static string MigrateTvDBLanguageEnum(string settings)
@@ -284,6 +292,44 @@ public static partial class SettingsMigrations
             loggingSettings["TraceLog"] = rootTrace.DeepClone();
 
         currentSettings.Remove("TraceLog");
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateQuartzToQueue(string settings, string dataPath)
+    {
+        var currentSettings = JObject.Parse(settings);
+
+        // Move "Quartz" key to "Queue" if needed
+        var quartzToken = currentSettings["Quartz"];
+        if (quartzToken is not null)
+        {
+            if (currentSettings["Queue"] is null)
+                currentSettings["Queue"] = quartzToken.DeepClone();
+            currentSettings.Remove("Quartz");
+        }
+
+        // Migrate absolute SQLite ConnectionString → relative SQLiteFilePath
+        if (currentSettings["Queue"] is not JObject queueObj)
+            return currentSettings.ToString();
+
+        var connStr = queueObj["ConnectionString"]?.Value<string>();
+        if (string.IsNullOrEmpty(connStr) || !connStr.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase))
+            return currentSettings.ToString();
+
+        // Extract file path from "Data Source=<path>;..."
+        var afterPrefix = connStr["Data Source=".Length..];
+        var semicolon = afterPrefix.IndexOf(';');
+        var filePath = semicolon >= 0 ? afterPrefix[..semicolon] : afterPrefix;
+
+        // Make relative if under dataPath
+        if (filePath.StartsWith(dataPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            filePath = filePath[(dataPath.Length + 1)..];
+        else if (filePath.StartsWith(dataPath + '/', StringComparison.OrdinalIgnoreCase))
+            filePath = filePath[(dataPath.Length + 1)..];
+
+        queueObj["SQLiteFilePath"] = filePath;
+        queueObj.Remove("ConnectionString");
+
         return currentSettings.ToString();
     }
 }

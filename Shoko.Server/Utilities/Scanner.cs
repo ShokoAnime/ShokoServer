@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -7,16 +7,16 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using Quartz;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Hashing;
 using Shoko.Server.Models.Legacy;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
@@ -169,7 +169,7 @@ public class Scanner
         ActiveErrorFiles.Clear();
         var seriesToUpdate = new HashSet<AnimeSeries>();
         var vlpService = (VideoService)ISystemService.StaticServices.GetRequiredService<IVideoService>();
-        var scheduler = ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
+        var scheduler = ISystemService.StaticServices.GetRequiredService<IQueueScheduler>();
         var databaseFactory = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>();
         using (var session = databaseFactory.SessionFactory.OpenSession())
         {
@@ -193,8 +193,8 @@ public class Scanner
     {
         if (RunScan != null && RunScan.Status != ScanStatus.Finished)
         {
-            var scheduler = ISystemService.StaticServices.GetRequiredService<ISchedulerFactory>().GetScheduler().Result;
-            scheduler.PauseAll();
+            var scheduler = ISystemService.StaticServices.GetRequiredService<IQueueScheduler>();
+            scheduler.Pause().GetAwaiter().GetResult();
             var s = RunScan;
             s.Status = ScanStatus.Running;
             RepoFactory.Scan.Save(s);

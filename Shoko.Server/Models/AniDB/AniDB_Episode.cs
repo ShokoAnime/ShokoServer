@@ -18,9 +18,13 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.TMDB;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+
+using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #pragma warning disable CS0618
 #nullable enable
@@ -80,7 +84,7 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
                 if (RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.English) is { Count: > 0 } titles)
                     return _defaultTitle = titles[0];
 
-                return _defaultTitle = new TitleStub()
+                return _defaultTitle = new TitleStub
                 {
                     Language = TitleLanguage.Unknown,
                     LanguageCode = "unk",
@@ -111,11 +115,11 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
         return useFallback ? DefaultTitle : null;
     }
 
-    public DateTime? GetAirDateAsDate() => Providers.AniDB.AniDBExtensions.GetAniDBDateAsDate(AirDate);
+    public DateTime? GetAirDateAsDate() => AniDBExtensions.GetAniDBDateAsDate(AirDate);
 
-    public DateOnly? GetAirDateAsDateOnly() => Providers.AniDB.AniDBExtensions.GetAniDBDateAsDateOnly(AirDate);
+    public DateOnly? GetAirDateAsDateOnly() => AniDBExtensions.GetAniDBDateAsDateOnly(AirDate);
 
-    public PartialDateOnly? GetAirDateAsPartialDateOnly() => Providers.AniDB.AniDBExtensions.GetAniDBDateAsPartialDateOnly(AirDate);
+    public PartialDateOnly? GetAirDateAsPartialDateOnly() => AniDBExtensions.GetAniDBDateAsPartialDateOnly(AirDate);
 
     public bool HasAired
     {
@@ -189,7 +193,7 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
     #region IWithDescription Implementation
 
     IText? IWithDescriptions.DefaultDescription => Description is { Length: > 0 }
-        ? new TextStub()
+        ? new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",
@@ -199,7 +203,7 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
         : null;
 
     IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && ISettingsProvider.Instance.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
-        ? new TextStub()
+        ? new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",
@@ -209,7 +213,7 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
         : null;
 
     IReadOnlyList<IText> IWithDescriptions.Descriptions => [
-        new TextStub()
+        new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",
@@ -249,7 +253,7 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
         .Select(xref =>
         {
             // Hide studio and actor roles from crew members. Actors should show up as cast, and studios as studios.
-            if (xref is { RoleType: Server.CreatorRoleType.Studio or Server.CreatorRoleType.Actor })
+            if (xref is { RoleType: CreatorRoleType.Studio or CreatorRoleType.Actor })
                 return null;
 
             return new AniDB_Crew(xref, () => this);

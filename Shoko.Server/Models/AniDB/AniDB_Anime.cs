@@ -22,9 +22,12 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
+using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+
+using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
 
 #pragma warning disable CS0618
 #nullable enable
@@ -244,7 +247,7 @@ public class AniDB_Anime : IAnidbAnime
 
     public string OriginalTitle => GetOriginalTitle(Titles) ?? MainTitle;
 
-    private ITitle? _defaultTitle = null;
+    private ITitle? _defaultTitle;
 
     public ITitle DefaultTitle
     {
@@ -266,7 +269,7 @@ public class AniDB_Anime : IAnidbAnime
                 if (titleHelper.SearchAnimeID(AnimeID) is { } titleResponse)
                     return _preferredTitle = titleResponse.Titles.First(title => title.TitleType == TitleType.Main);
 
-                return _preferredTitle = new TitleStub()
+                return _preferredTitle = new TitleStub
                 {
                     Language = TitleLanguage.Romaji,
                     LanguageCode = "x-jat",
@@ -278,9 +281,9 @@ public class AniDB_Anime : IAnidbAnime
         }
     }
 
-    private bool _preferredTitleLoaded = false;
+    private bool _preferredTitleLoaded;
 
-    private ITitle? _preferredTitle = null;
+    private ITitle? _preferredTitle;
 
     public ITitle? PreferredTitle => LoadPreferredTitle();
 
@@ -478,7 +481,7 @@ public class AniDB_Anime : IAnidbAnime
     #region IWithDescription Implementation
 
     IText? IWithDescriptions.DefaultDescription => Description is { Length: > 0 }
-        ? new TextStub()
+        ? new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",
@@ -488,7 +491,7 @@ public class AniDB_Anime : IAnidbAnime
         : null;
 
     IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && ISettingsProvider.Instance.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
-        ? new TextStub()
+        ? new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",
@@ -498,7 +501,7 @@ public class AniDB_Anime : IAnidbAnime
         : null;
 
     IReadOnlyList<IText> IWithDescriptions.Descriptions => [
-        new TextStub()
+        new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",
@@ -566,7 +569,7 @@ public class AniDB_Anime : IAnidbAnime
         .Select(xref =>
         {
             // Hide studio and actor roles from crew members. Actors should show up as cast, and studios as studios.
-            if (xref is { RoleType: Server.CreatorRoleType.Studio or Server.CreatorRoleType.Actor })
+            if (xref is { RoleType: CreatorRoleType.Studio or CreatorRoleType.Actor })
                 return null;
 
             return new AniDB_Crew(xref, () => this);
@@ -582,11 +585,11 @@ public class AniDB_Anime : IAnidbAnime
         .Select(xref =>
         {
             // We only want the studio roles to mapped as studios.
-            if (xref is { RoleType: not Server.CreatorRoleType.Studio })
+            if (xref is { RoleType: not CreatorRoleType.Studio })
                 return null;
 
             // Hide broken cross-references and non-companies.
-            if (xref.Creator is not { Type: Providers.AniDB.CreatorType.Company } creator)
+            if (xref.Creator is not { Type: CreatorType.Company } creator)
                 return null;
 
             return new AniDB_Studio_For_Anime(xref, creator, this);

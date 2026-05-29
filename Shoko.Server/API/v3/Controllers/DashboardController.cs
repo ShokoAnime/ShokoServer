@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Expressions.Info;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.QueueProcessor;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
@@ -16,7 +17,6 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 

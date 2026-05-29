@@ -6,6 +6,8 @@
 *.user
 *.sln.docstates
 .memory
+/.claude/
+/.junie/
 
 # Build results
 [Bb]in/

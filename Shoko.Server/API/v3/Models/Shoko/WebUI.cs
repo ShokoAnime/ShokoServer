@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -260,7 +261,7 @@ public class WebUI
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileSource))
                         groupByDetails.FileSource = release?.Source ?? ReleaseSource.Unknown;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileLocation))
-                        groupByDetails.FileLocation = System.IO.Path.GetDirectoryName(location.Path)!;
+                        groupByDetails.FileLocation = Path.GetDirectoryName(location.Path)!;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileIsDeprecated))
                         groupByDetails.FileIsDeprecated = release?.IsCorrupted ?? false;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ManagedFolder))

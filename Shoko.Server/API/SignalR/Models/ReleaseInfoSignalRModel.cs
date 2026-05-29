@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -92,7 +91,7 @@ public class ReleaseInfoSignalRModel : IReleaseInfo
         IsCorrupted = releaseInfo.IsCorrupted;
         Source = releaseInfo.Source;
         Group = releaseInfo.Group is not null ? new(releaseInfo.Group) : null;
-        Hashes = releaseInfo.Hashes?.Select(h => new HashDigest() { Type = h.Type, Value = h.Value, Metadata = h.Metadata }).ToList();
+        Hashes = releaseInfo.Hashes?.Select(h => new HashDigest { Type = h.Type, Value = h.Value, Metadata = h.Metadata }).ToList();
         MediaInfo = releaseInfo.MediaInfo is not null ? new(releaseInfo.MediaInfo) : null;
         CrossReferences = releaseInfo.CrossReferences.Select(x => new ReleaseVideoCrossReference(x)).ToList();
         Metadata = releaseInfo.Metadata;

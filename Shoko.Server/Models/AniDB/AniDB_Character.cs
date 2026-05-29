@@ -62,7 +62,7 @@ public class AniDB_Character : ICharacter
     #region IWithDescriptions Implementation
 
     IText? IWithDescriptions.DefaultDescription => Description is { Length: > 0 }
-        ? new TextStub()
+        ? new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",
@@ -72,7 +72,7 @@ public class AniDB_Character : ICharacter
         : null;
 
     IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && ISettingsProvider.Instance.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
-        ? new TextStub()
+        ? new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",
@@ -82,7 +82,7 @@ public class AniDB_Character : ICharacter
         : null;
 
     IReadOnlyList<IText> IWithDescriptions.Descriptions => [
-        new TextStub()
+        new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",

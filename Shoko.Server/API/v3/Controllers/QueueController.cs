@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -6,11 +5,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Web.Attributes;
+using Shoko.QueueProcessor;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Analytics;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Scheduling;
-using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -25,11 +25,9 @@ namespace Shoko.Server.API.v3.Controllers;
 public class QueueController : BaseController
 {
     private readonly QueueHandler _queueHandler;
-    private readonly ISettingsProvider _settingsProvider;
 
     public QueueController(ISettingsProvider settingsProvider, QueueHandler queueHandler) : base(settingsProvider)
     {
-        _settingsProvider = settingsProvider;
         _queueHandler = queueHandler;
     }
 
@@ -47,15 +45,8 @@ public class QueueController : BaseController
             BlockedCount = _queueHandler.BlockedCount,
             TotalCount = _queueHandler.TotalCount,
             ThreadCount = _queueHandler.ThreadCount,
-            CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(a => new Queue.QueueItem
-            {
-                Key = a.Key,
-                Type = a.JobType,
-                Title = a.Title,
-                Details = a.Details,
-                IsRunning = true,
-                StartTime = a.StartTime?.ToUniversalTime()
-            }).OrderBy(a => a.StartTime).ToList()
+            CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(ToQueueItem).OrderBy(a => a.StartTime).ToList(),
+            Pools = _queueHandler.GetPoolStatus().Values.Select(ToPoolState).OrderBy(p => p.Name).ToList()
         };
     }
 
@@ -65,9 +56,13 @@ public class QueueController : BaseController
     /// <returns>A dictionary of all the queued and active command types, and the count for each type.</returns>
     [HttpGet("Types")]
     [InitFriendly]
-    public async Task<ActionResult<Dictionary<string, int>>> GetTypesForItemsInAllQueues()
+    public ActionResult<Dictionary<string, int>> GetTypesForItemsInAllQueues()
     {
-        return await _queueHandler.GetJobCounts();
+        var metrics = _queueHandler.GetMetrics();
+        var result = new Dictionary<string, int>();
+        foreach (var (typeName, typeMetrics) in metrics.ByType)
+            result[typeName] = typeMetrics.Waiting + typeMetrics.Executing;
+        return result;
     }
 
     /// <summary>
@@ -119,36 +114,16 @@ public class QueueController : BaseController
     /// <returns>A full or partial representation of the queued items, depending on the page and page size used, and the remaining items in the queue.</returns>
     [Authorize("admin")]
     [HttpGet("Items")]
-    public async Task<ActionResult<ListResult<Queue.QueueItem>>> GetItemsInQueue(
+    public ActionResult<ListResult<Queue.QueueItem>> GetItemsInQueue(
         [FromQuery, Range(0, 1000)] int pageSize = 10,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] bool showAll = false
     )
     {
-        var total = showAll
-            ? _queueHandler.WaitingCount + _queueHandler.BlockedCount + _queueHandler.GetExecutingJobs().Length
-            : _queueHandler.WaitingCount + _queueHandler.GetExecutingJobs().Length;
-
         var offset = (page - 1) * pageSize;
-        var executing = _queueHandler.GetExecutingJobs();
-        // simplified from (page - 1) * pageSize + pageSize
-        if (showAll && page * pageSize <= executing.Length + _settingsProvider.GetSettings().Quartz.WaitingCacheSize)
-        {
-            var results = new List<QueueItem>();
-            if (offset < executing.Length)
-            {
-                results.AddRange(executing.Skip(offset).Take(pageSize));
-                offset = 0;
-            }
-            else offset -= executing.Length;
-            if (pageSize - results.Count <= 0) return new ListResult<Queue.QueueItem>(total, results.Select(ToQueueItem).ToList());
-
-            results.AddRange(_queueHandler.GetWaitingJobs().Skip(offset).Take(pageSize - results.Count));
-            return new ListResult<Queue.QueueItem>(total, results.Select(ToQueueItem).ToList());
-        }
-
-        var result = (await _queueHandler.GetJobs(pageSize, offset, !showAll)).Select(ToQueueItem).ToList();
-        return new ListResult<Queue.QueueItem>(total, result);
+        var items = _queueHandler.GetJobs(pageSize, offset, !showAll).Select(ToQueueItem).ToList();
+        var total = showAll ? _queueHandler.TotalCount : _queueHandler.WaitingCount + _queueHandler.GetExecutingJobs().Length;
+        return new ListResult<Queue.QueueItem>(total, items);
     }
 
     private static Queue.QueueItem ToQueueItem(QueueItem a)
@@ -156,19 +131,37 @@ public class QueueController : BaseController
         return new Queue.QueueItem
         {
             Key = a.Key,
-            Type = a.JobType,
-            Title = a.Title,
-            Details = a.Details,
+            Type = a.TypeName ?? a.JobType ?? string.Empty,
+            Title = a.Title ?? string.Empty,
+            Details = a.Details ?? [],
             StartTime = a.StartTime,
             IsRunning = a.Running,
-            IsBlocked = a.Blocked
+            IsBlocked = a.Blocked,
+            PoolName = a.PoolName,
+            RetryCount = a.RetryCount
+        };
+    }
+
+    private static Queue.PoolState ToPoolState(PoolStatus p)
+    {
+        return new Queue.PoolState
+        {
+            Name = p.Name,
+            MaxWorkers = p.MaxWorkers,
+            ActiveWorkers = p.ActiveWorkers,
+            IdleWorkers = p.IdleWorkers,
+            WaitingCount = p.WaitingCount,
+            IsBlocked = p.IsBlocked,
+            HandledTypeNames = p.HandledTypeNames,
+            LastActiveAt = p.LastActiveAt?.UtcDateTime
         };
     }
 
     [HttpGet("DebugStats")]
     public ActionResult<DebugStats> GetDebugStats()
     {
-        return new DebugStats(GetQueue(), _queueHandler.GetTypes(), _queueHandler.GetAcquisitionFilterResults());
+        var metrics = _queueHandler.GetMetrics();
+        return new DebugStats(GetQueue(), _queueHandler.GetAcquisitionFilterResults(), metrics);
     }
 
     [HttpGet("AcquisitionFilters")]
@@ -177,16 +170,23 @@ public class QueueController : BaseController
         return _queueHandler.GetAcquisitionFilterResults();
     }
 
-    public class DebugStats(Queue queue, JobTypes typeFilters, Dictionary<string, string[]> acquisitionFilters)
+    public class DebugStats(Queue queue, Dictionary<string, string[]> acquisitionFilters, QueueMetricsSnapshot metrics)
     {
+        /// <summary>
+        /// High-level queue state: counts and currently executing items.
+        /// </summary>
         public Queue Queue { get; init; } = queue;
 
-        public IEnumerable<Type> TypesToExclude { get; init; } = typeFilters.TypesToExclude;
-
-        public IDictionary<Type, int> TypesToLimit { get; init; } = typeFilters.TypesToLimit;
-
-        public IEnumerable<IEnumerable<Type>> AvailableConcurrencyGroups { get; init; } = typeFilters.AvailableConcurrencyGroups;
-
+        /// <summary>
+        /// Acquisition filters that are currently active, keyed by filter class name.
+        /// Each entry lists the short type names of jobs that filter is currently blocking.
+        /// </summary>
         public Dictionary<string, string[]> AcquisitionFilters { get; init; } = acquisitionFilters;
+
+        /// <summary>
+        /// Live performance metrics: throughput, per-pool worker status, and per-type
+        /// job counts (waiting + executing) with friendly display names and rolling averages.
+        /// </summary>
+        public QueueMetricsSnapshot Metrics { get; init; } = metrics;
     }
 }

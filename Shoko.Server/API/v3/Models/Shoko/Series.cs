@@ -814,7 +814,7 @@ public class Series : BaseModel
 /// </summary>
 public class SeriesSizes
 {
-    public SeriesSizes() : base()
+    public SeriesSizes()
     {
         Hidden = 0;
         FileSources = new FileSourceCounts();

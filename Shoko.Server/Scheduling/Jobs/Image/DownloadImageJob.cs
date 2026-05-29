@@ -5,8 +5,8 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
 
 #pragma warning disable CS0618
 #nullable enable
@@ -42,7 +42,7 @@ public class DownloadImageJob : BaseJob
             { "Resource ID", ResourceID },
         };
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job} for {Source}: {ResourceID} (ForceDownload: {ForceDownload})", nameof(DownloadImageJob), Source, ResourceID, ForceDownload);
 

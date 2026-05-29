@@ -1,7 +1,7 @@
+# nullable enable
 using System;
 using Shoko.Server.Server;
 
-# nullable enable
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_NotifyQueue

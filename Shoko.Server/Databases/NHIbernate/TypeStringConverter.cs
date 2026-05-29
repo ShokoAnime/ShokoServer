@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
+using System.Globalization;
 using System.Linq;
 using NHibernate;
 using NHibernate.Engine;
@@ -22,7 +24,7 @@ public class TypeStringConverter : TypeConverter, IUserType
         return destinationType == typeof(string) || destinationType == typeof(Type);
     }
 
-    public override object ConvertFrom(ITypeDescriptorContext context, System.Globalization.CultureInfo culture,
+    public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture,
         object value)
     {
         var s = value as string ?? throw new ArgumentException("Can only convert from string");
@@ -41,7 +43,7 @@ public class TypeStringConverter : TypeConverter, IUserType
     /// </returns>
     /// <exception cref="T:System.ArgumentNullException">The <paramref name="destinationType"/> parameter is <see langword="null"/>.</exception>
     /// <exception cref="T:System.NotSupportedException">The conversion could not be performed.</exception>
-    public override object ConvertTo(ITypeDescriptorContext context, System.Globalization.CultureInfo culture,
+    public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture,
         object value, Type destinationType)
     {
         if (value == null) return null;
@@ -57,7 +59,7 @@ public class TypeStringConverter : TypeConverter, IUserType
     /// <returns>
     /// An <see cref="T:System.Object"/> of type bool. It always returns 'true' for this converter.
     /// </returns>
-    public override object CreateInstance(ITypeDescriptorContext context, System.Collections.IDictionary propertyValues)
+    public override object CreateInstance(ITypeDescriptorContext context, IDictionary propertyValues)
     {
         return true;
     }
@@ -128,7 +130,7 @@ public class TypeStringConverter : TypeConverter, IUserType
     /// <param name="impl"></param>
     /// <param name="owner">the containing entity</param>
     /// <returns></returns>
-    /// <exception cref="T:NHibernate.HibernateException">HibernateException</exception>
+    /// <exception cref="T:HibernateException">HibernateException</exception>
     public object NullSafeGet(DbDataReader rs, string[] names, ISessionImplementor impl, object owner)
     {
         var rawValue = NHibernateUtil.String.NullSafeGet(rs, names[0], impl);
@@ -144,7 +146,7 @@ public class TypeStringConverter : TypeConverter, IUserType
     /// <param name="value">the object to write</param>
     /// <param name="index">command parameter index</param>
     /// <param name="session"></param>
-    /// <exception cref="T:NHibernate.HibernateException">HibernateException</exception>
+    /// <exception cref="T:HibernateException">HibernateException</exception>
     public void NullSafeSet(DbCommand cmd, object value, int index, ISessionImplementor session)
     {
         ((IDataParameter)cmd.Parameters[index]).Value =

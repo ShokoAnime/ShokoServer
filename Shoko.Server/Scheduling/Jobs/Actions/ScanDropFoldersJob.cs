@@ -1,8 +1,8 @@
-﻿using System.Threading.Tasks;
-using Quartz;
+using System.Threading.Tasks;
 using Shoko.Abstractions.Video.Services;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
+using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
@@ -17,7 +17,7 @@ internal class ScanDropFoldersJob : BaseJob
     public override string TypeName => "Scan Drop Folders";
     public override string Title => "Scanning Drop Folders";
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         await _videoService.ScheduleScanForManagedFolders(onlyDropSources: true);
     }

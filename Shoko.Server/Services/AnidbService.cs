@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Bulkhead;
-using Quartz;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
@@ -23,6 +22,8 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.Shoko;
@@ -33,7 +34,6 @@ using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -56,9 +56,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     private readonly IRequestFactory _requestFactory;
 
-    private readonly ISchedulerFactory _schedulerFactory;
-
-    private readonly JobFactory _jobFactory;
+    private readonly IQueueScheduler _scheduler;
 
     private readonly IUDPConnectionHandler _udpConnectionHandler;
 
@@ -121,8 +119,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         IServiceProvider serviceProvider,
         ISettingsProvider settingsProvider,
         IRequestFactory requestFactory,
-        ISchedulerFactory schedulerFactory,
-        JobFactory jobFactory,
+        IQueueScheduler scheduler,
         IUDPConnectionHandler udpConnectionHandler,
         IHttpConnectionHandler httpConnectionHandler,
         HttpXmlUtils xmlUtils,
@@ -152,8 +149,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         _serviceProvider = serviceProvider;
         _settingsProvider = settingsProvider;
         _requestFactory = requestFactory;
-        _schedulerFactory = schedulerFactory;
-        _jobFactory = jobFactory;
+        _scheduler = scheduler;
+        _serviceProvider = serviceProvider;
         _udpConnectionHandler = udpConnectionHandler;
         _httpConnectionHandler = httpConnectionHandler;
         _xmlUtils = xmlUtils;
@@ -401,18 +398,16 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     {
         if (!refreshMethod.HasFlag(AnidbRefreshMethod.Cache) && !refreshMethod.HasFlag(AnidbRefreshMethod.Remote))
             return;
-
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
         if (!refreshMethod.HasFlag(AnidbRefreshMethod.Cache))
         {
-            await scheduler.StartJob<GetRemoteAniDBAnimeJob>(
+            await _scheduler.StartJob<GetRemoteAniDBAnimeJob>(
                 job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod),
                 prioritize: prioritize
             ).ConfigureAwait(false);
         }
         else
         {
-            await scheduler.StartJob<GetAniDBAnimeJob>(
+            await _scheduler.StartJob<GetAniDBAnimeJob>(
                 job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod),
                 prioritize: prioritize
             ).ConfigureAwait(false);
@@ -457,7 +452,6 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     {
         using (await _entityLock.GetLockForEntityAsync(DataEntityType.Anime, job.AnimeID, "metadata", "Update", cancellationToken).ConfigureAwait(false))
         {
-            var scheduler = await _schedulerFactory.GetScheduler(cancellationToken).ConfigureAwait(false);
             var anime = _anidbAnimeRepository.GetByAnimeID(job.AnimeID);
             var update = _anidbAnimeUpdateRepository.GetByAnimeID(job.AnimeID);
             var animeRecentlyUpdated = AnimeRecentlyUpdated(anime, update);
@@ -543,7 +537,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                 {
                     _logger.LogDebug("Deferring to remote update for anime with ID {AnimeID}", job.AnimeID);
                     // Queue the command to get the data when we're no longer banned if there is no anime record.
-                    await scheduler.StartJob<GetRemoteAniDBAnimeJob>(
+                    await _scheduler.StartJob<GetRemoteAniDBAnimeJob>(
                         c =>
                         {
                             c.AnimeID = job.AnimeID;
@@ -587,12 +581,14 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                 _seriesRepository.Save(series, true);
             }
 
-            await _jobFactory.CreateJob<RefreshAnimeStatsJob>(x => x.AnimeID = job.AnimeID).Process().ConfigureAwait(false);
+            var refreshJob = _serviceProvider.GetRequiredService<RefreshAnimeStatsJob>();
+            refreshJob.AnimeID = job.AnimeID;
+            await refreshJob.Process().ConfigureAwait(false);
 
             // Request an image download
             await UpsertAndScheduleImageForEntity(anime, anime.Picname!, isDesired: true, forceDownload: false).ConfigureAwait(false);
             if (series is not null)
-                await scheduler.StartJob<GetAniDBImagesJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
+                await _scheduler.StartJob<GetAniDBImagesJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
 
             // Emit anidb anime updated event.
             if (isNew || isUpdated || animeEpisodeChanges.Count > 0)
@@ -658,12 +654,12 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                 }
 
                 foreach (var video in videos)
-                    await scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.VideoLocalID).ConfigureAwait(false);
+                    await _scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.VideoLocalID).ConfigureAwait(false);
             }
 
             if (!job.SkipTmdbUpdate)
                 foreach (var xref in anime.TmdbShowCrossReferences)
-                    await scheduler.StartJob<UpdateTmdbShowJob>(job =>
+                    await _scheduler.StartJob<UpdateTmdbShowJob>(job =>
                     {
                         job.TmdbShowID = xref.TmdbShowID;
                         job.DownloadImages = true;
@@ -719,10 +715,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         series.AnimeGroupID = grp.AnimeGroupID;
         // Populate before making a group to ensure IDs and stats are set for group filters.
         _seriesRepository.Save(series, false);
-
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
         if (settings.TMDB.AutoLink && !series.IsTmdbAutoMatchingDisabled)
-            await scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
+            await _scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
 
         return series;
     }
@@ -733,7 +727,6 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         if (settings.AniDb.MaxRelationDepth <= 0) return;
         if (job.RelDepth >= settings.AniDb.MaxRelationDepth) return;
         if (!settings.AutoGroupSeries && !settings.AniDb.DownloadRelatedAnime) return;
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
 
         // Queue or process the related series.
         foreach (var relation in response.Relations)
@@ -759,7 +752,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
             // Append the command to the queue.
             if (!job.UseCache && job.UseRemote)
-                await scheduler.StartJob<GetRemoteAniDBAnimeJob>(c =>
+                await _scheduler.StartJob<GetRemoteAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = relation.RelatedAnimeID;
                     c.DownloadRelations = true;
@@ -770,7 +763,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                     c.SkipTmdbUpdate = job.SkipTmdbUpdate;
                 }, prioritize: true).ConfigureAwait(false);
             else
-                await scheduler.StartJob<GetAniDBAnimeJob>(c =>
+                await _scheduler.StartJob<GetAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = relation.RelatedAnimeID;
                     c.DownloadRelations = true;
@@ -804,8 +797,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     public async Task ScheduleImagesForAnimeByID(int anidbAnimeID, bool onlyPosters = false, bool forceDownload = false, bool prioritize = true)
     {
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await scheduler.StartJob<GetAniDBImagesJob>(
+        await _scheduler.StartJob<GetAniDBImagesJob>(
             c => (c.AnimeID, c.OnlyPosters, c.ForceDownload) = (anidbAnimeID, onlyPosters, forceDownload),
             prioritize: prioritize
         ).ConfigureAwait(false);
@@ -923,15 +915,13 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         var toBePurged = allAnimeIds.Except(toKeep).ToHashSet();
 
         _logger.LogInformation("Scheduling {Count} out of {AllCount} AniDB anime entries to be purged.", toBePurged.Count, allAnimeIds.Count);
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
         foreach (var animeID in toBePurged)
-            await scheduler.StartJob<PurgeAniDBAnimeJob>(c => c.AnimeID = animeID).ConfigureAwait(false);
+            await _scheduler.StartJob<PurgeAniDBAnimeJob>(c => c.AnimeID = animeID).ConfigureAwait(false);
     }
 
     public async Task SchedulePurgeOfAnimeByID(int anidbAnimeID, bool removeFromMylist = true, bool prioritize = false)
     {
-        var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-        await scheduler.StartJob<PurgeAniDBAnimeJob>(c =>
+        await _scheduler.StartJob<PurgeAniDBAnimeJob>(c =>
         {
             c.AnimeID = anidbAnimeID;
             c.RemoveFromMylist = removeFromMylist;
@@ -1092,9 +1082,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
             videoDictionary.Add(video.ID, location.Path);
         }
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = videoDictionary, prioritize: true).ConfigureAwait(false);
+        await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = videoDictionary, prioritize: true).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -1131,9 +1119,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
             videoDictionary.Add(videoFile.ID, videoFile.Path);
         }
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = videoDictionary, prioritize: true).ConfigureAwait(false);
+        await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = videoDictionary, prioritize: true).ConfigureAwait(false);
     }
 
     #endregion

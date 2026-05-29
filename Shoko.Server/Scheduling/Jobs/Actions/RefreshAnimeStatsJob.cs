@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
 using Shoko.Server.Services;
 
 #pragma warning disable CS8618
@@ -38,7 +38,7 @@ public class RefreshAnimeStatsJob : BaseJob
         _anime = _animeRepo.GetByAnimeID(AnimeID)?.Title ?? AnimeID.ToString();
     }
 
-    public override Task Process()
+    public override Task Execute()
     {
         _logger.LogInformation("Processing {Job} for {Anime}", nameof(RefreshAnimeStatsJob), _anime);
         var anime = _animeRepo.GetByAnimeID(AnimeID);

@@ -56,10 +56,6 @@ public abstract class TMDB_Cast : ICast
 
     #endregion
 
-    #region IWithPortraitImage Implementation
-
-    #endregion
-
     #region ICast Implementation
 
     int? ICast.CreatorID => TmdbPersonID;

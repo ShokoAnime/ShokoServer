@@ -8,13 +8,14 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.Logging;
 using NHibernate;
-using Quartz;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Databases;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.MediaInfo.Subtitles;
@@ -24,7 +25,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -65,7 +65,7 @@ public class VideoService : IVideoService
 
     private readonly IVideoRelocationService _relocationService;
 
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
 
     private readonly ISettingsProvider _settingsProvider;
 
@@ -106,7 +106,7 @@ public class VideoService : IVideoService
         IVideoHashingService videoHashingService,
         IVideoReleaseService videoReleaseService,
         IVideoRelocationService relocationService,
-        ISchedulerFactory schedulerFactory,
+        IQueueScheduler schedulerFactory,
         ISettingsProvider settingsProvider,
         DatabaseFactory databaseFactory
     )
@@ -124,7 +124,7 @@ public class VideoService : IVideoService
         _videoHashingService = (VideoHashingService)videoHashingService;
         _videoReleaseService = videoReleaseService;
         _relocationService = relocationService;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = schedulerFactory;
         _settingsProvider = settingsProvider;
         _databaseFactory = databaseFactory;
 
@@ -363,8 +363,7 @@ public class VideoService : IVideoService
         if (shouldRelocate)
         {
             _logger.LogTrace("Scheduling video relocation for: {Path}", absolutePath);
-            var scheduler = await _schedulerFactory.GetScheduler().ConfigureAwait(false);
-            await scheduler.StartJob<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (managedFolder.ID, relativePath));
+            await _scheduler.StartJob<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (managedFolder.ID, relativePath));
         }
 
         if (hasXrefs)
@@ -656,7 +655,6 @@ public class VideoService : IVideoService
         _logger.LogInformation("Removing VideoLocal_Place record for: {Place}", place.Path ?? place.ID.ToString());
         var seriesToUpdate = new List<AnimeSeries>();
         var v = place.VideoLocal;
-        var scheduler = await _schedulerFactory.GetScheduler();
 
         using (var session = _databaseFactory.SessionFactory.OpenSession())
         {
@@ -713,7 +711,7 @@ public class VideoService : IVideoService
             }
         }
 
-        await Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        await Task.WhenAll(seriesToUpdate.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
     public async Task RemoveRecordWithOpenTransaction(ISession session, VideoLocal_Place place, ICollection<AnimeSeries> seriesToUpdate,
@@ -772,10 +770,9 @@ public class VideoService : IVideoService
 
     public async Task ScheduleRemovalFromMyList(VideoLocal video)
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
         if (_storedReleaseInfoRepository.GetByEd2kAndFileSize(video.Hash, video.FileSize) is { ReleaseURI: not null } releaseInfo && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
         {
-            await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+            await _scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                 {
                     c.Hash = video.Hash;
                     c.FileSize = video.FileSize;
@@ -794,7 +791,7 @@ public class VideoService : IVideoService
                 if (ep is null)
                     continue;
 
-                await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
+                await _scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                     {
                         c.AnimeID = xref.AnimeID;
                         c.EpisodeType = ep.EpisodeType;
@@ -912,9 +909,7 @@ public class VideoService : IVideoService
             await RemoveRecordWithOpenTransaction(session, vid, affectedSeries, removeMyList);
 
         _managedFolderRepository.Delete(folder.ID);
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await Task.WhenAll(affectedSeries.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        await Task.WhenAll(affectedSeries.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
     public async Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null)
@@ -989,7 +984,6 @@ public class VideoService : IVideoService
             .Where(a => !string.IsNullOrEmpty(a))
             .ToList();
         var settings = _settingsProvider.GetSettings();
-        var scheduler = await _schedulerFactory.GetScheduler();
         if (checkFileSize.Value && !onlyNewFiles)
         {
             files = files
@@ -1005,7 +999,7 @@ public class VideoService : IVideoService
                 .ToArray();
         }
         var total = files.Length;
-        var parallelism = Math.Min(settings.Quartz.MaxThreadPoolSize > 0 ? settings.Quartz.MaxThreadPoolSize : Environment.ProcessorCount, Environment.ProcessorCount);
+        var parallelism = Math.Min(settings.Queue.MaxTotalWorkers > 0 ? settings.Queue.MaxTotalWorkers : Environment.ProcessorCount, Environment.ProcessorCount);
         var actionBlock = new ActionBlock<int>(
             async index =>
             {
@@ -1062,9 +1056,7 @@ public class VideoService : IVideoService
     {
         cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
         checkFileSize ??= _settingsProvider.GetSettings().Import.CheckFileSize;
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipMyList, j.CleanUpStructure, j.CheckFileSize) = (folder.ID, relativePath, onlyNewFiles, skipMylist, cleanUpStructure.Value, checkFileSize.Value), prioritize);
+        await _scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipMyList, j.CleanUpStructure, j.CheckFileSize) = (folder.ID, relativePath, onlyNewFiles, skipMylist, cleanUpStructure.Value, checkFileSize.Value), prioritize);
     }
 
     public async Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true)

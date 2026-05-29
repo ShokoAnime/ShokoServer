@@ -1,9 +1,9 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Attributes;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
@@ -54,7 +54,7 @@ internal class ScanFolderJob : BaseJob
         _managedFolder = RepoFactory.ShokoManagedFolder?.GetByID(ManagedFolderID)?.Name;
     }
 
-    public override async Task Process()
+    public override async Task Execute()
     {
         var managedFolder = _videoService.GetManagedFolderByID(ManagedFolderID);
         if (managedFolder == null)

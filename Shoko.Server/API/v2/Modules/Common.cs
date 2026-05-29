@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using NLog;
-using Quartz;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
@@ -21,6 +20,9 @@ using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
@@ -30,7 +32,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -53,7 +54,7 @@ public class Common : BaseController
 {
     private readonly AnimeSeriesService _seriesService;
     private readonly AnimeGroupService _groupService;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
     private readonly ActionService _actionService;
     private readonly QueueHandler _queueHandler;
     private readonly IUserDataService _userDataService;
@@ -62,7 +63,7 @@ public class Common : BaseController
     private readonly IVideoReleaseService _videoReleaseService;
 
     public Common(
-        ISchedulerFactory schedulerFactory,
+        IQueueScheduler scheduler,
         ActionService actionService,
         ISettingsProvider settingsProvider,
         QueueHandler queueHandler,
@@ -73,7 +74,7 @@ public class Common : BaseController
         IVideoService videoService,
         IVideoReleaseService videoReleaseService) : base(settingsProvider)
     {
-        _schedulerFactory = schedulerFactory;
+        _scheduler = scheduler;
         _actionService = actionService;
         _queueHandler = queueHandler;
         _seriesService = seriesService;
@@ -222,8 +223,7 @@ public class Common : BaseController
     [HttpGet("folder/import")]
     public async Task<ActionResult> RunImport()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<ImportJob>();
+        await _scheduler.StartJob<ImportJob>();
         return Ok();
     }
 
@@ -275,8 +275,7 @@ public class Common : BaseController
     [HttpGet("medainfo_update")]
     public async Task<ActionResult> UpdateMediaInfo()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<MediaInfoAllFilesJob>();
+        await _scheduler.StartJob<MediaInfoAllFilesJob>();
         return Ok();
     }
 
@@ -398,9 +397,7 @@ public class Common : BaseController
         {
             return NotFound("videolocal_place not found");
         }
-
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<HashFileJob>(
+        await _scheduler.StartJob<HashFileJob>(
             c => (c.FilePath, c.ForceHash) = (pl.Path, true),
             prioritize: true
         ).ConfigureAwait(false);
@@ -417,7 +414,6 @@ public class Common : BaseController
     {
         try
         {
-            var scheduler = await _schedulerFactory.GetScheduler();
             // files which have been hashed, but don't have an associated episode
             foreach (var vl in RepoFactory.VideoLocal.GetVideosWithoutEpisode())
             {
@@ -427,7 +423,7 @@ public class Common : BaseController
                     continue;
                 }
 
-                await scheduler.StartJob<HashFileJob>(
+                await _scheduler.StartJob<HashFileJob>(
                     c => (c.FilePath, c.ForceHash) = (pl.Path, true),
                     prioritize: true
                 ).ConfigureAwait(false);
@@ -450,7 +446,6 @@ public class Common : BaseController
     {
         try
         {
-            var scheduler = await _schedulerFactory.GetScheduler();
             // files which have been hashed, but don't have an associated episode
             foreach (var vl in RepoFactory.VideoLocal.GetManuallyLinkedVideos())
             {
@@ -460,7 +455,7 @@ public class Common : BaseController
                     continue;
                 }
 
-                await scheduler.StartJob<HashFileJob>(
+                await _scheduler.StartJob<HashFileJob>(
                     c => (c.FilePath, c.ForceHash) = (pl.Path, true),
                     prioritize: true
                 ).ConfigureAwait(false);
@@ -626,13 +621,12 @@ public class Common : BaseController
     [HttpGet("queue/hasher/get")]
     public async Task<ActionResult<QueueInfo>> GetHasherQueue()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
         var queue = new QueueInfo
         {
             count = 0,
             state = "Obsolete",
-            isrunning = scheduler.IsStarted && !scheduler.InStandbyMode,
-            ispause = scheduler.InStandbyMode
+            isrunning = !_scheduler.IsPaused,
+            ispause = _scheduler.IsPaused
         };
         return queue;
     }
@@ -644,13 +638,12 @@ public class Common : BaseController
     [HttpGet("queue/general/get")]
     public async Task<ActionResult<QueueInfo>> GetGeneralQueue()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
         var queue = new QueueInfo
         {
             count = 0,
             state = "Obsolete",
-            isrunning = scheduler.IsStarted && !scheduler.InStandbyMode,
-            ispause = scheduler.InStandbyMode
+            isrunning = !_scheduler.IsPaused,
+            ispause = _scheduler.IsPaused
         };
         return queue;
     }
@@ -662,13 +655,12 @@ public class Common : BaseController
     [HttpGet("queue/images/get")]
     public async Task<ActionResult<QueueInfo>> GetImagesQueue()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
         var queue = new QueueInfo
         {
             count = 0,
             state = "Obsolete",
-            isrunning = scheduler.IsStarted && !scheduler.InStandbyMode,
-            ispause = scheduler.InStandbyMode
+            isrunning = !_scheduler.IsPaused,
+            ispause = _scheduler.IsPaused
         };
         return queue;
     }
@@ -836,10 +828,8 @@ public class Common : BaseController
                 Video = _tuple.vid
             })
             .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToDictionary(a => a.Video.VideoLocalID, a => a.Path);
-
-        var scheduler = await _schedulerFactory.GetScheduler();
         foreach (var (fileId, filePath) in list)
-            await scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = new() { { fileId, filePath } });
+            await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = new() { { fileId, filePath } });
 
         logger.Info($"Queued {list.Count} files for avdumping.");
 
@@ -2449,8 +2439,7 @@ public class Common : BaseController
     [HttpGet("cloud/import")]
     public async Task<ActionResult> RunCloudImport()
     {
-        var scheduler = await _schedulerFactory.GetScheduler();
-        await scheduler.StartJob<ImportJob>();
+        await _scheduler.StartJob<ImportJob>();
         return Ok();
     }
 

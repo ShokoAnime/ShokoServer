@@ -7,10 +7,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
@@ -18,7 +19,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -32,15 +32,15 @@ public class AnimeCreator
 {
     private readonly ILogger<AnimeCreator> _logger;
     private readonly ISettingsProvider _settingsProvider;
-    private readonly ISchedulerFactory _schedulerFactory;
+    private readonly IQueueScheduler _scheduler;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly ConcurrentDictionary<int, object> _updatingIDs = [];
 
-    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings, ISchedulerFactory schedulerFactory, IVideoReleaseService videoReleaseService)
+    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings, IQueueScheduler scheduler, IVideoReleaseService videoReleaseService)
     {
         _logger = logger;
         _settingsProvider = settings;
-        _schedulerFactory = schedulerFactory;
+        _scheduler = scheduler;
         _videoReleaseService = videoReleaseService;
     }
 
@@ -1200,10 +1200,9 @@ public class AnimeCreator
         {
             var creatorList = creatorIDs.ToList();
             if (creatorList.Count == 0) return;
-            var scheduler = await _schedulerFactory.GetScheduler();
             _logger.LogInformation("Scheduling {Count} creators to be updated for {MainTitle}", creatorList.Count, mainTitle);
             foreach (var creatorId in creatorList)
-                await scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorId);
+                await _scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorId);
         }
         catch (Exception ex)
         {

@@ -30,25 +30,25 @@ public class MediaContainer : IMediaInfo
 
     // Cache to prevent excessive enumeration on things that will be called A LOT
     [IgnoreMember]
-    private GeneralStream? _general = null;
+    private GeneralStream? _general;
 
     [IgnoreMember]
-    private VideoStream? _video = null;
+    private VideoStream? _video;
 
     [IgnoreMember]
-    private List<VideoStream>? _videos = null;
+    private List<VideoStream>? _videos;
 
     [IgnoreMember]
-    private List<AudioStream>? _audios = null;
+    private List<AudioStream>? _audios;
 
     [IgnoreMember]
-    private List<TextStream>? _texts = null;
+    private List<TextStream>? _texts;
 
     [IgnoreMember]
-    private List<MenuStream>? _menus = null;
+    private List<MenuStream>? _menus;
 
     [IgnoreMember]
-    private List<ChapterInfo>? _chapters = null;
+    private List<ChapterInfo>? _chapters;
 
     [JsonIgnore]
     [IgnoreMember]
@@ -305,7 +305,7 @@ public abstract class Stream : IStream
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != this.GetType()) return false;
+        if (obj.GetType() != GetType()) return false;
         return Equals((Stream)obj);
     }
 
@@ -367,7 +367,7 @@ public class GeneralStream : Stream
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != this.GetType()) return false;
+        if (obj.GetType() != GetType()) return false;
         return Equals((GeneralStream)obj);
     }
 
@@ -476,7 +476,7 @@ public class VideoStream : Stream, IVideoStream
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != this.GetType()) return false;
+        if (obj.GetType() != GetType()) return false;
         return Equals((VideoStream)obj);
     }
 
@@ -553,7 +553,7 @@ public class AudioStream : Stream, IAudioStream
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != this.GetType()) return false;
+        if (obj.GetType() != GetType()) return false;
         return Equals((AudioStream)obj);
     }
 
@@ -629,7 +629,7 @@ public class AudioExtra
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != this.GetType()) return false;
+        if (obj.GetType() != GetType()) return false;
         return Equals((AudioExtra)obj);
     }
 
@@ -688,7 +688,7 @@ public class TextStream : Stream, ITextStream
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != this.GetType()) return false;
+        if (obj.GetType() != GetType()) return false;
         return Equals((TextStream)obj);
     }
 
@@ -721,7 +721,7 @@ public class MenuStream : Stream
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
-        if (obj.GetType() != this.GetType()) return false;
+        if (obj.GetType() != GetType()) return false;
         return Equals((MenuStream)obj);
     }
 

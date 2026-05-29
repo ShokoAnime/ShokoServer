@@ -14,6 +14,7 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Release;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
@@ -23,7 +24,6 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -86,7 +86,7 @@ public partial class ShokoServiceImplementation
         languages.UnionWith(languagePreference.Select(b => b.ToLower()));
 
         foreach (var title in RepoFactory.AniDB_Anime_Title.GetByAnimeID(a.AniDB_ID)
-                     .Where(b => b.TitleType != Shoko.Abstractions.Metadata.Enums.TitleType.Short && languages.Contains(b.LanguageCode))
+                     .Where(b => b.TitleType != TitleType.Short && languages.Contains(b.LanguageCode))
                      .Select(b => b.Title?.ToLowerInvariant()).ToList())
         {
             if (string.IsNullOrEmpty(title)) continue;
@@ -618,12 +618,11 @@ public partial class ShokoServiceImplementation
     public void RemoveMissingMyListFiles(List<CL_MissingFile> myListFiles)
     {
         // TODO maybe rework this
-        var scheduler = _schedulerFactory.GetScheduler().Result;
         foreach (var missingFile in myListFiles)
         {
             var vl = RepoFactory.VideoLocal.GetByMyListID(missingFile.FileID);
             if (vl == null) continue;
-            scheduler.StartJob<DeleteFileFromMyListJob>(
+            _scheduler.StartJob<DeleteFileFromMyListJob>(
                 c =>
                 {
                     c.Hash = vl.Hash;
@@ -932,7 +931,7 @@ public partial class ShokoServiceImplementation
                 // get the anidb file info
                 if (vid.ReleaseInfo is { } releaseInfo)
                 {
-                    _logger.LogTrace($"GetFilesByGroupAndResolution -- releaseInfo is not null");
+                    _logger.LogTrace("GetFilesByGroupAndResolution -- releaseInfo is not null");
                     _logger.LogTrace("GetFilesByGroupAndResolution -- releaseInfo.Source: {FileSource}", releaseInfo.LegacySource);
                     _logger.LogTrace("GetFilesByGroupAndResolution -- releaseInfo.GroupName: {GroupName}", releaseInfo.GroupName);
                     _logger.LogTrace("GetFilesByGroupAndResolution -- releaseInfo.GroupNameShort: {GroupNameShort}", releaseInfo.GroupShortName);
@@ -1120,7 +1119,7 @@ public partial class ShokoServiceImplementation
         }
 
         var session = AVDumpHelper.DumpFiles(
-            new Dictionary<int, string>() { { vidLocalID, filePath } },
+            new Dictionary<int, string> { { vidLocalID, filePath } },
             true
         );
 

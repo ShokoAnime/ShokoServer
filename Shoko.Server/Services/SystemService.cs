@@ -16,7 +16,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using NLog.Web;
-using Quartz;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Connectivity.Services;
@@ -35,6 +34,10 @@ using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.Web.Services;
+using Shoko.QueueProcessor;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Acquisition.Filters;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -47,7 +50,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling;
+using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services.Abstraction;
 using Shoko.Server.Services.Configuration;
@@ -406,7 +409,42 @@ public class SystemService : ISystemService
 
             services.AddRepositories();
             services.AddSentryConfig(settingsProvider);
-            services.AddQuartz(systemService);
+            // Wire the new queue processor
+            var queueSettings = ISettingsProvider.Instance.GetSettings().Queue;
+            var maxWorkers = queueSettings.MaxTotalWorkers > 0 ? queueSettings.MaxTotalWorkers : Environment.ProcessorCount + 4;
+            static string GetQueueConnectionString(QueueProcessorSettings q)
+            {
+                if (q.Provider != DatabaseProvider.SQLite)
+                    return q.ConnectionString;
+                var filePath = Path.IsPathRooted(q.SQLiteFilePath)
+                    ? q.SQLiteFilePath
+                    : Path.GetFullPath(Path.Combine(ApplicationPaths.StaticDataPath, q.SQLiteFilePath));
+                return $"Data Source={filePath};Mode=ReadWriteCreate;Pooling=True";
+            }
+            services.AddQueueProcessor(opts =>
+            {
+                opts.Provider = queueSettings.Provider;
+                opts.ConnectionString = GetQueueConnectionString(queueSettings);
+                opts.MaxTotalWorkers = maxWorkers;
+                opts.DefaultPoolMaxWorkers = maxWorkers;
+                opts.FlushIntervalMs = queueSettings.FlushIntervalMs;
+                opts.MaxFlushBatch = queueSettings.MaxFlushBatch;
+                opts.LimitedConcurrencyOverrides = queueSettings.LimitedConcurrencyOverrides;
+            }, typeof(SystemService).Assembly);
+
+            // Register acquisition filters
+            services.AddSingleton<IAcquisitionFilter, AniDBUdpRateLimitedAcquisitionFilter>();
+            services.AddSingleton<IAcquisitionFilter, AniDBHttpRateLimitedAcquisitionFilter>();
+            services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
+            services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
+
+            // Register recurring jobs
+            systemService.Started += (_, _) =>
+            {
+                var registry = ISystemService.StaticServices.GetRequiredService<RecurringJobRegistry>();
+                registry.Register<CheckNetworkAvailabilityJob>(
+                    TimeSpan.FromMinutes(30), runImmediately: true);
+            };
 
             services.AddHttpClient("GitHub", client =>
                 {
@@ -501,7 +539,7 @@ public class SystemService : ISystemService
         var settings = _settingsProvider.GetSettings();
         try
         {
-            var schedulerFactory = _webHost!.Services.GetRequiredService<ISchedulerFactory>();
+            var scheduler = _webHost!.Services.GetRequiredService<IQueueScheduler>();
             var databaseFactory = _webHost.Services.GetRequiredService<DatabaseFactory>();
             var repoFactory = _webHost.Services.GetRequiredService<RepoFactory>();
             var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
@@ -573,11 +611,10 @@ public class SystemService : ISystemService
             _startupTaskSource?.SetResult();
             _startupTaskSource = null;
 
-            var scheduler = schedulerFactory.GetScheduler().Result;
             if (settings.Import.ScanDropFoldersOnStart)
-                scheduler.StartJob<ScanDropFoldersJob>().GetAwaiter().GetResult();
+                scheduler.Enqueue<ScanDropFoldersJob>().GetAwaiter().GetResult();
             if (settings.Import.RunOnStart)
-                scheduler.StartJob<ImportJob>().GetAwaiter().GetResult();
+                scheduler.Enqueue<ImportJob>().GetAwaiter().GetResult();
             else
                 _webHost.Services.GetRequiredService<ActionService>()
                     .ScheduleMissingAnidbAnimeForFiles().GetAwaiter().GetResult();
@@ -763,7 +800,6 @@ public class SystemService : ISystemService
     public Task WaitForShutdownAsync()
         => _webHost?.WaitForShutdownAsync() ?? Task.CompletedTask;
 
-    /// <inheritdoc/>
     internal void OnShutdown()
     {
         // Mark the server as shutting down.
@@ -880,7 +916,6 @@ public class SystemService : ISystemService
     public Task WaitForDatabaseUnblockedAsync()
         => _databaseTaskSource?.Task ?? Task.CompletedTask;
 
-    /// <inheritdoc/>
     public void AddDatabaseBlockingTask(Task task)
     {
         lock (_databaseBlockingTasks)

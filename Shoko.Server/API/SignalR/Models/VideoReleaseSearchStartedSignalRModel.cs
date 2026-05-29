@@ -1,4 +1,3 @@
-
 using System;
 using Shoko.Abstractions.Video.Events;
 
