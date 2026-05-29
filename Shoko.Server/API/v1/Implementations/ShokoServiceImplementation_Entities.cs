@@ -2869,7 +2869,9 @@ public partial class ShokoServiceImplementation
             RepoFactory.CrossRef_CustomTag.Save(xref);
 
             contractRet.Result = xref.ToClient();
-            var refreshJobInst = ISystemService.StaticServices.GetRequiredService<RefreshAnimeStatsJob>(); refreshJobInst.AnimeID = contract.CrossRefID; refreshJobInst.Process().GetAwaiter().GetResult();
+            var refreshJobInst = ISystemService.StaticServices.GetRequiredService<RefreshAnimeStatsJob>();
+            refreshJobInst.AnimeID = contract.CrossRefID;
+            refreshJobInst.Process().GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
