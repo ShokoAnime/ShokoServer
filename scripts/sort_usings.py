@@ -16,20 +16,23 @@ Output order:
   11. namespace/class block
 
 Usage:
-  sort_usings.py [--strip-bom] [file1.cs file2.cs ...]
-  sort_usings.py --stdin [--strip-bom]
-  sort_usings.py --all [--strip-bom]
+  sort_usings.py [--strip-bom] [--remove-unused] [file1.cs file2.cs ...]
+  sort_usings.py --stdin [--strip-bom] [--remove-unused]
+  sort_usings.py --all [--strip-bom] [--remove-unused]
 
 Options:
-  --stdin   Read file paths from stdin (one per line) instead of positional args
-  --all     Scan all .cs files in the current directory and subdirectories,
-            excluding paths listed in .gitignore (if present)
+  --stdin           Read file paths from stdin (one per line) instead of positional args
+  --all             Scan all .cs files in the current directory and subdirectories,
+                    excluding paths listed in .gitignore (if present)
+  --remove-unused   Remove unused usings via dotnet format (IDE0005) before sorting
 """
 
 import argparse
 import fnmatch
+import glob
 import os
 import re
+import subprocess
 import sys
 
 def _parse_gitignore(gitignore_path):
@@ -267,6 +270,42 @@ def _using_key(u):
     return m.group(3).lower() if m else u.lower()
 
 
+def _find_solution_file():
+    """Find the first .sln file in the current directory."""
+    matches = glob.glob('*.sln')
+    return matches[0] if matches else None
+
+
+def remove_unused_usings(file_list):
+    """Run dotnet format to remove unnecessary usings (IDE0005) on the given files.
+
+    The `style` subcommand targets IDE built-in code style analyzers (not 3rd-party).
+    `--severity hidden` catches IDE0005 at its default severity in .NET 10.
+    No `.editorconfig` changes are required.
+
+    Args:
+        file_list: List of file paths to process. If empty, processes all files
+                   in the solution (used with --all).
+    """
+    sln = _find_solution_file()
+    if not sln:
+        print("Warning: No .sln file found, skipping unused using removal", file=sys.stderr)
+        return
+
+    cmd = ['dotnet', 'format', 'style', sln, '--diagnostics', 'IDE0005',
+           '--severity', 'hidden']
+    if file_list:
+        cmd.extend(['--include', ';'.join(file_list)])
+    cmd.extend(['--verbosity', 'minimal'])
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0 and result.stderr.strip():
+            print(f"dotnet format: {result.stderr.strip()}", file=sys.stderr)
+    except FileNotFoundError:
+        print("Warning: 'dotnet' not found on PATH, skipping unused using removal", file=sys.stderr)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Sort C# using statements')
     parser.add_argument('--strip-bom', action='store_true', help='Strip BOM marker if present')
@@ -275,6 +314,8 @@ def main():
     parser.add_argument('--all', action='store_true',
                         help='Scan all .cs files in current directory and subdirectories, '
                              'excluding .gitignore\'d paths')
+    parser.add_argument('--remove-unused', action='store_true',
+                        help='Remove unused usings via dotnet format style (IDE0005) before sorting')
     parser.add_argument('files', nargs='*', help='Files to process')
     args = parser.parse_args()
 
@@ -288,6 +329,9 @@ def main():
         print("No files specified. Use --stdin to read from stdin, --all to scan directory, "
               "or pass file paths as arguments.", file=sys.stderr)
         sys.exit(1)
+
+    if args.remove_unused:
+        remove_unused_usings(file_list if not args.all else [])
 
     count = 0
     for filepath in file_list:
