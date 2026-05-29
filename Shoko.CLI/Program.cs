@@ -52,7 +52,7 @@ public static class Program
 
     private static string GetDetails(Dictionary<string, object>? map)
     {
-        return map == null ? string.Intern("No Details") : string.Join(", ", map.Select(a => a.Key + ": " + a.Value));
+        return map == null || map.Count == 0 ? string.Intern("No Details") : string.Join(", ", map.Select(a => a.Key + ": " + a.Value));
     }
 
     private static void QueueStateEventHandlerOnQueueItemAdded(object? sender, QueueItemsAddedEventArgs e)

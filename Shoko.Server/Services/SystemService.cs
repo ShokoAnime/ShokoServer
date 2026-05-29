@@ -438,14 +438,6 @@ public class SystemService : ISystemService
             services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
 
-            // Register recurring jobs
-            systemService.Started += (_, _) =>
-            {
-                var registry = ISystemService.StaticServices.GetRequiredService<RecurringJobRegistry>();
-                registry.Register<CheckNetworkAvailabilityJob>(
-                    TimeSpan.FromMinutes(30), runImmediately: true);
-            };
-
             services.AddHttpClient("GitHub", client =>
                 {
                     client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
@@ -493,6 +485,14 @@ public class SystemService : ISystemService
             app.UseAPI(pluginManager);
             var lifetime = app.ApplicationServices.GetRequiredService<IHostApplicationLifetime>();
             lifetime.ApplicationStopping.Register(systemService.OnShutdown);
+
+            // Register core recurring jobs that don't need the main DB so they start running
+            // with the queue (the network check probes connectivity — no DB touch). Registering
+            // here, before the IHostedServices boot, ensures RecurringJobRegistry.StartAsync
+            // picks them up. DB-dependent recurring jobs should carry [DatabaseRequired] and the
+            // acquisition filter will hold them out of the pool until startup signals DB ready.
+            var registry = app.ApplicationServices.GetRequiredService<RecurringJobRegistry>();
+            registry.Register<CheckNetworkAvailabilityJob>(TimeSpan.FromMinutes(30), runImmediately: true);
         }
     }
 

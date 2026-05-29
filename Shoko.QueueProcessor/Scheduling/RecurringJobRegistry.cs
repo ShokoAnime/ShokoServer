@@ -13,18 +13,29 @@ namespace Shoko.QueueProcessor.Scheduling;
 /// if they are not already waiting or executing.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Plugins resolve this registry from DI (constructor-inject it, or fetch it via
 /// <see cref="IServiceProvider.GetService"/>) and call <see cref="Register{T}"/> to register
 /// their own recurring jobs. The call site can live in a plugin's
 /// <c>IPluginServiceRegistration.RegisterServices</c> body (using a startup hook) or in
 /// <c>IPlugin.Load</c>. The plugin's job type itself must first be registered via
 /// <c>QueueProcessorExtensions.AddQueueJobsFromAssembly</c>.
+/// </para>
+/// <para>
+/// Lifecycle: registrations made before <see cref="StartAsync"/> sit dormant and get armed
+/// when the web host boots the registry. Registrations made after are armed immediately.
+/// Jobs that need the main database should carry <c>[DatabaseRequired]</c> — the acquisition
+/// filter will hold them out of the worker pool until startup signals the DB is ready.
+/// Jobs without that attribute (e.g. a network-availability probe) start running with the
+/// queue.
+/// </para>
 /// </remarks>
 public class RecurringJobRegistry : IHostedService, IDisposable
 {
     private readonly IQueueScheduler _scheduler;
     private readonly ILogger<RecurringJobRegistry> _logger;
 
+    private readonly object _lock = new();
     private readonly List<RecurringRegistration> _registrations = [];
     private readonly List<Timer> _timers = [];
     private volatile bool _started;
@@ -55,19 +66,30 @@ public class RecurringJobRegistry : IHostedService, IDisposable
             runImmediately,
             ct => _scheduler.Enqueue(configure, ct: ct));
 
-        _registrations.Add(reg);
+        bool activateNow;
+        lock (_lock)
+        {
+            _registrations.Add(reg);
+            activateNow = _started;
+        }
 
-        if (_started)
+        if (activateNow)
             _ = ActivateRegistration(reg, CancellationToken.None);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _started = true;
-        foreach (var reg in _registrations)
+        RecurringRegistration[] toActivate;
+        lock (_lock)
+        {
+            _started = true;
+            toActivate = [.. _registrations];
+        }
+
+        foreach (var reg in toActivate)
             await ActivateRegistration(reg, cancellationToken);
 
-        _logger.LogInformation("RecurringJobRegistry started {Count} recurring jobs", _registrations.Count);
+        _logger.LogInformation("RecurringJobRegistry started {Count} recurring jobs", toActivate.Length);
     }
 
     private async Task ActivateRegistration(RecurringRegistration reg, CancellationToken ct)
@@ -83,19 +105,26 @@ public class RecurringJobRegistry : IHostedService, IDisposable
             null,
             reg.Interval,
             reg.Interval);
-        _timers.Add(timer);
+
+        lock (_lock) _timers.Add(timer);
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        foreach (var timer in _timers) timer.Change(Timeout.Infinite, Timeout.Infinite);
+        lock (_lock)
+        {
+            foreach (var timer in _timers) timer.Change(Timeout.Infinite, Timeout.Infinite);
+        }
         return Task.CompletedTask;
     }
 
     public void Dispose()
     {
-        foreach (var timer in _timers) timer.Dispose();
-        _timers.Clear();
+        lock (_lock)
+        {
+            foreach (var timer in _timers) timer.Dispose();
+            _timers.Clear();
+        }
         GC.SuppressFinalize(this);
     }
 
