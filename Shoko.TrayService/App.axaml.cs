@@ -12,8 +12,8 @@ using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Quartz;
 using Shoko.Abstractions.Core.Services;
+using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
@@ -113,19 +113,19 @@ public partial class App : Application
         => DispatchShutdown();
 
     /// <summary>
-    /// Signal to Quartz to shutdown, since it's not ran properly signalled by the application's lifetime
+    /// Signal the queue processor to shutdown, since it's not properly signalled by the application's lifetime
     /// when running in a desktop application.
     /// </summary>
-    private async Task ShutdownQuartz()
+    private async Task ShutdownQueue()
     {
-        var quartz = ISystemService.StaticServices.GetServices<IHostedService>().FirstOrDefault(a => a is QuartzHostedService);
-        if (quartz == null)
+        var queue = ISystemService.StaticServices.GetServices<IHostedService>().FirstOrDefault(a => a is WorkerPoolManager);
+        if (queue == null)
         {
-            _logger?.LogError("Could not get QuartzHostedService");
+            _logger?.LogError("Could not get WorkerPoolManager");
             return;
         }
 
-        await quartz.StopAsync(default);
+        await queue.StopAsync(CancellationToken.None);
     }
 
     private void OnConsoleOnCancelKeyPress(object? sender, ConsoleCancelEventArgs args)
@@ -137,7 +137,7 @@ public partial class App : Application
     private void DispatchShutdown()
     {
         // stupid
-        Task.Run(ShutdownQuartz);
+        Task.Run(ShutdownQueue);
 
         try
         {

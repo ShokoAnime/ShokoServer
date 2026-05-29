@@ -43,9 +43,4 @@
             <Link>db.ico</Link>
         </AvaloniaResource>
     </ItemGroup>
-    <ItemGroup>
-        <Reference Include="Quartz">
-            <HintPath>..\Dependencies\Quartz\Quartz.dll</HintPath>
-        </Reference>
-    </ItemGroup>
 </Project>
