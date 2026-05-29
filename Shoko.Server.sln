@@ -30,8 +30,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{700D0E2E-FF22-4810-8BC5-537207182EDF}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\docker-manual.yml = .github\workflows\docker-manual.yml
-		.github\workflows\docker-release.yml = .github\workflows\docker-release.yml
-		.github\workflows\plugin-nuget.yml = .github\workflows\plugin-nuget.yml
 		.github\workflows\tray-standalone-manual.yml = .github\workflows\tray-standalone-manual.yml
 		.github\workflows\UploadArchive.ps1 = .github\workflows\UploadArchive.ps1
 		.github\workflows\integration-tests.yml = .github\workflows\integration-tests.yml

@@ -82,6 +82,36 @@ jobs:
           NUGET_KEY: ${{secrets.NUGET_API_KEY}}
           TAG_FORMAT: Shoko.Abstractions-v*
 
+  queue-nuget:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        dotnet: [ '10.x' ]
+
+    name: Publish Shoko.QueueProcessor Nuget
+
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@master
+        with:
+          ref: "${{ github.sha }}"
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Run dotnet build
+        run: dotnet build -c Release Shoko.QueueProcessor
+
+      - name: Publish Shoko.QueueProcessor Nuget
+        uses: brandedoutcast/publish-nuget@v2.5.2
+        with:
+          PROJECT_FILE_PATH: Shoko.QueueProcessor/Shoko.QueueProcessor.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+          TAG_FORMAT: Shoko.QueueProcessor-v*
+
   webui:
     runs-on: ubuntu-latest
 
