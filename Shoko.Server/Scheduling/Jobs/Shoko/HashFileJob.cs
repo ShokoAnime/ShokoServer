@@ -14,6 +14,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
 [LimitConcurrency(2)]
+[LongRunning]
 [JobKeyGroup(JobKeyGroup.Import)]
 public class HashFileJob : BaseJob
 {

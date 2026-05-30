@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
@@ -41,9 +42,11 @@ public sealed class WorkerPoolManager : IHostedService
     private readonly IEnumerable<IAcquisitionFilter> _acquisitionFilters;
     private readonly IServiceProvider _serviceProvider;
     private readonly QueueJobTypeRegistry _jobTypeRegistry;
+    private readonly QueueProcessorOptions _options;
 
     private IReadOnlyList<WorkerPool> _pools = [];
     private CancellationTokenSource? _cts;
+    private JobWatchdog? _watchdog;
 
     public IReadOnlyList<WorkerPool> Pools => _pools;
 
@@ -57,7 +60,8 @@ public sealed class WorkerPoolManager : IHostedService
         QueueStateEventHandler events,
         IEnumerable<IAcquisitionFilter> acquisitionFilters,
         IServiceProvider serviceProvider,
-        QueueJobTypeRegistry jobTypeRegistry)
+        QueueJobTypeRegistry jobTypeRegistry,
+        QueueProcessorOptions options)
     {
         _logger = logger;
         _repo = repo;
@@ -69,6 +73,7 @@ public sealed class WorkerPoolManager : IHostedService
         _acquisitionFilters = acquisitionFilters;
         _serviceProvider = serviceProvider;
         _jobTypeRegistry = jobTypeRegistry;
+        _options = options;
     }
 
     public async Task StartAsync(CancellationToken ct)
@@ -96,6 +101,14 @@ public sealed class WorkerPoolManager : IHostedService
         foreach (var pool in _pools)
             pool.Start(_serviceProvider, _orchestrator, _metrics, _events);
 
+        // Start watchdog
+        _watchdog = new JobWatchdog(
+            _orchestrator,
+            _serviceProvider.GetRequiredService<ILogger<JobWatchdog>>(),
+            TimeSpan.FromSeconds(_options.WatchdogTimeoutSeconds),
+            _jobTypeRegistry.JobTypes);
+        _watchdog.Start(_cts.Token);
+
         _events.InvokeQueueStarted();
         _logger.LogInformation("WorkerPoolManager started with {PoolCount} pools", _pools.Count);
     }
@@ -116,6 +129,9 @@ public sealed class WorkerPoolManager : IHostedService
         // before workers exited, that DELETE would land in the buffer with nothing to flush it.
         foreach (var pool in _pools)
             pool.Stop();
+
+        if (_watchdog is not null)
+            await _watchdog.StopAsync().ConfigureAwait(false);
 
         try
         {

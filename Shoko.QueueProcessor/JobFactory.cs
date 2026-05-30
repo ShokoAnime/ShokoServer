@@ -1,8 +1,10 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Orchestration;
+using Shoko.QueueProcessor.Workers;
 
 namespace Shoko.QueueProcessor;
 
@@ -30,11 +32,26 @@ public sealed class JobFactory : IJobFactory
         if (_orchestrator.IsJobTypeBlocked(typeof(T)))
             throw new JobBlockedException(typeof(T));
 
-        using var scope = _serviceProvider.CreateScope();
-        var instance = scope.ServiceProvider.GetRequiredService<T>();
-        configure?.Invoke(instance);
-        instance.Setup(scope.ServiceProvider);
-        instance.PostInit();
-        await instance.Process().ConfigureAwait(false);
+        var outerJobId = SubExecutionTracker.CurrentJobId.Value;
+        if (outerJobId != Guid.Empty)
+        {
+            try { SubExecutionTracker.SetStack(outerJobId, new StackTrace(fNeedFileInfo: true).ToString()); }
+            catch { /* stack capture is best-effort */ }
+        }
+
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var instance = scope.ServiceProvider.GetRequiredService<T>();
+            configure?.Invoke(instance);
+            instance.Setup(scope.ServiceProvider);
+            instance.PostInit();
+            await instance.Process().ConfigureAwait(false);
+        }
+        finally
+        {
+            if (outerJobId != Guid.Empty)
+                SubExecutionTracker.ClearStack(outerJobId);
+        }
     }
 }

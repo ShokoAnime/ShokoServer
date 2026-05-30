@@ -54,12 +54,19 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     // Friendly display names per type (type.Name → IQueueJob.TypeName) — built once at Initialize()
     private IReadOnlyDictionary<string, string> _typeFriendlyNames = new Dictionary<string, string>();
 
-    // O(1) dedup index: JobKey → Id (covers waiting + executing + pending-insert)
+    // O(1) dedup index: JobKey → Id (covers waiting + executing + pending-insert + after-parent)
     private readonly Dictionary<string, Guid> _jobKeyIndex = new(StringComparer.Ordinal);
 
     // Pending completion callbacks registered by EnqueueImmediate callers.
     // Keyed by JobKey; resolved in OnComplete or faulted in OnFailureAsync (real failures only).
     private readonly Dictionary<string, List<TaskCompletionSource<bool>>> _immediateCallbacks = new(StringComparer.Ordinal);
+
+    // Jobs registered via RunAfterCurrent: held until their parent job completes, then released
+    // at int.MaxValue priority. Keys are claimed in _jobKeyIndex immediately on registration to
+    // prevent a concurrent Enqueue from scheduling the same job before the parent finishes.
+    // Inner key is JobKey for O(1) dedup within one parent execution.
+    private readonly Dictionary<Guid, Dictionary<string, (EnqueueContext Ctx, WorkerPool Pool)>>
+        _afterParentCallbacks = new();
 
     private readonly object _gate = new();
     private volatile bool _paused;
@@ -353,20 +360,102 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     }
 
     /// <summary>
+    /// Registers a child job to be enqueued at <see cref="int.MaxValue"/> priority immediately
+    /// after <paramref name="parentId"/> completes. If a job with the same key is already waiting
+    /// in a pool sub-queue, it is removed and held here instead. If the same key is already
+    /// executing, this call is a no-op. Multiple registrations for the same key under the same
+    /// parent are deduplicated.
+    /// </summary>
+    public void RegisterAfterParent(Guid parentId, EnqueueContext ctx)
+    {
+        if (!_poolsByType.TryGetValue(ctx.Type, out var targetPool))
+            return;
+
+        List<(EnqueueContext Ctx, WorkerPool Pool)>? immediateEnqueue = null;
+
+        lock (_gate)
+        {
+            if (_jobKeyIndex.TryGetValue(ctx.Job.JobKey, out var existingId))
+            {
+                // Already executing — leave it alone; it will complete with current data
+                if (_executingSet.ContainsKey(existingId))
+                    return;
+
+                // Waiting — pull it out of whichever pool holds it so it doesn't run early
+                foreach (var pool in _allPools)
+                    pool.RemoveFromQueue(existingId);
+
+                // Key stays in _jobKeyIndex; we'll point it at the new context's ID below
+            }
+            else
+            {
+                // Claim the key so a concurrent Enqueue sees it as already registered
+                _jobKeyIndex[ctx.Job.JobKey] = ctx.Job.Id;
+            }
+
+            if (!_afterParentCallbacks.TryGetValue(parentId, out var map))
+            {
+                // Race guard: parent already completed — enqueue immediately
+                if (!_executingSet.ContainsKey(parentId))
+                {
+                    immediateEnqueue = [(ctx, targetPool)];
+                }
+                else
+                {
+                    _afterParentCallbacks[parentId] = map = new Dictionary<string, (EnqueueContext, WorkerPool)>(StringComparer.Ordinal);
+                    map[ctx.Job.JobKey] = (ctx, targetPool);
+                    _jobKeyIndex[ctx.Job.JobKey] = ctx.Job.Id;
+                }
+            }
+            else
+            {
+                map[ctx.Job.JobKey] = (ctx, targetPool);
+                _jobKeyIndex[ctx.Job.JobKey] = ctx.Job.Id;
+            }
+        }
+
+        if (immediateEnqueue != null)
+        {
+            foreach (var (c, pool) in immediateEnqueue)
+            {
+                pool.AddToQueue(c.Job);
+                _persistenceBuffer.OnEnqueue(c.Job);
+                _metrics.RecordEnqueue(c.Type.Name, pool.Name);
+            }
+            SignalAllPools();
+        }
+    }
+
+    /// <summary>
     /// Called by workers on success. Updates counts, buffers DB delete, signals pools.
     /// </summary>
     public void OnComplete(Guid id)
     {
         List<TaskCompletionSource<bool>>? completions = null;
+        List<(EnqueueContext Ctx, WorkerPool Pool)>? deferred = null;
         lock (_gate)
         {
             if (!_executingSet.Remove(id, out var entry)) return;
             DecrementCounts(entry.JobType, entry.ConcurrencyGroup);
             _jobKeyIndex.Remove(entry.JobKey);
             _immediateCallbacks.Remove(entry.JobKey, out completions);
+
+            if (_afterParentCallbacks.Remove(id, out var deferredMap))
+                deferred = [..deferredMap.Values];
         }
 
         completions?.ForEach(tcs => tcs.TrySetResult(true));
+
+        if (deferred != null)
+        {
+            foreach (var (ctx, pool) in deferred)
+            {
+                pool.AddToQueue(ctx.Job);
+                _persistenceBuffer.OnEnqueue(ctx.Job);
+                _metrics.RecordEnqueue(ctx.Type.Name, pool.Name);
+            }
+        }
+
         _persistenceBuffer.OnComplete(id);
         SignalAllPools();
     }
@@ -381,6 +470,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     {
         ExecutingEntry entry;
         List<TaskCompletionSource<bool>>? completions = null;
+        Dictionary<string, (EnqueueContext Ctx, WorkerPool Pool)>? discardedChildren = null;
         lock (_gate)
         {
             if (!_executingSet.Remove(id, out entry)) return;
@@ -389,8 +479,22 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             // For real failures, capture and clear callbacks so they can be faulted.
             // RequeueJobException (incrementRetry=false) leaves callbacks intact: the job
             // re-queues with the same key and the TCS resolves on eventual completion.
+            // After-parent registrations follow the same rule: preserved on requeue, discarded
+            // on real failure so _jobKeyIndex entries don't permanently block future enqueues.
             if (incrementRetry)
+            {
                 _immediateCallbacks.Remove(entry.JobKey, out completions);
+                _afterParentCallbacks.Remove(id, out discardedChildren);
+            }
+        }
+
+        if (discardedChildren != null)
+        {
+            lock (_gate)
+            {
+                foreach (var jobKey in discardedChildren.Keys)
+                    _jobKeyIndex.Remove(jobKey);
+            }
         }
 
         // Re-queue without retry increment (RequeueJobException path)
@@ -502,8 +606,9 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         {
             foreach (var pool in _allPools)
                 pool.ClearQueue();
+            _afterParentCallbacks.Clear();
             _jobKeyIndex.Clear();
-            // Remove non-executing keys from index (executing jobs keep their keys until complete)
+            // Restore keys for currently-executing jobs; all others are gone
             foreach (var entry in _executingSet.Values)
                 _jobKeyIndex[entry.JobKey] = entry.Id;
         }

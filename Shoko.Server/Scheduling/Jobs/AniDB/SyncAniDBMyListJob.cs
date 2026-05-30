@@ -37,6 +37,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [DatabaseRequired]
 [AniDBHttpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
+[LongRunning]
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class SyncAniDBMyListJob : BaseJob
 {

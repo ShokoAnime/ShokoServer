@@ -66,6 +66,15 @@ public class QueueProcessorOptions
     /// <summary>Per-type rolling average sample count for execution time.</summary>
     public int MetricsRollingAvgSamples { get; set; } = 100;
 
+    // ── Watchdog ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// How long a job must be running before the watchdog logs a warning (seconds).
+    /// Jobs decorated with <see cref="Concurrency.LongRunningAttribute"/> are exempt.
+    /// Default: 90.
+    /// </summary>
+    public int WatchdogTimeoutSeconds { get; set; } = 90;
+
     // ── Per-type overrides ────────────────────────────────────────────────────
 
     /// <summary>

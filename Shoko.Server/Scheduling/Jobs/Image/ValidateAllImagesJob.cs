@@ -13,6 +13,7 @@ namespace Shoko.Server.Scheduling.Jobs.Image;
 
 [DatabaseRequired]
 [LimitConcurrency(1, 1)]
+[LongRunning]
 [JobKeyGroup(JobKeyGroup.Image)]
 public class ValidateAllImagesJob : BaseJob
 {

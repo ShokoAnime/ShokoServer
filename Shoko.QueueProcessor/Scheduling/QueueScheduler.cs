@@ -7,6 +7,7 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Storage;
+using Shoko.QueueProcessor.Workers;
 
 namespace Shoko.QueueProcessor.Scheduling;
 
@@ -73,6 +74,25 @@ public sealed class QueueScheduler : IQueueScheduler
                 ct, TaskContinuationOptions.None, TaskScheduler.Default).Unwrap();
 
         await completionTask.WaitAsync(ct);
+    }
+
+    public Task RunAfterCurrent<T>(Action<T>? configure = null, CancellationToken ct = default)
+        where T : class, IQueueJob
+    {
+        var parentId = SubExecutionTracker.CurrentJobId.Value;
+
+        var keyBuilder = JobKeyBuilder<T>.Create();
+        if (configure != null) keyBuilder.UsingJobData(configure);
+        var key = keyBuilder.Build();
+
+        IQueueJob instance = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
+        configure?.Invoke((T)instance);
+
+        if (parentId == Guid.Empty)
+            return _orchestrator.EnqueueAsync(BuildContext(typeof(T), key, instance, 10, null), ct);
+
+        _orchestrator.RegisterAfterParent(parentId, BuildContext(typeof(T), key, instance, int.MaxValue, null));
+        return Task.CompletedTask;
     }
 
     public Task EnqueueRange(

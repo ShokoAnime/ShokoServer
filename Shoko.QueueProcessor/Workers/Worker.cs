@@ -133,6 +133,7 @@ internal sealed class Worker
                     BuildExecutingItems(executingEntries), _orchestrator.WaitingCount,
                     _orchestrator.BlockedWaitingCount, _orchestrator.MaxConcurrentJobs);
 
+                SubExecutionTracker.CurrentJobId.Value = job.Id;
                 await instance.Process().ConfigureAwait(false);
 
                 sw.Stop();
@@ -162,6 +163,7 @@ internal sealed class Worker
             }
             finally
             {
+                SubExecutionTracker.ClearStack(job.Id);
                 _pool.DecrementActive();
             }
         }

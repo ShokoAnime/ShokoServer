@@ -15,6 +15,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [DatabaseRequired]
 [NetworkRequired]
 [LimitConcurrency(1, 16)]
+[LongRunning]
 public class AVDumpFilesJob : BaseJob<AVDumpHelper.AVDumpSession>
 {
     /// <summary>

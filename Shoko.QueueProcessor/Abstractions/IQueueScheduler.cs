@@ -40,6 +40,17 @@ public interface IQueueScheduler
         CancellationToken ct = default)
         where T : class, IQueueJob;
 
+    /// <summary>
+    /// Registers a job to run at maximum priority immediately after the currently-executing job
+    /// completes. If a job with the same key is already waiting in the queue it is pulled and
+    /// held until the parent finishes, preventing it from running with stale data. If called
+    /// outside a worker job context, falls back to <see cref="Enqueue{T}"/> with
+    /// <c>prioritize: true</c>. Multiple calls for the same key within one parent execution
+    /// are deduplicated.
+    /// </summary>
+    Task RunAfterCurrent<T>(Action<T>? configure = null, CancellationToken ct = default)
+        where T : class, IQueueJob;
+
     /// <summary>Enqueue multiple jobs in a single batch operation.</summary>
     Task EnqueueRange(IEnumerable<(Type JobType, string JobKey, string DataJson, int Priority, DateTimeOffset? ScheduledAt)> jobs, CancellationToken ct = default);
 

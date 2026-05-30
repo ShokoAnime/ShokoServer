@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
 using NHibernate.Linq;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Databases;
@@ -12,7 +10,7 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatus, int>
 {
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IQueueScheduler _scheduler;
 
     public List<AniDB_GroupStatus> GetByAnimeID(int id)
     {
@@ -33,12 +31,11 @@ public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatu
             session.Query<AniDB_GroupStatus>().Where(a => a.AnimeID == animeid).Delete();
         });
 
-        var jobFactory = _serviceProvider.GetRequiredService<IJobFactory>();
-        jobFactory.Execute<RefreshAnimeStatsJob>(j => j.AnimeID = animeid).GetAwaiter().GetResult();
+        _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = animeid).GetAwaiter().GetResult();
     }
 
-    public AniDB_GroupStatusRepository(DatabaseFactory databaseFactory, IServiceProvider serviceProvider) : base(databaseFactory)
+    public AniDB_GroupStatusRepository(DatabaseFactory databaseFactory, IQueueScheduler scheduler) : base(databaseFactory)
     {
-        _serviceProvider = serviceProvider;
+        _scheduler = scheduler;
     }
 }

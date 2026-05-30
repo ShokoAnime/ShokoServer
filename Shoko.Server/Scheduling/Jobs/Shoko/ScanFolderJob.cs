@@ -3,12 +3,14 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
 [JobKeyMember("ScanFolder")]
+[LongRunning]
 [JobKeyGroup(JobKeyGroup.Import)]
 internal class ScanFolderJob : BaseJob
 {

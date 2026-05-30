@@ -14,7 +14,7 @@ namespace Shoko.Server.Repositories.Cached;
 
 public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_File_Episode, int>
 {
-    private IJobFactory? _jobFactory;
+    private IQueueScheduler? _scheduler;
 
     private PocoIndex<int, CrossRef_File_Episode, string>? _ed2k;
 
@@ -28,16 +28,16 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
     {
         EndSaveCallback = obj =>
         {
-            _jobFactory ??= serviceProvider.GetRequiredService<IJobFactory>();
-            _jobFactory.Execute<RefreshAnimeStatsJob>(j => j.AnimeID = obj.AnimeID).GetAwaiter().GetResult();
+            _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
+            _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = obj.AnimeID).GetAwaiter().GetResult();
         };
         EndDeleteCallback = obj =>
         {
             if (obj is not { AnimeID: > 0 }) return;
 
             logger.LogTrace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {AnimeID}", obj.AnimeID);
-            _jobFactory ??= serviceProvider.GetRequiredService<IJobFactory>();
-            _jobFactory.Execute<RefreshAnimeStatsJob>(j => j.AnimeID = obj.AnimeID).GetAwaiter().GetResult();
+            _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
+            _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = obj.AnimeID).GetAwaiter().GetResult();
         };
     }
 

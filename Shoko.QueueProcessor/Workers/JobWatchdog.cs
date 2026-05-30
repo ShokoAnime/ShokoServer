@@ -1,0 +1,104 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Orchestration;
+
+namespace Shoko.QueueProcessor.Workers;
+
+/// <summary>
+/// Background task that periodically scans executing jobs and logs a warning for any that have
+/// been running longer than the configured timeout. Jobs decorated with
+/// <see cref="LongRunningAttribute"/> are exempt.
+/// <para>
+/// When a stuck job last called <see cref="Abstractions.IJobFactory.Execute{T}"/>,
+/// the call stack captured at that point is included in the warning to help identify the deadlock
+/// site without requiring thread suspension.
+/// </para>
+/// </summary>
+internal sealed class JobWatchdog
+{
+    private readonly QueueOrchestrator _orchestrator;
+    private readonly ILogger _logger;
+    private readonly TimeSpan _timeout;
+    private readonly HashSet<Type> _exemptTypes;
+    private readonly HashSet<Guid> _alreadyWarned = [];
+    private Task? _watchTask;
+
+    private const int PollIntervalSeconds = 15;
+
+    internal JobWatchdog(
+        QueueOrchestrator orchestrator,
+        ILogger logger,
+        TimeSpan timeout,
+        IEnumerable<Type> allJobTypes)
+    {
+        _orchestrator = orchestrator;
+        _logger = logger;
+        _timeout = timeout;
+        _exemptTypes = allJobTypes
+            .Where(t => t.GetCustomAttribute<LongRunningAttribute>() is not null)
+            .ToHashSet();
+    }
+
+    internal void Start(CancellationToken ct)
+    {
+        _watchTask = Task.Run(() => RunAsync(ct), ct);
+    }
+
+    internal async Task StopAsync()
+    {
+        if (_watchTask != null)
+            await _watchTask.ConfigureAwait(false);
+    }
+
+    private async Task RunAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(PollIntervalSeconds), ct).ConfigureAwait(false);
+                Check();
+            }
+            catch (OperationCanceledException) { return; }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Watchdog check threw an unexpected exception");
+            }
+        }
+    }
+
+    private void Check()
+    {
+        var now = DateTime.UtcNow;
+        var executing = _orchestrator.GetExecuting();
+        var executingIds = executing.Select(e => e.Id).ToHashSet();
+
+        _alreadyWarned.RemoveWhere(id => !executingIds.Contains(id));
+
+        foreach (var entry in executing)
+        {
+            if (_exemptTypes.Contains(entry.JobType)) continue;
+
+            var elapsed = now - entry.StartedAt;
+            if (elapsed < _timeout) continue;
+            if (!_alreadyWarned.Add(entry.Id)) continue;
+
+            var subStack = SubExecutionTracker.GetStack(entry.Id);
+            if (subStack is not null)
+                _logger.LogWarning(
+                    "Job {Title} ({JobType}) [{JobKey}] has been running for {Elapsed:g} — possible deadlock. " +
+                    "Last IJobFactory.Execute call site:\n{Stack}",
+                    entry.Title, entry.JobType.Name, entry.JobKey, elapsed, subStack);
+            else
+                _logger.LogWarning(
+                    "Job {Title} ({JobType}) [{JobKey}] has been running for {Elapsed:g} — possible deadlock.",
+                    entry.Title, entry.JobType.Name, entry.JobKey, elapsed);
+        }
+    }
+}
