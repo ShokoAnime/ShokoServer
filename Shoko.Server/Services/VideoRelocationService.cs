@@ -47,7 +47,7 @@ public class VideoRelocationService(
     IConfigurationService configurationService,
     FileWatcherService fileWatcherService,
     VideoLocal_PlaceRepository videoLocalPlace,
-    StoredRelocationPipeRepository storedRelocationPipeRepository,
+    StoredRelocationPresetRepository storedRelocationPresetRepository,
     FileNameHashRepository fileNameHash,
     ShokoManagedFolderRepository managedFolders
 ) : IVideoRelocationService
@@ -70,11 +70,11 @@ public class VideoRelocationService(
     public event EventHandler? ProvidersUpdated;
 
     /// <inheritdoc/>
-    public event EventHandler<RelocationPipeEventArgs>? PipeStored;
+    public event EventHandler<RelocationPresetEventArgs>? PipeStored;
 
-    public event EventHandler<RelocationPipeEventArgs>? PipeUpdated;
+    public event EventHandler<RelocationPresetEventArgs>? PipeUpdated;
 
-    public event EventHandler<RelocationPipeEventArgs>? PipeDeleted;
+    public event EventHandler<RelocationPresetEventArgs>? PipeDeleted;
 
     public event EventHandler<VideoFileRelocatedEventArgs>? FileRelocated;
 
@@ -231,51 +231,51 @@ public class VideoRelocationService(
 
     #endregion
 
-    #region Pipes
+    #region Presets
 
-    public RelocationPipeInfo? GetDefaultPipe()
+    public RelocationPresetInfo? GetDefaultPipe()
     {
         var settings = settingsProvider.GetSettings();
         return GetStoredPipe(settings.Plugins.Renamer.DefaultRenamer);
     }
 
-    public IEnumerable<RelocationPipeInfo> GetStoredPipes(bool? available = null)
+    public IEnumerable<RelocationPresetInfo> GetStoredPipes(bool? available = null)
     {
-        var pipes = storedRelocationPipeRepository.GetAll()
-            .Select(pipe => new RelocationPipeInfo(this, configurationService, pipe));
-        if (available is null) return pipes;
-        return pipes.Where(p => p.ProviderInfo is null == available.Value);
+        var presets = storedRelocationPresetRepository.GetAll()
+            .Select(preset => new RelocationPresetInfo(this, configurationService, preset));
+        if (available is null) return presets;
+        return presets.Where(p => p.ProviderInfo is null == available.Value);
     }
 
-    public IReadOnlyList<RelocationPipeInfo> GetStoredPipes(Guid providerID)
-        => storedRelocationPipeRepository
+    public IReadOnlyList<RelocationPresetInfo> GetStoredPipes(Guid providerID)
+        => storedRelocationPresetRepository
             .GetByProviderID(providerID)
-            .Select(pipe => new RelocationPipeInfo(this, configurationService, pipe))
-            .OrderBy(pipe => pipe.Name)
-            .ThenBy(pipe => pipe.ID)
+            .Select(preset => new RelocationPresetInfo(this, configurationService, preset))
+            .OrderBy(preset => preset.Name)
+            .ThenBy(preset => preset.ID)
             .ToList();
 
-    public IReadOnlyList<RelocationPipeInfo> GetStoredPipes(IRelocationProvider provider)
+    public IReadOnlyList<RelocationPresetInfo> GetStoredPipes(IRelocationProvider provider)
         => GetStoredPipes(GetID(provider.GetType()));
 
-    public IReadOnlyList<RelocationPipeInfo> GetStoredPipes(IPlugin plugin)
+    public IReadOnlyList<RelocationPresetInfo> GetStoredPipes(IPlugin plugin)
         => GetProviderInfo(plugin)
             .SelectMany(info => GetStoredPipes(info.ID))
-            .OrderBy(pipe => pipe.Name)
-            .ThenBy(pipe => pipe.ID)
+            .OrderBy(preset => preset.Name)
+            .ThenBy(preset => preset.ID)
             .ToList();
 
-    public RelocationPipeInfo? GetStoredPipe(Guid pipeID)
-        => storedRelocationPipeRepository.GetByPipeID(pipeID) is { } pipe
-            ? new RelocationPipeInfo(this, configurationService, pipe)
+    public RelocationPresetInfo? GetStoredPipe(Guid pipeID)
+        => storedRelocationPresetRepository.GetByPresetID(pipeID) is { } preset
+            ? new RelocationPresetInfo(this, configurationService, preset)
             : null;
 
-    public RelocationPipeInfo? GetStoredPipe(string? name)
-        => storedRelocationPipeRepository.GetByName(name) is { } pipe
-            ? new RelocationPipeInfo(this, configurationService, pipe)
+    public RelocationPresetInfo? GetStoredPipe(string? name)
+        => storedRelocationPresetRepository.GetByName(name) is { } preset
+            ? new RelocationPresetInfo(this, configurationService, preset)
             : null;
 
-    public RelocationPipeInfo StorePipe(IRelocationProvider provider, string name, IRelocationProviderConfiguration? configuration = null, bool setDefault = false)
+    public RelocationPresetInfo StorePipe(IRelocationProvider provider, string name, IRelocationProviderConfiguration? configuration = null, bool setDefault = false)
     {
         ArgumentNullException.ThrowIfNull(provider);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -300,82 +300,82 @@ public class VideoRelocationService(
             throw new InvalidOperationException("Configuration is not supported by this provider.");
         }
 
-        var pipe = new StoredRelocationPipe()
+        var preset = new StoredRelocationPreset()
         {
             ProviderID = providerInfo.ID,
             Name = name,
             Configuration = configurationAsBytes,
         };
 
-        storedRelocationPipeRepository.Save(pipe);
+        storedRelocationPresetRepository.Save(preset);
 
-        if (setDefault || storedRelocationPipeRepository.GetAll().Count is 1)
+        if (setDefault || storedRelocationPresetRepository.GetAll().Count is 1)
         {
             var settings = settingsProvider.GetSettings();
-            if (settings.Plugins.Renamer.DefaultRenamer != pipe.Name)
+            if (settings.Plugins.Renamer.DefaultRenamer != preset.Name)
             {
-                settings.Plugins.Renamer.DefaultRenamer = pipe.Name;
+                settings.Plugins.Renamer.DefaultRenamer = preset.Name;
                 settingsProvider.SaveSettings();
 
                 Task.Run(() => ProvidersUpdated?.Invoke(this, EventArgs.Empty));
             }
         }
 
-        var pipeInfo = new RelocationPipeInfo(this, configurationService, pipe);
+        var pipeInfo = new RelocationPresetInfo(this, configurationService, preset);
 
-        Task.Run(() => PipeStored?.Invoke(this, new() { RelocationPipe = pipeInfo }));
+        Task.Run(() => PipeStored?.Invoke(this, new() { RelocationPreset = pipeInfo }));
 
         return pipeInfo;
     }
 
-    public RelocationPipeInfo StorePipe<TConfig>(IRelocationProvider<TConfig> provider, string name, TConfig configuration, bool setDefault = false) where TConfig : IRelocationProviderConfiguration
+    public RelocationPresetInfo StorePipe<TConfig>(IRelocationProvider<TConfig> provider, string name, TConfig configuration, bool setDefault = false) where TConfig : IRelocationProviderConfiguration
         => StorePipe(provider, name, configuration, setDefault);
 
-    public bool UpdatePipe(IStoredRelocationPipe pipe)
+    public bool UpdatePipe(IStoredRelocationPreset preset)
     {
-        if (storedRelocationPipeRepository.GetByPipeID(pipe.ID) is not { } storedPipe)
-            throw new InvalidOperationException("Stored pipe does not exist in the database.");
+        if (storedRelocationPresetRepository.GetByPresetID(preset.ID) is not { } storedPipe)
+            throw new InvalidOperationException("Stored preset does not exist in the database.");
 
         var updated = false;
-        if (pipe.Name != storedPipe.Name)
+        if (preset.Name != storedPipe.Name)
         {
-            var name = FindNextAvailableName(pipe.Name);
+            var name = FindNextAvailableName(preset.Name);
             storedPipe.Name = name;
             updated = true;
         }
         if (
-            (storedPipe.Configuration is null && pipe.Configuration is not null) ||
-            (storedPipe.Configuration is not null && pipe.Configuration is null) ||
-            (storedPipe.Configuration is not null && pipe.Configuration is not null && !storedPipe.Configuration.SequenceEqual(pipe.Configuration))
+            (storedPipe.Configuration is null && preset.Configuration is not null) ||
+            (storedPipe.Configuration is not null && preset.Configuration is null) ||
+            (storedPipe.Configuration is not null && preset.Configuration is not null && !storedPipe.Configuration.SequenceEqual(preset.Configuration))
         )
         {
             if (GetProviderInfo(storedPipe.ProviderID) is not { } providerInfo)
-                throw new InvalidOperationException("Attempted to update the configuration for a pipe with an unregistered provider.");
+                throw new InvalidOperationException("Attempted to update the configuration for a preset with an unregistered provider.");
 
             if (providerInfo.ConfigurationInfo is { } configurationInfo)
             {
-                if (pipe.Configuration is null)
+                if (preset.Configuration is null)
                     throw new InvalidOperationException("Cannot unset a configuration for a provider that does needs one.");
 
-                var validationErrors = configurationService.Validate(configurationInfo, Encoding.UTF8.GetString(pipe.Configuration));
+                var validationErrors = configurationService.Validate(configurationInfo, Encoding.UTF8.GetString(preset.Configuration));
                 if (validationErrors.Count > 0)
                     throw new ConfigurationValidationException("save", configurationInfo, validationErrors);
             }
             else
             {
-                if (pipe.Configuration is not null)
+                if (preset.Configuration is not null)
                     throw new InvalidOperationException("Cannot set a configuration for a provider that does not support one.");
             }
 
-            storedPipe.Configuration = pipe.Configuration;
+            storedPipe.Configuration = preset.Configuration;
             updated = true;
         }
 
         if (updated)
-            storedRelocationPipeRepository.Save(storedPipe);
+            storedRelocationPresetRepository.Save(storedPipe);
 
         var settings = settingsProvider.GetSettings();
-        if (!storedPipe.IsDefault && (pipe.IsDefault || storedRelocationPipeRepository.GetAll().Count is 1))
+        if (!storedPipe.IsDefault && (preset.IsDefault || storedRelocationPresetRepository.GetAll().Count is 1))
         {
             if (settings.Plugins.Renamer.DefaultRenamer != storedPipe.Name)
             {
@@ -388,29 +388,29 @@ public class VideoRelocationService(
 
         if (updated)
         {
-            Task.Run(() => PipeUpdated?.Invoke(this, new() { RelocationPipe = new RelocationPipeInfo(this, configurationService, storedPipe) }));
+            Task.Run(() => PipeUpdated?.Invoke(this, new() { RelocationPreset = new RelocationPresetInfo(this, configurationService, storedPipe) }));
         }
 
         return updated;
     }
 
-    public void DeletePipe(IStoredRelocationPipe pipe)
+    public void DeletePipe(IStoredRelocationPreset preset)
     {
-        if (storedRelocationPipeRepository.GetByPipeID(pipe.ID) is not { } storedPipe)
-            throw new InvalidOperationException("Stored pipe does not exist in the database.");
+        if (storedRelocationPresetRepository.GetByPresetID(preset.ID) is not { } storedPipe)
+            throw new InvalidOperationException("Stored preset does not exist in the database.");
 
         if (storedPipe.IsDefault)
-            throw new InvalidOperationException("The default relocation pipe cannot be deleted.");
+            throw new InvalidOperationException("The default relocation preset cannot be deleted.");
 
-        storedRelocationPipeRepository.Delete(storedPipe);
+        storedRelocationPresetRepository.Delete(storedPipe);
 
-        Task.Run(() => PipeDeleted?.Invoke(this, new() { RelocationPipe = new RelocationPipeInfo(this, configurationService, storedPipe) }));
+        Task.Run(() => PipeDeleted?.Invoke(this, new() { RelocationPreset = new RelocationPresetInfo(this, configurationService, storedPipe) }));
     }
 
     private string FindNextAvailableName(string name)
     {
         name = name.Trim();
-        if (storedRelocationPipeRepository.GetByName(name) is null)
+        if (storedRelocationPresetRepository.GetByName(name) is null)
             return name;
         // Ensure the name is unique by appending "(copy)" or "(copy #X)"
         var index = 1;
@@ -429,7 +429,7 @@ public class VideoRelocationService(
         }
 
         var tempName = index is 1 ? $"{name} (copy)" : $"{name} (copy #{index})";
-        while (storedRelocationPipeRepository.GetByName(tempName) is not null)
+        while (storedRelocationPresetRepository.GetByName(tempName) is not null)
         {
             index++;
             if (index is >= 100)
@@ -522,8 +522,8 @@ public class VideoRelocationService(
             AllowRelocationInsideDestination = settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport,
         };
 
-        if (request is { Preview: true, Pipe: null })
-            return RelocationResponse.FromError("Cannot preview without a provided pipe.");
+        if (request is { Preview: true, Preset: null })
+            return RelocationResponse.FromError("Cannot preview without a provided preset.");
         if (request is { Move: false, Rename: false })
             return RelocationResponse.FromError("Rename and Move are both set to false. Nothing to do.");
 
@@ -618,7 +618,7 @@ public class VideoRelocationService(
         RelocationResponse result;
         try
         {
-            result = ProcessPipe(place, request.Pipe, request.Move, request.Rename, request.AllowRelocationInsideDestination, request.CancellationToken);
+            result = ProcessPipe(place, request.Preset, request.Move, request.Rename, request.AllowRelocationInsideDestination, request.CancellationToken);
         }
         catch (Exception ex)
         {
@@ -647,7 +647,7 @@ public class VideoRelocationService(
         }
     }
 
-    internal RelocationResponse ProcessPipe(IVideoFile place, IRelocationPipe? pipe = null, bool? move = null, bool? rename = null, bool? allowRelocationInsideDestination = null, CancellationToken? cancellationToken = null)
+    internal RelocationResponse ProcessPipe(IVideoFile place, IRelocationPreset? preset = null, bool? move = null, bool? rename = null, bool? allowRelocationInsideDestination = null, CancellationToken? cancellationToken = null)
     {
         var service = (IVideoRelocationService)this;
         var settings = settingsProvider.GetSettings();
@@ -667,7 +667,7 @@ public class VideoRelocationService(
         // Or if it's in a drop destination not also marked as a drop source and relocating inside destinations is disabled.
         if (managedFolder.DropFolderType is DropFolderType.Destination && !shouldAllowRelocationInsideDestination)
             return RelocationResponse.FromError("Not relocating file because it's in a drop destination not also marked as a drop source and relocating inside destinations is disabled.");
-        if (pipe is null)
+        if (preset is null)
         {
             var defaultRenamerName = settings.Plugins.Renamer.DefaultRenamer;
             if (string.IsNullOrWhiteSpace(defaultRenamerName))
@@ -677,11 +677,11 @@ public class VideoRelocationService(
             if (defaultPipe is null)
                 return RelocationResponse.FromError("No default renamer configured and no renamer config given.");
 
-            pipe = defaultPipe;
+            preset = defaultPipe;
         }
 
-        if (service.GetProviderInfo(pipe.ProviderID) is not { } providerInfo)
-            return RelocationResponse.FromError($"No relocation provider with ID \"{pipe.ProviderID}\" is unavailable or unknown.");
+        if (service.GetProviderInfo(preset.ProviderID) is not { } providerInfo)
+            return RelocationResponse.FromError($"No relocation provider with ID \"{preset.ProviderID}\" is unavailable or unknown.");
 
         var videoLocal = place.Video;
         var xrefs = videoLocal.CrossReferences;
@@ -727,8 +727,8 @@ public class VideoRelocationService(
         };
         if (providerInfo.ConfigurationInfo is { } configInfo)
         {
-            if (pipe.Configuration is null)
-                return RelocationResponse.FromError("Pipe is missing it's required configuration.");
+            if (preset.Configuration is null)
+                return RelocationResponse.FromError("Preset is missing it's required configuration.");
 
             var instanceInterface = providerInfo.Provider.GetType().GetInterfaces().FirstOrDefault(a => a.IsGenericType && a.GetGenericTypeDefinition() == typeof(IRelocationProvider<>))!;
             if (!_genericGetNewPaths.TryGetValue(instanceInterface, out var method))
@@ -736,7 +736,7 @@ public class VideoRelocationService(
             if (method == null)
                 return RelocationResponse.FromError($"Unable to find \"{nameof(IRelocationProvider.GetPath)}\" method on relocation provider \"{instanceInterface.FullName}\".");
 
-            var config = configurationService.Deserialize(configInfo, Encoding.UTF8.GetString(pipe.Configuration!));
+            var config = configurationService.Deserialize(configInfo, Encoding.UTF8.GetString(preset.Configuration!));
             var argsType = typeof(RelocationContext<>).MakeGenericType(configInfo.Type);
             args = (RelocationContext)ActivatorUtilities.CreateInstance(ISystemService.StaticServices, argsType, args, config);
 

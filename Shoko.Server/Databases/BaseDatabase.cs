@@ -313,7 +313,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
 
     private void CreateInitialRenameScript()
     {
-        if (RepoFactory.StoredRelocationPipe.GetAll().Any())
+        if (RepoFactory.StoredRelocationPreset.GetAll().Any())
             return;
 
         var configurationService = ISystemService.StaticServices.GetRequiredService<IConfigurationService>();
@@ -324,14 +324,14 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
                 configurationService.New(provider.ConfigurationInfo)
             )
         );
-        var pipe = new StoredRelocationPipe
+        var preset = new StoredRelocationPreset
         {
             Name = "Default",
             Configuration = configuration,
             ProviderID = provider.ID,
         };
 
-        RepoFactory.StoredRelocationPipe.Save(pipe);
+        RepoFactory.StoredRelocationPreset.Save(preset);
     }
 
     public void CreateInitialCustomTags()

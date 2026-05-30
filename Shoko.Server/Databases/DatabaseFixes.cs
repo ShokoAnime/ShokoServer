@@ -1265,7 +1265,7 @@ public class DatabaseFixes
             const string InsertCommand = "INSERT INTO StoredRelocationPipe (ProviderID, Name, Configuration) VALUES (:ProviderID, :Name, :Configuration);";
             const string DropCommand = "DROP TABLE IF EXISTS RenameScript; DROP TABLE IF EXISTS RenamerInstance;";
             string defaultName = null;
-            var rawPipes = new List<(StoredRelocationPipe Pipe, bool IsDefault)>();
+            var rawPipes = new List<(StoredRelocationPreset Preset, bool IsDefault)>();
             var settings = settingsProvider.GetSettings();
             var webAomRenamer = renamerService.GetProviderInfo<WebAOMRenamer>();
             var renamersByKey = renamerService.GetAvailableProviders()
@@ -1283,7 +1283,7 @@ public class DatabaseFixes
                 {
                     if (fields.Length is not 4)
                     {
-                        _logger.Warn("A RenameScript could not be converted to StoredRelocationPipe, but there wasn't enough data to log");
+                        _logger.Warn("A RenameScript could not be converted to StoredRelocationPreset, but there wasn't enough data to log");
                         continue;
                     }
 
@@ -1322,7 +1322,7 @@ public class DatabaseFixes
                                 continue;
                             }
 
-                            _logger.Warn("A RenameScript could not be converted to StoredRelocationPipe. Renamer name: " + renamerScript.ScriptName + " Renamer type: " + renamerScript.RenamerType + Environment.NewLine + "Script: " + Environment.NewLine + renamerScript.Script);
+                            _logger.Warn("A RenameScript could not be converted to StoredRelocationPreset. Renamer name: " + renamerScript.ScriptName + " Renamer type: " + renamerScript.RenamerType + Environment.NewLine + "Script: " + Environment.NewLine + renamerScript.Script);
 
                             continue;
                         }
@@ -1340,7 +1340,7 @@ public class DatabaseFixes
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warn(ex, "A RenameScript could not be converted to StoredRelocationPipe. Renamer name: " + renamerScript.ScriptName + " Renamer type: " + renamerScript.RenamerType + Environment.NewLine + "Script: " + Environment.NewLine + renamerScript.Script);
+                        _logger.Warn(ex, "A RenameScript could not be converted to StoredRelocationPreset. Renamer name: " + renamerScript.ScriptName + " Renamer type: " + renamerScript.RenamerType + Environment.NewLine + "Script: " + Environment.NewLine + renamerScript.Script);
                         continue;
                     }
                 }
@@ -1358,7 +1358,7 @@ public class DatabaseFixes
                 {
                     if (fields.Length is not 3)
                     {
-                        _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPipe, but there wasn't enough data to log");
+                        _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPreset, but there wasn't enough data to log");
                         continue;
                     }
                     var renamerConfig = new DBF_RenamerConfig
@@ -1387,7 +1387,7 @@ public class DatabaseFixes
                         }
                         if (providerInfo is null)
                         {
-                            _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPipe. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
+                            _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPreset. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
                             continue;
                         }
 
@@ -1396,7 +1396,7 @@ public class DatabaseFixes
                             var config = MessagePackSerializer.Typeless.Deserialize(renamerConfig.Settings);
                             if (config.GetType() != providerInfo.ConfigurationInfo.Type)
                             {
-                                _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPipe. Mismatched config type. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
+                                _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPreset. Mismatched config type. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
                                 continue;
                             }
                             configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(config as IConfiguration));
@@ -1406,7 +1406,7 @@ public class DatabaseFixes
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warn(ex, "A RenamerInstance could not be converted to StoredRelocationPipe. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
+                        _logger.Warn(ex, "A RenamerInstance could not be converted to StoredRelocationPreset. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
 
                         continue;
                     }
@@ -1418,24 +1418,24 @@ public class DatabaseFixes
                 defaultName = "Default";
                 rawPipes.Add((new() { Name = "Default", ProviderID = webAomRenamer.ID, Configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(configurationService.New<WebAOMSettings>())) }, true));
             }
-            var pipes = new List<StoredRelocationPipe>();
-            foreach (var pipeGroup in rawPipes.GroupBy(t => t.Pipe.Name.Trim()))
+            var presets = new List<StoredRelocationPreset>();
+            foreach (var pipeGroup in rawPipes.GroupBy(t => t.Preset.Name.Trim()))
             {
                 var index = 0;
-                foreach (var (pipe, isDefault) in pipeGroup)
+                foreach (var (preset, isDefault) in pipeGroup)
                 {
                     if (index > 0)
-                        pipe.Name += index is 1 ? " (copy)" : $" (copy #{index})";
+                        preset.Name += index is 1 ? " (copy)" : $" (copy #{index})";
                     if (isDefault)
-                        defaultName = pipe.Name;
+                        defaultName = preset.Name;
                     index++;
-                    pipes.Add(pipe);
+                    presets.Add(preset);
                 }
             }
             if (string.IsNullOrEmpty(defaultName))
-                defaultName = pipes[0].Name;
+                defaultName = presets[0].Name;
 
-            foreach (var renamer in pipes)
+            foreach (var renamer in presets)
             {
                 var command = session.CreateSQLQuery(InsertCommand);
                 command.SetParameter("ProviderID", renamer.ProviderID);

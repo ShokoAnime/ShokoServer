@@ -6,25 +6,25 @@ using Shoko.Server.Settings;
 #nullable enable
 namespace Shoko.Server.Models.Shoko;
 
-public class StoredRelocationPipe : IStoredRelocationPipe
+public class StoredRelocationPreset : IStoredRelocationPreset
 {
-    private int _storedRelocationPipeID;
+    private int _storedRelocationPresetID;
 
     private Guid? _id;
 
     #region Database Fields
 
     /// <summary>
-    /// Local ID of the relocation pipe. Used for database primary key and to
+    /// Local ID of the relocation preset. Used for database primary key and to
     /// construct the GUID.
     /// </summary>
-    public int StoredRelocationPipeID
+    public int StoredRelocationPresetID
     {
-        get => _storedRelocationPipeID;
+        get => _storedRelocationPresetID;
         set
         {
             _id = null;
-            _storedRelocationPipeID = value;
+            _storedRelocationPresetID = value;
         }
     }
 
@@ -37,7 +37,7 @@ public class StoredRelocationPipe : IStoredRelocationPipe
     #endregion
 
     public Guid ID
-        => _id ??= UuidUtility.GetV5($"StoredRelocationPipe-{StoredRelocationPipeID}");
+        => _id ??= UuidUtility.GetV5($"StoredRelocationPipe-{StoredRelocationPresetID}");
 
     public bool IsDefault
         => ISettingsProvider.Instance.GetSettings().Plugins.Renamer.DefaultRenamer == Name;

@@ -74,7 +74,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<CustomTagRepository>();
         services.AddCachedRepository<StoredReleaseInfoRepository>();
         services.AddCachedRepository<StoredReleaseInfo_MatchAttemptRepository>();
-        services.AddCachedRepository<StoredRelocationPipeRepository>();
+        services.AddCachedRepository<StoredRelocationPresetRepository>();
         services.AddCachedRepository<FilterPresetRepository>();
         services.AddCachedRepository<ShokoManagedFolderRepository>();
         services.AddCachedRepository<ShokoImageRepository>();

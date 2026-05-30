@@ -25,9 +25,9 @@ using Shoko.Server.Services;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
 
-using ApiRelocationPipe = Shoko.Server.API.v3.Models.Relocation.RelocationPipe;
+using ApiRelocationPreset = Shoko.Server.API.v3.Models.Relocation.RelocationPreset;
 using ApiRelocationResult = Shoko.Server.API.v3.Models.Relocation.RelocationResult;
-using RelocationPipe = Shoko.Abstractions.Video.Relocation.RelocationPipe;
+using RelocationPreset = Shoko.Abstractions.Video.Relocation.RelocationPreset;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
@@ -151,7 +151,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
 
     /// <summary>
     ///   Preview running a relocation provider on a batch of files, using the
-    ///   default pipe or the provided provider identified by ID and provided
+    ///   default preset or the provided provider identified by ID and provided
     ///   configuration — if the provider identified by ID necessitates it.
     /// </summary>
     /// <param name="body">
@@ -182,13 +182,13 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
         bool? allowRelocationInsideDestination = null
     )
     {
-        IRelocationPipe pipe;
+        IRelocationPreset preset;
         if (body is { ProviderID: null, Configuration: null or { Type: JTokenType.Null } })
         {
             if (relocationService.GetDefaultPipe() is not { ProviderInfo: { } } defaultPipe)
-                return ValidationProblem("Default RelocationPipe not available or otherwise unusable.", nameof(body.ProviderID));
+                return ValidationProblem("Default RelocationPreset not available or otherwise unusable.", nameof(body.ProviderID));
 
-            pipe = defaultPipe;
+            preset = defaultPipe;
         }
         else
         {
@@ -207,26 +207,26 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
                 var validationErrors = configurationService.Validate(providerInfo.ConfigurationInfo, data);
                 if (validationErrors.Count > 0)
                     return ValidationProblem(validationErrors, nameof(body.Configuration));
-                pipe = new RelocationPipe(providerInfo.ID, Encoding.UTF8.GetBytes(data));
+                preset = new RelocationPreset(providerInfo.ID, Encoding.UTF8.GetBytes(data));
             }
             else
             {
                 if (body.Configuration is not null and not { Type: JTokenType.Null })
                     return ValidationProblem("The RelocationProvider does not expect a configuration object.", nameof(body.Configuration));
-                pipe = new RelocationPipe(providerInfo.ID, null);
+                preset = new RelocationPreset(providerInfo.ID, null);
             }
         }
 
         return Ok(InternalBatchPreviewFiles(
             body.FileIDs,
-            pipe,
+            preset,
             move ?? relocationService.MoveOnImport,
             rename ?? relocationService.RenameOnImport,
             allowRelocationInsideDestination ?? relocationService.AllowRelocationInsideDestinationOnImport
         ));
     }
 
-    private IEnumerable<ApiRelocationResult> InternalBatchPreviewFiles(IEnumerable<int> fileLocationIDs, IRelocationPipe config, bool move, bool rename, bool allowRelocationInsideDestination)
+    private IEnumerable<ApiRelocationResult> InternalBatchPreviewFiles(IEnumerable<int> fileLocationIDs, IRelocationPreset config, bool move, bool rename, bool allowRelocationInsideDestination)
     {
         foreach (var videoID in fileLocationIDs)
         {
@@ -275,7 +275,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
                 IsSuccess = response.Success,
                 IsPreview = true,
                 IsRelocated = response.Moved || response.Renamed,
-                PipeName = config is StoredRelocationPipe stored ? stored.Name : null,
+                PipeName = config is StoredRelocationPreset stored ? stored.Name : null,
                 AbsolutePath = response.AbsolutePath,
                 ManagedFolderID = response.ManagedFolder?.ID,
                 RelativePath = response.RelativePath,
@@ -289,7 +289,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     #region Relocate
 
     /// <summary>
-    ///   Run the default relocation pipe on a batch of files.
+    ///   Run the default relocation preset on a batch of files.
     /// </summary>
     /// <param name="fileIDs">
     ///   The body with the file IDs to use.
@@ -322,12 +322,12 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
         [FromQuery] bool? allowRelocationInsideDestination = null
     )
     {
-        if (relocationService.GetDefaultPipe() is not { ProviderInfo: { } } pipe)
-            return ValidationProblem("Default RelocationPipe not available or otherwise unusable.");
+        if (relocationService.GetDefaultPipe() is not { ProviderInfo: { } } preset)
+            return ValidationProblem("Default RelocationPreset not available or otherwise unusable.");
 
         return Ok(InternalBatchRelocateFiles(fileIDs, new AutoRelocateRequest
         {
-            Pipe = pipe,
+            Preset = preset,
             DeleteEmptyDirectories = deleteEmptyDirectories && (move ?? relocationService.MoveOnImport),
             Move = move ?? relocationService.MoveOnImport,
             Rename = rename ?? relocationService.RenameOnImport,
@@ -337,7 +337,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
 
     private async IAsyncEnumerable<ApiRelocationResult> InternalBatchRelocateFiles(IEnumerable<int> fileIDs, AutoRelocateRequest request)
     {
-        var configName = request.Pipe is IStoredRelocationPipe stored ? stored.Name : null;
+        var configName = request.Preset is IStoredRelocationPreset stored ? stored.Name : null;
         foreach (var vlID in fileIDs)
         {
             if (videoService.GetVideoByID(vlID) is not VideoLocal vl)
@@ -426,35 +426,35 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
 
     #endregion
 
-    #region Pipes
+    #region Presets
 
     /// <summary>
-    ///   Gets a list of all relocation pipes.
+    ///   Gets a list of all relocation presets.
     /// </summary>
     /// <returns>
-    ///   A list of <see cref="ApiRelocationPipe"/>s.
+    ///   A list of <see cref="ApiRelocationPreset"/>s.
     /// </returns>
-    [HttpGet("Pipe")]
-    public ActionResult<List<ApiRelocationPipe>> GetAllRelocationPipes()
+    [HttpGet("Preset")]
+    public ActionResult<List<ApiRelocationPreset>> GetAllRelocationPresets()
         => relocationService.GetStoredPipes()
-            .Select(pipeInfo => new ApiRelocationPipe(pipeInfo, pipeInfo.ProviderInfo))
+            .Select(pipeInfo => new ApiRelocationPreset(pipeInfo, pipeInfo.ProviderInfo))
             .WhereNotNull()
             .ToList();
 
     /// <summary>
-    ///   Create a new relocation pipe from the given body.
+    ///   Create a new relocation preset from the given body.
     /// </summary>
     /// <param name="body">
-    ///   The details such as the name and provider of the pipe to be created,
+    ///   The details such as the name and provider of the preset to be created,
     ///   optionally with the configuration if the provider requires it, but
     ///   it can be left out to use a new configuration.
     /// </param>
     /// <returns>
-    ///   The newly created <see cref="ApiRelocationPipe"/>.
+    ///   The newly created <see cref="ApiRelocationPreset"/>.
     /// </returns>
     [Authorize("admin")]
-    [HttpPost("Pipe")]
-    public ActionResult<ApiRelocationPipe> NewRelocationPipe([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] CreateRelocationPipeBody body)
+    [HttpPost("Preset")]
+    public ActionResult<ApiRelocationPreset> NewRelocationPreset([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] CreateRelocationPresetBody body)
     {
         if (string.IsNullOrWhiteSpace(body.Name)) return BadRequest("Name is required");
         if (relocationService.GetProviderInfo(body.ProviderID) is not { } providerInfo)
@@ -489,43 +489,43 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
         }
         var pipeInfo = relocationService.StorePipe(providerInfo.Provider, body.Name, configuration, body.IsDefault);
 
-        return new ApiRelocationPipe(pipeInfo, pipeInfo.ProviderInfo);
+        return new ApiRelocationPreset(pipeInfo, pipeInfo.ProviderInfo);
     }
 
     /// <summary>
-    ///   Get the relocation pipe by the given pipe ID.
+    ///   Get the relocation preset by the given preset ID.
     /// </summary>
     /// <param name="pipeID">
-    ///   Relocation pipe ID.
+    ///   Relocation preset ID.
     /// </param>
     /// <returns>
-    ///   The <see cref="ApiRelocationPipe"/>.
+    ///   The <see cref="ApiRelocationPreset"/>.
     /// </returns>
-    [HttpGet("Pipe/{pipeID}")]
-    public ActionResult<ApiRelocationPipe> GetRelocationPipeByPipeID([FromRoute] Guid pipeID)
+    [HttpGet("Preset/{pipeID}")]
+    public ActionResult<ApiRelocationPreset> GetRelocationPresetByPipeID([FromRoute] Guid pipeID)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
-            return NotFound("Relocation pipe not found");
+            return NotFound("Relocation preset not found");
 
-        return new ApiRelocationPipe(pipeInfo, pipeInfo.ProviderInfo);
+        return new ApiRelocationPreset(pipeInfo, pipeInfo.ProviderInfo);
     }
 
     /// <summary>
-    ///   Modify the relocation pipe by the given pipe ID.
+    ///   Modify the relocation preset by the given preset ID.
     /// </summary>
     /// <param name="pipeID">
-    ///    Relocation pipe ID.
+    ///    Relocation preset ID.
     /// </param>
     /// <param name="body">
     ///   The details for what to update.
     /// </param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpPut("Pipe/{pipeID}")]
-    public ActionResult<ApiRelocationPipe> PutRelocationPipeByPipeID([FromRoute] Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ModifyRelocationPipeBody body)
+    [HttpPut("Preset/{pipeID}")]
+    public ActionResult<ApiRelocationPreset> PutRelocationPresetByPipeID([FromRoute] Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ModifyRelocationPresetBody body)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
-            return NotFound("Relocation pipe not found");
+            return NotFound("Relocation preset not found");
 
         var updated = false;
         if (!string.IsNullOrEmpty(body.Name) && pipeInfo.Name != body.Name)
@@ -541,56 +541,56 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
         if (updated)
             relocationService.UpdatePipe(pipeInfo);
 
-        return new ApiRelocationPipe(pipeInfo, pipeInfo.ProviderInfo);
+        return new ApiRelocationPreset(pipeInfo, pipeInfo.ProviderInfo);
     }
 
     /// <summary>
-    ///   Applies a JSON patch document to modify the relocation pipe by the
-    ///   given pipe ID.
+    ///   Applies a JSON patch document to modify the relocation preset by the
+    ///   given preset ID.
     /// </summary>
     /// <param name="pipeID">
-    ///   Relocation pipe ID.
+    ///   Relocation preset ID.
     /// </param>
     /// <param name="patchDocument">
     ///   A JSON Patch document containing the modifications to be applied to
-    ///   the relocation pipe.
+    ///   the relocation preset.
     /// </param>
     /// <returns>
-    ///   The newly updated <see cref="ApiRelocationPipe"/>.
+    ///   The newly updated <see cref="ApiRelocationPreset"/>.
     /// </returns>
     [Authorize("admin")]
-    [HttpPatch("Pipe/{pipeID}")]
-    public ActionResult<ApiRelocationPipe> PatchRelocationPipeByPipeID([FromRoute] Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<ModifyRelocationPipeBody> patchDocument)
+    [HttpPatch("Preset/{pipeID}")]
+    public ActionResult<ApiRelocationPreset> PatchRelocationPresetByPipeID([FromRoute] Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<ModifyRelocationPresetBody> patchDocument)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
-            return NotFound("Relocation pipe not found");
+            return NotFound("Relocation preset not found");
 
-        var body = new ModifyRelocationPipeBody() { Name = pipeInfo.Name, IsDefault = pipeInfo.IsDefault };
+        var body = new ModifyRelocationPresetBody() { Name = pipeInfo.Name, IsDefault = pipeInfo.IsDefault };
         patchDocument.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        return PutRelocationPipeByPipeID(pipeID, body);
+        return PutRelocationPresetByPipeID(pipeID, body);
     }
 
     /// <summary>
-    /// Delete the relocation pipe by the given pipe ID.
+    /// Delete the relocation preset by the given preset ID.
     /// </summary>
     /// <param name="pipeID">
-    ///   Relocation pipe ID.
+    ///   Relocation preset ID.
     /// </param>
     /// <returns>
     ///   No content.
     /// </returns>
     [Authorize("admin")]
-    [HttpDelete("Pipe/{pipeID}")]
-    public ActionResult DeleteRelocationPipeByPipeID([FromRoute] Guid pipeID)
+    [HttpDelete("Preset/{pipeID}")]
+    public ActionResult DeleteRelocationPresetByPipeID([FromRoute] Guid pipeID)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
-            return NotFound("Relocation pipe not found");
+            return NotFound("Relocation preset not found");
 
         if (pipeInfo.IsDefault)
-            return BadRequest("The default relocation pipe cannot be deleted.");
+            return BadRequest("The default relocation preset cannot be deleted.");
 
         relocationService.DeletePipe(pipeInfo);
 
@@ -598,34 +598,34 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     }
 
     /// <summary>
-    ///   Get the relocation provider by the given pipe ID.
+    ///   Get the relocation provider by the given preset ID.
     /// </summary>
     /// <param name="pipeID">
-    ///   Relocation pipe ID.
+    ///   Relocation preset ID.
     /// </param>
     /// <returns>
-    ///   The <see cref="RelocationProvider"/> for the pipe.
+    ///   The <see cref="RelocationProvider"/> for the preset.
     /// </returns>
-    [HttpGet("Pipe/{pipeID}/Provider")]
+    [HttpGet("Preset/{pipeID}/Provider")]
     public ActionResult<RelocationProvider> GetRelocationProviderByPipeID([FromRoute] Guid pipeID)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
-            return NotFound("Relocation pipe not found");
+            return NotFound("Relocation preset not found");
 
         if (pipeInfo.ProviderInfo is not { } providerInfo)
-            return NotFound("Relocation provider not found for relocation pipe.");
+            return NotFound("Relocation provider not found for relocation preset.");
 
         return new RelocationProvider(providerInfo);
     }
 
-    #region Pipes | Preview
+    #region Presets | Preview
 
     /// <summary>
-    ///   Preview what would happen if you were to apply the relocation pipe by
-    ///   the given pipe ID to the given files.
+    ///   Preview what would happen if you were to apply the relocation preset by
+    ///   the given preset ID to the given files.
     /// </summary>
     /// <param name="pipeID">
-    ///   Relocation pipe ID.
+    ///   Relocation preset ID.
     /// </param>
     /// <param name="fileIDs">
     ///   The file IDs to preview.
@@ -646,7 +646,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     ///   A stream of <see cref="ApiRelocationResult"/>s.
     /// </returns>
     [Authorize("admin")]
-    [HttpPost("Pipe/{pipeID}/Preview")]
+    [HttpPost("Preset/{pipeID}/Preview")]
     public ActionResult<IEnumerable<ApiRelocationResult>> BatchRelocateFilesByScriptID(
         [FromRoute] Guid pipeID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<int> fileIDs,
@@ -656,7 +656,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     )
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
-            return NotFound("Relocation pipe not found");
+            return NotFound("Relocation preset not found");
 
         return Ok(InternalBatchPreviewFiles(
             fileIDs,
@@ -669,13 +669,13 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
 
     #endregion
 
-    #region Pipes | Relocate
+    #region Presets | Relocate
 
     /// <summary>
-    ///   Relocate the files with the relocation pipe by the given pipe ID.
+    ///   Relocate the files with the relocation preset by the given preset ID.
     /// </summary>
     /// <param name="pipeID">
-    ///   Relocation pipe ID.
+    ///   Relocation preset ID.
     /// </param>
     /// <param name="fileIDs">
     ///   The file IDs to relocate.
@@ -699,7 +699,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     ///   A stream of <see cref="ApiRelocationResult"/>s.
     /// </returns>
     [Authorize("admin")]
-    [HttpPost("Pipe/{pipeID}/Relocate")]
+    [HttpPost("Preset/{pipeID}/Relocate")]
     public ActionResult<IAsyncEnumerable<ApiRelocationResult>> BatchRelocateFilesByConfig(
         [FromRoute] Guid pipeID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] IEnumerable<int> fileIDs,
@@ -710,12 +710,12 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     )
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
-            return NotFound("Relocation pipe not found");
+            return NotFound("Relocation preset not found");
 
         return Ok(
             InternalBatchRelocateFiles(fileIDs, new AutoRelocateRequest
             {
-                Pipe = pipeInfo,
+                Preset = pipeInfo,
                 DeleteEmptyDirectories = deleteEmptyDirectories,
                 Move = move ?? relocationService.MoveOnImport,
                 Rename = rename ?? relocationService.RenameOnImport,
@@ -729,26 +729,26 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     #region Relocation | Configuration
 
     /// <summary>
-    ///   Get the current configuration for the relocation pipe with the given
+    ///   Get the current configuration for the relocation preset with the given
     ///   ID.
     /// </summary>
     /// <param name="pipeID">
-    ///   Relocation pipe ID.
+    ///   Relocation preset ID.
     /// </param>
     /// <returns>
-    ///   The current configuration for the relocation pipe.
+    ///   The current configuration for the relocation preset.
     /// </returns>
     [Produces("application/json")]
-    [HttpGet("Pipe/{pipeID}/Configuration")]
-    public ActionResult GetConfigurationForRelocationPipeByPipeID(Guid pipeID)
+    [HttpGet("Preset/{pipeID}/Configuration")]
+    public ActionResult GetConfigurationForRelocationPresetByPipeID(Guid pipeID)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
-            return NotFound("Relocation pipe not found");
+            return NotFound("Relocation preset not found");
 
         if (pipeInfo.ProviderInfo is not { } providerInfo)
         {
             if (pipeInfo.Configuration is null)
-                return NotFound("Relocation provider not found for relocation pipe.");
+                return NotFound("Relocation provider not found for relocation preset.");
 
             // Support showing the configuration in the REST API even if the provider is unavailable.
             return Content(Encoding.UTF8.GetString(pipeInfo.Configuration!), "application/json");
@@ -769,11 +769,11 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     }
 
     /// <summary>
-    ///   Overwrite the contents of the configuration for the relocation pipe
+    ///   Overwrite the contents of the configuration for the relocation preset
     ///   with the given ID.
     /// </summary>
     /// <param name="pipeID">
-    ///   Relocation pipe ID.
+    ///   Relocation preset ID.
     /// </param>
     /// <param name="body">
     ///   The new configuration.
@@ -781,11 +781,11 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     /// <returns>
     ///   Ok if successful.
     /// </returns>
-    [HttpPut("Pipe/{pipeID}/Configuration")]
-    public ActionResult PutConfigurationForRelocationPipeByPipeID(Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body)
+    [HttpPut("Preset/{pipeID}/Configuration")]
+    public ActionResult PutConfigurationForRelocationPresetByPipeID(Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
-            return NotFound("Relocation pipe not found");
+            return NotFound("Relocation preset not found");
 
         try
         {
@@ -801,11 +801,11 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     }
 
     /// <summary>
-    ///   Patches the configuration for the relocation pipe with the given ID
+    ///   Patches the configuration for the relocation preset with the given ID
     ///   using a JSON patch document.
     /// </summary>
     /// <param name="pipeID">
-    ///   Relocation pipe ID.
+    ///   Relocation preset ID.
     /// </param>
     /// <param name="patchDocument">
     ///   JSON patch document with operations to apply.
@@ -813,11 +813,11 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     /// <returns>
     ///   Ok if successful.
     /// </returns>
-    [HttpPatch("Pipe/{pipeID}/Configuration")]
-    public ActionResult PatchConfigurationForRelocationPipeByPipeID(Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument patchDocument)
+    [HttpPatch("Preset/{pipeID}/Configuration")]
+    public ActionResult PatchConfigurationForRelocationPresetByPipeID(Guid pipeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument patchDocument)
     {
         if (relocationService.GetStoredPipe(pipeID) is not { } pipeInfo)
-            return NotFound("Relocation pipe not found");
+            return NotFound("Relocation preset not found");
 
         try
         {

@@ -11,7 +11,7 @@ using Shoko.Abstractions.Video.Relocation;
 namespace Shoko.Abstractions.Video.Services;
 
 /// <summary>
-///   Service responsible for managing relocation pipes and relocating video
+///   Service responsible for managing relocation presets and relocating video
 ///   files.
 /// </summary>
 public interface IVideoRelocationService
@@ -24,19 +24,19 @@ public interface IVideoRelocationService
     event EventHandler? ProvidersUpdated;
 
     /// <summary>
-    ///   Event raised when a new relocation pipe has been stored in the database.
+    ///   Event raised when a new relocation preset has been stored in the database.
     /// </summary>
-    event EventHandler<RelocationPipeEventArgs>? PipeStored;
+    event EventHandler<RelocationPresetEventArgs>? PipeStored;
 
     /// <summary>
-    ///   Event raised when an existing relocation pipe has been updated in the database.
+    ///   Event raised when an existing relocation preset has been updated in the database.
     /// </summary>
-    event EventHandler<RelocationPipeEventArgs>? PipeUpdated;
+    event EventHandler<RelocationPresetEventArgs>? PipeUpdated;
 
     /// <summary>
-    ///   Event raised when an existing relocation pipe has been deleted from the database.
+    ///   Event raised when an existing relocation preset has been deleted from the database.
     /// </summary>
-    event EventHandler<RelocationPipeEventArgs>? PipeDeleted;
+    event EventHandler<RelocationPresetEventArgs>? PipeDeleted;
 
     /// <summary>
     ///   Event raised when a video file has been relocated.
@@ -76,10 +76,10 @@ public interface IVideoRelocationService
     ///   This should be called once per instance of the service, and will be
     ///   called during start-up. Calling it multiple times will have no effect.
     /// </remarks>
-    /// <param name="pipes">
-    ///   The hash pipes.
+    /// <param name="parts">
+    ///   The relocation providers.
     /// </param>
-    void AddParts(IEnumerable<IRelocationProvider> pipes);
+    void AddParts(IEnumerable<IRelocationProvider> parts);
 
     /// <summary>
     ///   Gets all providers that are available.
@@ -150,100 +150,100 @@ public interface IVideoRelocationService
 
     #endregion
 
-    #region Pipes
+    #region Presets
 
     /// <summary>
-    ///   Gets the default pipe.
+    ///   Gets the default preset.
     /// </summary>
     /// <returns>
-    ///   The <see cref="RelocationPipeInfo"/> for the default pipe, or
+    ///   The <see cref="RelocationPresetInfo"/> for the default preset, or
     ///   <c>null</c> if currently not set.
     /// </returns>
-    RelocationPipeInfo? GetDefaultPipe();
+    RelocationPresetInfo? GetDefaultPipe();
 
     /// <summary>
-    ///   Gets all stored pipes, optionally filtered by availability.
+    ///   Gets all stored presets, optionally filtered by availability.
     /// </summary>
     /// <param name="available">
-    ///   If <c>true</c>, only returns available pipes.
-    ///   If <c>false</c>, only returns unavailable pipes.
+    ///   If <c>true</c>, only returns available presets.
+    ///   If <c>false</c>, only returns unavailable presets.
     /// </param>
     /// <returns>
-    ///   The stored pipes.
+    ///   The stored presets.
     /// </returns>
-    IEnumerable<RelocationPipeInfo> GetStoredPipes(bool? available = null);
+    IEnumerable<RelocationPresetInfo> GetStoredPipes(bool? available = null);
 
     /// <summary>
-    ///   Gets the <see cref="RelocationPipeInfo"/> for a given provider by ID.
+    ///   Gets the <see cref="RelocationPresetInfo"/> for a given provider by ID.
     /// </summary>
     /// <param name="providerID">
     ///   The provider ID.
     /// </param>
     /// <returns>
-    ///   The stored pipes.
+    ///   The stored presets.
     /// </returns>
-    IReadOnlyList<RelocationPipeInfo> GetStoredPipes(Guid providerID);
+    IReadOnlyList<RelocationPresetInfo> GetStoredPipes(Guid providerID);
 
     /// <summary>
-    ///   Gets the <see cref="RelocationPipeInfo"/> for a given provider by ID.
+    ///   Gets the <see cref="RelocationPresetInfo"/> for a given provider by ID.
     /// </summary>
     /// <param name="provider">
     ///   The provider.
     /// </param>
     /// <returns>
-    ///   The stored pipes.
+    ///   The stored presets.
     /// </returns>
-    IReadOnlyList<RelocationPipeInfo> GetStoredPipes(IRelocationProvider provider);
+    IReadOnlyList<RelocationPresetInfo> GetStoredPipes(IRelocationProvider provider);
 
     /// <summary>
-    ///   Gets the <see cref="RelocationPipeInfo"/> for a given plugin.
+    ///   Gets the <see cref="RelocationPresetInfo"/> for a given plugin.
     /// </summary>
     /// <param name="plugin">
     ///   The plugin.
     /// </param>
     /// <returns>
-    ///   The stored pipes.
+    ///   The stored presets.
     /// </returns>
-    IReadOnlyList<RelocationPipeInfo> GetStoredPipes(IPlugin plugin);
+    IReadOnlyList<RelocationPresetInfo> GetStoredPipes(IPlugin plugin);
 
     /// <summary>
-    ///   Gets the <see cref="RelocationPipeInfo"/> for a given pipe ID.
+    ///   Gets the <see cref="RelocationPresetInfo"/> for a given preset ID.
     /// </summary>
     /// <param name="pipeID">
-    ///   The pipe ID.
+    ///   The preset ID.
     /// </param>
     /// <returns>
-    ///   The <see cref="RelocationPipeInfo"/> for the stored pipe, if it's
+    ///   The <see cref="RelocationPresetInfo"/> for the stored preset, if it's
     ///   available in the database, otherwise <c>null</c>.
     /// </returns>
-    RelocationPipeInfo? GetStoredPipe(Guid pipeID);
+    RelocationPresetInfo? GetStoredPipe(Guid pipeID);
 
     /// <summary>
-    ///   Gets the <see cref="RelocationPipeInfo"/> for a given pipe name.
+    ///   Gets the <see cref="RelocationPresetInfo"/> for a given preset name.
     /// </summary>
     /// <param name="name">
-    ///   The pipe name.
+    ///   The preset name.
     /// </param>
     /// <returns>
-    ///   The <see cref="RelocationPipeInfo"/> for the stored pipe, if it's
+    ///   The <see cref="RelocationPresetInfo"/> for the stored preset, if it's
     ///   available in the database, otherwise <c>null</c>.
     /// </returns>
-    RelocationPipeInfo? GetStoredPipe(string? name);
+    RelocationPresetInfo? GetStoredPipe(string? name);
 
     /// <summary>
-    ///   Store a new pipe.
+    ///   Store a new preset.
     /// </summary>
     /// <param name="provider">
-    ///   The provider to store a new pipe for.
+    ///   The provider to store a new preset for.
     /// </param>
     /// <param name="name">
-    ///   The friendly name of the pipe. Must be non-empty.
+    ///   The friendly name of the preset. Must be non-empty.
     /// </param>
     /// <param name="configuration">
     ///   The configuration to store.
     /// </param>
     /// <param name="setDefault">
-    ///   Set the new pipe as the default pipe.
+    ///   Set the new preset as the default preset.
     /// </param>
     /// <exception cref="ConfigurationValidationException">
     ///   Thrown when a configuration fails validation.
@@ -258,24 +258,24 @@ public interface IVideoRelocationService
     ///   The configuration is invalid for the provider.
     /// </exception>
     /// <returns>
-    ///   The <see cref="RelocationPipeInfo"/> for the newly stored pipe.
+    ///   The <see cref="RelocationPresetInfo"/> for the newly stored preset.
     /// </returns>
-    RelocationPipeInfo StorePipe(IRelocationProvider provider, string name, IRelocationProviderConfiguration? configuration = null, bool setDefault = false);
+    RelocationPresetInfo StorePipe(IRelocationProvider provider, string name, IRelocationProviderConfiguration? configuration = null, bool setDefault = false);
 
     /// <summary>
-    ///   Store a new pipe.
+    ///   Store a new preset.
     /// </summary>
     /// <param name="provider">
-    ///   The provider to store a new pipe for.
+    ///   The provider to store a new preset for.
     /// </param>
     /// <param name="name">
-    ///   The friendly name of the pipe. Must be non-empty.
+    ///   The friendly name of the preset. Must be non-empty.
     /// </param>
     /// <param name="configuration">
     ///   The configuration to store.
     /// </param>
     /// <param name="setDefault">
-    ///   Set the new pipe as the default pipe.
+    ///   Set the new preset as the default preset.
     /// </param>
     /// <exception cref="ConfigurationValidationException">
     ///   Thrown when a configuration fails validation.
@@ -290,47 +290,47 @@ public interface IVideoRelocationService
     ///   The configuration is invalid for the provider.
     /// </exception>
     /// <returns>
-    ///   The <see cref="RelocationPipeInfo"/> for the newly stored pipe.
+    ///   The <see cref="RelocationPresetInfo"/> for the newly stored preset.
     /// </returns>
-    RelocationPipeInfo StorePipe<TConfig>(IRelocationProvider<TConfig> provider, string name, TConfig configuration, bool setDefault = false) where TConfig : IRelocationProviderConfiguration;
+    RelocationPresetInfo StorePipe<TConfig>(IRelocationProvider<TConfig> provider, string name, TConfig configuration, bool setDefault = false) where TConfig : IRelocationProviderConfiguration;
 
     /// <summary>
-    ///   Updates the saved pipe with the new details.
+    ///   Updates the saved preset with the new details.
     /// </summary>
-    /// <param name="pipe">
-    ///   The pipe to update.
+    /// <param name="preset">
+    ///   The preset to update.
     /// </param>
     /// <exception cref="ConfigurationValidationException">
     ///   Thrown when a configuration fails validation.
     /// </exception>
     /// <exception cref="ArgumentException">
-    ///   <paramref name="pipe"/> is not stored in the database.
+    ///   <paramref name="preset"/> is not stored in the database.
     /// </exception>
     /// <exception cref="ArgumentNullException">
-    ///   <paramref name="pipe"/> is <c>null</c>.
+    ///   <paramref name="preset"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     ///   The configuration is invalid for the provider.
     /// </exception>
     /// <returns>
-    ///   <c>true</c> if the pipe was updated, <c>false</c> otherwise.
+    ///   <c>true</c> if the preset was updated, <c>false</c> otherwise.
     /// </returns>
-    bool UpdatePipe(IStoredRelocationPipe pipe);
+    bool UpdatePipe(IStoredRelocationPreset preset);
 
     /// <summary>
-    ///   Deletes the given pipe.
+    ///   Deletes the given preset.
     /// </summary>
-    /// <param name="pipe">
-    ///   The pipe to delete.
+    /// <param name="preset">
+    ///   The preset to delete.
     /// </param>
     /// <returns>
-    ///   <c>true</c> if the pipe was deleted, <c>false</c> otherwise.
+    ///   <c>true</c> if the preset was deleted, <c>false</c> otherwise.
     /// </returns>
     /// <exception cref="InvalidOperationException">
-    ///   Thrown when attempting to delete the currently in-use default pipe or
-    ///   the pipe is not stored in the database.
+    ///   Thrown when attempting to delete the currently in-use default preset or
+    ///   the preset is not stored in the database.
     /// </exception>
-    void DeletePipe(IStoredRelocationPipe pipe);
+    void DeletePipe(IStoredRelocationPreset preset);
 
     #endregion
 
@@ -338,7 +338,7 @@ public interface IVideoRelocationService
 
     /// <summary>
     ///   Schedules a job to relocate all files for a video using the default
-    ///   relocation pipe.
+    ///   relocation preset.
     /// </summary>
     /// <param name="video">
     ///   The video to schedule the files for potential relocation.
@@ -355,7 +355,7 @@ public interface IVideoRelocationService
 
     /// <summary>
     ///   Schedules a job to relocate the video file using the default
-    ///   relocation pipe.
+    ///   relocation preset.
     /// </summary>
     /// <param name="file">
     ///   The video file to schedule for potential relocation.

@@ -10,37 +10,37 @@ using Shoko.Abstractions.Video.Services;
 namespace Shoko.Abstractions.Video.Relocation;
 
 /// <summary>
-///   An info object representing a relocation pipe with extra helpers utilizing
-///   the services.
+///   An info object representing a relocation preset with extra helpers
+///   utilizing the services.
 /// </summary>
 /// <param name="relocationService">The relocation service.</param>
 /// <param name="configurationService">The configuration service.</param>
-/// <param name="pipe">The stored relocation pipe to get the initial details from.</param>
-public class RelocationPipeInfo(IVideoRelocationService relocationService, IConfigurationService configurationService, IRelocationPipe pipe) : IStoredRelocationPipe
+/// <param name="preset">The stored relocation preset to get the initial details from.</param>
+public class RelocationPresetInfo(IVideoRelocationService relocationService, IConfigurationService configurationService, IRelocationPreset preset) : IStoredRelocationPreset
 {
     private readonly IVideoRelocationService _relocationService = relocationService;
 
     private readonly IConfigurationService _configurationService = configurationService;
 
     /// <inheritdoc/>
-    public Guid ID { get; init; } = pipe is IStoredRelocationPipe stored ? stored.ID : Guid.Empty;
+    public Guid ID { get; init; } = preset is IStoredRelocationPreset stored ? stored.ID : Guid.Empty;
 
     /// <inheritdoc/>
-    public Guid ProviderID { get; init; } = pipe.ProviderID;
+    public Guid ProviderID { get; init; } = preset.ProviderID;
 
     /// <inheritdoc/>
-    public string Name { get; set; } = pipe is IStoredRelocationPipe stored ? stored.Name : string.Empty;
+    public string Name { get; set; } = preset is IStoredRelocationPreset stored ? stored.Name : string.Empty;
 
     /// <inheritdoc/>
-    public byte[]? Configuration { get; private set; } = pipe.Configuration;
+    public byte[]? Configuration { get; private set; } = preset.Configuration;
 
     /// <inheritdoc/>
-    public bool IsDefault { get; set; } = pipe is IStoredRelocationPipe stored && stored.IsDefault;
+    public bool IsDefault { get; set; } = preset is IStoredRelocationPreset stored && stored.IsDefault;
 
     /// <summary>
-    ///   Gets the relocation pipe.
+    ///   Gets the relocation preset.
     /// </summary>
-    public IRelocationPipe Pipe { get; set; } = pipe;
+    public IRelocationPreset Preset { get; set; } = preset;
 
     private RelocationProviderInfo? _providerInfo;
 
@@ -52,7 +52,7 @@ public class RelocationPipeInfo(IVideoRelocationService relocationService, IConf
         => _providerInfo ??= _relocationService.GetProviderInfo(ProviderID);
 
     /// <summary>
-    ///   Attempts to load the configuration for the stored relocation pipe.
+    ///   Attempts to load the configuration for the stored relocation preset.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     ///   Thrown when the provider is currently unavailable or does not support
@@ -65,7 +65,7 @@ public class RelocationPipeInfo(IVideoRelocationService relocationService, IConf
     public IConfiguration LoadConfiguration()
     {
         if (ProviderInfo is not { } providerInfo)
-            throw new InvalidOperationException("Cannot load the configuration for a pipe with an unregistered provider.");
+            throw new InvalidOperationException("Cannot load the configuration for a preset with an unregistered provider.");
 
         if (providerInfo.ConfigurationInfo is null)
             throw new InvalidOperationException("Cannot load the configuration for a provider that does not support one.");
@@ -85,7 +85,7 @@ public class RelocationPipeInfo(IVideoRelocationService relocationService, IConf
     }
 
     /// <summary>
-    ///   Save the configuration for the stored relocation pipe.
+    ///   Save the configuration for the stored relocation preset.
     /// </summary>
     /// <param name="json">
     ///   The stringified JSON of the configuration to save. Can be null if the
@@ -139,7 +139,7 @@ public class RelocationPipeInfo(IVideoRelocationService relocationService, IConf
     }
 
     /// <summary>
-    ///   Save the configuration for the stored relocation pipe.
+    ///   Save the configuration for the stored relocation preset.
     /// </summary>
     /// <param name="configuration">
     ///   The configuration to save.

@@ -65,7 +65,7 @@ public class RepoFactory
     public static ShokoImageRepository ShokoImage;
     public static ShokoManagedFolderRepository ShokoManagedFolder;
     public static StoredReleaseInfoRepository StoredReleaseInfo;
-    public static StoredRelocationPipeRepository StoredRelocationPipe;
+    public static StoredRelocationPresetRepository StoredRelocationPreset;
     public static StoredReleaseInfo_MatchAttemptRepository StoredReleaseInfo_MatchAttempt;
     public static TMDB_AlternateOrdering_EpisodeRepository TMDB_AlternateOrdering_Episode;
     public static TMDB_AlternateOrdering_SeasonRepository TMDB_AlternateOrdering_Season;
@@ -138,7 +138,7 @@ public class RepoFactory
         ShokoImage_EntityRepository shokoImageEntity,
         ShokoImageRepository shokoImage,
         ShokoManagedFolderRepository shokoManagedFolder,
-        StoredRelocationPipeRepository storedRelocationPipe,
+        StoredRelocationPresetRepository storedRelocationPreset,
         StoredReleaseInfoRepository storedReleaseInfo,
         StoredReleaseInfo_MatchAttemptRepository storedReleaseInfoMatchAttempt,
         TMDB_AlternateOrdering_EpisodeRepository tmdbAlternateOrderingEpisode,
@@ -213,7 +213,7 @@ public class RepoFactory
         ShokoImage_Entity = shokoImageEntity;
         ShokoManagedFolder = shokoManagedFolder;
         StoredReleaseInfo = storedReleaseInfo;
-        StoredRelocationPipe = storedRelocationPipe;
+        StoredRelocationPreset = storedRelocationPreset;
         StoredReleaseInfo_MatchAttempt = storedReleaseInfoMatchAttempt;
         TMDB_AlternateOrdering = tmdbAlternateOrdering;
         TMDB_AlternateOrdering_Episode = tmdbAlternateOrderingEpisode;

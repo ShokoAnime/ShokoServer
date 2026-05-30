@@ -3,13 +3,13 @@ using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Mappings;
 
-public class StoredRelocationPipeMap : ClassMap<StoredRelocationPipe>
+public class StoredRelocationPresetMap : ClassMap<StoredRelocationPreset>
 {
-    public StoredRelocationPipeMap()
+    public StoredRelocationPresetMap()
     {
         Table("StoredRelocationPipe");
         Not.LazyLoad();
-        Id(x => x.StoredRelocationPipeID);
+        Id(x => x.StoredRelocationPresetID).Column("StoredRelocationPipeID");
 
         Map(x => x.ProviderID).Not.Nullable();
         Map(x => x.Name).Not.Nullable();

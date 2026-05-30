@@ -3,17 +3,17 @@
 namespace Shoko.Server.API.v3.Models.Relocation.Input;
 
 /// <summary>
-///   Represents the information required to modify a relocation pipe.
+///   Represents the information required to modify a relocation preset.
 /// </summary>
-public class ModifyRelocationPipeBody
+public class ModifyRelocationPresetBody
 {
     /// <summary>
-    ///   Update the name of the pipe.
+    ///   Update the name of the preset.
     /// </summary>
     public string? Name { get; set; }
 
     /// <summary>
-    ///   Whether or not to set this pipe as the default pipe.
+    ///   Whether or not to set this preset as the default preset.
     /// </summary>
     public bool? IsDefault { get; set; }
 }
