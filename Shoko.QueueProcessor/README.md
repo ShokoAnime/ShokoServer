@@ -216,6 +216,7 @@ public class HashFileJob : IQueueJob
 | `[DisallowConcurrentExecution]` | Shorthand for `[LimitConcurrency(1)]`. |
 | `[Acquisition(priority: N)]` | Sets the pool's dispatch priority. Lower `N` = higher priority. Subclass to bundle priority with domain semantics (e.g. `[AniDBHttpRequired]`). Defaults to `AcquisitionAttribute.LowestPriority` (999) if absent. |
 | `[RetryPolicy(MaxRetries = …, BaseDelaySeconds = …, MaxDelaySeconds = …)]` | Per-type override of the global retry backoff. |
+| `[LongRunning]` | Exempts this job from the deadlock watchdog. Apply to jobs that are expected to run for a long time (e.g. hashing a large file, full-library scans). |
 | `[DatabaseRequired]` | Job won't run while the database is unavailable. |
 | `[NetworkRequired]` | Job won't run while the network is offline. Subclass to make custom gates (e.g. AniDB rate limit). |
 | `[JobKeyGroup("name")]` | Namespaces the dedup key (`Import/HashFileJob_path:"…"`). |
@@ -270,6 +271,33 @@ await scheduler.Clear();    // wipes waiting (executing jobs run to completion)
 var state = await scheduler.GetState();
 Console.WriteLine($"{state.TotalExecuting} running, {state.TotalWaiting} waiting");
 ```
+
+### Parent-child job chaining
+
+Use `RunAfterCurrent<T>` to register a follow-up job that is held until the currently-executing
+job completes, then released at maximum priority. This prevents a successor from running against
+partially-committed data written by its parent.
+
+```csharp
+// Called from inside a job's Process() — child runs after the parent finishes
+await scheduler.RunAfterCurrent<IndexAnimeJob>(j => j.AnimeID = animeID);
+```
+
+**Behaviour:**
+
+| Scenario | Result |
+|---|---|
+| Called inside a job | Child is held; released at `int.MaxValue` priority when parent completes |
+| Same key enqueued twice for same parent | Deduplicated — only one child runs |
+| Child key already waiting in queue | Pulled from queue and held; re-inserted at max priority on parent completion |
+| Child key already executing | No-op — the running instance is left alone |
+| Parent fails (real failure / discard) | Child registrations discarded; dedup keys freed |
+| Parent re-queues (`RequeueJobException`) | Child registrations preserved and fire on eventual success |
+| Called outside a job context | Falls back to `Enqueue` at priority 10 |
+
+`SubExecutionTracker` (internal) propagates the current job's ID via `AsyncLocal<Guid>` through
+the full async call chain, so `RunAfterCurrent` works correctly when called from a helper
+service method invoked by the job — not just from `Process()` directly.
 
 ### Recurring jobs
 
@@ -399,7 +427,35 @@ All knobs live on `QueueProcessorOptions`:
 | `MaxIdlePollIntervalMs` | `5000` | Worker idle poll cadence for `ScheduledAt` checks. |
 | `MetricsWindowSeconds` | `60` | Sliding window for the jobs/sec metric. |
 | `MetricsRollingAvgSamples` | `100` | Rolling sample count for per-type execution time. |
+| `WatchdogTimeoutSeconds` | `90` | Jobs running longer than this are flagged as possible deadlocks. Jobs with `[LongRunning]` are exempt. |
 | `LimitedConcurrencyOverrides` | `{}` | `JobTypeName → maxWorkers`. Lowers a pool's concurrency at runtime (can't exceed `[LimitConcurrency]`'s `MaxAllowedConcurrentJobs`). |
+
+---
+
+## Deadlock watchdog
+
+`JobWatchdog` runs as a background task (started by `WorkerPoolManager`) and polls executing
+jobs every 15 seconds. Any job that has been running longer than `WatchdogTimeoutSeconds` (default
+90s) and is not decorated with `[LongRunning]` triggers:
+
+1. **One `LogError`** on first detection — includes the job type, elapsed time, and the call
+   stack captured at the last `IJobFactory.Execute` entry point (if any). This is the event to
+   forward to your error-tracking system for aggregation.
+2. **Repeated `LogWarning`** on every subsequent poll — heartbeat that the job is still stuck.
+
+Apply `[LongRunning]` to jobs that are expected to exceed the timeout by design:
+
+```csharp
+[LongRunning]
+[LimitConcurrency(2)]
+public class HashFileJob : IQueueJob { … }
+```
+
+The watchdog cannot obtain a managed stack trace of a running thread without suspending it
+(unavailable in .NET Core). Instead, `JobFactory.Execute<T>` captures its call stack when
+invoked from within a worker job and stores it in `SubExecutionTracker` keyed by the outer job's
+ID. If the job is stuck inside an `IJobFactory.Execute` call, the first-detection error log will
+include exactly where in the code that call originated.
 
 ---
 
