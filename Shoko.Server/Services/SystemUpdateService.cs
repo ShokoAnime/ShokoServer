@@ -16,6 +16,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Plugin;
+
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 #nullable enable

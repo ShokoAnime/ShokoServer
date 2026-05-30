@@ -14,6 +14,8 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Extensions;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -29,8 +31,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct.TMDB.Optional;
 using Shoko.Server.Scheduling.Jobs.TMDB;
-using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 

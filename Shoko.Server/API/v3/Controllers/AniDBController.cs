@@ -12,6 +12,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
+
 using ReleaseGroup = Shoko.Server.API.v3.Models.Release.ReleaseGroup;
 
 #pragma warning disable CA1822

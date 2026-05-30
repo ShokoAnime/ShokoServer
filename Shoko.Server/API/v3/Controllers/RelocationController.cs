@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,6 +24,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
+
 using ApiRelocationPipe = Shoko.Server.API.v3.Models.Relocation.RelocationPipe;
 using ApiRelocationResult = Shoko.Server.API.v3.Models.Relocation.RelocationResult;
 using RelocationPipe = Shoko.Abstractions.Video.Relocation.RelocationPipe;

@@ -22,6 +22,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+
 using AbstractAnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
 using AbstractEpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 

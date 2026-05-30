@@ -13,6 +13,7 @@ using Shoko.Abstractions.Connectivity.Enums;
 using Shoko.Abstractions.Connectivity.Events;
 using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Server.Settings;
+
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 #nullable enable

@@ -21,6 +21,7 @@ using Shoko.Abstractions.Config.Components;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Plugin;
+
 using JsonIgnoreAttribute = Newtonsoft.Json.JsonIgnoreAttribute;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 

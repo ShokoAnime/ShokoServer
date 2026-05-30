@@ -13,6 +13,7 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Xunit;
+
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 #nullable enable

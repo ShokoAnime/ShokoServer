@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Extensions;
+
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Shoko.Abstractions.Logging.Models;

@@ -1,11 +1,11 @@
-#pragma warning disable CS0618
 using System;
 using System.Linq;
-using Shoko.Abstractions.Filtering.Expressions.Containers;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Filtering.Expressions.Containers;
 using Shoko.Abstractions.Video.Services;
 
+#pragma warning disable CS0618
 namespace Shoko.Abstractions.Filtering.Expressions.Info;
 
 /// <summary>

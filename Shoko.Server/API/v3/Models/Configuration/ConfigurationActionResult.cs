@@ -5,6 +5,7 @@ using JsonDiffPatchDotNet;
 using JsonDiffPatchDotNet.Formatters.JsonPatch;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Config.Services;
+
 using AbstractConfigurationActionResult = Shoko.Abstractions.Config.ConfigurationActionResult;
 using Operation = Microsoft.AspNetCore.JsonPatch.Operations.Operation;
 

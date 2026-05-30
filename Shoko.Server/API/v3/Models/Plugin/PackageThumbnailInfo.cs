@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+
 using AbstractPluginThumbnailInfo = Shoko.Abstractions.Plugin.Models.PackageThumbnailInfo;
 
 #nullable enable

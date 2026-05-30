@@ -21,6 +21,7 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories;
+
 using MediaContainer = Shoko.Server.MediaInfo.MediaContainer;
 
 #pragma warning disable CS0618
