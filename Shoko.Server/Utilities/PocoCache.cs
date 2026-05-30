@@ -24,13 +24,13 @@ SOFTWARE.
 
  */
 
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Shoko.Abstractions.Extensions;
 
-#nullable enable
 namespace NutzCode.InMemoryIndex;
 //NOTE PocoCache is not thread SAFE
 

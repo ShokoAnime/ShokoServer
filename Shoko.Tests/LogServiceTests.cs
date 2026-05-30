@@ -8,11 +8,11 @@ using NLog;
 using NLog.Config;
 using NLog.Targets;
 using Shoko.Abstractions.Exceptions;
+using Shoko.Abstractions.Logging.Models;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Xunit;
-
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 #nullable enable
@@ -524,6 +524,6 @@ public class LogServiceTests : IDisposable
                ",\"context\":{\"source\":\"test\"}}";
     }
 
-    private static Shoko.Abstractions.Logging.Models.LogFileInfo GetFileByPath(LogService service, string path)
+    private static LogFileInfo GetFileByPath(LogService service, string path)
         => Assert.Single(service.GetAllLogFiles(), file => string.Equals(file.FullPath, path, StringComparison.OrdinalIgnoreCase));
 }

@@ -2,7 +2,6 @@ using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using NLog;
-
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 #nullable enable

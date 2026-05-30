@@ -59,7 +59,6 @@ using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Trinet.Core.IO.Ntfs;
-
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 using Timer = System.Timers.Timer;
 

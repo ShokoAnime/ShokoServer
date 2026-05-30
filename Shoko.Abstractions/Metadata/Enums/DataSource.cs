@@ -1,11 +1,14 @@
 
+using System.Text.Json.Serialization;
+using Newtonsoft.Json.Converters;
+
 namespace Shoko.Abstractions.Metadata.Enums;
 
 /// <summary>
 ///   The data source.
 /// </summary>
-[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
-[Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter))]
+[Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
 public enum DataSource : byte
 {
     /// <summary>

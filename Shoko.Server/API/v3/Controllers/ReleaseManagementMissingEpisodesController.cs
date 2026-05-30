@@ -9,7 +9,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 
 #pragma warning disable CA1822
@@ -19,7 +19,10 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/ReleaseManagement/MissingEpisodes")]
 [ApiV3]
 [Authorize]
-public class ReleaseManagementMissingEpisodesController(ISettingsProvider settingsProvider) : BaseController(settingsProvider)
+public class ReleaseManagementMissingEpisodesController(ISettingsProvider settingsProvider,
+    AnimeEpisodeRepository _animeEpisodes,
+    AnimeSeriesRepository _animeSeries
+) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Get missing episodes, be it collecting or otherwise.
@@ -44,7 +47,7 @@ public class ReleaseManagementMissingEpisodesController(ISettingsProvider settin
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = RepoFactory.AnimeEpisode.GetMissing(collecting);
+        var enumerable = _animeEpisodes.GetMissing(collecting);
 
         return enumerable
             .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
@@ -67,7 +70,7 @@ public class ReleaseManagementMissingEpisodesController(ISettingsProvider settin
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = RepoFactory.AnimeSeries.GetWithMissingEpisodes(collecting);
+        var enumerable = _animeSeries.GetWithMissingEpisodes(collecting);
         if (onlyFinishedSeries)
             enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
 
@@ -102,14 +105,14 @@ public class ReleaseManagementMissingEpisodesController(ISettingsProvider settin
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = _animeSeries.GetByID(seriesID);
         if (series == null)
             return new ListResult<Episode>();
 
         if (!User.AllowedSeries(series))
             return new ListResult<Episode>();
 
-        var enumerable = RepoFactory.AnimeEpisode.GetMissing(collecting, series.AniDB_ID);
+        var enumerable = _animeEpisodes.GetMissing(collecting, series.AniDB_ID);
 
         return enumerable
             .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);

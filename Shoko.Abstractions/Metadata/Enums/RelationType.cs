@@ -1,11 +1,14 @@
 
+using System.Text.Json.Serialization;
+using Newtonsoft.Json.Converters;
+
 namespace Shoko.Abstractions.Metadata.Enums;
 
 /// <summary>
 /// Explains how the main entry relates to the related entry.
 /// </summary>
-[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
-[Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter))]
+[Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
 public enum RelationType : byte
 {
     /// <summary>

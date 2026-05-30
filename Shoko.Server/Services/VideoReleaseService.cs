@@ -24,6 +24,7 @@ using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plugin;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.UDP.Info;
@@ -730,7 +731,7 @@ public class VideoReleaseService(
                             .Create<RequestGetEpisode>(r => r.EpisodeID = firstXref.AnidbEpisodeID)
                             .Send();
                         animeID = episodeResponse.Response?.AnimeID;
-                        if (episodeResponse.Code is Providers.AniDB.UDPReturnCode.NO_SUCH_EPISODE)
+                        if (episodeResponse.Code is UDPReturnCode.NO_SUCH_EPISODE)
                         {
                             logger.LogError("Unknown episode with id {EpisodeID}!", firstXref.AnidbEpisodeID);
                             _unknownEpisodeIDs.Add(firstXref.AnidbEpisodeID);
@@ -1052,7 +1053,7 @@ public class VideoReleaseService(
 
     private async Task RemoveFromMyList(StoredReleaseInfo releaseInfo)
     {
-        if (_settings.AniDb.MyList_DeleteType is Providers.AniDB.AniDBFileDeleteType.DeleteLocalOnly)
+        if (_settings.AniDb.MyList_DeleteType is AniDBFileDeleteType.DeleteLocalOnly)
         {
             logger.LogInformation("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", releaseInfo.ED2K);
             return;

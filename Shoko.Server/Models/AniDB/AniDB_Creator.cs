@@ -12,7 +12,6 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-
 using AbstractCreatorType = Shoko.Abstractions.Metadata.Enums.CreatorType;
 using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
 using DataSource = Shoko.Abstractions.Metadata.Enums.DataSource;

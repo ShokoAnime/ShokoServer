@@ -18,11 +18,10 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Utilities;
-
 using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
@@ -39,9 +38,18 @@ public class AnimeSeriesService
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly UserDataService _userDataService;
     private readonly IServiceProvider _serviceProvider;
+    private readonly AnimeEpisodeRepository _animeEpisodes;
+    private readonly AnimeGroupRepository _animeGroups;
+    private readonly AnimeSeriesRepository _animeSeries;
+    private readonly StoredReleaseInfoRepository _storedReleaseInfos;
+    private readonly AniDB_GroupStatusRepository _anidbGroupStatuses;
+    private readonly AniDB_Anime_StaffRepository _anidbAnimeStaff;
     private IAnidbService? _anidbService;
 
-    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, IServiceProvider serviceProvider, IQueueScheduler schedulerFactory, AnimeGroupService groupService, VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService, IUserDataService userDataService)
+    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, IServiceProvider serviceProvider, IQueueScheduler schedulerFactory, AnimeGroupService groupService,
+        VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService, IUserDataService userDataService,
+        AnimeEpisodeRepository animeEpisodes, AnimeGroupRepository animeGroups, AnimeSeriesRepository animeSeries,
+        StoredReleaseInfoRepository storedReleaseInfos, AniDB_GroupStatusRepository anidbGroupStatuses, AniDB_Anime_StaffRepository anidbAnimeStaff)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -50,6 +58,12 @@ public class AnimeSeriesService
         _vlUsers = vlUsers;
         _videoReleaseService = videoReleaseService;
         _userDataService = (UserDataService)userDataService;
+        _animeEpisodes = animeEpisodes;
+        _animeGroups = animeGroups;
+        _animeSeries = animeSeries;
+        _storedReleaseInfos = storedReleaseInfos;
+        _anidbGroupStatuses = anidbGroupStatuses;
+        _anidbAnimeStaff = anidbAnimeStaff;
     }
 
     public async Task<(bool, Dictionary<AnimeEpisode, UpdateReason>)> CreateAnimeEpisodes(AnimeSeries series)
@@ -59,7 +73,7 @@ public class AnimeSeriesService
             return (false, []);
         var anidbEpisodes = anime.AniDBEpisodes;
         // Cleanup deleted episodes
-        var epsToRemove = RepoFactory.AnimeEpisode.GetBySeriesID(series.AnimeSeriesID)
+        var epsToRemove = _animeEpisodes.GetBySeriesID(series.AnimeSeriesID)
             .Where(a => a.AniDB_Episode is null)
             .ToList();
         var filesToUpdate = epsToRemove
@@ -112,7 +126,7 @@ public class AnimeSeriesService
                 episodeDict.Add(shokoEpisode, isNew ? UpdateReason.Added : UpdateReason.Updated);
         }
 
-        RepoFactory.AnimeEpisode.Delete(epsToRemove);
+        _animeEpisodes.Delete(epsToRemove);
 
         // Add removed episodes to the dictionary.
         foreach (var episode in epsToRemove)
@@ -127,7 +141,7 @@ public class AnimeSeriesService
     private (AnimeEpisode episode, bool isNew, bool isUpdated) CreateAnimeEpisode(AniDB_Episode episode, int animeSeriesID)
     {
         // check if there is an existing episode for this EpisodeID
-        var existingEp = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
+        var existingEp = _animeEpisodes.GetByAniDBEpisodeID(episode.EpisodeID);
         var isNew = existingEp is null;
         existingEp ??= new();
         if (existingEp.AnimeEpisodeID is 0)
@@ -139,7 +153,7 @@ public class AnimeSeriesService
 
         var updated = !old.Equals(existingEp);
         if (isNew || updated)
-            RepoFactory.AnimeEpisode.Save(existingEp);
+            _animeEpisodes.Save(existingEp);
 
         _userDataService.CreateUserRecordsForNewEpisode(existingEp);
 
@@ -160,7 +174,7 @@ public class AnimeSeriesService
         if (updateGroupStats)
             _groupService.UpdateStatsFromTopLevel(newGroup.TopLevelAnimeGroup, true, true);
 
-        var oldGroup = RepoFactory.AnimeGroup.GetByID(oldGroupID);
+        var oldGroup = _animeGroups.GetByID(oldGroupID);
         if (oldGroup is not null)
         {
             // This was the only one series in the group so delete the now orphan group.
@@ -184,7 +198,7 @@ public class AnimeSeriesService
                 }
 
                 if (updatedOldGroup)
-                    RepoFactory.AnimeGroup.Save(oldGroup);
+                    _animeGroups.Save(oldGroup);
             }
 
             // Update the top group
@@ -222,7 +236,7 @@ public class AnimeSeriesService
             _logger.LogTrace("Got episodes for SERIES {Name} in {Elapsed}ms", name, tsEps.TotalMilliseconds);
 
             // Ensure the episode added date is accurate.
-            series.EpisodeAddedDate = RepoFactory.StoredReleaseInfo.GetByAnidbAnimeID(series.AniDB_ID)
+            series.EpisodeAddedDate = _storedReleaseInfos.GetByAnidbAnimeID(series.AniDB_ID)
                 .Select(a => a.LastUpdatedAt)
                 .DefaultIfEmpty()
                 .Max();
@@ -231,7 +245,7 @@ public class AnimeSeriesService
             if (missingEpsStats) UpdateMissingEpisodeStats(series, eps, name, ref start);
 
             // Skip group filters if we are doing group stats, as the group stats will regenerate group filters
-            RepoFactory.AnimeSeries.Save(series, false);
+            _animeSeries.Save(series, false);
             var ts = DateTime.Now - start;
             _logger.LogTrace("Saved stats for SERIES {Name} in {Elapsed}ms", name, ts.TotalMilliseconds);
 
@@ -258,7 +272,7 @@ public class AnimeSeriesService
         series.HiddenMissingEpisodeCountGroups = 0;
 
         // get all the group status records
-        var grpStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(series.AniDB_ID);
+        var grpStatuses = _anidbGroupStatuses.GetByAnimeID(series.AniDB_ID);
 
         // find all the episodes for which the user has a file
         // from this we can determine what their latest episode number is
@@ -425,7 +439,7 @@ public class AnimeSeriesService
 
     public Dictionary<AnimeSeries, AniDB_Anime_Staff> SearchSeriesByStaff(string staffName, bool fuzzy = false)
     {
-        var allSeries = RepoFactory.AnimeSeries.GetAll();
+        var allSeries = _animeSeries.GetAll();
         var results = new Dictionary<AnimeSeries, AniDB_Anime_Staff>();
         var stringsToSearchFor = new List<string>();
         if (staffName.Contains(' '))
@@ -442,7 +456,7 @@ public class AnimeSeriesService
 
         foreach (var series in allSeries)
         {
-            foreach (var (xref, staff) in RepoFactory.AniDB_Anime_Staff.GetByAnimeID(series.AniDB_ID).Select(a => (a, a.Creator)))
+            foreach (var (xref, staff) in _anidbAnimeStaff.GetByAnimeID(series.AniDB_ID).Select(a => (a, a.Creator)))
             {
                 if (staff is null)
                     continue;
@@ -500,9 +514,9 @@ public class AnimeSeriesService
             foreach (var place in series.VideoLocals.SelectMany(a => a.Places).WhereNotNull())
                 await service.DeleteVideoFile(place, removeFile: deleteFiles);
 
-            RepoFactory.AnimeEpisode.Delete(ep.AnimeEpisodeID);
+            _animeEpisodes.Delete(ep.AnimeEpisodeID);
         }
-        RepoFactory.AnimeSeries.Delete(series);
+        _animeSeries.Delete(series);
 
         if (!updateGroups)
         {

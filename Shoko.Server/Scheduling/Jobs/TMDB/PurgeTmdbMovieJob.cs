@@ -5,10 +5,10 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Repositories;
 
 #pragma warning disable CS8618
 #nullable enable
+using Shoko.Server.Repositories.Cached.TMDB;
 namespace Shoko.Server.Scheduling.Jobs.TMDB;
 
 [DatabaseRequired]
@@ -25,7 +25,7 @@ public class PurgeTmdbMovieJob : BaseJob
 
     public override void PostInit()
     {
-        MovieTitle ??= RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbMovieID)?.EnglishTitle;
+        MovieTitle ??= _tmdbMovies.GetByTmdbMovieID(TmdbMovieID)?.EnglishTitle;
     }
 
     public override string TypeName => "Purge TMDB Movie";
@@ -49,9 +49,14 @@ public class PurgeTmdbMovieJob : BaseJob
         await _tmdbService.PurgeMovie(TmdbMovieID).ConfigureAwait(false);
     }
 
-    public PurgeTmdbMovieJob(TmdbMetadataService tmdbService)
+    private readonly TMDB_MovieRepository _tmdbMovies;
+    public PurgeTmdbMovieJob(TmdbMetadataService tmdbService,
+        TMDB_MovieRepository tmdbMovies
+    )
     {
         _tmdbService = tmdbService;
+        _tmdbMovies = tmdbMovies;
+
     }
 
     protected PurgeTmdbMovieJob() { }

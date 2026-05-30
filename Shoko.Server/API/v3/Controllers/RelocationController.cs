@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Config;
@@ -23,7 +24,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
-
 using ApiRelocationPipe = Shoko.Server.API.v3.Models.Relocation.RelocationPipe;
 using ApiRelocationResult = Shoko.Server.API.v3.Models.Relocation.RelocationResult;
 using RelocationPipe = Shoko.Abstractions.Video.Relocation.RelocationPipe;
@@ -788,7 +788,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
 
         try
         {
-            var json = body is null or { Type: JTokenType.Null } ? null : body.ToString(Newtonsoft.Json.Formatting.None, [new StringEnumConverter()]);
+            var json = body is null or { Type: JTokenType.Null } ? null : body.ToString(Formatting.None, [new StringEnumConverter()]);
             pipeInfo.SaveConfiguration(json);
 
             return Ok();

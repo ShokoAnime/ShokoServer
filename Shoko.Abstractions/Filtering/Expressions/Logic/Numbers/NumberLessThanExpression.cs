@@ -53,7 +53,7 @@ public class NumberLessThanExpression : FilterExpression<bool>, IWithNumberSelec
     /// <inheritdoc cref="Equals(object)"/>
     protected bool Equals(NumberLessThanExpression other)
     {
-        return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Nullable.Equals(Parameter, other.Parameter);
+        return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Equals(Parameter, other.Parameter);
     }
 
     /// <inheritdoc/>

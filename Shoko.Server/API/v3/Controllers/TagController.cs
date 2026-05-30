@@ -12,7 +12,8 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
 
 #nullable enable
@@ -22,7 +23,12 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class TagController(ISettingsProvider settingsProvider, IMetadataService metadataService) : BaseController(settingsProvider)
+public class TagController(ISettingsProvider settingsProvider, IMetadataService metadataService,
+    AniDB_Anime_TagRepository _anidbAnimeTags,
+    AniDB_TagRepository _anidbTags,
+    CrossRef_CustomTagRepository _crossRefCustomTags,
+    CustomTagRepository _customTags
+) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Get a list of all known anidb tags, optionally with a
@@ -46,19 +52,19 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
     )
     {
         var user = User;
-        var selectedTags = RepoFactory.AniDB_Tag.GetAll()
+        var selectedTags = _anidbTags.GetAll()
             .Where(tag => !onlyVerified || tag.Verified)
             .DistinctBy(a => a.TagName)
             .ToList();
         var tagFilter = new TagFilter<AniDB_Tag>(
-            name => RepoFactory.AniDB_Tag.GetByName(name).FirstOrDefault(), tag => tag.TagName,
+            name => _anidbTags.GetByName(name).FirstOrDefault(), tag => tag.TagName,
             name => new AniDB_Tag { TagNameSource = name }
         );
         return tagFilter
             .ProcessTags(filter, selectedTags)
             .Where(tag => user.IsAdmin == 1 || user.AllowedTag(tag))
             .OrderBy(tag => tag.TagName)
-            .ToListResult(tag => new Tag(tag, excludeDescriptions, includeCount ? RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).Count : null), page, pageSize);
+            .ToListResult(tag => new Tag(tag, excludeDescriptions, includeCount ? _anidbAnimeTags.GetByTagID(tag.TagID).Count : null), page, pageSize);
     }
 
     /// <summary>
@@ -71,7 +77,7 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
     [HttpGet("AniDB/{tagID}")]
     public ActionResult<Tag> GetAnidbTag([FromRoute] int tagID, [FromQuery] bool excludeDescription = false, [FromQuery] bool includeCount = false)
     {
-        var tag = tagID <= 0 ? null : RepoFactory.AniDB_Tag.GetByTagID(tagID);
+        var tag = tagID <= 0 ? null : _anidbTags.GetByTagID(tagID);
         if (tag == null)
             return NotFound("No AniDB Tag entry for the given tagID");
 
@@ -79,7 +85,7 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
         if (user.IsAdmin != 1 && !user.AllowedTag(tag))
             return Forbid("Accessing Tag is not allowed for the current user");
 
-        return new Tag(tag, excludeDescription, includeCount ? RepoFactory.AniDB_Anime_Tag.GetByTagID(tag.TagID).Count : null);
+        return new Tag(tag, excludeDescription, includeCount ? _anidbAnimeTags.GetByTagID(tag.TagID).Count : null);
     }
 
     /// <summary>
@@ -97,9 +103,9 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
         [FromQuery] bool excludeDescriptions = false,
         [FromQuery] bool includeCount = false)
     {
-        return RepoFactory.CustomTag.GetAll()
+        return _customTags.GetAll()
             .OrderBy(tag => tag.TagName)
-            .ToListResult(tag => new Tag(tag, excludeDescriptions, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null), page, pageSize);
+            .ToListResult(tag => new Tag(tag, excludeDescriptions, includeCount ? _crossRefCustomTags.GetByCustomTagID(tag.CustomTagID).Count : null), page, pageSize);
     }
 
     /// <summary>
@@ -138,11 +144,11 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
     [HttpGet("User/{tagID}")]
     public ActionResult<Tag> GetUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromQuery] bool includeCount = false)
     {
-        var tag = RepoFactory.CustomTag.GetByID(tagID);
+        var tag = _customTags.GetByID(tagID);
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
 
-        return new Tag(tag, excludeDescription: false, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null);
+        return new Tag(tag, excludeDescription: false, includeCount ? _crossRefCustomTags.GetByCustomTagID(tag.CustomTagID).Count : null);
     }
 
     /// <summary>
@@ -156,7 +162,7 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
     [Authorize("admin")]
     public ActionResult<Tag> EditUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Tag.Input.CreateOrUpdateCustomTagBody body, [FromQuery] bool includeCount = false)
     {
-        var tag = RepoFactory.CustomTag.GetByID(tagID);
+        var tag = _customTags.GetByID(tagID);
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
 
@@ -167,7 +173,7 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
                 Name = body.Name,
                 Description = body.Description,
             });
-            return new Tag((CustomTag)result, excludeDescription: false, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null);
+            return new Tag((CustomTag)result, excludeDescription: false, includeCount ? _crossRefCustomTags.GetByCustomTagID(tag.CustomTagID).Count : null);
         }
         catch (DuplicateNameException)
         {
@@ -187,7 +193,7 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
     [Authorize("admin")]
     public ActionResult<Tag> PatchUserTag([FromRoute, Range(1, int.MaxValue)] int tagID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<Tag.Input.CreateOrUpdateCustomTagBody> patchDocument, [FromQuery] bool includeCount = false)
     {
-        var tag = RepoFactory.CustomTag.GetByID(tagID);
+        var tag = _customTags.GetByID(tagID);
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
 
@@ -203,7 +209,7 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
                 Name = body.Name,
                 Description = body.Description,
             });
-            return new Tag((CustomTag)result, excludeDescription: false, includeCount ? RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tag.CustomTagID).Count : null);
+            return new Tag((CustomTag)result, excludeDescription: false, includeCount ? _crossRefCustomTags.GetByCustomTagID(tag.CustomTagID).Count : null);
         }
         catch (DuplicateNameException)
         {
@@ -220,13 +226,13 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
     [Authorize("admin")]
     public ActionResult RemoveUserTag([FromRoute, Range(1, int.MaxValue)] int tagID)
     {
-        var tag = RepoFactory.CustomTag.GetByID(tagID);
+        var tag = _customTags.GetByID(tagID);
         if (tag == null)
             return NotFound("No User Tag entry for the given tagID");
 
-        var xrefs = RepoFactory.CrossRef_CustomTag.GetByCustomTagID(tagID);
-        RepoFactory.CrossRef_CustomTag.Delete(xrefs);
-        RepoFactory.CustomTag.Delete(tag);
+        var xrefs = _crossRefCustomTags.GetByCustomTagID(tagID);
+        _crossRefCustomTags.Delete(xrefs);
+        _customTags.Delete(tag);
 
         return NoContent();
     }

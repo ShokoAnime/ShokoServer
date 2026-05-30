@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Plugin;
-
 using AbstractPackageReleaseInfo = Shoko.Abstractions.Plugin.Models.PackageReleaseInfo;
 
 #nullable enable

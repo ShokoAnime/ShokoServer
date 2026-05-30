@@ -1,4 +1,3 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;

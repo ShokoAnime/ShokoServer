@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
 using Xunit;
@@ -14,9 +16,9 @@ public class JobKeyBuilderTests
     {
         public string TypeName => "SimpleJob";
         public string Title => "Simple";
-        public System.Collections.Generic.Dictionary<string, object> Details => [];
+        public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
 
         public string FilePath { get; set; } = string.Empty;
         public bool ForceHash { get; set; }
@@ -28,9 +30,9 @@ public class JobKeyBuilderTests
     {
         public string TypeName => "GroupedJob";
         public string Title => "Grouped";
-        public System.Collections.Generic.Dictionary<string, object> Details => [];
+        public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
 
         public int SeriesId { get; set; }
     }
@@ -39,9 +41,9 @@ public class JobKeyBuilderTests
     {
         public string TypeName => "AnnotatedJob";
         public string Title => "Annotated";
-        public System.Collections.Generic.Dictionary<string, object> Details => [];
+        public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
 
         // Explicit annotation with stable id and ordering
         [JobKeyMember("path", index: 0)]
@@ -58,9 +60,9 @@ public class JobKeyBuilderTests
     {
         public string TypeName => "ClassPrefixJob";
         public string Title => "";
-        public System.Collections.Generic.Dictionary<string, object> Details => [];
+        public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
 
         [JobKeyMember("id")]
         public int AnimeId { get; set; }
@@ -71,9 +73,9 @@ public class JobKeyBuilderTests
     {
         public string TypeName => "CustomPrefixJob";
         public string Title => "";
-        public System.Collections.Generic.Dictionary<string, object> Details => [];
+        public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
 
         [JobKeyMember("id")]
         public int AnimeId { get; set; }

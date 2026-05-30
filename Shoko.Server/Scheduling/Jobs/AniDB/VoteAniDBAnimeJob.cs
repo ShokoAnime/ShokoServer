@@ -8,7 +8,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.AniDB.UDP.User;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 
@@ -30,7 +30,7 @@ public class VoteAniDBAnimeJob : BaseJob
 
     public override void PostInit()
     {
-        _animeName = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title ?? AnimeID.ToString();
+        _animeName = _anidbAnimes.GetByAnimeID(AnimeID)?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title ?? AnimeID.ToString();
     }
 
     public override string TypeName => "Send AniDB Anime Rating";
@@ -59,10 +59,15 @@ public class VoteAniDBAnimeJob : BaseJob
         return Task.CompletedTask;
     }
 
-    public VoteAniDBAnimeJob(IRequestFactory requestFactory, AniDBTitleHelper titleHelper)
+    private readonly AniDB_AnimeRepository _anidbAnimes;
+    public VoteAniDBAnimeJob(IRequestFactory requestFactory, AniDBTitleHelper titleHelper,
+        AniDB_AnimeRepository anidbAnimes
+    )
     {
         _requestFactory = requestFactory;
         _titleHelper = titleHelper;
+        _anidbAnimes = anidbAnimes;
+
     }
 
     protected VoteAniDBAnimeJob() { }

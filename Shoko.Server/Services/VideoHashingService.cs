@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MimeDetective;
+using MimeDetective.Definitions;
 using MimeDetective.Definitions.Licensing;
 using MimeDetective.Storage;
 using Namotion.Reflection;
@@ -152,7 +153,7 @@ public class VideoHashingService(
             logger.LogInformation("Building content inspector.");
             _contentInspector = new ContentInspectorBuilder()
             {
-                Definitions = new MimeDetective.Definitions.CondensedBuilder() { UsageType = UsageType.PersonalNonCommercial, }
+                Definitions = new CondensedBuilder() { UsageType = UsageType.PersonalNonCommercial, }
                     .Build()
                     .ScopeExtensions(["3g2", "3gp", "avi", "av1", "flv", "h265", "h264", "m4v", "mkv", "mov", "mp4", "mpg", "mpeg", "ogv", "ogg", "qt", "rm", "swf", "vob", "wmv", "webm"])
                     .TrimMeta()

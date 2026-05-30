@@ -19,7 +19,6 @@ using Shoko.Server.Plex.Models.Login;
 using Shoko.Server.Plugin;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
-
 using Directory = Shoko.Server.Plex.Models.Libraries.Directory;
 using MediaContainer = Shoko.Server.Plex.Models.Connections.MediaContainer;
 
@@ -361,7 +360,7 @@ public class PlexHelper
         {
             var (_, data) = RequestFromPlexAsync("/library/sections").Result;
             return JsonConvert
-                .DeserializeObject<MediaContainer<Shoko.Server.Plex.Models.Libraries.MediaContainer>>(data, SerializerSettings)
+                .DeserializeObject<MediaContainer<Models.Libraries.MediaContainer>>(data, SerializerSettings)
                 .Container.Directory ?? Array.Empty<Directory>();
         }
         catch (Exception) //I really just don't care now.

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Shoko.Abstractions.Metadata.Shoko;
@@ -23,7 +24,7 @@ public class VideoFileRelocatedEventArgs : VideoFileEventArgs
     /// <summary>
     /// Whether or not the file was moved.
     /// </summary>
-    public bool Moved => !string.Equals(Path.GetDirectoryName(RelativePath), Path.GetDirectoryName(PreviousRelativePath), System.StringComparison.InvariantCulture) || PreviousManagedFolder != ManagedFolder;
+    public bool Moved => !string.Equals(Path.GetDirectoryName(RelativePath), Path.GetDirectoryName(PreviousRelativePath), StringComparison.InvariantCulture) || PreviousManagedFolder != ManagedFolder;
 
     /// <summary>
     /// Whether or not the file was renamed.

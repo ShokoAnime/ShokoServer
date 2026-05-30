@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Moq;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Storage;
@@ -43,7 +44,7 @@ public class WorkerPoolAcquisitionTests
         public string Title => "";
         public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
     }
 
     private class JobTypeB : IQueueJob
@@ -52,7 +53,7 @@ public class WorkerPoolAcquisitionTests
         public string Title => "";
         public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
     }
 
     // ── Basic acquisition ─────────────────────────────────────────────────────

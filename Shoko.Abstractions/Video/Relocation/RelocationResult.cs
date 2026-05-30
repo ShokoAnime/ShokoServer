@@ -26,7 +26,7 @@ public class RelocationResult
     /// folder.
     /// </summary>
     /// <remarks>
-    /// Sub-folders should be separated with <see cref="Path.DirectorySeparatorChar"/>
+    /// Sub-folders should be separated with <see cref="System.IO.Path.DirectorySeparatorChar"/>
     /// or <see cref="Path.AltDirectorySeparatorChar"/>. This shouldn't be null
     /// unless a) there was an <see cref="Error"/>, b) the renamer doesn't
     /// support moving, or c) the move operation will be skipped as indicated by

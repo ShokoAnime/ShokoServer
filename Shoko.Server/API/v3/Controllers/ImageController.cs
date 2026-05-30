@@ -12,7 +12,6 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Settings;
-
 using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
 
 #nullable enable

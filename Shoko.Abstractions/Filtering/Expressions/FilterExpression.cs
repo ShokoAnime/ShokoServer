@@ -1,4 +1,5 @@
 using System;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Extensions;
 
 namespace Shoko.Abstractions.Filtering.Expressions;
@@ -9,54 +10,54 @@ namespace Shoko.Abstractions.Filtering.Expressions;
 public class FilterExpression : IFilterExpression, IEquatable<FilterExpression>
 {
     /// <inheritdoc/>
-    [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+    [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual bool TimeDependent => false;
 
     /// <inheritdoc/>
-    [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+    [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual bool UserDependent => false;
 
     /// <summary>
     /// Indicates whether this expression is deprecated and should not be used in new filters.
     /// </summary>
-    [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+    [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual bool Deprecated => false;
 
     /// <summary>
     /// A human-readable name for this expression, derived from the class name.
     /// </summary>
-    [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+    [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual string Name =>
         GetType().Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("SortingSelector").TrimEnd("Selector").CamelCaseToNatural();
 
     /// <summary>
     /// The group this expression belongs to, used for categorization in UI.
     /// </summary>
-    [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+    [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual FilterExpressionGroup Group => FilterExpressionGroup.Info;
 
     /// <summary>
     /// A description of what this expression does, shown in help tooltips.
     /// </summary>
-    [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+    [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual string HelpDescription => string.Empty;
 
     /// <summary>
     /// Valid pairs of first and second parameters for this expression, shown in help.
     /// </summary>
-    [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+    [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual string[][] HelpPossibleParameterPairs => [];
 
     /// <summary>
     /// Valid values for the first parameter of this expression, shown in help.
     /// </summary>
-    [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+    [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual string[] HelpPossibleParameters => [];
 
     /// <summary>
     /// Valid values for the second parameter of this expression, shown in help.
     /// </summary>
-    [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+    [JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
     public virtual string[] HelpPossibleSecondParameters => [];
 
     /// <inheritdoc/>

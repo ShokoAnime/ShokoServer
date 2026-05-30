@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Storage;
-
 using Timer = System.Timers.Timer;
 
 namespace Shoko.QueueProcessor.Orchestration;

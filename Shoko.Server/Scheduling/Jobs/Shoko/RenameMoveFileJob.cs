@@ -6,11 +6,11 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 
 #pragma warning disable CS8618
 #nullable enable
+using Shoko.Server.Repositories.Cached;
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
@@ -31,7 +31,7 @@ public class RenameMoveFileJob : BaseJob
 
     public override void PostInit()
     {
-        _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        _vlocal = _videoLocals.GetByID(VideoLocalID);
         if (_vlocal == null) throw new Exception($"VideoLocal not Found: {VideoLocalID}");
         _fileName = VideoService.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
@@ -46,7 +46,7 @@ public class RenameMoveFileJob : BaseJob
         // Check if the video local (file) is available.
         if (_vlocal == null)
         {
-            _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+            _vlocal = _videoLocals.GetByID(VideoLocalID);
             if (_vlocal == null)
                 return;
         }
@@ -73,9 +73,14 @@ public class RenameMoveFileJob : BaseJob
         }
     }
 
-    public RenameMoveFileJob(IVideoRelocationService relocationService)
+    private readonly VideoLocalRepository _videoLocals;
+    public RenameMoveFileJob(IVideoRelocationService relocationService,
+        VideoLocalRepository videoLocals
+    )
     {
         _relocationService = relocationService;
+        _videoLocals = videoLocals;
+
     }
 
     protected RenameMoveFileJob() { }

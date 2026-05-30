@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentNHibernate.Utils;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
@@ -20,6 +19,9 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -54,6 +56,30 @@ public class ActionService
 
     private readonly IPluginPackageManager _pluginPackageManager;
 
+    private readonly VideoLocalRepository _videoLocals;
+
+    private readonly VideoLocal_PlaceRepository _videoLocalPlaces;
+
+    private readonly StoredReleaseInfoRepository _storedReleaseInfos;
+
+    private readonly StoredReleaseInfo_MatchAttemptRepository _storedReleaseInfoMatchAttempts;
+
+    private readonly AniDB_AnimeRepository _anidbAnimes;
+
+    private readonly AniDB_EpisodeRepository _anidbEpisodes;
+
+    private readonly AniDB_CreatorRepository _anidbCreators;
+
+    private readonly AniDB_MessageRepository _anidbMessages;
+
+    private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisodes;
+
+    private readonly AnimeSeriesRepository _animeSeries;
+
+    private readonly AnimeEpisodeRepository _animeEpisodes;
+
+    private readonly ScheduledUpdateRepository _scheduledUpdates;
+
     public ActionService(
         ILogger<ActionService> logger,
         IQueueScheduler schedulerFactory,
@@ -66,7 +92,19 @@ public class ActionService
         TmdbMetadataService tmdbService,
         DatabaseFactory databaseFactory,
         HttpXmlUtils xmlUtils,
-        IPluginPackageManager pluginPackageManager
+        IPluginPackageManager pluginPackageManager,
+        VideoLocalRepository videoLocals,
+        VideoLocal_PlaceRepository videoLocalPlaces,
+        StoredReleaseInfoRepository storedReleaseInfos,
+        StoredReleaseInfo_MatchAttemptRepository storedReleaseInfoMatchAttempts,
+        AniDB_AnimeRepository anidbAnimes,
+        AniDB_EpisodeRepository anidbEpisodes,
+        AniDB_CreatorRepository anidbCreators,
+        AniDB_MessageRepository anidbMessages,
+        CrossRef_File_EpisodeRepository crossRefFileEpisodes,
+        AnimeSeriesRepository animeSeries,
+        AnimeEpisodeRepository animeEpisodes,
+        ScheduledUpdateRepository scheduledUpdates
     )
     {
         _logger = logger;
@@ -81,13 +119,25 @@ public class ActionService
         _databaseFactory = databaseFactory;
         _xmlUtils = xmlUtils;
         _pluginPackageManager = pluginPackageManager;
+        _videoLocals = videoLocals;
+        _videoLocalPlaces = videoLocalPlaces;
+        _storedReleaseInfos = storedReleaseInfos;
+        _storedReleaseInfoMatchAttempts = storedReleaseInfoMatchAttempts;
+        _anidbAnimes = anidbAnimes;
+        _anidbEpisodes = anidbEpisodes;
+        _anidbCreators = anidbCreators;
+        _anidbMessages = anidbMessages;
+        _crossRefFileEpisodes = crossRefFileEpisodes;
+        _animeSeries = animeSeries;
+        _animeEpisodes = animeEpisodes;
+        _scheduledUpdates = scheduledUpdates;
     }
 
     public async Task RunImport_IntegrityCheck()
     {
         // files which have not been hashed yet
         // or files which do not have a VideoInfo record
-        var filesToHash = RepoFactory.VideoLocal.GetVideosWithoutHash();
+        var filesToHash = _videoLocals.GetVideosWithoutHash();
         var dictFilesToHash = new Dictionary<int, VideoLocal>();
         foreach (var vl in filesToHash)
         {
@@ -121,12 +171,12 @@ public class ActionService
 
         // files which have been hashed, but don't have an associated episode
         var settings = _settingsProvider.GetSettings();
-        var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+        var filesWithoutEpisode = _videoLocals.GetVideosWithoutEpisode();
         foreach (var vl in filesWithoutEpisode)
         {
             if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
             {
-                var matchAttempts = RepoFactory.StoredReleaseInfo_MatchAttempt.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
+                var matchAttempts = _storedReleaseInfoMatchAttempts.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
                 if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
                     continue;
             }
@@ -150,7 +200,7 @@ public class ActionService
     public async Task RunImport_UpdateAllAniDB()
     {
         var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate;
-        foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
+        foreach (var anime in _anidbAnimes.GetAll())
             await _anidbService.ScheduleRefreshOfAnime(anime, refreshMethod).ConfigureAwait(false);
     }
 
@@ -161,7 +211,7 @@ public class ActionService
         using var session = _databaseFactory.SessionFactory.OpenSession();
 
         // remove missing files in valid managed folders
-        var filesAll = RepoFactory.VideoLocalPlace.GetAll()
+        var filesAll = _videoLocalPlaces.GetAll()
             .Where(a => a.ManagedFolder != null)
             .GroupBy(a => a.ManagedFolder)
             .ToDictionary(a => a.Key, a => a.ToList());
@@ -174,12 +224,12 @@ public class ActionService
             await ((VideoService)_videoService).RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate, removeMyList);
         }
 
-        var videoLocalsAll = RepoFactory.VideoLocal.GetAll().ToList();
+        var videoLocalsAll = _videoLocals.GetAll().ToList();
         // remove empty video locals
         BaseRepository.Lock(session, videoLocalsAll, (s, vls) =>
         {
             using var transaction = s.BeginTransaction();
-            RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, vls.Where(a => a.IsEmpty()).ToList());
+            _videoLocals.DeleteWithOpenTransaction(s, vls.Where(a => a.IsEmpty()).ToList());
             transaction.Commit();
         });
 
@@ -205,7 +255,7 @@ public class ActionService
                     foreach (var place in ps)
                     {
                         place.VideoID = to.VideoLocalID;
-                        RepoFactory.VideoLocalPlace.SaveWithOpenTransaction(s, place);
+                        _videoLocalPlaces.SaveWithOpenTransaction(s, place);
                     }
 
                     transaction.Commit();
@@ -220,7 +270,7 @@ public class ActionService
             using var transaction = s.BeginTransaction();
             foreach (var remove in ps)
             {
-                RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, remove);
+                _videoLocals.DeleteWithOpenTransaction(s, remove);
             }
 
             transaction.Commit();
@@ -242,7 +292,7 @@ public class ActionService
 #pragma warning restore CS0618
                         seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
                             .DistinctBy(a => a.AnimeSeriesID));
-                        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
+                        _videoLocalPlaces.DeleteWithOpenTransaction(s, place);
                     }
 
                     transaction.Commit();
@@ -262,7 +312,7 @@ public class ActionService
                     BaseRepository.Lock(session, place, (s, p) =>
                     {
                         using var transaction = s.BeginTransaction();
-                        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, p);
+                        _videoLocalPlaces.DeleteWithOpenTransaction(s, p);
                         transaction.Commit();
                     });
                 }
@@ -283,13 +333,13 @@ public class ActionService
             BaseRepository.Lock(session, v, (s, vl) =>
             {
                 using var transaction = s.BeginTransaction();
-                RepoFactory.VideoLocal.DeleteWithOpenTransaction(s, vl);
+                _videoLocals.DeleteWithOpenTransaction(s, vl);
                 transaction.Commit();
             });
         }
 
         // Clean up failed imports
-        var list = RepoFactory.VideoLocal.GetAll()
+        var list = _videoLocals.GetAll()
             .SelectMany(a => a.EpisodeCrossReferences)
             .Where(a => a.AniDBAnime == null || a.AniDBEpisode == null)
             .ToArray();
@@ -299,21 +349,21 @@ public class ActionService
             foreach (var xref in list)
             {
                 // We don't need to update anything since they don't exist
-                RepoFactory.CrossRef_File_Episode.DeleteWithOpenTransaction(s, xref);
+                _crossRefFileEpisodes.DeleteWithOpenTransaction(s, xref);
             }
 
             transaction.Commit();
         });
 
         // clean up orphaned video local places
-        var placesToRemove = RepoFactory.VideoLocalPlace.GetAll().Where(a => a.VideoLocal == null).ToList();
+        var placesToRemove = _videoLocalPlaces.GetAll().Where(a => a.VideoLocal == null).ToList();
         BaseRepository.Lock(session, s =>
         {
             using var transaction = s.BeginTransaction();
             foreach (var place in placesToRemove)
             {
                 // We don't need to update anything since they don't exist
-                RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(s, place);
+                _videoLocalPlaces.DeleteWithOpenTransaction(s, place);
             }
 
             transaction.Commit();
@@ -329,15 +379,15 @@ public class ActionService
 
     public async Task UpdateAllStats()
     {
-        await Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        await Task.WhenAll(_animeSeries.GetAll().Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
     public async Task<int> UpdateAnidbReleaseInfo(bool countOnly = false)
     {
         _logger.LogInformation("Updating Missing AniDB_File Info");
-        var missingFiles = !_videoReleaseService.AutoMatchEnabled ? [] : RepoFactory.StoredReleaseInfo.GetAll()
+        var missingFiles = !_videoReleaseService.AutoMatchEnabled ? [] : _storedReleaseInfos.GetAll()
             .Where(r => r.ProviderName is "AniDB" && (string.IsNullOrEmpty(r.GroupID) || r.GroupSource is not "AniDB"))
-            .Select(a => RepoFactory.VideoLocal.GetByEd2kAndSize(a.ED2K, a.FileSize))
+            .Select(a => _videoLocals.GetByEd2kAndSize(a.ED2K, a.FileSize))
             .WhereNotNull()
             .Select(a => a)
             .ToList();
@@ -347,7 +397,7 @@ public class ActionService
             foreach (var id in missingFiles)
                 await _videoReleaseService.ScheduleFindReleaseForVideo(id, force: true);
 
-            var incorrectGroups = RepoFactory.StoredReleaseInfo.GetAll()
+            var incorrectGroups = _storedReleaseInfos.GetAll()
                 .Where(r =>
                     !string.IsNullOrEmpty(r.GroupID) &&
                     r.GroupSource is "AniDB" &&
@@ -372,7 +422,7 @@ public class ActionService
         var settings = _settingsProvider.GetSettings();
         if (!ignoreSchedule && settings.AniDb.Notification_UpdateFrequency == ScheduledUpdateFrequency.Never) return;
 
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBNotify);
+        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBNotify);
         if (schedule == null)
         {
             schedule = new()
@@ -396,7 +446,7 @@ public class ActionService
         }
 
         schedule.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(schedule);
+        _scheduledUpdates.Save(schedule);
         await _scheduler.StartJob<GetAniDBNotifyJob>();
 
         // process any unhandled moved file messages
@@ -408,7 +458,7 @@ public class ActionService
         var settings = _settingsProvider.GetSettings();
         if (force || settings.AniDb.Notification_HandleMovedFiles)
         {
-            var messages = RepoFactory.AniDB_Message.GetUnhandledFileMoveMessages();
+            var messages = _anidbMessages.GetUnhandledFileMoveMessages();
             if (messages.Count > 0)
             {
                 foreach (var msg in messages)
@@ -429,7 +479,7 @@ public class ActionService
         // update the calendar every 12 hours
         // we will always assume that an anime was downloaded via http first
 
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
+        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
         if (schedule != null)
         {
             // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -449,7 +499,7 @@ public class ActionService
 
         // check for any updated anime info every 12 hours
 
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
+        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
         if (schedule != null)
         {
             // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -468,7 +518,7 @@ public class ActionService
 
         // update the calendar every 24 hours
 
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
+        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
         if (schedule != null)
         {
             // if we have run this in the last 24 hours and are not forcing it, then exit
@@ -488,7 +538,7 @@ public class ActionService
 
         // check for any updated anime info every 12 hours
         var freqHours = settings.AniDb.File_UpdateFrequency.Hours;
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
+        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
         if (schedule != null)
         {
             // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -499,12 +549,12 @@ public class ActionService
         // files which have been hashed, but don't have an associated episode
         if (_videoReleaseService.AutoMatchEnabled)
         {
-            var filesWithoutEpisode = RepoFactory.VideoLocal.GetVideosWithoutEpisode();
+            var filesWithoutEpisode = _videoLocals.GetVideosWithoutEpisode();
             foreach (var vl in filesWithoutEpisode)
             {
                 if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
                 {
-                    var matchAttempts = RepoFactory.StoredReleaseInfo_MatchAttempt.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
+                    var matchAttempts = _storedReleaseInfoMatchAttempts.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
                     if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
                         continue;
                 }
@@ -521,15 +571,15 @@ public class ActionService
         };
 
         schedule.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(schedule);
+        _scheduledUpdates.Save(schedule);
     }
 
     public void CheckForPreviouslyIgnored()
     {
         try
         {
-            var filesAll = RepoFactory.VideoLocal.GetAll();
-            IReadOnlyList<VideoLocal> filesIgnored = RepoFactory.VideoLocal.GetIgnoredVideos();
+            var filesAll = _videoLocals.GetAll();
+            IReadOnlyList<VideoLocal> filesIgnored = _videoLocals.GetIgnoredVideos();
 
             foreach (var vl in filesAll)
             {
@@ -542,7 +592,7 @@ public class ActionService
                     if (resultVideoLocalsIgnored.Count != 0)
                     {
                         vl.IsIgnored = true;
-                        RepoFactory.VideoLocal.Save(vl, false);
+                        _videoLocals.Save(vl, false);
                     }
                 }
             }
@@ -558,7 +608,7 @@ public class ActionService
         // Check existing anime.
         var index = 0;
         var queuedAnimeSet = new HashSet<int>();
-        var localAnimeSet = RepoFactory.AniDB_Anime.GetAll()
+        var localAnimeSet = _anidbAnimes.GetAll()
             .Select(a => a.AnimeID)
             .OrderBy(a => a)
             .ToHashSet();
@@ -617,7 +667,7 @@ public class ActionService
     {
         // Attempt to fix cross-references with incomplete data.
         var index = 0;
-        var videos = RepoFactory.VideoLocal.GetVideosWithMissingCrossReferenceData();
+        var videos = _videoLocals.GetVideosWithMissingCrossReferenceData();
         var unknownEpisodeDict = videos
             .SelectMany(file => file.EpisodeCrossReferences)
             .Where(xref => xref.AnimeID is 0)
@@ -629,12 +679,12 @@ public class ActionService
             if (++index % 10 == 1)
                 _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime — {CurrentCount}/{MissingAnimeCount}", unknownEpisodeDict.Count, index + 1, unknownEpisodeDict.Count);
 
-            var episode = RepoFactory.AniDB_Episode.GetByEpisodeID(episodeId);
+            var episode = _anidbEpisodes.GetByEpisodeID(episodeId);
             if (episode is not null)
             {
                 foreach (var xref in xrefs)
                     xref.AnimeID = episode.AnimeID;
-                RepoFactory.CrossRef_File_Episode.Save(xrefs);
+                _crossRefFileEpisodes.Save(xrefs);
                 continue;
             }
 
@@ -654,16 +704,16 @@ public class ActionService
             {
                 foreach (var xref in xrefs)
                     xref.AnimeID = epAnimeID.Value;
-                RepoFactory.CrossRef_File_Episode.Save(xrefs);
+                _crossRefFileEpisodes.Save(xrefs);
             }
         }
 
         // Queue missing anime needed by existing files.
         index = 0;
-        var localAnimeSet = RepoFactory.AnimeSeries.GetAll()
+        var localAnimeSet = _animeSeries.GetAll()
             .Select(a => a.AniDB_ID)
             .ToHashSet();
-        var localEpisodeSet = RepoFactory.AnimeEpisode.GetAll()
+        var localEpisodeSet = _animeEpisodes.GetAll()
             .Select(episode => episode.AniDB_EpisodeID)
             .ToHashSet();
         var missingAnimeSet = videos
@@ -689,9 +739,9 @@ public class ActionService
     {
         if (!_settingsProvider.GetSettings().AniDb.DownloadCreators) return;
 
-        var allCreators = RepoFactory.AniDB_Creator.GetAll();
+        var allCreators = _anidbCreators.GetAll();
         var allMissingCreators = allCreators
-                .Where(creator => creator.Type is Providers.AniDB.CreatorType.Unknown)
+                .Where(creator => creator.Type is CreatorType.Unknown)
                 .Select(creator => creator.CreatorID)
                 .Distinct()
                 .ToList();
@@ -712,11 +762,11 @@ public class ActionService
 
     public async Task CreateMissingSeries()
     {
-        var missingSeries = RepoFactory.VideoLocal.GetAll().SelectMany(vid =>
+        var missingSeries = _videoLocals.GetAll().SelectMany(vid =>
         {
-            var xrefs = RepoFactory.CrossRef_File_Episode.GetByEd2k(vid.Hash);
-            var aniDBAnime = xrefs.Select(a => RepoFactory.AniDB_Anime.GetByAnimeID(a.AnimeID)).WhereNotNull();
-            return aniDBAnime.Where(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID) == null);
+            var xrefs = _crossRefFileEpisodes.GetByEd2k(vid.Hash);
+            var aniDBAnime = xrefs.Select(a => _anidbAnimes.GetByAnimeID(a.AnimeID)).WhereNotNull();
+            return aniDBAnime.Where(a => _animeSeries.GetByAnimeID(a.AnimeID) == null);
         }).ToList();
 
         _logger.LogInformation("Creating {Count} Series that are missing.", missingSeries.Count);
@@ -748,7 +798,7 @@ public class ActionService
             if (settings.Plugins.Updates.AutoUpdateFrequency is ScheduledUpdateFrequency.Never)
                 return;
 
-            var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.PluginUpdates);
+            var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.PluginUpdates);
             if (schedule != null)
             {
                 var freqHours = settings.Plugins.Updates.AutoUpdateFrequency.Hours;

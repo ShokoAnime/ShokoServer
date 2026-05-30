@@ -9,7 +9,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using TMDbLib.Objects.Search;
-
 using RemoteMovie = TMDbLib.Objects.Movies.Movie;
 using RemoteShow = TMDbLib.Objects.TvShows.TvShow;
 

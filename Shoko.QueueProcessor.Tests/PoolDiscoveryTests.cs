@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.QueueProcessor.Abstractions;
@@ -23,7 +24,7 @@ public class PoolDiscoveryTests
         public string Title => "";
         public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
     }
 
     [LimitConcurrency(1)]
@@ -34,7 +35,7 @@ public class PoolDiscoveryTests
         public string Title => "";
         public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
     }
 
     [LimitConcurrency(2, maxAllowedConcurrentJobs: 4)]
@@ -44,7 +45,7 @@ public class PoolDiscoveryTests
         public string Title => "";
         public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
     }
 
     private class GeneralJob : IQueueJob
@@ -53,7 +54,7 @@ public class PoolDiscoveryTests
         public string Title => "";
         public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
     }
 
     // Attribute used to associate a filter with UDP jobs

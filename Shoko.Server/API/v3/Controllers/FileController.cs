@@ -28,12 +28,12 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-
 using AbstractReleaseInfo = Shoko.Abstractions.Video.Release.ReleaseInfo;
 using AbstractReleaseVideoCrossReference = Shoko.Abstractions.Video.Release.ReleaseVideoCrossReference;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
@@ -53,7 +53,14 @@ public class FileController(
     IVideoReleaseService _videoReleaseService,
     IUserDataService _userDataService,
     IVideoRelocationService _relocationService,
-    ISettingsProvider settingsProvider
+    ISettingsProvider settingsProvider,
+    AniDB_EpisodeRepository _anidbEpisodes,
+    AnimeEpisodeRepository _animeEpisodes,
+    AnimeSeriesRepository _animeSeries,
+    ShokoManagedFolderRepository _managedFolders,
+    StoredReleaseInfoRepository _storedReleaseInfos,
+    VideoLocalRepository _videoLocals,
+    VideoLocal_PlaceRepository _videoLocalPlaces
 ) : BaseController(settingsProvider)
 {
     private const string FileUserStatsNotFoundWithFileID = "No FileUserStats entry for the given fileID for the current user";
@@ -95,7 +102,7 @@ public class FileController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? releaseProviders = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null)
     {
-        return ModelHelper.FilterFiles(RepoFactory.VideoLocal.GetAll(), User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder);
+        return ModelHelper.FilterFiles(_videoLocals.GetAll(), User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder);
     }
 
     /// <summary>
@@ -124,7 +131,7 @@ public class FileController(
         [FromQuery] bool fuzzy = true)
     {
         // Search.
-        var searched = RepoFactory.VideoLocal.GetAll()
+        var searched = _videoLocals.GetAll()
             .Search(query, tuple => tuple.Places.Select(place => place?.RelativePath).WhereNotNull(), fuzzy)
             .Select(result => result.Result)
             .ToList();
@@ -149,7 +156,7 @@ public class FileController(
         var files = body.fileIDs
             .Select(fileId =>
             {
-                var file = RepoFactory.VideoLocal.GetByID(fileId);
+                var file = _videoLocals.GetByID(fileId);
                 if (file == null)
                     ModelState.AddModelError("fileIds", $"Unable to find a file with id {fileId}");
                 return file;
@@ -183,7 +190,7 @@ public class FileController(
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
 
-        var file = RepoFactory.VideoLocal.GetByEd2kAndSize(hash, size);
+        var file = _videoLocals.GetByEd2kAndSize(hash, size);
         if (file == null)
             return NotFound(FileNotFoundWithHash);
 
@@ -215,7 +222,7 @@ public class FileController(
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
 
-        var file = RepoFactory.VideoLocal.GetByCrc32AndSize(hash, size);
+        var file = _videoLocals.GetByCrc32AndSize(hash, size);
         if (file == null)
             return NotFound(FileNotFoundWithHash);
 
@@ -247,7 +254,7 @@ public class FileController(
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
 
-        var file = RepoFactory.VideoLocal.GetByMd5AndSize(hash, size);
+        var file = _videoLocals.GetByMd5AndSize(hash, size);
         if (file == null)
             return NotFound(FileNotFoundWithHash);
 
@@ -279,7 +286,7 @@ public class FileController(
         if (string.IsNullOrEmpty(hash) || size <= 0)
             return NotFound(FileNotFoundWithHash);
 
-        var file = RepoFactory.VideoLocal.GetBySha1AndSize(hash, size);
+        var file = _videoLocals.GetBySha1AndSize(hash, size);
         if (file == null)
             return NotFound(FileNotFoundWithHash);
 
@@ -308,7 +315,7 @@ public class FileController(
         [FromRoute, Range(1, int.MaxValue)] int fileID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -337,7 +344,7 @@ public class FileController(
     [HttpDelete("{fileID}")]
     public async Task<ActionResult> DeleteFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool removeFiles = true, [FromQuery] bool removeFolder = true)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -356,7 +363,7 @@ public class FileController(
     [HttpGet("{fileID}/Location")]
     public ActionResult<List<File.Location>> GetFileLocations([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool includeAbsolutePaths = false, [FromQuery] bool includeLocationUID = false)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileLocationNotFoundWithLocationID);
 
@@ -378,7 +385,7 @@ public class FileController(
     public async Task<ActionResult> BatchDeleteFileLocations([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] File.Input.BatchDeleteFileLocationsBody body)
     {
         var locations = body.locationIDs
-            .Select(locationID => locationID <= 0 ? null : RepoFactory.VideoLocalPlace.GetByID(locationID))
+            .Select(locationID => locationID <= 0 ? null : _videoLocalPlaces.GetByID(locationID))
             .WhereNotNull()
             .ToList();
         var errors = new List<Exception>();
@@ -409,7 +416,7 @@ public class FileController(
     [HttpGet("Location/{locationID}")]
     public ActionResult<File.Location> GetFileLocation([FromRoute, Range(1, int.MaxValue)] int locationID)
     {
-        if (RepoFactory.VideoLocalPlace.GetByID(locationID) is not { } fileLocation)
+        if (_videoLocalPlaces.GetByID(locationID) is not { } fileLocation)
             return NotFound(FileLocationNotFoundWithLocationID);
 
         return new File.Location(fileLocation, true, true);
@@ -425,10 +432,10 @@ public class FileController(
     [HttpPost("Location/{locationID}")]
     public async Task<ActionResult<RelocationResult>> DirectlyRelocateFileLocation([FromRoute, Range(1, int.MaxValue)] int locationID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] RelocateBody body)
     {
-        if (RepoFactory.VideoLocalPlace.GetByID(locationID) is not { } fileLocation)
+        if (_videoLocalPlaces.GetByID(locationID) is not { } fileLocation)
             return NotFound(FileLocationNotFoundWithLocationID);
 
-        if (RepoFactory.ShokoManagedFolder.GetByID(body.ManagedFolderID) is not { } folder)
+        if (_managedFolders.GetByID(body.ManagedFolderID) is not { } folder)
             return BadRequest($"Unknown managed folder with the given id `{body.ManagedFolderID}`.");
 
         // Store the old managed folder id and relative path for comparison.
@@ -483,7 +490,7 @@ public class FileController(
     [HttpDelete("Location/{locationID}")]
     public async Task<ActionResult> DeleteFileLocation([FromRoute, Range(1, int.MaxValue)] int locationID, [FromQuery] bool deleteFile = true, [FromQuery] bool deleteFolder = true)
     {
-        var fileLocation = RepoFactory.VideoLocalPlace.GetByID(locationID);
+        var fileLocation = _videoLocalPlaces.GetByID(locationID);
         if (fileLocation == null)
             return NotFound(FileLocationNotFoundWithLocationID);
 
@@ -503,7 +510,7 @@ public class FileController(
     [HttpGet("{fileID}/Release")]
     public ActionResult<ReleaseInfo> GetFileReleaseByFileID([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -524,7 +531,7 @@ public class FileController(
     [HttpGet("{fileID}/AniDB")]
     public ActionResult<ReleaseInfo> GetFileAnidbByFileID([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -546,7 +553,7 @@ public class FileController(
     public ActionResult<ReleaseInfo> GetFileAnidbByAnidbFileID([FromRoute, Range(1, int.MaxValue)] int anidbFileID)
     {
         if (
-            RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
+            _storedReleaseInfos.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
             !anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix)
         )
             return NotFound(AnidbReleaseNotFoundForAnidbFileID);
@@ -569,12 +576,12 @@ public class FileController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null)
     {
         if (
-            RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
+            _storedReleaseInfos.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
             !anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix)
         )
             return NotFound(AnidbReleaseNotFoundForAnidbFileID);
 
-        var file = RepoFactory.VideoLocal.GetByEd2kAndSize(anidb.ED2K, anidb.FileSize);
+        var file = _videoLocals.GetByEd2kAndSize(anidb.ED2K, anidb.FileSize);
         if (file == null)
             return NotFound(AnidbReleaseNotFoundForAnidbFileID);
 
@@ -599,12 +606,12 @@ public class FileController(
     public async Task<ActionResult> RescanFileByAniDBFileID([FromRoute, Range(1, int.MaxValue)] int anidbFileID, [FromQuery] bool priority = false)
     {
         if (
-            RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
+            _storedReleaseInfos.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{anidbFileID}") is not { ReleaseURI: not null } anidb ||
             !anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix)
         )
             return NotFound(AnidbReleaseNotFoundForFileID);
 
-        var file = RepoFactory.VideoLocal.GetByEd2kAndSize(anidb.ED2K, anidb.FileSize);
+        var file = _videoLocals.GetByEd2kAndSize(anidb.ED2K, anidb.FileSize);
         if (file == null)
             return NotFound(AnidbReleaseNotFoundForFileID);
 
@@ -656,7 +663,7 @@ public class FileController(
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
 
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -697,7 +704,7 @@ public class FileController(
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
 
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -719,7 +726,7 @@ public class FileController(
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
 
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -745,7 +752,7 @@ public class FileController(
     [HttpGet("{fileID}/MediaInfo")]
     public ActionResult<MediaInfoDto> GetFileMediaInfo([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -771,7 +778,7 @@ public class FileController(
     [HttpGet("{fileID}/UserData")]
     public ActionResult<File.FileUserData> GetFileUserData([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -798,7 +805,7 @@ public class FileController(
     public ActionResult<File.FileUserData> PutFileUserData([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.FileUserData fileUserStats)
     {
         // Make sure the file exists.
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -824,7 +831,7 @@ public class FileController(
     public ActionResult<File.FileUserData> PatchFileUserData([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] JsonPatchDocument<File.FileUserData> patchDocument)
     {
         // Make sure the file exists.
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -851,7 +858,7 @@ public class FileController(
     [HttpPost("{fileID}/Watched/{watched?}")]
     public async Task<ActionResult> SetWatchedStatusOnFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] bool watched = true)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -872,7 +879,7 @@ public class FileController(
     [HttpPatch("{fileID}/Scrobble")]
     public async Task<ActionResult> ScrobbleFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery(Name = "event")] string? eventName = null, [FromQuery] bool? watched = null, [FromQuery] string? resumePosition = null)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -945,12 +952,12 @@ public class FileController(
     [HttpPut("{fileID}/Ignore")]
     public ActionResult MarkFileAsIgnored([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool value = true)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
         file.IsIgnored = value;
-        RepoFactory.VideoLocal.Save(file, false);
+        _videoLocals.Save(file, false);
 
         return Ok();
     }
@@ -964,12 +971,12 @@ public class FileController(
     [HttpPut("{fileID}/Variation")]
     public ActionResult MarkFileAsVariation([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool value = true)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
         file.IsVariation = value;
-        RepoFactory.VideoLocal.Save(file, false);
+        _videoLocals.Save(file, false);
 
         return Ok();
     }
@@ -985,7 +992,7 @@ public class FileController(
     public async Task<ActionResult> AvDumpFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = false,
         [FromQuery] bool immediate = true)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -1020,7 +1027,7 @@ public class FileController(
     [HttpPost("{fileID}/Rescan")]
     public async Task<ActionResult> RescanFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = false)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -1044,7 +1051,7 @@ public class FileController(
     [HttpPost("{fileID}/Rehash")]
     public async Task<ActionResult> RehashFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = true)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -1067,7 +1074,7 @@ public class FileController(
     [HttpPost("{fileID}/AddToMyList")]
     public async Task<ActionResult> AddFileToMyList([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
         await _schedulerFactory.StartJob<AddFileToMyListJob>(c => c.Hash = file.Hash, prioritize: true).ConfigureAwait(false);
@@ -1085,7 +1092,7 @@ public class FileController(
     [HttpPost("{fileID}/Action/AutoRelocate")]
     public async Task<ActionResult> ScheduleAutoRelocationForFileLocation([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool priority = false)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
 
@@ -1142,7 +1149,7 @@ public class FileController(
         var query = path
             .Replace('/', Path.DirectorySeparatorChar)
             .Replace('\\', Path.DirectorySeparatorChar);
-        var results = RepoFactory.VideoLocalPlace.GetAll()
+        var results = _videoLocalPlaces.GetAll()
             .AsParallel()
             .Where(location => location.Path?.EndsWith(query, StringComparison.OrdinalIgnoreCase) ?? false)
             .Select(location => location.VideoLocal!)
@@ -1208,7 +1215,7 @@ public class FileController(
             return ValidationProblem(e.Message, "path");
         }
 
-        var results = RepoFactory.VideoLocalPlace.GetAll()
+        var results = _videoLocalPlaces.GetAll()
             .AsParallel()
             .Where(a => regex.IsMatch(a.Path ?? ""))
             .DistinctBy(v => v.VideoID)
@@ -1245,7 +1252,7 @@ public class FileController(
             return ValidationProblem(e.Message, "path");
         }
 
-        var results = RepoFactory.VideoLocalPlace.GetAll().AsParallel()
+        var results = _videoLocalPlaces.GetAll().AsParallel()
             .Where(a => regex.IsMatch(a.FileName))
             .DistinctBy(v => v.VideoID)
             .Select(a => a.VideoLocal)
@@ -1270,14 +1277,14 @@ public class FileController(
     [HttpPost("{fileID}/Link")]
     public async Task<ActionResult> LinkSingleEpisodeToFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.Input.LinkEpisodesBody body)
     {
-        if (RepoFactory.VideoLocal.GetByID(fileID) is not { } video)
+        if (_videoLocals.GetByID(fileID) is not { } video)
             return NotFound(FileNotFoundWithFileID);
 
         // Validate the episodes.
         var episodeList = body.EpisodeIDs
             .Select(episodeID =>
             {
-                var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+                var episode = _animeEpisodes.GetByID(episodeID);
                 if (episode == null)
                     ModelState.AddModelError(nameof(body.EpisodeIDs), $"Unable to find shoko episode with id {episodeID}");
                 var anidbEpisode = episode?.AniDB_Episode;
@@ -1314,11 +1321,11 @@ public class FileController(
     [HttpPost("{fileID}/LinkFromSeries")]
     public async Task<ActionResult> LinkMultipleEpisodesToFile([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] File.Input.LinkSeriesBody body)
     {
-        if (RepoFactory.VideoLocal.GetByID(fileID) is not { } video)
+        if (_videoLocals.GetByID(fileID) is not { } video)
             return NotFound(FileNotFoundWithFileID);
 
         // Validate that the ranges are in a valid syntax and that the series exists.
-        var series = RepoFactory.AnimeSeries.GetByID(body.SeriesID);
+        var series = _animeSeries.GetByID(body.SeriesID);
         if (series == null)
             ModelState.AddModelError(nameof(body.SeriesID), $"Unable to find series with id {body.SeriesID}.");
 
@@ -1358,14 +1365,14 @@ public class FileController(
         var episodeList = new List<AniDB_Episode>();
         for (var episodeNumber = rangeStart; episodeNumber <= rangeEnd; episodeNumber++)
         {
-            var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
+            var anidbEpisode = _anidbEpisodes.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
             if (anidbEpisode == null)
             {
                 ModelState.AddModelError("Episodes", $"Could not find the AniDB entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
                 continue;
             }
 
-            var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
+            var episode = _animeEpisodes.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
             if (episode == null)
             {
                 ModelState.AddModelError("Episodes", $"Could not find the Shoko entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
@@ -1401,7 +1408,7 @@ public class FileController(
     [HttpDelete("{fileID}/Link")]
     public async Task<ActionResult> UnlinkMultipleEpisodesFromFile([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
-        if (RepoFactory.VideoLocal.GetByID(fileID) is not { } video)
+        if (_videoLocals.GetByID(fileID) is not { } video)
             return NotFound(FileNotFoundWithFileID);
 
         if (_videoReleaseService.GetCurrentReleaseForVideo(video) is null)
@@ -1425,7 +1432,7 @@ public class FileController(
         var files = body.FileIDs
             .Select(fileID =>
             {
-                var file = RepoFactory.VideoLocal.GetByID(fileID);
+                var file = _videoLocals.GetByID(fileID);
                 if (file == null)
                     ModelState.AddModelError(nameof(body.FileIDs), $"Unable to find a file with id {fileID}.");
 
@@ -1436,7 +1443,7 @@ public class FileController(
         if (body.FileIDs.Length == 0)
             ModelState.AddModelError(nameof(body.FileIDs), "`FileIDs` must contain at least one element.");
 
-        var series = RepoFactory.AnimeSeries.GetByID(body.SeriesID);
+        var series = _animeSeries.GetByID(body.SeriesID);
         if (series == null)
             ModelState.AddModelError(nameof(body.SeriesID), $"Unable to find series with id {body.SeriesID}.");
 
@@ -1472,14 +1479,14 @@ public class FileController(
         var episodeList = new List<(VideoLocal, AniDB_Episode)>();
         foreach (var file in files)
         {
-            var anidbEpisode = RepoFactory.AniDB_Episode.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
+            var anidbEpisode = _anidbEpisodes.GetByAnimeIDAndEpisodeTypeNumber(series.AniDB_ID, episodeType, episodeNumber)[0];
             if (anidbEpisode == null)
             {
                 ModelState.AddModelError("Episodes", $"Could not find the AniDB entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
                 continue;
             }
 
-            var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
+            var episode = _animeEpisodes.GetByAniDBEpisodeID(anidbEpisode.EpisodeID);
             if (episode == null)
             {
                 ModelState.AddModelError("Episodes", $"Could not find the Shoko entry for the {episodeType.ToString().ToLowerInvariant()} episode {episodeNumber}.");
@@ -1553,7 +1560,7 @@ public class FileController(
         var files = body.FileIDs
             .Select(fileID =>
             {
-                var file = RepoFactory.VideoLocal.GetByID(fileID);
+                var file = _videoLocals.GetByID(fileID);
                 if (file == null)
                     ModelState.AddModelError(nameof(body.FileIDs), $"Unable to find a file with id {fileID}.");
 
@@ -1564,7 +1571,7 @@ public class FileController(
         if (body.FileIDs.Length == 0)
             ModelState.AddModelError(nameof(body.FileIDs), "`FileIDs` must contain at least one element.");
 
-        var episode = RepoFactory.AnimeEpisode.GetByID(body.EpisodeID);
+        var episode = _animeEpisodes.GetByID(body.EpisodeID);
         if (episode == null)
             ModelState.AddModelError(nameof(body.EpisodeID), $"Unable to find episode with id {body.EpisodeID}.");
 

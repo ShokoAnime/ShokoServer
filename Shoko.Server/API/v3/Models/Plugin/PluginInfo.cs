@@ -5,7 +5,6 @@ using System.Linq;
 using Shoko.Abstractions.Core;
 using Shoko.Server.Plugin;
 using Shoko.Server.Services;
-
 using AbstractPluginInfo = Shoko.Abstractions.Plugin.Models.LocalPluginInfo;
 
 #nullable enable

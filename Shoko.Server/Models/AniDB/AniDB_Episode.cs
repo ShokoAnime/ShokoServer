@@ -23,7 +23,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #pragma warning disable CS0618

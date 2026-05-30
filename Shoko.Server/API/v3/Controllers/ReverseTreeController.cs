@@ -8,7 +8,7 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -24,6 +24,11 @@ namespace Shoko.Server.API.v3.Controllers;
 public class ReverseTreeController : BaseController
 {
     private readonly FilterFactory _filterFactory;
+    private readonly FilterPresetRepository _filterPresets;
+    private readonly AnimeGroupRepository _animeGroups;
+    private readonly AnimeSeriesRepository _animeSeries;
+    private readonly AnimeEpisodeRepository _animeEpisodes;
+    private readonly VideoLocalRepository _videoLocals;
 
     /// <summary>
     /// Get the parent <see cref="Filter"/> for the <see cref="Filter"/> with the given <paramref name="filterID"/>.
@@ -43,7 +48,7 @@ public class ReverseTreeController : BaseController
     [HttpGet("Filter/{filterID}/Parent")]
     public ActionResult<Filter> GetParentFromFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool topLevel = false, [FromQuery] bool withConditions = false, [FromQuery] bool includeEmptyGroups = false)
     {
-        var filter = RepoFactory.FilterPreset.GetByID(filterID);
+        var filter = _filterPresets.GetByID(filterID);
         if (filter == null)
         {
             return NotFound(FilterController.FilterNotFound);
@@ -54,7 +59,7 @@ public class ReverseTreeController : BaseController
             return ValidationProblem("Unable to get parent Filter for a top-level Filter", "filterID");
         }
 
-        var parentGroup = topLevel ? RepoFactory.FilterPreset.GetTopLevelFilter(filter.ParentFilterPresetID.Value) : RepoFactory.FilterPreset.GetByID(filter.ParentFilterPresetID.Value);
+        var parentGroup = topLevel ? _filterPresets.GetTopLevelFilter(filter.ParentFilterPresetID.Value) : _filterPresets.GetByID(filter.ParentFilterPresetID.Value);
         if (parentGroup == null)
         {
             return InternalError("No parent Filter entry for the given filterID");
@@ -79,7 +84,7 @@ public class ReverseTreeController : BaseController
     [HttpGet("Group/{groupID}/Parent")]
     public ActionResult<Group> GetParentFromGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool topLevel = false)
     {
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = _animeGroups.GetByID(groupID);
         if (group == null)
         {
             return NotFound(GroupController.GroupNotFound);
@@ -118,7 +123,7 @@ public class ReverseTreeController : BaseController
     [HttpGet("Series/{seriesID}/Group")]
     public ActionResult<Group> GetGroupFromSeries([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool topLevel = false)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = _animeSeries.GetByID(seriesID);
         if (series == null)
         {
             return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
@@ -149,7 +154,7 @@ public class ReverseTreeController : BaseController
     public ActionResult<Series> GetSeriesFromEpisode([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
         {
             return NotFound(EpisodeController.EpisodeNotFoundWithEpisodeID);
@@ -188,7 +193,7 @@ public class ReverseTreeController : BaseController
         [FromQuery] bool includeXRefs = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
-        var file = RepoFactory.VideoLocal.GetByID(fileID);
+        var file = _videoLocals.GetByID(fileID);
         if (file == null)
         {
             return NotFound(FileController.FileNotFoundWithFileID);
@@ -205,8 +210,13 @@ public class ReverseTreeController : BaseController
             .ToList();
     }
 
-    public ReverseTreeController(ISettingsProvider settingsProvider, FilterFactory filterFactory) : base(settingsProvider)
+    public ReverseTreeController(ISettingsProvider settingsProvider, FilterFactory filterFactory, FilterPresetRepository filterPresets, AnimeGroupRepository animeGroups, AnimeSeriesRepository animeSeries, AnimeEpisodeRepository animeEpisodes, VideoLocalRepository videoLocals) : base(settingsProvider)
     {
         _filterFactory = filterFactory;
+        _filterPresets = filterPresets;
+        _animeGroups = animeGroups;
+        _animeSeries = animeSeries;
+        _animeEpisodes = animeEpisodes;
+        _videoLocals = videoLocals;
     }
 }

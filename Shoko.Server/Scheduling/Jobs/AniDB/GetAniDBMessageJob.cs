@@ -8,7 +8,7 @@ using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.User;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -36,7 +36,7 @@ public class GetAniDBMessageJob : BaseJob
     {
         _logger.LogInformation("Processing {Job}: {MessageID}", nameof(GetAniDBMessageJob), MessageID);
 
-        var message = RepoFactory.AniDB_Message.GetByMessageId(MessageID);
+        var message = _anidbMessages.GetByMessageId(MessageID);
         if (message is not null) return; // message content has already been fetched
 
         var request = _requestFactory.Create<RequestGetMessageContent>(r => r.ID = MessageID);
@@ -63,8 +63,8 @@ public class GetAniDBMessageJob : BaseJob
         }
 
         // save to db and remove from queue
-        RepoFactory.AniDB_Message.Save(message);
-        RepoFactory.AniDB_NotifyQueue.DeleteForTypeID(AniDBNotifyType.Message, MessageID);
+        _anidbMessages.Save(message);
+        _anidbNotifyQueues.DeleteForTypeID(AniDBNotifyType.Message, MessageID);
 
         var settings = _settingsProvider.GetSettings();
         await _scheduler.StartJob<AcknowledgeAniDBNotifyJob>(
@@ -81,11 +81,19 @@ public class GetAniDBMessageJob : BaseJob
         }
     }
 
-    public GetAniDBMessageJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory, ISettingsProvider settingsProvider)
+    private readonly AniDB_MessageRepository _anidbMessages;
+    private readonly AniDB_NotifyQueueRepository _anidbNotifyQueues;
+    public GetAniDBMessageJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory, ISettingsProvider settingsProvider,
+        AniDB_MessageRepository anidbMessages,
+        AniDB_NotifyQueueRepository anidbNotifyQueues
+    )
     {
         _requestFactory = requestFactory;
         _scheduler = schedulerFactory;
         _settingsProvider = settingsProvider;
+        _anidbMessages = anidbMessages;
+        _anidbNotifyQueues = anidbNotifyQueues;
+
     }
 
     protected GetAniDBMessageJob()

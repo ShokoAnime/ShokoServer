@@ -9,8 +9,8 @@ using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using ImageMagick;
 using MessagePack;
-using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
+using MimeMapping;
 using Newtonsoft.Json;
 using NHibernate;
 using NHibernate.Exceptions;
@@ -1784,8 +1784,8 @@ public class DatabaseFixes
             var newPathExists = File.Exists(newPath);
 
             var languageCode = old.Language is { Length: 2 } ? old.Language : null;
-            var contentType = MimeMapping.MimeUtility.GetMimeMapping(resourceID);
-            if (string.IsNullOrEmpty(contentType) || contentType == MimeMapping.MimeUtility.UnknownMimeType)
+            var contentType = MimeUtility.GetMimeMapping(resourceID);
+            if (string.IsNullOrEmpty(contentType) || contentType == MimeUtility.UnknownMimeType)
                 contentType = "image/jpeg";
 
             var width = old.Width > 0 ? old.Width : (int?)null;
@@ -2278,8 +2278,8 @@ public class DatabaseFixes
         var oldPathExists = File.Exists(oldPath);
         var newPathExists = File.Exists(newPath);
 
-        var contentType = MimeMapping.MimeUtility.GetMimeMapping(resourceID);
-        if (string.IsNullOrEmpty(contentType) || contentType == MimeMapping.MimeUtility.UnknownMimeType)
+        var contentType = MimeUtility.GetMimeMapping(resourceID);
+        if (string.IsNullOrEmpty(contentType) || contentType == MimeUtility.UnknownMimeType)
             contentType = "image/jpeg";
 
         var width = (int?)null;

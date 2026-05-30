@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Enums;
@@ -16,9 +15,11 @@ using Shoko.Abstractions.Video;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Settings;
+using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #nullable enable
 namespace Shoko.Server.Services;
@@ -758,7 +759,7 @@ public class UserDataService(
             }
         }
 
-        var providerVoteType = Providers.AniDB.VoteType.AnimeTemporary;
+        var providerVoteType = VoteType.AnimeTemporary;
         if (userDataUpdate.HasSetUserRating)
         {
             if (!userDataUpdate.HasUserRating)
@@ -766,8 +767,8 @@ public class UserDataService(
                 if (userData.HasUserRating)
                 {
                     providerVoteType = userData.UserRatingVoteType is SeriesVoteType.Permanent
-                        ? Providers.AniDB.VoteType.AnimePermanent
-                        : Providers.AniDB.VoteType.AnimeTemporary;
+                        ? VoteType.AnimePermanent
+                        : VoteType.AnimeTemporary;
                     userData.UserRating = null;
                     userData.UserRatingVoteType = null;
                     shouldSave = true;
@@ -777,8 +778,8 @@ public class UserDataService(
             else
             {
                 providerVoteType = userDataUpdate.UserRatingVoteType is SeriesVoteType.Permanent
-                    ? Providers.AniDB.VoteType.AnimePermanent
-                    : Providers.AniDB.VoteType.AnimeTemporary;
+                    ? VoteType.AnimePermanent
+                    : VoteType.AnimeTemporary;
                 if (userData.UserRating != userDataUpdate.UserRating || userData.UserRatingVoteType != userDataUpdate.UserRatingVoteType)
                 {
                     userData.UserRating = userDataUpdate.UserRating;

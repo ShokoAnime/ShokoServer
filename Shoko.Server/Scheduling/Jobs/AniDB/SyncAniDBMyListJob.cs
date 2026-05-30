@@ -22,8 +22,8 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Release;
-using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
@@ -89,13 +89,13 @@ public class SyncAniDBMyListJob : BaseJob
         var onlineFiles = response.Response
             .Where(a => a.FileID is not null and not 0)
             .ToLookup(a => a.FileID!.Value);
-        var localFiles = RepoFactory.StoredReleaseInfo.GetAll()
+        var localFiles = _storedReleaseInfos.GetAll()
             .Where(r => !string.IsNullOrEmpty(r.ReleaseURI) && r.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
             .ToLookup(a => a.ED2K);
 
         var missingFiles = await AddMissingFiles(localFiles, onlineFiles);
 
-        var aniDBUser = RepoFactory.JMMUser.GetAniDBUser();
+        var aniDBUser = _jmmUsers.GetAniDBUser();
         var modifiedSeries = new LinkedHashSet<AnimeSeries>();
 
         // Remove Missing Files and update watched states (single loop)
@@ -109,10 +109,10 @@ public class SyncAniDBMyListJob : BaseJob
                 if (myItem.ViewedAt.HasValue) watchedItems++;
 
                 // the null is checked in the collection
-                var aniFile = RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myItem.FileID}");
+                var aniFile = _storedReleaseInfos.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myItem.FileID}");
 
                 // the AniDB_File should never have a null hash, but just in case
-                var vl = aniFile?.ED2K is null ? null : RepoFactory.VideoLocal.GetByEd2k(aniFile.ED2K);
+                var vl = aniFile?.ED2K is null ? null : _videoLocals.GetByEd2k(aniFile.ED2K);
 
                 if (vl != null)
                 {
@@ -275,7 +275,7 @@ public class SyncAniDBMyListJob : BaseJob
     private bool ShouldRun()
     {
         // we will always assume that an anime was downloaded via http first
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
+        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
         if (schedule == null)
         {
             schedule = new()
@@ -295,7 +295,7 @@ public class SyncAniDBMyListJob : BaseJob
         }
 
         schedule.LastUpdate = DateTime.Now;
-        RepoFactory.ScheduledUpdate.Save(schedule);
+        _scheduledUpdates.Save(schedule);
 
         return true;
     }
@@ -305,7 +305,7 @@ public class SyncAniDBMyListJob : BaseJob
     {
         if (!_settings.AniDb.MyList_AddFiles) return 0;
         var missingFiles = 0;
-        foreach (var vid in RepoFactory.VideoLocal.GetAll()
+        foreach (var vid in _videoLocals.GetAll()
                      .Where(a => !string.IsNullOrEmpty(a.Hash)).ToList())
         {
             // Does it have a linked AniFile
@@ -338,7 +338,16 @@ public class SyncAniDBMyListJob : BaseJob
         return fileID != 0;
     }
 
-    public SyncAniDBMyListJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, VideoLocal_UserRepository vlUsers, IUserDataService userDataService, IApplicationPaths applicationPaths)
+    private readonly JMMUserRepository _jmmUsers;
+    private readonly ScheduledUpdateRepository _scheduledUpdates;
+    private readonly StoredReleaseInfoRepository _storedReleaseInfos;
+    private readonly VideoLocalRepository _videoLocals;
+    public SyncAniDBMyListJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, VideoLocal_UserRepository vlUsers, IUserDataService userDataService, IApplicationPaths applicationPaths,
+        JMMUserRepository jmmUsers,
+        ScheduledUpdateRepository scheduledUpdates,
+        StoredReleaseInfoRepository storedReleaseInfos,
+        VideoLocalRepository videoLocals
+    )
     {
         _requestFactory = requestFactory;
         _scheduler = schedulerFactory;
@@ -347,6 +356,11 @@ public class SyncAniDBMyListJob : BaseJob
         _userDataService = userDataService;
         _settingsProvider = settingsProvider;
         _applicationPaths = applicationPaths;
+        _jmmUsers = jmmUsers;
+        _scheduledUpdates = scheduledUpdates;
+        _storedReleaseInfos = storedReleaseInfos;
+        _videoLocals = videoLocals;
+
     }
 
     protected SyncAniDBMyListJob() { }

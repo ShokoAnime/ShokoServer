@@ -42,7 +42,7 @@ public interface IManagedFolder
     /// <summary>
     ///   The rules that this managed folder should adhere to within the file
     ///   renaming/movement system. IF set to anything other than
-    ///   <see cref="DropFolderType.Excluded"/> then we need read-write access
+    ///   <see cref="Enums.DropFolderType.Excluded"/> then we need read-write access
     ///   to the folder.
     /// </summary>
     /// <remarks>

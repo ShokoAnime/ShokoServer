@@ -8,7 +8,7 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB.Titles;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Services;
@@ -126,7 +126,7 @@ public class GetRemoteAniDBAnimeJob : BaseJob<AniDB_Anime>
     public override void PostInit()
     {
         // We have the title helper. May as well use it to provide better info for the user
-        _animeName = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title;
+        _animeName = _anidbAnimes.GetByAnimeID(AnimeID)?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title;
     }
 
     public override string TypeName => "Get AniDB Anime Data (Force Remote)";
@@ -152,11 +152,16 @@ public class GetRemoteAniDBAnimeJob : BaseJob<AniDB_Anime>
     }
 
 
-    public GetRemoteAniDBAnimeJob(ISettingsProvider settingsProvider, IAnidbService anidbService, AniDBTitleHelper titleHelper)
+    private readonly AniDB_AnimeRepository _anidbAnimes;
+    public GetRemoteAniDBAnimeJob(ISettingsProvider settingsProvider, IAnidbService anidbService, AniDBTitleHelper titleHelper,
+        AniDB_AnimeRepository anidbAnimes
+    )
     {
         _settingsProvider = settingsProvider;
         _anidbService = (AnidbService)anidbService;
         _titleHelper = titleHelper;
+        _anidbAnimes = anidbAnimes;
+
     }
 
     protected GetRemoteAniDBAnimeJob() { }

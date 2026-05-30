@@ -1,7 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
-
 using AbstractLogEntry = Shoko.Abstractions.Logging.Models.LogEntry;
 
 #nullable enable

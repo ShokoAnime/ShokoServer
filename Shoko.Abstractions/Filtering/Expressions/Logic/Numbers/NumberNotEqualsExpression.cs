@@ -54,7 +54,7 @@ public class NumberNotEqualsExpression : FilterExpression<bool>, IWithNumberSele
     /// <inheritdoc cref="Equals(object)"/>
     protected bool Equals(NumberNotEqualsExpression other)
     {
-        return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Nullable.Equals(Parameter, other.Parameter);
+        return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Equals(Parameter, other.Parameter);
     }
 
     /// <inheritdoc/>

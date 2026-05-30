@@ -1,7 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Plugin;
-
 using AbstractPackageArchiveInfo = Shoko.Abstractions.Plugin.Models.PackageArchiveInfo;
 
 #nullable enable

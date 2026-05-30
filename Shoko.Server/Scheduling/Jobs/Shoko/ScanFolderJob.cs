@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
@@ -51,7 +51,7 @@ internal class ScanFolderJob : BaseJob
 
     public override void PostInit()
     {
-        _managedFolder = RepoFactory.ShokoManagedFolder?.GetByID(ManagedFolderID)?.Name;
+        _managedFolder = _managedFolders.GetByID(ManagedFolderID)?.Name;
     }
 
     public override async Task Execute()
@@ -63,9 +63,14 @@ internal class ScanFolderJob : BaseJob
         await _videoService.ScanManagedFolder(managedFolder, relativePath: RelativePath, onlyNewFiles: OnlyNewFiles, skipMylist: SkipMyList, cleanUpStructure: CleanUpStructure, checkFileSize: CheckFileSize);
     }
 
-    public ScanFolderJob(IVideoService videoService)
+    private readonly ShokoManagedFolderRepository _managedFolders;
+    public ScanFolderJob(IVideoService videoService,
+        ShokoManagedFolderRepository managedFolders
+    )
     {
         _videoService = videoService;
+        _managedFolders = managedFolders;
+
     }
 
     protected ScanFolderJob() { }

@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,13 +5,14 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Server.Models.AniDB;
+using TMDbLib.Objects.General;
 using TMDbLib.Objects.Search;
 
 #nullable enable
@@ -422,7 +422,7 @@ public partial class TmdbSearchService : ITmdbSearchService
                         FirstAirDate = x.FirstAiredAt?.ToDateTime(),
                         BackdropPath = x.BackdropPath,
                         GenreIds = [],
-                        MediaType = TMDbLib.Objects.General.MediaType.Tv,
+                        MediaType = MediaType.Tv,
                         OriginalLanguage = x.OriginalLanguageCode,
                         OriginCountry = x.TmdbCompanies.Select(x => x.CountryOfOrigin).Distinct().ToList(),
                         Overview = x.EnglishOverview,

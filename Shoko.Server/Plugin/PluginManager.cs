@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using MimeMapping;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core;
@@ -1138,7 +1139,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         {
             foreach (var fileName in Directory.EnumerateFiles(containingDirectory, "thumbnail.*", new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
             {
-                var mime = MimeMapping.MimeUtility.GetMimeMapping(Path.GetExtension(fileName));
+                var mime = MimeUtility.GetMimeMapping(Path.GetExtension(fileName));
                 if (mime is not null and not "application/octet-stream")
                 {
                     var imageInfo = new MagickImageInfo(fileName);
@@ -1163,7 +1164,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             var thumbnailFile = Path.ChangeExtension(Path.GetFileName(dll), ".thumbnail.*");
             foreach (var fileName in Directory.EnumerateFiles(Path.GetDirectoryName(dll)!, thumbnailFile, new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
             {
-                var mime = MimeMapping.MimeUtility.GetMimeMapping(Path.GetExtension(fileName));
+                var mime = MimeUtility.GetMimeMapping(Path.GetExtension(fileName));
                 if (mime is not null and not "application/octet-stream")
                 {
                     var imageInfo = new MagickImageInfo(fileName);
@@ -1191,7 +1192,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             if (mime is null)
                 return null;
 
-            var extName = MimeMapping.MimeUtility.GetExtensions(mime)?.FirstOrDefault();
+            var extName = MimeUtility.GetExtensions(mime)?.FirstOrDefault();
             if (extName is null)
                 return null;
 

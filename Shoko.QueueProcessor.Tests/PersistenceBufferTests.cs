@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -134,13 +135,13 @@ public class PersistenceBufferTests
         repo.Verify(r => r.InsertBatchAsync(
             It.Is<IReadOnlyCollection<QueuedJob>>(jobs =>
                 jobs.Count == 1 && jobs.GetEnumerator().MoveNext() &&
-                !System.Linq.Enumerable.Any(jobs, j => j.Id == fastJob.Id)),
+                !Enumerable.Any(jobs, j => j.Id == fastJob.Id)),
             It.IsAny<CancellationToken>()), Times.Once);
 
         repo.Verify(r => r.DeleteBatchAsync(
             It.Is<IReadOnlyCollection<Guid>>(ids =>
-                System.Linq.Enumerable.Any(ids, i => i == oldJob.Id) &&
-                !System.Linq.Enumerable.Any(ids, i => i == fastJob.Id)),
+                Enumerable.Any(ids, i => i == oldJob.Id) &&
+                !Enumerable.Any(ids, i => i == fastJob.Id)),
             It.IsAny<CancellationToken>()), Times.Once);
 
         await buffer.DisposeAsync();

@@ -3,7 +3,6 @@ using NLog;
 using NLog.Config;
 using NLog.LayoutRenderers;
 using Shoko.Abstractions.Extensions;
-
 using ELogLevel = Microsoft.Extensions.Logging.LogLevel;
 using NLogLevel = NLog.LogLevel;
 

@@ -5,7 +5,7 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.User;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
@@ -42,19 +42,24 @@ public class AcknowledgeAniDBNotifyJob : BaseJob
         // successful, set the read flag
         if (NotifyType == AniDBNotifyType.Message)
         {
-            var message = RepoFactory.AniDB_Message.GetByMessageId(NotifyID);
+            var message = _anidbMessages.GetByMessageId(NotifyID);
             if (message != null)
             {
                 message.IsReadOnAniDB = true;
-                RepoFactory.AniDB_Message.Save(message);
+                _anidbMessages.Save(message);
             }
         }
         return Task.CompletedTask;
     }
 
-    public AcknowledgeAniDBNotifyJob(IRequestFactory requestFactory)
+    private readonly AniDB_MessageRepository _anidbMessages;
+    public AcknowledgeAniDBNotifyJob(IRequestFactory requestFactory,
+        AniDB_MessageRepository anidbMessages
+    )
     {
         _requestFactory = requestFactory;
+        _anidbMessages = anidbMessages;
+
     }
 
     protected AcknowledgeAniDBNotifyJob()

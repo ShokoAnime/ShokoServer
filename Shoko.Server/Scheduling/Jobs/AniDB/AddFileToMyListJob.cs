@@ -15,7 +15,6 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.User;
-using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
@@ -43,7 +42,7 @@ public class AddFileToMyListJob : BaseJob
 
     public override void PostInit()
     {
-        _videoLocal = RepoFactory.VideoLocal.GetByEd2k(Hash);
+        _videoLocal = _videoLocals.GetByEd2k(Hash);
         if (_videoLocal == null) throw new Exception($"VideoLocal not Found: {Hash}");
     }
 
@@ -72,7 +71,7 @@ public class AddFileToMyListJob : BaseJob
         var isManualLink = _videoLocal.ReleaseInfo is not { } releaseInfo || !(releaseInfo.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false);
 
         // mark the video file as watched
-        var user = RepoFactory.JMMUser.GetAniDBUser();
+        var user = _jmmUsers.GetAniDBUser();
         DateTime? originalWatchedDate = null;
         if (user != null)
         {
@@ -155,7 +154,7 @@ public class AddFileToMyListJob : BaseJob
         if ((response?.Response?.MyListID ?? 0) != 0)
         {
             _videoLocal.MyListID = response.Response.MyListID;
-            RepoFactory.VideoLocal.Save(_videoLocal);
+            _videoLocals.Save(_videoLocal);
         }
 
         var newWatchedDate = response?.Response?.WatchedDate;
@@ -203,13 +202,21 @@ public class AddFileToMyListJob : BaseJob
         await Task.WhenAll(series.Select(id => _scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = id)));
     }
 
-    public AddFileToMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, IQueueScheduler schedulerFactory, VideoLocal_UserRepository vlUsers, IUserDataService userDataService)
+    private readonly JMMUserRepository _jmmUsers;
+    private readonly VideoLocalRepository _videoLocals;
+    public AddFileToMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, IQueueScheduler schedulerFactory, VideoLocal_UserRepository vlUsers, IUserDataService userDataService,
+        JMMUserRepository jmmUsers,
+        VideoLocalRepository videoLocals
+    )
     {
         _requestFactory = requestFactory;
         _settingsProvider = settingsProvider;
         _scheduler = schedulerFactory;
         _vlUsers = vlUsers;
         _userDataService = userDataService;
+        _jmmUsers = jmmUsers;
+        _videoLocals = videoLocals;
+
     }
 
     protected AddFileToMyListJob() { }

@@ -5,7 +5,8 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Providers.AniDB.Release;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
@@ -25,7 +26,7 @@ public class ProcessFileMovedMessageJob : BaseJob
     {
         _logger.LogInformation("Processing {Job}: {MessageId}", nameof(ProcessFileMovedMessageJob), MessageID);
 
-        var message = RepoFactory.AniDB_Message.GetByMessageId(MessageID);
+        var message = _anidbMessages.GetByMessageId(MessageID);
         if (message == null) return;
 
         if (message.IsFileMoveHandled)
@@ -40,14 +41,14 @@ public class ProcessFileMovedMessageJob : BaseJob
             throw new Exception("Could not parse file ID from message title");
         }
 
-        var file = RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{fileId}");
+        var file = _storedReleaseInfos.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{fileId}");
         if (file == null)
         {
             _logger.LogWarning("Could not find file with AniDB ID: {ID}", fileId);
             return;
         }
 
-        var vlocal = RepoFactory.VideoLocal.GetByEd2k(file.ED2K);
+        var vlocal = _videoLocals.GetByEd2k(file.ED2K);
         if (vlocal == null)
         {
             _logger.LogWarning("Could not find VideoLocal for file with AniDB ID and Hash: {ID} {Hash}", fileId, file.ED2K);
@@ -65,18 +66,29 @@ public class ProcessFileMovedMessageJob : BaseJob
             {
                 // This runs after the file processing job is successfully done, which might be at a later point in time
                 // Let us refetch the message to make sure we have the latest data and then mark it as handled
-                var msg = RepoFactory.AniDB_Message.GetByMessageId(MessageID);
+                var msg = _anidbMessages.GetByMessageId(MessageID);
                 if (msg == null) return;
 
                 msg.IsFileMoveHandled = true;
-                RepoFactory.AniDB_Message.Save(msg);
+                _anidbMessages.Save(msg);
             }
         });
     }
 
-    public ProcessFileMovedMessageJob(IVideoReleaseService videoReleaseService)
+    private readonly AniDB_MessageRepository _anidbMessages;
+    private readonly StoredReleaseInfoRepository _storedReleaseInfos;
+    private readonly VideoLocalRepository _videoLocals;
+    public ProcessFileMovedMessageJob(IVideoReleaseService videoReleaseService,
+        AniDB_MessageRepository anidbMessages,
+        StoredReleaseInfoRepository storedReleaseInfos,
+        VideoLocalRepository videoLocals
+    )
     {
         _videoReleaseService = videoReleaseService;
+        _anidbMessages = anidbMessages;
+        _storedReleaseInfos = storedReleaseInfos;
+        _videoLocals = videoLocals;
+
     }
 
     protected ProcessFileMovedMessageJob()

@@ -242,7 +242,7 @@ public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
     /// </returns>
     IReadOnlyList<IImageCrossReference> GetCrossReferences(
         ImageEntityType? imageType = null,
-        Enums.DataSource? xrefSource = null,
+        DataSource? xrefSource = null,
         DataSource? entitySource = null,
         DataEntityType? entityType = null,
         bool? isEnabled = null,

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Shoko.Abstractions.Utilities;
 
@@ -109,7 +110,7 @@ public static class UuidUtility
     /// <param name="namespaceGuid">UUID namespace to use.</param>
     /// <returns>The new UUID.</returns>
     public static Guid GetV3(string input, Guid namespaceGuid = default)
-        => GetV3(System.Text.Encoding.UTF8.GetBytes(input), namespaceGuid);
+        => GetV3(Encoding.UTF8.GetBytes(input), namespaceGuid);
 
     /// <summary>
     /// Generates a version 3 UUID from <paramref name="input"/> in the specified namespace.
@@ -158,7 +159,7 @@ public static class UuidUtility
     /// <param name="namespaceGuid">UUID namespace to use.</param>
     /// <returns>The new UUID.</returns>
     public static Guid GetV5(string input, Guid namespaceGuid = default)
-        => GetV5(System.Text.Encoding.UTF8.GetBytes(input), namespaceGuid);
+        => GetV5(Encoding.UTF8.GetBytes(input), namespaceGuid);
 
     /// <summary>
     /// Generates a version 5 UUID from <paramref name="input"/> in the specified namespace.

@@ -5,10 +5,10 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Repositories;
 
 #pragma warning disable CS8618
 #nullable enable
+using Shoko.Server.Repositories.Cached.TMDB;
 namespace Shoko.Server.Scheduling.Jobs.TMDB;
 
 [DatabaseRequired]
@@ -25,7 +25,7 @@ public class PurgeTmdbShowJob : BaseJob
 
     public override void PostInit()
     {
-        ShowTitle ??= RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID)?.EnglishTitle;
+        ShowTitle ??= _tmdbShows.GetByTmdbShowID(TmdbShowID)?.EnglishTitle;
     }
 
     public override string TypeName => "Purge TMDB Show";
@@ -49,9 +49,14 @@ public class PurgeTmdbShowJob : BaseJob
         await _tmdbService.PurgeShow(TmdbShowID).ConfigureAwait(false);
     }
 
-    public PurgeTmdbShowJob(TmdbMetadataService tmdbService)
+    private readonly TMDB_ShowRepository _tmdbShows;
+    public PurgeTmdbShowJob(TmdbMetadataService tmdbService,
+        TMDB_ShowRepository tmdbShows
+    )
     {
         _tmdbService = tmdbService;
+        _tmdbShows = tmdbShows;
+
     }
 
     protected PurgeTmdbShowJob() { }

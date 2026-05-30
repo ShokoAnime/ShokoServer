@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -30,7 +31,7 @@ public class RequestGetNotifyList : UDPRequest<IList<ResponseNotifyId>>
             return new UDPResponse<IList<ResponseNotifyId>>
             {
                 Code = code,
-                Response = System.Array.Empty<ResponseNotifyId>()
+                Response = Array.Empty<ResponseNotifyId>()
             };
         }
 

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -29,6 +30,7 @@ using Shoko.Abstractions.Utilities;
 using Shoko.Server.Extensions;
 using Shoko.Server.Plugin;
 using Shoko.Server.Settings;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 #nullable enable
 namespace Shoko.Server.Services.Configuration;
@@ -45,7 +47,7 @@ public partial class ConfigurationService : IConfigurationService
 
     private readonly JsonSerializerSettings _newtonsoftJsonSerializerSettings;
 
-    private readonly System.Text.Json.JsonSerializerOptions _systemTextJsonSerializerOptions;
+    private readonly JsonSerializerOptions _systemTextJsonSerializerOptions;
 
     private readonly ShokoJsonSchemaGenerator _jsonSchemaGenerator;
 
@@ -1102,7 +1104,7 @@ public partial class ConfigurationService : IConfigurationService
     private TConfig DeserializeInternal<TConfig>(string json) where TConfig : class, IConfiguration, new()
         => typeof(TConfig).IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
             ? JsonConvert.DeserializeObject<TConfig>(json, _newtonsoftJsonSerializerSettings)!
-            : System.Text.Json.JsonSerializer.Deserialize<TConfig>(json, _systemTextJsonSerializerOptions)!;
+            : JsonSerializer.Deserialize<TConfig>(json, _systemTextJsonSerializerOptions)!;
 
     public string Serialize(IConfiguration config)
     {
@@ -1124,7 +1126,7 @@ public partial class ConfigurationService : IConfigurationService
     private string SerializeInternal<TConfig>(TConfig config) where TConfig : class, IConfiguration, new()
         => typeof(TConfig).IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
             ? JsonConvert.SerializeObject(config, _newtonsoftJsonSerializerSettings)
-            : System.Text.Json.JsonSerializer.Serialize(config, _systemTextJsonSerializerOptions)!;
+            : JsonSerializer.Serialize(config, _systemTextJsonSerializerOptions)!;
 
     #endregion
 

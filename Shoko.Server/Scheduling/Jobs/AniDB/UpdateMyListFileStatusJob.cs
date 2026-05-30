@@ -11,7 +11,8 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.UDP.User;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Services;
@@ -40,7 +41,7 @@ public class UpdateMyListFileStatusJob : BaseJob
 
     public override void PostInit()
     {
-        FullFileName = RepoFactory.FileNameHash?.GetByHash(Hash).FirstOrDefault()?.FileName;
+        FullFileName = _fileNameHashes.GetByHash(Hash).FirstOrDefault()?.FileName;
     }
 
     public override Dictionary<string, object> Details => FullFileName != null ? new()
@@ -61,7 +62,7 @@ public class UpdateMyListFileStatusJob : BaseJob
 
         var settings = _settingsProvider.GetSettings();
         // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
-        var vid = RepoFactory.VideoLocal.GetByEd2k(Hash);
+        var vid = _videoLocals.GetByEd2k(Hash);
         if (vid == null) return;
 
         if (vid.ReleaseInfo is { } releaseInfo && (releaseInfo.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false))
@@ -107,15 +108,26 @@ public class UpdateMyListFileStatusJob : BaseJob
         if (!UpdateSeriesStats) return;
 
         // update watched stats
-        var eps = RepoFactory.AnimeEpisode.GetByHash(vid.Hash);
+        var eps = _animeEpisodes.GetByHash(vid.Hash);
         if (eps.Count > 0) await Task.WhenAll(eps.DistinctBy(a => a.AnimeSeriesID).Select(a => _seriesService.QueueUpdateStats(a.AnimeSeries)));
     }
 
-    public UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService)
+    private readonly AnimeEpisodeRepository _animeEpisodes;
+    private readonly FileNameHashRepository _fileNameHashes;
+    private readonly VideoLocalRepository _videoLocals;
+    public UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService,
+        AnimeEpisodeRepository animeEpisodes,
+        FileNameHashRepository fileNameHashes,
+        VideoLocalRepository videoLocals
+    )
     {
         _requestFactory = requestFactory;
         _settingsProvider = settingsProvider;
         _seriesService = seriesService;
+        _animeEpisodes = animeEpisodes;
+        _fileNameHashes = fileNameHashes;
+        _videoLocals = videoLocals;
+
     }
 
     protected UpdateMyListFileStatusJob() { }

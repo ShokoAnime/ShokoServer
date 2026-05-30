@@ -13,7 +13,7 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Plex;
@@ -40,6 +40,8 @@ public class ActionController : BaseController
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly IQueueScheduler _scheduler;
     private readonly IImageManager _imageManager;
+    private readonly VideoLocalRepository _videoLocals;
+    private readonly JMMUserRepository _jmmUsers;
 
     public ActionController(
         ILogger<ActionController> logger,
@@ -52,7 +54,9 @@ public class ActionController : BaseController
         ActionService actionService,
         AnimeGroupCreator groupCreator,
         AnimeGroupService groupService,
-        IImageManager imageManager
+        IImageManager imageManager,
+        VideoLocalRepository videoLocals,
+        JMMUserRepository jmmUsers
     ) : base(settingsProvider)
     {
         _logger = logger;
@@ -65,6 +69,8 @@ public class ActionController : BaseController
         _groupCreator = groupCreator;
         _groupService = groupService;
         _imageManager = imageManager;
+        _videoLocals = videoLocals;
+        _jmmUsers = jmmUsers;
     }
 
     #region Common Actions
@@ -235,7 +241,7 @@ public class ActionController : BaseController
     [HttpGet("PurgeAllUnusedTmdbImages")]
     public ActionResult PurgeAllUnusedTmdbImages()
     {
-        Task.Factory.StartNew(() => _imageManager.SchedulePurgeOfOrphanedImages(0, Abstractions.Metadata.Enums.DataSource.TMDB));
+        Task.Factory.StartNew(() => _imageManager.SchedulePurgeOfOrphanedImages(0, DataSource.TMDB));
         return Ok();
     }
 
@@ -353,7 +359,7 @@ public class ActionController : BaseController
         if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
             return ValidationProblem("Missing AVDump API key.", "Settings");
 
-        var mismatchedFiles = RepoFactory.VideoLocal.GetAll()
+        var mismatchedFiles = _videoLocals.GetAll()
             .Where(file => !file.IsEmpty() && file.MediaInfo != null)
             .Select(file => (Video: file, AniDB: file.ReleaseInfo))
             .Where(tuple => tuple.AniDB is { ProviderName: "AniDB", IsCorrupted: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
@@ -527,7 +533,7 @@ public class ActionController : BaseController
     [HttpGet("PlexSyncAll")]
     public async Task<ActionResult> PlexSyncAll()
     {
-        foreach (var user in RepoFactory.JMMUser.GetAll())
+        foreach (var user in _jmmUsers.GetAll())
         {
             if (string.IsNullOrEmpty(user.PlexToken)) continue;
             await _scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = user);
@@ -543,7 +549,7 @@ public class ActionController : BaseController
     [HttpGet("AddAllManualLinksToMyList")]
     public async Task<ActionResult> AddAllManualLinksToMyList()
     {
-        var files = RepoFactory.VideoLocal.GetManuallyLinkedVideos();
+        var files = _videoLocals.GetManuallyLinkedVideos();
         foreach (var vl in files)
         {
             await _scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = vl.Hash);

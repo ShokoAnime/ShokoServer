@@ -26,7 +26,6 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-
 using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
 
 #pragma warning disable CS0618

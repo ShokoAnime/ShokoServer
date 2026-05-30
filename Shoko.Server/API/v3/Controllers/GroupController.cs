@@ -14,7 +14,8 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
@@ -26,7 +27,11 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class GroupController(ISettingsProvider settingsProvider, IImageManager _imageManager, AnimeGroupCreator _groupCreator, AnimeSeriesService _seriesService, AnimeGroupService _groupService) : BaseController(settingsProvider)
+public class GroupController(ISettingsProvider settingsProvider, IImageManager _imageManager, AnimeGroupCreator _groupCreator, AnimeSeriesService _seriesService, AnimeGroupService _groupService,
+    AniDB_Anime_RelationRepository _anidbAnimeRelations,
+    AnimeGroupRepository _animeGroups,
+    AnimeSeriesRepository _animeSeries
+) : BaseController(settingsProvider)
 {
     #region Return messages
 
@@ -57,7 +62,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     {
         startsWith = startsWith.ToLowerInvariant();
         var user = User;
-        return RepoFactory.AnimeGroup.GetAll()
+        return _animeGroups.GetAll()
             .Where(group =>
             {
                 if (topLevelOnly && group.AnimeGroupParentID.HasValue)
@@ -95,7 +100,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     public ActionResult<Dictionary<char, int>> GetGroupNameLetters([FromQuery] bool includeEmpty = false, [FromQuery] bool topLevelOnly = true)
     {
         var user = User;
-        return RepoFactory.AnimeGroup.GetAll()
+        return _animeGroups.GetAll()
             .Where(group =>
             {
                 if (topLevelOnly && group.AnimeGroupParentID.HasValue)
@@ -162,7 +167,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpGet("{groupID}")]
     public ActionResult<Group> GetGroup([FromRoute, Range(1, int.MaxValue)] int groupID)
     {
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = _animeGroups.GetByID(groupID);
         if (group == null)
         {
             return NotFound(GroupNotFound);
@@ -189,7 +194,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpPut("{groupID}")]
     public ActionResult<Group> PutGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
-        var animeGroup = RepoFactory.AnimeGroup.GetByID(groupID);
+        var animeGroup = _animeGroups.GetByID(groupID);
         if (animeGroup == null)
         {
             return NotFound(GroupNotFound);
@@ -224,7 +229,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpPatch("{groupID}")]
     public ActionResult<Group> PatchGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] JsonPatchDocument<Group.Input.CreateOrUpdateGroupBody> patchDocument)
     {
-        var animeGroup = RepoFactory.AnimeGroup.GetByID(groupID);
+        var animeGroup = _animeGroups.GetByID(groupID);
         if (animeGroup == null)
         {
             return NotFound(GroupNotFound);
@@ -266,7 +271,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromQuery] bool recursive = false)
     {
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = _animeGroups.GetByID(groupID);
         if (group == null)
         {
             return NotFound(GroupNotFound);
@@ -285,10 +290,10 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
             .ToHashSet();
 
         // TODO: Replace with a more generic implementation capable of supplying relations from more than just AniDB.
-        return RepoFactory.AniDB_Anime_Relation.GetByAnimeID(animeIds).OfType<IRelatedMetadata>()
-            .Concat(RepoFactory.AniDB_Anime_Relation.GetByRelatedAnimeID(animeIds).OfType<IRelatedMetadata>().Select(a => a.Reversed))
+        return _anidbAnimeRelations.GetByAnimeID(animeIds).OfType<IRelatedMetadata>()
+            .Concat(_anidbAnimeRelations.GetByRelatedAnimeID(animeIds).OfType<IRelatedMetadata>().Select(a => a.Reversed))
             .Distinct()
-            .Select(relation => (relation, relatedSeries: RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedID)))
+            .Select(relation => (relation, relatedSeries: _animeSeries.GetByAnimeID(relation.RelatedID)))
             .Where(tuple => tuple.relatedSeries != null && animeIds.Contains(tuple.relatedSeries.AniDB_ID))
             .OrderBy(tuple => tuple.relation.BaseID)
             .ThenBy(tuple => tuple.relation.RelatedID)
@@ -325,7 +330,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         [FromQuery] bool includeUndesired = false
     )
     {
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = _animeGroups.GetByID(groupID);
         if (group == null)
             return NotFound(GroupNotFound);
 
@@ -350,7 +355,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] Image.LegacyImageType imageType)
     {
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = _animeGroups.GetByID(groupID);
         if (group == null)
             return NotFound(GroupNotFound);
 
@@ -396,7 +401,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = _animeGroups.GetByID(groupID);
         if (group == null)
             return NotFound(GroupNotFound);
 
@@ -434,7 +439,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID, [FromRoute] Image.LegacyImageType imageType)
     {
         // Check if the series exists and if the user can access the series.
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = _animeGroups.GetByID(groupID);
         if (group == null)
             return NotFound(GroupNotFound);
 
@@ -483,7 +488,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpDelete("{groupID}")]
     public async Task<ActionResult> DeleteGroup([FromRoute, Range(1, int.MaxValue)] int groupID, bool deleteSeries = false, bool deleteFiles = false)
     {
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = _animeGroups.GetByID(groupID);
         if (group == null)
         {
             return NotFound(GroupNotFound);
@@ -518,7 +523,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpPost("{groupID}/Recalculate")]
     public async Task<ActionResult> RecalculateStats([FromRoute, Range(1, int.MaxValue)] int groupID)
     {
-        var group = RepoFactory.AnimeGroup.GetByID(groupID);
+        var group = _animeGroups.GetByID(groupID);
         if (group == null)
         {
             return NotFound(GroupNotFound);

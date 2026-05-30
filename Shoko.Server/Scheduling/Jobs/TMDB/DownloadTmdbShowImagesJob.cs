@@ -5,10 +5,10 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Repositories;
 
 #pragma warning disable CS8618
 #nullable enable
+using Shoko.Server.Repositories.Cached.TMDB;
 namespace Shoko.Server.Scheduling.Jobs.TMDB;
 
 [DatabaseRequired]
@@ -27,7 +27,7 @@ public class DownloadTmdbShowImagesJob : BaseJob
 
     public override void PostInit()
     {
-        ShowTitle ??= RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID)?.EnglishTitle;
+        ShowTitle ??= _tmdbShows.GetByTmdbShowID(TmdbShowID)?.EnglishTitle;
     }
 
     public override string TypeName => "Download Images for TMDB Show";
@@ -51,9 +51,14 @@ public class DownloadTmdbShowImagesJob : BaseJob
         await Task.Run(() => _tmdbService.DownloadAllShowImages(TmdbShowID, ForceDownload)).ConfigureAwait(false);
     }
 
-    public DownloadTmdbShowImagesJob(TmdbMetadataService tmdbService)
+    private readonly TMDB_ShowRepository _tmdbShows;
+    public DownloadTmdbShowImagesJob(TmdbMetadataService tmdbService,
+        TMDB_ShowRepository tmdbShows
+    )
     {
         _tmdbService = tmdbService;
+        _tmdbShows = tmdbShows;
+
     }
 
     protected DownloadTmdbShowImagesJob() { }

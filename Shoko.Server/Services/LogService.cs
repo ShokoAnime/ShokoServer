@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Timers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -26,9 +27,9 @@ using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Extensions;
 using Shoko.Server.Logging;
 using Shoko.Server.Settings;
-
 using ELogLevel = Microsoft.Extensions.Logging.LogLevel;
 using NLogLevel = NLog.LogLevel;
+using Timer = System.Timers.Timer;
 
 #pragma warning disable CS0618
 #nullable enable
@@ -36,7 +37,7 @@ namespace Shoko.Server.Services;
 
 public class LogService(ILogger<LogService> logger, IApplicationPaths applicationPaths, ISettingsProvider settingsProvider) : ILogService
 {
-    private static readonly System.Threading.Lock _loggerConfigLock = new();
+    private static readonly Lock _loggerConfigLock = new();
 
     public static bool IsLoggingInitialized { get; private set; }
 

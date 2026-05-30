@@ -5,11 +5,12 @@ using System.Linq;
 using NHibernate;
 using NutzCode.InMemoryIndex;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Services;
+using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Cached;
@@ -255,7 +256,7 @@ GROUP BY
 
                 var filteredGroups = animeGroupStatuses
                     .Where(status =>
-                        status.CompletionState is (int)Providers.AniDB.Group_CompletionStatus.Complete or (int)Providers.AniDB.Group_CompletionStatus.Finished ||
+                        status.CompletionState is (int)Group_CompletionStatus.Complete or (int)Group_CompletionStatus.Finished ||
                         status.HasGroupReleasedEpisode(anidbEpisode.EpisodeNumber)
                     )
                     .ToList();

@@ -28,7 +28,6 @@ using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.MediaInfo.Subtitles;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plugin;
-using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -49,7 +48,8 @@ public class VideoRelocationService(
     FileWatcherService fileWatcherService,
     VideoLocal_PlaceRepository videoLocalPlace,
     StoredRelocationPipeRepository storedRelocationPipeRepository,
-    FileNameHashRepository fileNameHash
+    FileNameHashRepository fileNameHash,
+    ShokoManagedFolderRepository managedFolders
 ) : IVideoRelocationService
 {
     private Dictionary<Guid, RelocationProviderInfo> _relocationProviderInfos = [];
@@ -708,7 +708,7 @@ public class VideoRelocationService(
             .Select(a => a.ParentGroup)
             .WhereNotNull()
             .ToList();
-        var availableFolders = RepoFactory.ShokoManagedFolder.GetAll()
+        var availableFolders = managedFolders.GetAll()
             .Cast<IManagedFolder>()
             .Where(a => a.DropFolderType != DropFolderType.Excluded)
             .ToList();

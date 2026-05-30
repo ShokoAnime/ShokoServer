@@ -8,7 +8,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using GroupSizes = Shoko.Server.API.v3.Models.Shoko.GroupSizes;
 using SeriesSizes = Shoko.Server.API.v3.Models.Shoko.SeriesSizes;

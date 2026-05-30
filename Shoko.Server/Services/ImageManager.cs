@@ -40,6 +40,10 @@ using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Repositories.Cached.TMDB;
+using Shoko.Server.Repositories.Direct.TMDB;
+using Shoko.Server.Repositories.Direct.TMDB.Optional;
 using Shoko.Server.Scheduling.Jobs.Image;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -56,7 +60,25 @@ public partial class ImageManager(
     IHttpClientFactory httpClientFactory,
     ConfigurationProvider<ServerSettings> configurationProvider,
     ShokoImageRepository imageRepository,
-    ShokoImage_EntityRepository xrefRepository
+    ShokoImage_EntityRepository xrefRepository,
+    AnimeGroupRepository _animeGroups,
+    AnimeSeriesRepository _animeSeries,
+    AnimeEpisodeRepository _animeEpisodes,
+    VideoLocalRepository _videoLocals,
+    JMMUserRepository _jmmUsers,
+    AniDB_AnimeRepository _anidbAnimes,
+    AniDB_EpisodeRepository _anidbEpisodes,
+    AniDB_CreatorRepository _anidbCreators,
+    AniDB_CharacterRepository _anidbCharacters,
+    TMDB_CollectionRepository _tmdbCollections,
+    TMDB_MovieRepository _tmdbMovies,
+    TMDB_ShowRepository _tmdbShows,
+    TMDB_AlternateOrdering_SeasonRepository _tmdbAlternateOrderingSeasons,
+    TMDB_SeasonRepository _tmdbSeasons,
+    TMDB_EpisodeRepository _tmdbEpisodes,
+    TMDB_PersonRepository _tmdbPersons,
+    TMDB_CompanyRepository _tmdbCompanies,
+    TMDB_NetworkRepository _tmdbNetworks
 ) : IImageManager
 {
     private static IUDPConnectionHandler? _udpConnectionHandler = null;
@@ -1396,80 +1418,80 @@ public partial class ImageManager(
     {
         // Shoko
         (DataSource.Shoko, DataEntityType.Group) => !int.TryParse(entityID, out var shokoGroupID)
-            ? null : Repositories.RepoFactory.AnimeGroup.GetByID(shokoGroupID),
+            ? null : _animeGroups.GetByID(shokoGroupID),
 
         (DataSource.Shoko, DataEntityType.Series) => !int.TryParse(entityID, out var shokoSeriesID)
-            ? null : Repositories.RepoFactory.AnimeSeries.GetByID(shokoSeriesID),
+            ? null : _animeSeries.GetByID(shokoSeriesID),
 
         (DataSource.Shoko, DataEntityType.Season) =>
             entityID.Split(':') is not { Length: 3 } parts ||
             !int.TryParse(parts[0], out var shokoSeriesID) ||
-            Repositories.RepoFactory.AnimeSeries.GetByID(shokoSeriesID) is not { } shokoSeries ||
+            _animeSeries.GetByID(shokoSeriesID) is not { } shokoSeries ||
             !Enum.TryParse<EpisodeType>(parts[1], true, out var episodeType) ||
             !int.TryParse(parts[2], out var seasonNumber)
                 ? null : new AnimeSeason(shokoSeries, episodeType, seasonNumber),
 
         (DataSource.Shoko, DataEntityType.Episode) => !int.TryParse(entityID, out var shokoEpisodeID)
-            ? null : Repositories.RepoFactory.AnimeEpisode.GetByID(shokoEpisodeID),
+            ? null : _animeEpisodes.GetByID(shokoEpisodeID),
 
         (DataSource.Shoko, DataEntityType.Video) => !int.TryParse(entityID, out var videoID)
-            ? null : Repositories.RepoFactory.VideoLocal.GetByID(videoID),
+            ? null : _videoLocals.GetByID(videoID),
 
         (DataSource.Shoko, DataEntityType.User) => !int.TryParse(entityID, out var userID)
-            ? null : Repositories.RepoFactory.JMMUser.GetByID(userID),
+            ? null : _jmmUsers.GetByID(userID),
 
         // AniDB
         (DataSource.AniDB, DataEntityType.Anime) => !int.TryParse(entityID, out var anidbAnimeID)
-            ? null : Repositories.RepoFactory.AniDB_Anime.GetByAnimeID(anidbAnimeID),
+            ? null : _anidbAnimes.GetByAnimeID(anidbAnimeID),
 
         (DataSource.AniDB, DataEntityType.Season) =>
             entityID.Split(':') is not { Length: 3 } parts ||
             !int.TryParse(parts[0], out var anidbAnimeID) ||
-            Repositories.RepoFactory.AniDB_Anime.GetByAnimeID(anidbAnimeID) is not { } anidbAnime ||
+            _anidbAnimes.GetByAnimeID(anidbAnimeID) is not { } anidbAnime ||
             !Enum.TryParse<EpisodeType>(parts[1], true, out var episodeType) ||
             !int.TryParse(parts[2], out var seasonNumber)
                 ? null : new AniDB_Season(anidbAnime, episodeType, seasonNumber),
 
         (DataSource.AniDB, DataEntityType.Episode) => !int.TryParse(entityID, out var anidbEpisodeID)
-            ? null : Repositories.RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID),
+            ? null : _anidbEpisodes.GetByEpisodeID(anidbEpisodeID),
 
         (DataSource.AniDB, DataEntityType.Studio) =>
             !int.TryParse(entityID, out var anidbStudioID) ||
-            Repositories.RepoFactory.AniDB_Creator.GetByCreatorID(anidbStudioID) is not { } creator
+            _anidbCreators.GetByCreatorID(anidbStudioID) is not { } creator
                 ? null : new AniDB_Studio(creator),
 
         (DataSource.AniDB, DataEntityType.Creator) => !int.TryParse(entityID, out var anidbCreatorID)
-            ? null : Repositories.RepoFactory.AniDB_Creator.GetByCreatorID(anidbCreatorID),
+            ? null : _anidbCreators.GetByCreatorID(anidbCreatorID),
 
         (DataSource.AniDB, DataEntityType.Character) => !int.TryParse(entityID, out var anidbCharacterID)
-            ? null : Repositories.RepoFactory.AniDB_Character.GetByCharacterID(anidbCharacterID),
+            ? null : _anidbCharacters.GetByCharacterID(anidbCharacterID),
 
         // TMDB
         (DataSource.TMDB, DataEntityType.Collection) => !int.TryParse(entityID, out var tmdbCollectionID)
-            ? null : Repositories.RepoFactory.TMDB_Collection.GetByTmdbCollectionID(tmdbCollectionID),
+            ? null : _tmdbCollections.GetByTmdbCollectionID(tmdbCollectionID),
 
         (DataSource.TMDB, DataEntityType.Movie) => !int.TryParse(entityID, out var tmdbMovieID)
-            ? null : Repositories.RepoFactory.TMDB_Movie.GetByTmdbMovieID(tmdbMovieID),
+            ? null : _tmdbMovies.GetByTmdbMovieID(tmdbMovieID),
 
         (DataSource.TMDB, DataEntityType.Show) => !int.TryParse(entityID, out var tmdbShowID)
-            ? null : Repositories.RepoFactory.TMDB_Show.GetByTmdbShowID(tmdbShowID),
+            ? null : _tmdbShows.GetByTmdbShowID(tmdbShowID),
 
         (DataSource.TMDB, DataEntityType.Season) => !SeasonIdRegex().IsMatch(entityID)
             ? null : entityID is { Length: SeasonIdHexLength }
-                ? Repositories.RepoFactory.TMDB_AlternateOrdering_Season.GetByTmdbEpisodeGroupID(entityID)
-                : Repositories.RepoFactory.TMDB_Season.GetByTmdbSeasonID(int.Parse(entityID)),
+                ? _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(entityID)
+                : _tmdbSeasons.GetByTmdbSeasonID(int.Parse(entityID)),
 
         (DataSource.TMDB, DataEntityType.Episode) => !int.TryParse(entityID, out var tmdbEpisodeID)
-            ? null : Repositories.RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(tmdbEpisodeID),
+            ? null : _tmdbEpisodes.GetByTmdbEpisodeID(tmdbEpisodeID),
 
         (DataSource.TMDB, DataEntityType.Person) => !int.TryParse(entityID, out var tmdbPersonID)
-            ? null : Repositories.RepoFactory.TMDB_Person.GetByTmdbPersonID(tmdbPersonID),
+            ? null : _tmdbPersons.GetByTmdbPersonID(tmdbPersonID),
 
         (DataSource.TMDB, DataEntityType.Studio) => !int.TryParse(entityID, out var tmdbCompanyID)
-            ? null : Repositories.RepoFactory.TMDB_Company.GetByTmdbCompanyID(tmdbCompanyID),
+            ? null : _tmdbCompanies.GetByTmdbCompanyID(tmdbCompanyID),
 
         (DataSource.TMDB, DataEntityType.Network) => !int.TryParse(entityID, out var tmdbNetworkID)
-            ? null : Repositories.RepoFactory.TMDB_Network.GetByTmdbNetworkID(tmdbNetworkID),
+            ? null : _tmdbNetworks.GetByTmdbNetworkID(tmdbNetworkID),
 
         // Default
         _ => null,

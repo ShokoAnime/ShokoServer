@@ -5,7 +5,6 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 
 #nullable enable
@@ -23,9 +22,14 @@ public class AnimeGroupService
 
     private readonly AnimeSeries_UserRepository _seriesUsers;
 
+    private readonly AnimeSeriesRepository _animeSeries;
+
+    private readonly JMMUserRepository _jmmUsers;
+
     private readonly UserDataService _userDataService;
 
-    public AnimeGroupService(ILogger<AnimeGroupService> logger, AnimeGroup_UserRepository groupUsers, StoredReleaseInfoRepository storedReleaseInfo, AnimeGroupRepository groups, AnimeSeries_UserRepository seriesUsers, IUserDataService userDataService)
+    public AnimeGroupService(ILogger<AnimeGroupService> logger, AnimeGroup_UserRepository groupUsers, StoredReleaseInfoRepository storedReleaseInfo, AnimeGroupRepository groups,
+        AnimeSeries_UserRepository seriesUsers, IUserDataService userDataService, AnimeSeriesRepository animeSeries, JMMUserRepository jmmUsers)
     {
         _groupUsers = groupUsers;
         _logger = logger;
@@ -33,6 +37,8 @@ public class AnimeGroupService
         _groups = groups;
         _seriesUsers = seriesUsers;
         _userDataService = (UserDataService)userDataService;
+        _animeSeries = animeSeries;
+        _jmmUsers = jmmUsers;
     }
 
     public void DeleteGroup(AnimeGroup group, bool updateParent = true)
@@ -62,7 +68,7 @@ public class AnimeGroupService
 
         // Reset the name/description if the group is not manually named.
         var current = series ?? (group.MainAniDBAnimeID.HasValue
-            ? RepoFactory.AnimeSeries.GetByAnimeID(group.MainAniDBAnimeID.Value)
+            ? _animeSeries.GetByAnimeID(group.MainAniDBAnimeID.Value)
             : group.AllSeries.FirstOrDefault());
         if (group.IsManuallyNamed == 0 && current != null)
             group.GroupName = current!.Title;
@@ -176,7 +182,7 @@ public class AnimeGroupService
 
         if (watchedStats)
         {
-            var allUsers = RepoFactory.JMMUser.GetAll();
+            var allUsers = _jmmUsers.GetAll();
 
             UpdateWatchedStats(group, seriesList, allUsers, (userRecord, _, isUpdated) =>
             {
@@ -216,7 +222,7 @@ public class AnimeGroupService
         if (!watchedStats && !missingEpsStats)
             return; // Nothing to do
 
-        var allUsers = RepoFactory.JMMUser.GetAll();
+        var allUsers = _jmmUsers.GetAll();
         foreach (var animeGroup in animeGroups)
         {
             var animeSeries = animeGroup.AllSeries;

@@ -10,7 +10,9 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using ImageMagick;
 using Microsoft.Extensions.Logging;
+using MimeMapping;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Extensions;
@@ -985,7 +987,7 @@ public partial class PluginPackageManager(
             var existingFile = existingFiles[0];
             try
             {
-                var imageInfo = new ImageMagick.MagickImageInfo(existingFile);
+                var imageInfo = new MagickImageInfo(existingFile);
                 var mime = PluginManager.GetMimeFromFormat(imageInfo);
                 if (mime is not null)
                     return new PackageThumbnailInfo
@@ -1012,7 +1014,7 @@ public partial class PluginPackageManager(
             response.EnsureSuccessStatusCode();
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
-            var extension = contentType is not null ? MimeMapping.MimeUtility.GetExtensions(contentType)?.FirstOrDefault() : null;
+            var extension = contentType is not null ? MimeUtility.GetExtensions(contentType)?.FirstOrDefault() : null;
             if (extension is not null)
             {
                 Directory.CreateDirectory(imagesDir);
@@ -1020,7 +1022,7 @@ public partial class PluginPackageManager(
                 await using var fileStream = File.Create(imagePath);
                 await response.Content.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
 
-                var imageInfo = new ImageMagick.MagickImageInfo(imagePath);
+                var imageInfo = new MagickImageInfo(imagePath);
                 var mime = PluginManager.GetMimeFromFormat(imageInfo);
                 if (mime is not null)
                 {

@@ -42,6 +42,8 @@ using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
+using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
+using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #nullable enable
 namespace Shoko.Server.Services;
@@ -842,7 +844,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             foreach (var creator in creators)
             {
                 await UpsertAndScheduleImageForEntity(creator, creator.ImagePath, settings.AniDb.DownloadCreators, forceDownload).ConfigureAwait(false);
-                if (creator.Type is Providers.AniDB.CreatorType.Company)
+                if (creator.Type is CreatorType.Company)
                     await UpsertAndScheduleImageForEntity(new AniDB_Studio(creator), creator.ImagePath, settings.AniDb.DownloadCreators, forceDownload).ConfigureAwait(false);
             }
         }
@@ -857,7 +859,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         {
             var desired = _settingsProvider.GetSettings().AniDb.DownloadCreators;
             await UpsertAndScheduleImageForEntity(creator, creator.ImagePath, desired, forceDownload).ConfigureAwait(false);
-            if (creator.Type is Providers.AniDB.CreatorType.Company)
+            if (creator.Type is CreatorType.Company)
                 await UpsertAndScheduleImageForEntity(new AniDB_Studio(creator), creator.ImagePath, desired, forceDownload).ConfigureAwait(false);
         }
     }
@@ -975,8 +977,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
             // Explicitly remove image cross references through the image manager.
             PurgeImageXrefsForEntity(DataEntityType.Anime, anidbAnimeID);
-            PurgeImageXrefsForEntity(DataEntityType.Season, AniDB_Season.GetID(anidbAnimeID, Abstractions.Metadata.Enums.EpisodeType.Episode, 1));
-            PurgeImageXrefsForEntity(DataEntityType.Season, AniDB_Season.GetID(anidbAnimeID, Abstractions.Metadata.Enums.EpisodeType.Special, 0));
+            PurgeImageXrefsForEntity(DataEntityType.Season, AniDB_Season.GetID(anidbAnimeID, EpisodeType.Episode, 1));
+            PurgeImageXrefsForEntity(DataEntityType.Season, AniDB_Season.GetID(anidbAnimeID, EpisodeType.Special, 0));
             foreach (var episode in anidbEpisodes)
                 PurgeImageXrefsForEntity(DataEntityType.Episode, episode.EpisodeID);
             foreach (var character in characters)

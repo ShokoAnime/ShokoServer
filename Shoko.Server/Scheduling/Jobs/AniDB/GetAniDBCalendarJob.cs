@@ -9,7 +9,9 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
@@ -39,7 +41,7 @@ public class GetAniDBCalendarJob : BaseJob
         var settings = _settingsProvider.GetSettings();
         // we will always assume that an anime was downloaded via http first
 
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
+        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
         if (schedule is null)
         {
             schedule = new()
@@ -64,7 +66,7 @@ public class GetAniDBCalendarJob : BaseJob
 
         var request = _requestFactory.Create<RequestCalendar>();
         var response = request.Send();
-        RepoFactory.ScheduledUpdate.Save(schedule);
+        _scheduledUpdates.Save(schedule);
 
         if (response.Response?.Next25Anime is not null)
         {
@@ -86,8 +88,8 @@ public class GetAniDBCalendarJob : BaseJob
 
     private async Task GetAnime(ResponseCalendar.CalendarEntry cal, IServerSettings settings)
     {
-        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(cal.AnimeID);
-        var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(cal.AnimeID);
+        var anime = _anidbAnimes.GetByAnimeID(cal.AnimeID);
+        var update = _anidbAnimeUpdates.GetByAnimeID(cal.AnimeID);
         var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
         if (settings.AutoGroupSeries || settings.AniDb.DownloadRelatedAnime)
             refreshMethod |= AnidbRefreshMethod.DownloadRelations;
@@ -108,9 +110,9 @@ public class GetAniDBCalendarJob : BaseJob
                 if (anime.AirDate == releaseDate) return;
 
                 anime.AirDate = releaseDate;
-                RepoFactory.AniDB_Anime.Save(anime);
-                var ser = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
-                if (ser is not null) RepoFactory.AnimeSeries.Save(ser, true);
+                _anidbAnimes.Save(anime);
+                var ser = _animeSeries.GetByAnimeID(anime.AnimeID);
+                if (ser is not null) _animeSeries.Save(ser, true);
             }
         }
         else
@@ -119,12 +121,26 @@ public class GetAniDBCalendarJob : BaseJob
         }
     }
 
+    private readonly AniDB_AnimeRepository _anidbAnimes;
+    private readonly AniDB_AnimeUpdateRepository _anidbAnimeUpdates;
+    private readonly AnimeSeriesRepository _animeSeries;
+    private readonly ScheduledUpdateRepository _scheduledUpdates;
     public GetAniDBCalendarJob(IRequestFactory requestFactory,
-        IAnidbService anidbService, ISettingsProvider settingsProvider)
+        IAnidbService anidbService, ISettingsProvider settingsProvider,
+        AniDB_AnimeRepository anidbAnimes,
+        AniDB_AnimeUpdateRepository anidbAnimeUpdates,
+        AnimeSeriesRepository animeSeries,
+        ScheduledUpdateRepository scheduledUpdates
+    )
     {
         _requestFactory = requestFactory;
         _anidbService = anidbService;
         _settingsProvider = settingsProvider;
+        _anidbAnimes = anidbAnimes;
+        _anidbAnimeUpdates = anidbAnimeUpdates;
+        _animeSeries = animeSeries;
+        _scheduledUpdates = scheduledUpdates;
+
     }
 
     protected GetAniDBCalendarJob()

@@ -1,10 +1,13 @@
+using System.Text.Json.Serialization;
+using Newtonsoft.Json.Converters;
+
 namespace Shoko.Abstractions.Metadata.Enums;
 
 /// <summary>
 /// Types of roles an actor can have in a cast.
 /// </summary>
-[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
-[Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter))]
+[Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
 public enum CastRoleType : byte
 {
     /// <summary>

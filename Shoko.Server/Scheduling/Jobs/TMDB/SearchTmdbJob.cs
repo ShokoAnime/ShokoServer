@@ -5,10 +5,10 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Repositories;
 
 #pragma warning disable CS8618
 #nullable enable
+using Shoko.Server.Repositories.Cached.AniDB;
 namespace Shoko.Server.Scheduling.Jobs.TMDB;
 
 [DatabaseRequired]
@@ -31,7 +31,7 @@ public partial class SearchTmdbJob : BaseJob
 
     public override void PostInit()
     {
-        _animeTitle = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID)?.Title ?? AnimeID.ToString();
+        _animeTitle = _anidbAnimes.GetByAnimeID(AnimeID)?.Title ?? AnimeID.ToString();
     }
 
     public override string TypeName => "Search for TMDB Match";
@@ -41,7 +41,7 @@ public partial class SearchTmdbJob : BaseJob
     public override async Task Execute()
     {
         _logger.LogInformation("Processing SearchTmdbJob for {Anime}: AniDB ID {ID}", _animeTitle ?? AnimeID.ToString(), AnimeID);
-        var anime = RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+        var anime = _anidbAnimes.GetByAnimeID(AnimeID);
         if (anime == null)
         {
             _logger.LogWarning("Anime not found locally: {AnimeID}", AnimeID);
@@ -72,15 +72,20 @@ public partial class SearchTmdbJob : BaseJob
         }
     }
 
+    private readonly AniDB_AnimeRepository _anidbAnimes;
     public SearchTmdbJob(
         TmdbLinkingService tmdbLinkingService,
         TmdbMetadataService metadataService,
         TmdbSearchService searchService
+    ,
+        AniDB_AnimeRepository anidbAnimes
     )
     {
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbMetadataService = metadataService;
         _tmdbSearchService = searchService;
+        _anidbAnimes = anidbAnimes;
+
     }
 
     protected SearchTmdbJob() { }

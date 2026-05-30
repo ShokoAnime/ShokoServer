@@ -4,11 +4,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.DependencyInjection;
 using Mono.Unix;
+using Mono.Unix.Native;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Services;
@@ -202,7 +204,7 @@ public static class FileSystemHelpers
                     var unixFileInfo = new UnixFileInfo(sourcePath);
                     return unixFileInfo.CreateLink(targetPath) is not null;
                 }
-                catch (UnixIOException ex) when (ex.ErrorCode is Mono.Unix.Native.Errno.EXDEV)
+                catch (UnixIOException ex) when (ex.ErrorCode is Errno.EXDEV)
                 {
                     return false;
                 }
@@ -228,9 +230,9 @@ public static class FileSystemHelpers
     private struct BY_HANDLE_FILE_INFORMATION
     {
         public uint FileAttributes;
-        public System.Runtime.InteropServices.ComTypes.FILETIME CreationTime;
-        public System.Runtime.InteropServices.ComTypes.FILETIME LastAccessTime;
-        public System.Runtime.InteropServices.ComTypes.FILETIME LastWriteTime;
+        public FILETIME CreationTime;
+        public FILETIME LastAccessTime;
+        public FILETIME LastWriteTime;
         public uint VolumeSerialNumber;
         public uint FileSizeHigh;
         public uint FileSizeLow;

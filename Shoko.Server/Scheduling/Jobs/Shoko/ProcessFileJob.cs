@@ -7,13 +7,13 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Services;
 
 #pragma warning disable CS8618
 #nullable enable
+using Shoko.Server.Repositories.Cached;
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
@@ -59,7 +59,7 @@ public class ProcessFileJob : BaseJob
 
     public override void PostInit()
     {
-        _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        _vlocal = _videoLocals.GetByID(VideoLocalID);
         if (_vlocal == null) throw new Exception($"VideoLocal not Found: {VideoLocalID}");
         _fileName = VideoService.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
@@ -71,7 +71,7 @@ public class ProcessFileJob : BaseJob
         // Check if the video local (file) is available.
         if (_vlocal == null)
         {
-            _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+            _vlocal = _videoLocals.GetByID(VideoLocalID);
             if (_vlocal == null)
                 return;
         }
@@ -85,10 +85,15 @@ public class ProcessFileJob : BaseJob
     }
 
 
-    public ProcessFileJob(IVideoReleaseService videoReleaseService, IVideoRelocationService relocationService)
+    private readonly VideoLocalRepository _videoLocals;
+    public ProcessFileJob(IVideoReleaseService videoReleaseService, IVideoRelocationService relocationService,
+        VideoLocalRepository videoLocals
+    )
     {
         _videoReleaseService = videoReleaseService;
         _relocationService = relocationService;
+        _videoLocals = videoLocals;
+
     }
 
     protected ProcessFileJob() { }

@@ -22,8 +22,7 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Repositories;
-
+using Shoko.Server.Repositories.Cached;
 using FileSummaryGroupByCriteria = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary.FileSummaryGroupByCriteria;
 using Input = Shoko.Server.API.v3.Models.Shoko.WebUI.Input;
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
@@ -51,7 +50,9 @@ public partial class WebUIController(
     ISystemUpdateService updateService,
     IWebThemeService themeService,
     WebUIFactory webUIFactory,
-    ILogger<WebUIController> logger
+    ILogger<WebUIController> logger,
+    AnimeGroupRepository _animeGroups,
+    AnimeSeriesRepository _animeSeries
 ) : BaseController(settingsProvider)
 {
     /// <summary>
@@ -278,7 +279,7 @@ public partial class WebUIController(
             .Distinct()
             .Select(groupID =>
             {
-                var group = RepoFactory.AnimeGroup.GetByID(groupID);
+                var group = _animeGroups.GetByID(groupID);
                 if (group is null || !user.AllowedGroup(group))
                 {
                     return null;
@@ -307,7 +308,7 @@ public partial class WebUIController(
     public ActionResult<WebUISeriesExtra> GetSeries([FromRoute, Range(1, int.MaxValue)] int seriesID)
     {
         // Retrieve extra information for the specified series if it exists and the user has permissions.
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = _animeSeries.GetByID(seriesID);
         if (series is null)
         {
             return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
@@ -343,7 +344,7 @@ public partial class WebUIController(
         [FromQuery] bool includeMissingFutureEpisodes = false)
     {
         // Retrieve a summary of file information for the specified series if it exists and the user has permissions.
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = _animeSeries.GetByID(seriesID);
         if (series is null)
         {
             return NotFound(SeriesController.SeriesNotFoundWithSeriesID);

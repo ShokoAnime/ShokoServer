@@ -5,10 +5,10 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Repositories;
 
 #pragma warning disable CS8618
 #nullable enable
+using Shoko.Server.Repositories.Cached.TMDB;
 namespace Shoko.Server.Scheduling.Jobs.TMDB;
 
 [DatabaseRequired]
@@ -33,7 +33,7 @@ public class UpdateTmdbMovieJob : BaseJob
 
     public override void PostInit()
     {
-        MovieTitle ??= RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbMovieID)?.EnglishTitle;
+        MovieTitle ??= _tmdbMovies.GetByTmdbMovieID(TmdbMovieID)?.EnglishTitle;
     }
 
     public override string TypeName => string.IsNullOrEmpty(MovieTitle)
@@ -68,9 +68,14 @@ public class UpdateTmdbMovieJob : BaseJob
         }).ConfigureAwait(false);
     }
 
-    public UpdateTmdbMovieJob(TmdbMetadataService tmdbService)
+    private readonly TMDB_MovieRepository _tmdbMovies;
+    public UpdateTmdbMovieJob(TmdbMetadataService tmdbService,
+        TMDB_MovieRepository tmdbMovies
+    )
     {
         _tmdbService = tmdbService;
+        _tmdbMovies = tmdbMovies;
+
     }
 
     protected UpdateTmdbMovieJob() { }

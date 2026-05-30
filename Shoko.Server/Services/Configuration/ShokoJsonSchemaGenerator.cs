@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Namotion.Reflection;
@@ -20,6 +21,8 @@ using Shoko.Abstractions.Config.Components;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Plugin;
+using JsonIgnoreAttribute = Newtonsoft.Json.JsonIgnoreAttribute;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 #nullable enable
 namespace Shoko.Server.Services.Configuration;
@@ -29,11 +32,11 @@ namespace Shoko.Server.Services.Configuration;
 /// </summary>
 /// <param name="newtonsoftJsonSerializerSettings">The Newtonsoft JSON serializer settings</param>
 /// <param name="systemTextJsonSerializerOptions">The System.Text.Json serializer options</param>
-public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSerializerSettings, System.Text.Json.JsonSerializerOptions systemTextJsonSerializerOptions) : ISchemaProcessor, ISchemaNameGenerator
+public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSerializerSettings, JsonSerializerOptions systemTextJsonSerializerOptions) : ISchemaProcessor, ISchemaNameGenerator
 {
     private readonly JsonSerializerSettings _newtonsoftJsonSerializerSettings = newtonsoftJsonSerializerSettings;
 
-    private readonly System.Text.Json.JsonSerializerOptions _systemTextJsonSerializerOptions = systemTextJsonSerializerOptions;
+    private readonly JsonSerializerOptions _systemTextJsonSerializerOptions = systemTextJsonSerializerOptions;
 
     private readonly object _lock = new();
 
@@ -770,7 +773,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
 
     private bool IsIgnored(MemberInfo memberInfo) =>
         IsNewtonsoftJson()
-            ? memberInfo.CustomAttributes.Any(a => a.AttributeType == typeof(Newtonsoft.Json.JsonIgnoreAttribute))
+            ? memberInfo.CustomAttributes.Any(a => a.AttributeType == typeof(JsonIgnoreAttribute))
             : memberInfo.CustomAttributes.Any(a => a.AttributeType == typeof(System.Text.Json.Serialization.JsonIgnoreAttribute));
 
     private static (bool isDictionary, bool isReadonlyDictionary) IsDictionary(Type type)
@@ -837,7 +840,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
     private JToken? Convert(object? value, Type type)
         => value is null ? null : type is null || type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
             ? JToken.Parse(JsonConvert.SerializeObject(value, Formatting.None, _newtonsoftJsonSerializerSettings))
-            : JToken.Parse(System.Text.Json.JsonSerializer.Serialize(value, _systemTextJsonSerializerOptions));
+            : JToken.Parse(JsonSerializer.Serialize(value, _systemTextJsonSerializerOptions));
 
     // For the values that needs to be converted by the right library in the right way
     private object? Convert(object? value)

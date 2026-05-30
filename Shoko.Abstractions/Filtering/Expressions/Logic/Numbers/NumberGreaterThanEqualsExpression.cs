@@ -54,7 +54,7 @@ public class NumberGreaterThanEqualsExpression : FilterExpression<bool>, IWithNu
     /// <inheritdoc cref="Equals(object)"/>
     protected bool Equals(NumberGreaterThanEqualsExpression other)
     {
-        return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Nullable.Equals(Parameter, other.Parameter);
+        return base.Equals(other) && Equals(Left, other.Left) && Equals(Right, other.Right) && Equals(Parameter, other.Parameter);
     }
 
     /// <inheritdoc/>

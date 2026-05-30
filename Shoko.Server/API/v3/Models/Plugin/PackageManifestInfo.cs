@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Shoko.Abstractions.Plugin;
-
 using AbstractPackageManifestInfo = Shoko.Abstractions.Plugin.Models.PackageManifestInfo;
 
 #nullable enable

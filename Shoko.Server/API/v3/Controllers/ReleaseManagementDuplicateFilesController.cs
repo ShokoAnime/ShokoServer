@@ -9,7 +9,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 
 #pragma warning disable CA1822
@@ -19,7 +19,10 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/ReleaseManagement/DuplicateFiles")]
 [ApiV3]
 [Authorize]
-public class ReleaseManagementDuplicateFilesController(ISettingsProvider settingsProvider) : BaseController(settingsProvider)
+public class ReleaseManagementDuplicateFilesController(ISettingsProvider settingsProvider,
+    AnimeEpisodeRepository _animeEpisodes,
+    AnimeSeriesRepository _animeSeries
+) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Get episodes with duplicate files, with only the files with duplicates for each episode.
@@ -40,7 +43,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = RepoFactory.AnimeEpisode.GetWithDuplicateFiles();
+        var enumerable = _animeEpisodes.GetWithDuplicateFiles();
 
         return enumerable
             .ToListResult(episode =>
@@ -65,7 +68,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
     [HttpGet("FileLocationsToAutoRemove")]
     public ActionResult<List<FileIdSet>> GetFileIdsWithPreference()
     {
-        var enumerable = RepoFactory.AnimeEpisode.GetWithDuplicateFiles();
+        var enumerable = _animeEpisodes.GetWithDuplicateFiles();
 
         return enumerable
             .SelectMany(episode =>
@@ -93,14 +96,14 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = RepoFactory.AnimeSeries.GetWithDuplicateFiles();
+        var enumerable = _animeSeries.GetWithDuplicateFiles();
         if (onlyFinishedSeries)
             enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
 
         return enumerable
             .OrderBy(series => series.Title)
             .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => new Series.WithEpisodeCount(RepoFactory.AnimeEpisode.GetWithDuplicateFiles(series.AniDB_ID).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
+            .ToListResult(series => new Series.WithEpisodeCount(_animeEpisodes.GetWithDuplicateFiles(series.AniDB_ID).Count(), series, User.JMMUserID, includeDataFrom), page, pageSize);
     }
 
     /// <summary>
@@ -124,14 +127,14 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = _animeSeries.GetByID(seriesID);
         if (series == null)
             return new ListResult<Episode>();
 
         if (!User.AllowedSeries(series))
             return new ListResult<Episode>();
 
-        var enumerable = RepoFactory.AnimeEpisode.GetWithDuplicateFiles(series.AniDB_ID);
+        var enumerable = _animeEpisodes.GetWithDuplicateFiles(series.AniDB_ID);
 
         return enumerable
             .ToListResult(episode =>
@@ -159,14 +162,14 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
         [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
-        var series = RepoFactory.AnimeSeries.GetByID(seriesID);
+        var series = _animeSeries.GetByID(seriesID);
         if (series == null)
             return new List<FileIdSet>();
 
         if (!User.AllowedSeries(series))
             return new List<FileIdSet>();
 
-        var enumerable = RepoFactory.AnimeEpisode.GetWithDuplicateFiles(series.AniDB_ID);
+        var enumerable = _animeEpisodes.GetWithDuplicateFiles(series.AniDB_ID);
 
         return enumerable
             .SelectMany(episode =>

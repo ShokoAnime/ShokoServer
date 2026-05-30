@@ -9,7 +9,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
-
 using AbstractAnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
 using AbstractEpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 using AbstractYearlySeason = Shoko.Abstractions.Metadata.Enums.YearlySeason;

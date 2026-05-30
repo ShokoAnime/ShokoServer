@@ -11,7 +11,9 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.Info;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
@@ -42,7 +44,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
         _logger.LogInformation("Processing {Job}", nameof(GetUpdatedAniDBAnimeJob));
 
         // check the automated update table to see when the last time we ran this command
-        var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
+        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
         if (schedule is not null)
         {
             var settings = _settingsProvider.GetSettings();
@@ -97,7 +99,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
         // we will use this next time as a starting point when querying the web cache
         schedule.LastUpdate = DateTime.Now;
         schedule.UpdateDetails = ((int)(response.Response.LastUpdated - DateTime.UnixEpoch).TotalSeconds).ToString();
-        RepoFactory.ScheduledUpdate.Save(schedule);
+        _scheduledUpdates.Save(schedule);
 
         if (animeIDsToUpdate.Count == 0)
         {
@@ -109,7 +111,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
         foreach (var animeID in animeIDsToUpdate)
         {
             // update the anime from HTTP
-            var anime = RepoFactory.AniDB_Anime.GetByAnimeID(animeID);
+            var anime = _anidbAnimes.GetByAnimeID(animeID);
             if (anime is null)
             {
                 var name = _titleHelper.SearchAnimeID(animeID)?.DefaultTitle.Value ?? "<Unknown>";
@@ -127,7 +129,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
             }
 
             _logger.LogInformation("Scheduling update for anime: {AnimeTitle} ({AnimeID})", anime.MainTitle, animeID);
-            var update = RepoFactory.AniDB_AnimeUpdate.GetByAnimeID(animeID);
+            var update = _anidbAnimeUpdates.GetByAnimeID(animeID);
 
             // but only if it hasn't been recently updated
             var ts = DateTime.Now - (update?.UpdatedAt ?? DateTime.UnixEpoch);
@@ -143,7 +145,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
             // update the group status
             // this will allow us to determine which anime has missing episodes
             // we only get by an anime where we also have an associated series
-            var ser = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
+            var ser = _animeSeries.GetByAnimeID(animeID);
             if (ser is null) continue;
 
             await _anidbService.ScheduleRefreshOfAnimeByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
@@ -153,12 +155,26 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
         return (response, countAnime, countSeries);
     }
 
-    public GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper)
+    private readonly AniDB_AnimeRepository _anidbAnimes;
+    private readonly AniDB_AnimeUpdateRepository _anidbAnimeUpdates;
+    private readonly AnimeSeriesRepository _animeSeries;
+    private readonly ScheduledUpdateRepository _scheduledUpdates;
+    public GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper,
+        AniDB_AnimeRepository anidbAnimes,
+        AniDB_AnimeUpdateRepository anidbAnimeUpdates,
+        AnimeSeriesRepository animeSeries,
+        ScheduledUpdateRepository scheduledUpdates
+    )
     {
         _requestFactory = requestFactory;
         _anidbService = anidbService;
         _settingsProvider = settingsProvider;
         _titleHelper = titleHelper;
+        _anidbAnimes = anidbAnimes;
+        _anidbAnimeUpdates = anidbAnimeUpdates;
+        _animeSeries = animeSeries;
+        _scheduledUpdates = scheduledUpdates;
+
     }
 
     protected GetUpdatedAniDBAnimeJob()

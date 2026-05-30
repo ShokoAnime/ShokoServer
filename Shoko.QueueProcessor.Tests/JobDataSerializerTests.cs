@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
@@ -15,7 +16,7 @@ public class JobDataSerializerTests
         public string Title => "Full";
         public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
 
         public string FilePath { get; set; } = string.Empty;
         public bool ForceHash { get; set; }
@@ -32,7 +33,7 @@ public class JobDataSerializerTests
         public string Title => "";
         public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
 
         public string Name { get; set; } = string.Empty;
         // Read-only — should not be serialized or deserialized

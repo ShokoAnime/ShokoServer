@@ -21,7 +21,9 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -62,6 +64,12 @@ public class EpisodeController : BaseController
     private readonly TmdbLinkingService _tmdbLinkingService;
 
     private readonly TmdbMetadataService _tmdbMetadataService;
+    private readonly AniDB_AnimeRepository _anidbAnimes;
+    private readonly AniDB_EpisodeRepository _anidbEpisodes;
+    private readonly AnimeEpisodeRepository _animeEpisodes;
+    private readonly AnimeEpisode_UserRepository _animeEpisodeUsers;
+    private readonly TMDB_EpisodeRepository _tmdbEpisodes;
+    private readonly TMDB_MovieRepository _tmdbMovies;
 
     public EpisodeController(
         ISettingsProvider settingsProvider,
@@ -70,7 +78,13 @@ public class EpisodeController : BaseController
         IImageManager imageManager,
         IUserDataService userDataService,
         TmdbLinkingService tmdbLinkingService,
-        TmdbMetadataService tmdbMetadataService
+        TmdbMetadataService tmdbMetadataService,
+        AniDB_AnimeRepository anidbAnimes,
+        AniDB_EpisodeRepository anidbEpisodes,
+        AnimeEpisodeRepository animeEpisodes,
+        AnimeEpisode_UserRepository animeEpisodeUsers,
+        TMDB_EpisodeRepository tmdbEpisodes,
+        TMDB_MovieRepository tmdbMovies
     ) : base(settingsProvider)
     {
         _seriesService = seriesService;
@@ -79,6 +93,12 @@ public class EpisodeController : BaseController
         _userDataService = userDataService;
         _tmdbLinkingService = tmdbLinkingService;
         _tmdbMetadataService = tmdbMetadataService;
+        _anidbAnimes = anidbAnimes;
+        _anidbEpisodes = anidbEpisodes;
+        _animeEpisodes = animeEpisodes;
+        _animeEpisodeUsers = animeEpisodeUsers;
+        _tmdbEpisodes = tmdbEpisodes;
+        _tmdbMovies = tmdbMovies;
     }
 
     /// <summary>
@@ -125,7 +145,7 @@ public class EpisodeController : BaseController
         var user = User;
         var hasSearch = !string.IsNullOrWhiteSpace(search);
         var allowedSeriesDict = new ConcurrentDictionary<int, bool>();
-        var episodes = RepoFactory.AnimeEpisode.GetAll()
+        var episodes = _animeEpisodes.GetAll()
             .AsParallel()
             .Where(episode =>
             {
@@ -199,7 +219,7 @@ public class EpisodeController : BaseController
                     // If we should hide voted episodes and the episode is voted, then hide it.
                     // Or if we should only show voted episodes and the episode is not voted, then hide it.
                     var shouldHideVoted = includeVoted == IncludeOnlyFilter.False;
-                    var isVoted = RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(user.JMMUserID, shoko.AniDB_EpisodeID) is { HasUserRating: true };
+                    var isVoted = _animeEpisodeUsers.GetByUserAndEpisodeID(user.JMMUserID, shoko.AniDB_EpisodeID) is { HasUserRating: true };
                     if (shouldHideVoted == isVoted)
                         return false;
                 }
@@ -251,7 +271,7 @@ public class EpisodeController : BaseController
     {
         var user = User;
         var allowedAnimeDict = new ConcurrentDictionary<int, bool>();
-        return RepoFactory.AniDB_Episode.GetAll()
+        return _anidbEpisodes.GetAll()
             .AsParallel()
             .Where(episode =>
             {
@@ -260,7 +280,7 @@ public class EpisodeController : BaseController
                 {
                     // If this is an episode not tied to a missing anime, then
                     // just hide it.
-                    var anime = RepoFactory.AniDB_Anime.GetByAnimeID(episode.AnimeID);
+                    var anime = _anidbAnimes.GetByAnimeID(episode.AnimeID);
                     isAllowed = anime == null ? false : user.AllowedAnime(anime);
 
                     allowedAnimeDict.TryAdd(episode.AnimeID, isAllowed);
@@ -307,7 +327,7 @@ public class EpisodeController : BaseController
         [FromQuery] bool includeReleaseInfo = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -331,7 +351,7 @@ public class EpisodeController : BaseController
     [HttpPost("{episodeID}/OverrideTitle")]
     public ActionResult OverrideEpisodeTitle([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Episode.Input.EpisodeTitleOverrideBody body)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
 
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
@@ -347,7 +367,7 @@ public class EpisodeController : BaseController
         {
             episode.EpisodeNameOverride = body.Title;
 
-            RepoFactory.AnimeEpisode.Save(episode);
+            _animeEpisodes.Save(episode);
 
             ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.Updated);
         }
@@ -366,7 +386,7 @@ public class EpisodeController : BaseController
     [HttpPost("{episodeID}/SetHidden")]
     public ActionResult PostEpisodeSetHidden([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool value = true, [FromQuery] bool updateStats = true)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -381,7 +401,7 @@ public class EpisodeController : BaseController
         {
             episode.IsHidden = value;
 
-            RepoFactory.AnimeEpisode.Save(episode);
+            _animeEpisodes.Save(episode);
 
             if (updateStats)
             {
@@ -407,7 +427,7 @@ public class EpisodeController : BaseController
     [HttpGet("{episodeID}/AniDB")]
     public ActionResult<AnidbEpisode> GetEpisodeAnidbByEpisodeID([FromRoute, Range(1, int.MaxValue)] int episodeID)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -426,7 +446,7 @@ public class EpisodeController : BaseController
     [HttpGet("AniDB/{anidbEpisodeID}")]
     public ActionResult<AnidbEpisode> GetEpisodeAnidbByAnidbEpisodeID([FromRoute] int anidbEpisodeID)
     {
-        var anidb = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID);
+        var anidb = _anidbEpisodes.GetByEpisodeID(anidbEpisodeID);
         if (anidb == null)
             return NotFound(AnidbNotFoundForAnidbEpisodeID);
 
@@ -454,11 +474,11 @@ public class EpisodeController : BaseController
         [FromQuery] bool includeReleaseInfo = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
     {
-        var anidb = RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID);
+        var anidb = _anidbEpisodes.GetByEpisodeID(anidbEpisodeID);
         if (anidb == null)
             return NotFound(AnidbNotFoundForAnidbEpisodeID);
 
-        var episode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(anidb.EpisodeID);
+        var episode = _animeEpisodes.GetByAniDBEpisodeID(anidb.EpisodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundForAnidbEpisodeID);
 
@@ -474,7 +494,7 @@ public class EpisodeController : BaseController
     [HttpPost("{episodeID}/Vote")]
     public async Task<ActionResult> PostEpisodeVote([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromBody] Vote vote)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -511,7 +531,7 @@ public class EpisodeController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
     )
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -527,7 +547,7 @@ public class EpisodeController : BaseController
             {
                 var movie = xref.TmdbMovie;
                 if (movie is not null && _tmdbMetadataService.WaitForMovieUpdate(movie.TmdbMovieID))
-                    movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movie.TmdbMovieID);
+                    movie = _tmdbMovies.GetByTmdbMovieID(movie.TmdbMovieID);
                 return movie;
             })
             .WhereNotNull()
@@ -549,7 +569,7 @@ public class EpisodeController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkCommonBody body
     )
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -562,7 +582,7 @@ public class EpisodeController : BaseController
 
         await _tmdbLinkingService.AddMovieLinkForEpisode(episode.AniDB_EpisodeID, body.ID, additiveLink: !body.Replace);
 
-        var needRefresh = RepoFactory.TMDB_Movie.GetByTmdbMovieID(body.ID) is null || body.Refresh;
+        var needRefresh = _tmdbMovies.GetByTmdbMovieID(body.ID) is null || body.Refresh;
         if (needRefresh)
             await _tmdbMetadataService.ScheduleUpdateOfMovie(new() { MovieId = body.ID, ForceRefresh = body.Refresh, DownloadImages = true });
 
@@ -582,7 +602,7 @@ public class EpisodeController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkMovieBody body
     )
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -611,7 +631,7 @@ public class EpisodeController : BaseController
         [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(seriesID);
+        var episode = _animeEpisodes.GetByID(seriesID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -642,7 +662,7 @@ public class EpisodeController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
     )
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -658,7 +678,7 @@ public class EpisodeController : BaseController
             {
                 var episode = xref.TmdbEpisode;
                 if (episode is not null && _tmdbMetadataService.WaitForShowUpdate(episode.TmdbShowID))
-                    episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+                    episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
                 return episode;
             })
             .WhereNotNull()
@@ -686,7 +706,7 @@ public class EpisodeController : BaseController
         [FromRoute, Range(1, int.MaxValue)] int seriesID
     )
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(seriesID);
+        var episode = _animeEpisodes.GetByID(seriesID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -727,7 +747,7 @@ public class EpisodeController : BaseController
         [FromQuery] bool includeUndesired = false
     )
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -755,7 +775,7 @@ public class EpisodeController : BaseController
     public ActionResult<Image> GetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] Image.LegacyImageType imageType)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -799,7 +819,7 @@ public class EpisodeController : BaseController
     public ActionResult<Image> SetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -839,7 +859,7 @@ public class EpisodeController : BaseController
     [Obsolete("Use the image management controller's unset preferred endpoint instead.")]
     public ActionResult DeleteEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] Image.LegacyImageType imageType)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -889,7 +909,7 @@ public class EpisodeController : BaseController
     [HttpGet("{episodeID}/UserData")]
     public ActionResult<Episode.EpisodeUserData> GetEpisodeUserData([FromRoute, Range(1, int.MaxValue)] int episodeID)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -907,7 +927,7 @@ public class EpisodeController : BaseController
     [HttpPut("{episodeID}/UserData")]
     public ActionResult<Episode.EpisodeUserData> PutEpisodeUserData([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromBody] Episode.EpisodeUserData episodeUserStats)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -927,7 +947,7 @@ public class EpisodeController : BaseController
     [HttpPatch("{episodeID}/UserData")]
     public ActionResult<Episode.EpisodeUserData> PatchEpisodeUserData([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromBody] JsonPatchDocument<Episode.EpisodeUserData> patchDocument)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
@@ -958,7 +978,7 @@ public class EpisodeController : BaseController
         [FromRoute] bool watched,
         [FromQuery] bool updateFiles = true)
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(episodeID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 

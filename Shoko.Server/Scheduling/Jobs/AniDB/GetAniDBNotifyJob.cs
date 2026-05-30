@@ -8,7 +8,7 @@ using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.User;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
@@ -48,12 +48,12 @@ public class GetAniDBNotifyJob : BaseJob
 
             foreach (var notify in response.Response)
             {
-                var type = RepoFactory.AniDB_NotifyQueue.GetByTypeID(notify.Type, notify.ID);
+                var type = _anidbNotifyQueues.GetByTypeID(notify.Type, notify.ID);
                 if (type is not null) continue; // if we already have it in the queue
 
                 if (notify.Type == AniDBNotifyType.Message)
                 {
-                    var msg = RepoFactory.AniDB_Message.GetByMessageId(notify.ID);
+                    var msg = _anidbMessages.GetByMessageId(notify.ID);
                     if (msg is not null) continue; // if the message content was already fetched
                 }
 
@@ -64,12 +64,12 @@ public class GetAniDBNotifyJob : BaseJob
                     ID = notify.ID,
                     AddedAt = DateTime.Now
                 };
-                RepoFactory.AniDB_NotifyQueue.Save(type);
+                _anidbNotifyQueues.Save(type);
             }
         }
 
         // fetch the content of all messages currently in the queue
-        var messages = RepoFactory.AniDB_NotifyQueue.GetByType(AniDBNotifyType.Message);
+        var messages = _anidbNotifyQueues.GetByType(AniDBNotifyType.Message);
         if (messages.Count > 0)
         {
             foreach (var msg in messages)
@@ -77,10 +77,18 @@ public class GetAniDBNotifyJob : BaseJob
         }
     }
 
-    public GetAniDBNotifyJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory)
+    private readonly AniDB_MessageRepository _anidbMessages;
+    private readonly AniDB_NotifyQueueRepository _anidbNotifyQueues;
+    public GetAniDBNotifyJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory,
+        AniDB_MessageRepository anidbMessages,
+        AniDB_NotifyQueueRepository anidbNotifyQueues
+    )
     {
         _requestFactory = requestFactory;
         _scheduler = schedulerFactory;
+        _anidbMessages = anidbMessages;
+        _anidbNotifyQueues = anidbNotifyQueues;
+
     }
 
     protected GetAniDBNotifyJob()

@@ -6,6 +6,8 @@ using System.Threading.Channels;
 using System.Threading.Tasks;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
+using Shoko.QueueProcessor.Events;
+using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Storage;
 
 namespace Shoko.QueueProcessor.Workers;
@@ -226,7 +228,7 @@ public sealed class WorkerPool : IWorkerPool
     }
 
     /// <summary>Starts <see cref="MaxWorkers"/> worker tasks.</summary>
-    public void Start(IServiceProvider serviceProvider, Orchestration.QueueOrchestrator orchestrator, Analytics.QueueMetrics metrics, Events.QueueStateEventHandler events)
+    public void Start(IServiceProvider serviceProvider, QueueOrchestrator orchestrator, QueueMetrics metrics, QueueStateEventHandler events)
     {
         _cts = new CancellationTokenSource();
         _workers.Clear();

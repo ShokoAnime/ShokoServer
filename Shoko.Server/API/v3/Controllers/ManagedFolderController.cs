@@ -17,10 +17,9 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
-
 using AbstractDropFolderType = Shoko.Abstractions.Video.Enums.DropFolderType;
 using Directory = System.IO.Directory;
 using Path = System.IO.Path;
@@ -38,7 +37,11 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueScheduler scheduler, IVideoService videoService) : BaseController(settingsProvider)
+public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueScheduler scheduler, IVideoService videoService,
+    ShokoManagedFolderRepository _managedFolders,
+    VideoLocalRepository _videoLocals,
+    VideoLocal_PlaceRepository _videoLocalPlaces
+) : BaseController(settingsProvider)
 {
     /// <summary>
     /// List all managed folders
@@ -46,7 +49,7 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueS
     /// <returns></returns>
     [HttpGet]
     public ActionResult<List<ManagedFolder>> GetAllManagedFolders()
-        => RepoFactory.ShokoManagedFolder.GetAll()
+        => _managedFolders.GetAll()
             .Select(a => new ManagedFolder(a))
             .ToList();
 
@@ -72,7 +75,7 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueS
         if (!Directory.Exists(body.Path))
             return ValidationProblem("Path does not exist. Managed Folders must be a location that exists on the server.", nameof(body.Path));
 
-        if (RepoFactory.ShokoManagedFolder.GetAll().Any(iF => body.Path.StartsWith(iF.Path, StringComparison.OrdinalIgnoreCase) || iF.Path.StartsWith(body.Path, StringComparison.OrdinalIgnoreCase)))
+        if (_managedFolders.GetAll().Any(iF => body.Path.StartsWith(iF.Path, StringComparison.OrdinalIgnoreCase) || iF.Path.StartsWith(body.Path, StringComparison.OrdinalIgnoreCase)))
             return ValidationProblem("Unable to nest a managed folder within another managed folder.", nameof(body.Path));
 
         try
@@ -122,7 +125,7 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueS
     [HttpGet("{folderID}")]
     public ActionResult<ManagedFolder> GetManagedFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID)
     {
-        if (RepoFactory.ShokoManagedFolder.GetByID(folderID) is not { } folder)
+        if (_managedFolders.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found.");
 
         return new ManagedFolder(folder);
@@ -139,7 +142,7 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueS
     public ActionResult PatchManagedFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<ManagedFolder> patch)
     {
-        if (RepoFactory.ShokoManagedFolder.GetByID(folderID) is not { } folder)
+        if (_managedFolders.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found.");
 
         var patchModel = new ManagedFolder(folder);
@@ -169,7 +172,7 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueS
         ShokoManagedFolder? folder = null;
         if (body.ID is 0)
             ModelState.AddModelError(nameof(body.ID), "ID missing. If this is a new Folder, then use POST.");
-        else if (RepoFactory.ShokoManagedFolder.GetByID(body.ID) is not { } folder0)
+        else if (_managedFolders.GetByID(body.ID) is not { } folder0)
             ModelState.AddModelError(nameof(body.ID), "ID invalid. If this is a new Folder, then use POST.");
         else
             folder = folder0;
@@ -181,7 +184,7 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueS
             body.Path += Path.DirectorySeparatorChar;
         if (!string.IsNullOrEmpty(body.Path) && !Directory.Exists(body.Path))
             ModelState.AddModelError(nameof(body.Path), "Path does not exist. Managed Folders must be a location that exists on the server.");
-        if (RepoFactory.ShokoManagedFolder.GetAll().ExceptBy([body.ID], iF => iF.ID)
+        if (_managedFolders.GetAll().ExceptBy([body.ID], iF => iF.ID)
             .Any(iF => body.Path.StartsWith(iF.Path, StringComparison.OrdinalIgnoreCase) || iF.Path.StartsWith(body.Path, StringComparison.OrdinalIgnoreCase)))
             ModelState.AddModelError(nameof(body.Path), "Unable to nest a managed folder within another managed folder.");
         if (!ModelState.IsValid)
@@ -210,7 +213,7 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueS
     public async Task<ActionResult> DeleteManagedFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID, [FromQuery] bool removeRecords = true,
         [FromQuery] bool updateMyList = true)
     {
-        if (RepoFactory.ShokoManagedFolder.GetByID(folderID) is not { } folder)
+        if (_managedFolders.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found.");
 
         await videoService.RemoveManagedFolder(folder, !removeRecords, updateMyList);
@@ -239,7 +242,7 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueS
         [FromQuery] bool priority = false
     )
     {
-        if (RepoFactory.ShokoManagedFolder.GetByID(folderID) is not { } folder)
+        if (_managedFolders.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found");
         await scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipMyList) = (folderID, relativePath, onlyNewFiles, skipMylist), prioritize: priority);
         return Ok();
@@ -260,7 +263,7 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueS
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ManagedFolder.Input.NotifyChangeDetectedRelativeBody body
     )
     {
-        if (RepoFactory.ShokoManagedFolder.GetByID(folderID) is not { } folder)
+        if (_managedFolders.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found.");
         Task.Run(() => videoService.NotifyVideoFileChangeDetected(folder, body.RelativePath, body.UpdateMyList));
         return NoContent();
@@ -284,10 +287,10 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueS
     {
         include ??= [];
 
-        if (RepoFactory.ShokoManagedFolder.GetByID(folderID) is not { } folder)
+        if (_managedFolders.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found: " + folderID);
 
-        IEnumerable<VideoLocal_Place> locations = RepoFactory.VideoLocalPlace.GetByManagedFolderID(folder.ID);
+        IEnumerable<VideoLocal_Place> locations = _videoLocalPlaces.GetByManagedFolderID(folder.ID);
 
         // Filter the list to only files matching a certain sub-path.
         if (!string.IsNullOrEmpty(folderPath))
@@ -312,7 +315,7 @@ public class ManagedFolderController(ISettingsProvider settingsProvider, IQueueS
 
         return locations
             .GroupBy(place => place.VideoID)
-            .Select(places => RepoFactory.VideoLocal.GetByID(places.Key))
+            .Select(places => _videoLocals.GetByID(places.Key))
             .WhereNotNull()
             .OrderBy(file => file.DateTimeCreated)
             .ToListResult(file => new File(

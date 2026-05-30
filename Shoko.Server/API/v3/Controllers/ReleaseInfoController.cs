@@ -20,7 +20,6 @@ using Shoko.Server.API.v3.Models.Release;
 using Shoko.Server.API.v3.Models.Release.Input;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
-
 using ReleaseInfo = Shoko.Server.API.v3.Models.Release.ReleaseInfo;
 
 #nullable enable

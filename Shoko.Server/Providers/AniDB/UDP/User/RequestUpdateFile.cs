@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
-
 using Void = Shoko.Server.Providers.AniDB.UDP.Generic.Void;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User;

@@ -15,7 +15,6 @@ using Shoko.Server.API.v3.Models.Plugin;
 using Shoko.Server.API.v3.Models.Plugin.Input;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-
 using AbstractPackageInfo = Shoko.Abstractions.Plugin.Models.PackageInfo;
 using PluginInfo = Shoko.Server.API.v3.Models.Plugin.PluginInfo;
 

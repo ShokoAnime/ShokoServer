@@ -1,5 +1,6 @@
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using Newtonsoft.Json.Converters;
 
 namespace Shoko.Abstractions.Logging.Models;
 
@@ -7,7 +8,7 @@ namespace Shoko.Abstractions.Logging.Models;
 ///   Serialization layout for a <see cref="LogEntry"/> and for log downloads.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]
-[Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
+[Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
 public enum LogSerializeFormat
 {
     /// <summary>

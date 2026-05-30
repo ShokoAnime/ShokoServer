@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,7 +35,6 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Swashbuckle.AspNetCore.SwaggerGen;
-
 using File = System.IO.File;
 
 #pragma warning disable CS0618
@@ -218,7 +218,7 @@ public static partial class APIExtensions
                 // Remove the default ControllerFeatureProvider and replace with our custom one
                 // that respects API version kill-switch settings.
                 var defaultProvider = manager.FeatureProviders
-                    .OfType<Microsoft.AspNetCore.Mvc.Controllers.ControllerFeatureProvider>()
+                    .OfType<ControllerFeatureProvider>()
                     .FirstOrDefault();
                 if (defaultProvider is not null)
                     manager.FeatureProviders.Remove(defaultProvider);
@@ -666,7 +666,7 @@ public static partial class APIExtensions
     {
         var versions = new HashSet<string>();
         var controllerTypes = assembly.GetExportedTypes()
-            .Where(t => typeof(Microsoft.AspNetCore.Mvc.ControllerBase).IsAssignableFrom(t) && !t.IsAbstract);
+            .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract);
 
         foreach (var type in controllerTypes)
         {

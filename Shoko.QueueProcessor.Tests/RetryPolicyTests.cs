@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Orchestration;
@@ -72,7 +73,7 @@ public class RetryPolicyTests
         public string Title => "";
         public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
     }
 
     [RetryPolicy(MaxRetries = 0)]
@@ -82,7 +83,7 @@ public class RetryPolicyTests
         public string Title => "";
         public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
     }
 
     [RetryPolicy(MaxRetries = 3, BaseDelaySeconds = 60, MaxDelaySeconds = 600)]
@@ -92,7 +93,7 @@ public class RetryPolicyTests
         public string Title => "";
         public Dictionary<string, object> Details => [];
         public void PostInit() { }
-        public System.Threading.Tasks.Task Process() => System.Threading.Tasks.Task.CompletedTask;
+        public Task Process() => Task.CompletedTask;
     }
 
     [Fact]

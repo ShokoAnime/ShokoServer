@@ -12,7 +12,7 @@ using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 
@@ -57,7 +57,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
         _logger.LogInformation("Processing {Job}: {GroupID}", nameof(GetAniDBReleaseGroupJob), GroupID);
 
         // We've got nothing to download.
-        var databaseReleaseGroups = RepoFactory.StoredReleaseInfo.GetByGroupAndProviderIDs(GroupID.ToString(), "AniDB");
+        var databaseReleaseGroups = _storedReleaseInfos.GetByGroupAndProviderIDs(GroupID.ToString(), "AniDB");
         if (databaseReleaseGroups.Count == 0)
             return;
 
@@ -76,7 +76,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
                 incorrectReleaseGroup.GroupName = existingReleaseGroup.GroupName;
                 incorrectReleaseGroup.GroupShortName = existingReleaseGroup.GroupShortName;
             }
-            RepoFactory.StoredReleaseInfo.Save(incorrectReleaseGroups);
+            _storedReleaseInfos.Save(incorrectReleaseGroups);
 
             return;
         }
@@ -89,16 +89,16 @@ public class GetAniDBReleaseGroupJob : BaseJob
             var videosToUpdate = new List<VideoLocal>();
             foreach (var databaseReleaseGroup in databaseReleaseGroups)
             {
-                var xrefs = RepoFactory.CrossRef_File_Episode.GetByEd2k(databaseReleaseGroup.ED2K);
+                var xrefs = _crossRefFileEpisodes.GetByEd2k(databaseReleaseGroup.ED2K);
                 xrefsToDelete.AddRange(xrefs);
 
-                var video = RepoFactory.VideoLocal.GetByEd2kAndSize(databaseReleaseGroup.ED2K, databaseReleaseGroup.FileSize);
+                var video = _videoLocals.GetByEd2kAndSize(databaseReleaseGroup.ED2K, databaseReleaseGroup.FileSize);
                 if (video is not null)
                     videosToUpdate.Add(video);
             }
 
-            RepoFactory.CrossRef_File_Episode.Delete(xrefsToDelete);
-            RepoFactory.StoredReleaseInfo.Delete(databaseReleaseGroups);
+            _crossRefFileEpisodes.Delete(xrefsToDelete);
+            _storedReleaseInfos.Delete(databaseReleaseGroups);
 
             // If auto-match is not available then just ignore the removal of
             // the group, since it seems like we don't care about changes like
@@ -132,18 +132,29 @@ public class GetAniDBReleaseGroupJob : BaseJob
                 databaseReleaseGroup.GroupShortName = null;
             }
         }
-        RepoFactory.StoredReleaseInfo.Save(databaseReleaseGroups);
+        _storedReleaseInfos.Save(databaseReleaseGroups);
 
         // TODO: Maybe schedule all files with a release from the release group to be ran through the rename/move process again.
 
         return;
     }
 
-    public GetAniDBReleaseGroupJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory, IVideoReleaseService videoReleaseService)
+    private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisodes;
+    private readonly StoredReleaseInfoRepository _storedReleaseInfos;
+    private readonly VideoLocalRepository _videoLocals;
+    public GetAniDBReleaseGroupJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory, IVideoReleaseService videoReleaseService,
+        CrossRef_File_EpisodeRepository crossRefFileEpisodes,
+        StoredReleaseInfoRepository storedReleaseInfos,
+        VideoLocalRepository videoLocals
+    )
     {
         _requestFactory = requestFactory;
         _scheduler = schedulerFactory;
         _videoReleaseService = videoReleaseService;
+        _crossRefFileEpisodes = crossRefFileEpisodes;
+        _storedReleaseInfos = storedReleaseInfos;
+        _videoLocals = videoLocals;
+
     }
 
     protected GetAniDBReleaseGroupJob()

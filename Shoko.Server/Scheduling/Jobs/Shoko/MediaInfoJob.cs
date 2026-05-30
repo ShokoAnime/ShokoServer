@@ -7,7 +7,7 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
@@ -29,7 +29,7 @@ public class MediaInfoJob : BaseJob
 
     public override void PostInit()
     {
-        _vlocal = RepoFactory.VideoLocal.GetByID(VideoLocalID);
+        _vlocal = _videoLocals.GetByID(VideoLocalID);
         if (_vlocal == null) throw new Exception($"VideoLocal not Found: {VideoLocalID}");
         _fileName = VideoService.GetDistinctPath(_vlocal.FirstValidPlace?.Path);
     }
@@ -49,15 +49,20 @@ public class MediaInfoJob : BaseJob
 
         if (_videoService.RefreshMediaInfo(place, _vlocal))
         {
-            RepoFactory.VideoLocal.Save(place.VideoLocal, true);
+            _videoLocals.Save(place.VideoLocal, true);
         }
 
         return Task.CompletedTask;
     }
 
-    public MediaInfoJob(IVideoService videoService)
+    private readonly VideoLocalRepository _videoLocals;
+    public MediaInfoJob(IVideoService videoService,
+        VideoLocalRepository videoLocals
+    )
     {
         _videoService = (VideoService)videoService;
+        _videoLocals = videoLocals;
+
     }
 
     protected MediaInfoJob() { }

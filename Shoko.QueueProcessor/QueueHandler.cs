@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
 using Shoko.QueueProcessor.Builder;
-using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Storage;
 using Shoko.QueueProcessor.Workers;
@@ -26,8 +25,7 @@ public class QueueHandler
     public QueueHandler(
         IQueueScheduler scheduler,
         QueueOrchestrator orchestrator,
-        WorkerPoolManager poolManager,
-        QueueStateEventHandler events)
+        WorkerPoolManager poolManager)
     {
         _scheduler = scheduler;
         _orchestrator = orchestrator;

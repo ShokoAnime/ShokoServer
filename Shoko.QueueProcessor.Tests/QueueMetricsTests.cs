@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using Shoko.QueueProcessor.Analytics;
@@ -154,7 +155,7 @@ public class QueueMetricsTests
     public void ConcurrentWrites_DoNotThrow()
     {
         var metrics = new QueueMetrics(windowSeconds: 60, rollingAvgSamples: 50);
-        var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+        var exceptions = new ConcurrentBag<Exception>();
 
         var threads = new Thread[8];
         for (var i = 0; i < threads.Length; i++)

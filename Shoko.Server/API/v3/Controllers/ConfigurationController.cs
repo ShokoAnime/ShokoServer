@@ -19,7 +19,6 @@ using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.Plugin;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-
 using ConfigurationActionType = Shoko.Abstractions.Config.Enums.ConfigurationActionType;
 
 #nullable enable

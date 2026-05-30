@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Image;
 
 namespace Shoko.Abstractions.Metadata.Enums;
@@ -5,8 +7,8 @@ namespace Shoko.Abstractions.Metadata.Enums;
 /// <summary>
 /// Image entity types.
 /// </summary>
-[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
-[Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
+[JsonConverter(typeof(JsonStringEnumConverter))]
+[Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
 public enum ImageEntityType : byte
 {
     /// <summary>

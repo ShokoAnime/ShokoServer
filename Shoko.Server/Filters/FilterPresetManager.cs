@@ -7,6 +7,7 @@ using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Server;
 
 #nullable enable
 namespace Shoko.Server.Filters;
@@ -35,8 +36,8 @@ public class FilterPresetManager(FilterPresetRepository filterPresetRepository) 
             Name = input.Name,
             ParentFilterPresetID = parentFilterId,
             FilterType = input.IsDirectory
-                ? Server.FilterPresetType.UserDefined | Server.FilterPresetType.Directory
-                : Server.FilterPresetType.UserDefined,
+                ? FilterPresetType.UserDefined | FilterPresetType.Directory
+                : FilterPresetType.UserDefined,
             Hidden = input.IsHidden,
             ApplyAtSeriesLevel = input.ApplyAtSeriesLevel,
         };

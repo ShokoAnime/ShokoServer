@@ -1,6 +1,8 @@
 using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace Shoko.Abstractions.Config.Components;
 
@@ -12,23 +14,23 @@ public class SelectOption<TValue> : IEquatable<SelectOption<TValue>> where TValu
     /// <summary>
     ///   The label for the option.
     /// </summary>
-    [Newtonsoft.Json.JsonProperty("label")]
-    [System.Text.Json.Serialization.JsonPropertyName("label")]
+    [JsonProperty("label")]
+    [JsonPropertyName("label")]
     public string? Label { get; set; }
 
     /// <summary>
     ///   The unique identifier for the group this option belongs to, or
     ///   <c>null</c> if it should be rendered outside of a group.
     /// </summary>
-    [Newtonsoft.Json.JsonProperty("groupId", NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-    [System.Text.Json.Serialization.JsonPropertyName("groupId")]
+    [JsonProperty("groupId", NullValueHandling = NullValueHandling.Ignore)]
+    [JsonPropertyName("groupId")]
     public uint? GroupID { get; set; }
 
     /// <summary>
     ///   The value of the option.
     /// </summary>
-    [Newtonsoft.Json.JsonProperty("value")]
-    [System.Text.Json.Serialization.JsonPropertyName("value")]
+    [JsonProperty("value")]
+    [JsonPropertyName("value")]
     [Required(AllowEmptyStrings = true)]
     public TValue Value { get; set; } = default!;
 
@@ -36,24 +38,24 @@ public class SelectOption<TValue> : IEquatable<SelectOption<TValue>> where TValu
     ///   Whether the option is selected.
     /// </summary>
     [DefaultValue(false)]
-    [Newtonsoft.Json.JsonProperty("selected")]
-    [System.Text.Json.Serialization.JsonPropertyName("selected")]
+    [JsonProperty("selected")]
+    [JsonPropertyName("selected")]
     public bool IsSelected { get; set; } = false;
 
     /// <summary>
     ///   Whether the option is the default.
     /// </summary>
     [DefaultValue(false)]
-    [Newtonsoft.Json.JsonProperty("default")]
-    [System.Text.Json.Serialization.JsonPropertyName("default")]
+    [JsonProperty("default")]
+    [JsonPropertyName("default")]
     public bool IsDefault { get; set; }
 
     /// <summary>
     ///   Whether the option is disabled.
     /// </summary>
     [DefaultValue(false)]
-    [Newtonsoft.Json.JsonProperty("disabled")]
-    [System.Text.Json.Serialization.JsonPropertyName("disabled")]
+    [JsonProperty("disabled")]
+    [JsonPropertyName("disabled")]
     public bool IsDisabled { get; set; } = false;
 
     /// <summary>

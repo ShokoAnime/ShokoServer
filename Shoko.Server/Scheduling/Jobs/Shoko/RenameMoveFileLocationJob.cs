@@ -6,10 +6,10 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Repositories;
 
 #pragma warning disable CS8618
 #nullable enable
+using Shoko.Server.Repositories.Cached;
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
@@ -32,7 +32,7 @@ public class RenameMoveFileLocationJob : BaseJob
 
     public override void PostInit()
     {
-        _location = RepoFactory.VideoLocalPlace.GetByRelativePathAndManagedFolderID(RelativePath, ManagedFolderID);
+        _location = _videoLocalPlaces.GetByRelativePathAndManagedFolderID(RelativePath, ManagedFolderID);
         _fileName = _location?.Path;
         if (_location == null || string.IsNullOrEmpty(_fileName)) throw new Exception($"VideoLocalPlace not Found: {RelativePath} (ManagedFolder={ManagedFolderID})");
     }
@@ -47,7 +47,7 @@ public class RenameMoveFileLocationJob : BaseJob
         // Check if the video local (file) is available.
         if (_location == null)
         {
-            _location = RepoFactory.VideoLocalPlace.GetByRelativePathAndManagedFolderID(RelativePath, ManagedFolderID);
+            _location = _videoLocalPlaces.GetByRelativePathAndManagedFolderID(RelativePath, ManagedFolderID);
             if (_location == null)
                 return;
         }
@@ -71,9 +71,14 @@ public class RenameMoveFileLocationJob : BaseJob
             _logger.LogTrace(result.Error.Exception, "Unable to relocate video file; {ErrorMessage} (Video={VideoID},Location={LocationID})", result.Error.Message, _location.VideoID, _location.ID);
     }
 
-    public RenameMoveFileLocationJob(IVideoRelocationService relocationService)
+    private readonly VideoLocal_PlaceRepository _videoLocalPlaces;
+    public RenameMoveFileLocationJob(IVideoRelocationService relocationService,
+        VideoLocal_PlaceRepository videoLocalPlaces
+    )
     {
         _relocationService = relocationService;
+        _videoLocalPlaces = videoLocalPlaces;
+
     }
 
     protected RenameMoveFileLocationJob() { }

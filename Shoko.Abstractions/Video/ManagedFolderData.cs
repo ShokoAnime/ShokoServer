@@ -23,7 +23,7 @@ public sealed class ManagedFolderData
     public bool WatchForNewFiles { get; set; } = false;
 
     /// <summary>
-    ///   The drop folder type. Defaults to <see cref="DropFolderType.Excluded"/>.
+    ///   The drop folder type. Defaults to <see cref="Enums.DropFolderType.Excluded"/>.
     /// </summary>
     public DropFolderType DropFolderType { get; set; } = DropFolderType.Excluded;
 }

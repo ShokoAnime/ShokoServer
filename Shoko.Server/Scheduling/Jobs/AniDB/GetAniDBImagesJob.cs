@@ -6,7 +6,7 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB.Titles;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
@@ -43,7 +43,7 @@ public class GetAniDBImagesJob : BaseJob
 
     public override void PostInit()
     {
-        _anime = RepoFactory.AniDB_Anime?.GetByAnimeID(AnimeID);
+        _anime = _anidbAnimes.GetByAnimeID(AnimeID);
         _title = _anime?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title;
     }
 
@@ -59,10 +59,15 @@ public class GetAniDBImagesJob : BaseJob
         await _anidbService.ProcessImagesForAnimeByID(AnimeID, OnlyPosters, ForceDownload).ConfigureAwait(false);
     }
 
-    public GetAniDBImagesJob(AniDBTitleHelper aniDBTitleHelper, IAnidbService anidbService)
+    private readonly AniDB_AnimeRepository _anidbAnimes;
+    public GetAniDBImagesJob(AniDBTitleHelper aniDBTitleHelper, IAnidbService anidbService,
+        AniDB_AnimeRepository anidbAnimes
+    )
     {
         _titleHelper = aniDBTitleHelper;
         _anidbService = (AnidbService)anidbService;
+        _anidbAnimes = anidbAnimes;
+
     }
 
     protected GetAniDBImagesJob() { }

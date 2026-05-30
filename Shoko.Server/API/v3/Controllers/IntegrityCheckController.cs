@@ -6,7 +6,8 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.Legacy;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
@@ -18,21 +19,25 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class IntegrityCheckController : BaseController
 {
+    private readonly ScanRepository _scans;
+    private readonly VideoLocal_PlaceRepository _videoLocalPlaces;
+    private readonly ScanFileRepository _scanFiles;
+
     [HttpPost]
     public ActionResult<IntegrityCheck> AddScan(IntegrityCheck check)
     {
-        var scan = check.ID is > 0 ? RepoFactory.Scan.GetByID(check.ID) : new()
+        var scan = check.ID is > 0 ? _scans.GetByID(check.ID) : new()
         {
             Status = check.Status,
             ImportFolders = check.ManagedFolderIDs.Select(a => a.ToString()).Join(','),
             CreationTIme = DateTime.Now,
         };
         if (scan.ScanID == 0)
-            RepoFactory.Scan.Save(scan);
+            _scans.Save(scan);
 
         var files = scan.ImportFolders.Split(',')
             .Select(int.Parse)
-            .SelectMany(RepoFactory.VideoLocalPlace.GetByManagedFolderID)
+            .SelectMany(_videoLocalPlaces.GetByManagedFolderID)
             .Select(p => new { p, v = p.VideoLocal })
             .Select(t => new ScanFile
             {
@@ -44,7 +49,7 @@ public class IntegrityCheckController : BaseController
                 ImportFolderID = t.p.ManagedFolderID,
                 VideoLocal_Place_ID = t.p.ID
             }).ToList();
-        RepoFactory.ScanFile.Save(files);
+        _scanFiles.Save(files);
 
         return new IntegrityCheck()
         {
@@ -63,7 +68,10 @@ public class IntegrityCheckController : BaseController
         return Ok();
     }
 
-    public IntegrityCheckController(ISettingsProvider settingsProvider) : base(settingsProvider)
+    public IntegrityCheckController(ISettingsProvider settingsProvider, ScanRepository scans, VideoLocal_PlaceRepository videoLocalPlaces, ScanFileRepository scanFiles) : base(settingsProvider)
     {
+        _scans = scans;
+        _videoLocalPlaces = videoLocalPlaces;
+        _scanFiles = scanFiles;
     }
 }

@@ -6,7 +6,7 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -23,10 +23,13 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class AVDumpController : BaseController
 {
+    
     private readonly IQueueScheduler _scheduler;
-    public AVDumpController(ISettingsProvider settingsProvider, IQueueScheduler scheduler) : base(settingsProvider)
+    private readonly VideoLocalRepository _videoLocals;
+    public AVDumpController(ISettingsProvider settingsProvider, IQueueScheduler scheduler, VideoLocalRepository videoLocals) : base(settingsProvider)
     {
         _scheduler = scheduler;
+        _videoLocals = videoLocals;
     }
 
     /// <summary>
@@ -83,7 +86,7 @@ public class AVDumpController : BaseController
         var fileDictionary = new Dictionary<int, string>();
         foreach (var fileID in body.FileIDs)
         {
-            var file = RepoFactory.VideoLocal.GetByID(fileID);
+            var file = _videoLocals.GetByID(fileID);
             if (file == null)
             {
                 ModelState.AddModelError(nameof(body.FileIDs), $"No file with id {fileID}");

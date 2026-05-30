@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 #nullable enable
 namespace Shoko.Server.Settings;

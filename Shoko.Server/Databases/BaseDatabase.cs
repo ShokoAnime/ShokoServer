@@ -17,7 +17,6 @@ using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
-
 using Constants = Shoko.Server.Server.Constants;
 
 #pragma warning disable CS0618

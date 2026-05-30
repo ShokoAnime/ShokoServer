@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -10,7 +9,7 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 
 #nullable enable
@@ -24,7 +23,11 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}")]
 [ApiV3]
 [Authorize]
-public class TreeController(ISettingsProvider settingsProvider) : BaseController(settingsProvider)
+public class TreeController(ISettingsProvider settingsProvider,
+    AnimeGroupRepository _animeGroups,
+    AnimeSeriesRepository _animeSeries,
+    AnimeEpisodeRepository _animeEpisodes
+) : BaseController(settingsProvider)
 {
     #region Group
 
@@ -39,7 +42,7 @@ public class TreeController(ISettingsProvider settingsProvider) : BaseController
     public ActionResult<List<Group>> GetSubGroups([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool randomImages = false,
         [FromQuery] bool includeEmpty = true)
     {
-        if (RepoFactory.AnimeGroup.GetByID(groupID) is not { } group)
+        if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupController.GroupNotFound);
 
         var user = User;
@@ -71,7 +74,7 @@ public class TreeController(ISettingsProvider settingsProvider) : BaseController
         [FromQuery] bool includeMissing = true, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
-        if (RepoFactory.AnimeGroup.GetByID(groupID) is not { } group)
+        if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupController.GroupNotFound);
 
         var user = User;
@@ -101,7 +104,7 @@ public class TreeController(ISettingsProvider settingsProvider) : BaseController
     public ActionResult<Series> GetMainSeriesInGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
-        if (RepoFactory.AnimeGroup.GetByID(groupID) is not { } group)
+        if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupController.GroupNotFound);
 
         var user = User;
@@ -140,7 +143,7 @@ public class TreeController(ISettingsProvider settingsProvider) : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null
     )
     {
-        if (RepoFactory.AnimeSeries.GetByID(seriesID) is not { } series)
+        if (_animeSeries.GetByID(seriesID) is not { } series)
             return NotFound(SeriesController.SeriesNotFoundWithSeriesID);
 
         var user = User;
@@ -175,7 +178,7 @@ public class TreeController(ISettingsProvider settingsProvider) : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null
     )
     {
-        if (RepoFactory.AnimeEpisode.GetByID(episodeID) is not { } episode)
+        if (_animeEpisodes.GetByID(episodeID) is not { } episode)
             return NotFound(EpisodeController.EpisodeNotFoundWithEpisodeID);
 
         if (episode.AnimeSeries is not { } series)

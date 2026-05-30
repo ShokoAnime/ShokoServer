@@ -15,7 +15,6 @@ using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
-
 using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Providers.AniDB.UDP;

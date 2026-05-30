@@ -1,10 +1,11 @@
 using System;
 using System.Linq;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Extensions;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace Shoko.Abstractions.Logging.Models;
 
@@ -22,7 +23,7 @@ public class LogEntry
     ///   Log level.
     /// </summary>
     [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-    [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
+    [Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
     public required LogLevel Level { get; init; }
 
     /// <summary>
@@ -76,7 +77,7 @@ public class LogEntry
         {
             LogSerializeFormat.Simple => $"[{TimeStamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level.ToShortString()}] {Logger.Split('.').Last()}: {Message}{(Exception is { Length: > 0 } ? $": {Exception}" : string.Empty)}",
             LogSerializeFormat.Full => $"[{TimeStamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level.ToShortString()}] [{ThreadId:000}] {Logger}: {Message}{(Exception is { Length: > 0 } ? Environment.NewLine + Exception : string.Empty)}",
-            LogSerializeFormat.Json => System.Text.Json.JsonSerializer.Serialize(this),
+            LogSerializeFormat.Json => JsonSerializer.Serialize(this),
             LogSerializeFormat.Legacy => $"[{TimeStamp:yyyy-MM-dd HH:mm:ss.fff}] {Level.ToNLogString()}|{Logger} > {Message}{(Exception is { Length: > 0 } ? $": {Exception}" : string.Empty)}",
             LogSerializeFormat.Console => $"[{TimeStamp:HH:mm:ss}| {Logger.Split('.').Last()} --- {Message}{(Exception is { Length: > 0 } ? $": {Exception}" : string.Empty)}",
             _ => throw new ArgumentOutOfRangeException(nameof(format), format, null),

@@ -6,7 +6,7 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.User;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 
@@ -27,7 +27,7 @@ public class VoteAniDBEpisodeJob : BaseJob
 
     public override void PostInit()
     {
-        var episode = RepoFactory.AnimeEpisode.GetByID(EpisodeID);
+        var episode = _animeEpisodes.GetByID(EpisodeID);
         _animeName = episode?.AnimeSeries?.Title ?? EpisodeID.ToString();
         _episodeName = episode?.Title ?? EpisodeID.ToString();
     }
@@ -57,9 +57,14 @@ public class VoteAniDBEpisodeJob : BaseJob
         return Task.CompletedTask;
     }
 
-    public VoteAniDBEpisodeJob(IRequestFactory requestFactory)
+    private readonly AnimeEpisodeRepository _animeEpisodes;
+    public VoteAniDBEpisodeJob(IRequestFactory requestFactory,
+        AnimeEpisodeRepository animeEpisodes
+    )
     {
         _requestFactory = requestFactory;
+        _animeEpisodes = animeEpisodes;
+
     }
 
     protected VoteAniDBEpisodeJob() { }

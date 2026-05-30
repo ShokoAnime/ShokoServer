@@ -3,7 +3,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
-
 using AbstractRelationType = Shoko.Abstractions.Metadata.Enums.RelationType;
 
 #nullable enable
