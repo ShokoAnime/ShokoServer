@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate.Linq;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Scheduling.Jobs.Actions;
@@ -32,9 +33,8 @@ public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatu
             session.Query<AniDB_GroupStatus>().Where(a => a.AnimeID == animeid).Delete();
         });
 
-        var job = _serviceProvider.GetRequiredService<RefreshAnimeStatsJob>();
-        job.AnimeID = animeid;
-        job.Process().GetAwaiter().GetResult();
+        var jobFactory = _serviceProvider.GetRequiredService<IJobFactory>();
+        jobFactory.Execute<RefreshAnimeStatsJob>(j => j.AnimeID = animeid).GetAwaiter().GetResult();
     }
 
     public AniDB_GroupStatusRepository(DatabaseFactory databaseFactory, IServiceProvider serviceProvider) : base(databaseFactory)

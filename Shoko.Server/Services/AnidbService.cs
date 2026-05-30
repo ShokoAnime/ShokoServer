@@ -583,9 +583,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                 _seriesRepository.Save(series, true);
             }
 
-            var refreshJob = _serviceProvider.GetRequiredService<RefreshAnimeStatsJob>();
-            refreshJob.AnimeID = job.AnimeID;
-            await refreshJob.Process().ConfigureAwait(false);
+            var jobFactory = _serviceProvider.GetRequiredService<IJobFactory>();
+            await jobFactory.Execute<RefreshAnimeStatsJob>(j => j.AnimeID = job.AnimeID).ConfigureAwait(false);
 
             // Request an image download
             await UpsertAndScheduleImageForEntity(anime, anime.Picname!, isDesired: true, forceDownload: false).ConfigureAwait(false);

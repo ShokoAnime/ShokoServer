@@ -22,6 +22,8 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 {
     private readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.SupportsRecursion);
 
+    private readonly SemaphoreSlim _asyncLock = new(1, 1);
+
     protected readonly DatabaseFactory _databaseFactory;
 
     private SystemService _systemService;
@@ -414,6 +416,32 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         finally
         {
             _lock.ExitWriteLock();
+        }
+    }
+
+    protected async Task Lock(Func<Task> action)
+    {
+        await _asyncLock.WaitAsync();
+        try
+        {
+            await action();
+        }
+        finally
+        {
+            _asyncLock.Release();
+        }
+    }
+
+    protected async Task<T5> Lock<T5>(Func<Task<T5>> action)
+    {
+        await _asyncLock.WaitAsync();
+        try
+        {
+            return await action();
+        }
+        finally
+        {
+            _asyncLock.Release();
         }
     }
 

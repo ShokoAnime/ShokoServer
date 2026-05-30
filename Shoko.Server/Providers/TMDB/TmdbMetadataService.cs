@@ -843,10 +843,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public async Task SchedulePurgeOfMovie(int movieId)
     {
-        await _scheduler.StartJob<PurgeTmdbMovieJob>(c =>
-        {
-            c.TmdbMovieID = movieId;
-        });
+        await _scheduler.StartJob<PurgeTmdbMovieJob>(c => c.TmdbMovieID = movieId).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -1930,10 +1927,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public async Task SchedulePurgeOfShow(int showId)
     {
-        await _scheduler.StartJob<PurgeTmdbShowJob>(c =>
-        {
-            c.TmdbShowID = showId;
-        });
+        await _scheduler.StartJob<PurgeTmdbShowJob>(c => c.TmdbShowID = showId).ConfigureAwait(false);
     }
 
     public async Task PurgeShow(int showId)

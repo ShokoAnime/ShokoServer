@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NutzCode.InMemoryIndex;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Scheduling.Jobs.Actions;
@@ -13,9 +14,7 @@ namespace Shoko.Server.Repositories.Cached;
 
 public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_File_Episode, int>
 {
-    private readonly ILogger<CrossRef_File_EpisodeRepository> _logger;
-
-    private readonly IServiceProvider _serviceProvider;
+    private IJobFactory? _jobFactory;
 
     private PocoIndex<int, CrossRef_File_Episode, string>? _ed2k;
 
@@ -27,22 +26,18 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
 
     public CrossRef_File_EpisodeRepository(ILogger<CrossRef_File_EpisodeRepository> logger, IServiceProvider serviceProvider, DatabaseFactory databaseFactory) : base(databaseFactory)
     {
-        _logger = logger;
-        _serviceProvider = serviceProvider;
         EndSaveCallback = obj =>
         {
-            var job = _serviceProvider.GetRequiredService<RefreshAnimeStatsJob>();
-            job.AnimeID = obj.AnimeID;
-            job.Process().GetAwaiter().GetResult();
+            _jobFactory ??= serviceProvider.GetRequiredService<IJobFactory>();
+            _jobFactory.Execute<RefreshAnimeStatsJob>(j => j.AnimeID = obj.AnimeID).GetAwaiter().GetResult();
         };
         EndDeleteCallback = obj =>
         {
             if (obj is not { AnimeID: > 0 }) return;
 
-            _logger.LogTrace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {AnimeID}", obj.AnimeID);
-            var job = _serviceProvider.GetRequiredService<RefreshAnimeStatsJob>();
-            job.AnimeID = obj.AnimeID;
-            job.Process().GetAwaiter().GetResult();
+            logger.LogTrace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {AnimeID}", obj.AnimeID);
+            _jobFactory ??= serviceProvider.GetRequiredService<IJobFactory>();
+            _jobFactory.Execute<RefreshAnimeStatsJob>(j => j.AnimeID = obj.AnimeID).GetAwaiter().GetResult();
         };
     }
 

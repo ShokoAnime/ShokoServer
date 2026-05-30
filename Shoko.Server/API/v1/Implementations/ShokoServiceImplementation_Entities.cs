@@ -2869,9 +2869,7 @@ public partial class ShokoServiceImplementation
             RepoFactory.CrossRef_CustomTag.Save(xref);
 
             contractRet.Result = xref.ToClient();
-            var refreshJobInst = ISystemService.StaticServices.GetRequiredService<RefreshAnimeStatsJob>();
-            refreshJobInst.AnimeID = contract.CrossRefID;
-            refreshJobInst.Process().GetAwaiter().GetResult();
+            _scheduler.StartJob<RefreshAnimeStatsJob>(j => j.AnimeID = contract.CrossRefID).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -2918,7 +2916,7 @@ public partial class ShokoServiceImplementation
                 return "Custom Tag not found";
 
             RepoFactory.CrossRef_CustomTag.Delete(xref.CrossRef_CustomTagID);
-            var refreshJobInst = ISystemService.StaticServices.GetRequiredService<RefreshAnimeStatsJob>(); refreshJobInst.AnimeID = crossRefID; refreshJobInst.Process().GetAwaiter().GetResult();
+            _scheduler.StartJob<RefreshAnimeStatsJob>(j => j.AnimeID = crossRefID).GetAwaiter().GetResult();
             return string.Empty;
         }
         catch (Exception ex)
@@ -2991,13 +2989,8 @@ public partial class ShokoServiceImplementation
             RepoFactory.CustomTag.Delete(customTagID);
 
             // update cached data for any anime that were affected
-            var sp = ISystemService.StaticServices;
-            Task.WhenAll(xrefs.Select(xref =>
-            {
-                var j = sp.GetRequiredService<RefreshAnimeStatsJob>();
-                j.AnimeID = xref.CrossRefID;
-                return j.Process();
-            })).GetAwaiter().GetResult();
+            Task.WhenAll(xrefs.Select(xref => _scheduler.StartJob<RefreshAnimeStatsJob>(j => j.AnimeID = xref.CrossRefID)))
+                .GetAwaiter().GetResult();
 
             return string.Empty;
         }

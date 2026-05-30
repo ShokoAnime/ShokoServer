@@ -29,10 +29,10 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct.TMDB.Optional;
 using Shoko.Server.Scheduling.Jobs.TMDB;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-using JobBlockedException = Shoko.QueueProcessor.Abstractions.JobBlockedException;
-using IJobFactory = Shoko.QueueProcessor.Abstractions.IJobFactory;
 
 using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
 using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
@@ -58,6 +58,8 @@ public partial class TmdbController : BaseController
     private readonly TmdbMetadataService _tmdbMetadataService;
 
     private readonly IJobFactory _jobFactory;
+
+    private readonly IQueueScheduler _scheduler;
     private readonly CrossRef_AniDB_TMDB_EpisodeRepository _crossRefAnidbTmdbEpisodes;
     private readonly CrossRef_AniDB_TMDB_MovieRepository _crossRefAnidbTmdbMovies;
     private readonly CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows;
@@ -70,7 +72,7 @@ public partial class TmdbController : BaseController
     private readonly TMDB_SeasonRepository _tmdbSeasons;
     private readonly TMDB_ShowRepository _tmdbShows;
 
-    public TmdbController(ISettingsProvider settingsProvider, ILogger<TmdbController> logger, TmdbSearchService tmdbSearchService, TmdbMetadataService tmdbService, IJobFactory jobFactory,
+    public TmdbController(ISettingsProvider settingsProvider, ILogger<TmdbController> logger, TmdbSearchService tmdbSearchService, TmdbMetadataService tmdbService, IJobFactory jobFactory, IQueueScheduler scheduler,
         CrossRef_AniDB_TMDB_EpisodeRepository crossRefAnidbTmdbEpisodes, CrossRef_AniDB_TMDB_MovieRepository crossRefAnidbTmdbMovies, CrossRef_AniDB_TMDB_ShowRepository crossRefAnidbTmdbShows,
         TMDB_AlternateOrderingRepository tmdbAlternateOrderings, TMDB_AlternateOrdering_EpisodeRepository tmdbAlternateOrderingEpisodes, TMDB_AlternateOrdering_SeasonRepository tmdbAlternateOrderingSeasons,
         TMDB_CollectionRepository tmdbCollections, TMDB_EpisodeRepository tmdbEpisodes, TMDB_MovieRepository tmdbMovies, TMDB_SeasonRepository tmdbSeasons, TMDB_ShowRepository tmdbShows) : base(settingsProvider)
@@ -79,6 +81,7 @@ public partial class TmdbController : BaseController
         _tmdbSearchService = tmdbSearchService;
         _tmdbMetadataService = tmdbService;
         _jobFactory = jobFactory;
+        _scheduler = scheduler;
         _crossRefAnidbTmdbEpisodes = crossRefAnidbTmdbEpisodes;
         _crossRefAnidbTmdbMovies = crossRefAnidbTmdbMovies;
         _crossRefAnidbTmdbShows = crossRefAnidbTmdbShows;
@@ -601,22 +604,25 @@ public partial class TmdbController : BaseController
 
         if (body.Immediate)
         {
-            try
+            await _jobFactory.Execute<UpdateTmdbMovieJob>(j =>
             {
-                await _jobFactory.Execute<UpdateTmdbMovieJob>(j =>
-                {
-                    j.TmdbMovieID = movieID;
-                    j.ForceRefresh = body.Force;
-                    j.DownloadImages = body.DownloadImages;
-                    j.DownloadCrewAndCast = body.DownloadCrewAndCast;
-                    j.DownloadCollections = body.DownloadCollections;
-                });
-                return Ok();
-            }
-            catch (JobBlockedException) { /* fall through to queue */ }
+                j.TmdbMovieID = movieID;
+                j.ForceRefresh = body.Force;
+                j.DownloadImages = body.DownloadImages;
+                j.DownloadCrewAndCast = body.DownloadCrewAndCast;
+                j.DownloadCollections = body.DownloadCollections;
+            });
+            return Ok();
         }
 
-        await _tmdbMetadataService.ScheduleUpdateOfMovie(new() { MovieId = movieID, ForceRefresh = body.Force, DownloadImages = body.DownloadImages, DownloadCrewAndCast = body.DownloadCrewAndCast, DownloadCollections = body.DownloadCollections });
+        await _scheduler.StartJob<UpdateTmdbMovieJob>(j =>
+        {
+            j.TmdbMovieID = movieID;
+            j.ForceRefresh = body.Force;
+            j.DownloadImages = body.DownloadImages;
+            j.DownloadCrewAndCast = body.DownloadCrewAndCast;
+            j.DownloadCollections = body.DownloadCollections;
+        });
         return NoContent();
     }
 
@@ -642,19 +648,19 @@ public partial class TmdbController : BaseController
 
         if (body.Immediate)
         {
-            try
+            await _jobFactory.Execute<DownloadTmdbMovieImagesJob>(j =>
             {
-                await _jobFactory.Execute<DownloadTmdbMovieImagesJob>(j =>
-                {
-                    j.TmdbMovieID = movieID;
-                    j.ForceDownload = body.Force;
-                });
-                return Ok();
-            }
-            catch (JobBlockedException) { /* fall through to queue */ }
+                j.TmdbMovieID = movieID;
+                j.ForceDownload = body.Force;
+            });
+            return Ok();
         }
 
-        await _tmdbMetadataService.ScheduleDownloadAllMovieImages(movieID, body.Force);
+        await _scheduler.StartJob<DownloadTmdbMovieImagesJob>(j =>
+        {
+            j.TmdbMovieID = movieID;
+            j.ForceDownload = body.Force;
+        });
         return NoContent();
     }
 
@@ -1751,31 +1757,27 @@ public partial class TmdbController : BaseController
             if (body.QuickRefresh && _tmdbMetadataService.IsShowUpdating(showID) && _tmdbEpisodes.GetByTmdbShowID(showID).Count > 0)
                 return Ok();
 
-            try
+            await _jobFactory.Execute<UpdateTmdbShowJob>(j =>
             {
-                await _jobFactory.Execute<UpdateTmdbShowJob>(j =>
-                {
-                    j.TmdbShowID = showID;
-                    j.ForceRefresh = !body.QuickRefresh && body.Force;
-                    j.QuickRefresh = body.QuickRefresh;
-                    j.DownloadImages = body.DownloadImages;
-                    j.DownloadCrewAndCast = body.DownloadCrewAndCast;
-                    j.DownloadAlternateOrdering = body.DownloadAlternateOrdering;
-                    j.DownloadNetworks = body.DownloadNetworks;
-                });
-                return Ok();
-            }
-            catch (JobBlockedException) { /* fall through to queue */ }
+                j.TmdbShowID = showID;
+                j.ForceRefresh = !body.QuickRefresh && body.Force;
+                j.QuickRefresh = body.QuickRefresh;
+                j.DownloadImages = body.DownloadImages;
+                j.DownloadCrewAndCast = body.DownloadCrewAndCast;
+                j.DownloadAlternateOrdering = body.DownloadAlternateOrdering;
+                j.DownloadNetworks = body.DownloadNetworks;
+            });
+            return Ok();
         }
 
-        await _tmdbMetadataService.ScheduleUpdateOfShow(new()
+        await _scheduler.StartJob<UpdateTmdbShowJob>(j =>
         {
-            ShowId = showID,
-            ForceRefresh = body.Force,
-            DownloadImages = body.DownloadImages,
-            DownloadCrewAndCast = body.DownloadCrewAndCast,
-            DownloadAlternateOrdering = body.DownloadAlternateOrdering,
-            DownloadNetworks = body.DownloadNetworks,
+            j.TmdbShowID = showID;
+            j.ForceRefresh = body.Force;
+            j.DownloadImages = body.DownloadImages;
+            j.DownloadCrewAndCast = body.DownloadCrewAndCast;
+            j.DownloadAlternateOrdering = body.DownloadAlternateOrdering;
+            j.DownloadNetworks = body.DownloadNetworks;
         });
         return NoContent();
     }
@@ -1802,19 +1804,19 @@ public partial class TmdbController : BaseController
 
         if (body.Immediate)
         {
-            try
+            await _jobFactory.Execute<DownloadTmdbShowImagesJob>(j =>
             {
-                await _jobFactory.Execute<DownloadTmdbShowImagesJob>(j =>
-                {
-                    j.TmdbShowID = showID;
-                    j.ForceDownload = body.Force;
-                });
-                return Ok();
-            }
-            catch (JobBlockedException) { /* fall through to queue */ }
+                j.TmdbShowID = showID;
+                j.ForceDownload = body.Force;
+            });
+            return Ok();
         }
 
-        await _tmdbMetadataService.ScheduleDownloadAllShowImages(showID, body.Force);
+        await _scheduler.StartJob<DownloadTmdbShowImagesJob>(j =>
+        {
+            j.TmdbShowID = showID;
+            j.ForceDownload = body.Force;
+        });
         return NoContent();
     }
 
