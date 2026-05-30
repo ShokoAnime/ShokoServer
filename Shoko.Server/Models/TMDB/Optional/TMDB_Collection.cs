@@ -294,4 +294,10 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
     DateTime IWithUpdateDate.LastUpdatedAt => LastUpdatedAt.ToUniversalTime();
 
     #endregion
+
+    #region ITmdbCollection Implementation
+
+    IReadOnlyList<ITmdbMovie> ITmdbCollection.Movies => GetTmdbMovies();
+
+    #endregion
 }
