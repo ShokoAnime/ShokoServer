@@ -80,7 +80,7 @@ public static class QueueProcessorExtensions
         services.AddSingleton(new QueueMetrics(options.MetricsWindowSeconds, options.MetricsRollingAvgSamples));
 
         services.AddSingleton(sp => new PersistenceBuffer(
-            sp.GetRequiredService<IJobRepository>(),
+            sp.GetRequiredService<IServiceScopeFactory>(),
             sp.GetRequiredService<ILogger<PersistenceBuffer>>(),
             options.FlushIntervalMs,
             options.MaxFlushBatch));
@@ -92,7 +92,7 @@ public static class QueueProcessorExtensions
         services.AddSingleton(sp => new QueueOrchestrator(
             sp.GetRequiredService<ILogger<QueueOrchestrator>>(),
             sp.GetRequiredService<PersistenceBuffer>(),
-            sp.GetRequiredService<IJobRepository>(),
+            sp.GetRequiredService<IServiceScopeFactory>(),
             sp.GetRequiredService<ConcurrencyRegistry>(),
             sp.GetRequiredService<RetryPolicyResolver>(),
             sp.GetRequiredService<QueueMetrics>(),

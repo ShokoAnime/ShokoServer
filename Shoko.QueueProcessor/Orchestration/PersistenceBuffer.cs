@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Storage;
 
@@ -25,7 +26,7 @@ namespace Shoko.QueueProcessor.Orchestration;
 /// </summary>
 public sealed class PersistenceBuffer : IAsyncDisposable
 {
-    private readonly IJobRepository _repo;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<PersistenceBuffer> _logger;
     private readonly int _flushIntervalMs;
     private readonly int _maxFlushBatch;
@@ -40,12 +41,12 @@ public sealed class PersistenceBuffer : IAsyncDisposable
     private Timer? _timer;
 
     public PersistenceBuffer(
-        IJobRepository repo,
+        IServiceScopeFactory scopeFactory,
         ILogger<PersistenceBuffer> logger,
         int flushIntervalMs = 3000,
         int maxFlushBatch = 500)
     {
-        _repo = repo;
+        _scopeFactory = scopeFactory;
         _logger = logger;
         _flushIntervalMs = flushIntervalMs;
         _maxFlushBatch = maxFlushBatch;
@@ -135,15 +136,17 @@ public sealed class PersistenceBuffer : IAsyncDisposable
         await _flushGate.WaitAsync(ct);
         try
         {
+            using var scope = _scopeFactory.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<IJobRepository>();
             if (inserts.Length > 0)
             {
                 _logger.LogDebug("PersistenceBuffer: flushing {InsertCount} inserts", inserts.Length);
-                await _repo.InsertBatchAsync(inserts, ct);
+                await repo.InsertBatchAsync(inserts, ct);
             }
             if (deletes.Length > 0)
             {
                 _logger.LogDebug("PersistenceBuffer: flushing {DeleteCount} deletes", deletes.Length);
-                await _repo.DeleteBatchAsync(deletes, ct);
+                await repo.DeleteBatchAsync(deletes, ct);
             }
         }
         catch (Exception ex)

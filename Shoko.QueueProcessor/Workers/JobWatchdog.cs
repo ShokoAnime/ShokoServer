@@ -26,7 +26,7 @@ internal sealed class JobWatchdog
     private readonly ILogger _logger;
     private readonly TimeSpan _timeout;
     private readonly HashSet<Type> _exemptTypes;
-    private readonly HashSet<Guid> _alreadyWarned = [];
+    private readonly HashSet<(Guid Id, DateTime StartedAt)> _alreadyWarned = [];
     private Task? _watchTask;
 
     private const int PollIntervalSeconds = 15;
@@ -77,9 +77,9 @@ internal sealed class JobWatchdog
     {
         var now = DateTime.UtcNow;
         var executing = _orchestrator.GetExecuting();
-        var executingIds = executing.Select(e => e.Id).ToHashSet();
+        var executingKeys = executing.Select(e => (e.Id, e.StartedAt)).ToHashSet();
 
-        _alreadyWarned.RemoveWhere(id => !executingIds.Contains(id));
+        _alreadyWarned.RemoveWhere(key => !executingKeys.Contains(key));
 
         foreach (var entry in executing)
         {
@@ -88,7 +88,7 @@ internal sealed class JobWatchdog
             var elapsed = now - entry.StartedAt;
             if (elapsed < _timeout) continue;
 
-            if (_alreadyWarned.Add(entry.Id))
+            if (_alreadyWarned.Add((entry.Id, entry.StartedAt)))
             {
                 // First detection — log error once with full context for analytics/aggregation
                 _logger.LogError(

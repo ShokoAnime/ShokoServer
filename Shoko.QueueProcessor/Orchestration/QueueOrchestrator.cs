@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
@@ -31,7 +32,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 {
     private readonly ILogger<QueueOrchestrator> _logger;
     private readonly PersistenceBuffer _persistenceBuffer;
-    private readonly IJobRepository _repo;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ConcurrencyRegistry _concurrency;
     private readonly RetryPolicyResolver _retryPolicies;
     private readonly QueueMetrics _metrics;
@@ -76,7 +77,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     public QueueOrchestrator(
         ILogger<QueueOrchestrator> logger,
         PersistenceBuffer persistenceBuffer,
-        IJobRepository repo,
+        IServiceScopeFactory scopeFactory,
         ConcurrencyRegistry concurrency,
         RetryPolicyResolver retryPolicies,
         QueueMetrics metrics,
@@ -85,7 +86,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     {
         _logger = logger;
         _persistenceBuffer = persistenceBuffer;
-        _repo = repo;
+        _scopeFactory = scopeFactory;
         _concurrency = concurrency;
         _retryPolicies = retryPolicies;
         _metrics = metrics;
@@ -544,7 +545,9 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 entry.JobKey, entry.JobType.Name, newRetryCount, policy.MaxRetries, delay);
 
             // Write immediately so crash-restart preserves the backoff position
-            await _repo.UpdateRetryAsync(id, newRetryCount, nextRun, ct);
+            using (var scope = _scopeFactory.CreateScope())
+                await scope.ServiceProvider.GetRequiredService<IJobRepository>()
+                    .UpdateRetryAsync(id, newRetryCount, nextRun, ct);
 
             // Re-queue in-memory with updated ScheduledAt and incremented RetryCount
             var retryJob = new QueuedJob
@@ -597,7 +600,8 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             _jobKeyIndex.Remove(jobKey);
         }
 
-        await _repo.DeleteAsync(id, ct);
+        using var scope = _scopeFactory.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<IJobRepository>().DeleteAsync(id, ct);
     }
 
     public async Task ClearAsync(CancellationToken ct = default)
@@ -612,7 +616,8 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             foreach (var entry in _executingSet.Values)
                 _jobKeyIndex[entry.JobKey] = entry.Id;
         }
-        await _repo.ClearAllAsync(ct);
+        using var scope = _scopeFactory.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<IJobRepository>().ClearAllAsync(ct);
     }
 
     // ── State queries ──────────────────────────────────────────────────────────

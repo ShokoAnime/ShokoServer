@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
 using Shoko.QueueProcessor.Builder;
@@ -21,15 +21,18 @@ public class QueueHandler
     private readonly IQueueScheduler _scheduler;
     private readonly QueueOrchestrator _orchestrator;
     private readonly WorkerPoolManager _poolManager;
+    private readonly IServiceProvider _serviceProvider;
 
     public QueueHandler(
         IQueueScheduler scheduler,
         QueueOrchestrator orchestrator,
-        WorkerPoolManager poolManager)
+        WorkerPoolManager poolManager,
+        IServiceProvider serviceProvider)
     {
         _scheduler = scheduler;
         _orchestrator = orchestrator;
         _poolManager = poolManager;
+        _serviceProvider = serviceProvider;
         // events is intentionally unused: state is read straight from the orchestrator. Earlier
         // versions kept a local cache primed by ExecutingJobsChanged / QueueItemsAdded, but those
         // events fire concurrently from worker threads with no ordering guarantees — under burst
@@ -173,8 +176,7 @@ public class QueueHandler
         {
             try
             {
-                // Bypass constructor — job data properties are set separately, injected services not needed
-                var inst = (IQueueJob)RuntimeHelpers.GetUninitializedObject(type);
+                var inst = (IQueueJob)_serviceProvider.GetRequiredService(type);
                 JobDataSerializer.Apply(inst, j.JobDataJson);
                 inst.PostInit();
                 typeName = string.IsNullOrEmpty(inst.TypeName) ? jobType : inst.TypeName;

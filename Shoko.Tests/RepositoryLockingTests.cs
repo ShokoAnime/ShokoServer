@@ -114,17 +114,18 @@ public class RepositoryLockingTests
 
     private sealed class SettingsScope : IDisposable
     {
-        private readonly ISettingsProvider _previous;
+        private readonly ISettingsProvider? _previous;
 
         public SettingsScope(IServerSettings settings)
         {
-            _previous = ISettingsProvider.Instance;
+            try { _previous = ISettingsProvider.Instance; }
+            catch (InvalidOperationException) { _previous = null; }
             ISettingsProvider.Instance = new TestSettingsProvider(settings);
         }
 
         public void Dispose()
         {
-            ISettingsProvider.Instance = _previous;
+            ISettingsProvider.Instance = _previous!;
         }
     }
 

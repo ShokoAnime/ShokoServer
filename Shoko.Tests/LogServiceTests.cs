@@ -40,7 +40,7 @@ public class LogServiceTests : IDisposable
     [Fact]
     public void ReadLogFile_ShouldApplyOffsetAndLimit_ForUncompressedJsonl()
     {
-        var path = Path.Combine(_tempDirectory, "sample.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("a", DateTime.UtcNow.AddMinutes(-3)),
@@ -54,13 +54,13 @@ public class LogServiceTests : IDisposable
 
         Assert.Single(result.Entries);
         Assert.Equal("b", result.Entries[0].Message);
-        Assert.Equal<uint?>(3, result.NextOffset);
+        Assert.Equal<uint?>(2, result.NextOffset);
     }
 
     [Fact]
     public void ReadLogFile_ShouldApplyOffsetAndLimit_ForCompressedJsonl()
     {
-        var gzipPath = Path.Combine(_tempDirectory, "sample.jsonl.gz");
+        var gzipPath = Path.Combine(_tempDirectory, "2020-01-01.jsonl.gz");
         using (var stream = File.Open(gzipPath, FileMode.Create))
         using (var gzip = new GZipStream(stream, CompressionLevel.Optimal))
         using (var writer = new StreamWriter(gzip))
@@ -75,7 +75,7 @@ public class LogServiceTests : IDisposable
 
         Assert.Single(result.Entries);
         Assert.Equal("two", result.Entries[0].Message);
-        Assert.Equal<uint?>(3, result.NextOffset);
+        Assert.Equal<uint?>(2, result.NextOffset);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class LogServiceTests : IDisposable
         var t1 = DateTime.UtcNow.AddMinutes(-3);
         var t2 = DateTime.UtcNow.AddMinutes(-2);
         var t3 = DateTime.UtcNow.AddMinutes(-1);
-        var path = Path.Combine(_tempDirectory, "descending.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("a", t1),
@@ -102,7 +102,7 @@ public class LogServiceTests : IDisposable
     [Fact]
     public void ReadLogFile_ShouldReturnDescending_ForCompressedJsonl()
     {
-        var gzipPath = Path.Combine(_tempDirectory, "descending-compressed.jsonl.gz");
+        var gzipPath = Path.Combine(_tempDirectory, "2020-01-01.jsonl.gz");
         using (var stream = File.Open(gzipPath, FileMode.Create))
         using (var gzip = new GZipStream(stream, CompressionLevel.Optimal))
         using (var writer = new StreamWriter(gzip))
@@ -125,7 +125,7 @@ public class LogServiceTests : IDisposable
         var t1 = DateTime.UtcNow.AddMinutes(-3);
         var t2 = DateTime.UtcNow.AddMinutes(-2);
         var t3 = DateTime.UtcNow.AddMinutes(-1);
-        var path = Path.Combine(_tempDirectory, "mixed-newlines.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         var content = $"{MakeLine("first", t1)}\r\n{MakeLine("second", t2)}\n{MakeLine("third", t3)}";
         File.WriteAllText(path, content);
 
@@ -143,7 +143,7 @@ public class LogServiceTests : IDisposable
         var t2 = DateTime.UtcNow.AddHours(-2);
         var t3 = DateTime.UtcNow.AddHours(-1);
 
-        var plainPath = Path.Combine(_tempDirectory, "plain.jsonl");
+        var plainPath = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(plainPath,
         [
             MakeLine("old", t1),
@@ -151,7 +151,7 @@ public class LogServiceTests : IDisposable
         ]);
         File.SetLastWriteTimeUtc(plainPath, t2);
 
-        var compressedPath = Path.Combine(_tempDirectory, "compressed.jsonl.gz");
+        var compressedPath = Path.Combine(_tempDirectory, "2020-01-02.jsonl.gz");
         using (var stream = File.Open(compressedPath, FileMode.Create))
         using (var gzip = new GZipStream(stream, CompressionLevel.Optimal))
         using (var writer = new StreamWriter(gzip))
@@ -179,7 +179,7 @@ public class LogServiceTests : IDisposable
         var t1 = DateTime.UtcNow.AddMinutes(-3);
         var t2 = DateTime.UtcNow.AddMinutes(-2);
         var t3 = DateTime.UtcNow.AddMinutes(-1);
-        var path = Path.Combine(_tempDirectory, "from-to.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("a", t1),
@@ -205,7 +205,7 @@ public class LogServiceTests : IDisposable
     public void ReadLogFile_ShouldFilter_ByLevelAndMessage()
     {
         var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "filter.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("keep", t, "Info"),
@@ -230,7 +230,7 @@ public class LogServiceTests : IDisposable
     public void ReadLogFile_ShouldFilter_ByProcessAndThreadId()
     {
         var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "filter-ids.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("a", t, processId: 10, threadId: 20),
@@ -256,7 +256,7 @@ public class LogServiceTests : IDisposable
     public void ReadLogFile_ShouldFilter_MessageNegatedContains()
     {
         var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "filter-neg-c.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("alpha", t),
@@ -275,7 +275,7 @@ public class LogServiceTests : IDisposable
     public void ReadLogFile_ShouldFilter_MessageNotEquals()
     {
         var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "filter-neq.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("keep-a", t),
@@ -294,7 +294,7 @@ public class LogServiceTests : IDisposable
     public void ReadLogFile_ShouldFilter_CallerStartsWith_CaseInsensitiveHash()
     {
         var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "filter-caller-hash.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("one", t, caller: "get /api"),
@@ -313,7 +313,7 @@ public class LogServiceTests : IDisposable
     public void ReadLogFile_ShouldFilter_CallerNegatedStartsWith_ModifierOrdersEquivalent()
     {
         var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "filter-caller-mod-order.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("ok", t, caller: "POST /x"),
@@ -333,7 +333,7 @@ public class LogServiceTests : IDisposable
     public void ReadLogFile_ShouldFilter_MessageFuzzyMode()
     {
         var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "filter-fuzzy.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("unrelated", t),
@@ -352,7 +352,7 @@ public class LogServiceTests : IDisposable
     public void ReadLogFile_ShouldFilter_MessageRegexWithIgnoreCaseFlag()
     {
         var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "filter-regex-i.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("quiet", t),
@@ -371,7 +371,7 @@ public class LogServiceTests : IDisposable
     public void ReadLogFile_ShouldFilter_ExceptionEqualsEmpty_MatchesNullAndEmptyProperty()
     {
         var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "filter-exc-empty.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("no-prop", t),
@@ -390,7 +390,7 @@ public class LogServiceTests : IDisposable
     public void ReadLogFile_ShouldFilter_ExceptionNotEqualsEmpty_MatchesWhenExceptionTextPresent()
     {
         var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "filter-exc-nonempty.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("no-prop", t),
@@ -410,7 +410,7 @@ public class LogServiceTests : IDisposable
     public void ReadLogFile_ShouldFilter_WhitespaceOnlyMessageDsl_AsContainsLiteral()
     {
         var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "filter-ws-dsl.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path,
         [
             MakeLine("x", t),
@@ -429,7 +429,7 @@ public class LogServiceTests : IDisposable
     public void ReadLogFile_InvalidFilterDsl_ThrowsGenericValidationException()
     {
         var t = DateTime.UtcNow;
-        var path = Path.Combine(_tempDirectory, "filter-bad-dsl.jsonl");
+        var path = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(path, [MakeLine("x", t)]);
 
         var service = CreateService();
@@ -449,7 +449,7 @@ public class LogServiceTests : IDisposable
         var t2 = DateTime.UtcNow.AddHours(-2);
         var t3 = DateTime.UtcNow.AddHours(-1);
 
-        var plainPath = Path.Combine(_tempDirectory, "plain-range.jsonl");
+        var plainPath = Path.Combine(_tempDirectory, "2020-01-01.jsonl");
         File.WriteAllLines(plainPath,
         [
             MakeLine("old", t1),
@@ -457,7 +457,7 @@ public class LogServiceTests : IDisposable
         ]);
         File.SetLastWriteTimeUtc(plainPath, t2);
 
-        var compressedPath = Path.Combine(_tempDirectory, "compressed-range.jsonl.gz");
+        var compressedPath = Path.Combine(_tempDirectory, "2020-01-02.jsonl.gz");
         using (var stream = File.Open(compressedPath, FileMode.Create))
         using (var gzip = new GZipStream(stream, CompressionLevel.Optimal))
         using (var writer = new StreamWriter(gzip))

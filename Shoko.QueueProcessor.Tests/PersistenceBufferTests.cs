@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.QueueProcessor.Orchestration;
@@ -22,11 +23,22 @@ public class PersistenceBufferTests
     {
         var repo = new Mock<IJobRepository>(MockBehavior.Strict);
         var buffer = new PersistenceBuffer(
-            repo.Object,
+            MakeScopeFactory(repo),
             NullLogger<PersistenceBuffer>.Instance,
             flushIntervalMs,
             maxBatch);
         return (buffer, repo);
+    }
+
+    private static IServiceScopeFactory MakeScopeFactory(Mock<IJobRepository> repo)
+    {
+        var sp = new Mock<IServiceProvider>();
+        sp.Setup(s => s.GetService(typeof(IJobRepository))).Returns(repo.Object);
+        var scope = new Mock<IServiceScope>();
+        scope.Setup(s => s.ServiceProvider).Returns(sp.Object);
+        var factory = new Mock<IServiceScopeFactory>();
+        factory.Setup(f => f.CreateScope()).Returns(scope.Object);
+        return factory.Object;
     }
 
     private static QueuedJob FakeJob(Guid? id = null) =>

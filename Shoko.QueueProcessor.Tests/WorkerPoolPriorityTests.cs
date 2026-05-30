@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.QueueProcessor.Abstractions;
@@ -48,7 +49,8 @@ public class WorkerPoolPriorityTests
         var repo = new Mock<IJobRepository>();
         repo.Setup(r => r.InsertBatchAsync(It.IsAny<IReadOnlyCollection<QueuedJob>>(), default)).Returns(Task.CompletedTask);
         repo.Setup(r => r.DeleteBatchAsync(It.IsAny<IReadOnlyCollection<Guid>>(), default)).Returns(Task.CompletedTask);
-        var buffer = new PersistenceBuffer(repo.Object, NullLogger<PersistenceBuffer>.Instance, flushIntervalMs: int.MaxValue);
+        var scopeFactory = MakeScopeFactory(repo);
+        var buffer = new PersistenceBuffer(scopeFactory, NullLogger<PersistenceBuffer>.Instance, flushIntervalMs: int.MaxValue);
         var registry = new ConcurrencyRegistry(
             new Dictionary<Type, int>(),
             new Dictionary<Type, string?>(),
@@ -56,8 +58,19 @@ public class WorkerPoolPriorityTests
         var retry = new RetryPolicyResolver(new RetryPolicy { MaxRetries = 0 });
         return new QueueOrchestrator(
             NullLogger<QueueOrchestrator>.Instance,
-            buffer, repo.Object, registry, retry,
+            buffer, scopeFactory, registry, retry,
             new QueueMetrics(), new QueueStateEventHandler(), maxWorkers);
+    }
+
+    private static IServiceScopeFactory MakeScopeFactory(Mock<IJobRepository> repo)
+    {
+        var sp = new Mock<IServiceProvider>();
+        sp.Setup(s => s.GetService(typeof(IJobRepository))).Returns(repo.Object);
+        var scope = new Mock<IServiceScope>();
+        scope.Setup(s => s.ServiceProvider).Returns(sp.Object);
+        var factory = new Mock<IServiceScopeFactory>();
+        factory.Setup(f => f.CreateScope()).Returns(scope.Object);
+        return factory.Object;
     }
 
     private static WorkerPool MakePool(string name, int maxWorkers, int priority, Type jobType) =>
