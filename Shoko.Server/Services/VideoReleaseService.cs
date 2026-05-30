@@ -648,7 +648,7 @@ public class VideoReleaseService(
 
         // Schedule the release group to be fetched if needed.
         if (missingGroupId is not null)
-            await schedulerFactory.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = missingGroupId.Value);
+            await schedulerFactory.RunAfterCurrent<GetAniDBReleaseGroupJob>(c => c.GroupID = missingGroupId.Value);
 
         await ScheduleAnimeForRelease(legacyXrefs);
 
@@ -663,7 +663,7 @@ public class VideoReleaseService(
             }).ConfigureAwait(false);
         // Rename and/or move the physical file(s) if needed.
         if (_settings.Plugins.Renamer.RelocateOnImport)
-            await schedulerFactory.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.ID).ConfigureAwait(false);
+            await schedulerFactory.RunAfterCurrent<RenameMoveFileJob>(job => job.VideoLocalID = video.ID).ConfigureAwait(false);
 
         try
         {
@@ -936,12 +936,12 @@ public class VideoReleaseService(
             }
             else
             {
-                await schedulerFactory.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
+                await schedulerFactory.RunAfterCurrent<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
             }
 
             var tmdbShowXrefs = crossRefAnidbTmdbRepository.GetByAnidbAnimeID(animeID);
             foreach (var xref in tmdbShowXrefs)
-                await schedulerFactory.StartJob<UpdateTmdbShowJob>(job =>
+                await schedulerFactory.RunAfterCurrent<UpdateTmdbShowJob>(job =>
                 {
                     job.TmdbShowID = xref.TmdbShowID;
                     job.DownloadImages = true;

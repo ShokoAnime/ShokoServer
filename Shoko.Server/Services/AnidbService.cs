@@ -402,16 +402,14 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             return;
         if (!refreshMethod.HasFlag(AnidbRefreshMethod.Cache))
         {
-            await _scheduler.StartJob<GetRemoteAniDBAnimeJob>(
-                job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod),
-                prioritize: prioritize
+            await _scheduler.RunAfterCurrent<GetRemoteAniDBAnimeJob>(
+                job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod)
             ).ConfigureAwait(false);
         }
         else
         {
-            await _scheduler.StartJob<GetAniDBAnimeJob>(
-                job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod),
-                prioritize: prioritize
+            await _scheduler.RunAfterCurrent<GetAniDBAnimeJob>(
+                job => (job.AnimeID, job.RefreshMethod) = (anidbAnimeID, refreshMethod)
             ).ConfigureAwait(false);
         }
     }
@@ -583,13 +581,12 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                 _seriesRepository.Save(series, true);
             }
 
-            var jobFactory = _serviceProvider.GetRequiredService<IJobFactory>();
-            await jobFactory.Execute<RefreshAnimeStatsJob>(j => j.AnimeID = job.AnimeID).ConfigureAwait(false);
+            await _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = job.AnimeID).ConfigureAwait(false);
 
             // Request an image download
             await UpsertAndScheduleImageForEntity(anime, anime.Picname!, isDesired: true, forceDownload: false).ConfigureAwait(false);
             if (series is not null)
-                await _scheduler.StartJob<GetAniDBImagesJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
+                await _scheduler.RunAfterCurrent<GetAniDBImagesJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
 
             // Emit anidb anime updated event.
             if (isNew || isUpdated || animeEpisodeChanges.Count > 0)
@@ -655,12 +652,12 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                 }
 
                 foreach (var video in videos)
-                    await _scheduler.StartJob<RenameMoveFileJob>(job => job.VideoLocalID = video.VideoLocalID).ConfigureAwait(false);
+                    await _scheduler.RunAfterCurrent<RenameMoveFileJob>(job => job.VideoLocalID = video.VideoLocalID).ConfigureAwait(false);
             }
 
             if (!job.SkipTmdbUpdate)
                 foreach (var xref in anime.TmdbShowCrossReferences)
-                    await _scheduler.StartJob<UpdateTmdbShowJob>(job =>
+                    await _scheduler.RunAfterCurrent<UpdateTmdbShowJob>(job =>
                     {
                         job.TmdbShowID = xref.TmdbShowID;
                         job.DownloadImages = true;
@@ -717,7 +714,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         // Populate before making a group to ensure IDs and stats are set for group filters.
         _seriesRepository.Save(series, false);
         if (settings.TMDB.AutoLink && !series.IsTmdbAutoMatchingDisabled)
-            await _scheduler.StartJob<SearchTmdbJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
+            await _scheduler.RunAfterCurrent<SearchTmdbJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
 
         return series;
     }

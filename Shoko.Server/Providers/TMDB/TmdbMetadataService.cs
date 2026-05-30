@@ -463,7 +463,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     public async Task ScheduleUpdateOfMovie(TmdbMovieUpdateOptions options)
     {
         // Schedule the movie info to be downloaded or updated.
-        await _scheduler.StartJob<UpdateTmdbMovieJob>(c =>
+        await _scheduler.RunAfterCurrent<UpdateTmdbMovieJob>(c =>
         {
             c.TmdbMovieID = options.MovieId;
             c.ForceRefresh = options.ForceRefresh;
@@ -1036,7 +1036,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             return;
 
         // Schedule the show info to be downloaded or updated.
-        await _scheduler.StartJob<UpdateTmdbShowJob>(c =>
+        await _scheduler.RunAfterCurrent<UpdateTmdbShowJob>(c =>
         {
             c.TmdbShowID = options.ShowId;
             c.ForceRefresh = options.ForceRefresh;

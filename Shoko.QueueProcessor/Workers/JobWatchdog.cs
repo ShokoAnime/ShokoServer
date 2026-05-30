@@ -87,18 +87,23 @@ internal sealed class JobWatchdog
 
             var elapsed = now - entry.StartedAt;
             if (elapsed < _timeout) continue;
-            if (!_alreadyWarned.Add(entry.Id)) continue;
 
-            var subStack = SubExecutionTracker.GetStack(entry.Id);
-            if (subStack is not null)
-                _logger.LogWarning(
-                    "Job {Title} ({JobType}) [{JobKey}] has been running for {Elapsed:g} — possible deadlock. " +
-                    "Last IJobFactory.Execute call site:\n{Stack}",
-                    entry.Title, entry.JobType.Name, entry.JobKey, elapsed, subStack);
+            if (_alreadyWarned.Add(entry.Id))
+            {
+                // First detection — log error once with full context for analytics/aggregation
+                _logger.LogError(
+                    "Possible deadlock detected in job {JobType} — running for {Elapsed:g}.\n{Stack}",
+                    entry.JobType.Name,
+                    elapsed,
+                    SubExecutionTracker.GetStack(entry.Id) ?? "(no sub-execution context captured)");
+            }
             else
+            {
+                // Heartbeat — job is still stuck on every subsequent poll
                 _logger.LogWarning(
-                    "Job {Title} ({JobType}) [{JobKey}] has been running for {Elapsed:g} — possible deadlock.",
-                    entry.Title, entry.JobType.Name, entry.JobKey, elapsed);
+                    "Job {JobType} [{JobKey}] still running after {Elapsed:g}",
+                    entry.JobType.Name, entry.JobKey, elapsed);
+            }
         }
     }
 }
