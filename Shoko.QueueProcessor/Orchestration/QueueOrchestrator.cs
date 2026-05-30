@@ -100,6 +100,10 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 _typeByName[type.FullName + ", " + type.Assembly.GetName().Name] = type;
             }
             pool.TryRegisterExecuting = TryRegisterExecuting;
+
+            // Capture pool reference for the closure. Skip the check for highest-priority pools.
+            var capturedPool = pool;
+            pool.ShouldAttemptAcquisition = () => ShouldPoolAttemptAcquisition(capturedPool);
         }
 
         var count = 0;
@@ -471,6 +475,27 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         SignalAllPools();
     }
 
+    public async Task RemoveAsync(string jobKey, CancellationToken ct = default)
+    {
+        Guid id;
+        lock (_gate)
+        {
+            if (!_jobKeyIndex.TryGetValue(jobKey, out id))
+                return;
+
+            // Don't remove executing jobs — they're already past the point of no return.
+            if (_executingSet.ContainsKey(id))
+                return;
+
+            foreach (var pool in _allPools)
+                pool.RemoveFromQueue(id);
+
+            _jobKeyIndex.Remove(jobKey);
+        }
+
+        await _repo.DeleteAsync(id, ct);
+    }
+
     public async Task ClearAsync(CancellationToken ct = default)
     {
         lock (_gate)
@@ -600,6 +625,37 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _persistenceBuffer.DisposeAsync();
+    }
+
+    // ── Pool priority ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns true if <paramref name="pool"/> should attempt job acquisition.
+    /// Higher-priority pools (lower <see cref="WorkerPool.WorkerPriority"/> value) claim their
+    /// <see cref="WorkerPool.MaxWorkers"/> slots first; this pool may proceed only if the
+    /// remaining available slots exceed the total reserved for all higher-priority pools that
+    /// currently have runnable jobs.
+    /// </summary>
+    private bool ShouldPoolAttemptAcquisition(WorkerPool pool)
+    {
+        var priority = pool.WorkerPriority;
+
+        // Highest-priority tier — no higher pool to yield to.
+        if (_allPools.All(p => p.WorkerPriority >= priority))
+            return true;
+
+        var available = _maxTotalWorkers - ExecutingCount;
+        if (available <= 0) return false;
+
+        // Each higher-priority pool reserves as many slots as it has runnable jobs, capped at MaxWorkers.
+        var reserved = 0;
+        foreach (var p in _allPools)
+        {
+            if (p.WorkerPriority >= priority) continue;
+            reserved += p.RunnableCount(p.MaxWorkers);
+        }
+
+        return available > reserved;
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────

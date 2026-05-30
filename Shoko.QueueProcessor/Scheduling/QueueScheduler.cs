@@ -130,6 +130,17 @@ public sealed class QueueScheduler : IQueueScheduler
         };
     }
 
+    public Task Remove(string jobKey, CancellationToken ct = default)
+        => _orchestrator.RemoveAsync(jobKey, ct);
+
+    public Task Remove<T>(Action<T>? configure = null, CancellationToken ct = default)
+        where T : class, IQueueJob
+    {
+        var keyBuilder = JobKeyBuilder<T>.Create();
+        if (configure != null) keyBuilder.UsingJobData(configure);
+        return _orchestrator.RemoveAsync(keyBuilder.Build(), ct);
+    }
+
     public Task Clear(CancellationToken ct = default) => _orchestrator.ClearAsync(ct);
 
     public Task Pause() { _orchestrator.Pause(); return Task.CompletedTask; }

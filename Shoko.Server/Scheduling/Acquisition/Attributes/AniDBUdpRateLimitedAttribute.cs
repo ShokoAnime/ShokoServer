@@ -9,4 +9,4 @@ namespace Shoko.Server.Scheduling.Acquisition.Attributes;
 /// applies automatically without needing to add both attributes.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = true)]
-public class AniDBUdpRateLimitedAttribute : NetworkRequiredAttribute { }
+public class AniDBUdpRateLimitedAttribute() : NetworkRequiredAttribute((int)Acquisition.WorkerPriority.AniDB);

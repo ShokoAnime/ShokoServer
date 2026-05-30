@@ -99,6 +99,8 @@ internal sealed class Worker
 
             _pool.DecrementIdle();
 
+            if (_pool.ShouldAttemptAcquisition?.Invoke() == false) continue;
+
             var job = _pool.TryAcquire();
             if (job == null) continue;
 

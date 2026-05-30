@@ -7,5 +7,5 @@ namespace Shoko.QueueProcessor.Acquisition.Attributes;
 /// specific network-related constraints (e.g. AniDB rate-limiting) while automatically
 /// inheriting the network-availability gate from <see cref="Filters.NetworkRequiredAcquisitionFilter"/>.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class, Inherited = true)]
-public class NetworkRequiredAttribute : Attribute { }
+[AttributeUsage(AttributeTargets.Class)]
+public class NetworkRequiredAttribute(int priority = AcquisitionAttribute.LowestPriority) : AcquisitionAttribute(priority);

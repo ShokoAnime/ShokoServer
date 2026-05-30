@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Workers;
 
@@ -121,6 +122,16 @@ public class PoolDiscovery
             var (types, maxWorkers) = kv.Value;
             var typeSet = new HashSet<Type>(types);
 
+            // Pool priority = minimum WorkerPriority across all types in the pool.
+            // Types with no AcquisitionAttribute get LowestPriority.
+            var poolPriority = types.Count == 0
+                ? AcquisitionAttribute.LowestPriority
+                : types.Min(t =>
+                    t.GetCustomAttributes<AcquisitionAttribute>(inherit: true)
+                        .Select(a => a.WorkerPriority)
+                        .DefaultIfEmpty(AcquisitionAttribute.LowestPriority)
+                        .Min());
+
             // Attach filters whose watched attribute is present on any type in this pool
             var poolFilters = filters
                 .Where(f =>
@@ -139,7 +150,7 @@ public class PoolDiscovery
                 })
                 .ToList();
 
-            var pool = new WorkerPool(poolName, Math.Min(maxWorkers, _maxTotalWorkers), types, poolFilters);
+            var pool = new WorkerPool(poolName, Math.Min(maxWorkers, _maxTotalWorkers), poolPriority, types, poolFilters);
             pools.Add(pool);
 
             _logger.LogInformation("Pool '{Name}': {TypeCount} types, {Workers} workers, {FilterCount} filters",
@@ -151,6 +162,7 @@ public class PoolDiscovery
         {
             var defaultWorkers = Math.Min(_defaultPoolMaxWorkers, _maxTotalWorkers);
             var defaultPool = new WorkerPool("Default", defaultWorkers,
+                AcquisitionAttribute.LowestPriority,
                 Array.Empty<Type>(),
                 filters.Where(f => f.WatchedAttributeType == null).ToList());
             pools.Add(defaultPool);

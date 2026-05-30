@@ -214,6 +214,7 @@ public class HashFileJob : IQueueJob
 | `[LimitConcurrency(n, maxAllowed: m)]` | Caps simultaneous workers for this type (or group). `m` is the hard ceiling for runtime overrides. |
 | `[DisallowConcurrencyGroup("name")]` | Puts this job into a shared pool with all other types in the same group. |
 | `[DisallowConcurrentExecution]` | Shorthand for `[LimitConcurrency(1)]`. |
+| `[Acquisition(priority: N)]` | Sets the pool's dispatch priority. Lower `N` = higher priority. Subclass to bundle priority with domain semantics (e.g. `[AniDBHttpRequired]`). Defaults to `AcquisitionAttribute.LowestPriority` (999) if absent. |
 | `[RetryPolicy(MaxRetries = …, BaseDelaySeconds = …, MaxDelaySeconds = …)]` | Per-type override of the global retry backoff. |
 | `[DatabaseRequired]` | Job won't run while the database is unavailable. |
 | `[NetworkRequired]` | Job won't run while the network is offline. Subclass to make custom gates (e.g. AniDB rate limit). |
@@ -255,6 +256,10 @@ await scheduler.StartJob<HashFileJob>(j => j.FilePath = path);
 
 // Bulk
 await scheduler.EnqueueRange(jobs);
+
+// Remove a waiting job (no-op if already executing or not found)
+await scheduler.Remove("Import/HashFileJob_path:\"/movies/foo.mkv\"");
+await scheduler.Remove<HashFileJob>(j => j.FilePath = "/movies/foo.mkv"); // key built for you
 
 // Control
 await scheduler.Pause();
@@ -321,6 +326,39 @@ services.AddSingleton<IAcquisitionFilter, MyRateLimitFilter>();
 ```
 
 For transient conditions where retry-with-backoff is the wrong answer (rate limited, banned, briefly offline), throw `RequeueJobException` from `Process()`. The job returns to the waiting queue at its original priority, the retry count is *not* incremented, and the filter will naturally hold it until the condition clears.
+
+---
+
+## Pool priority
+
+By default every pool has equal standing when competing for the global worker slots (`MaxTotalWorkers`). If some job types need to run ahead of others — for example, rate-limited API calls that must not be crowded out by bulk imports — annotate them with `[Acquisition(priority: N)]`:
+
+```csharp
+[Acquisition(priority: 10)]          // lower number = higher priority
+[LimitConcurrency(1)]
+[DisallowConcurrencyGroup("AniDB_HTTP")]
+public class GetAniDBAnimeJob : IQueueJob { … }
+
+[Acquisition(priority: 20)]
+[LimitConcurrency(4)]
+[DisallowConcurrencyGroup("AniDB_UDP")]
+public class ProcessFileJob : IQueueJob { … }
+
+// No [Acquisition] → priority 999 (LowestPriority), runs when slots remain
+public class HashFileJob : IQueueJob { … }
+```
+
+**How slot reservation works:** before a lower-priority worker picks up a job, the orchestrator counts how many runnable jobs exist across all higher-priority pools, capped at each pool's `MaxWorkers`. That sum is the number of slots "reserved" for higher-priority work. The worker proceeds only when `available > reserved`.
+
+Example — 10 `MaxTotalWorkers`, `AniDB_HTTP` (max 1), `AniDB_UDP` (max 4), `Default` (max 10):
+
+| Higher-priority runnable | Reserved | Available | Default workers allowed |
+|---|---|---|---|
+| HTTP=1, UDP=4 | 5 | 10 | 5 |
+| HTTP=0, UDP=2 | 2 | 10 | 8 |
+| HTTP=0, UDP=0 | 0 | 10 | 10 |
+
+The pool priority is the **minimum** `WorkerPriority` across all job types in the pool. Types without `[Acquisition]` default to `LowestPriority` (999).
 
 ---
 

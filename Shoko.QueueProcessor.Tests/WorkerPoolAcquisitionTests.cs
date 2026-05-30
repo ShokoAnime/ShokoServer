@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Moq;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Storage;
 using Shoko.QueueProcessor.Workers;
 using Xunit;
@@ -22,7 +23,7 @@ public class WorkerPoolAcquisitionTests
     private static WorkerPool MakePool(Type jobType, IAcquisitionFilter? filter = null)
     {
         var filters = filter != null ? new List<IAcquisitionFilter> { filter } : new List<IAcquisitionFilter>();
-        return new WorkerPool("TestPool", maxWorkers: 2, handledTypes: [jobType], acquisitionFilters: filters);
+        return new WorkerPool("TestPool", maxWorkers: 2, workerPriority: AcquisitionAttribute.LowestPriority, handledTypes: [jobType], acquisitionFilters: filters);
     }
 
     private static QueuedJob MakeJob(Type jobType, int priority = 0,
@@ -198,7 +199,7 @@ public class WorkerPoolAcquisitionTests
         filter.Setup(f => f.GetTypesToExclude()).Returns([typeof(JobTypeA)]);
         filter.Setup(f => f.WatchedAttributeType).Returns((Type?)null);
 
-        var pool = new WorkerPool("Mixed", 4, [typeof(JobTypeA), typeof(JobTypeB)], [filter.Object]);
+        var pool = new WorkerPool("Mixed", 4, AcquisitionAttribute.LowestPriority, [typeof(JobTypeA), typeof(JobTypeB)], [filter.Object]);
         pool.TryRegisterExecuting = _ => true;
 
         pool.AddToQueue(MakeJob(typeof(JobTypeA)));  // blocked
@@ -292,5 +293,92 @@ public class WorkerPoolAcquisitionTests
             for (var i = 0; i < 10; i++) pool.Signal(); // send many signals; channel drops extras
         });
         Assert.Null(ex);
+    }
+
+    // ── RunnableCount ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public void RunnableCount_EmptyQueue_ReturnsZero()
+    {
+        var pool = MakePool(typeof(JobTypeA));
+        Assert.Equal(0, pool.RunnableCount());
+    }
+
+    [Fact]
+    public void RunnableCount_AfterAddJob_ReturnsOne()
+    {
+        var pool = MakePool(typeof(JobTypeA));
+        pool.AddToQueue(MakeJob(typeof(JobTypeA)));
+        Assert.Equal(1, pool.RunnableCount());
+    }
+
+    [Fact]
+    public void RunnableCount_FutureScheduledAt_NotCounted()
+    {
+        var pool = MakePool(typeof(JobTypeA));
+        pool.AddToQueue(MakeJob(typeof(JobTypeA), scheduledAt: DateTimeOffset.UtcNow.AddHours(1)));
+        Assert.Equal(0, pool.RunnableCount());
+    }
+
+    [Fact]
+    public void RunnableCount_CappedAtMaxWorkers()
+    {
+        // MaxWorkers = 2 (set in MakePool); add more jobs than that
+        var pool = MakePool(typeof(JobTypeA));
+        for (var i = 0; i < 5; i++)
+            pool.AddToQueue(MakeJob(typeof(JobTypeA)));
+
+        Assert.Equal(pool.MaxWorkers, pool.RunnableCount(pool.MaxWorkers));
+    }
+
+    [Fact]
+    public void RunnableCount_AfterAcquire_Decremented()
+    {
+        var pool = MakePool(typeof(JobTypeA));
+        pool.TryRegisterExecuting = _ => true;
+        pool.AddToQueue(MakeJob(typeof(JobTypeA)));
+        pool.AddToQueue(MakeJob(typeof(JobTypeA)));
+
+        pool.TryAcquire();
+
+        Assert.Equal(1, pool.RunnableCount());
+    }
+
+    [Fact]
+    public void RunnableCount_AfterRemoveFromQueue_Decremented()
+    {
+        var pool = MakePool(typeof(JobTypeA));
+        var job = MakeJob(typeof(JobTypeA));
+        pool.AddToQueue(job);
+        pool.AddToQueue(MakeJob(typeof(JobTypeA)));
+
+        pool.RemoveFromQueue(job.Id);
+
+        Assert.Equal(1, pool.RunnableCount());
+    }
+
+    [Fact]
+    public void RunnableCount_AfterClearQueue_ReturnsZero()
+    {
+        var pool = MakePool(typeof(JobTypeA));
+        pool.AddToQueue(MakeJob(typeof(JobTypeA)));
+        pool.AddToQueue(MakeJob(typeof(JobTypeA)));
+
+        pool.ClearQueue();
+
+        Assert.Equal(0, pool.RunnableCount());
+    }
+
+    [Fact]
+    public void RunnableCount_FilterExcludesType_NotCounted()
+    {
+        var filter = new Mock<IAcquisitionFilter>();
+        filter.Setup(f => f.GetTypesToExclude()).Returns([typeof(JobTypeA)]);
+        filter.Setup(f => f.WatchedAttributeType).Returns((Type?)null);
+
+        var pool = MakePool(typeof(JobTypeA), filter.Object);
+        pool.AddToQueue(MakeJob(typeof(JobTypeA)));
+
+        Assert.Equal(0, pool.RunnableCount());
     }
 }

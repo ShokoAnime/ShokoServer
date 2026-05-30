@@ -43,6 +43,11 @@ public sealed class WorkerPool : IWorkerPool
     private int _idleWorkers;
     private int _activeWorkers;
 
+    // Cached result of RunnableCount(MaxWorkers). -1 = dirty; recomputed on next read.
+    // Invalidated on any queue or filter change; ScheduledAt expiry is tolerated as a
+    // minor timing skew (workers re-signal on their periodic poll tick).
+    private volatile int _cachedRunnableCount = -1;
+
     // UTC ticks of the most recent IncrementActive call; 0 = never active.
     // Stamped at job acquisition (not at job completion) so a downstream throttled push can
     // still report "the group did work in the last window" even when ActiveWorkers is back to 0.
@@ -50,8 +55,16 @@ public sealed class WorkerPool : IWorkerPool
 
     public string Name { get; }
     public int MaxWorkers { get; internal set; }
+    public int WorkerPriority { get; }
     public IReadOnlyList<Type> HandledTypes { get; }
     public IReadOnlyList<IAcquisitionFilter> AcquisitionFilters { get; }
+
+    /// <summary>
+    /// Set by the orchestrator after pool construction. When non-null, workers call this before
+    /// <see cref="TryAcquire"/> and skip acquisition (staying idle) if it returns <see langword="false"/>.
+    /// Used to enforce pool priority: lower-priority pools yield when higher-priority pools have runnable jobs.
+    /// </summary>
+    public Func<bool>? ShouldAttemptAcquisition { get; set; }
 
     int IWorkerPool.IdleWorkers => _idleWorkers;
     int IWorkerPool.ActiveWorkers => _activeWorkers;
@@ -69,11 +82,13 @@ public sealed class WorkerPool : IWorkerPool
     public WorkerPool(
         string name,
         int maxWorkers,
+        int workerPriority,
         IReadOnlyList<Type> handledTypes,
         IReadOnlyList<IAcquisitionFilter> acquisitionFilters)
     {
         Name = name;
         MaxWorkers = maxWorkers;
+        WorkerPriority = workerPriority;
         HandledTypes = handledTypes;
         AcquisitionFilters = acquisitionFilters;
 
@@ -98,6 +113,7 @@ public sealed class WorkerPool : IWorkerPool
     {
         lock (_subQueueLock)
             _subQueue.Add(job);
+        _cachedRunnableCount = -1;
     }
 
     /// <summary>
@@ -111,16 +127,20 @@ public sealed class WorkerPool : IWorkerPool
             foreach (var job in jobs)
                 _subQueue.Add(job);
         }
+        _cachedRunnableCount = -1;
     }
 
     /// <summary>Removes <paramref name="id"/> from the sub-queue (called on forced discard).</summary>
     public bool RemoveFromQueue(Guid id)
     {
+        bool removed;
         lock (_subQueueLock)
         {
             var job = _subQueue.FirstOrDefault(j => j.Id == id);
-            return job != null && _subQueue.Remove(job);
+            removed = job != null && _subQueue.Remove(job);
         }
+        if (removed) _cachedRunnableCount = -1;
+        return removed;
     }
 
     /// <summary>Returns a snapshot of the current sub-queue contents (for GetWaiting API calls).</summary>
@@ -161,6 +181,7 @@ public sealed class WorkerPool : IWorkerPool
     public void ClearQueue()
     {
         lock (_subQueueLock) _subQueue.Clear();
+        _cachedRunnableCount = -1;
     }
 
     /// <summary>Number of waiting jobs with <c>RetryCount &gt; 0</c>.</summary>
@@ -187,6 +208,43 @@ public sealed class WorkerPool : IWorkerPool
     public bool IsTypeBlocked(Type type) => _filterExclusions.Contains(type);
 
     /// <summary>
+    /// Returns the number of waiting jobs that are not blocked and not scheduled in the future,
+    /// stopping early once <paramref name="limit"/> is reached. Pass <see cref="MaxWorkers"/> as the
+    /// limit to cap the scan at the pool's own concurrency ceiling — that is all the orchestrator
+    /// needs for slot reservation math. Results for <c>limit == MaxWorkers</c> are cached and
+    /// invalidated on any queue or filter mutation.
+    /// </summary>
+    public int RunnableCount(int limit = int.MaxValue)
+    {
+        if (limit == MaxWorkers)
+        {
+            var cached = _cachedRunnableCount;
+            if (cached >= 0) return cached;
+            var computed = ComputeRunnableCount(MaxWorkers);
+            _cachedRunnableCount = computed;
+            return computed;
+        }
+        return ComputeRunnableCount(limit);
+    }
+
+    private int ComputeRunnableCount(int limit)
+    {
+        var exclusions = _filterExclusions;
+        var now = DateTimeOffset.UtcNow;
+        var count = 0;
+        lock (_subQueueLock)
+        {
+            foreach (var job in _subQueue)
+            {
+                if (job.ScheduledAt.HasValue && job.ScheduledAt.Value > now) continue;
+                if (_typeByName.TryGetValue(job.JobType, out var type) && exclusions.Contains(type)) continue;
+                if (++count >= limit) break;
+            }
+        }
+        return count;
+    }
+
+    /// <summary>
     /// Scans the sub-queue for the next eligible job and attempts to register it with the orchestrator.
     /// Returns the claimed job or <c>null</c> if nothing is eligible right now.
     /// </summary>
@@ -206,6 +264,7 @@ public sealed class WorkerPool : IWorkerPool
                 if (TryRegisterExecuting == null || !TryRegisterExecuting(job)) continue;
 
                 _subQueue.Remove(job);
+                _cachedRunnableCount = -1;
                 return job;
             }
         }
@@ -298,6 +357,7 @@ public sealed class WorkerPool : IWorkerPool
             foreach (var t in filter.GetTypesToExclude())
                 set.Add(t);
         _filterExclusions = set;
+        _cachedRunnableCount = -1;
         Signal(); // wake workers to retry acquisition with updated exclusions
     }
 
