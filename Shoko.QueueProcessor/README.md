@@ -32,67 +32,110 @@ Target framework: **.NET 10.0**.
 ## How it works
 
 ```mermaid
-flowchart TB
-    subgraph Caller["Your code"]
-        ENQ["IQueueScheduler.Enqueue&lt;T&gt;(j =&gt; j.X = 1)"]
-        REC["RecurringJobRegistry.Register&lt;T&gt;(interval)"]
+flowchart TD
+    subgraph Callers["Entry Points"]
+        ENQ["Enqueue&lt;T&gt;(configure)<br/>priority: 0 (normal) or 10 (prioritize: true)<br/>scheduledAt: optional future dispatch"]
+        RAC["RunAfterCurrent&lt;T&gt;(configure)<br/>priority: int.MaxValue after parent<br/>held until parent job completes"]
+        ENQI["EnqueueImmediate&lt;T&gt;(configure, onComplete)<br/>priority: int.MaxValue<br/>returns Task that completes with the job"]
+        REC["RecurringJobRegistry<br/>Register&lt;T&gt;(interval, configure)"]
     end
 
-    subgraph Scheduler["Scheduler facade"]
-        QS["QueueScheduler"]
-        KB["JobKeyBuilder&lt;T&gt;<br/>(stable dedup key)"]
-        JDS["JobDataSerializer<br/>(JSON, diff-from-default)"]
+    subgraph Sched["Scheduler  (QueueScheduler)"]
+        KB["JobKeyBuilder&lt;T&gt;<br/>[JobKeyMember] props → stable string key<br/>e.g. Import/HashFileJob_path:&quot;/foo.mkv&quot;"]
+        SER["JobDataSerializer<br/>JSON — non-default prop values only"]
     end
 
-    subgraph Orchestrator["QueueOrchestrator (in-memory)"]
-        WQ[(Waiting queue<br/>priority + scheduledAt)]
-        CR["ConcurrencyRegistry<br/>(pool routing)"]
-        EX[(Executing entries)]
+    subgraph Orch["QueueOrchestrator  (in-memory state)"]
+        IDX["JobKeyIndex  O(1)<br/>key → Id<br/>covers waiting + executing + after-parent<br/>duplicate key → no-op"]
+        WQ[("Waiting Queue  SortedSet per pool<br/>sort: Priority DESC · QueuedAt ASC · Id ASC")]
+        APC["AfterParentCallbacks<br/>parentId → {jobKey → (ctx, pool)}<br/>key claimed in index to block early dispatch"]
+        EXEC[("ExecutingSet<br/>Id → ExecutingEntry<br/>(type, key, startedAt, poolName, priority)")]
+        GATE["TryRegisterExecuting<br/>① global worker cap<br/>② per-type concurrency limit<br/>③ per-group concurrency limit"]
     end
 
-    subgraph Persist["Persistence"]
-        PB["PersistenceBuffer<br/>(batches inserts/deletes)"]
-        REPO["IJobRepository<br/>(EF Core)"]
-        DB[(QueuedJob table<br/>SQLite / MySQL / MSSQL)]
+    subgraph Persist["Persistence  (PersistenceBuffer + EF Core)"]
+        PBUF["PersistenceBuffer<br/>batches INSERT and DELETE ops<br/>enqueue + complete within flush window<br/>→ zero DB writes  (cancel-out)"]
+        DB[("QueuedJob table<br/>SQLite / MySQL / MSSQL<br/>─────────────────────<br/>Id · JobType · JobKey<br/>JobDataJson · Priority<br/>QueuedAt · ScheduledAt · RetryCount")]
     end
 
-    subgraph Pools["Worker Pools (built from attributes)"]
-        P1["Pool: AniDB-UDP<br/>workers = 1"]
-        P2["Pool: HashFileJob<br/>workers = 2"]
-        P3["Pool: Default<br/>workers = N"]
+    subgraph PoolLayer["Worker Pools  (PoolDiscovery builds from [LimitConcurrency] + [DisallowConcurrencyGroup])"]
+        PP["Pool priority slot reservation<br/>higher-priority pools reserve RunnableCount slots<br/>lower-priority pools proceed only when available &gt; reserved"]
+        PA["Pool A  e.g. AniDB-HTTP<br/>workers = 1 · priority = 10"]
+        PB["Pool B  e.g. Import<br/>workers = 4 · priority = 20"]
+        PC["Pool Default  catch-all<br/>workers = N · priority = 999"]
     end
 
-    subgraph Filters["IAcquisitionFilter[]"]
-        NF["NetworkRequiredFilter"]
-        DF["DatabaseRequiredFilter"]
-        XF["Your custom filter"]
+    subgraph AcqF["Acquisition Filters  (IAcquisitionFilter)"]
+        NF["[NetworkRequired]<br/>blocks while offline"]
+        DF["[DatabaseRequired]<br/>blocks until DB ready"]
+        CF["Custom filter<br/>e.g. rate-limit, ban cooldown<br/>throw RequeueJobException for<br/>transient conditions"]
+        FXS["Excluded-types set<br/>rebuilt on filter StateChanged event<br/>signal pools to retry acquisition"]
     end
 
-    subgraph Worker["Worker"]
-        ACQ["TryAcquire<br/>(respects filters)"]
-        DI["Resolve job from DI"]
-        APP["JobDataSerializer.Apply"]
-        SET["Setup → PostInit"]
-        PROC["Process()"]
-        RET{"Exception?"}
-        RP["RetryPolicy<br/>(backoff or discard)"]
-        EVT["QueueStateEventHandler<br/>(events for SignalR/UI)"]
+    subgraph WrkLoop["Worker  (dedicated OS thread — not ThreadPool)"]
+        WAKE["Await wake signal (channel)<br/>or idle poll tick (MaxIdlePollIntervalMs)"]
+        SFILT["① Skip if type in excluded-types set"]
+        SSCHED["② Skip if ScheduledAt &gt; now"]
+        CGATE["③ TryRegisterExecuting<br/>concurrency gate — adds to ExecutingSet"]
+        DI["DI scope<br/>Resolve job by concrete type<br/>JobDataSerializer.Apply(instance, json)<br/>Setup(serviceProvider) → PostInit()"]
+        TRCK["SubExecutionTracker.CurrentJobId = id<br/>(AsyncLocal — flows through all async calls<br/>JobFactory captures call stack here)"]
+        PROC["job.Process()"]
+        SUCC["OnComplete<br/>· remove from ExecutingSet<br/>· buffer DELETE in PersistenceBuffer<br/>· release AfterParent children at int.MaxValue<br/>· SignalAllPools"]
+        EVTS["QueueStateEventHandler<br/>OnJobExecuting / OnJobCompleted<br/>→ SignalR / UI consumers"]
+        REQX["RequeueJobException<br/>→ requeue at original priority<br/>   retry count unchanged<br/>   AfterParent registrations preserved<br/>   (transient: ban, rate-limit, etc.)"]
+        RERR["Real exception<br/>→ RetryPolicy.GetDelay(retryCount)<br/>   delay = BaseDelay × 2^n  (capped)"]
+        RBACK["Re-insert into pool sub-queue<br/>ScheduledAt = now + delay<br/>RetryCount += 1<br/>persisted immediately"]
+        RDIS["Max retries exhausted<br/>→ discard · LogError<br/>AfterParent children discarded<br/>dedup keys freed"]
     end
 
-    ENQ --> QS
-    REC --> QS
-    QS --> KB --> JDS --> WQ
-    WQ --> PB --> REPO --> DB
-    DB -. load on start .-> WQ
+    subgraph WatchDog["Deadlock Watchdog  (JobWatchdog — background task)"]
+        WPOLL["Poll every 15 s"]
+        WCHECK["elapsed &gt; WatchdogTimeoutSeconds (default 90)?<br/>[LongRunning] jobs exempt"]
+        WFIRST["First detection<br/>LogError: job type + elapsed<br/>+ IJobFactory.Execute call stack<br/>(from SubExecutionTracker if available)"]
+        WHEAT["Subsequent polls while still stuck<br/>LogWarning heartbeat:<br/>job type + key + elapsed"]
+    end
 
-    WQ --> CR --> P1 & P2 & P3
-    Filters --> ACQ
-    P1 & P2 & P3 --> ACQ
-    ACQ --> EX
-    ACQ --> DI --> APP --> SET --> PROC --> RET
-    RET -- no --> EVT
-    RET -- yes --> RP --> WQ
-    EVT --> PB
+    %% ── Enqueue ──────────────────────────────────────────
+    ENQ & REC --> KB --> SER --> IDX
+    ENQI --> IDX
+    IDX -- "new key" --> WQ
+    WQ --> PBUF --> DB
+    DB -. "load persisted jobs on startup" .-> WQ
+
+    %% ── RunAfterCurrent ──────────────────────────────────
+    RAC --> KB
+    IDX -- "no parent context → enqueue priority 10" --> WQ
+    IDX -- "parent executing → hold in APC" --> APC
+    APC -- "same key already waiting → pull from pool" --> WQ
+    APC -- "same key executing → no-op" --> EXEC
+
+    %% ── EnqueueImmediate ─────────────────────────────────
+    ENQI -- "already waiting → promote to int.MaxValue" --> WQ
+    ENQI -- "already executing → await existing run" --> EXEC
+
+    %% ── Routing to pools ─────────────────────────────────
+    WQ --> PP --> PA & PB & PC
+    NF & DF & CF --> FXS
+
+    %% ── Worker acquisition ───────────────────────────────
+    PA & PB & PC --> WAKE --> SFILT
+    FXS --> SFILT --> SSCHED --> CGATE
+    CGATE -- "approved" --> EXEC
+    CGATE --> DI --> TRCK --> PROC
+
+    %% ── Outcomes ─────────────────────────────────────────
+    PROC -- "success" --> SUCC --> EVTS
+    PROC -- "RequeueJobException" --> REQX --> WQ
+    PROC -- "real exception" --> RERR
+    RERR -- "retries remaining" --> RBACK --> WQ
+    RERR -- "max retries" --> RDIS
+    SUCC -- "release after-parent children" --> WQ
+
+    %% ── Watchdog ─────────────────────────────────────────
+    EXEC --> WPOLL --> WCHECK
+    WCHECK -- "exempt or under threshold" --> WCHECK
+    WCHECK -- "first detection" --> WFIRST
+    WCHECK -- "already flagged" --> WHEAT
 ```
 
 **The short version:**
