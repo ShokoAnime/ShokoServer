@@ -59,6 +59,7 @@ public enum UpdateType
     InvalidSession = 3,
     OverloadBackoff = 4,
     WaitingOnResponse = 5,
+    LoginFailed = 6,
 }
 
 public enum MyList_State

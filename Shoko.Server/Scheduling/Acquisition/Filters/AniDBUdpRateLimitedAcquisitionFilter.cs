@@ -72,7 +72,7 @@ public class AniDBUdpRateLimitedAcquisitionFilter : IAcquisitionFilter
     // AniDB jobs automatically because AniDBUdpRateLimitedAttribute : NetworkRequiredAttribute.
     // This filter only gates on the AniDB-specific ban / session / connection state.
     public IEnumerable<Type> GetTypesToExclude() =>
-        !_connectionHandler.IsAlive || _connectionHandler.IsBanned || _connectionHandler.IsInvalidSession
+        !_connectionHandler.IsAlive || _connectionHandler.IsBanned || _connectionHandler.IsInvalidSession || _connectionHandler.IsLoginFailed
             ? _processJobIncluded ? _typesWithProcessJob : _typesWithoutProcessJob
             : [];
 

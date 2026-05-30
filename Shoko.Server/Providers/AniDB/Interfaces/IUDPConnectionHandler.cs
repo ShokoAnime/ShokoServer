@@ -7,6 +7,7 @@ public interface IUDPConnectionHandler : IConnectionHandler
     string SessionID { get; }
     string ImageServerUrl { get; }
     bool IsInvalidSession { set; get; }
+    bool IsLoginFailed { get; }
     bool IsNetworkAvailable { get; }
     event EventHandler LoginFailed;
     bool SetCredentials(string username, string password);

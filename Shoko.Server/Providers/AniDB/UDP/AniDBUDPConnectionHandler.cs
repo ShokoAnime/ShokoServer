@@ -62,6 +62,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
 
     private bool _isLoggedOn;
     private bool _isInvalidSession;
+    private bool _isLoginFailed;
 
     public bool IsInvalidSession
     {
@@ -73,6 +74,29 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
             UpdateState(new AniDBStateUpdate
             {
                 UpdateType = UpdateType.InvalidSession,
+                UpdateTime = DateTime.Now,
+                Value = value
+            });
+        }
+    }
+
+    /// <summary>
+    /// Set when AniDB explicitly rejects credentials (LOGIN_FAILED response).
+    /// Unlike <see cref="IsInvalidSession"/>, this is never cleared by session-reset or ban-expiry
+    /// paths — only a deliberate re-<see cref="Init"/> (which implies credentials may have changed)
+    /// clears it. The acquisition filter uses this to hold AniDB jobs permanently until the user
+    /// fixes their credentials.
+    /// </summary>
+    public bool IsLoginFailed
+    {
+        get => _isLoginFailed;
+
+        private set
+        {
+            _isLoginFailed = value;
+            UpdateState(new AniDBStateUpdate
+            {
+                UpdateType = UpdateType.LoginFailed,
                 UpdateTime = DateTime.Now,
                 Value = value
             });
@@ -160,6 +184,8 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         }
 
         _isLoggedOn = false;
+        IsInvalidSession = false;
+        IsLoginFailed = false;
         _pingTimer = new Timer { Interval = settings.AniDb.UDPPingFrequency * 1000, Enabled = true, AutoReset = true };
         _pingTimer.Elapsed += PingTimerElapsed;
         _logoutTimer = new Timer { Interval = LogoutPeriod, Enabled = true, AutoReset = false };
@@ -447,7 +473,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
 
         try
         {
-            if (IsBanned) return false;
+            if (IsBanned || IsLoginFailed) return false;
             Logger.LogTrace("Failed to login to AniDB. Issuing a Logout command and retrying");
             lock (_socketHandlerLock)
             {
@@ -491,6 +517,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
             case UDPReturnCode.LOGIN_FAILED:
                 SessionID = null;
                 IsInvalidSession = true;
+                IsLoginFailed = true;
                 _isLoggedOn = false;
                 Logger.LogError("AniDB Login Failed: invalid credentials");
                 LoginFailed?.Invoke(this, null!);
