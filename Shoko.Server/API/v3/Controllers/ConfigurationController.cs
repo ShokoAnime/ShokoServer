@@ -316,12 +316,17 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     }
 
     /// <summary>
-    /// Create a new configuration unused instance of the configuration with the given id.
+    ///   Gets the default configuration object for the configuration with the
+    ///   given id. Returns a fresh configuration populated with defaults, as
+    ///   defined by the configuration schema. If the configuration supports a
+    ///   custom new factory, the result is further tailored to the current user.
     /// </summary>
     /// <param name="id">Configuration id</param>
-    /// <returns></returns>
+    /// <returns>
+    ///   The default configuration object serialized as JSON.
+    /// </returns>
     [Produces("application/json")]
-    [HttpPost("{id:guid}/New")]
+    [HttpGet("{id:guid}/Default")]
     public ActionResult NewConfiguration(Guid id)
     {
         if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
