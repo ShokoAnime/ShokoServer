@@ -57,6 +57,10 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     // O(1) dedup index: JobKey → Id (covers waiting + executing + pending-insert)
     private readonly Dictionary<string, Guid> _jobKeyIndex = new(StringComparer.Ordinal);
 
+    // Pending completion callbacks registered by EnqueueImmediate callers.
+    // Keyed by JobKey; resolved in OnComplete or faulted in OnFailureAsync (real failures only).
+    private readonly Dictionary<string, List<TaskCompletionSource<bool>>> _immediateCallbacks = new(StringComparer.Ordinal);
+
     private readonly object _gate = new();
     private volatile bool _paused;
 
@@ -215,6 +219,87 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     }
 
     /// <summary>
+    /// Returns <see langword="true"/> if any acquisition filter on the pool that handles
+    /// <paramref name="jobType"/> currently excludes that type from dispatch.
+    /// </summary>
+    public bool IsJobTypeBlocked(Type jobType)
+        => _poolsByType.TryGetValue(jobType, out var pool) && pool.IsTypeBlocked(jobType);
+
+    /// <summary>
+    /// Atomically registers a completion callback TCS for the given job key, then either:
+    /// <list type="bullet">
+    ///   <item>Enqueues a new job at max priority if no job with this key exists.</item>
+    ///   <item>Promotes an existing <em>waiting</em> job to max priority.</item>
+    ///   <item>Does nothing if the job is currently executing (just waits for completion).</item>
+    /// </list>
+    /// Returns a <see cref="Task"/> that completes when the job finishes.
+    /// </summary>
+    public Task PrepareAndEnqueueImmediate(EnqueueContext context)
+    {
+        var job = context.Job;
+        var type = context.Type;
+
+        if (!_poolsByType.TryGetValue(type, out var pool))
+            throw new InvalidOperationException($"No pool handles job type '{type.FullName}'.");
+
+        TaskCompletionSource<bool> tcs;
+        var action = ImmediateAction.Enqueue;
+
+        lock (_gate)
+        {
+            tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            if (!_immediateCallbacks.TryGetValue(job.JobKey, out var list))
+                _immediateCallbacks[job.JobKey] = list = new List<TaskCompletionSource<bool>>();
+            list.Add(tcs);
+
+            if (!_jobKeyIndex.ContainsKey(job.JobKey))
+            {
+                _jobKeyIndex[job.JobKey] = job.Id;
+                action = ImmediateAction.Enqueue;
+            }
+            else if (_jobKeyIndex.TryGetValue(job.JobKey, out var existingId) && _executingSet.ContainsKey(existingId))
+            {
+                action = ImmediateAction.Wait;
+            }
+            else
+            {
+                action = ImmediateAction.Promote;
+            }
+        }
+
+        switch (action)
+        {
+            case ImmediateAction.Enqueue:
+                pool.AddToQueue(job);
+                _persistenceBuffer.OnEnqueue(job);
+                _metrics.RecordEnqueue(type.Name, pool.Name);
+                if (!_paused) pool.Signal();
+                var item = string.IsNullOrEmpty(context.DisplayItem.PoolName)
+                    ? context.DisplayItem with { PoolName = pool.Name }
+                    : context.DisplayItem;
+                FireJobsAdded([item]);
+                break;
+
+            case ImmediateAction.Promote:
+                foreach (var p in _allPools)
+                {
+                    if (p.TryPromotePriority(job.JobKey, int.MaxValue))
+                    {
+                        p.Signal();
+                        break;
+                    }
+                }
+                break;
+
+            // ImmediateAction.Wait: job is executing — the TCS is registered, nothing else needed
+        }
+
+        return tcs.Task;
+    }
+
+    private enum ImmediateAction { Enqueue, Promote, Wait }
+
+    /// <summary>
     /// Fires <see cref="QueueStateEventHandler.OnJobsAdded"/> with pre-built display items.
     /// Passes only cheap counts: <see cref="BlockedWaitingCount"/> scans every pool's sub-queue,
     /// so we skip it on the hot path. Consumers needing blocked-count should re-query state.
@@ -268,13 +353,16 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     /// </summary>
     public void OnComplete(Guid id)
     {
+        List<TaskCompletionSource<bool>>? completions = null;
         lock (_gate)
         {
             if (!_executingSet.Remove(id, out var entry)) return;
             DecrementCounts(entry.JobType, entry.ConcurrencyGroup);
             _jobKeyIndex.Remove(entry.JobKey);
+            _immediateCallbacks.Remove(entry.JobKey, out completions);
         }
 
+        completions?.ForEach(tcs => tcs.TrySetResult(true));
         _persistenceBuffer.OnComplete(id);
         SignalAllPools();
     }
@@ -288,10 +376,17 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     public async Task OnFailureAsync(Guid id, Exception ex, bool incrementRetry = true, CancellationToken ct = default)
     {
         ExecutingEntry entry;
+        List<TaskCompletionSource<bool>>? completions = null;
         lock (_gate)
         {
             if (!_executingSet.Remove(id, out entry)) return;
             DecrementCounts(entry.JobType, entry.ConcurrencyGroup);
+
+            // For real failures, capture and clear callbacks so they can be faulted.
+            // RequeueJobException (incrementRetry=false) leaves callbacks intact: the job
+            // re-queues with the same key and the TCS resolves on eventual completion.
+            if (incrementRetry)
+                _immediateCallbacks.Remove(entry.JobKey, out completions);
         }
 
         // Re-queue without retry increment (RequeueJobException path)
@@ -314,6 +409,9 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             SignalAllPools();
             return;
         }
+
+        // Fault any immediate callers waiting on this job
+        completions?.ForEach(tcs => tcs.TrySetException(ex));
 
         var policy = _retryPolicies.For(entry.JobType);
         _metrics.RecordFailure(entry.JobType.Name, entry.PoolName);

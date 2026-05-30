@@ -18,6 +18,28 @@ public interface IQueueScheduler
     Task Enqueue<T>(Action<T>? configure = null, bool prioritize = false, DateTimeOffset? scheduledAt = null, CancellationToken ct = default)
         where T : class, IQueueJob;
 
+    /// <summary>
+    /// Enqueues a job at maximum priority and returns a <see cref="Task"/> that completes when
+    /// the job finishes. If a job with the same key is already <em>waiting</em>, it is promoted
+    /// to run immediately instead of being a no-op. If it is already <em>executing</em>, the
+    /// returned task completes when that execution finishes.
+    /// </summary>
+    /// <param name="configure">Configures the job's data properties.</param>
+    /// <param name="onComplete">
+    /// Optional async callback invoked on completion. Receives <see langword="null"/> on success
+    /// or the faulting exception on failure. The returned <see cref="Task"/> also reflects the
+    /// outcome, so callers can choose to await it or use the callback (or both).
+    /// </param>
+    /// <param name="ct">Cancellation token for the await; does not cancel the job itself.</param>
+    /// <exception cref="JobBlockedException">
+    /// Thrown immediately if any acquisition filter currently blocks this job type.
+    /// </exception>
+    Task EnqueueImmediate<T>(
+        Action<T>? configure = null,
+        Func<Exception?, Task>? onComplete = null,
+        CancellationToken ct = default)
+        where T : class, IQueueJob;
+
     /// <summary>Enqueue multiple jobs in a single batch operation.</summary>
     Task EnqueueRange(IEnumerable<(Type JobType, string JobKey, string DataJson, int Priority, DateTimeOffset? ScheduledAt)> jobs, CancellationToken ct = default);
 

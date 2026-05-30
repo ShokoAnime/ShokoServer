@@ -34,6 +34,7 @@ using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -78,6 +79,8 @@ public class SeriesController : BaseController
 
     private readonly IVideoReleaseService _videoReleaseService;
 
+    private readonly IJobFactory _jobFactory;
+
     public SeriesController(
         ISettingsProvider settingsProvider,
         ActionService actionService,
@@ -91,7 +94,8 @@ public class SeriesController : BaseController
         IMetadataService metadataService,
         IImageManager imageManager,
         IUserDataService userDataService,
-        IVideoReleaseService videoReleaseService
+        IVideoReleaseService videoReleaseService,
+        IJobFactory jobFactory
     ) : base(settingsProvider)
     {
         _actionService = actionService;
@@ -106,6 +110,7 @@ public class SeriesController : BaseController
         _imageManager = imageManager;
         _userDataService = userDataService;
         _videoReleaseService = videoReleaseService;
+        _jobFactory = jobFactory;
     }
 
     #region Return messages
@@ -1228,15 +1233,24 @@ public class SeriesController : BaseController
 
         if (body.Immediate)
         {
-            var settings = SettingsProvider.GetSettings();
-            await Task.WhenAll(
-                RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID)
-                    .Select(xref => body.SkipIfExists && RepoFactory.TMDB_Movie.GetByTmdbMovieID(xref.TmdbMovieID) is not null
-                        ? Task.CompletedTask
-                        : _tmdbMetadataService.UpdateMovie(new() { MovieId = xref.TmdbMovieID, ForceRefresh = body.Force, DownloadImages = body.DownloadImages, DownloadCrewAndCast = body.DownloadCrewAndCast, DownloadCollections = body.DownloadCollections })
-                    )
-            );
-            return Ok();
+            try
+            {
+                await Task.WhenAll(
+                    RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID)
+                        .Select(xref => body.SkipIfExists && RepoFactory.TMDB_Movie.GetByTmdbMovieID(xref.TmdbMovieID) is not null
+                            ? Task.CompletedTask
+                            : _jobFactory.Execute<UpdateTmdbMovieJob>(j =>
+                            {
+                                j.TmdbMovieID = xref.TmdbMovieID;
+                                j.ForceRefresh = body.Force;
+                                j.DownloadImages = body.DownloadImages;
+                                j.DownloadCrewAndCast = body.DownloadCrewAndCast;
+                                j.DownloadCollections = body.DownloadCollections;
+                            }))
+                );
+                return Ok();
+            }
+            catch (JobBlockedException) { /* fall through to queue */ }
         }
 
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID))
@@ -1270,11 +1284,19 @@ public class SeriesController : BaseController
 
         if (body.Immediate)
         {
-            await Task.WhenAll(
-                RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID)
-                    .Select(xref => _tmdbMetadataService.DownloadAllMovieImages(xref.TmdbMovieID, body.Force))
-            );
-            return Ok();
+            try
+            {
+                await Task.WhenAll(
+                    RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID)
+                        .Select(xref => _jobFactory.Execute<DownloadTmdbMovieImagesJob>(j =>
+                        {
+                            j.TmdbMovieID = xref.TmdbMovieID;
+                            j.ForceDownload = body.Force;
+                        }))
+                );
+                return Ok();
+            }
+            catch (JobBlockedException) { /* fall through to queue */ }
         }
 
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID))
@@ -1437,21 +1459,24 @@ public class SeriesController : BaseController
 
         if (body.Immediate)
         {
-            var settings = SettingsProvider.GetSettings();
-            await Task.WhenAll(
-                RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID)
-                    .Select(xref => _tmdbMetadataService.UpdateShow(new()
-                    {
-                        ShowId = xref.TmdbShowID,
-                        ForceRefresh = body.Force,
-                        DownloadImages = body.DownloadImages,
-                        DownloadCrewAndCast = body.DownloadCrewAndCast,
-                        DownloadAlternateOrdering = body.DownloadAlternateOrdering,
-                        DownloadNetworks = body.DownloadNetworks,
-                        QuickRefresh = body.QuickRefresh,
-                    }))
-            );
-            return Ok();
+            try
+            {
+                await Task.WhenAll(
+                    RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID)
+                        .Select(xref => _jobFactory.Execute<UpdateTmdbShowJob>(j =>
+                        {
+                            j.TmdbShowID = xref.TmdbShowID;
+                            j.ForceRefresh = body.Force;
+                            j.QuickRefresh = body.QuickRefresh;
+                            j.DownloadImages = body.DownloadImages;
+                            j.DownloadCrewAndCast = body.DownloadCrewAndCast;
+                            j.DownloadAlternateOrdering = body.DownloadAlternateOrdering;
+                            j.DownloadNetworks = body.DownloadNetworks;
+                        }))
+                );
+                return Ok();
+            }
+            catch (JobBlockedException) { /* fall through to queue */ }
         }
 
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID))
@@ -1485,11 +1510,19 @@ public class SeriesController : BaseController
 
         if (body.Immediate)
         {
-            await Task.WhenAll(
-                RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID)
-                    .Select(xref => _tmdbMetadataService.DownloadAllShowImages(xref.TmdbShowID, body.Force))
-            );
-            return Ok();
+            try
+            {
+                await Task.WhenAll(
+                    RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID)
+                        .Select(xref => _jobFactory.Execute<DownloadTmdbShowImagesJob>(j =>
+                        {
+                            j.TmdbShowID = xref.TmdbShowID;
+                            j.ForceDownload = body.Force;
+                        }))
+                );
+                return Ok();
+            }
+            catch (JobBlockedException) { /* fall through to queue */ }
         }
 
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID))

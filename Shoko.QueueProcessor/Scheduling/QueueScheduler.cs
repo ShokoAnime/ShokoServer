@@ -48,6 +48,33 @@ public sealed class QueueScheduler : IQueueScheduler
             ct);
     }
 
+    public async Task EnqueueImmediate<T>(
+        Action<T>? configure = null,
+        Func<Exception?, Task>? onComplete = null,
+        CancellationToken ct = default)
+        where T : class, IQueueJob
+    {
+        if (_orchestrator.IsJobTypeBlocked(typeof(T)))
+            throw new JobBlockedException(typeof(T));
+
+        var keyBuilder = JobKeyBuilder<T>.Create();
+        if (configure != null) keyBuilder.UsingJobData(configure);
+        var key = keyBuilder.Build();
+
+        IQueueJob instance = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
+        configure?.Invoke((T)instance);
+
+        var completionTask = _orchestrator.PrepareAndEnqueueImmediate(
+            BuildContext(typeof(T), key, instance, int.MaxValue, null));
+
+        if (onComplete != null)
+            completionTask = completionTask.ContinueWith(
+                t => onComplete(t.IsFaulted ? t.Exception!.InnerException ?? t.Exception : null),
+                ct, TaskContinuationOptions.None, TaskScheduler.Default).Unwrap();
+
+        await completionTask.WaitAsync(ct);
+    }
+
     public Task EnqueueRange(
         IEnumerable<(Type JobType, string JobKey, string DataJson, int Priority, DateTimeOffset? ScheduledAt)> jobs,
         CancellationToken ct = default)

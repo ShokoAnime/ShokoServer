@@ -107,6 +107,7 @@ public static class QueueProcessorExtensions
 
         // ── Scheduler façade ─────────────────────────────────────────────────
         services.AddSingleton<IQueueScheduler, QueueScheduler>();
+        services.AddSingleton<IJobFactory, JobFactory>();
         services.AddSingleton<QueueHandler>();
 
         // ── Hosted services ──────────────────────────────────────────────────

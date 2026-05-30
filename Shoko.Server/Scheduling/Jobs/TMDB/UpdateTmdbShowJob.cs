@@ -31,6 +31,8 @@ public class UpdateTmdbShowJob : BaseJob
 
     public virtual bool ForceRefresh { get; set; }
 
+    public virtual bool QuickRefresh { get; set; }
+
     public virtual string? ShowTitle { get; set; }
 
     public override void PostInit()
@@ -64,6 +66,7 @@ public class UpdateTmdbShowJob : BaseJob
         {
             ShowId = TmdbShowID,
             ForceRefresh = ForceRefresh,
+            QuickRefresh = QuickRefresh,
             DownloadImages = DownloadImages,
             DownloadCrewAndCast = DownloadCrewAndCast,
             DownloadAlternateOrdering = DownloadAlternateOrdering,

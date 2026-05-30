@@ -127,6 +127,34 @@ public sealed class WorkerPool : IWorkerPool
         lock (_subQueueLock) return [.._subQueue];
     }
 
+    /// <summary>
+    /// Promotes a waiting job to <paramref name="newPriority"/>, resets its queue time so it
+    /// sorts before other jobs at the same priority, and clears any scheduled delay so it is
+    /// eligible for immediate acquisition. Returns <see langword="false"/> if the job is not
+    /// found in this pool's sub-queue (it may already be executing or belong to another pool).
+    /// </summary>
+    public bool TryPromotePriority(string jobKey, int newPriority)
+    {
+        lock (_subQueueLock)
+        {
+            var job = _subQueue.FirstOrDefault(j => j.JobKey == jobKey);
+            if (job == null) return false;
+            _subQueue.Remove(job);
+            _subQueue.Add(new QueuedJob
+            {
+                Id = job.Id,
+                JobType = job.JobType,
+                JobKey = job.JobKey,
+                JobDataJson = job.JobDataJson,
+                Priority = newPriority,
+                QueuedAt = DateTimeOffset.UtcNow,
+                ScheduledAt = null,
+                RetryCount = job.RetryCount,
+            });
+            return true;
+        }
+    }
+
     /// <summary>Clears all waiting jobs from the sub-queue (called on queue clear).</summary>
     public void ClearQueue()
     {

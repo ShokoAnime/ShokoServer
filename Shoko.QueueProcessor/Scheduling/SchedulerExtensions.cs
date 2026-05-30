@@ -23,4 +23,16 @@ public static class SchedulerExtensions
         CancellationToken ct = default)
         where T : class, IQueueJob
         => scheduler.Enqueue(configure, prioritize, startTime, ct);
+
+    /// <summary>
+    /// Convenience alias for <see cref="IQueueScheduler.EnqueueImmediate{T}"/>.
+    /// Enqueues at max priority, promotes an existing waiting job, and awaits completion.
+    /// </summary>
+    public static Task RunImmediately<T>(
+        this IQueueScheduler scheduler,
+        Action<T>? configure = null,
+        Func<Exception?, Task>? onComplete = null,
+        CancellationToken ct = default)
+        where T : class, IQueueJob
+        => scheduler.EnqueueImmediate(configure, onComplete, ct);
 }

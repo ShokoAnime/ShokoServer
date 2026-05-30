@@ -12,8 +12,8 @@
     <PackageIcon>icon.png</PackageIcon>
     <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
     <PackageTags>queuing, workers, background processing, shoko, anime, plugins</PackageTags>
-    <PackageReleaseNotes>Renamer Rewrite</PackageReleaseNotes>
-    <Version>6.0.0-alpha.1</Version>
+    <PackageReleaseNotes>Add a job factory</PackageReleaseNotes>
+    <Version>6.0.0-alpha.2</Version>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
   </PropertyGroup>
