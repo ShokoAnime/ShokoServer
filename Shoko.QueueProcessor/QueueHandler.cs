@@ -178,6 +178,7 @@ public class QueueHandler
                 // Bypass constructor — job data properties are set separately, injected services not needed
                 var inst = (IQueueJob)RuntimeHelpers.GetUninitializedObject(type);
                 JobDataSerializer.Apply(inst, j.JobDataJson);
+                inst.PostInit();
                 typeName = string.IsNullOrEmpty(inst.TypeName) ? jobType : inst.TypeName;
                 title = inst.Title;
                 details = inst.Details;
