@@ -109,10 +109,10 @@ public static partial class PlatformUtility
         if (isLongPath)
             path = path[4..];
         var isNetworkShare = IsWindows
-            ? (isLongPath ? path.StartsWith(@"UNC\") : path.StartsWith(@"\\"))
+            ? (isLongPath ? path.StartsWith(@"UNC\") : path.StartsWith(@"\\")) || path.StartsWith("smb://")
             : path.StartsWith("smb://");
         if (isNetworkShare)
-            path = IsWindows ? isLongPath ? path[4..] : path[2..] : path[6..];
+            path = IsWindows && !path.StartsWith("smb://") ? isLongPath ? path[4..] : path[2..] : path[6..];
         var driveLetter = (string?)null;
         if (!isNetworkShare && DriveLetterRegex().Match(path) is { Success: true } driveLetterResult)
         {
