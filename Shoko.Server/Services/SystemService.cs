@@ -500,9 +500,6 @@ public class SystemService : ISystemService
                 var filePath = Path.IsPathRooted(q.SQLiteFilePath)
                     ? q.SQLiteFilePath
                     : Path.GetFullPath(Path.Combine(ApplicationPaths.StaticDataPath, q.SQLiteFilePath));
-                if (Path.GetDirectoryName(filePath) is { Length: > 0 } dirPath && !Directory.Exists(dirPath))
-                    Directory.CreateDirectory(dirPath);
-
                 connectionString = $"Data Source={filePath};Mode=ReadWriteCreate;Pooling=True";
             }
 
