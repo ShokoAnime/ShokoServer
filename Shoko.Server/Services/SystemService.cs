@@ -495,7 +495,7 @@ public class SystemService : ISystemService
                 throw new ArgumentException("SQLiteFilePath or ConnectionString must be set when using SQLite.");
 
             var connectionString = string.Empty;
-            if (string.IsNullOrEmpty(q.SQLiteFilePath))
+            if (!string.IsNullOrEmpty(q.SQLiteFilePath))
             {
                 var filePath = Path.IsPathRooted(q.SQLiteFilePath)
                     ? q.SQLiteFilePath
