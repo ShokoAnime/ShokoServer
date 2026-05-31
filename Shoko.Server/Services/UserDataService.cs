@@ -910,6 +910,8 @@ public class UserDataService(
                         lastEpisodeUpdate = episodeUserData.LastUpdated;
                     if (videoUserData?.WatchedDate is null && episodeUserData?.WatchedDate is null)
                     {
+                        if (!videoLookup.Contains(ep.AnidbEpisodeID))
+                            return;
                         if (ep.IsHidden)
                             Interlocked.Increment(ref hiddenUnwatchedCount);
                         else
