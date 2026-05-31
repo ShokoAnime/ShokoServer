@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Shoko.Abstractions.Core;
 
 namespace Shoko.Abstractions.Plugin.Models;
@@ -159,4 +160,29 @@ public sealed class LocalPluginInfo
     ///   All loaded types for the plugin.
     /// </summary>
     public required IReadOnlyList<Type> Types { get; init; }
+
+    /// <summary>
+    ///   Get the pages exposed by the plugin.
+    /// </summary>
+    /// <returns>
+    ///   The pages exposed by the plugin.
+    /// </returns>
+    public IReadOnlyList<LocalPluginPage> GetPages()
+    {
+        if (Plugin is null)
+            return [];
+
+        return Plugin.GetPages()
+            .Select(x => new LocalPluginPage
+            {
+                PluginInfo = this,
+                Name = x.Name,
+                Url = x.Url,
+                CanEmbed = x.CanEmbed,
+            })
+            .DistinctBy(x => x.Name)
+            .DistinctBy(x => x.Url)
+            .OrderBy(x => x.Name)
+            .ToList();
+    }
 }

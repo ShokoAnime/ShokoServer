@@ -17,6 +17,25 @@ public class BaseController(ISettingsProvider settingsProvider) : Controller
     // Override Controller.User to be the SVR_JMMUser, since we'll almost never need HttpContext.User
     protected new JMMUser User => HttpContext.GetUser();
 
+    /// <summary>
+    /// The base URL for the API.
+    /// </summary>
+    protected string BaseUrl
+    {
+        get
+        {
+            var request = Request;
+            var baseUrl = new UriBuilder(
+                request.Scheme,
+                request.Host.Host,
+                request.Host.Port ?? (request.Scheme == "https" ? 443 : 80),
+                request.PathBase,
+                null
+            ).ToString();
+            return baseUrl.EndsWith('/') ? baseUrl : $"{baseUrl}/";
+        }
+    }
+
     protected readonly ISettingsProvider SettingsProvider = settingsProvider;
 
     [NonAction]

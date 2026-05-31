@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using Shoko.Abstractions.Plugin.Models;
 
 namespace Shoko.Abstractions.Plugin;
 
@@ -36,4 +38,12 @@ public interface IPlugin
     ///   </code>
     /// </example>
     string? EmbeddedThumbnailResourceName { get => null; }
+
+    /// <summary>
+    ///   Get the pages exposed by the plugin.
+    /// </summary>
+    /// <returns>
+    ///   The pages exposed by the plugin.
+    /// </returns>
+    public IReadOnlyList<PluginPage> GetPages() => [];
 }

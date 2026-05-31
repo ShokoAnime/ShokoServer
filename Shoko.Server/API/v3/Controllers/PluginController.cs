@@ -16,6 +16,7 @@ using Shoko.Server.Utilities;
 using AbstractPluginInfo = Shoko.Abstractions.Plugin.Models.LocalPluginInfo;
 using PluginCompatibilityInfo = Shoko.Server.API.v3.Models.Plugin.PluginCompatibilityInfo;
 using PluginInfo = Shoko.Server.API.v3.Models.Plugin.PluginInfo;
+using PluginPage = Shoko.Server.API.v3.Models.Plugin.PluginPage;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
@@ -43,6 +44,63 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
         AbstractionVersion = pluginManager.AbstractionVersion,
         RuntimeIdentifier = pluginManager.RuntimeIdentifier,
     };
+
+    /// <summary>
+    ///   Gets all plugin pages across all active plugins.
+    /// </summary>
+    [HttpGet("Pages")]
+    public List<PluginPage> GetPluginPages(
+        [FromQuery] string? query = null,
+        [FromQuery] IncludeOnlyFilter active = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter installed = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter enabled = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter restartPending = IncludeOnlyFilter.True,
+        [FromQuery] bool allVersions = false
+    )
+    {
+        var pages = new List<PluginPage>();
+        var enumerable = (IEnumerable<AbstractPluginInfo>)pluginManager.GetPluginInfos();
+        if (!allVersions)
+            enumerable = enumerable.DistinctBy(pluginInfo => pluginInfo.ID);
+        if (!string.IsNullOrEmpty(query))
+            enumerable = enumerable
+                .Search(query, p => [p.Name])
+                .Select(pluginInfo => pluginInfo.Result)
+                .OrderBy(pluginInfo => pluginInfo.LoadOrder);
+        return enumerable
+            .Where(pluginInfo =>
+            {
+                if (active is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideActive = active is IncludeOnlyFilter.False;
+                    if (shouldHideActive == pluginInfo.IsActive)
+                        return false;
+                }
+                if (installed is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideInstalled = installed is IncludeOnlyFilter.False;
+                    if (shouldHideInstalled == pluginInfo.IsInstalled)
+                        return false;
+                }
+                if (enabled is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideEnabled = enabled is IncludeOnlyFilter.False;
+                    if (shouldHideEnabled == pluginInfo.IsEnabled)
+                        return false;
+                }
+                if (restartPending is not IncludeOnlyFilter.True)
+                {
+                    var shouldHideRequiresRestart = restartPending is IncludeOnlyFilter.False;
+                    if (shouldHideRequiresRestart == pluginInfo.RestartPending)
+                        return false;
+                }
+                return true;
+            })
+            .OrderBy(pluginInfo => pluginInfo.LoadOrder)
+            .SelectMany(pluginInfo => pluginInfo.GetPages())
+            .Select(page => new PluginPage(page, BaseUrl, true))
+            .ToList();
+    }
 
     /// <summary>
     ///   Gets a list of all registered plugins.
@@ -174,7 +232,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     ///   The plugin ID.
     /// </param>
     /// <returns>
-    ///   The <see cref="PluginInfo"/> if a plugin is found.
+    ///   The thumbnail if available.
     /// </returns>
     [AllowAnonymous]
     [HttpGet("{pluginID}/Thumbnail")]
@@ -182,6 +240,21 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
         => pluginManager.GetPluginInfo(pluginID) is { Thumbnail: { } } pluginInfo &&
         pluginInfo.Thumbnail.GetStream(applicationPaths) is { } stream
             ? File(stream, pluginInfo.Thumbnail.MimeType)
+            : NotFound("Plugin not found");
+
+    /// <summary>
+    ///   Gets the pages for the active or highest version of a plugin by ID.
+    /// </summary>
+    /// <param name="pluginID">
+    ///   The plugin ID.
+    /// </param>
+    /// <returns>
+    ///   The pages for the plugin.
+    /// </returns>
+    [HttpGet("{pluginID}/Pages")]
+    public ActionResult<List<PluginPage>> GetPagesForPluginByID([FromRoute] Guid pluginID)
+        => pluginManager.GetPluginInfo(pluginID) is { } pluginInfo
+            ? pluginInfo.GetPages().Select(pageInfo => new PluginPage(pageInfo, BaseUrl)).ToList()
             : NotFound("Plugin not found");
 
     /// <summary>
@@ -307,6 +380,24 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
         => pluginManager.GetPluginInfo(pluginID, pluginVersion) is { Thumbnail: { } } pluginInfo &&
             pluginInfo.Thumbnail.GetStream(applicationPaths) is { } stream
             ? File(stream, pluginInfo.Thumbnail.MimeType)
+            : NotFound("Plugin not found");
+
+    /// <summary>
+    ///   Gets the pages for the active or highest version of a plugin by ID.
+    /// </summary>
+    /// <param name="pluginID">
+    ///   The plugin ID.
+    /// </param>
+    /// <param name="pluginVersion">
+    ///   The plugin version.
+    /// </param>
+    /// <returns>
+    ///   The pages for the plugin.
+    /// </returns>
+    [HttpGet("{pluginID}/{pluginVersion}/Pages")]
+    public ActionResult<List<PluginPage>> GetPagesForPluginByID([FromRoute] Guid pluginID, [FromRoute] Version pluginVersion)
+        => pluginManager.GetPluginInfo(pluginID, pluginVersion) is { } pluginInfo
+            ? pluginInfo.GetPages().Select(pageInfo => new PluginPage(pageInfo, BaseUrl)).ToList()
             : NotFound("Plugin not found");
 
     /// <summary>
