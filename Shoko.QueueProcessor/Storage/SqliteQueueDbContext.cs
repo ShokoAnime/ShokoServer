@@ -29,7 +29,7 @@ public class SqliteQueueDbContext : QueueDbContext
 
     /// <summary>
     /// Ensures the directory containing the SQLite database file exists before EF Core
-    /// attempts to create or open it. <see cref="Directory.CreateDirectory"/> is a no-op
+    /// attempts to create or open it. <see cref="Directory.CreateDirectory(string)"/> is a no-op
     /// when the directory is already present.
     /// </summary>
     private static void EnsureDirectoryExists(string connectionString)
