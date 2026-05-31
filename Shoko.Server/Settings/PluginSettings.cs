@@ -36,7 +36,7 @@ public class PluginSettings
     /// <summary>
     ///   Settings for renamers.
     /// </summary>
-    public RenamerSettings Renamer { get; set; } = new();
+    public RelocationSettings Renamer { get; set; } = new();
 
     /// <summary>
     ///   Settings for plugin updates.

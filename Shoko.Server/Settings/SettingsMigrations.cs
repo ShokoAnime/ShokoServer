@@ -85,7 +85,15 @@ public static partial class SettingsMigrations
         // Note: path-dependent migration — the real function is injected in MigrateSettings
         // using applicationPaths.DataPath. The null tombstone here ensures Version == 15.
         { 15, null },
+        { 16, MigrateDefaultRenamerToStatic },
     };
+
+    /// <summary>
+    /// Legacy default relocation preset name, captured from settings JSON before
+    /// the property was removed from the settings class. Used by DB migrations
+    /// to preserve which preset was configured as the default.
+    /// </summary>
+    internal static string? MigratedDefaultRenamer { get; set; }
 
     private static string MigrateTvDBLanguageEnum(string settings)
     {
@@ -210,6 +218,15 @@ public static partial class SettingsMigrations
             renamerSettings["DefaultRenamer"] = "Default";
 
         return currentSettings.ToString();
+    }
+
+    private static string MigrateDefaultRenamerToStatic(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+
+        MigratedDefaultRenamer = currentSettings["Plugins"]?["Renamer"]?["DefaultRenamer"]?.Value<string>();
+
+        return settings;
     }
 
     private static string MigrateServerPortToWebPort(string settings)

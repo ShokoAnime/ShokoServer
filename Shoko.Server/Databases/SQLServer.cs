@@ -942,6 +942,12 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(158,  1, DatabaseFixes.MigrateAnidbVotes),
         new(158,  2, "DROP TABLE IF EXISTS CrossRef_AniDB_TvDBV2;"),
         new(159,  1, "ALTER TABLE JMMUser DROP COLUMN IsTraktUser;"),
+        new(160,  1, "CREATE TABLE StoredRelocationPreset (StoredRelocationPresetID INT IDENTITY(1,1), ProviderID NVARCHAR(40) NOT NULL, Name NVARCHAR(128) NOT NULL, Configuration VARBINARY(MAX), IsDefault BIT NOT NULL DEFAULT 0);"),
+        new(160,  2, "CREATE INDEX IX_StoredRelocationPreset_ProviderID ON StoredRelocationPreset(ProviderID);"),
+        new(160,  3, "CREATE INDEX IX_StoredRelocationPreset_Name ON StoredRelocationPreset(Name);"),
+        new(160,  4, "SET IDENTITY_INSERT StoredRelocationPreset ON; INSERT INTO StoredRelocationPreset (StoredRelocationPresetID, ProviderID, Name, Configuration, IsDefault) SELECT StoredRelocationPipeID, ProviderID, Name, Configuration, 0 FROM StoredRelocationPipe; SET IDENTITY_INSERT StoredRelocationPreset OFF;"),
+        new(160,  5, "DROP TABLE StoredRelocationPipe;"),
+        new(160,  6, DatabaseFixes.SetDefaultRenamer),
     ];
 
     #endregion

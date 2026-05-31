@@ -862,6 +862,12 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(145,  1, DatabaseFixes.MigrateAnidbVotes),
         new(145,  2, "DROP TABLE IF EXISTS CrossRef_AniDB_TvDBV2;"),
         new(146,  1, "ALTER TABLE JMMUser DROP COLUMN IsTraktUser;"),
+        new(147,  1, "CREATE TABLE StoredRelocationPreset (StoredRelocationPresetID INTEGER PRIMARY KEY AUTOINCREMENT, ProviderID TEXT NOT NULL, Name TEXT NOT NULL, Configuration BLOB, IsDefault INTEGER NOT NULL DEFAULT 0);"),
+        new(147,  2, "CREATE INDEX IX_StoredRelocationPreset_ProviderID ON StoredRelocationPreset(ProviderID);"),
+        new(147,  3, "CREATE INDEX IX_StoredRelocationPreset_Name ON StoredRelocationPreset(Name);"),
+        new(147,  4, "INSERT INTO StoredRelocationPreset (StoredRelocationPresetID, ProviderID, Name, Configuration, IsDefault) SELECT StoredRelocationPipeID, ProviderID, Name, Configuration, 0 FROM StoredRelocationPipe;"),
+        new(147,  5, "DROP TABLE StoredRelocationPipe;"),
+        new(147,  6, DatabaseFixes.SetDefaultRenamer),
     ];
 
     #endregion

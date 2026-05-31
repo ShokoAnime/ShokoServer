@@ -10,7 +10,11 @@ namespace Shoko.Server.Repositories.Cached;
 public class StoredRelocationPresetRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<StoredRelocationPreset, int>(databaseFactory)
 {
     private PocoIndex<int, StoredRelocationPreset, Guid>? _presetIDs;
+
     private PocoIndex<int, StoredRelocationPreset, Guid>? _providerIDs;
+
+    private PocoIndex<int, StoredRelocationPreset, bool>? _isDefault;
+
     private PocoIndex<int, StoredRelocationPreset, string>? _names;
 
     protected override int SelectKey(StoredRelocationPreset entity)
@@ -20,6 +24,7 @@ public class StoredRelocationPresetRepository(DatabaseFactory databaseFactory) :
     {
         _presetIDs = Cache.CreateIndex(a => a.ID);
         _providerIDs = Cache.CreateIndex(a => a.ProviderID);
+        _isDefault = Cache.CreateIndex(a => a.IsDefault);
         _names = Cache.CreateIndex(a => a.Name);
     }
 
@@ -33,4 +38,7 @@ public class StoredRelocationPresetRepository(DatabaseFactory databaseFactory) :
 
     public IReadOnlyList<StoredRelocationPreset> GetByProviderID(Guid providerID)
         => Lock(() => _providerIDs!.GetMultiple(providerID));
+
+    public StoredRelocationPreset? GetDefault()
+        => Lock(() => _isDefault!.GetOne(true));
 }

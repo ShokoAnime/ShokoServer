@@ -34,11 +34,10 @@ public class StoredRelocationPreset : IStoredRelocationPreset
 
     public byte[]? Configuration { get; set; }
 
+    public bool IsDefault { get; set; }
+
     #endregion
 
     public Guid ID
         => _id ??= UuidUtility.GetV5($"StoredRelocationPipe-{StoredRelocationPresetID}");
-
-    public bool IsDefault
-        => ISettingsProvider.Instance.GetSettings().Plugins.Renamer.DefaultRenamer == Name;
 }

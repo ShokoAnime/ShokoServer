@@ -7,12 +7,13 @@ public class StoredRelocationPresetMap : ClassMap<StoredRelocationPreset>
 {
     public StoredRelocationPresetMap()
     {
-        Table("StoredRelocationPipe");
+        Table("StoredRelocationPreset");
         Not.LazyLoad();
-        Id(x => x.StoredRelocationPresetID).Column("StoredRelocationPipeID");
+        Id(x => x.StoredRelocationPresetID);
 
         Map(x => x.ProviderID).Not.Nullable();
         Map(x => x.Name).Not.Nullable();
+        Map(x => x.IsDefault).Not.Nullable();
         Map(x => x.Configuration).Nullable();
     }
 }

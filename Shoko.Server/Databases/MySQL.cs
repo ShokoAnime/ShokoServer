@@ -1040,6 +1040,12 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(163,  1, DatabaseFixes.MigrateAnidbVotes),
         new(163,  2, "DROP TABLE IF EXISTS CrossRef_AniDB_TvDBV2;"),
         new(164,  1, "ALTER TABLE JMMUser DROP COLUMN IsTraktUser;"),
+        new(165,  1, "CREATE TABLE `StoredRelocationPreset` (`StoredRelocationPresetID` INT NOT NULL AUTO_INCREMENT, `ProviderID` VARCHAR(40) NOT NULL, `Name` VARCHAR(128) NOT NULL, `Configuration` BLOB, `IsDefault` TINYINT NOT NULL DEFAULT 0, PRIMARY KEY (`StoredRelocationPresetID`));"),
+        new(165,  2, "CREATE INDEX `IX_StoredRelocationPreset_ProviderID` ON `StoredRelocationPreset`(`ProviderID`);"),
+        new(165,  3, "CREATE INDEX `IX_StoredRelocationPreset_Name` ON `StoredRelocationPreset`(`Name`);"),
+        new(165,  4, "INSERT INTO `StoredRelocationPreset` (`StoredRelocationPresetID`, `ProviderID`, `Name`, `Configuration`, `IsDefault`) SELECT `StoredRelocationPipeID`, `ProviderID`, `Name`, `Configuration`, 0 FROM `StoredRelocationPipe`;"),
+        new(165,  5, "DROP TABLE `StoredRelocationPipe`;"),
+        new(165,  6, DatabaseFixes.SetDefaultRenamer),
     ];
 
     #endregion

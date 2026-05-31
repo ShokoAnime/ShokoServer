@@ -73,7 +73,7 @@ public class RelocationPresetInfo(IVideoRelocationService relocationService, ICo
         if (Configuration is null)
         {
             Configuration = Encoding.UTF8.GetBytes(_configurationService.Serialize(_configurationService.New(providerInfo.ConfigurationInfo)));
-            _relocationService.UpdatePipe(this);
+            _relocationService.UpdatePreset(this);
         }
 
         var configuration = _configurationService.Deserialize(providerInfo.ConfigurationInfo, Encoding.UTF8.GetString(Configuration));
@@ -114,7 +114,7 @@ public class RelocationPresetInfo(IVideoRelocationService relocationService, ICo
                 return false;
 
             Configuration = null;
-            _relocationService.UpdatePipe(this);
+            _relocationService.UpdatePreset(this);
             return true;
         }
 
@@ -131,7 +131,7 @@ public class RelocationPresetInfo(IVideoRelocationService relocationService, ICo
         if (Configuration is null || !configurationBytes.SequenceEqual(Configuration))
         {
             Configuration = configurationBytes;
-            _relocationService.UpdatePipe(this);
+            _relocationService.UpdatePreset(this);
             return true;
         }
 
@@ -172,7 +172,7 @@ public class RelocationPresetInfo(IVideoRelocationService relocationService, ICo
                 return false;
 
             Configuration = null;
-            _relocationService.UpdatePipe(this);
+            _relocationService.UpdatePreset(this);
             return true;
         }
 
@@ -190,7 +190,7 @@ public class RelocationPresetInfo(IVideoRelocationService relocationService, ICo
         if (Configuration is null || !((IEnumerable<byte>)configurationBytes).SequenceEqual(Configuration))
         {
             Configuration = configurationBytes;
-            _relocationService.UpdatePipe(this);
+            _relocationService.UpdatePreset(this);
             return true;
         }
 

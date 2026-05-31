@@ -1248,13 +1248,13 @@ public class DatabaseFixes
         session.CreateSQLQuery("ALTER TABLE VideoLocal DROP COLUMN CRC32;").ExecuteUpdate();
     }
 
-    public static Tuple<bool, string> MigrateRenamers(object connection)
+    private static string _defaultScriptName = null;
+
+    public static Tuple<bool, string> MigrateRenamers(object _)
     {
         var factory = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
         var configurationService = ISystemService.StaticServices.GetRequiredService<IConfigurationService>();
         var renamerService = ISystemService.StaticServices.GetRequiredService<IVideoRelocationService>();
-        var settingsProvider = ISettingsProvider.Instance;
-
         var sessionFactory = factory.CreateSessionFactory();
         using var session = sessionFactory.OpenSession();
         using var transaction = session.BeginTransaction();
@@ -1265,12 +1265,12 @@ public class DatabaseFixes
             const string InsertCommand = "INSERT INTO StoredRelocationPipe (ProviderID, Name, Configuration) VALUES (:ProviderID, :Name, :Configuration);";
             const string DropCommand = "DROP TABLE IF EXISTS RenameScript; DROP TABLE IF EXISTS RenamerInstance;";
             string defaultName = null;
-            var rawPipes = new List<(StoredRelocationPreset Preset, bool IsDefault)>();
-            var settings = settingsProvider.GetSettings();
+            var rawPresets = new List<StoredRelocationPreset>();
             var webAomRenamer = renamerService.GetProviderInfo<WebAOMRenamer>();
             var renamersByKey = renamerService.GetAvailableProviders()
                 .Where(a => a.Provider.GetType().FullName is { Length: > 0 })
                 .ToDictionary(a => a.Provider.GetType().FullName);
+            var defaultRenamerConfigName = SettingsMigrations.MigratedDefaultRenamer;
             try
             {
                 var rawRenamerScripts = session.CreateSQLQuery(SelectCommand1)
@@ -1318,7 +1318,7 @@ public class DatabaseFixes
                                         }
                                     )
                                 );
-                                rawPipes.Add((new() { Name = renamerScript.ScriptName, ProviderID = providerInfo.ID, Configuration = configuration }, IsDefault: renamerScript.IsEnabledOnImport));
+                                rawPresets.Add(new() { Name = renamerScript.ScriptName, ProviderID = providerInfo.ID, Configuration = configuration, IsDefault = renamerScript.ScriptName == defaultRenamerConfigName });
                                 continue;
                             }
 
@@ -1336,7 +1336,7 @@ public class DatabaseFixes
                             configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(config));
                         }
 
-                        rawPipes.Add((new() { Name = renamerScript.ScriptName, ProviderID = providerInfo.ID, Configuration = configuration }, IsDefault: renamerScript.IsEnabledOnImport));
+                        rawPresets.Add(new() { Name = renamerScript.ScriptName, ProviderID = providerInfo.ID, Configuration = configuration, IsDefault = renamerScript.ScriptName == defaultRenamerConfigName });
                     }
                     catch (Exception ex)
                     {
@@ -1348,7 +1348,6 @@ public class DatabaseFixes
             catch (GenericADOException) { }
             try
             {
-                var defaultRenamerConfigName = settings.Plugins.Renamer.DefaultRenamer;
                 var rawRenamerConfigs = session.CreateSQLQuery(SelectCommand2)
                         .AddScalar("Name", NHibernateUtil.String)
                         .AddScalar("Type", NHibernateUtil.String)
@@ -1402,7 +1401,7 @@ public class DatabaseFixes
                             configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(config as IConfiguration));
                         }
 
-                        rawPipes.Add((new() { Name = renamerConfig.Name, ProviderID = providerInfo.ID, Configuration = configuration }, renamerConfig.Name == defaultRenamerConfigName));
+                        rawPresets.Add(new() { Name = renamerConfig.Name, ProviderID = providerInfo.ID, Configuration = configuration, IsDefault = renamerConfig.Name == defaultRenamerConfigName });
                     }
                     catch (Exception ex)
                     {
@@ -1413,27 +1412,43 @@ public class DatabaseFixes
                 }
             }
             catch (GenericADOException) { }
-            if (rawPipes.Count == 0)
+            if (rawPresets.Count == 0)
             {
                 defaultName = "Default";
-                rawPipes.Add((new() { Name = "Default", ProviderID = webAomRenamer.ID, Configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(configurationService.New<WebAOMSettings>())) }, true));
+                rawPresets.Add(new() { Name = "Default", ProviderID = webAomRenamer.ID, Configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(configurationService.New<WebAOMSettings>())), IsDefault = true });
             }
             var presets = new List<StoredRelocationPreset>();
-            foreach (var pipeGroup in rawPipes.GroupBy(t => t.Preset.Name.Trim()))
+            foreach (var presetGroup in rawPresets.GroupBy(t => t.Name.Trim()))
             {
                 var index = 0;
-                foreach (var (preset, isDefault) in pipeGroup)
+                foreach (var preset in presetGroup)
                 {
                     if (index > 0)
                         preset.Name += index is 1 ? " (copy)" : $" (copy #{index})";
-                    if (isDefault)
-                        defaultName = preset.Name;
+                    if (preset.IsDefault)
+                        defaultName = preset.Name.Trim();
                     index++;
                     presets.Add(preset);
                 }
             }
+
             if (string.IsNullOrEmpty(defaultName))
                 defaultName = presets[0].Name;
+
+            foreach (var presetGroup in rawPresets.GroupBy(t => t.Name.Trim()))
+            {
+                var index = 0;
+                foreach (var preset in presetGroup)
+                {
+                    if (index > 0)
+                        preset.IsDefault = false;
+                    else
+                        preset.IsDefault = preset.Name.Trim() == defaultName;
+                    index++;
+                }
+            }
+
+            _defaultScriptName = defaultName;
 
             foreach (var renamer in presets)
             {
@@ -1446,12 +1461,6 @@ public class DatabaseFixes
 
             session.CreateSQLQuery(DropCommand).ExecuteUpdate();
             transaction.Commit();
-
-            if (settings.Plugins.Renamer.DefaultRenamer != defaultName)
-            {
-                settings.Plugins.Renamer.DefaultRenamer = defaultName;
-                settingsProvider.SaveSettings(settings);
-            }
         }
         catch (Exception e)
         {
@@ -1460,6 +1469,35 @@ public class DatabaseFixes
         }
 
         return new Tuple<bool, string>(true, null);
+    }
+
+    public static void SetDefaultRenamer()
+    {
+        var presets = RepoFactory.StoredRelocationPreset.GetAll();
+        if (presets.Count == 0)
+            return;
+
+        switch (presets.Count(a => a.IsDefault))
+        {
+            case 0:
+                var defaultName = _defaultScriptName ?? SettingsMigrations.MigratedDefaultRenamer;
+                var defaultPreset = presets.FirstOrDefault(a => a.Name.Trim() == defaultName)
+                    ?? presets.FirstOrDefault();
+                if (defaultPreset is not null)
+                {
+                    defaultPreset.IsDefault = true;
+                    RepoFactory.StoredRelocationPreset.Save(defaultPreset);
+                }
+                break;
+
+            case > 1:
+                foreach (var preset in presets.Where(a => a.IsDefault).Skip(1))
+                {
+                    preset.IsDefault = false;
+                    RepoFactory.StoredRelocationPreset.Save(preset);
+                }
+                break;
+        }
     }
 
     public static void MigrateAnidbVotes()

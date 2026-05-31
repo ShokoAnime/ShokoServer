@@ -1,20 +1,12 @@
-using System.Collections.Generic;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 
+#nullable enable
 namespace Shoko.Server.Settings;
 
-public class RenamerSettings
+public class RelocationSettings
 {
-    /// <summary>
-    /// Dictionary of enabled renamers.
-    /// </summary>
-    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
-    [Visibility(Advanced = true)]
-    [Record(HideAddAction = true, HideRemoveAction = true)]
-    public Dictionary<string, bool> EnabledRenamers { get; set; } = [];
-
     /// <summary>
     /// Indicates that we should relocate a video file on import, and after metadata
     /// updates when the metadata related to the file may have changed.
@@ -39,11 +31,4 @@ public class RenamerSettings
     /// drop destination managed folder that's not also a drop source on import.
     /// </summary>
     public bool AllowRelocationInsideDestinationOnImport { get; set; } = true;
-
-    /// <summary>
-    /// Name of the default renamer in use.
-    /// </summary>
-    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
-    [Visibility(Advanced = true)]
-    public string DefaultRenamer { get; set; } = "Default";
 }

@@ -26,17 +26,17 @@ public interface IVideoRelocationService
     /// <summary>
     ///   Event raised when a new relocation preset has been stored in the database.
     /// </summary>
-    event EventHandler<RelocationPresetEventArgs>? PipeStored;
+    event EventHandler<RelocationPresetEventArgs>? PresetStored;
 
     /// <summary>
     ///   Event raised when an existing relocation preset has been updated in the database.
     /// </summary>
-    event EventHandler<RelocationPresetEventArgs>? PipeUpdated;
+    event EventHandler<RelocationPresetEventArgs>? PresetUpdated;
 
     /// <summary>
     ///   Event raised when an existing relocation preset has been deleted from the database.
     /// </summary>
-    event EventHandler<RelocationPresetEventArgs>? PipeDeleted;
+    event EventHandler<RelocationPresetEventArgs>? PresetDeleted;
 
     /// <summary>
     ///   Event raised when a video file has been relocated.
@@ -159,7 +159,7 @@ public interface IVideoRelocationService
     ///   The <see cref="RelocationPresetInfo"/> for the default preset, or
     ///   <c>null</c> if currently not set.
     /// </returns>
-    RelocationPresetInfo? GetDefaultPipe();
+    RelocationPresetInfo? GetDefaultPreset();
 
     /// <summary>
     ///   Gets all stored presets, optionally filtered by availability.
@@ -171,7 +171,7 @@ public interface IVideoRelocationService
     /// <returns>
     ///   The stored presets.
     /// </returns>
-    IEnumerable<RelocationPresetInfo> GetStoredPipes(bool? available = null);
+    IEnumerable<RelocationPresetInfo> GetStoredPresets(bool? available = null);
 
     /// <summary>
     ///   Gets the <see cref="RelocationPresetInfo"/> for a given provider by ID.
@@ -182,7 +182,7 @@ public interface IVideoRelocationService
     /// <returns>
     ///   The stored presets.
     /// </returns>
-    IReadOnlyList<RelocationPresetInfo> GetStoredPipes(Guid providerID);
+    IReadOnlyList<RelocationPresetInfo> GetStoredPresets(Guid providerID);
 
     /// <summary>
     ///   Gets the <see cref="RelocationPresetInfo"/> for a given provider by ID.
@@ -193,7 +193,7 @@ public interface IVideoRelocationService
     /// <returns>
     ///   The stored presets.
     /// </returns>
-    IReadOnlyList<RelocationPresetInfo> GetStoredPipes(IRelocationProvider provider);
+    IReadOnlyList<RelocationPresetInfo> GetStoredPresets(IRelocationProvider provider);
 
     /// <summary>
     ///   Gets the <see cref="RelocationPresetInfo"/> for a given plugin.
@@ -204,19 +204,19 @@ public interface IVideoRelocationService
     /// <returns>
     ///   The stored presets.
     /// </returns>
-    IReadOnlyList<RelocationPresetInfo> GetStoredPipes(IPlugin plugin);
+    IReadOnlyList<RelocationPresetInfo> GetStoredPresets(IPlugin plugin);
 
     /// <summary>
     ///   Gets the <see cref="RelocationPresetInfo"/> for a given preset ID.
     /// </summary>
-    /// <param name="pipeID">
+    /// <param name="presetID">
     ///   The preset ID.
     /// </param>
     /// <returns>
     ///   The <see cref="RelocationPresetInfo"/> for the stored preset, if it's
     ///   available in the database, otherwise <c>null</c>.
     /// </returns>
-    RelocationPresetInfo? GetStoredPipe(Guid pipeID);
+    RelocationPresetInfo? GetStoredPreset(Guid presetID);
 
     /// <summary>
     ///   Gets the <see cref="RelocationPresetInfo"/> for a given preset name.
@@ -228,7 +228,7 @@ public interface IVideoRelocationService
     ///   The <see cref="RelocationPresetInfo"/> for the stored preset, if it's
     ///   available in the database, otherwise <c>null</c>.
     /// </returns>
-    RelocationPresetInfo? GetStoredPipe(string? name);
+    RelocationPresetInfo? GetStoredPreset(string? name);
 
     /// <summary>
     ///   Store a new preset.
@@ -260,7 +260,7 @@ public interface IVideoRelocationService
     /// <returns>
     ///   The <see cref="RelocationPresetInfo"/> for the newly stored preset.
     /// </returns>
-    RelocationPresetInfo StorePipe(IRelocationProvider provider, string name, IRelocationProviderConfiguration? configuration = null, bool setDefault = false);
+    RelocationPresetInfo StorePreset(IRelocationProvider provider, string name, IRelocationProviderConfiguration? configuration = null, bool setDefault = false);
 
     /// <summary>
     ///   Store a new preset.
@@ -292,7 +292,7 @@ public interface IVideoRelocationService
     /// <returns>
     ///   The <see cref="RelocationPresetInfo"/> for the newly stored preset.
     /// </returns>
-    RelocationPresetInfo StorePipe<TConfig>(IRelocationProvider<TConfig> provider, string name, TConfig configuration, bool setDefault = false) where TConfig : IRelocationProviderConfiguration;
+    RelocationPresetInfo StorePreset<TConfig>(IRelocationProvider<TConfig> provider, string name, TConfig configuration, bool setDefault = false) where TConfig : IRelocationProviderConfiguration;
 
     /// <summary>
     ///   Updates the saved preset with the new details.
@@ -315,7 +315,7 @@ public interface IVideoRelocationService
     /// <returns>
     ///   <c>true</c> if the preset was updated, <c>false</c> otherwise.
     /// </returns>
-    bool UpdatePipe(IStoredRelocationPreset preset);
+    bool UpdatePreset(IStoredRelocationPreset preset);
 
     /// <summary>
     ///   Deletes the given preset.
@@ -330,7 +330,7 @@ public interface IVideoRelocationService
     ///   Thrown when attempting to delete the currently in-use default preset or
     ///   the preset is not stored in the database.
     /// </exception>
-    void DeletePipe(IStoredRelocationPreset preset);
+    void DeletePreset(IStoredRelocationPreset preset);
 
     #endregion
 

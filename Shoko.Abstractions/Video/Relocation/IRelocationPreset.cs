@@ -5,8 +5,8 @@ namespace Shoko.Abstractions.Video.Relocation;
 /// <summary>
 ///   Identifies a relocation provider and carries the packed configuration for
 ///   that provider. Used as a lightweight preset reference for ad-hoc
-///   relocation operations (e.g., <see cref="AutoRelocateRequest"/> or
-///   <c>ProcessPipe</c> calls), without requiring database persistence.
+///   relocation operations (e.g., <see cref="AutoRelocateRequest"/>), without
+///   requiring database persistence.
 /// </summary>
 public interface IRelocationPreset
 {
