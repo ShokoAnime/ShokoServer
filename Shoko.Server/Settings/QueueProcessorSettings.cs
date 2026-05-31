@@ -47,7 +47,7 @@ public class QueueProcessorSettings
                 value = value[(ApplicationPaths.StaticDataPath.Length + 1)..];
             field = value;
         }
-    } = "SQLite/queue.db3";
+    } = "SQLite/Queue.db3";
 
     /// <summary>
     /// The connection string for the queue database. Only used when <see cref="Provider"/> is MySQL or SQL Server.
