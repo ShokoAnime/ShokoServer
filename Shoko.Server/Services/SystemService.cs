@@ -412,15 +412,6 @@ public class SystemService : ISystemService
             // Wire the new queue processor
             var queueSettings = ISettingsProvider.Instance.GetSettings().Queue;
             var maxWorkers = queueSettings.MaxTotalWorkers > 0 ? queueSettings.MaxTotalWorkers : Environment.ProcessorCount + 4;
-            static string GetQueueConnectionString(QueueProcessorSettings q)
-            {
-                if (q.Provider != DatabaseProvider.SQLite)
-                    return q.ConnectionString;
-                var filePath = Path.IsPathRooted(q.SQLiteFilePath)
-                    ? q.SQLiteFilePath
-                    : Path.GetFullPath(Path.Combine(ApplicationPaths.StaticDataPath, q.SQLiteFilePath));
-                return $"Data Source={filePath};Mode=ReadWriteCreate;Pooling=True";
-            }
             services.AddQueueProcessor(opts =>
             {
                 opts.Provider = queueSettings.Provider;
@@ -493,6 +484,32 @@ public class SystemService : ISystemService
             // acquisition filter will hold them out of the pool until startup signals DB ready.
             var registry = app.ApplicationServices.GetRequiredService<RecurringJobRegistry>();
             registry.Register<CheckNetworkAvailabilityJob>(TimeSpan.FromMinutes(30), runImmediately: true);
+        }
+
+        private static string GetQueueConnectionString(QueueProcessorSettings q)
+        {
+            if (q.Provider != DatabaseProvider.SQLite)
+                return q.ConnectionString;
+
+            if (string.IsNullOrEmpty(q.SQLiteFilePath) && string.IsNullOrEmpty(q.ConnectionString))
+                throw new ArgumentException("SQLiteFilePath or ConnectionString must be set when using SQLite.");
+
+            var connectionString = string.Empty;
+            if (string.IsNullOrEmpty(q.SQLiteFilePath))
+            {
+                var filePath = Path.IsPathRooted(q.SQLiteFilePath)
+                    ? q.SQLiteFilePath
+                    : Path.GetFullPath(Path.Combine(ApplicationPaths.StaticDataPath, q.SQLiteFilePath));
+                if (Path.GetDirectoryName(filePath) is { Length: > 0 } dirPath && !Directory.Exists(dirPath))
+                    Directory.CreateDirectory(dirPath);
+
+                connectionString = $"Data Source={filePath};Mode=ReadWriteCreate;Pooling=True";
+            }
+
+            if (!string.IsNullOrEmpty(q.ConnectionString))
+                connectionString += $";{q.ConnectionString}";
+
+            return connectionString.TrimStart(';');
         }
     }
 
