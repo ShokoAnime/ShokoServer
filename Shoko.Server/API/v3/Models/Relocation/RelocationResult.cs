@@ -29,14 +29,14 @@ public class RelocationResult
     /// a manual relocation.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public string? PipeName { get; set; }
+    public string? PresetName { get; set; }
 
     /// <summary>
     /// The new id of the <see cref="ManagedFolder"/> where the file now
     /// resides, if the relocation was successful. Remember to check
     /// <see cref="IsSuccess"/> to see the status of the relocation.
     /// </summary>
-    /// 
+    ///
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public int? ManagedFolderID { get; set; }
 

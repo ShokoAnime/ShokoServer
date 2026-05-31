@@ -275,7 +275,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
                 IsSuccess = response.Success,
                 IsPreview = true,
                 IsRelocated = response.Moved || response.Renamed,
-                PipeName = config is StoredRelocationPreset stored ? stored.Name : null,
+                PresetName = config is StoredRelocationPreset stored ? stored.Name : null,
                 AbsolutePath = response.AbsolutePath,
                 ManagedFolderID = response.ManagedFolder?.ID,
                 RelativePath = response.RelativePath,
@@ -346,7 +346,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
                 {
                     FileID = vlID,
                     IsSuccess = false,
-                    PipeName = configName,
+                    PresetName = configName,
                     ErrorMessage = $"Unable to find File with ID {vlID}",
                 };
                 continue;
@@ -359,7 +359,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
                 yield return new ApiRelocationResult
                 {
                     FileID = vlID,
-                    PipeName = configName,
+                    PresetName = configName,
                     IsSuccess = false,
                     ErrorMessage = vlp is not null
                         ? $"Unable to find any resolvable File.Location for File with ID {vlID}. Found valid but non-resolvable File.Location \"{vlp.Path}\" with ID {vlp.ID}."
@@ -378,7 +378,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
                 {
                     FileID = vlp.VideoID,
                     FileLocationID = vlp.ID,
-                    PipeName = configName,
+                    PresetName = configName,
                     IsSuccess = false,
                     ErrorMessage = result.Error.Message,
                 };
@@ -401,7 +401,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
                 {
                     FileID = vlp.VideoID,
                     FileLocationID = vlp.ID,
-                    PipeName = configName,
+                    PresetName = configName,
                     IsSuccess = false,
                     ErrorMessage = otherResult.Error.Message,
                 };
@@ -415,7 +415,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
                 FileID = vlp.VideoID,
                 FileLocationID = vlp.ID,
                 ManagedFolderID = result.ManagedFolder.ID,
-                PipeName = configName,
+                PresetName = configName,
                 IsSuccess = true,
                 IsRelocated = relocated,
                 RelativePath = result.RelativePath,
