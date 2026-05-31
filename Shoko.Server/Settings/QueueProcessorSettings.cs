@@ -50,18 +50,11 @@ public class QueueProcessorSettings
     } = "SQLite/Queue.db3";
 
     /// <summary>
-    /// The connection string for the queue database. Only used when <see cref="Provider"/> is MySQL or SQL Server.
+    /// The connection string for the queue database. For SQLite, this can be used to append additional options to the connection string. For all other providers this is a required field.
     /// </summary>
     [Display(Name = "Connection String")]
     [RequiresRestart]
     [EnvironmentVariable("QUEUE_CONNECTION_STRING")]
-    [TextArea]
-    [Visibility(
-        Visibility = DisplayVisibility.Visible,
-        ToggleWhenMemberIsSet = nameof(Provider),
-        ToggleWhenSetTo = DatabaseProvider.SQLite,
-        ToggleVisibilityTo = DisplayVisibility.Hidden
-    )]
     public string ConnectionString { get; set; } = string.Empty;
 
     /// <summary>
