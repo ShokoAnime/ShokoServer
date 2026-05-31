@@ -69,6 +69,12 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     private readonly Dictionary<Guid, Dictionary<string, (EnqueueContext Ctx, WorkerPool Pool)>>
         _afterParentCallbacks = new();
 
+    // IDs of waiting jobs pulled from their pool sub-queues by RegisterAfterParent but not yet
+    // physically removed (the removal happens outside _gate to avoid lock-order inversion with
+    // WorkerPool._subQueueLock). TryRegisterExecuting rejects any ID in this set so a worker
+    // cannot acquire the job during the brief window between the two operations.
+    private readonly HashSet<Guid> _heldForParent = new();
+
     private readonly object _gate = new();
     private volatile bool _paused;
 
@@ -343,6 +349,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         {
             if (_globalRunning >= _maxTotalWorkers) return false;
             if (!_concurrency.CanRun(type, _typeRunningCounts, _groupRunningCounts)) return false;
+            if (_heldForParent.Contains(job.Id)) return false;
 
             _globalRunning++;
             _typeRunningCounts[type] = (_typeRunningCounts.GetValueOrDefault(type)) + 1;
@@ -373,6 +380,10 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             return;
 
         List<(EnqueueContext Ctx, WorkerPool Pool)>? immediateEnqueue = null;
+        // ID of a waiting job that must be pulled from its pool sub-queue. The removal happens
+        // outside _gate (see below) to avoid lock-order inversion with WorkerPool._subQueueLock;
+        // _heldForParent blocks acquisition in the interim.
+        var heldId = Guid.Empty;
 
         lock (_gate)
         {
@@ -382,9 +393,10 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 if (_executingSet.ContainsKey(existingId))
                     return;
 
-                // Waiting — pull it out of whichever pool holds it so it doesn't run early
-                foreach (var pool in _allPools)
-                    pool.RemoveFromQueue(existingId);
+                // Waiting — mark as held so TryRegisterExecuting rejects it while we pull it
+                // out of the pool sub-queue below (outside the lock).
+                _heldForParent.Add(existingId);
+                heldId = existingId;
 
                 // Key stays in _jobKeyIndex; we'll point it at the new context's ID below
             }
@@ -413,6 +425,15 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 map[ctx.Job.JobKey] = (ctx, targetPool);
                 _jobKeyIndex[ctx.Job.JobKey] = ctx.Job.Id;
             }
+        }
+
+        // Physical removal happens outside _gate. TryRegisterExecuting already rejects heldId,
+        // so no worker can acquire the job during this window.
+        if (heldId != Guid.Empty)
+        {
+            foreach (var pool in _allPools)
+                pool.RemoveFromQueue(heldId);
+            lock (_gate) _heldForParent.Remove(heldId);
         }
 
         if (immediateEnqueue != null)
