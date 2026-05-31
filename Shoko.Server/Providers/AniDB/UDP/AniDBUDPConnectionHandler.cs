@@ -84,7 +84,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
     /// <summary>
     /// Set when AniDB explicitly rejects credentials (LOGIN_FAILED response).
     /// Unlike <see cref="IsInvalidSession"/>, this is never cleared by session-reset or ban-expiry
-    /// paths — only a deliberate re-<see cref="Init"/> (which implies credentials may have changed)
+    /// paths — only a deliberate re-<see cref="Init()"/> (which implies credentials may have changed)
     /// clears it. The acquisition filter uses this to hold AniDB jobs permanently until the user
     /// fixes their credentials.
     /// </summary>
