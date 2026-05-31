@@ -34,15 +34,15 @@ public class PluginPage
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public PluginInfo? PluginInfo { get; init; }
 
-    public PluginPage(LocalPluginPage page, string baseUrl, bool includePluginInfo = false)
+    public PluginPage(LocalPluginPage page, bool includePluginInfo = false)
     {
         Name = page.Name;
         if (Uri.IsWellFormedUriString(page.Url, UriKind.Absolute))
             Url = page.Url;
         else
             Url = page.Url.StartsWith("/")
-                ? baseUrl + page.Url[1..]
-                : baseUrl + page.Url;
+                ? page.Url
+                : "/" + page.Url;
         CanEmbed = page.CanEmbed;
         if (includePluginInfo)
             PluginInfo = new(page.PluginInfo);

@@ -98,7 +98,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
             })
             .OrderBy(pluginInfo => pluginInfo.LoadOrder)
             .SelectMany(pluginInfo => pluginInfo.GetPages())
-            .Select(page => new PluginPage(page, BaseUrl, true))
+            .Select(page => new PluginPage(page, true))
             .ToList();
     }
 
@@ -254,7 +254,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     [HttpGet("{pluginID}/Pages")]
     public ActionResult<List<PluginPage>> GetPagesForPluginByID([FromRoute] Guid pluginID)
         => pluginManager.GetPluginInfo(pluginID) is { } pluginInfo
-            ? pluginInfo.GetPages().Select(pageInfo => new PluginPage(pageInfo, BaseUrl)).ToList()
+            ? pluginInfo.GetPages().Select(pageInfo => new PluginPage(pageInfo)).ToList()
             : NotFound("Plugin not found");
 
     /// <summary>
@@ -397,7 +397,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     [HttpGet("{pluginID}/{pluginVersion}/Pages")]
     public ActionResult<List<PluginPage>> GetPagesForPluginByID([FromRoute] Guid pluginID, [FromRoute] Version pluginVersion)
         => pluginManager.GetPluginInfo(pluginID, pluginVersion) is { } pluginInfo
-            ? pluginInfo.GetPages().Select(pageInfo => new PluginPage(pageInfo, BaseUrl)).ToList()
+            ? pluginInfo.GetPages().Select(pageInfo => new PluginPage(pageInfo)).ToList()
             : NotFound("Plugin not found");
 
     /// <summary>
