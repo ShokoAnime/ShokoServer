@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Config.Attributes;
+using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Plugin;
 
 #nullable enable
 namespace Shoko.Server.Settings;
@@ -13,7 +12,7 @@ namespace Shoko.Server.Settings;
 /// <summary>
 ///   Configuration for the image template URL.
 /// </summary>
-public class ImageTemplateUrlConfiguration : IConfigurationWithCustomValidation<ImageTemplateUrlConfiguration>
+public class ImageTemplateUrlConfiguration
 {
     /// <summary>
     ///   The image source.
@@ -27,7 +26,8 @@ public class ImageTemplateUrlConfiguration : IConfigurationWithCustomValidation<
     [Key, Display(Name = "Image Template URL")]
     public string? TemplateUrl { get; set; }
 
-    public static IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ImageTemplateUrlConfiguration config, IConfigurationService configurationService, IPluginManager pluginManager)
+    [ConfigurationAction(ConfigurationActionType.Validate)]
+    public static IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ImageTemplateUrlConfiguration config)
     {
         var errors = new Dictionary<string, IReadOnlyList<string>>();
         if (config.ImageSource.IsLocal)
