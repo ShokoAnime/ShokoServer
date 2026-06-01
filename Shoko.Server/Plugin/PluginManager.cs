@@ -25,6 +25,7 @@ using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Relocation;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor;
 using Shoko.Server.Settings;
 
 #pragma warning disable CS0618
@@ -352,6 +353,14 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             pluginInfo.ServiceRegistrationType!
                 .GetMethod(nameof(IPluginServiceRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static, [typeof(IServiceCollection), typeof(IApplicationPaths)])!
                 .Invoke(null, [serviceCollection, applicationPaths]);
+        }
+
+        // Scan every loaded plugin assembly for IQueueJob implementations.
+        // Plugins don't need to call AddQueueJobsFromAssembly themselves.
+        foreach (var pluginInfo in _pluginTypes.Where(a => a.PluginType is not null))
+        {
+            logger.LogTrace("Scanning plugin assembly for queue jobs. ({DllName})", Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]));
+            serviceCollection.AddQueueJobsFromAssembly(pluginInfo.PluginType!.Assembly);
         }
     }
 

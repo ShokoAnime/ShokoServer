@@ -209,12 +209,6 @@ services.AddQueueProcessor(configure: opts => { /* ... */ },
     scanAssemblies: typeof(MyPlugin).Assembly);
 ```
 
-Or, from a plugin that loads *after* `AddQueueProcessor` has run (but before the host starts):
-
-```csharp
-services.AddQueueJobsFromAssembly(typeof(MyPluginJob).Assembly);
-```
-
 That's all the setup. `WorkerPoolManager` is registered as an `IHostedService` — when the host starts, it migrates the queue DB, loads persisted jobs, builds pools from attributes, and starts the workers.
 
 ---
@@ -293,7 +287,7 @@ public class HashFileJob : IQueueJob
 
 ### How job registration works
 
-You don't manually register job types. `AddQueueProcessor` (and `AddQueueJobsFromAssembly`) reflect over assemblies, find every concrete `IQueueJob`, and:
+You don't manually register job types. `AddQueueProcessor` reflects over the host assembly, and Shoko Server automatically scans every loaded plugin assembly via `PluginManager.RegisterPlugins`. Each discovered concrete `IQueueJob` is:
 
 1. Register it as **transient** in DI under its concrete type.
 2. Add it to the shared `QueueJobTypeRegistry` (freezes on first read).
