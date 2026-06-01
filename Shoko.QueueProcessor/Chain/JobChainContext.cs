@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 
 namespace Shoko.QueueProcessor.Chain;
@@ -11,7 +12,9 @@ namespace Shoko.QueueProcessor.Chain;
 public class JobChainContext
 {
     private readonly Dictionary<string, string> _data = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> _results = new(StringComparer.Ordinal);
+
+    // Results keyed by job ID (Guid string). Type-based lookups scan this list for the last matching type.
+    private readonly List<JobResult> _results = [];
     private readonly List<JobOutcome> _outcomes = [];
 
     internal bool IsDirty { get; private set; }
@@ -39,26 +42,43 @@ public class JobChainContext
         IsDirty = true;
     }
 
-    // ── Typed job results (set automatically by BaseJob<T>.Execute) ──────────────────────────────
+    // ── Typed job results ────────────────────────────────────────────────────────────────────────
+    // Keyed by job ID so the same job type can appear multiple times in a chain without collision.
+    // Type-based accessors return the most recently stored result for that type.
+
+    public T? GetResult<T>(Guid jobId)
+    {
+        var entry = _results.FirstOrDefault(r => r.JobId == jobId);
+        return entry == null ? default : JsonSerializer.Deserialize<T>(entry.Json);
+    }
 
     public T? GetResult<T>(Type jobType)
     {
-        if (!_results.TryGetValue(jobType.AssemblyQualifiedName ?? jobType.FullName!, out var json)) return default;
-        return JsonSerializer.Deserialize<T>(json);
+        var typeKey = TypeKey(jobType);
+        var entry = _results.LastOrDefault(r => r.TypeKey == typeKey);
+        return entry == null ? default : JsonSerializer.Deserialize<T>(entry.Json);
     }
 
-    public void SetResult<T>(Type jobType, T value)
+    internal void SetResult<T>(Guid jobId, Type jobType, T value)
     {
-        _results[jobType.AssemblyQualifiedName ?? jobType.FullName!] = JsonSerializer.Serialize(value);
+        var typeKey = TypeKey(jobType);
+        var idx = _results.FindIndex(r => r.JobId == jobId);
+        var entry = new JobResult { JobId = jobId, TypeKey = typeKey, Json = JsonSerializer.Serialize(value) };
+        if (idx >= 0)
+            _results[idx] = entry;
+        else
+            _results.Add(entry);
         IsDirty = true;
     }
 
     // ── Outcome tracking ─────────────────────────────────────────────────────────────────────────
 
+    public JobOutcome? GetOutcome(Guid jobId) => _outcomes.Find(o => o.JobId == jobId);
+
     public JobOutcome? GetOutcome(Type jobType)
     {
-        var name = jobType.AssemblyQualifiedName ?? jobType.FullName!;
-        return _outcomes.Find(o => o.JobType == name);
+        var typeKey = TypeKey(jobType);
+        return _outcomes.LastOrDefault(o => o.JobType == typeKey);
     }
 
     public IReadOnlyList<JobOutcome> GetAllOutcomes() => _outcomes;
@@ -101,9 +121,8 @@ public class JobChainContext
         }
         if (!string.IsNullOrEmpty(resultsJson))
         {
-            var results = JsonSerializer.Deserialize<Dictionary<string, string>>(resultsJson);
-            if (results != null)
-                foreach (var (k, v) in results) ctx._results[k] = v;
+            var results = JsonSerializer.Deserialize<List<JobResult>>(resultsJson);
+            if (results != null) ctx._results.AddRange(results);
         }
         if (!string.IsNullOrEmpty(outcomesJson))
         {
@@ -111,5 +130,15 @@ public class JobChainContext
             if (outcomes != null) ctx._outcomes.AddRange(outcomes);
         }
         return ctx;
+    }
+
+    private static string TypeKey(Type jobType) => jobType.AssemblyQualifiedName ?? jobType.FullName!;
+
+    // Used for serialization of the results list
+    private class JobResult
+    {
+        public Guid JobId { get; set; }
+        public string TypeKey { get; set; } = string.Empty;
+        public string Json { get; set; } = string.Empty;
     }
 }

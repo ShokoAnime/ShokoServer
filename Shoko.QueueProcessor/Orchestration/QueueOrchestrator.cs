@@ -1003,6 +1003,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         {
             var skippedOutcomes = skippedJobs.Select(j => new JobOutcome
             {
+                JobId = j.Job.Id,
                 JobType = j.Job.JobType,
                 Status = JobOutcomeStatus.Skipped,
                 CompletedAt = DateTimeOffset.UtcNow,

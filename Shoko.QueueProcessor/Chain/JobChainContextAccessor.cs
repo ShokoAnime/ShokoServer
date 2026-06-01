@@ -11,6 +11,8 @@ namespace Shoko.QueueProcessor.Chain;
 public class JobChainContextAccessor : IJobChainContextAccessor
 {
     private JobChainContext? _context;
+    private Guid _currentJobId;
+    private Type? _currentJobType;
 
     public JobChainContext? GetCurrentContext() => _context;
 
@@ -18,11 +20,25 @@ public class JobChainContextAccessor : IJobChainContextAccessor
 
     public T? GetResult<TJob, T>() where TJob : IQueueJob => _context == null ? default : _context.GetResult<T>(typeof(TJob));
 
+    public T? GetResult<T>(Guid jobId) => _context == null ? default : _context.GetResult<T>(jobId);
+
     public T? GetData<T>(string key) => _context == null ? default : _context.GetData<T>(key);
 
-    public void SetResult<T>(Type jobType, T value) => _context?.SetResult(jobType, value);
+    public void SetResult<T>(Type jobType, T value)
+    {
+        if (_context != null && _currentJobId != Guid.Empty)
+            _context.SetResult(_currentJobId, jobType, value);
+    }
 
     public void SetData<T>(string key, T? value) => _context?.SetData(key, value);
 
+    // Called by Worker to hydrate on first job or after crash-recovery scope rebuild
     internal void Initialize(JobChainContext context) => _context = context;
+
+    // Called by Worker before each job executes so SetResult tags results by job ID
+    internal void SetCurrentJob(Guid jobId, Type jobType)
+    {
+        _currentJobId = jobId;
+        _currentJobType = jobType;
+    }
 }

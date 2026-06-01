@@ -128,7 +128,8 @@ internal sealed class Worker
                     ? _chainScopeRegistry.GetOrCreateChainScope(job.ChainId!.Value)
                     : _serviceProvider.CreateScope();
 
-                // Hydrate chain context accessor on first job in this chain (or after crash-recovery scope rebuild)
+                // Hydrate chain context accessor on first job in this chain (or after crash-recovery scope rebuild),
+                // then update which job is currently executing so SetResult tags results by job ID.
                 if (isChainJob)
                 {
                     var accessor = scope.ServiceProvider.GetRequiredService<JobChainContextAccessor>();
@@ -137,6 +138,7 @@ internal sealed class Worker
                         var repo = scope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
                         accessor.Initialize(await repo.GetOrCreateAsync(job.ChainId!.Value, ct).ConfigureAwait(false));
                     }
+                    accessor.SetCurrentJob(job.Id, jobType);
                 }
 
                 var instance = (IQueueJob)scope.ServiceProvider.GetRequiredService(jobType);
@@ -163,7 +165,7 @@ internal sealed class Worker
                 if (isChainJob)
                 {
                     var ctx = scope.ServiceProvider.GetRequiredService<JobChainContextAccessor>().GetCurrentContext()!;
-                    ctx.AddOutcome(new JobOutcome { JobType = job.JobType, Status = JobOutcomeStatus.Succeeded, CompletedAt = DateTimeOffset.UtcNow });
+                    ctx.AddOutcome(new JobOutcome { JobId = job.Id, JobType = job.JobType, Status = JobOutcomeStatus.Succeeded, CompletedAt = DateTimeOffset.UtcNow });
                     var repo = scope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
                     await repo.SaveAsync(ctx, CancellationToken.None).ConfigureAwait(false);
                 }
@@ -204,6 +206,7 @@ internal sealed class Worker
                         {
                             ctx.AddOutcome(new JobOutcome
                             {
+                                JobId = job.Id,
                                 JobType = job.JobType,
                                 Status = status,
                                 ExceptionMessage = ex.Message,
