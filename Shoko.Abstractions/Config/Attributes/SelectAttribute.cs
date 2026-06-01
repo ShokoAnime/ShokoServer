@@ -22,11 +22,6 @@ public class SelectAttribute : Attribute
     /// <summary>
     ///   Initializes a new instance of the <see cref="SelectAttribute"/> class.
     /// </summary>
-    public SelectAttribute() { }
-
-    /// <summary>
-    ///   Initializes a new instance of the <see cref="SelectAttribute"/> class.
-    /// </summary>
     /// <param name="selectType">
     ///   Determines how to render the select in the UI.
     /// </param>
