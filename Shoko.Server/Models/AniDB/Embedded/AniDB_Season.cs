@@ -9,7 +9,6 @@ using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
-using Shoko.Server.Models.Shoko;
 
 #nullable enable
 namespace Shoko.Server.Models.AniDB.Embedded;
@@ -128,7 +127,7 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
     #region IWithPrimaryImage Implementation
 
     public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
-        ? new ShokoImageStub(image, xref)
+        ? new ImageStub(image, xref)
         : null;
 
     public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(_imagePath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, _imagePath) is { } posterID

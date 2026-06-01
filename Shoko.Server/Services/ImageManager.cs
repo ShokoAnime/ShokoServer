@@ -25,6 +25,7 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Image.Exceptions;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.Plugin;
@@ -333,7 +334,7 @@ public partial class ImageManager(
 
             return xrefs
                 .SelectMany(list => list)
-                .Select(xref => (xref, image: GetImageByID(xref.ImageID, primaryImage), linkedXref: (xref.EntitySource, xref.EntityType, xref.EntityID) != (entitySource, entityType, entityID)))
+                .Select(xref => (xref, image: GetImageByID(xref.ImageID, primaryImage)!, linkedXref: (xref.EntitySource, xref.EntityType, xref.EntityID) != (entitySource, entityType, entityID)))
                 .Where(tuple => tuple.image is not null)
                 .OrderBy(tuple => tuple.xref.ImageType)
                 .ThenBy(tuple => tuple.linkedXref)
@@ -341,7 +342,7 @@ public partial class ImageManager(
                 .ThenBy(tuple => tuple.xref.Ordering)
                 .ThenBy(tuple => tuple.xref.Source)
                 .DistinctBy(tuple => (tuple.xref.ImageID, tuple.xref.ImageType, tuple.xref.ImageSource))
-                .Select(tuple => new ShokoImageStub(tuple.image, tuple.xref, tuple.linkedXref))
+                .Select(tuple => new ImageStub(tuple.image, tuple.xref, tuple.linkedXref))
                 .ToList();
         }
 
@@ -352,7 +353,7 @@ public partial class ImageManager(
             .ThenBy(tuple => tuple.xref.Ordering)
             .ThenBy(tuple => tuple.xref.Source)
             .DistinctBy(tuple => (tuple.xref.ImageID, tuple.xref.ImageType, tuple.xref.ImageSource))
-            .Select(tuple => new ShokoImageStub(tuple.image, tuple.xref))
+            .Select(tuple => new ImageStub(tuple.image, tuple.xref))
             .ToList();
     }
 

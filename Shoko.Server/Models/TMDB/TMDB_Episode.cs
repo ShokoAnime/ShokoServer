@@ -18,7 +18,6 @@ using Shoko.Abstractions.Video;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Interfaces;
-using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
@@ -478,7 +477,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
     #region IWithBackdropImage Implementation
 
     public IImage? DefaultBackdropImage => DefaultBackdropImageCrossReference is { } xref && xref.GetImage() is { } image
-        ? new ShokoImageStub(image, xref)
+        ? new ImageStub(image, xref)
         : null;
 
     public IImageCrossReference? DefaultBackdropImageCrossReference => !string.IsNullOrEmpty(ThumbnailPath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, ThumbnailPath) is { } imageID

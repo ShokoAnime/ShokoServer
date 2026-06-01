@@ -19,7 +19,6 @@ using Shoko.Abstractions.Video;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Interfaces;
-using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
@@ -684,7 +683,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
     #region IWithPrimaryImage Implementation
 
     public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
-        ? new ShokoImageStub(image, xref)
+        ? new ImageStub(image, xref)
         : null;
 
     public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(PosterPath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, PosterPath) is { } imageID
@@ -696,7 +695,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
     #region IWithBackdropImage Implementation
 
     public IImage? DefaultBackdropImage => DefaultBackdropImageCrossReference is { } xref && xref.GetImage() is { } image
-        ? new ShokoImageStub(image, xref)
+        ? new ImageStub(image, xref)
         : null;
 
     public IImageCrossReference? DefaultBackdropImageCrossReference => !string.IsNullOrEmpty(BackdropPath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, BackdropPath) is { } imageID

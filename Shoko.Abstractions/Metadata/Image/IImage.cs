@@ -54,6 +54,12 @@ public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
     DataSource Source { get; }
 
     /// <summary>
+    ///   If this image is a wrapped image, then this will be the
+    ///   cross-reference that wraps it.
+    /// </summary>
+    IImageCrossReference? CrossReference { get; }
+
+    /// <summary>
     ///   The image type. Will always be <see cref="ImageEntityType.None"/> when
     ///   the image is directly retrieved from image manager. Will be set to any
     ///   other type when retrieved from a cross-reference or from an entity.

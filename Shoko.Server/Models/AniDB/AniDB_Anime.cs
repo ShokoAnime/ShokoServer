@@ -531,7 +531,7 @@ public class AniDB_Anime : IAnidbAnime
     #region IWithPrimaryImage Implementation
 
     public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
-        ? new ShokoImageStub(image, xref)
+        ? new ImageStub(image, xref)
         : null;
 
     public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(Picname) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, Picname) is { } imageID

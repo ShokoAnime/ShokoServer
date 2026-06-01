@@ -14,6 +14,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Services;
@@ -2662,7 +2663,7 @@ public class SeriesController : BaseController
             return ValidationProblem(InvalidIDForSource);
 
         var xref = _imageManager.SetPreferredImageForEntity(series, imageEntityType, image);
-        return new Image(new ShokoImageStub(image, xref));
+        return new Image(new ImageStub(image, xref));
     }
 
     /// <summary>

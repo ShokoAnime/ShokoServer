@@ -10,7 +10,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
-using Shoko.Server.Models.Shoko;
+using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Repositories;
 
 using AbstractCreatorType = Shoko.Abstractions.Metadata.Enums.CreatorType;
@@ -138,7 +138,7 @@ public class AniDB_Creator : ICreator
     #region IWithPrimaryImage Implementation
 
     public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
-        ? new ShokoImageStub(image, xref)
+        ? new ImageStub(image, xref)
         : null;
 
     public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(ImagePath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, ImagePath) is { } imageID

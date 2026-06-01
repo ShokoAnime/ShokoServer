@@ -5,65 +5,96 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 
-namespace Shoko.Server.Models.Shoko;
+namespace Shoko.Abstractions.Metadata.Stub;
 
 /// <summary>
-///     A stub for an image that only contains the bare minimum information.
+///   A stub implementation of the <see cref="IImage"/> interface wrapping an
+///   <see cref="IImage"/> instance and an <see cref="IImageCrossReference"/>
+///   instance.
 /// </summary>
-public class ShokoImageStub(IImage image, IImageCrossReference xref, bool linkedXref = false) : IImage
+public class ImageStub(IImage image, IImageCrossReference xref, bool linkedXref = false) : IImage
 {
+    /// <inheritdoc />
     public Guid ID => image.ID;
 
+    /// <inheritdoc />
     public Guid PrimaryID => image.PrimaryID;
 
+    /// <inheritdoc />
     public IReadOnlyList<Guid> LinkedIDs => image.LinkedIDs;
 
-    [Obsolete]
+    /// <inheritdoc />
+    [Obsolete("Only for backwards compatibility with older APIs. Use the universally unique identifier instead.")]
     public int LocalID => image.LocalID;
 
+    /// <inheritdoc />
     public string ResourceID => image.ResourceID;
 
+    /// <inheritdoc />
     public DataSource Source => image.Source;
 
+    /// <inheritdoc />
+    public IImageCrossReference CrossReference => xref;
+
+    /// <inheritdoc />
     public ImageEntityType Type => xref.ImageType;
 
+    /// <inheritdoc />
     public string ContentType => image.ContentType;
 
+    /// <inheritdoc />
     public bool IsEnabled => image.IsEnabled;
 
+    /// <inheritdoc />
     public bool IsDesired => image.IsDesired;
 
+    /// <inheritdoc />
     public bool IsPreferred => !linkedXref && xref.IsPreferred;
 
+    /// <inheritdoc />
     public bool IsLocked => image.Source is not DataSource.User;
 
+    /// <inheritdoc />
     public bool IsAvailable => image.IsAvailable;
 
+    /// <inheritdoc />
     public byte DownloadAttempts => image.DownloadAttempts;
 
+    /// <inheritdoc />
     public int? Width => image.Width;
 
+    /// <inheritdoc />
     public int? Height => image.Height;
 
+    /// <inheritdoc />
     public double? Rating => xref.Rating;
 
+    /// <inheritdoc />
     public int? RatingVotes => xref.RatingVotes;
 
-    public string LanguageCode => image.LanguageCode;
+    /// <inheritdoc />
+    public string? LanguageCode => image.LanguageCode;
 
-    public string CountryCode => image.CountryCode;
+    /// <inheritdoc />
+    public string? CountryCode => image.CountryCode;
 
+    /// <inheritdoc />
     public TitleLanguage Language => image.Language;
 
+    /// <inheritdoc />
     public string LocalPath => image.LocalPath;
 
+    /// <inheritdoc />
     public DateTime CreatedAt => image.CreatedAt;
 
+    /// <inheritdoc />
     public DateTime LastUpdatedAt => image.LastUpdatedAt;
 
-    public bool Equals(IImage other)
+    /// <inheritdoc />
+    public bool Equals(IImage? other)
         => image.Equals(other);
 
+    /// <inheritdoc />
     public IReadOnlyList<IImageCrossReference> GetCrossReferences(
         ImageEntityType? imageType = null,
         DataSource? xrefSource = null,
@@ -74,12 +105,19 @@ public class ShokoImageStub(IImage image, IImageCrossReference xref, bool linked
     )
         => image.GetCrossReferences(imageType, xrefSource, entitySource, entityType, isEnabled, isDesired);
 
+    /// <inheritdoc />
     public IReadOnlyList<IImage> GetLinkedImages(bool includePrimaryImage = true)
         => image.GetLinkedImages(includePrimaryImage);
 
-    public IImage GetPrimaryImage()
-        => image.GetPrimaryImage();
+    /// <inheritdoc />
+    public IImage? GetPrimaryImage()
+        => image.PrimaryID == image.ID
+            ? this
+            : image.GetPrimaryImage() is { } primaryImage
+                ? new ImageStub(primaryImage, xref, linkedXref)
+                : null;
 
-    public Stream GetStream()
+    /// <inheritdoc />
+    public Stream? GetStream()
         => image.GetStream();
 }

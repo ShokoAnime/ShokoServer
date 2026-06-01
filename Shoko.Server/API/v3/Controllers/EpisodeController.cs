@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -19,7 +20,6 @@ using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB;
-using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
@@ -842,7 +842,7 @@ public class EpisodeController : BaseController
             return ValidationProblem(InvalidIDForSource);
 
         var xref = _imageManager.SetPreferredImageForEntity(episode, imageEntityType, image);
-        return new Image(new ShokoImageStub(image, xref));
+        return new Image(new ImageStub(image, xref));
     }
 
     /// <summary>

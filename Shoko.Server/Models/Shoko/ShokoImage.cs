@@ -240,6 +240,8 @@ public class ShokoImage : IImage
 
     #region IImage Implementation
 
+    IImageCrossReference? IImage.CrossReference => null;
+
     /// <inheritdoc/>
     IImage? IImage.GetPrimaryImage() => GetPrimaryImage();
 

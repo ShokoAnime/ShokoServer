@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
@@ -421,7 +422,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
             return ValidationProblem(InvalidIDForSource);
 
         var xref = _imageManager.SetPreferredImageForEntity(group, imageEntityType, image);
-        return new Image(new ShokoImageStub(image, xref));
+        return new Image(new ImageStub(image, xref));
     }
 
     /// <summary>
