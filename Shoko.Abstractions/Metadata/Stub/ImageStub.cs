@@ -12,7 +12,7 @@ namespace Shoko.Abstractions.Metadata.Stub;
 ///   <see cref="IImage"/> instance and an <see cref="IImageCrossReference"/>
 ///   instance.
 /// </summary>
-public class ImageStub(IImage image, IImageCrossReference? xref = null, bool linkedXref = false) : IImage
+public class ImageStub(IImage image, IImageCrossReference? xref = null, bool linkedXref = false, bool? isPreferred = null) : IImage
 {
     /// <inheritdoc />
     public Guid ID => image.ID;
@@ -49,7 +49,7 @@ public class ImageStub(IImage image, IImageCrossReference? xref = null, bool lin
     public bool IsDesired => image.IsDesired;
 
     /// <inheritdoc />
-    public bool IsPreferred => !linkedXref && (xref?.IsPreferred ?? image.IsPreferred);
+    public bool IsPreferred => isPreferred ?? (!linkedXref && (xref?.IsPreferred ?? image.IsPreferred));
 
     /// <inheritdoc />
     public bool IsLocked => image.Source is not DataSource.User;
