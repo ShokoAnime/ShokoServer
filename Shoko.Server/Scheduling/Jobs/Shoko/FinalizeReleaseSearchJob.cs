@@ -96,10 +96,16 @@ public class FinalizeReleaseSearchJob : BaseJob
             await _relocationService.ScheduleAutoRelocationForVideo(_vlocal);
     }
 
-    public FinalizeReleaseSearchJob(IVideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository matchAttempts)
+    public FinalizeReleaseSearchJob(
+        IVideoReleaseService videoReleaseService,
+        VideoLocalRepository videoLocals,
+        IVideoRelocationService relocationService,
+        StoredReleaseInfo_MatchAttemptRepository matchAttempts
+    )
     {
         _videoReleaseService = (VideoReleaseService)videoReleaseService;
         _videoLocals = videoLocals;
+        _relocationService = relocationService;
         _matchAttempts = matchAttempts;
     }
 
