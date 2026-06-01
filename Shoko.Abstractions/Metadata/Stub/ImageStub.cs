@@ -33,6 +33,11 @@ public class ImageStub(IImage image, IImageCrossReference? xref = null, bool lin
     /// <inheritdoc />
     public DataSource Source => image.Source;
 
+    /// <summary>
+    ///   The wrapped image.
+    /// </summary>
+    public IImage Image => image;
+
     /// <inheritdoc />
     public IImageCrossReference? CrossReference => xref ?? image.CrossReference;
 
