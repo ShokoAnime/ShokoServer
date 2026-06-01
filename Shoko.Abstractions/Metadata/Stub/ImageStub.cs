@@ -12,7 +12,7 @@ namespace Shoko.Abstractions.Metadata.Stub;
 ///   <see cref="IImage"/> instance and an <see cref="IImageCrossReference"/>
 ///   instance.
 /// </summary>
-public class ImageStub(IImage image, IImageCrossReference xref, bool linkedXref = false) : IImage
+public class ImageStub(IImage image, IImageCrossReference? xref = null, bool linkedXref = false) : IImage
 {
     /// <inheritdoc />
     public Guid ID => image.ID;
@@ -34,10 +34,10 @@ public class ImageStub(IImage image, IImageCrossReference xref, bool linkedXref 
     public DataSource Source => image.Source;
 
     /// <inheritdoc />
-    public IImageCrossReference CrossReference => xref;
+    public IImageCrossReference? CrossReference => xref ?? image.CrossReference;
 
     /// <inheritdoc />
-    public ImageEntityType Type => xref.ImageType;
+    public ImageEntityType Type => xref?.ImageType ?? image.Type;
 
     /// <inheritdoc />
     public string ContentType => image.ContentType;
@@ -49,7 +49,7 @@ public class ImageStub(IImage image, IImageCrossReference xref, bool linkedXref 
     public bool IsDesired => image.IsDesired;
 
     /// <inheritdoc />
-    public bool IsPreferred => !linkedXref && xref.IsPreferred;
+    public bool IsPreferred => !linkedXref && (xref?.IsPreferred ?? image.IsPreferred);
 
     /// <inheritdoc />
     public bool IsLocked => image.Source is not DataSource.User;
@@ -67,10 +67,10 @@ public class ImageStub(IImage image, IImageCrossReference xref, bool linkedXref 
     public int? Height => image.Height;
 
     /// <inheritdoc />
-    public double? Rating => xref.Rating;
+    public double? Rating => xref is null ? image.Rating : xref.Rating;
 
     /// <inheritdoc />
-    public int? RatingVotes => xref.RatingVotes;
+    public int? RatingVotes => xref is null ? image.RatingVotes : xref.RatingVotes;
 
     /// <inheritdoc />
     public string? LanguageCode => image.LanguageCode;
