@@ -41,4 +41,10 @@ public interface IJobRepository
 
     /// <summary>Removes all waiting jobs (truncates the table). Used by queue clear.</summary>
     Task ClearAllAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Clears <see cref="QueuedJob.ParentJobId"/> for the given job IDs, promoting them from
+    /// chain-deferred to active. Called by <see cref="Orchestration.PersistenceBuffer"/> on activation flush.
+    /// </summary>
+    Task ActivateChainChildrenAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct = default);
 }

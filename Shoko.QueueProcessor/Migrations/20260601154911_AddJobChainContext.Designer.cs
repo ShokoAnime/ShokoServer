@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Shoko.QueueProcessor.Storage;
 
@@ -10,9 +11,11 @@ using Shoko.QueueProcessor.Storage;
 namespace Shoko.QueueProcessor.Migrations
 {
     [DbContext(typeof(SqliteQueueDbContext))]
-    partial class SqliteQueueDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260601154911_AddJobChainContext")]
+    partial class AddJobChainContext
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.6");

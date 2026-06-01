@@ -64,4 +64,16 @@ public class JobRepository : IJobRepository
 
     public Task ClearAllAsync(CancellationToken ct = default) =>
         _db.Jobs.ExecuteDeleteAsync(ct);
+
+    public async Task ActivateChainChildrenAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct = default)
+    {
+        if (ids.Count == 0) return;
+        foreach (var chunk in ids.Chunk(_chunkSize))
+        {
+            var idSet = chunk.ToHashSet();
+            await _db.Jobs
+                .Where(j => idSet.Contains(j.Id))
+                .ExecuteUpdateAsync(s => s.SetProperty(j => j.ParentJobId, (Guid?)null), ct);
+        }
+    }
 }

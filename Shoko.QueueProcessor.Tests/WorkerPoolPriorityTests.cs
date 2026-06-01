@@ -7,6 +7,7 @@ using Moq;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Analytics;
+using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Storage;
@@ -56,10 +57,11 @@ public class WorkerPoolPriorityTests
             new Dictionary<Type, string?>(),
             new Dictionary<string, int>());
         var retry = new RetryPolicyResolver(new RetryPolicy { MaxRetries = 0 });
+        var chainScopeRegistry = new ChainScopeRegistry(scopeFactory);
         return new QueueOrchestrator(
             NullLogger<QueueOrchestrator>.Instance,
             buffer, scopeFactory, registry, retry,
-            new QueueMetrics(), new QueueStateEventHandler(), maxWorkers);
+            new QueueMetrics(), new QueueStateEventHandler(), chainScopeRegistry, maxWorkers);
     }
 
     private static IServiceScopeFactory MakeScopeFactory(Mock<IJobRepository> repo)

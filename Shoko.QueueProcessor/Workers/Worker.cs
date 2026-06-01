@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
 using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
 
@@ -25,6 +26,7 @@ internal sealed class Worker
     private readonly int _index;
     private readonly IServiceProvider _serviceProvider;
     private readonly QueueOrchestrator _orchestrator;
+    private readonly IChainScopeRegistry _chainScopeRegistry;
     private readonly QueueMetrics _metrics;
     private readonly QueueStateEventHandler _events;
     private readonly ChannelReader<bool> _wakeReader;
@@ -43,6 +45,7 @@ internal sealed class Worker
         int index,
         IServiceProvider serviceProvider,
         QueueOrchestrator orchestrator,
+        IChainScopeRegistry chainScopeRegistry,
         QueueMetrics metrics,
         QueueStateEventHandler events,
         ChannelReader<bool> wakeReader,
@@ -52,6 +55,7 @@ internal sealed class Worker
         _index = index;
         _serviceProvider = serviceProvider;
         _orchestrator = orchestrator;
+        _chainScopeRegistry = chainScopeRegistry;
         _metrics = metrics;
         _events = events;
         _wakeReader = wakeReader;
@@ -106,6 +110,8 @@ internal sealed class Worker
 
             _pool.IncrementActive();
             var sw = Stopwatch.StartNew();
+            IServiceScope? scope = null;
+            var isChainJob = job.ChainId.HasValue;
             try
             {
                 // Resolve the job instance using the pool's pre-built type cache
@@ -117,7 +123,22 @@ internal sealed class Worker
                     continue;
                 }
 
-                using var scope = _serviceProvider.CreateScope();
+                // Chain jobs share a DI scope for their full lifetime; standalone jobs get a per-execution scope
+                scope = isChainJob
+                    ? _chainScopeRegistry.GetOrCreateChainScope(job.ChainId!.Value)
+                    : _serviceProvider.CreateScope();
+
+                // Hydrate chain context accessor on first job in this chain (or after crash-recovery scope rebuild)
+                if (isChainJob)
+                {
+                    var accessor = scope.ServiceProvider.GetRequiredService<JobChainContextAccessor>();
+                    if (accessor.GetCurrentContext() == null)
+                    {
+                        var repo = scope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
+                        accessor.Initialize(await repo.GetOrCreateAsync(job.ChainId!.Value, ct).ConfigureAwait(false));
+                    }
+                }
+
                 var instance = (IQueueJob)scope.ServiceProvider.GetRequiredService(jobType);
                 JobDataSerializer.Apply(instance, job.JobDataJson);
                 instance.Setup(scope.ServiceProvider);
@@ -137,6 +158,16 @@ internal sealed class Worker
                 await instance.Process().ConfigureAwait(false);
 
                 sw.Stop();
+
+                // Record success outcome in chain context and persist
+                if (isChainJob)
+                {
+                    var ctx = scope.ServiceProvider.GetRequiredService<JobChainContextAccessor>().GetCurrentContext()!;
+                    ctx.AddOutcome(new JobOutcome { JobType = job.JobType, Status = JobOutcomeStatus.Succeeded, CompletedAt = DateTimeOffset.UtcNow });
+                    var repo = scope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
+                    await repo.SaveAsync(ctx, CancellationToken.None).ConfigureAwait(false);
+                }
+
                 _orchestrator.OnComplete(job.Id);
                 _metrics.RecordCompletion(jobType.Name, _pool.Name, sw.Elapsed);
 
@@ -153,17 +184,49 @@ internal sealed class Worker
             {
                 sw.Stop();
                 _logger.LogDebug(requeueEx, "Job {Id} ({JobType}) requested re-queue (no retry increment)", job.Id, job.JobType);
+                // No chain context update — transient; job will retry with same chain state
                 await _orchestrator.OnFailureAsync(job.Id, requeueEx, incrementRetry: false, ct: ct).ConfigureAwait(false);
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)
             {
                 sw.Stop();
                 _logger.LogError(ex, "Job {Id} ({JobType}) threw an exception", job.Id, job.JobType);
+
+                // Record failure/abort outcome before handing off (orchestrator records skipped children)
+                if (isChainJob && scope != null)
+                {
+                    try
+                    {
+                        var status = ex is ChainAbortException ? JobOutcomeStatus.Aborted : JobOutcomeStatus.Failed;
+                        var accessor = scope.ServiceProvider.GetRequiredService<JobChainContextAccessor>();
+                        var ctx = accessor.GetCurrentContext();
+                        if (ctx != null)
+                        {
+                            ctx.AddOutcome(new JobOutcome
+                            {
+                                JobType = job.JobType,
+                                Status = status,
+                                ExceptionMessage = ex.Message,
+                                StackTrace = ex.StackTrace,
+                                CompletedAt = DateTimeOffset.UtcNow,
+                            });
+                            var repo = scope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
+                            await repo.SaveAsync(ctx, CancellationToken.None).ConfigureAwait(false);
+                        }
+                    }
+                    catch (Exception saveEx)
+                    {
+                        _logger.LogError(saveEx, "Failed to save chain context outcome for job {Id}", job.Id);
+                    }
+                }
+
                 await _orchestrator.OnFailureAsync(job.Id, ex, incrementRetry: true, ct: ct).ConfigureAwait(false);
             }
             finally
             {
                 SubExecutionTracker.ClearStack(job.Id);
+                // Only dispose per-job scopes; chain scopes live until CompleteChainScope is called
+                if (!isChainJob) scope?.Dispose();
                 _pool.DecrementActive();
             }
         }

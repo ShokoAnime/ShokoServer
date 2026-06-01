@@ -35,6 +35,8 @@ public sealed class PersistenceBuffer : IAsyncDisposable
     private readonly Dictionary<Guid, QueuedJob> _pendingInserts = new();
     // Pending deletes: jobs that were in DB (survived a previous flush or existed from a prior run)
     private readonly HashSet<Guid> _pendingDeletes = new();
+    // Pending activations: chain-deferred jobs already in DB whose ParentJobId must be cleared
+    private readonly HashSet<Guid> _pendingActivations = new();
     private readonly object _bufferLock = new();
 
     private readonly SemaphoreSlim _flushGate = new(1, 1);
@@ -97,8 +99,34 @@ public sealed class PersistenceBuffer : IAsyncDisposable
                 return;
             }
 
+            // If the job was pending an activation UPDATE, drop it — DELETE supersedes.
+            _pendingActivations.Remove(id);
+
             _pendingDeletes.Add(id);
             shouldFlush = _pendingDeletes.Count >= _maxFlushBatch;
+            if (!shouldFlush) ArmTimerLocked();
+        }
+        if (shouldFlush) _ = FlushNowAsync(CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Promotes a chain-deferred job to active by clearing its <c>ParentJobId</c>.
+    /// If the job is still in the insert buffer, its <c>ParentJobId</c> is cleared in-place so
+    /// the pending INSERT goes out without the parent reference. Otherwise the job is already
+    /// in the DB and an UPDATE is batched via <c>_pendingActivations</c>.
+    /// </summary>
+    public void OnActivateChainChild(Guid id)
+    {
+        bool shouldFlush;
+        lock (_bufferLock)
+        {
+            if (_pendingInserts.TryGetValue(id, out var pendingJob))
+            {
+                pendingJob.ParentJobId = null;
+                return;
+            }
+            _pendingActivations.Add(id);
+            shouldFlush = _pendingInserts.Count + _pendingDeletes.Count + _pendingActivations.Count >= _maxFlushBatch;
             if (!shouldFlush) ArmTimerLocked();
         }
         if (shouldFlush) _ = FlushNowAsync(CancellationToken.None);
@@ -121,17 +149,20 @@ public sealed class PersistenceBuffer : IAsyncDisposable
     {
         QueuedJob[] inserts;
         Guid[] deletes;
+        Guid[] activations;
 
         lock (_bufferLock)
         {
             _timer?.Stop();
             inserts = [.._pendingInserts.Values];
             deletes = [.._pendingDeletes];
+            activations = [.._pendingActivations];
             _pendingInserts.Clear();
             _pendingDeletes.Clear();
+            _pendingActivations.Clear();
         }
 
-        if (inserts.Length == 0 && deletes.Length == 0) return;
+        if (inserts.Length == 0 && deletes.Length == 0 && activations.Length == 0) return;
 
         await _flushGate.WaitAsync(ct);
         try
@@ -142,6 +173,11 @@ public sealed class PersistenceBuffer : IAsyncDisposable
             {
                 _logger.LogDebug("PersistenceBuffer: flushing {InsertCount} inserts", inserts.Length);
                 await repo.InsertBatchAsync(inserts, ct);
+            }
+            if (activations.Length > 0)
+            {
+                _logger.LogDebug("PersistenceBuffer: flushing {ActivationCount} chain activations", activations.Length);
+                await repo.ActivateChainChildrenAsync(activations, ct);
             }
             if (deletes.Length > 0)
             {

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
+using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Storage;
@@ -40,6 +41,7 @@ public sealed class WorkerPoolManager : IHostedService
     private readonly QueueMetrics _metrics;
     private readonly QueueStateEventHandler _events;
     private readonly IEnumerable<IAcquisitionFilter> _acquisitionFilters;
+    private readonly IChainScopeRegistry _chainScopeRegistry;
     private readonly IServiceProvider _serviceProvider;
     private readonly QueueJobTypeRegistry _jobTypeRegistry;
     private readonly QueueProcessorOptions _options;
@@ -59,6 +61,7 @@ public sealed class WorkerPoolManager : IHostedService
         QueueMetrics metrics,
         QueueStateEventHandler events,
         IEnumerable<IAcquisitionFilter> acquisitionFilters,
+        IChainScopeRegistry chainScopeRegistry,
         IServiceProvider serviceProvider,
         QueueJobTypeRegistry jobTypeRegistry,
         QueueProcessorOptions options)
@@ -71,6 +74,7 @@ public sealed class WorkerPoolManager : IHostedService
         _metrics = metrics;
         _events = events;
         _acquisitionFilters = acquisitionFilters;
+        _chainScopeRegistry = chainScopeRegistry;
         _serviceProvider = serviceProvider;
         _jobTypeRegistry = jobTypeRegistry;
         _options = options;
@@ -99,7 +103,7 @@ public sealed class WorkerPoolManager : IHostedService
         // Start workers
         _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         foreach (var pool in _pools)
-            pool.Start(_serviceProvider, _orchestrator, _metrics, _events);
+            pool.Start(_serviceProvider, _orchestrator, _metrics, _events, _chainScopeRegistry);
 
         // Start watchdog
         _watchdog = new JobWatchdog(

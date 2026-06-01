@@ -10,6 +10,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
+using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Scheduling;
@@ -45,6 +46,12 @@ public static class QueueProcessorExtensions
         // ── Storage ──────────────────────────────────────────────────────────
         RegisterDbContext(services, options);
         services.AddScoped<IJobRepository, JobRepository>();
+        services.AddScoped<IJobChainContextRepository, JobChainContextRepository>();
+
+        // ── Chain scope ───────────────────────────────────────────────────────
+        services.AddSingleton<IChainScopeRegistry, ChainScopeRegistry>();
+        services.AddScoped<JobChainContextAccessor>();
+        services.AddScoped<IJobChainContextAccessor>(sp => sp.GetRequiredService<JobChainContextAccessor>());
 
         // ── Job type registration ─────────────────────────────────────────────
         // Jobs are resolved from DI by their concrete type only — never via IQueueJob.
@@ -97,6 +104,7 @@ public static class QueueProcessorExtensions
             sp.GetRequiredService<RetryPolicyResolver>(),
             sp.GetRequiredService<QueueMetrics>(),
             sp.GetRequiredService<QueueStateEventHandler>(),
+            sp.GetRequiredService<IChainScopeRegistry>(),
             options.MaxTotalWorkers));
 
         services.AddSingleton(sp => new PoolDiscovery(

@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Storage;
 using Shoko.QueueProcessor.Workers;
@@ -18,10 +21,12 @@ namespace Shoko.QueueProcessor.Scheduling;
 public sealed class QueueScheduler : IQueueScheduler
 {
     private readonly QueueOrchestrator _orchestrator;
+    private readonly IChainScopeRegistry _chainScopeRegistry;
 
-    public QueueScheduler(QueueOrchestrator orchestrator)
+    public QueueScheduler(QueueOrchestrator orchestrator, IChainScopeRegistry chainScopeRegistry)
     {
         _orchestrator = orchestrator;
+        _chainScopeRegistry = chainScopeRegistry;
     }
 
     public bool IsPaused => _orchestrator.IsPaused;
@@ -150,7 +155,7 @@ public sealed class QueueScheduler : IQueueScheduler
         };
     }
 
-    public IJobChainBuilder CreateJobChain() => new JobChainBuilder(this, _orchestrator);
+    public IJobChainBuilder CreateJobChain() => new JobChainBuilder(this, _orchestrator, _chainScopeRegistry);
 
     public bool IsJobTypeBlocked(Type jobType) => _orchestrator.IsJobTypeBlocked(jobType);
 
@@ -232,12 +237,15 @@ internal sealed class JobChainBuilder : IJobChainBuilder
 {
     private readonly QueueScheduler _scheduler;
     private readonly QueueOrchestrator _orchestrator;
+    private readonly IChainScopeRegistry _chainScopeRegistry;
     private readonly List<EnqueueContext> _entries = [];
+    private readonly Guid _chainId = Guid.NewGuid();
 
-    internal JobChainBuilder(QueueScheduler scheduler, QueueOrchestrator orchestrator)
+    internal JobChainBuilder(QueueScheduler scheduler, QueueOrchestrator orchestrator, IChainScopeRegistry chainScopeRegistry)
     {
         _scheduler = scheduler;
         _orchestrator = orchestrator;
+        _chainScopeRegistry = chainScopeRegistry;
     }
 
     public IJobChainBuilder Then<T>(Action<T>? configure = null) where T : class, IQueueJob
@@ -249,7 +257,10 @@ internal sealed class JobChainBuilder : IJobChainBuilder
         IQueueJob instance = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
         configure?.Invoke((T)instance);
 
-        _entries.Add(QueueScheduler.BuildContext(typeof(T), key, instance, int.MaxValue, null));
+        var ctx = QueueScheduler.BuildContext(typeof(T), key, instance, int.MaxValue, null);
+        ctx.Job.ChainId = _chainId;
+        ctx.Job.IsChainFinally = typeof(T).GetCustomAttribute<ChainFinallyAttribute>() != null;
+        _entries.Add(ctx);
         return this;
     }
 
@@ -261,33 +272,47 @@ internal sealed class JobChainBuilder : IJobChainBuilder
         var instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
         configure?.Invoke(instance);
 
-        _entries.Add(QueueScheduler.BuildContext(jobType, key, instance, int.MaxValue, null));
+        var ctx = QueueScheduler.BuildContext(jobType, key, instance, int.MaxValue, null);
+        ctx.Job.ChainId = _chainId;
+        ctx.Job.IsChainFinally = jobType.GetCustomAttribute<ChainFinallyAttribute>() != null;
+        _entries.Add(ctx);
         return this;
     }
 
-    public Task EnqueueAfterCurrent()
+    public async Task EnqueueAfterCurrent()
     {
-        if (_entries.Count == 0) return Task.CompletedTask;
+        if (_entries.Count == 0) return;
+
+        await SeedChainContextAsync();
 
         var parentId = SubExecutionTracker.CurrentJobId.Value;
         if (parentId == Guid.Empty)
-            return Enqueue();
+        {
+            await Enqueue();
+            return;
+        }
 
         _orchestrator.RegisterAfterParent(parentId, _entries[0]);
         for (var i = 1; i < _entries.Count; i++)
             _orchestrator.RegisterChainAfterJob(_entries[i - 1].Job.Id, _entries[i]);
-
-        return Task.CompletedTask;
     }
 
-    public Task Enqueue()
+    public async Task Enqueue()
     {
-        if (_entries.Count == 0) return Task.CompletedTask;
+        if (_entries.Count == 0) return;
 
-        var first = _orchestrator.EnqueueAsync(_entries[0]);
+        await SeedChainContextAsync();
+
+        await _orchestrator.EnqueueAsync(_entries[0]);
         for (var i = 1; i < _entries.Count; i++)
             _orchestrator.RegisterChainAfterJob(_entries[i - 1].Job.Id, _entries[i]);
+    }
 
-        return first;
+    private async Task SeedChainContextAsync()
+    {
+        if (_entries.Count == 0) return;
+        var chainScope = _chainScopeRegistry.GetOrCreateChainScope(_chainId);
+        var repo = chainScope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
+        await repo.GetOrCreateAsync(_chainId);
     }
 }

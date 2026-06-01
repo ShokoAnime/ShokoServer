@@ -24,4 +24,6 @@ public record struct ExecutingEntry(
     string PoolName,
     string TypeName = "",
     string Title = "",
-    Dictionary<string, object>? Details = null);
+    Dictionary<string, object>? Details = null,
+    Guid? ChainId = null,
+    bool IsChainFinally = false);

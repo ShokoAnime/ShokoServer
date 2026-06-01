@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Shoko.QueueProcessor.Chain;
 
 namespace Shoko.QueueProcessor.Storage;
 
@@ -9,6 +10,7 @@ namespace Shoko.QueueProcessor.Storage;
 public abstract class QueueDbContext : DbContext
 {
     public DbSet<QueuedJob> Jobs { get; set; } = null!;
+    public DbSet<QueuedJobChain> JobChains { get; set; } = null!;
 
     protected QueueDbContext() { }
 
@@ -28,6 +30,7 @@ public abstract class QueueDbContext : DbContext
             entity.Property(j => j.JobDataJson).HasMaxLength(4096);
             entity.Property(j => j.Priority).HasDefaultValue(0);
             entity.Property(j => j.RetryCount).HasDefaultValue(0);
+            entity.Property(j => j.IsChainFinally).HasDefaultValue(false);
 
             // Startup load: grouped by type then ordered within pool sub-queue.
             // ORDER BY JobType, ScheduledAt, Priority DESC, QueuedAt ASC
@@ -37,6 +40,21 @@ public abstract class QueueDbContext : DbContext
             // Dedup safety net (primary dedup is in-memory via _jobKeyIndex)
             entity.HasIndex(j => j.JobKey).IsUnique()
                   .HasDatabaseName("IX_QueuedJobs_JobKey");
+
+            entity.HasIndex(j => j.ChainId)
+                  .HasDatabaseName("IX_QueuedJobs_ChainId");
+
+            entity.HasIndex(j => j.ParentJobId)
+                  .HasDatabaseName("IX_QueuedJobs_ParentJobId");
+        });
+
+        modelBuilder.Entity<QueuedJobChain>(entity =>
+        {
+            entity.HasKey(c => c.ChainId);
+            entity.Property(c => c.ChainId).ValueGeneratedNever();
+            entity.Property(c => c.Status).IsRequired();
+            entity.Property(c => c.CreatedAt).IsRequired();
+            entity.Property(c => c.UpdatedAt).IsRequired();
         });
     }
 }

@@ -8,6 +8,7 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Analytics;
 using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Storage;
@@ -61,10 +62,11 @@ public class RunAfterCurrentTests
             new Dictionary<Type, string?>(),
             new Dictionary<string, int>());
         var retry = new RetryPolicyResolver(new RetryPolicy { MaxRetries = 0 });
+        var chainScopeRegistry = new ChainScopeRegistry(scopeFactory);
         var orchestrator = new QueueOrchestrator(
             NullLogger<QueueOrchestrator>.Instance,
             buffer, scopeFactory, registry, retry,
-            new QueueMetrics(), new QueueStateEventHandler(), maxWorkers);
+            new QueueMetrics(), new QueueStateEventHandler(), chainScopeRegistry, maxWorkers);
 
         var parentPool = new WorkerPool("ParentPool", 2, AcquisitionAttribute.LowestPriority, [typeof(ParentJob)], []);
         var childPool = new WorkerPool("ChildPool", 2, AcquisitionAttribute.LowestPriority, [typeof(ChildJob)], []);

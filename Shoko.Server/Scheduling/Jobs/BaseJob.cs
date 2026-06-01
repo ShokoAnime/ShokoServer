@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Chain;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 
@@ -67,6 +68,19 @@ public abstract class BaseJob : IQueueJob
 
 public abstract class BaseJob<T> : BaseJob
 {
-    public sealed override async Task Execute() => await Process();
+    private IJobChainContextAccessor? _chainContextAccessor;
+
+    public override void Setup(IServiceProvider serviceProvider)
+    {
+        base.Setup(serviceProvider);
+        _chainContextAccessor = serviceProvider.GetService<IJobChainContextAccessor>();
+    }
+
+    public sealed override async Task Execute()
+    {
+        var result = await Process();
+        _chainContextAccessor?.SetResult(GetType(), result);
+    }
+
     public new abstract Task<T> Process();
 }
