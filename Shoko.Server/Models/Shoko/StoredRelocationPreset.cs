@@ -1,7 +1,6 @@
 using System;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Relocation;
-using Shoko.Server.Settings;
 
 #nullable enable
 namespace Shoko.Server.Models.Shoko;
