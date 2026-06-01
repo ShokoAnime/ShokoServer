@@ -120,40 +120,40 @@ public class AniDBTitleHelper(ISettingsProvider settingsProvider, IApplicationPa
         if (_cache is not null && _nextUpdate.HasValue && DateTime.Now < _nextUpdate.Value)
             return;
 
-        _accessLock.EnterWriteLock();
-        if (_cache is not null && _nextUpdate.HasValue && DateTime.Now < _nextUpdate.Value)
-            return;
-
-        if (!File.Exists(CacheFilePath))
-        {
-            // first check if there's a temp file
-            if (File.Exists(CacheFilePathTemp))
-                File.Move(CacheFilePathTemp, CacheFilePath);
-
-            if (!File.Exists(CacheFilePath)) DownloadCache();
-        }
-
-        if (!File.Exists(CacheFilePath))
-        {
-            _accessLock.ExitWriteLock();
-            return;
-        }
-
-        // If data is stale, then re-download
-        var lastWriteTime = File.GetLastWriteTime(CacheFilePath);
-        if (DateTime.Now - lastWriteTime > TimeSpan.FromHours(24))
-            DownloadCache();
-
         try
         {
-            LoadCache();
+            _accessLock.EnterWriteLock();
+
+            if (!File.Exists(CacheFilePath))
+            {
+                // first check if there's a temp file
+                if (File.Exists(CacheFilePathTemp))
+                    File.Move(CacheFilePathTemp, CacheFilePath);
+
+                if (!File.Exists(CacheFilePath)) DownloadCache();
+            }
+
+            if (!File.Exists(CacheFilePath)) return;
+
+            // If data is stale, then re-download
+            var lastWriteTime = File.GetLastWriteTime(CacheFilePath);
+            if (DateTime.Now - lastWriteTime > TimeSpan.FromHours(24))
+                DownloadCache();
+
+            try
+            {
+                LoadCache();
+            }
+            catch
+            {
+                Decompress();
+                LoadCache();
+            }
         }
-        catch
+        finally
         {
-            Decompress();
-            LoadCache();
+            _accessLock.ExitWriteLock();
         }
-        _accessLock.ExitWriteLock();
     }
 
     private void LoadCache()
