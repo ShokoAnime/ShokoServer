@@ -359,6 +359,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         // Plugins don't need to call AddQueueJobsFromAssembly themselves.
         foreach (var pluginInfo in _pluginTypes.Where(a => a.PluginType is not null))
         {
+            var assembly = pluginInfo.PluginType!.Assembly;
+            if (assembly == typeof(PluginManager).Assembly)
+                continue; //Skip the current assembly, as these are added above.
+
             logger.LogTrace("Scanning plugin assembly for queue jobs. ({DllName})", Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]));
             serviceCollection.AddQueueJobsFromAssembly(pluginInfo.PluginType!.Assembly);
         }
