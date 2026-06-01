@@ -31,133 +31,19 @@ Target framework: **.NET 10.0**.
 
 ## How it works
 
+The system is split into four areas. Each has a detailed chart in the sections below.
+
 ```mermaid
-flowchart TD
-    subgraph Callers["Entry Points"]
-        ENQ["Enqueue&lt;T&gt;(configure)<br/>priority: 0 (normal) or 10 (prioritize: true)<br/>scheduledAt: optional future dispatch"]
-        RAC["RunAfterCurrent&lt;T&gt;(configure)<br/>priority: int.MaxValue after parent<br/>held until parent job completes"]
-        ENQI["EnqueueImmediate&lt;T&gt;(configure, onComplete)<br/>priority: int.MaxValue<br/>returns Task that completes with the job"]
-        REC["RecurringJobRegistry<br/>Register&lt;T&gt;(interval, configure)"]
-        CCB["CreateJobChain()<br/>→ JobChainBuilder<br/>Then&lt;T&gt;() assigns ChainId + IsChainFinally<br/>Enqueue() / EnqueueAfterCurrent()"]
-    end
+flowchart LR
+    EF["Enqueue Flow\ncallers → scheduler → orchestrator\npool routing · persistence\nAfterParentCallbacks · ParentJobId\n\n▸ see Enqueue Flow"]
+    WE["Worker Execution\nacquisition filters · pool priority\nworker thread · DI resolve\nProcess() · retry · requeue · abort\n\n▸ see Worker Execution"]
+    CC["Job Chain Context\nchain scope · JobChainContext\nresult store · data store · outcomes\nChainAbortException · [ChainFinally]\n\n▸ see Parent-child job chaining"]
+    WD["Deadlock Watchdog\npoll every 15 s\nflag stuck jobs · log call stack\n\n▸ see Deadlock Watchdog"]
 
-    subgraph Sched["Scheduler  (QueueScheduler)"]
-        KB["JobKeyBuilder&lt;T&gt;<br/>[JobKeyMember] props → stable string key<br/>e.g. Import/HashFileJob_path:&quot;/foo.mkv&quot;"]
-        SER["JobDataSerializer<br/>JSON — non-default prop values only"]
-    end
-
-    subgraph Orch["QueueOrchestrator  (in-memory state)"]
-        IDX["JobKeyIndex  O(1)<br/>key → Id<br/>covers waiting + executing + after-parent<br/>duplicate key → no-op"]
-        WQ[("Waiting Queue  SortedSet per pool<br/>sort: Priority DESC · QueuedAt ASC · Id ASC")]
-        APC["AfterParentCallbacks<br/>parentId → {jobKey → (ctx, pool)}<br/>key claimed in index to block early dispatch<br/>deferred children persisted with ParentJobId"]
-        EXEC[("ExecutingSet<br/>Id → ExecutingEntry<br/>(type, key, startedAt, poolName, priority<br/>ChainId, IsChainFinally)")]
-        GATE["TryRegisterExecuting<br/>① global worker cap<br/>② per-type concurrency limit<br/>③ per-group concurrency limit"]
-    end
-
-    subgraph Persist["Persistence  (PersistenceBuffer + EF Core)"]
-        PBUF["PersistenceBuffer<br/>INSERT · OnActivateChainChild (UPDATE) · DELETE<br/>enqueue + complete within flush window<br/>→ zero DB writes  (cancel-out)"]
-        DB[("Jobs table · JobChains table<br/>SQLite / MySQL / MSSQL<br/>─────────────────────<br/>Id · JobType · JobKey · JobDataJson<br/>Priority · QueuedAt · ScheduledAt · RetryCount<br/>ChainId · IsChainFinally · ParentJobId<br/>─────────────────────<br/>QueuedJobChain: ChainId · Status<br/>DataJson · ResultsJson · OutcomesJson")]
-    end
-
-    subgraph PoolLayer["Worker Pools  (PoolDiscovery builds from [LimitConcurrency] + [DisallowConcurrencyGroup])"]
-        PP["Pool priority slot reservation<br/>higher-priority pools reserve RunnableCount slots<br/>lower-priority pools proceed only when available &gt; reserved"]
-        PA["Pool A  e.g. AniDB-HTTP<br/>workers = 1 · priority = 10"]
-        PB["Pool B  e.g. Import<br/>workers = 4 · priority = 20"]
-        PC["Pool Default  catch-all<br/>workers = N · priority = 999"]
-    end
-
-    subgraph AcqF["Acquisition Filters  (IAcquisitionFilter)"]
-        NF["[NetworkRequired]<br/>blocks while offline"]
-        DF["[DatabaseRequired]<br/>blocks until DB ready"]
-        CF["Custom filter<br/>e.g. rate-limit, ban cooldown<br/>throw RequeueJobException for<br/>transient conditions"]
-        FXS["Excluded-types set<br/>rebuilt on filter StateChanged event<br/>signal pools to retry acquisition"]
-    end
-
-    subgraph WrkLoop["Worker  (dedicated OS thread — not ThreadPool)"]
-        WAKE["Await wake signal (channel)<br/>or idle poll tick (MaxIdlePollIntervalMs)"]
-        SFILT["① Skip if type in excluded-types set"]
-        SSCHED["② Skip if ScheduledAt &gt; now"]
-        CGATE["③ TryRegisterExecuting<br/>concurrency gate — adds to ExecutingSet"]
-        DI["DI scope (per-job) OR chain scope (chained jobs)<br/>Resolve job by concrete type<br/>JobDataSerializer.Apply(instance, json)<br/>Setup(serviceProvider) → PostInit()"]
-        TRCK["SubExecutionTracker.CurrentJobId = id<br/>(AsyncLocal — flows through all async calls<br/>JobFactory captures call stack here)"]
-        PROC["job.Process()"]
-        SUCC["OnComplete<br/>· remove from ExecutingSet<br/>· buffer DELETE in PersistenceBuffer<br/>· activate AfterParent children (OnActivateChainChild)<br/>· if last in chain → CompleteChainScope<br/>· SignalAllPools"]
-        EVTS["QueueStateEventHandler<br/>OnJobExecuting / OnJobCompleted<br/>→ SignalR / UI consumers"]
-        REQX["RequeueJobException<br/>→ requeue at original priority<br/>   retry count unchanged<br/>   AfterParent registrations preserved<br/>   (transient: ban, rate-limit, etc.)"]
-        RERR["Real exception<br/>→ RetryPolicy.GetDelay(retryCount)<br/>   delay = BaseDelay × 2^n  (capped)"]
-        RBACK["Re-insert into pool sub-queue<br/>ScheduledAt = now + delay<br/>RetryCount += 1<br/>persisted immediately"]
-        RDIS["Max retries exhausted<br/>→ discard · LogError<br/>AfterParent children discarded + deleted<br/>dedup keys freed"]
-    end
-
-    subgraph Chain["Job Chain Context"]
-        CSR["IChainScopeRegistry<br/>ChainId → shared IServiceScope<br/>created at chain-build time<br/>disposed after last job completes"]
-        CCX["JobChainContext  (lives in chain scope)<br/>GetData / SetData  — shared key-value store<br/>GetResult&lt;T&gt;(Type)  — last result of that type<br/>GetResult&lt;T&gt;(Guid jobId)  — precise lookup<br/>GetOutcome / GetAllOutcomes"]
-        CABT["ChainAbortException<br/>CollectChainDescendants_UnderLock<br/>· [ChainFinally] jobs → activated at int.MaxValue<br/>· others → skipped, deleted from DB<br/>· outcomes + Aborted status saved"]
-        PRID["ParentJobId on QueuedJob<br/>set when RegisterChainAfterJob persists child<br/>cleared (OnActivateChainChild) when parent fires it<br/>startup: reconciled back into AfterParentCallbacks"]
-    end
-
-    subgraph WatchDog["Deadlock Watchdog  (JobWatchdog — background task)"]
-        WPOLL["Poll every 15 s"]
-        WCHECK["elapsed &gt; WatchdogTimeoutSeconds (default 90)?<br/>[LongRunning] jobs exempt"]
-        WFIRST["First detection<br/>LogError: job type + elapsed<br/>+ IJobFactory.Execute call stack<br/>(from SubExecutionTracker if available)"]
-        WHEAT["Subsequent polls while still stuck<br/>LogWarning heartbeat:<br/>job type + key + elapsed"]
-    end
-
-    %% ── Enqueue ──────────────────────────────────────────
-    ENQ & REC --> KB --> SER --> IDX
-    ENQI --> IDX
-    IDX -- "new key" --> WQ
-    WQ --> PBUF --> DB
-    DB -. "load persisted jobs on startup" .-> WQ
-    DB -. "ParentJobId set → AfterParentCallbacks on startup" .-> APC
-
-    %% ── RunAfterCurrent ──────────────────────────────────
-    RAC --> KB
-    IDX -- "no parent context → enqueue priority 10" --> WQ
-    IDX -- "parent executing → hold in APC" --> APC
-    APC -- "same key already waiting → pull from pool" --> WQ
-    APC -- "same key executing → no-op" --> EXEC
-
-    %% ── EnqueueImmediate ─────────────────────────────────
-    ENQI -- "already waiting → promote to int.MaxValue" --> WQ
-    ENQI -- "already executing → await existing run" --> EXEC
-
-    %% ── Chain build ──────────────────────────────────────
-    CCB --> CSR
-    CCB -- "RegisterChainAfterJob persists each child" --> APC
-    CCB -- "seed QueuedJobChain record" --> DB
-    APC --> PRID
-
-    %% ── Routing to pools ─────────────────────────────────
-    WQ --> PP --> PA & PB & PC
-    NF & DF & CF --> FXS
-
-    %% ── Worker acquisition ───────────────────────────────
-    PA & PB & PC --> WAKE --> SFILT
-    FXS --> SFILT --> SSCHED --> CGATE
-    CGATE -- "approved" --> EXEC
-    CGATE --> DI --> TRCK --> PROC
-    CSR -- "chain job → reuse chain scope" --> DI
-    DI -- "chain scope" --> CCX
-
-    %% ── Outcomes ─────────────────────────────────────────
-    PROC -- "success" --> SUCC --> EVTS
-    PROC -- "save outcome to context" --> CCX
-    CCX -- "SaveAsync after each job" --> DB
-    PROC -- "RequeueJobException" --> REQX --> WQ
-    PROC -- "real exception" --> RERR
-    RERR -- "retries remaining" --> RBACK --> WQ
-    RERR -- "max retries" --> RDIS
-    RERR -- "ChainAbortException" --> CABT
-    CABT -- "[ChainFinally] jobs" --> WQ
-    CABT -- "chain status + skipped outcomes" --> DB
-    SUCC -- "activate after-parent children" --> WQ
-
-    %% ── Watchdog ─────────────────────────────────────────
-    EXEC --> WPOLL --> WCHECK
-    WCHECK -- "exempt or under threshold" --> WCHECK
-    WCHECK -- "first detection" --> WFIRST
-    WCHECK -- "already flagged" --> WHEAT
+    EF -- "pool sub-queues filled" --> WE
+    WE -- "retry · requeue\nAfterParent children released" --> EF
+    WE <-. "chain scope\nresult auto-store" .-> CC
+    WE -. "running job IDs + elapsed" .-> WD
 ```
 
 **The short version:**
@@ -169,6 +55,120 @@ flowchart TD
 5. A worker calls **`IAcquisitionFilter.GetTypesToExclude()`** before picking a job. Network down? `NetworkRequired` jobs sit blocked without consuming the worker.
 6. The worker resolves the job from DI (so your constructor injection works), applies the serialised property values, runs `Setup` → `PostInit` → `Process`.
 7. On success, the row is deleted (batched). On exception, the `RetryPolicy` schedules a retry with exponential backoff — unless it's a `RequeueJobException`, in which case it goes back to the queue without incrementing the retry count (perfect for "AniDB banned, try again later").
+
+### Enqueue flow
+
+```mermaid
+flowchart TD
+    subgraph Callers["Entry Points"]
+        ENQ["Enqueue&lt;T&gt;(configure)<br/>priority: 0 (normal) or 10 (prioritize: true)<br/>scheduledAt: optional future dispatch"]
+        RAC["RunAfterCurrent&lt;T&gt;(configure)<br/>int.MaxValue priority · held until parent completes"]
+        ENQI["EnqueueImmediate&lt;T&gt;(configure, onComplete)<br/>int.MaxValue priority · returns awaitable Task"]
+        REC["RecurringJobRegistry<br/>Register&lt;T&gt;(interval, configure)"]
+        CCB["CreateJobChain()<br/>→ JobChainBuilder<br/>Then&lt;T&gt;() assigns ChainId + IsChainFinally<br/>Enqueue() / EnqueueAfterCurrent()"]
+    end
+
+    subgraph Sched["Scheduler  (QueueScheduler)"]
+        KB["JobKeyBuilder&lt;T&gt;<br/>[JobKeyMember] props → stable string key<br/>e.g. Import/HashFileJob_path:&quot;/foo.mkv&quot;"]
+        SER["JobDataSerializer<br/>JSON — non-default prop values only"]
+    end
+
+    subgraph Orch["Orchestrator  (in-memory state)"]
+        IDX["JobKeyIndex  O(1)<br/>key → Id · covers waiting + executing + after-parent<br/>duplicate key → no-op"]
+        WQ[("Pool Sub-Queues  (SortedSet per pool)<br/>Priority DESC · QueuedAt ASC · Id ASC")]
+        APC["AfterParentCallbacks<br/>parentId → {jobKey → (ctx, pool)}<br/>key claimed in index to block early dispatch<br/>chain children persisted with ParentJobId"]
+        EXEC[("ExecutingSet<br/>Id → ExecutingEntry<br/>(type · key · startedAt · poolName<br/>ChainId · IsChainFinally)")]
+    end
+
+    subgraph Persist["Persistence  (PersistenceBuffer + EF Core)"]
+        PBUF["PersistenceBuffer<br/>INSERT · UPDATE (activate chain child) · DELETE<br/>enqueue + complete within flush window → zero DB writes"]
+        DB[("Jobs table · JobChains table<br/>SQLite / MySQL / MSSQL")]
+    end
+
+    WEXEC(["Worker Execution<br/>▸ see Worker Execution chart"])
+
+    %% ── Normal enqueue ───────────────────────────────────
+    ENQ & REC --> KB --> SER --> IDX
+    IDX -- "new key" --> WQ
+    WQ --> PBUF --> DB
+    DB -. "load on startup<br/>(ParentJobId set → APC)" .-> WQ & APC
+
+    %% ── RunAfterCurrent / chain ──────────────────────────
+    RAC --> KB
+    IDX -- "no parent context → priority 10" --> WQ
+    IDX -- "parent executing → hold" --> APC
+    APC -- "same key waiting → pull from pool" --> WQ
+    APC -- "same key executing → no-op" --> EXEC
+    CCB -- "RegisterChainAfterJob (ParentJobId persisted)" --> APC
+    CCB -- "seed QueuedJobChain record" --> DB
+
+    %% ── EnqueueImmediate ─────────────────────────────────
+    ENQI --> IDX
+    ENQI -- "already waiting → promote to int.MaxValue" --> WQ
+    ENQI -- "already executing → await" --> EXEC
+
+    %% ── Drain into workers ───────────────────────────────
+    WQ --> WEXEC
+    APC -- "parent completes → release at int.MaxValue" --> WQ
+```
+
+### Worker execution
+
+```mermaid
+flowchart TD
+    subgraph AcqF["Acquisition Filters  (IAcquisitionFilter)"]
+        NF["[NetworkRequired]<br/>blocks while offline"]
+        DF["[DatabaseRequired]<br/>blocks until DB ready"]
+        CF["Custom filter<br/>throw RequeueJobException for transient conditions<br/>(rate-limit, ban cooldown, etc.)"]
+        FXS["Excluded-types set<br/>rebuilt on filter StateChanged · pools re-signalled"]
+    end
+
+    subgraph Pools["Worker Pools  (PoolDiscovery from [LimitConcurrency] + [DisallowConcurrencyGroup])"]
+        PP["Pool priority slot reservation<br/>higher-priority pools claim RunnableCount slots first<br/>lower-priority pools proceed only when available &gt; reserved"]
+        PA["Pool A  e.g. AniDB-HTTP<br/>workers = 1 · priority = 10"]
+        PB["Pool B  e.g. Import<br/>workers = 4 · priority = 20"]
+        PC["Pool Default  catch-all<br/>workers = N · priority = 999"]
+    end
+
+    subgraph WrkLoop["Worker  (dedicated OS thread — not ThreadPool)"]
+        WAKE["Await wake signal or idle poll tick"]
+        SFILT["① Skip if type in excluded-types set"]
+        SSCHED["② Skip if ScheduledAt &gt; now"]
+        CGATE["③ TryRegisterExecuting<br/>global cap · per-type limit · per-group limit"]
+        DI["DI scope (per-job) or chain scope (chained jobs)<br/>Resolve · Apply(json) · Setup() → PostInit()"]
+        TRCK["SubExecutionTracker.CurrentJobId = id<br/>(AsyncLocal — flows through all async continuations)"]
+        PROC["job.Process()"]
+    end
+
+    subgraph Outcomes["Outcomes"]
+        SUCC["OnComplete<br/>buffer DELETE · activate AfterParent children<br/>if last in chain → CompleteChainScope · SignalAllPools"]
+        EVTS["QueueStateEventHandler<br/>OnJobExecuting / OnJobCompleted → SignalR / UI"]
+        REQX["RequeueJobException<br/>requeue · retry count unchanged<br/>AfterParent registrations preserved"]
+        RERR["Real exception<br/>RetryPolicy: delay = BaseDelay × 2^retryCount (capped)"]
+        RBACK["Re-insert at ScheduledAt = now + delay<br/>RetryCount += 1 · persisted immediately (crash-safe)"]
+        RDIS["Max retries exceeded<br/>discard · LogError<br/>AfterParent children deleted · keys freed"]
+        CABT["ChainAbortException<br/>[ChainFinally] jobs activated at int.MaxValue<br/>non-finally jobs skipped + deleted from DB"]
+    end
+
+    EFQ(["Enqueue Flow<br/>▸ see Enqueue Flow chart"])
+    CCX(["Job Chain Context<br/>▸ see Parent-child job chaining"])
+
+    NF & DF & CF --> FXS
+    EFQ --> PP --> PA & PB & PC
+    FXS --> PA & PB & PC
+    PA & PB & PC --> WAKE --> SFILT
+    FXS --> SFILT --> SSCHED --> CGATE --> DI
+    DI -. "chain scope hydration<br/>SetCurrentJob(id, type)" .-> CCX
+    DI --> TRCK --> PROC
+    PROC -- "success" --> SUCC --> EVTS
+    PROC -. "outcome saved to<br/>chain context" .-> CCX
+    PROC -- "RequeueJobException" --> REQX --> EFQ
+    PROC -- "real exception" --> RERR
+    RERR -- "retries remaining" --> RBACK --> EFQ
+    RERR -- "max retries" --> RDIS
+    RERR -- "ChainAbortException" --> CABT --> EFQ
+    SUCC -- "activate AfterParent children" --> EFQ
+```
 
 ---
 
@@ -622,6 +622,21 @@ All knobs live on `QueueProcessorOptions`:
 ---
 
 ## Deadlock watchdog
+
+```mermaid
+flowchart TD
+    EXEC[("ExecutingSet\nId → ExecutingEntry\n(type · key · startedAt)\n\nfrom Orchestrator")]
+    WPOLL["Poll every 15 s"]
+    WCHECK{"elapsed > WatchdogTimeoutSeconds?\n[LongRunning] jobs exempt"}
+    WFIRST["First detection\nLogError: type · elapsed\n+ IJobFactory.Execute call stack\n(from SubExecutionTracker if available)"]
+    WHEAT["Subsequent polls while still stuck\nLogWarning heartbeat: type · key · elapsed"]
+
+    EXEC --> WPOLL --> WCHECK
+    WCHECK -- "no / exempt" --> WPOLL
+    WCHECK -- "yes, first time" --> WFIRST
+    WCHECK -- "yes, already flagged" --> WHEAT
+    WFIRST & WHEAT --> WPOLL
+```
 
 `JobWatchdog` runs as a background task (started by `WorkerPoolManager`) and polls executing
 jobs every 15 seconds. Any job that has been running longer than `WatchdogTimeoutSeconds` (default

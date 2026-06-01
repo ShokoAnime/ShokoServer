@@ -12,8 +12,8 @@
     <PackageIcon>icon.png</PackageIcon>
     <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
     <PackageTags>queuing, workers, background processing, shoko, anime, plugins</PackageTags>
-    <PackageReleaseNotes>Add RunAfterCurrent parent-child job chaining, LongRunning attribute, and deadlock watchdog</PackageReleaseNotes>
-    <Version>6.0.0-alpha.3</Version>
+    <PackageReleaseNotes>Improve Job Chaining</PackageReleaseNotes>
+    <Version>6.0.0-alpha.4</Version>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
   </PropertyGroup>
