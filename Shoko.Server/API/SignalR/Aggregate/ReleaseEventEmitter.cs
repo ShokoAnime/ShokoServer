@@ -15,7 +15,6 @@ public class ReleaseEventEmitter : BaseEventEmitter, IDisposable
         _videoService = videoReleaseService;
         _videoService.ReleaseSaved += OnReleaseSaved;
         _videoService.ReleaseDeleted += OnReleaseDeleted;
-        _videoService.SearchStarted += OnSearchStarted;
         _videoService.SearchCompleted += OnSearchCompleted;
     }
 
@@ -23,7 +22,6 @@ public class ReleaseEventEmitter : BaseEventEmitter, IDisposable
     {
         _videoService.ReleaseSaved -= OnReleaseSaved;
         _videoService.ReleaseDeleted -= OnReleaseDeleted;
-        _videoService.SearchStarted -= OnSearchStarted;
         _videoService.SearchCompleted -= OnSearchCompleted;
     }
 
@@ -35,11 +33,6 @@ public class ReleaseEventEmitter : BaseEventEmitter, IDisposable
     private async void OnReleaseDeleted(object sender, VideoReleaseDeletedEventArgs e)
     {
         await SendAsync("removed", new ReleaseDeletedSignalRModel(e));
-    }
-
-    private async void OnSearchStarted(object sender, VideoReleaseSearchStartedEventArgs e)
-    {
-        await SendAsync("search.started", new VideoReleaseSearchStartedSignalRModel(e));
     }
 
     private async void OnSearchCompleted(object sender, VideoReleaseSearchCompletedEventArgs e)

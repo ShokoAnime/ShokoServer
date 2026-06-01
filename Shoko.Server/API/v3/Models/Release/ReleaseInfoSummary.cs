@@ -8,12 +8,6 @@ namespace Shoko.Server.API.v3.Models.Release;
 public class ReleaseInfoSummary
 {
     /// <summary>
-    ///   Gets a value indicating whether to use parallel mode.
-    /// </summary>
-    [Required]
-    public required bool ParallelMode { get; init; }
-
-    /// <summary>
     ///   Gets the number of available hash providers to pick from.
     /// </summary>
     [Required]

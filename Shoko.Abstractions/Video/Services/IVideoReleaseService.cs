@@ -31,11 +31,6 @@ public interface IVideoReleaseService
     event EventHandler<VideoReleaseDeletedEventArgs>? ReleaseDeleted;
 
     /// <summary>
-    ///   Event raised when an automatic video release search is started.
-    /// </summary>
-    event EventHandler<VideoReleaseSearchStartedEventArgs>? SearchStarted;
-
-    /// <summary>
     ///   Event raised when an automatic video release search is completed.
     /// </summary>
     event EventHandler<VideoReleaseSearchCompletedEventArgs>? SearchCompleted;
@@ -51,18 +46,6 @@ public interface IVideoReleaseService
     ///   for auto-matching.
     /// </summary>
     bool AutoMatchEnabled { get; }
-
-    /// <summary>
-    ///   Gets or sets a value indicating whether to use parallel mode.
-    /// </summary>
-    /// <remarks>
-    ///   Parallel mode affects <see cref="FindReleaseForVideo(IVideo, bool, bool, bool, CancellationToken)"/>
-    ///   and makes it run all providers in parallel and pick the highest
-    ///   priority valid result, as opposed to running each provider serially in
-    ///   the priority order and picking the first valid result when running in
-    ///   sequential mode.
-    /// </remarks>
-    bool ParallelMode { get; set; }
 
     /// <summary>
     ///   Adds the release info providers.
@@ -191,27 +174,6 @@ public interface IVideoReleaseService
     ///   The found release, or <c>null</c> if none could be found.
     /// </returns>
     IReleaseInfo? GetCurrentReleaseForVideo(IVideo video);
-
-    /// <summary>
-    /// Dispatches per-provider jobs for the video using the job chaining system.
-    /// In sequential mode builds a pre-ordered chain (blocked providers go to the normal queue
-    /// as separate standalone chains). In parallel mode all providers are dispatched simultaneously.
-    /// </summary>
-    Task DispatchProviderJobsForVideo(IVideo video, bool addToMylist = true, bool isAutomatic = true);
-
-    /// <summary>
-    /// Fires <see cref="SearchStarted"/> directly. Called by dispatcher jobs before submitting
-    /// a provider chain to the queue.
-    /// </summary>
-    void FireSearchStarted(IVideo video, bool addToMylist, bool isAutomatic, DateTime startedAt, IEnumerable<ReleaseProviderInfo> plannedProviders);
-
-    /// <summary>
-    /// Fires <see cref="SearchCompleted"/> directly. Called by <c>FinalizeReleaseSearchJob</c>
-    /// at the end of every provider chain.
-    /// </summary>
-    void FireSearchCompleted(IVideo video, IReleaseInfo? result, bool addToMylist, bool isAutomatic,
-        DateTime startedAt, IEnumerable<ReleaseProviderInfo> attemptedProviders,
-        ReleaseProviderInfo? selectedProvider);
 
     /// <summary>
     ///   Schedule a call to find a release for the specified video in the

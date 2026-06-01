@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
+using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
@@ -18,28 +18,33 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 /// <summary>
 /// Fires the <see cref="IVideoReleaseService.SearchCompleted"/> event at the end of a provider
 /// job chain. Always appended as the last entry in every chain built by
-/// <see cref="VideoReleaseService.DispatchProviderJobsForVideo"/>.
+/// <see cref="VideoReleaseService"/>.
 /// </summary>
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Import)]
 public class FinalizeReleaseSearchJob : BaseJob
 {
-    private readonly IVideoReleaseService _videoReleaseService;
+    private readonly VideoReleaseService _videoReleaseService;
+
     private readonly VideoLocalRepository _videoLocals;
+
+    private readonly IVideoRelocationService _relocationService;
+
+    private readonly StoredReleaseInfo_MatchAttemptRepository _matchAttempts;
 
     private VideoLocal? _vlocal;
 
+    private StoredReleaseInfo_MatchAttempt? _matchAttempt;
+
+    private int? _attemptNumber;
+
+    private string? _fileName;
+
     public int VideoLocalID { get; set; }
 
-    public bool AddToMyList { get; set; }
+    public int MatchAttemptID { get; set; }
 
-    public bool IsAutomatic { get; set; }
-
-    /// <summary>Included in the job key so that multiple finalization jobs for the same video (from separate chains) are not deduped.</summary>
-    [JobKeyMember]
-    public DateTimeOffset SearchStartedAt { get; set; }
-
-    public Guid[] AttemptedProviderIDs { get; set; } = [];
+    public bool ShouldRelocate { get; set; }
 
     public override string TypeName => "Finalize Release Search";
 
@@ -50,10 +55,12 @@ public class FinalizeReleaseSearchJob : BaseJob
         get
         {
             var result = new Dictionary<string, object>();
-            if (_vlocal?.FirstValidPlace?.Path is { } path)
-                result["File Path"] = VideoService.GetDistinctPath(path);
-            else
+            if (_attemptNumber.HasValue)
+                result["Attempt Number"] = _attemptNumber;
+            if (string.IsNullOrEmpty(_fileName))
                 result["Video"] = VideoLocalID;
+            else
+                result["File Path"] = _fileName;
             return result;
         }
     }
@@ -61,37 +68,39 @@ public class FinalizeReleaseSearchJob : BaseJob
     public override void PostInit()
     {
         _vlocal = _videoLocals.GetByID(VideoLocalID);
+        _matchAttempt = _matchAttempts.GetByID(MatchAttemptID);
+        if (_vlocal is not null && _matchAttempt is not null)
+            _attemptNumber = _matchAttempts.GetByEd2kAndFileSize(_vlocal.Hash, _vlocal.FileSize)
+                .FindIndex(m => m.StoredReleaseInfo_MatchAttemptID == MatchAttemptID) + 1;
+        _fileName = VideoService.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
 
-    public override Task Execute()
+    public override async Task Execute()
     {
         _logger.LogTrace("Finalizing release search for VideoLocalID={VideoLocalID}", VideoLocalID);
 
-        var video = _vlocal ?? (_vlocal = _videoLocals.GetByID(VideoLocalID));
-        if (video is null) return Task.CompletedTask;
+        _vlocal ??= _videoLocals.GetByID(VideoLocalID);
+        if (_vlocal is null) return;
+        if (_matchAttempts.GetByID(MatchAttemptID) is not { } matchAttempt) return;
 
-        var currentRelease = _videoReleaseService.GetCurrentReleaseForVideo(video);
-        var attemptedProviders = AttemptedProviderIDs
-            .Select(id => _videoReleaseService.GetProviderInfo(id))
-            .WhereNotNull()
-            .ToList();
+        // Finalize release search if necessary.
+        if (matchAttempt.AttemptStartedAt == matchAttempt.AttemptEndedAt)
+        {
+            matchAttempt.AttemptEndedAt = DateTime.Now;
+            _matchAttempts.Save(matchAttempt);
+            _videoReleaseService.FireSearchCompleted(_vlocal, matchAttempt);
+        }
 
-        var selectedProvider = currentRelease is not null
-            ? attemptedProviders.FirstOrDefault(p =>
-                currentRelease.ProviderName.Split('+', StringSplitOptions.RemoveEmptyEntries)
-                    .Contains(p.Name, StringComparer.OrdinalIgnoreCase))
-            : null;
-
-        _videoReleaseService.FireSearchCompleted(video, currentRelease, AddToMyList, IsAutomatic,
-            SearchStartedAt.DateTime, attemptedProviders, selectedProvider);
-
-        return Task.CompletedTask;
+        // Trigger the relocation if necessary.
+        if (ShouldRelocate)
+            await _relocationService.ScheduleAutoRelocationForVideo(_vlocal);
     }
 
-    public FinalizeReleaseSearchJob(IVideoReleaseService videoReleaseService, VideoLocalRepository videoLocals)
+    public FinalizeReleaseSearchJob(IVideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository matchAttempts)
     {
-        _videoReleaseService = videoReleaseService;
+        _videoReleaseService = (VideoReleaseService)videoReleaseService;
         _videoLocals = videoLocals;
+        _matchAttempts = matchAttempts;
     }
 
     protected FinalizeReleaseSearchJob() { }

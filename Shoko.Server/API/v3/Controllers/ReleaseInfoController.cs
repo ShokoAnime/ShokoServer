@@ -49,26 +49,8 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     public ActionResult<ReleaseInfoSummary> GetReleaseInfoSummary()
         => new ReleaseInfoSummary
         {
-            ParallelMode = videoReleaseService.ParallelMode,
             ProviderCount = videoReleaseService.GetAvailableProviders().Count(),
         };
-
-    /// <summary>
-    /// Updates the release information settings, such as the parallel mode.
-    /// </summary>
-    /// <param name="body">The settings to update.</param>
-    /// <returns>An empty <see cref="ActionResult"/>.</returns>
-    [Authorize(Roles = "admin,init")]
-    [DatabaseBlockedExempt]
-    [InitFriendly]
-    [HttpPost("Settings")]
-    public ActionResult UpdateReleaseInfoSettings([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateReleaseInfoSettingsBody body)
-    {
-        if (body.ParallelMode.HasValue)
-            videoReleaseService.ParallelMode = body.ParallelMode.Value;
-
-        return Ok();
-    }
 
     /// <summary>
     /// Gets all release providers available, with their current enabled and priority states.

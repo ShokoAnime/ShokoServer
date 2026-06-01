@@ -162,7 +162,7 @@ public sealed class QueueScheduler : IQueueScheduler
         if (_orchestrator.IsQueued(key))
             return Task.CompletedTask;
 
-        IQueueJob instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
+        var instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
         configure?.Invoke(instance);
 
         return _orchestrator.EnqueueAsync(
@@ -176,7 +176,7 @@ public sealed class QueueScheduler : IQueueScheduler
         var data = JobDataSerializer.DiffFromDefaultUntyped(jobType, configure);
         var key = JobKeyBuilder<IQueueJob>.BuildForType(jobType, data);
 
-        IQueueJob instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
+        var instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
         configure?.Invoke(instance);
 
         if (parentId == Guid.Empty)
@@ -258,7 +258,7 @@ internal sealed class JobChainBuilder : IJobChainBuilder
         var data = JobDataSerializer.DiffFromDefaultUntyped(jobType, configure);
         var key = JobKeyBuilder<IQueueJob>.BuildForType(jobType, data);
 
-        IQueueJob instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
+        var instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
         configure?.Invoke(instance);
 
         _entries.Add(QueueScheduler.BuildContext(jobType, key, instance, int.MaxValue, null));

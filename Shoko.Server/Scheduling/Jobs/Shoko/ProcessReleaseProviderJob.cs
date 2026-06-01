@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
+using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
@@ -24,28 +26,50 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [JobKeyGroup(JobKeyGroup.Import)]
 public class ProcessReleaseProviderJob : BaseJob
 {
-    private readonly IVideoReleaseService _videoReleaseService;
+    private readonly VideoReleaseService _videoReleaseService;
+
     private readonly VideoLocalRepository _videoLocals;
 
+    private readonly StoredReleaseInfo_MatchAttemptRepository _matchAttempts;
+
     private VideoLocal _vlocal;
+
+    private StoredReleaseInfo_MatchAttempt? _matchAttempt;
+
+    private ReleaseProviderInfo? _providerInfo;
+
+    private int? _attemptNumber;
+
     private string? _fileName;
 
     public int VideoLocalID { get; set; }
 
     public bool SkipMyList { get; set; }
 
+    public int MatchAttemptID { get; set; }
+
     [JobKeyMember]
     public Guid ProviderID { get; set; }
 
-    public override string TypeName => "Get Release Info for Video";
+    public override string TypeName => "Get Release Information for Video From Provider";
 
-    public override string Title => "Getting Release Info for Video";
+    public override string Title => "Getting Release Information for Video From Provider";
 
     public override Dictionary<string, object> Details
     {
         get
         {
             var result = new Dictionary<string, object>();
+            if (_providerInfo is not null)
+                result["Provider"] = _providerInfo.Name;
+            else
+                result["Provider ID"] = ProviderID;
+            if (_attemptNumber.HasValue)
+            {
+                result["Attempt Number"] = _attemptNumber;
+                if (_providerInfo is not null)
+                    result["Attempt Chain Index"] = _matchAttempt!.AttemptedProviderNames.IndexOf(_providerInfo.Name);
+            }
             if (string.IsNullOrEmpty(_fileName))
                 result["Video"] = VideoLocalID;
             else
@@ -58,7 +82,11 @@ public class ProcessReleaseProviderJob : BaseJob
     public override void PostInit()
     {
         _vlocal = _videoLocals.GetByID(VideoLocalID);
-        if (_vlocal == null) throw new Exception($"VideoLocal not found: {VideoLocalID}");
+        _matchAttempt = _matchAttempts.GetByID(MatchAttemptID);
+        if (_vlocal is not null && _matchAttempt is not null)
+            _attemptNumber = _matchAttempts.GetByEd2kAndFileSize(_vlocal.Hash, _vlocal.FileSize)
+                .FindIndex(m => m.StoredReleaseInfo_MatchAttemptID == MatchAttemptID) + 1;
+        _providerInfo = _videoReleaseService.GetProviderInfo(ProviderID);
         _fileName = VideoService.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
 
@@ -66,41 +94,56 @@ public class ProcessReleaseProviderJob : BaseJob
     {
         _logger.LogInformation("Processing {Job}: {FileName} (Provider={ProviderID})", nameof(ProcessReleaseProviderJob), _fileName ?? VideoLocalID.ToString(), ProviderID);
 
-        if (_vlocal == null)
-        {
-            _vlocal = _videoLocals.GetByID(VideoLocalID);
-            if (_vlocal == null) return;
-        }
+        _vlocal ??= _videoLocals.GetByID(VideoLocalID);
+        _matchAttempt ??= _matchAttempts.GetByID(MatchAttemptID);
+        if (_vlocal is null || _matchAttempt is null) return;
 
-        // Skip if a higher-priority provider already found a release
-        if (_videoReleaseService.GetCurrentReleaseForVideo(_vlocal) is not null)
+        _providerInfo ??= _videoReleaseService.GetProviderInfo(ProviderID);
+        if (_providerInfo is null)
         {
-            _logger.LogTrace("Release already found for {FileName}, skipping provider {ProviderID}.", _fileName, ProviderID);
+            _logger.LogWarning("Provider with id {ProviderID} not found, skipping.", ProviderID);
             return;
         }
 
-        var providerInfo = _videoReleaseService.GetProviderInfo(ProviderID);
-        if (providerInfo is null)
+        // Skip if a higher-priority provider already found a release for this file
+        if (_matchAttempt.AttemptStartedAt != _matchAttempt.AttemptEndedAt)
         {
-            _logger.LogWarning("Provider {ProviderID} not found, skipping.", ProviderID);
+            if (_matchAttempt.ProviderID.HasValue)
+                _logger.LogTrace("Release already found for {FileName}, skipping provider {ProviderName}.", _fileName, _providerInfo.Name);
             return;
         }
 
-        var request = new ReleaseInfoContext { Video = _vlocal, IsAutomatic = true };
-        var releaseInfo = await providerInfo.Provider.GetReleaseInfoForVideo(request, CancellationToken.None);
-        if (releaseInfo is null || releaseInfo.CrossReferences.Count < 1)
+        try
         {
-            _logger.LogTrace("No release found for {FileName} via provider {ProviderName}.", _fileName, providerInfo.Name);
-            return;
-        }
+            var request = new ReleaseInfoContext { Video = _vlocal, IsAutomatic = true };
+            var release = await _providerInfo.Provider.GetReleaseInfoForVideo(request, CancellationToken.None);
+            if (release is null || release.CrossReferences.Count < 1)
+            {
+                _logger.LogTrace("No release found for {FileName} via provider {ProviderName}.", _fileName, _providerInfo.Name);
+                return;
+            }
 
-        await _videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, providerInfo.Name, addToMylist: !SkipMyList);
+            var releaseInfo = new ReleaseInfoWithProvider(release, _providerInfo.Name);
+            _matchAttempt.ProviderID = _providerInfo.ID;
+            _matchAttempt.ProviderName = _providerInfo.Name;
+            await _videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, addToMylist: !SkipMyList);
+
+            _videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, releaseInfo);
+        }
+        catch (Exception ex)
+        {
+            _matchAttempt.AttemptEndedAt = DateTime.Now;
+            _matchAttempts.Save(_matchAttempt);
+            _videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, null, ex);
+            throw;
+        }
     }
 
-    public ProcessReleaseProviderJob(IVideoReleaseService videoReleaseService, VideoLocalRepository videoLocals)
+    public ProcessReleaseProviderJob(IVideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository matchAttempts)
     {
-        _videoReleaseService = videoReleaseService;
+        _videoReleaseService = (VideoReleaseService)videoReleaseService;
         _videoLocals = videoLocals;
+        _matchAttempts = matchAttempts;
     }
 
     protected ProcessReleaseProviderJob() { }
