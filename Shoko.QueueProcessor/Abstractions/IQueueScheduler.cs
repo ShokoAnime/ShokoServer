@@ -78,4 +78,31 @@ public interface IQueueScheduler
 
     /// <summary>Returns true if a job with <paramref name="jobKey"/> is already waiting or executing.</summary>
     bool IsQueued(string jobKey);
+
+    /// <summary>
+    /// Creates a builder for a sequential job chain. Any <see cref="IQueueJob"/> type can be
+    /// added; the builder is completely provider-agnostic. Call
+    /// <see cref="IJobChainBuilder.EnqueueAfterCurrent"/> or
+    /// <see cref="IJobChainBuilder.Enqueue"/> to submit the chain.
+    /// </summary>
+    IJobChainBuilder CreateJobChain();
+
+    /// <summary>
+    /// Returns <see langword="true"/> if any active acquisition filter currently blocks
+    /// <paramref name="jobType"/> from being dispatched to a worker. Uses the same filter
+    /// evaluation as <see cref="EnqueueImmediate{T}"/>.
+    /// </summary>
+    bool IsJobTypeBlocked(Type jobType);
+
+    /// <summary>
+    /// Enqueue a job whose type is known only at runtime.
+    /// Provider-agnostic general-purpose overload of <see cref="Enqueue{T}"/>.
+    /// </summary>
+    Task Enqueue(Type jobType, Action<IQueueJob>? configure = null, bool prioritize = false);
+
+    /// <summary>
+    /// Register a job (by runtime type) to run after the currently-executing job.
+    /// Provider-agnostic general-purpose overload of <see cref="RunAfterCurrent{T}"/>.
+    /// </summary>
+    Task RunAfterCurrent(Type jobType, Action<IQueueJob>? configure = null);
 }

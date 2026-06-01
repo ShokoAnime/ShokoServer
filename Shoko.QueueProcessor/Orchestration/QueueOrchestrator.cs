@@ -75,6 +75,12 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     // cannot acquire the job during the brief window between the two operations.
     private readonly HashSet<Guid> _heldForParent = new();
 
+    // All job IDs currently "in the system" regardless of state: waiting, executing, held, or
+    // registered as an after-parent callback. Allows RegisterChainAfterJob to distinguish a
+    // waiting parent (still in system) from a completed one (already removed).
+    // Maintained in sync with _jobKeyIndex — every Add/Remove to _jobKeyIndex must mirror here.
+    private readonly HashSet<Guid> _allKnownJobIds = new();
+
     private readonly object _gate = new();
     private volatile bool _paused;
 
@@ -137,6 +143,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
             pool.AddToQueue(job);
             _jobKeyIndex[job.JobKey] = job.Id;
+            _allKnownJobIds.Add(job.Id);
             count++;
         }
 
@@ -164,6 +171,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             if (_jobKeyIndex.ContainsKey(job.JobKey))
                 return Task.CompletedTask;  // already queued or executing
             _jobKeyIndex[job.JobKey] = job.Id;
+            _allKnownJobIds.Add(job.Id);
         }
 
         pool.AddToQueue(job);
@@ -205,6 +213,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             {
                 if (_jobKeyIndex.ContainsKey(entry.Ctx.Job.JobKey)) continue;
                 _jobKeyIndex[entry.Ctx.Job.JobKey] = entry.Ctx.Job.Id;
+                _allKnownJobIds.Add(entry.Ctx.Job.Id);
                 toEnqueue.Add(entry);
             }
         }
@@ -398,12 +407,17 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 _heldForParent.Add(existingId);
                 heldId = existingId;
 
+                // Swap tracking from old ID to new ID
+                _allKnownJobIds.Remove(existingId);
+                _allKnownJobIds.Add(ctx.Job.Id);
+
                 // Key stays in _jobKeyIndex; we'll point it at the new context's ID below
             }
             else
             {
                 // Claim the key so a concurrent Enqueue sees it as already registered
                 _jobKeyIndex[ctx.Job.JobKey] = ctx.Job.Id;
+                _allKnownJobIds.Add(ctx.Job.Id);
             }
 
             if (!_afterParentCallbacks.TryGetValue(parentId, out var map))
@@ -449,6 +463,75 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     }
 
     /// <summary>
+    /// Registers a child job to run after <paramref name="parentId"/> completes, even when the
+    /// parent is still <em>waiting</em> in a pool sub-queue (unlike
+    /// <see cref="RegisterAfterParent"/> which only handles the currently-executing-parent case).
+    /// This enables pre-built chains where A → B → C are registered before any of them execute.
+    /// </summary>
+    public void RegisterChainAfterJob(Guid parentId, EnqueueContext ctx)
+    {
+        if (!_poolsByType.TryGetValue(ctx.Type, out var targetPool))
+            return;
+
+        List<(EnqueueContext Ctx, WorkerPool Pool)>? immediateEnqueue = null;
+        var heldId = Guid.Empty;
+
+        lock (_gate)
+        {
+            if (_jobKeyIndex.TryGetValue(ctx.Job.JobKey, out var existingId))
+            {
+                // Already executing — leave it alone
+                if (_executingSet.ContainsKey(existingId))
+                    return;
+
+                // Waiting — hold it while we remove it from the pool sub-queue
+                _heldForParent.Add(existingId);
+                _allKnownJobIds.Remove(existingId);
+                _allKnownJobIds.Add(ctx.Job.Id);
+                heldId = existingId;
+            }
+            else
+            {
+                _jobKeyIndex[ctx.Job.JobKey] = ctx.Job.Id;
+                _allKnownJobIds.Add(ctx.Job.Id);
+            }
+
+            // KEY DIFFERENCE from RegisterAfterParent: use _allKnownJobIds instead of
+            // _executingSet so waiting parents are handled correctly.
+            if (_allKnownJobIds.Contains(parentId))
+            {
+                if (!_afterParentCallbacks.TryGetValue(parentId, out var map))
+                    _afterParentCallbacks[parentId] = map = new Dictionary<string, (EnqueueContext, WorkerPool)>(StringComparer.Ordinal);
+                map[ctx.Job.JobKey] = (ctx, targetPool);
+                _jobKeyIndex[ctx.Job.JobKey] = ctx.Job.Id;
+            }
+            else
+            {
+                // Parent already completed — enqueue immediately
+                immediateEnqueue = [(ctx, targetPool)];
+            }
+        }
+
+        if (heldId != Guid.Empty)
+        {
+            foreach (var pool in _allPools)
+                pool.RemoveFromQueue(heldId);
+            lock (_gate) _heldForParent.Remove(heldId);
+        }
+
+        if (immediateEnqueue != null)
+        {
+            foreach (var (c, pool) in immediateEnqueue)
+            {
+                pool.AddToQueue(c.Job);
+                _persistenceBuffer.OnEnqueue(c.Job);
+                _metrics.RecordEnqueue(c.Type.Name, pool.Name);
+            }
+            SignalAllPools();
+        }
+    }
+
+    /// <summary>
     /// Called by workers on success. Updates counts, buffers DB delete, signals pools.
     /// </summary>
     public void OnComplete(Guid id)
@@ -460,6 +543,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             if (!_executingSet.Remove(id, out var entry)) return;
             DecrementCounts(entry.JobType, entry.ConcurrencyGroup);
             _jobKeyIndex.Remove(entry.JobKey);
+            _allKnownJobIds.Remove(id);
             _immediateCallbacks.Remove(entry.JobKey, out completions);
 
             if (_afterParentCallbacks.Remove(id, out var deferredMap))
@@ -507,6 +591,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             {
                 _immediateCallbacks.Remove(entry.JobKey, out completions);
                 _afterParentCallbacks.Remove(id, out discardedChildren);
+                _allKnownJobIds.Remove(id);
             }
         }
 
@@ -514,8 +599,11 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         {
             lock (_gate)
             {
-                foreach (var jobKey in discardedChildren.Keys)
+                foreach (var (jobKey, (ctx, _)) in discardedChildren)
+                {
                     _jobKeyIndex.Remove(jobKey);
+                    _allKnownJobIds.Remove(ctx.Job.Id);
+                }
             }
         }
 
@@ -533,7 +621,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 ScheduledAt = null,
                 RetryCount = entry.RetryCount  // unchanged
             };
-            lock (_gate) _jobKeyIndex[entry.JobKey] = id;
+            lock (_gate) { _jobKeyIndex[entry.JobKey] = id; _allKnownJobIds.Add(id); }
             if (_poolsByType.TryGetValue(entry.JobType, out var requeuePool))
                 requeuePool.AddToQueue(requeueJob);
             SignalAllPools();
@@ -552,7 +640,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 "Job {JobKey} ({JobType}) discarded after {Retries} retries",
                 entry.JobKey, entry.JobType.Name, policy.MaxRetries);
 
-            lock (_gate) _jobKeyIndex.Remove(entry.JobKey);
+            lock (_gate) { _jobKeyIndex.Remove(entry.JobKey); _allKnownJobIds.Remove(id); }
             _persistenceBuffer.OnComplete(id);  // buffer the DELETE
         }
         else
@@ -619,6 +707,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 pool.RemoveFromQueue(id);
 
             _jobKeyIndex.Remove(jobKey);
+            _allKnownJobIds.Remove(id);
         }
 
         using var scope = _scopeFactory.CreateScope();
@@ -633,9 +722,13 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 pool.ClearQueue();
             _afterParentCallbacks.Clear();
             _jobKeyIndex.Clear();
+            _allKnownJobIds.Clear();
             // Restore keys for currently-executing jobs; all others are gone
             foreach (var entry in _executingSet.Values)
+            {
                 _jobKeyIndex[entry.JobKey] = entry.Id;
+                _allKnownJobIds.Add(entry.Id);
+            }
         }
         using var scope = _scopeFactory.CreateScope();
         await scope.ServiceProvider.GetRequiredService<IJobRepository>().ClearAllAsync(ct);

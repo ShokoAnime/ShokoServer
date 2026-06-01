@@ -76,6 +76,27 @@ public static class JobDataSerializer
         JsonConvert.PopulateObject(json, job, _settings);
     }
 
+    /// <summary>
+    /// Non-generic overload of <see cref="DiffFromDefault{T}"/> for runtime-type dispatch.
+    /// Compares a default uninitialized instance with a configured one and returns changed properties.
+    /// </summary>
+    public static Dictionary<string, object?> DiffFromDefaultUntyped(Type jobType, Action<IQueueJob>? configure)
+    {
+        var baseline = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
+        var modified = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
+        configure?.Invoke(modified);
+
+        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
+        foreach (var prop in GetProperties(jobType))
+        {
+            var original = prop.GetValue(baseline);
+            var changed = prop.GetValue(modified);
+            if (!Equals(original, changed))
+                result[prop.Name] = changed;
+        }
+        return result;
+    }
+
     private static PropertyInfo[] GetProperties(Type type) =>
         _propCache.GetOrAdd(type, t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p => p.CanRead && p.CanWrite &&

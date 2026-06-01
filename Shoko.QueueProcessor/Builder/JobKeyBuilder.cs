@@ -110,4 +110,52 @@ public class JobKeyBuilder<T> where T : class, IQueueJob
             return _allowedTypes.Contains(t.GetGenericArguments()[0]);
         return false;
     }
+
+    /// <summary>
+    /// Non-generic key builder for runtime-type dispatch. Computes the same key as the generic
+    /// <see cref="JobKeyBuilder{T}"/> would for the same configured data dictionary.
+    /// </summary>
+    public static string BuildForType(Type type, Dictionary<string, object?> data)
+    {
+        var allProperties = GetProperties(type);
+
+        var annotated = allProperties
+            .Select(p => (Prop: p, Attr: p.GetCustomAttribute<JobKeyMemberAttribute>()))
+            .Where(t => t.Attr != null)
+            .ToArray();
+
+        (PropertyInfo Prop, JobKeyMemberAttribute? Attr)[] members;
+        if (annotated.Length > 0)
+        {
+            var maxIndex = annotated.Max(t => t.Attr!.Index);
+            if (maxIndex < 0) maxIndex = annotated.Length;
+            members = annotated
+                .Select((t, i) => (t, i))
+                .OrderBy(x => x.t.Attr!.Index >= 0 ? x.t.Attr.Index : x.i + maxIndex + 1)
+                .Select(x => x.t)
+                .ToArray();
+        }
+        else
+        {
+            members = allProperties
+                .Where(p => IsEligible(p.PropertyType))
+                .Select(p => (Prop: p, Attr: (JobKeyMemberAttribute?)null))
+                .ToArray();
+        }
+
+        var segments = new List<string>();
+        var classAttr = type.GetCustomAttribute<JobKeyMemberAttribute>();
+        segments.Add(classAttr?.Id ?? type.Name);
+
+        foreach (var (prop, attr) in members)
+        {
+            var segmentId = attr?.Id ?? prop.Name;
+            if (!data.TryGetValue(prop.Name, out var value)) continue;
+            segments.Add(segmentId + ":" + JsonConvert.SerializeObject(value));
+        }
+
+        var group = type.GetCustomAttribute<JobKeyGroupAttribute>()?.GroupName;
+        var key = string.Join("_", segments);
+        return group != null ? $"{group}/{key}" : key;
+    }
 }

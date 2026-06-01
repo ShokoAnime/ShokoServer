@@ -193,6 +193,27 @@ public interface IVideoReleaseService
     IReleaseInfo? GetCurrentReleaseForVideo(IVideo video);
 
     /// <summary>
+    /// Dispatches per-provider jobs for the video using the job chaining system.
+    /// In sequential mode builds a pre-ordered chain (blocked providers go to the normal queue
+    /// as separate standalone chains). In parallel mode all providers are dispatched simultaneously.
+    /// </summary>
+    Task DispatchProviderJobsForVideo(IVideo video, bool addToMylist = true, bool isAutomatic = true);
+
+    /// <summary>
+    /// Fires <see cref="SearchStarted"/> directly. Called by dispatcher jobs before submitting
+    /// a provider chain to the queue.
+    /// </summary>
+    void FireSearchStarted(IVideo video, bool addToMylist, bool isAutomatic, DateTime startedAt, IEnumerable<ReleaseProviderInfo> plannedProviders);
+
+    /// <summary>
+    /// Fires <see cref="SearchCompleted"/> directly. Called by <c>FinalizeReleaseSearchJob</c>
+    /// at the end of every provider chain.
+    /// </summary>
+    void FireSearchCompleted(IVideo video, IReleaseInfo? result, bool addToMylist, bool isAutomatic,
+        DateTime startedAt, IEnumerable<ReleaseProviderInfo> attemptedProviders,
+        ReleaseProviderInfo? selectedProvider);
+
+    /// <summary>
     ///   Schedule a call to find a release for the specified video in the
     ///   queue.
     /// </summary>

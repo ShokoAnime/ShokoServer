@@ -121,7 +121,7 @@ public sealed class QueueScheduler : IQueueScheduler
     /// <see cref="QueueItem"/> + pre-resolved <see cref="Type"/>. PoolName is left blank — the
     /// orchestrator stamps it from pool routing.
     /// </summary>
-    private static EnqueueContext BuildContext(Type type, string jobKey, IQueueJob instance, int priority, DateTimeOffset? scheduledAt)
+    internal static EnqueueContext BuildContext(Type type, string jobKey, IQueueJob instance, int priority, DateTimeOffset? scheduledAt)
     {
         var asmQualified = type.FullName + ", " + type.Assembly.GetName().Name;
         var shortTypeName = type.Name;
@@ -148,6 +148,42 @@ public sealed class QueueScheduler : IQueueScheduler
                 RetryCount = 0
             }
         };
+    }
+
+    public IJobChainBuilder CreateJobChain() => new JobChainBuilder(this, _orchestrator);
+
+    public bool IsJobTypeBlocked(Type jobType) => _orchestrator.IsJobTypeBlocked(jobType);
+
+    public Task Enqueue(Type jobType, Action<IQueueJob>? configure = null, bool prioritize = false)
+    {
+        var data = JobDataSerializer.DiffFromDefaultUntyped(jobType, configure);
+        var key = JobKeyBuilder<IQueueJob>.BuildForType(jobType, data);
+
+        if (_orchestrator.IsQueued(key))
+            return Task.CompletedTask;
+
+        IQueueJob instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
+        configure?.Invoke(instance);
+
+        return _orchestrator.EnqueueAsync(
+            BuildContext(jobType, key, instance, prioritize ? 10 : 0, null));
+    }
+
+    public Task RunAfterCurrent(Type jobType, Action<IQueueJob>? configure = null)
+    {
+        var parentId = SubExecutionTracker.CurrentJobId.Value;
+
+        var data = JobDataSerializer.DiffFromDefaultUntyped(jobType, configure);
+        var key = JobKeyBuilder<IQueueJob>.BuildForType(jobType, data);
+
+        IQueueJob instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
+        configure?.Invoke(instance);
+
+        if (parentId == Guid.Empty)
+            return _orchestrator.EnqueueAsync(BuildContext(jobType, key, instance, 10, null));
+
+        _orchestrator.RegisterAfterParent(parentId, BuildContext(jobType, key, instance, int.MaxValue, null));
+        return Task.CompletedTask;
     }
 
     public Task Remove(string jobKey, CancellationToken ct = default)
@@ -186,4 +222,72 @@ public sealed class QueueScheduler : IQueueScheduler
     }
 
     public bool IsQueued(string jobKey) => _orchestrator.IsQueued(jobKey);
+}
+
+/// <summary>
+/// Sequential job chain builder. Builds contexts up-front then submits them to the orchestrator
+/// so that all parent-child relationships are established before any job starts executing.
+/// </summary>
+internal sealed class JobChainBuilder : IJobChainBuilder
+{
+    private readonly QueueScheduler _scheduler;
+    private readonly QueueOrchestrator _orchestrator;
+    private readonly List<EnqueueContext> _entries = [];
+
+    internal JobChainBuilder(QueueScheduler scheduler, QueueOrchestrator orchestrator)
+    {
+        _scheduler = scheduler;
+        _orchestrator = orchestrator;
+    }
+
+    public IJobChainBuilder Then<T>(Action<T>? configure = null) where T : class, IQueueJob
+    {
+        var keyBuilder = JobKeyBuilder<T>.Create();
+        if (configure != null) keyBuilder.UsingJobData(configure);
+        var key = keyBuilder.Build();
+
+        IQueueJob instance = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
+        configure?.Invoke((T)instance);
+
+        _entries.Add(QueueScheduler.BuildContext(typeof(T), key, instance, int.MaxValue, null));
+        return this;
+    }
+
+    public IJobChainBuilder Then(Type jobType, Action<IQueueJob>? configure = null)
+    {
+        var data = JobDataSerializer.DiffFromDefaultUntyped(jobType, configure);
+        var key = JobKeyBuilder<IQueueJob>.BuildForType(jobType, data);
+
+        IQueueJob instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
+        configure?.Invoke(instance);
+
+        _entries.Add(QueueScheduler.BuildContext(jobType, key, instance, int.MaxValue, null));
+        return this;
+    }
+
+    public Task EnqueueAfterCurrent()
+    {
+        if (_entries.Count == 0) return Task.CompletedTask;
+
+        var parentId = SubExecutionTracker.CurrentJobId.Value;
+        if (parentId == Guid.Empty)
+            return Enqueue();
+
+        _orchestrator.RegisterAfterParent(parentId, _entries[0]);
+        for (var i = 1; i < _entries.Count; i++)
+            _orchestrator.RegisterChainAfterJob(_entries[i - 1].Job.Id, _entries[i]);
+
+        return Task.CompletedTask;
+    }
+
+    public Task Enqueue()
+    {
+        if (_entries.Count == 0) return Task.CompletedTask;
+
+        var first = _orchestrator.EnqueueAsync(_entries[0]);
+        for (var i = 1; i < _entries.Count; i++)
+            _orchestrator.RegisterChainAfterJob(_entries[i - 1].Job.Id, _entries[i]);
+
+        return first;
+    }
 }

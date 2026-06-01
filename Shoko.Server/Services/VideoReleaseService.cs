@@ -18,6 +18,7 @@ using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Models.CrossReference;
@@ -47,6 +48,7 @@ public class VideoReleaseService(
     ISettingsProvider settingsProvider,
     ConfigurationProvider<VideoReleaseServiceSettings> configurationProvider,
     IQueueScheduler schedulerFactory,
+    QueueJobTypeRegistry jobTypeRegistry,
     IRequestFactory requestFactory,
     IUserService userService,
     IServiceProvider serviceProvider,
@@ -75,6 +77,9 @@ public class VideoReleaseService(
     private IServerSettings _settings => settingsProvider.GetSettings();
 
     private Dictionary<Guid, ReleaseProviderInfo> _releaseProviderInfos = [];
+
+    // Maps IReleaseInfoProvider concrete type → job type (from IVideoReleaseProviderJob<T> implementations)
+    private Dictionary<Type, Type> _providerJobTypes = [];
 
     private readonly HashSet<int> _unknownEpisodeIDs = [];
 
@@ -171,7 +176,15 @@ public class VideoReleaseService(
 
         UpdateProviders(false);
 
-        logger.LogInformation("Loaded {ProviderCount} providers.", _releaseProviderInfos.Count);
+        // Build the provider type → job type map from IVideoReleaseProviderJob<T> implementations
+        _providerJobTypes = jobTypeRegistry.JobTypes
+            .SelectMany(jobType => jobType.GetInterfaces()
+                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IVideoReleaseProviderJob<>))
+                .Select(i => (providerType: i.GetGenericArguments()[0], jobType)))
+            .ToDictionary(t => t.providerType, t => t.jobType);
+
+        logger.LogInformation("Loaded {ProviderCount} providers, {JobCount} provider job mappings.",
+            _releaseProviderInfos.Count, _providerJobTypes.Count);
     }
 
     #endregion Add Parts
@@ -395,6 +408,129 @@ public class VideoReleaseService(
         await schedulerFactory.StartJob<ProcessFileJob>(b => (b.VideoLocalID, b.ForceRecheck, b.ShouldRelocate) = (video.ID, true, relocateFiles), prioritize: prioritize);
     }
 
+    public async Task DispatchProviderJobsForVideo(IVideo video, bool addToMylist = true, bool isAutomatic = true)
+    {
+        var providers = GetAvailableProviders(onlyEnabled: true).ToList();
+        if (providers.Count == 0) return;
+
+        if (ParallelMode)
+        {
+            // Parallel: each provider is its own chain (ProviderJob → FinalizeReleaseSearchJob)
+            foreach (var p in providers)
+            {
+                var startedAt = DateTime.Now;
+                FireSearchStarted(video, addToMylist, isAutomatic, startedAt, [p]);
+                var chain = schedulerFactory.CreateJobChain();
+                AppendProviderToChain(chain, p, video.ID, addToMylist);
+                AppendFinalizeJob(chain, video.ID, startedAt, isAutomatic, addToMylist, [p]);
+                await chain.EnqueueAfterCurrent();
+            }
+        }
+        else
+        {
+            var unblocked = providers.Where(p => !IsProviderCurrentlyBlocked(p)).ToList();
+            var blocked = providers.Where(p => IsProviderCurrentlyBlocked(p)).ToList();
+
+            if (unblocked.Count > 0)
+            {
+                var startedAt = DateTime.Now;
+                FireSearchStarted(video, addToMylist, isAutomatic, startedAt, unblocked);
+                var chain = schedulerFactory.CreateJobChain();
+                foreach (var p in unblocked)
+                    AppendProviderToChain(chain, p, video.ID, addToMylist);
+                AppendFinalizeJob(chain, video.ID, startedAt, isAutomatic, addToMylist, unblocked);
+                await chain.EnqueueAfterCurrent();
+            }
+
+            // Blocked providers: each a separate chain queued normally so events fire when they run
+            foreach (var p in blocked)
+            {
+                var startedAt = DateTime.Now;
+                FireSearchStarted(video, addToMylist, isAutomatic, startedAt, [p]);
+                var chain = schedulerFactory.CreateJobChain();
+                AppendProviderToChain(chain, p, video.ID, addToMylist);
+                AppendFinalizeJob(chain, video.ID, startedAt, isAutomatic, addToMylist, [p]);
+                await chain.Enqueue();
+            }
+        }
+    }
+
+    public void FireSearchStarted(IVideo video, bool addToMylist, bool isAutomatic, DateTime startedAt, IEnumerable<ReleaseProviderInfo> plannedProviders)
+    {
+        try
+        {
+            SearchStarted?.Invoke(this, new()
+            {
+                ShouldSave = true,
+                IsAutomatic = isAutomatic,
+                StartedAt = startedAt,
+                Video = video,
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Got an error in a SearchStarted event.");
+        }
+    }
+
+    public void FireSearchCompleted(IVideo video, IReleaseInfo? result, bool addToMylist, bool isAutomatic,
+        DateTime startedAt, IEnumerable<ReleaseProviderInfo> attemptedProviders, ReleaseProviderInfo? selectedProvider)
+    {
+        try
+        {
+            SearchCompleted?.Invoke(this, new()
+            {
+                Video = video,
+                ReleaseInfo = result,
+                IsSaved = true,
+                IsAutomatic = isAutomatic,
+                StartedAt = startedAt,
+                CompletedAt = DateTime.Now,
+                Exception = null,
+                AttemptedProviders = attemptedProviders.ToList(),
+                SelectedProvider = selectedProvider,
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Got an error in a SearchCompleted event.");
+        }
+    }
+
+    private bool IsProviderCurrentlyBlocked(ReleaseProviderInfo provider)
+    {
+        var jobType = _providerJobTypes.GetValueOrDefault(provider.Provider.GetType()) ?? typeof(ProcessReleaseProviderJob);
+        return schedulerFactory.IsJobTypeBlocked(jobType);
+    }
+
+    private void AppendProviderToChain(IJobChainBuilder chain, ReleaseProviderInfo provider, int videoLocalID, bool addToMylist)
+    {
+        if (_providerJobTypes.TryGetValue(provider.Provider.GetType(), out var jobType))
+            chain.Then(jobType, j => SetProviderJobProps(j, videoLocalID, addToMylist));
+        else
+            chain.Then<ProcessReleaseProviderJob>(c => { c.VideoLocalID = videoLocalID; c.SkipMyList = !addToMylist; c.ProviderID = provider.ID; });
+    }
+
+    private void AppendFinalizeJob(IJobChainBuilder chain, int videoLocalID, DateTime startedAt, bool isAutomatic, bool addToMylist, IEnumerable<ReleaseProviderInfo> providers)
+    {
+        var providerIDs = providers.Select(p => p.ID).ToArray();
+        chain.Then<FinalizeReleaseSearchJob>(c =>
+        {
+            c.VideoLocalID = videoLocalID;
+            c.AddToMyList = addToMylist;
+            c.IsAutomatic = isAutomatic;
+            c.SearchStartedAt = startedAt;
+            c.AttemptedProviderIDs = providerIDs;
+        });
+    }
+
+    private static void SetProviderJobProps(IQueueJob job, int videoLocalID, bool addToMylist)
+    {
+        var type = job.GetType();
+        type.GetProperty(nameof(AnidbProcessFileJob.VideoLocalID))?.SetValue(job, videoLocalID);
+        type.GetProperty(nameof(AnidbProcessFileJob.SkipMyList))?.SetValue(job, !addToMylist);
+    }
+
     public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool addToMylist = true, bool isAutomatic = true, CancellationToken cancellationToken = default)
          => await FindReleaseForVideo(video, GetAvailableProviders(onlyEnabled: true), saveRelease, addToMylist, isAutomatic, cancellationToken);
 
@@ -575,7 +711,7 @@ public class VideoReleaseService(
             }
 
             foreach (var item in tasks.Values.Where(tuple => tuple.providerInfo.Priority >= providerInfo.Priority))
-                item.source.Cancel();
+                await item.source.CancelAsync();
         }
 
         if (selectedRelease is not null && selectedProvider is not null)

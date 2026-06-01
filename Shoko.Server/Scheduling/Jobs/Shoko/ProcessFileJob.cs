@@ -5,20 +5,15 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
-using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
-using Shoko.Server.Scheduling.Concurrency;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
 
 #pragma warning disable CS8618
 #nullable enable
-using Shoko.Server.Repositories.Cached;
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
-[AniDBUdpRateLimited]
-[DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.Import)]
 public class ProcessFileJob : BaseJob
 {
@@ -76,9 +71,9 @@ public class ProcessFileJob : BaseJob
                 return;
         }
 
-        // Process and get the AniDB file entry.
-        if (ForceRecheck || _videoReleaseService.GetCurrentReleaseForVideo(_vlocal) is not { } currentRelease)
-            await _videoReleaseService.FindReleaseForVideo(_vlocal, addToMylist: !SkipMyList, isAutomatic: true);
+        // Dispatch provider jobs as a chain; each provider runs with its own rate limiting.
+        if (ForceRecheck || _videoReleaseService.GetCurrentReleaseForVideo(_vlocal) is null)
+            await _videoReleaseService.DispatchProviderJobsForVideo(_vlocal, addToMylist: !SkipMyList);
 
         if (ShouldRelocate)
             await _relocationService.ScheduleAutoRelocationForVideo(_vlocal);
