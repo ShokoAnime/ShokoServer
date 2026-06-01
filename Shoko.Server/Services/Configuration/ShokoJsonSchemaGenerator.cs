@@ -321,6 +321,9 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             if (!_schemaCache[schemaKey].PropertyUIDefinitions.TryAdd(propertyKey, uiDict))
                 uiDict = _schemaCache[schemaKey].PropertyUIDefinitions[propertyKey];
 
+            if (uiDict.ContainsKey(ElementLabel))
+                goto ProcessedInheritedProperty;
+
             if (info.GetAttribute<DisplayAttribute>(false) is { } displayAttribute)
             {
                 if (!string.IsNullOrWhiteSpace(displayAttribute.Name))
@@ -605,6 +608,8 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                 uiDict[ElementType] = Convert(DisplayElementType.Password);
             }
         }
+
+        ProcessedInheritedProperty:;
 
         // Add a reference to the class schema and generate the schema if it's not done yet.
         if (
