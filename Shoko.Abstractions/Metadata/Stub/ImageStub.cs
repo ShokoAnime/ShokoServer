@@ -12,7 +12,7 @@ namespace Shoko.Abstractions.Metadata.Stub;
 ///   <see cref="IImage"/> instance and an <see cref="IImageCrossReference"/>
 ///   instance.
 /// </summary>
-public class ImageStub(IImage image, IImageCrossReference? xref = null, bool linkedXref = false, bool? isPreferred = null) : IImage
+public class ImageStub(IImage image, IImageCrossReference? xref = null, bool linkedXref = false, ImageEntityType? type = null, bool? isPreferred = null) : IImage
 {
     /// <inheritdoc />
     public Guid ID => image.ID;
@@ -37,7 +37,7 @@ public class ImageStub(IImage image, IImageCrossReference? xref = null, bool lin
     public IImageCrossReference? CrossReference => xref ?? image.CrossReference;
 
     /// <inheritdoc />
-    public ImageEntityType Type => xref?.ImageType ?? image.Type;
+    public ImageEntityType Type => type ?? xref?.ImageType ?? image.Type;
 
     /// <inheritdoc />
     public string ContentType => image.ContentType;
