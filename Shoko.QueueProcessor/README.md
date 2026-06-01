@@ -38,6 +38,7 @@ flowchart TD
         RAC["RunAfterCurrent&lt;T&gt;(configure)<br/>priority: int.MaxValue after parent<br/>held until parent job completes"]
         ENQI["EnqueueImmediate&lt;T&gt;(configure, onComplete)<br/>priority: int.MaxValue<br/>returns Task that completes with the job"]
         REC["RecurringJobRegistry<br/>Register&lt;T&gt;(interval, configure)"]
+        CCB["CreateJobChain()<br/>→ JobChainBuilder<br/>Then&lt;T&gt;() assigns ChainId + IsChainFinally<br/>Enqueue() / EnqueueAfterCurrent()"]
     end
 
     subgraph Sched["Scheduler  (QueueScheduler)"]
@@ -48,14 +49,14 @@ flowchart TD
     subgraph Orch["QueueOrchestrator  (in-memory state)"]
         IDX["JobKeyIndex  O(1)<br/>key → Id<br/>covers waiting + executing + after-parent<br/>duplicate key → no-op"]
         WQ[("Waiting Queue  SortedSet per pool<br/>sort: Priority DESC · QueuedAt ASC · Id ASC")]
-        APC["AfterParentCallbacks<br/>parentId → {jobKey → (ctx, pool)}<br/>key claimed in index to block early dispatch"]
-        EXEC[("ExecutingSet<br/>Id → ExecutingEntry<br/>(type, key, startedAt, poolName, priority)")]
+        APC["AfterParentCallbacks<br/>parentId → {jobKey → (ctx, pool)}<br/>key claimed in index to block early dispatch<br/>deferred children persisted with ParentJobId"]
+        EXEC[("ExecutingSet<br/>Id → ExecutingEntry<br/>(type, key, startedAt, poolName, priority<br/>ChainId, IsChainFinally)")]
         GATE["TryRegisterExecuting<br/>① global worker cap<br/>② per-type concurrency limit<br/>③ per-group concurrency limit"]
     end
 
     subgraph Persist["Persistence  (PersistenceBuffer + EF Core)"]
-        PBUF["PersistenceBuffer<br/>batches INSERT and DELETE ops<br/>enqueue + complete within flush window<br/>→ zero DB writes  (cancel-out)"]
-        DB[("QueuedJob table<br/>SQLite / MySQL / MSSQL<br/>─────────────────────<br/>Id · JobType · JobKey<br/>JobDataJson · Priority<br/>QueuedAt · ScheduledAt · RetryCount")]
+        PBUF["PersistenceBuffer<br/>INSERT · OnActivateChainChild (UPDATE) · DELETE<br/>enqueue + complete within flush window<br/>→ zero DB writes  (cancel-out)"]
+        DB[("Jobs table · JobChains table<br/>SQLite / MySQL / MSSQL<br/>─────────────────────<br/>Id · JobType · JobKey · JobDataJson<br/>Priority · QueuedAt · ScheduledAt · RetryCount<br/>ChainId · IsChainFinally · ParentJobId<br/>─────────────────────<br/>QueuedJobChain: ChainId · Status<br/>DataJson · ResultsJson · OutcomesJson")]
     end
 
     subgraph PoolLayer["Worker Pools  (PoolDiscovery builds from [LimitConcurrency] + [DisallowConcurrencyGroup])"]
@@ -77,15 +78,22 @@ flowchart TD
         SFILT["① Skip if type in excluded-types set"]
         SSCHED["② Skip if ScheduledAt &gt; now"]
         CGATE["③ TryRegisterExecuting<br/>concurrency gate — adds to ExecutingSet"]
-        DI["DI scope<br/>Resolve job by concrete type<br/>JobDataSerializer.Apply(instance, json)<br/>Setup(serviceProvider) → PostInit()"]
+        DI["DI scope (per-job) OR chain scope (chained jobs)<br/>Resolve job by concrete type<br/>JobDataSerializer.Apply(instance, json)<br/>Setup(serviceProvider) → PostInit()"]
         TRCK["SubExecutionTracker.CurrentJobId = id<br/>(AsyncLocal — flows through all async calls<br/>JobFactory captures call stack here)"]
         PROC["job.Process()"]
-        SUCC["OnComplete<br/>· remove from ExecutingSet<br/>· buffer DELETE in PersistenceBuffer<br/>· release AfterParent children at int.MaxValue<br/>· SignalAllPools"]
+        SUCC["OnComplete<br/>· remove from ExecutingSet<br/>· buffer DELETE in PersistenceBuffer<br/>· activate AfterParent children (OnActivateChainChild)<br/>· if last in chain → CompleteChainScope<br/>· SignalAllPools"]
         EVTS["QueueStateEventHandler<br/>OnJobExecuting / OnJobCompleted<br/>→ SignalR / UI consumers"]
         REQX["RequeueJobException<br/>→ requeue at original priority<br/>   retry count unchanged<br/>   AfterParent registrations preserved<br/>   (transient: ban, rate-limit, etc.)"]
         RERR["Real exception<br/>→ RetryPolicy.GetDelay(retryCount)<br/>   delay = BaseDelay × 2^n  (capped)"]
         RBACK["Re-insert into pool sub-queue<br/>ScheduledAt = now + delay<br/>RetryCount += 1<br/>persisted immediately"]
-        RDIS["Max retries exhausted<br/>→ discard · LogError<br/>AfterParent children discarded<br/>dedup keys freed"]
+        RDIS["Max retries exhausted<br/>→ discard · LogError<br/>AfterParent children discarded + deleted<br/>dedup keys freed"]
+    end
+
+    subgraph Chain["Job Chain Context"]
+        CSR["IChainScopeRegistry<br/>ChainId → shared IServiceScope<br/>created at chain-build time<br/>disposed after last job completes"]
+        CCX["JobChainContext  (lives in chain scope)<br/>GetData / SetData  — shared key-value store<br/>GetResult&lt;T&gt;(Type)  — last result of that type<br/>GetResult&lt;T&gt;(Guid jobId)  — precise lookup<br/>GetOutcome / GetAllOutcomes"]
+        CABT["ChainAbortException<br/>CollectChainDescendants_UnderLock<br/>· [ChainFinally] jobs → activated at int.MaxValue<br/>· others → skipped, deleted from DB<br/>· outcomes + Aborted status saved"]
+        PRID["ParentJobId on QueuedJob<br/>set when RegisterChainAfterJob persists child<br/>cleared (OnActivateChainChild) when parent fires it<br/>startup: reconciled back into AfterParentCallbacks"]
     end
 
     subgraph WatchDog["Deadlock Watchdog  (JobWatchdog — background task)"]
@@ -101,6 +109,7 @@ flowchart TD
     IDX -- "new key" --> WQ
     WQ --> PBUF --> DB
     DB -. "load persisted jobs on startup" .-> WQ
+    DB -. "ParentJobId set → AfterParentCallbacks on startup" .-> APC
 
     %% ── RunAfterCurrent ──────────────────────────────────
     RAC --> KB
@@ -113,6 +122,12 @@ flowchart TD
     ENQI -- "already waiting → promote to int.MaxValue" --> WQ
     ENQI -- "already executing → await existing run" --> EXEC
 
+    %% ── Chain build ──────────────────────────────────────
+    CCB --> CSR
+    CCB -- "RegisterChainAfterJob persists each child" --> APC
+    CCB -- "seed QueuedJobChain record" --> DB
+    APC --> PRID
+
     %% ── Routing to pools ─────────────────────────────────
     WQ --> PP --> PA & PB & PC
     NF & DF & CF --> FXS
@@ -122,14 +137,21 @@ flowchart TD
     FXS --> SFILT --> SSCHED --> CGATE
     CGATE -- "approved" --> EXEC
     CGATE --> DI --> TRCK --> PROC
+    CSR -- "chain job → reuse chain scope" --> DI
+    DI -- "chain scope" --> CCX
 
     %% ── Outcomes ─────────────────────────────────────────
     PROC -- "success" --> SUCC --> EVTS
+    PROC -- "save outcome to context" --> CCX
+    CCX -- "SaveAsync after each job" --> DB
     PROC -- "RequeueJobException" --> REQX --> WQ
     PROC -- "real exception" --> RERR
     RERR -- "retries remaining" --> RBACK --> WQ
     RERR -- "max retries" --> RDIS
-    SUCC -- "release after-parent children" --> WQ
+    RERR -- "ChainAbortException" --> CABT
+    CABT -- "[ChainFinally] jobs" --> WQ
+    CABT -- "chain status + skipped outcomes" --> DB
+    SUCC -- "activate after-parent children" --> WQ
 
     %% ── Watchdog ─────────────────────────────────────────
     EXEC --> WPOLL --> WCHECK
@@ -317,6 +339,8 @@ Console.WriteLine($"{state.TotalExecuting} running, {state.TotalWaiting} waiting
 
 ### Parent-child job chaining
 
+#### Single follow-up: `RunAfterCurrent`
+
 Use `RunAfterCurrent<T>` to register a follow-up job that is held until the currently-executing
 job completes, then released at maximum priority. This prevents a successor from running against
 partially-committed data written by its parent.
@@ -325,8 +349,6 @@ partially-committed data written by its parent.
 // Called from inside a job's Process() — child runs after the parent finishes
 await scheduler.RunAfterCurrent<IndexAnimeJob>(j => j.AnimeID = animeID);
 ```
-
-**Behaviour:**
 
 | Scenario | Result |
 |---|---|
@@ -341,6 +363,136 @@ await scheduler.RunAfterCurrent<IndexAnimeJob>(j => j.AnimeID = animeID);
 `SubExecutionTracker` (internal) propagates the current job's ID via `AsyncLocal<Guid>` through
 the full async call chain, so `RunAfterCurrent` works correctly when called from a helper
 service method invoked by the job — not just from `Process()` directly.
+
+#### Sequential chains: `CreateJobChain`
+
+For longer sequences, build the full chain upfront with `CreateJobChain`. All parent-child
+relationships are registered before any job executes, deferred children are persisted with
+`ParentJobId` set so the chain survives a crash, and all jobs in the chain share a single DI
+scope so scoped services (including `IJobChainContextAccessor`) are naturally shared.
+
+```csharp
+// Build a chain: A → B → C (C always runs, even if B aborts)
+await scheduler.CreateJobChain()
+    .Then<GetAniDBAnimeJob>(j => j.AnimeID = animeID)
+    .Then<SearchTmdbJob>(j => j.AnimeID = animeID)
+    .Then<FinalizeReleaseSearchJob>(j => j.AnimeID = animeID)  // [ChainFinally]
+    .EnqueueAfterCurrent();  // or .Enqueue() to start independently
+```
+
+```mermaid
+flowchart TD
+    subgraph Build["Chain Build  (before any job runs)"]
+        CB["scheduler.CreateJobChain()\nnew JobChainBuilder  —  ChainId = Guid.NewGuid()"]
+        TH["Then&lt;T&gt;() / Then(Type)\n· sets ChainId on each QueuedJob\n· sets IsChainFinally from [ChainFinally]"]
+        ENC["Enqueue() / EnqueueAfterCurrent()\n· GetOrCreateAsync(ChainId) → seed QueuedJobChain in DB\n· chain[0]: Enqueue or RegisterAfterParent\n· chain[1..n]: RegisterChainAfterJob\n  each child persisted with ParentJobId set"]
+    end
+
+    subgraph PersistC["Crash Recovery"]
+        PRID["QueuedJob.ParentJobId\nnon-null while deferred in AfterParentCallbacks\ncleared (UPDATE) when parent fires the child"]
+        RECON["Startup: Initialize() reconciles\n· ParentJobId set + parent in DB → AfterParentCallbacks\n· ParentJobId set + parent gone → promote to active\n  (parent completed before crash; UPDATE async)"]
+    end
+
+    subgraph ScopeL["Chain Scope  (IChainScopeRegistry)"]
+        CSR["One IServiceScope per ChainId\ncreated at chain-build time\nall jobs in the chain resolve from it\n→ scoped services are shared across the chain"]
+        HYDRATE["Worker: GetOrCreateChainScope(ChainId)\naccessor.Initialize(context)  — once per scope\naccessor.SetCurrentJob(jobId, type)  — per job"]
+    end
+
+    subgraph CtxL["JobChainContext"]
+        DATA["GetData&lt;T&gt;(key) / SetData&lt;T&gt;(key, value)\nshared key-value bag — any job can read/write"]
+        RES["GetResult&lt;T&gt;(Type)  — last result of that type\nGetResult&lt;T&gt;(Guid jobId)  — precise by job ID\nBaseJob&lt;T&gt;.Execute() auto-stores result\n  keyed by current job ID + job type"]
+        OUT["GetOutcome(Type) / GetOutcome(Guid jobId)\nGetAllOutcomes()\nrecorded after each job as Succeeded / Failed / Aborted / Skipped"]
+        SAVE["SaveAsync after each job\n→ DataJson · ResultsJson · OutcomesJson\n   persisted in QueuedJobChain row"]
+    end
+
+    subgraph AbortL["Chain Abort  (ChainAbortException)"]
+        CAE["throw new ChainAbortException(message)\nor ChainAbortException(message, [ex1, ex2, …])"]
+        TRAV["CollectChainDescendants_UnderLock\nrecursive traversal of AfterParentCallbacks\nstops at [ChainFinally] boundaries"]
+        FIN["[ChainFinally] descendants\n· activated at int.MaxValue priority\n· run normally; their own children chain on"]
+        SKP["Other descendants\n· removed from key index\n· OnComplete(id) → DELETE from DB\n· outcome recorded as Skipped"]
+        ABST["Chain context\n· Skipped outcomes appended\n· Status → Aborted\n· saved to DB"]
+    end
+
+    subgraph DoneL["Chain Completion"]
+        LAST["Last job completes (no more deferred children)\nOnComplete: CompleteChainScope(ChainId)\n→ IServiceScope disposed"]
+    end
+
+    CB --> TH --> ENC
+    ENC --> PRID & CSR
+    PRID --> RECON
+    CSR --> HYDRATE --> DATA & RES & OUT
+    DATA & RES & OUT --> SAVE
+    RES -. "BaseJob&lt;T&gt; auto-stores result" .-> SAVE
+    CAE --> TRAV --> FIN & SKP --> ABST
+    ABST --> LAST
+    FIN --> LAST
+    SAVE --> LAST
+```
+
+**Injecting chain context into a job:**
+
+```csharp
+// Producer job (BaseJob<T> — result stored automatically)
+public class GetAniDBAnimeJob : BaseJob<AniDB_Anime>
+{
+    public int AnimeID { get; set; }
+
+    public override async Task<AniDB_Anime> Process()
+    {
+        // … fetch from AniDB …
+        return anime;  // automatically stored in chain context, keyed by this job's ID
+    }
+}
+
+// Consumer job (reads the result set by the previous job)
+public class SearchTmdbJob(IJobChainContextAccessor chain) : BaseJob
+{
+    public int AnimeID { get; set; }
+
+    public override async Task Execute()
+    {
+        // By type (returns the most recent result of that type in the chain)
+        var anime = chain.GetResult<GetAniDBAnimeJob, AniDB_Anime>();
+
+        // If the same job type appears more than once, use the precise overload:
+        // var anime = chain.GetResult<AniDB_Anime>(specificJobId);
+
+        // Shared data bag — any job in the chain can read/write
+        chain.SetData("tmdbSearchQuery", anime?.MainTitle);
+        var previousQuery = chain.GetData<string>("tmdbSearchQuery");
+
+        // Check what happened to a previous step
+        var outcome = chain.GetCurrentContext()?.GetOutcome(typeof(GetAniDBAnimeJob));
+    }
+}
+```
+
+**Aborting a chain:**
+
+```csharp
+// Throw from any job to short-circuit the remaining non-finally steps
+throw new ChainAbortException("Anime not found — nothing to match.");
+
+// With aggregate causes
+throw new ChainAbortException("Multiple providers failed", [ex1, ex2]);
+```
+
+**Always-run steps:**
+
+```csharp
+// Apply [ChainFinally] to a job that must always run, even after an abort.
+// Its own children also run normally after it completes.
+[ChainFinally]
+public class FinalizeReleaseSearchJob : BaseJob
+{
+    public override async Task Execute()
+    {
+        var ctx = _chain.GetCurrentContext();
+        // ctx.Status == ChainStatus.Aborted if chain was aborted
+        // ctx.GetAllOutcomes() shows what ran, what was skipped
+    }
+}
+```
 
 ### Recurring jobs
 
@@ -504,7 +656,7 @@ include exactly where in the code that call originated.
 
 ## Persistence model
 
-One table, `QueuedJob`:
+### `Jobs` table
 
 | Column | Notes |
 |---|---|
@@ -515,8 +667,24 @@ One table, `QueuedJob`:
 | `Priority` | Higher first; FIFO within priority. |
 | `QueuedAt` / `ScheduledAt` | Earliest-dispatch hint for deferred / retried jobs. |
 | `RetryCount` | Persisted so crash-restart doesn't reset backoff. |
+| `ChainId` (Guid?) | The chain this job belongs to; null for standalone jobs. |
+| `IsChainFinally` | True when the job carries `[ChainFinally]` — it runs even if the chain aborts. |
+| `ParentJobId` (Guid?) | Non-null while the job is deferred in `AfterParentCallbacks`. Cleared (UPDATE) the moment the parent fires it. Used at startup to reconstruct `AfterParentCallbacks` from DB. |
 
-There's **no status column** — executing state lives only in memory. On crash-restart, in-flight jobs are simply re-dispatched from the row that was never deleted.
+There's **no status column** — executing state lives only in memory. On crash-restart, in-flight jobs are re-dispatched from their surviving row. Jobs with `ParentJobId` set whose parent is still present are placed back into `AfterParentCallbacks`; those whose parent is already gone are promoted to the active queue.
+
+### `JobChains` table
+
+Stores the shared context for a chain. One row per `ChainId`, created when the chain is first built and updated after each job completes.
+
+| Column | Notes |
+|---|---|
+| `ChainId` (Guid) | Primary key; matches `Jobs.ChainId`. |
+| `Status` | `Active`, `Aborted`, or `Completed` (stored as int). |
+| `DataJson` | JSON object of the shared key-value data store (`GetData` / `SetData`). |
+| `ResultsJson` | JSON array of `{JobId, TypeKey, Json}` entries — typed results produced by `BaseJob<T>` jobs, keyed by job ID so the same type can appear multiple times in a chain without collision. |
+| `OutcomesJson` | JSON array of `{JobId, JobType, Status, ExceptionMessage, StackTrace, CompletedAt}` entries — one per job that ran, was aborted, or was skipped. |
+| `CreatedAt` / `UpdatedAt` | Timestamps. |
 
 Migrations are applied automatically by `WorkerPoolManager.StartAsync` (which calls `serviceProvider.MigrateQueueDatabaseAsync`).
 
