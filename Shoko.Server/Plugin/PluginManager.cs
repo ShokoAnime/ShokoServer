@@ -361,7 +361,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         {
             var assembly = pluginInfo.PluginType!.Assembly;
             if (assembly == typeof(PluginManager).Assembly)
-                continue; //Skip the current assembly, as these are added above.
+                continue; //Skip the current assembly, as this is registered implicitly.
 
             logger.LogTrace("Scanning plugin assembly for queue jobs. ({DllName})", Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]));
             serviceCollection.AddQueueJobsFromAssembly(pluginInfo.PluginType!.Assembly);
