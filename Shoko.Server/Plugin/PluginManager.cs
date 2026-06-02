@@ -1143,6 +1143,24 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             _pluginTypes[index] = pluginInfo;
         else
             _pluginTypes.Add(pluginInfo);
+
+        // Unmark the plugin for removal when it's reinstalled again.
+        if (existingPluginInfo is not null && !string.IsNullOrEmpty(pluginInfo.ContainingDirectory))
+        {
+            if (Directory.Exists(pluginInfo.ContainingDirectory))
+            {
+                var removalFile = Path.Join(pluginInfo.ContainingDirectory, Remove);
+                if (File.Exists(removalFile))
+                    File.Delete(removalFile);
+            }
+        }
+        else if (existingPluginInfo is not null && pluginInfo.DLLs.Count is 1)
+        {
+            var removalFile = Path.ChangeExtension(pluginInfo.DLLs[0], Remove);
+            if (File.Exists(removalFile))
+                File.Delete(removalFile);
+        }
+
         return pluginInfo;
     }
 
