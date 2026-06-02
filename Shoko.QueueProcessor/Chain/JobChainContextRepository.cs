@@ -53,7 +53,7 @@ public class JobChainContextRepository : IJobChainContextRepository
                 .SetProperty(c => c.DataJson, context.SerializeData())
                 .SetProperty(c => c.ResultsJson, context.SerializeResults())
                 .SetProperty(c => c.OutcomesJson, context.SerializeOutcomes())
-                .SetProperty(c => c.UpdatedAt, DateTimeOffset.UtcNow),
+                .SetProperty(c => c.UpdatedAt, c => DateTimeOffset.UtcNow),
             ct);
 
         if (rows == 0)
@@ -93,7 +93,7 @@ public class JobChainContextRepository : IJobChainContextRepository
             .Where(c => c.ChainId == chainId)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(c => c.OutcomesJson, System.Text.Json.JsonSerializer.Serialize(existing))
-                .SetProperty(c => c.UpdatedAt, DateTimeOffset.UtcNow),
+                .SetProperty(c => c.UpdatedAt, c => DateTimeOffset.UtcNow),
             ct);
     }
 }
