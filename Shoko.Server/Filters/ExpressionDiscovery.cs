@@ -4,7 +4,10 @@ using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
+using Shoko.Abstractions.Filtering.Expressions.Info;
 using Shoko.Abstractions.Filtering.Sorting;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Filters;
@@ -80,16 +83,18 @@ internal static class ExpressionDiscovery
             _ => throw new Exception($"Expression {filterType.Name} is not a handled type for Filter Expression Help")
         };
 
+        var expressionName = filterType.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim();
+        var (helpParams, helpSecondParams, helpParamPairs) = GetHelpParameterOverrides(filterType);
         return new FilterExpressionHelpEntry
         {
             InternalType = filterType,
-            Expression = filterType.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim(),
+            Expression = expressionName,
             Name = expression.Name,
             Group = expression.Group,
             Description = expression.HelpDescription,
-            PossibleParameters = expression.HelpPossibleParameters,
-            PossibleSecondParameters = expression.HelpPossibleSecondParameters,
-            PossibleParameterPairs = expression.HelpPossibleParameterPairs,
+            PossibleParameters = helpParams ?? expression.HelpPossibleParameters,
+            PossibleSecondParameters = helpSecondParams ?? expression.HelpPossibleSecondParameters,
+            PossibleParameterPairs = helpParamPairs ?? expression.HelpPossibleParameterPairs,
             Left = left,
             Right = right,
             Parameter = parameter,
@@ -97,6 +102,62 @@ internal static class ExpressionDiscovery
             Type = type,
         };
     }
+
+    /// <summary>
+    /// Returns server-side help parameter overrides for expressions whose
+    /// parameter lists cannot be computed in the abstractions layer (because
+    /// they depend on repositories or other server services).
+    /// </summary>
+    private static (string[]? Parameters, string[]? SecondParameters, string[][]? ParameterPairs) GetHelpParameterOverrides(Type filterType)
+        => filterType.Name switch
+        {
+            nameof(InYearExpression) =>
+            (
+                RepoFactory.AnimeSeries.GetAllYears()
+                    .Select(a => a.ToString())
+                    .ToArray(),
+                null,
+                null
+            ),
+
+            nameof(InSeasonExpression) =>
+            (
+                null,
+                null,
+                RepoFactory.AnimeSeries.GetAllSeasons()
+                    .Select(a => new[] { a.Year.ToString(), a.Season.ToString() })
+                    .ToArray()
+            ),
+
+            nameof(HasTagExpression) =>
+            (
+                RepoFactory.AniDB_Tag?.GetAllForLocalSeries()
+                    .Select(a => a.TagName.Replace('`', '\''))
+                    .ToArray() ?? [],
+                null,
+                null
+            ),
+
+            nameof(HasAvailableImageExpression) or nameof(HasPreferredImageExpression) =>
+            (
+                RepoFactory.AnimeSeries.GetAllImageTypes()
+                    .Select(a => a.ToString())
+                    .ToArray(),
+                null,
+                null
+            ),
+
+            nameof(HasReleaseGroupNameExpression) =>
+            (
+                RepoFactory.StoredReleaseInfo.GetUsedReleaseGroups()
+                    .Select(r => r.Name)
+                    .ToArray(),
+                null,
+                null
+            ),
+
+            _ => (null, null, null),
+        };
 
     public static IReadOnlyList<ISortingCriteriaHelp> GetSortingCriteriaHelp()
         => AppDomain.CurrentDomain.GetAssemblies()
