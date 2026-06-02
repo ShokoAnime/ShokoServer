@@ -1,4 +1,6 @@
 
+using System;
+
 namespace Shoko.Abstractions.Plugin.Models;
 
 /// <summary>
@@ -8,9 +10,9 @@ namespace Shoko.Abstractions.Plugin.Models;
 public sealed class LocalPluginPage
 {
     /// <summary>
-    ///   Information about the plugin the page belongs to.
+    ///   The ID of the page.
     /// </summary>
-    public required LocalPluginInfo PluginInfo { get; set; }
+    public required Guid ID { get; set; }
 
     /// <summary>
     ///   The name of the page.
@@ -27,4 +29,9 @@ public sealed class LocalPluginPage
     ///   false to force the page to open in a new window.
     /// /// </summary>
     public bool CanEmbed { get; set; } = true;
+
+    /// <summary>
+    ///   Information about the plugin the page belongs to.
+    /// </summary>
+    public required LocalPluginInfo PluginInfo { get; set; }
 }

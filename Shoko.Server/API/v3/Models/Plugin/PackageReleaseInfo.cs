@@ -19,7 +19,7 @@ public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo, IPluginM
     ///   Unique package repository identifier for the release.
     /// </summary>
     [Required]
-    public Guid RepositoryID { get; init; } = releaseInfo.RepositoryID;
+    public Guid? RepositoryID { get; init; } = releaseInfo.RepositoryID;
 
     /// <summary>
     ///   Shared semantic version for all versions of the release. (e.g.,

@@ -12,6 +12,11 @@ namespace Shoko.Server.API.v3.Models.Plugin;
 public class PluginPage
 {
     /// <summary>
+    ///   The ID of the page.
+    /// </summary>
+    public Guid ID { get; init; }
+
+    /// <summary>
     ///   The name of the page.
     /// </summary>
     public string Name { get; init; }
@@ -36,6 +41,7 @@ public class PluginPage
 
     public PluginPage(LocalPluginPage page, bool includePluginInfo = false)
     {
+        ID = page.ID;
         Name = page.Name;
         if (Uri.IsWellFormedUriString(page.Url, UriKind.Absolute))
             Url = page.Url;

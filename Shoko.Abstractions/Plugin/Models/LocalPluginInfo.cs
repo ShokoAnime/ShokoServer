@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Shoko.Abstractions.Core;
+using Shoko.Abstractions.Utilities;
 
 namespace Shoko.Abstractions.Plugin.Models;
 
@@ -175,10 +176,11 @@ public sealed class LocalPluginInfo
         return Plugin.GetPages()
             .Select(x => new LocalPluginPage
             {
-                PluginInfo = this,
+                ID = UuidUtility.GetV5(x.Url, ID),
                 Name = x.Name,
                 Url = x.Url,
                 CanEmbed = x.CanEmbed,
+                PluginInfo = this,
             })
             .DistinctBy(x => x.Name)
             .DistinctBy(x => x.Url)
