@@ -1,50 +1,37 @@
-using System.Linq;
 using System.Net;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Web.Attributes;
 
 namespace Shoko.Server.API.ActionFilters;
 
-public class ServerNotRunningFilter(ISystemService systemService) : IActionFilter
+public class ServerNotRunningMiddleware(RequestDelegate next, ISystemService systemService)
 {
     private const string NewInstance = "The server is in setup mode. Use the First Time Setup Wizard or check your settings and logs to ensure the server is starting correctly.";
-
     private const string ExistingInstance = "The server is starting up. Check your logs to ensure the server is starting correctly.";
-
     private const string FailedStartup = "The server failed to start. Check your logs for more information.";
 
-    public void OnActionExecuting(ActionExecutingContext context)
+    public async Task Invoke(HttpContext context)
     {
-        var exempt = context.ActionDescriptor.EndpointMetadata.OfType<InitFriendlyAttribute>().Any();
-        if (!systemService.IsStarted && !exempt)
+        if (!systemService.IsStarted)
         {
-            if (systemService.StartupFailedException is not null)
+            var endpoint = context.GetEndpoint();
+            var exempt = endpoint?.Metadata.GetMetadata<InitFriendlyAttribute>() is not null;
+            if (!exempt)
             {
-                context.Result = new BadRequestObjectResult(FailedStartup)
-                {
-                    StatusCode = (int)HttpStatusCode.ServiceUnavailable,
-                };
-            }
-            else if (systemService.InSetupMode)
-            {
-                context.Result = new BadRequestObjectResult(NewInstance)
-                {
-                    StatusCode = (int)HttpStatusCode.ServiceUnavailable,
-                };
-            }
-            else
-            {
-                context.Result = new BadRequestObjectResult(ExistingInstance)
-                {
-                    StatusCode = (int)HttpStatusCode.ServiceUnavailable,
-                };
+                var message = systemService.StartupFailedException is not null
+                    ? FailedStartup
+                    : systemService.InSetupMode
+                        ? NewInstance
+                        : ExistingInstance;
+
+                context.Response.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
+                await context.Response.WriteAsync(message);
+                return;
             }
         }
-    }
 
-    public void OnActionExecuted(ActionExecutedContext context)
-    {
+        await next(context);
     }
 }

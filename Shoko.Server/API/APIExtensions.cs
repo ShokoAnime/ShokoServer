@@ -199,7 +199,6 @@ public static partial class APIExtensions
                 }
 
                 options.Filters.Add(typeof(DatabaseBlockedFilter));
-                options.Filters.Add(typeof(ServerNotRunningFilter));
 
                 EmitEmptyEnumerableInsteadOfNullAttribute.MvcOptions = options;
             })
@@ -568,18 +567,20 @@ public static partial class APIExtensions
 
         app.UseRouting();
 
+        app.UseMiddleware<ServerNotRunningMiddleware>();
+
         // Important for first run at least
         app.UseAuthentication();
         app.UseAuthorization();
 
-        if (webSettings.EnableSignalR)
+        app.UseEndpoints(conf =>
         {
-            app.UseEndpoints(conf =>
+            if (webSettings.EnableSignalR)
             {
                 conf.MapHub<LoggingHub>("/signalr/logging").RequireAuthorization();
                 conf.MapHub<AggregateHub>("/signalr/aggregate").RequireAuthorization();
-            });
-        }
+            }
+        });
 
         foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsActive && p.ApplicationRegistrationType is not null))
         {
