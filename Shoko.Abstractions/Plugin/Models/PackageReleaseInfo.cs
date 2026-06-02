@@ -16,7 +16,7 @@ public sealed class PackageReleaseInfo
     /// </summary>
     [JsonPropertyName("repository_id")]
     [JsonProperty("repository_id")]
-    public required Guid RepositoryID { get; init; }
+    public required Guid? RepositoryID { get; init; }
 
     /// <summary>
     ///   Shared semantic version for all versions of the release. (e.g.,

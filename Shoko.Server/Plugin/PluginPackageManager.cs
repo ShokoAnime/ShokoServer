@@ -51,15 +51,6 @@ public partial class PluginPackageManager(
 
     private const string ManifestFile = "manifest.json";
 
-    private static readonly PackageRepositoryInfo _localRepositoryInfo = new()
-    {
-        ID = Guid.Empty,
-        Name = "Local Repository",
-        Url = "file://%PluginsPath%",
-        StaleTime = null,
-        LastFetchedAt = null,
-    };
-
     private readonly ILogger<PluginPackageManager> _logger = logger;
 
     private readonly IPluginManager _pluginManager = pluginManager;
@@ -211,7 +202,7 @@ public partial class PluginPackageManager(
                     release = new()
                     {
                         Version = plugin.Version.Version,
-                        RepositoryID = _localRepositoryInfo.ID,
+                        RepositoryID = null,
                         ReleasedAt = plugin.InstalledAt,
                         Channel = plugin.Version.Channel,
                         Tag = plugin.Version.ReleaseTag,
@@ -243,7 +234,7 @@ public partial class PluginPackageManager(
                     localPackages.Add(new()
                     {
                         Manifest = manifest,
-                        Repository = _localRepositoryInfo,
+                        Repository = null,
                         Archive = release.Archives[0]!,
                         Plugin = plugin,
                         Release = release,
@@ -663,7 +654,7 @@ public partial class PluginPackageManager(
     /// <inheritdoc/>
     public IReadOnlyList<PackageRepositoryInfo> ListPackageRepositories()
     {
-        var list = new List<PackageRepositoryInfo>() { _localRepositoryInfo };
+        var list = new List<PackageRepositoryInfo>();
         lock (_logger)
         {
             var repoDirPath = Path.Join(_applicationPaths.PluginsPath, Repositories);
@@ -737,9 +728,6 @@ public partial class PluginPackageManager(
     /// <inheritdoc/>
     public Task<bool> RemovePackageRepository(PackageRepositoryInfo repositoryInfo, CancellationToken cancellationToken = default)
     {
-        if (repositoryInfo.ID == _localRepositoryInfo.ID)
-            return Task.FromResult(false);
-
         var repoPath = Path.Join(_applicationPaths.PluginsPath, Repositories, repositoryInfo.ID.ToString());
         var exists = Directory.Exists(repoPath);
         lock (_logger)
@@ -757,9 +745,6 @@ public partial class PluginPackageManager(
     /// <inheritdoc/>
     public async Task<PackageRepositoryInfo> SyncPackageRepository(PackageRepositoryInfo repositoryInfo, bool forceSync = false, CancellationToken cancellationToken = default)
     {
-        if (repositoryInfo.ID == _localRepositoryInfo.ID)
-            return repositoryInfo;
-
         var eventArgs = new RepositorySyncStartedEventArgs()
         {
             Repository = repositoryInfo,
@@ -1051,9 +1036,6 @@ public partial class PluginPackageManager(
     {
         foreach (var repositoryInfo in ListPackageRepositories())
         {
-            if (repositoryInfo == _localRepositoryInfo)
-                continue;
-
             try
             {
                 await SyncPackageRepository(repositoryInfo, forceSync, cancellationToken).ConfigureAwait(false);

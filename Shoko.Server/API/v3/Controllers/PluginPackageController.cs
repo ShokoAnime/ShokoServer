@@ -451,9 +451,7 @@ public class PluginPackageController(
         if (repository is null)
             return NotFound("Repository not found");
 
-        var removed = await packageManager.RemovePackageRepository(repository).ConfigureAwait(false);
-        if (!removed)
-            return BadRequest("Cannot remove the local repository");
+        await packageManager.RemovePackageRepository(repository).ConfigureAwait(false);
 
         return NoContent();
     }
