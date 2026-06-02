@@ -46,6 +46,7 @@ public class JobChainContextRepository : IJobChainContextRepository
 
     public async Task SaveAsync(JobChainContext context, CancellationToken ct = default)
     {
+        var now = DateTimeOffset.UtcNow;
         var rows = await _db.JobChains
             .Where(c => c.ChainId == context.ChainId)
             .ExecuteUpdateAsync(s => s
@@ -53,12 +54,11 @@ public class JobChainContextRepository : IJobChainContextRepository
                 .SetProperty(c => c.DataJson, context.SerializeData())
                 .SetProperty(c => c.ResultsJson, context.SerializeResults())
                 .SetProperty(c => c.OutcomesJson, context.SerializeOutcomes())
-                .SetProperty(c => c.UpdatedAt, c => DateTimeOffset.UtcNow),
+                .SetProperty(c => c.UpdatedAt, now),
             ct);
 
         if (rows == 0)
         {
-            var now = DateTimeOffset.UtcNow;
             _db.JobChains.Add(new QueuedJobChain
             {
                 ChainId = context.ChainId,
@@ -89,11 +89,12 @@ public class JobChainContextRepository : IJobChainContextRepository
             : System.Text.Json.JsonSerializer.Deserialize<List<JobOutcome>>(record.OutcomesJson) ?? [];
         existing.AddRange(outcomeList);
 
+        var now = DateTimeOffset.UtcNow;
         await _db.JobChains
             .Where(c => c.ChainId == chainId)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(c => c.OutcomesJson, System.Text.Json.JsonSerializer.Serialize(existing))
-                .SetProperty(c => c.UpdatedAt, c => DateTimeOffset.UtcNow),
+                .SetProperty(c => c.UpdatedAt, now),
             ct);
     }
 }
