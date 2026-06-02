@@ -147,7 +147,7 @@ public class FilterFactory
                 result.Parameter = parameter.Parameter == 0 ? null : parameter.Parameter.ToString(CultureInfo.CurrentCulture);
                 break;
             case IWithDateParameter parameter:
-                result.Parameter = parameter.Parameter == default ? null : parameter.Parameter.ToString("yyyy-MM-dd");
+                result.Parameter = parameter.Parameter == default ? null : parameter.Parameter.ToUniversalTime().ToString("u");
                 break;
             case IWithTimeSpanParameter parameter:
                 result.Parameter = parameter.Parameter == default ? null : parameter.Parameter.ToString("G");
@@ -222,22 +222,22 @@ public class FilterFactory
                 parameter.Parameter = condition.Parameter;
                 break;
             case IWithNumberParameter parameter:
-                parameter.Parameter = string.IsNullOrEmpty(condition.Parameter) ? default : double.Parse(condition.Parameter!);
+                parameter.Parameter = !string.IsNullOrEmpty(condition.Parameter) && double.TryParse(condition.Parameter!, out var number)
+                    ? number
+                    : default;
                 break;
             case IWithDateParameter parameter:
-                parameter.Parameter = string.IsNullOrEmpty(condition.Parameter)
-                    ? default
-                    : DateTime.ParseExact(condition.Parameter!, "yyyy-MM-dd", CultureInfo.InvariantCulture.DateTimeFormat);
+                parameter.Parameter = !string.IsNullOrEmpty(condition.Parameter) && DateTime.TryParse(condition.Parameter!, out var date)
+                    ? date
+                    : default;
                 break;
             case IWithTimeSpanParameter parameter:
-                parameter.Parameter = string.IsNullOrEmpty(condition.Parameter)
-                    ? default
-                    : TimeSpan.ParseExact(condition.Parameter!, "G", CultureInfo.InvariantCulture.DateTimeFormat);
+                parameter.Parameter = !string.IsNullOrEmpty(condition.Parameter) && TimeSpan.TryParse(condition.Parameter!, out var timeSpan)
+                    ? timeSpan
+                    : default;
                 break;
             case IWithStringSetParameter parameter:
-                parameter.Parameter = condition.Parameter is null
-                    ? default
-                    : condition.Parameter[1..^1].Split("|||").ToHashSet();
+                parameter.Parameter = condition.Parameter?[1..^1].Split("|||").ToHashSet();
                 break;
         }
 
