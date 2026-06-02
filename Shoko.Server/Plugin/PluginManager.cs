@@ -998,7 +998,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     public LocalPluginInfo UnpinPlugin(LocalPluginInfo pluginInfo)
         => TogglePluginPin(pluginInfo, false);
 
-    public LocalPluginInfo UninstallPlugin(LocalPluginInfo pluginInfo, bool purgeConfiguration = true)
+    public LocalPluginInfo UninstallPlugin(LocalPluginInfo pluginInfo, bool purgeConfiguration = false)
     {
         if (!pluginInfo.CanUninstall || !pluginInfo.IsInstalled)
             return pluginInfo;

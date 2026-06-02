@@ -334,7 +334,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     ///   No content.
     /// </returns>
     [HttpDelete("{pluginID}")]
-    public ActionResult UninstallPluginByID([FromRoute] Guid pluginID, [FromQuery] bool purgeConfiguration = true)
+    public ActionResult UninstallPluginByID([FromRoute] Guid pluginID, [FromQuery] bool purgeConfiguration = false)
     {
         if (pluginManager.GetPluginInfo(pluginID) is not { } pluginInfo)
             return NotFound("Plugin not found");
@@ -491,7 +491,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     public ActionResult DeletePluginByIDAndVersion(
         [FromRoute] Guid pluginID,
         [FromRoute] Version pluginVersion,
-        [FromQuery] bool purgeConfiguration = true
+        [FromQuery] bool purgeConfiguration = false
     )
     {
         if (pluginManager.GetPluginInfo(pluginID, pluginVersion) is not { } pluginInfo)
@@ -532,7 +532,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     ///   No content.
     /// </returns>
     [HttpDelete("{pluginID}/All")]
-    public ActionResult UninstallAllPluginsByID([FromRoute] Guid pluginID, [FromQuery] bool purgeConfiguration = true)
+    public ActionResult UninstallAllPluginsByID([FromRoute] Guid pluginID, [FromQuery] bool purgeConfiguration = false)
     {
         if (pluginManager.GetPluginInfos(pluginID) is not { Count: > 0 } pluginInfos)
             return NotFound("Plugin not found");

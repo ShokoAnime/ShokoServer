@@ -256,7 +256,7 @@ public interface IPluginManager
     /// <returns>
     ///   The updated <see cref="LocalPluginInfo"/> for the plugin.
     /// </returns>
-    LocalPluginInfo UninstallPlugin(LocalPluginInfo pluginInfo, bool purgeConfiguration = true);
+    LocalPluginInfo UninstallPlugin(LocalPluginInfo pluginInfo, bool purgeConfiguration = false);
 
     #endregion
 
