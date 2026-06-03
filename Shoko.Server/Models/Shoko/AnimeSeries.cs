@@ -19,6 +19,7 @@ using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
@@ -871,6 +872,76 @@ public class AnimeSeries : IShokoSeries
     IShokoGroup IShokoSeries.TopLevelGroup => TopLevelAnimeGroup;
 
     IReadOnlyList<IShokoGroup> IShokoSeries.AllParentGroups => AllGroupsAbove;
+
+    FileSourceCounts IShokoSeries.FileSourceCounts
+    {
+        get
+        {
+            var counts = new FileSourceCounts();
+            foreach (var vl in VideoLocals)
+            {
+                var ri = vl.ReleaseInfo;
+                if (ri is null) continue;
+                switch (ri.Source)
+                {
+                    case ReleaseSource.Unknown: counts.Unknown++; break;
+                    case ReleaseSource.Other: counts.Other++; break;
+                    case ReleaseSource.TV: counts.TV++; break;
+                    case ReleaseSource.DVD: counts.DVD++; break;
+                    case ReleaseSource.BluRay: counts.BluRay++; break;
+                    case ReleaseSource.Web: counts.Web++; break;
+                    case ReleaseSource.VHS: counts.VHS++; break;
+                    case ReleaseSource.VCD: counts.VCD++; break;
+                    case ReleaseSource.LaserDisc: counts.LaserDisc++; break;
+                    case ReleaseSource.Camera: counts.Camera++; break;
+                    case ReleaseSource.Film: counts.Film++; break;
+                    default: counts.Other++; break;
+                }
+            }
+            return counts;
+        }
+    }
+
+    EpisodeCounts IShokoSeries.LocalEpisodeCounts
+    {
+        get
+        {
+            var counts = new EpisodeCounts();
+            foreach (var ep in AnimeEpisodes)
+            {
+                if (ep.VideoLocals.Count == 0) continue;
+                switch (ep.AniDB_Episode?.EpisodeType)
+                {
+                    case EpisodeType.Episode: counts.Episodes++; break;
+                    case EpisodeType.Special: counts.Specials++; break;
+                    case EpisodeType.Credits: counts.Credits++; break;
+                    case EpisodeType.Trailer: counts.Trailers++; break;
+                    case EpisodeType.Parody: counts.Parodies++; break;
+                    default: counts.Others++; break;
+                }
+            }
+            return counts;
+        }
+    }
+
+    IReadOnlyDictionary<string, int> IShokoSeries.ReleaseProviderCounts
+    {
+        get
+        {
+            var counts = new Dictionary<string, int>();
+            foreach (var vl in VideoLocals)
+            {
+                var ri = vl.ReleaseInfo;
+                if (ri is null) continue;
+                foreach (var provider in ri.ProviderName.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                {
+                    counts.TryGetValue(provider, out var count);
+                    counts[provider] = count + 1;
+                }
+            }
+            return counts;
+        }
+    }
 
     IAnidbAnime IShokoSeries.AnidbAnime => AniDB_Anime ??
         throw new NullReferenceException($"Unable to find AniDB anime with id {AniDB_ID} in IShokoSeries.AnidbAnime");

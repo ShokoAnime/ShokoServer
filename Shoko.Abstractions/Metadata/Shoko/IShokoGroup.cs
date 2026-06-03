@@ -85,4 +85,25 @@ public interface IShokoGroup : ICollection, IMetadata<int>, IWithCreationDate, I
     /// any), ordered by air-date.
     /// </summary>
     IReadOnlyList<IShokoSeries> AllSeries { get; }
+
+    /// <summary>
+    /// The episode counts for the group, broken down by type.
+    /// </summary>
+    EpisodeCounts EpisodeCounts { get; }
+
+    /// <summary>
+    /// The local episode counts for the group, broken down by type.
+    /// </summary>
+    EpisodeCounts LocalEpisodeCounts { get; }
+
+    /// <summary>
+    /// The file source counts for the group.
+    /// </summary>
+    FileSourceCounts FileSourceCounts { get; }
+
+    /// <summary>
+    /// Release provider name to file count mapping for the group.
+    /// Provider names are split by '+' before counting.
+    /// </summary>
+    IReadOnlyDictionary<string, int> ReleaseProviderCounts { get; }
 }

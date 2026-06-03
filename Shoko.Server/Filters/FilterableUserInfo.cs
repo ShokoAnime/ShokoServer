@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Server.Filters;
 
@@ -20,6 +21,7 @@ public class FilterableUserInfo : IFilterableUserInfo
     private readonly Lazy<int> _unwatchedEpisodes;
     private readonly Lazy<DateTime?> _watchedDate;
     private readonly Lazy<int> _watchedEpisodes;
+    private readonly Lazy<EpisodeCounts> _watchedEpisodeCounts;
 
     public bool IsFavorite => _isFavorite.Value;
 
@@ -40,6 +42,13 @@ public class FilterableUserInfo : IFilterableUserInfo
     public Func<int> WatchedEpisodesDelegate
     {
         init => _watchedEpisodes = new Lazy<int>(value);
+    }
+
+    public EpisodeCounts WatchedEpisodeCounts => _watchedEpisodeCounts.Value;
+
+    public Func<EpisodeCounts> WatchedEpisodeCountsDelegate
+    {
+        init => _watchedEpisodeCounts = new Lazy<EpisodeCounts>(value);
     }
 
     public int UnwatchedEpisodes => _unwatchedEpisodes.Value;

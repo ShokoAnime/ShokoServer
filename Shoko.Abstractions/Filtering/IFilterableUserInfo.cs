@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Abstractions.Filtering;
 
@@ -22,6 +23,11 @@ public interface IFilterableUserInfo
     /// The number of episodes watched
     /// </summary>
     int WatchedEpisodes { get; }
+
+    /// <summary>
+    /// Watched episode counts broken down by type.
+    /// </summary>
+    EpisodeCounts WatchedEpisodeCounts { get; }
 
     /// <summary>
     /// The number of episodes that have not been watched

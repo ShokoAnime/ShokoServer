@@ -707,6 +707,87 @@ public class AnimeGroup : IShokoGroup
 
     IReadOnlyList<IShokoSeries> IShokoGroup.Series => Series;
 
+    EpisodeCounts IShokoGroup.EpisodeCounts
+    {
+        get
+        {
+            var series = (this as IShokoGroup).AllSeries;
+            var counts = new EpisodeCounts();
+            foreach (var ser in series)
+            {
+                var ec = ser.EpisodeCounts;
+                counts.Episodes += ec.Episodes;
+                counts.Specials += ec.Specials;
+                counts.Credits += ec.Credits;
+                counts.Trailers += ec.Trailers;
+                counts.Parodies += ec.Parodies;
+                counts.Others += ec.Others;
+            }
+            return counts;
+        }
+    }
+
+    FileSourceCounts IShokoGroup.FileSourceCounts
+    {
+        get
+        {
+            var counts = new FileSourceCounts();
+            foreach (var ser in (this as IShokoGroup).AllSeries)
+            {
+                var fsc = ser.FileSourceCounts;
+                counts.Unknown += fsc.Unknown;
+                counts.Other += fsc.Other;
+                counts.TV += fsc.TV;
+                counts.DVD += fsc.DVD;
+                counts.BluRay += fsc.BluRay;
+                counts.Web += fsc.Web;
+                counts.VHS += fsc.VHS;
+                counts.VCD += fsc.VCD;
+                counts.LaserDisc += fsc.LaserDisc;
+                counts.Camera += fsc.Camera;
+                counts.Film += fsc.Film;
+            }
+            return counts;
+        }
+    }
+
+    EpisodeCounts IShokoGroup.LocalEpisodeCounts
+    {
+        get
+        {
+            var series = (this as IShokoGroup).AllSeries;
+            var counts = new EpisodeCounts();
+            foreach (var ser in series)
+            {
+                var lec = ser.LocalEpisodeCounts;
+                counts.Episodes += lec.Episodes;
+                counts.Specials += lec.Specials;
+                counts.Credits += lec.Credits;
+                counts.Trailers += lec.Trailers;
+                counts.Parodies += lec.Parodies;
+                counts.Others += lec.Others;
+            }
+            return counts;
+        }
+    }
+
+    IReadOnlyDictionary<string, int> IShokoGroup.ReleaseProviderCounts
+    {
+        get
+        {
+            var counts = new Dictionary<string, int>();
+            foreach (var ser in (this as IShokoGroup).AllSeries)
+            {
+                foreach (var (provider, count) in ser.ReleaseProviderCounts)
+                {
+                    counts.TryGetValue(provider, out var existing);
+                    counts[provider] = existing + count;
+                }
+            }
+            return counts;
+        }
+    }
+
     IReadOnlyList<IShokoSeries> IShokoGroup.AllSeries => AllSeries;
 
     #endregion

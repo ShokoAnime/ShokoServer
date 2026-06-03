@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Tests;
 
@@ -16,6 +17,7 @@ public class TestFilterableUserInfo : IFilterableUserInfo
     public DateTime? LastWatchedDate { get; init; }
     public double LowestUserRating { get; init; }
     public double HighestUserRating { get; init; }
+    public EpisodeCounts WatchedEpisodeCounts { get; init; }
     public IReadOnlySet<string> UserTags { get; init; }
     public int SeriesVoteCount { get; init; }
     public int SeriesTemporaryVoteCount { get; init; }

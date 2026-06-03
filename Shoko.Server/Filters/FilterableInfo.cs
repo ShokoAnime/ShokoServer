@@ -16,6 +16,11 @@ public class Filterable : IFilterableInfo
     private readonly Lazy<IReadOnlySet<string>> _customTagIDs;
     private readonly Lazy<IReadOnlySet<string>> _customTags;
     private readonly Lazy<int> _episodeCount;
+    private readonly Lazy<int> _hiddenEpisodes;
+    private readonly Lazy<EpisodeCounts> _episodeCounts;
+    private readonly Lazy<EpisodeCounts> _localEpisodeCounts;
+    private readonly Lazy<FileSourceCounts> _fileSourceCounts;
+    private readonly Lazy<IReadOnlyDictionary<string, int>> _releaseProviderCounts;
     private readonly Lazy<bool> _hasTmdbAutoLinkingDisabled;
     private readonly Lazy<bool> _hasTmdbLink;
     private readonly Lazy<int> _automaticTmdbEpisodeLinks;
@@ -399,6 +404,41 @@ public class Filterable : IFilterableInfo
     public required Func<int> TotalEpisodeCountDelegate
     {
         init => _totalEpisodeCount = new Lazy<int>(value);
+    }
+
+    public int HiddenEpisodes => _hiddenEpisodes.Value;
+
+    public required Func<int> HiddenEpisodesDelegate
+    {
+        init => _hiddenEpisodes = new Lazy<int>(value);
+    }
+
+    public EpisodeCounts EpisodeCounts => _episodeCounts.Value;
+
+    public required Func<EpisodeCounts> EpisodeCountsDelegate
+    {
+        init => _episodeCounts = new Lazy<EpisodeCounts>(value);
+    }
+
+    public EpisodeCounts LocalEpisodeCounts => _localEpisodeCounts.Value;
+
+    public required Func<EpisodeCounts> LocalEpisodeCountsDelegate
+    {
+        init => _localEpisodeCounts = new Lazy<EpisodeCounts>(value);
+    }
+
+    public FileSourceCounts FileSourceCounts => _fileSourceCounts.Value;
+
+    public required Func<FileSourceCounts> FileSourceCountsDelegate
+    {
+        init => _fileSourceCounts = new Lazy<FileSourceCounts>(value);
+    }
+
+    public IReadOnlyDictionary<string, int> ReleaseProviderCounts => _releaseProviderCounts.Value;
+
+    public required Func<IReadOnlyDictionary<string, int>> ReleaseProviderCountsDelegate
+    {
+        init => _releaseProviderCounts = new Lazy<IReadOnlyDictionary<string, int>>(value);
     }
 
     public double LowestAniDBRating => _lowestAniDBRating.Value;

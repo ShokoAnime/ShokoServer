@@ -149,6 +149,22 @@ public interface IShokoSeries : ISeries, IWithCreationDate, IWithUpdateDate
     IReadOnlyList<IShokoGroup> AllParentGroups { get; }
 
     /// <summary>
+    /// The local episode counts for the series, broken down by type.
+    /// </summary>
+    EpisodeCounts LocalEpisodeCounts { get; }
+
+    /// <summary>
+    /// The file source counts for the series.
+    /// </summary>
+    FileSourceCounts FileSourceCounts { get; }
+
+    /// <summary>
+    /// Release provider name to file count mapping for the series.
+    /// Provider names are split by '+' before counting.
+    /// </summary>
+    IReadOnlyDictionary<string, int> ReleaseProviderCounts { get; }
+
+    /// <summary>
     /// All known fake "seasons" for the Shoko series.
     /// </summary>
     new IReadOnlyList<IShokoSeason> Seasons { get; }

@@ -222,14 +222,40 @@ public interface IFilterableInfo
     DateTime? LastAddedDate { get; }
 
     /// <summary>
-    /// Highest Episode Count
+    /// Highest Episode Count. Equivalent to <see cref="EpisodeCounts.Episodes"/>.
     /// </summary>
     int EpisodeCount { get; }
 
     /// <summary>
-    /// Total Episode Count
+    /// Total Episode Count. Equivalent to the sum of all <see cref="EpisodeCounts"/> properties.
     /// </summary>
     int TotalEpisodeCount { get; }
+
+    /// <summary>
+    /// Number of hidden episodes.
+    /// </summary>
+    int HiddenEpisodes { get; }
+
+    /// <summary>
+    /// Episode counts broken down by type.
+    /// </summary>
+    EpisodeCounts EpisodeCounts { get; }
+
+    /// <summary>
+    /// Local episode counts broken down by type (what is downloaded).
+    /// </summary>
+    EpisodeCounts LocalEpisodeCounts { get; }
+
+    /// <summary>
+    /// File source counts.
+    /// </summary>
+    FileSourceCounts FileSourceCounts { get; }
+
+    /// <summary>
+    /// Release provider name to file count mapping.
+    /// Provider names are split by '+' before counting.
+    /// </summary>
+    IReadOnlyDictionary<string, int> ReleaseProviderCounts { get; }
 
     /// <summary>
     /// Lowest AniDB Rating on a scale of 1-10.

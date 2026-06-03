@@ -4,7 +4,9 @@ using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User.Enums;
+using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Models.Shoko;
@@ -133,6 +135,16 @@ public static class FilterExtensions
                 series.AniDB_Anime?.EpisodeCountNormal ?? 0,
             TotalEpisodeCountDelegate = () =>
                 series.AniDB_Anime?.EpisodeCount ?? 0,
+            HiddenEpisodesDelegate = () =>
+                series.AnimeEpisodes.Count(ep => ep.IsHidden),
+            EpisodeCountsDelegate = () =>
+                (series as ISeries).EpisodeCounts,
+            LocalEpisodeCountsDelegate = () =>
+                (series as IShokoSeries).LocalEpisodeCounts,
+            FileSourceCountsDelegate = () =>
+                (series as IShokoSeries).FileSourceCounts,
+            ReleaseProviderCountsDelegate = () =>
+                (series as IShokoSeries).ReleaseProviderCounts,
             LowestAniDBRatingDelegate = () =>
                 double.Round(Convert.ToDouble(series.AniDB_Anime?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero),
             HighestAniDBRatingDelegate = () =>
@@ -200,6 +212,25 @@ public static class FilterExtensions
             IsFavoriteDelegate = () => user?.IsFavorite ?? false,
             UserTagsDelegate = () => user?.UserTags.ToHashSet() ?? [],
             WatchedEpisodesDelegate = () => user?.WatchedEpisodeCount ?? 0,
+            WatchedEpisodeCountsDelegate = () =>
+            {
+                var counts = new EpisodeCounts();
+                foreach (var ep in series.AnimeEpisodes)
+                {
+                    if (ep.VideoLocals.Count == 0) continue;
+                    if (!(ep.GetUserRecord(userID)?.IsWatched ?? false)) continue;
+                    switch (ep.AniDB_Episode?.EpisodeType)
+                    {
+                        case EpisodeType.Episode: counts.Episodes++; break;
+                        case EpisodeType.Special: counts.Specials++; break;
+                        case EpisodeType.Credits: counts.Credits++; break;
+                        case EpisodeType.Trailer: counts.Trailers++; break;
+                        case EpisodeType.Parody: counts.Parodies++; break;
+                        default: counts.Others++; break;
+                    }
+                }
+                return counts;
+            },
             UnwatchedEpisodesDelegate = () => user?.UnwatchedEpisodeCount ?? 0,
             LowestUserRatingDelegate = () => user?.UserRating ?? 0,
             HighestUserRatingDelegate = () => user?.UserRating ?? 0,
@@ -358,6 +389,16 @@ public static class FilterExtensions
                 series.Sum(a => a.AniDB_Anime?.EpisodeCountNormal ?? 0),
             TotalEpisodeCountDelegate = () =>
                 series.Sum(a => a.AniDB_Anime?.EpisodeCount ?? 0),
+            HiddenEpisodesDelegate = () =>
+                series.SelectMany(ser => ser.AnimeEpisodes).Count(ep => ep.IsHidden),
+            EpisodeCountsDelegate = () =>
+                (group as IShokoGroup).EpisodeCounts,
+            LocalEpisodeCountsDelegate = () =>
+                (group as IShokoGroup).LocalEpisodeCounts,
+            FileSourceCountsDelegate = () =>
+                (group as IShokoGroup).FileSourceCounts,
+            ReleaseProviderCountsDelegate = () =>
+                (group as IShokoGroup).ReleaseProviderCounts,
             LowestAniDBRatingDelegate = () =>
                 anime.Select(a => double.Round(Convert.ToDouble(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Min(),
             HighestAniDBRatingDelegate = () =>
@@ -444,6 +485,25 @@ public static class FilterExtensions
             IsFavoriteDelegate = () => seriesUserDict.Values.Any(a => a.IsFavorite),
             UserTagsDelegate = () => seriesUserDict.Values.SelectMany(a => a.UserTags).ToHashSet(),
             WatchedEpisodesDelegate = () => GetEpCount(true),
+            WatchedEpisodeCountsDelegate = () =>
+            {
+                var counts = new EpisodeCounts();
+                foreach (var ep in series.SelectMany(ser => ser.AnimeEpisodes))
+                {
+                    if (ep.VideoLocals.Count == 0) continue;
+                    if (!(ep.GetUserRecord(userID)?.IsWatched ?? false)) continue;
+                    switch (ep.AniDB_Episode?.EpisodeType)
+                    {
+                        case EpisodeType.Episode: counts.Episodes++; break;
+                        case EpisodeType.Special: counts.Specials++; break;
+                        case EpisodeType.Credits: counts.Credits++; break;
+                        case EpisodeType.Trailer: counts.Trailers++; break;
+                        case EpisodeType.Parody: counts.Parodies++; break;
+                        default: counts.Others++; break;
+                    }
+                }
+                return counts;
+            },
             UnwatchedEpisodesDelegate = () => GetEpCount(false),
             LowestUserRatingDelegate = () => ratings.FirstOrDefault(),
             HighestUserRatingDelegate = () => ratings.LastOrDefault(),

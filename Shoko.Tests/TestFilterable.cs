@@ -56,6 +56,11 @@ public class TestFilterable : IFilterableInfo
     public DateTime? LastAddedDate { get; init; }
     public int EpisodeCount { get; init; }
     public int TotalEpisodeCount { get; init; }
+    public int HiddenEpisodes { get; init; }
+    public EpisodeCounts EpisodeCounts { get; init; }
+    public EpisodeCounts LocalEpisodeCounts { get; init; }
+    public FileSourceCounts FileSourceCounts { get; init; }
+    public IReadOnlyDictionary<string, int> ReleaseProviderCounts { get; init; }
     public double LowestAniDBRating { get; init; }
     public double AverageAniDBRating { get; init; }
     public double HighestAniDBRating { get; init; }
