@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
@@ -185,6 +186,8 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
     #endregion
 
     #region Log File Operations
+
+    public int ProcessID => Process.GetCurrentProcess().Id;
 
     public IReadOnlyList<LogFileInfo> GetAllLogFiles()
         => EnsureLogDirectory().GetFiles()
