@@ -575,6 +575,7 @@ public static partial class APIExtensions
 
         app.UseEndpoints(conf =>
         {
+            conf.MapControllers();
             if (webSettings.EnableSignalR)
             {
                 conf.MapHub<LoggingHub>("/signalr/logging").RequireAuthorization();
