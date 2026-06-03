@@ -68,7 +68,7 @@ public abstract class BaseJob : IQueueJob
 
 public abstract class BaseJob<T> : BaseJob
 {
-    private IJobChainContextAccessor? _chainContextAccessor;
+    private IJobChainContextAccessor _chainContextAccessor;
 
     public override void Setup(IServiceProvider serviceProvider)
     {
