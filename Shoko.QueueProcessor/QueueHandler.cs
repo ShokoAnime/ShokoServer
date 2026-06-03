@@ -141,6 +141,8 @@ public class QueueHandler
 
     public QueueMetricsSnapshot GetMetrics() => _orchestrator.GetMetrics();
 
+    public IReadOnlyList<ChainDebugInfo> GetChains() => _orchestrator.GetChainDebugInfo();
+
     public IReadOnlyDictionary<string, PoolStatus> GetPoolStatus() => _orchestrator.GetPoolStatus();
 
     public Dictionary<string, string[]> GetAcquisitionFilterResults()

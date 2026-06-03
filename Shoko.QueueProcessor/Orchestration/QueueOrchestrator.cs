@@ -906,6 +906,67 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         lock (_gate) return [.._executingSet.Values];
     }
 
+    /// <summary>
+    /// Returns debug info for all active chains: each entry lists executed, executing, and pending
+    /// jobs in chain order, with the status of each.
+    /// </summary>
+    public IReadOnlyList<ChainDebugInfo> GetChainDebugInfo()
+    {
+        // Snapshot executing entries and pending chain relationships under lock
+        List<(Guid ChainId, List<(Guid Id, string Key)> Executing, List<string> Pending)> snapshot;
+        lock (_gate)
+        {
+            snapshot = _executingSet.Values
+                .Where(e => e.ChainId.HasValue)
+                .GroupBy(e => e.ChainId!.Value)
+                .Select(g =>
+                {
+                    var executing = g.Select(e => (e.Id, e.JobKey)).ToList();
+                    var pending = new List<string>();
+                    foreach (var (id, _) in executing)
+                        WalkChainChildren(id, pending);
+                    return (g.Key, executing, pending);
+                })
+                .ToList();
+        }
+
+        var result = new List<ChainDebugInfo>();
+        foreach (var (chainId, executing, pending) in snapshot)
+        {
+            var jobs = new List<ChainJobEntry>();
+
+            // Executed jobs from the chain context (no lock needed — ConcurrentDictionary lookup)
+            if (_chainScopeRegistry.TryGetChainScope(chainId, out var scope))
+            {
+                var context = scope.ServiceProvider.GetService<JobChainContextAccessor>()?.GetCurrentContext();
+                if (context != null)
+                {
+                    foreach (var outcome in context.GetAllOutcomes())
+                        jobs.Add(new ChainJobEntry(outcome.JobKey, outcome.Status.ToString()));
+                }
+            }
+
+            foreach (var (_, key) in executing)
+                jobs.Add(new ChainJobEntry(key, "Executing"));
+
+            foreach (var key in pending)
+                jobs.Add(new ChainJobEntry(key, "Pending"));
+
+            result.Add(new ChainDebugInfo(chainId, jobs));
+        }
+        return result;
+    }
+
+    private void WalkChainChildren(Guid parentId, List<string> keys)
+    {
+        if (!_afterParentCallbacks.TryGetValue(parentId, out var children)) return;
+        foreach (var (jobKey, (ctx, _)) in children)
+        {
+            keys.Add(jobKey);
+            WalkChainChildren(ctx.Job.Id, keys);
+        }
+    }
+
     public IReadOnlyDictionary<string, PoolStatus> GetPoolStatus() =>
         _allPools.ToDictionary(p => p.Name, p => p.GetStatus());
 

@@ -8,6 +8,7 @@ using Shoko.Abstractions.Web.Attributes;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
+using ChainInfo = Shoko.QueueProcessor.Analytics.ChainDebugInfo;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
@@ -161,7 +162,8 @@ public class QueueController : BaseController
     public ActionResult<DebugStats> GetDebugStats()
     {
         var metrics = _queueHandler.GetMetrics();
-        return new DebugStats(GetQueue(), _queueHandler.GetAcquisitionFilterResults(), metrics);
+        var chains = _queueHandler.GetChains();
+        return new DebugStats(GetQueue(), _queueHandler.GetAcquisitionFilterResults(), metrics, chains);
     }
 
     [HttpGet("AcquisitionFilters")]
@@ -170,7 +172,7 @@ public class QueueController : BaseController
         return _queueHandler.GetAcquisitionFilterResults();
     }
 
-    public class DebugStats(Queue queue, Dictionary<string, string[]> acquisitionFilters, QueueMetricsSnapshot metrics)
+    public class DebugStats(Queue queue, Dictionary<string, string[]> acquisitionFilters, QueueMetricsSnapshot metrics, IReadOnlyList<ChainInfo> chains)
     {
         /// <summary>
         /// High-level queue state: counts and currently executing items.
@@ -188,5 +190,12 @@ public class QueueController : BaseController
         /// job counts (waiting + executing) with friendly display names and rolling averages.
         /// </summary>
         public QueueMetricsSnapshot Metrics { get; init; } = metrics;
+
+        /// <summary>
+        /// Active job chains. Each entry lists all jobs in the chain in execution order, with their
+        /// current status: the outcome status for executed jobs ("Succeeded", "Failed", "Aborted",
+        /// "Skipped"), "Executing" for the currently running job, and "Pending" for queued jobs.
+        /// </summary>
+        public IReadOnlyList<ChainInfo> Chains { get; init; } = chains;
     }
 }

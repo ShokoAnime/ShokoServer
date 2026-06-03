@@ -165,7 +165,7 @@ internal sealed class Worker
                 if (isChainJob)
                 {
                     var ctx = scope.ServiceProvider.GetRequiredService<JobChainContextAccessor>().GetCurrentContext()!;
-                    ctx.AddOutcome(new JobOutcome { JobId = job.Id, JobType = job.JobType, Status = JobOutcomeStatus.Succeeded, CompletedAt = DateTimeOffset.UtcNow });
+                    ctx.AddOutcome(new JobOutcome { JobId = job.Id, JobType = job.JobType, JobKey = job.JobKey, Status = JobOutcomeStatus.Succeeded, CompletedAt = DateTimeOffset.UtcNow });
                     var repo = scope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
                     await repo.SaveAsync(ctx, CancellationToken.None).ConfigureAwait(false);
                 }
@@ -208,6 +208,7 @@ internal sealed class Worker
                             {
                                 JobId = job.Id,
                                 JobType = job.JobType,
+                                JobKey = job.JobKey,
                                 Status = status,
                                 ExceptionMessage = ex.Message,
                                 StackTrace = ex.StackTrace,
