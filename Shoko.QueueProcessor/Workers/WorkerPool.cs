@@ -49,6 +49,18 @@ public sealed class WorkerPool : IWorkerPool
     // minor timing skew (workers re-signal on their periodic poll tick).
     private volatile int _cachedRunnableCount = -1;
 
+    // Cached result of BlockedCount. -1 = dirty; recomputed on next read.
+    // Same invalidation triggers as _cachedRunnableCount.
+    private volatile int _cachedBlockedCount = -1;
+
+    // Mirror of _subQueue.Count for lock-free reads (WaitingCount).
+    // All mutations happen under _subQueueLock; volatile provides visibility outside it.
+    private volatile int _waitingCount;
+
+    // O(1) secondary indexes on _subQueue. Kept in sync with _subQueue under _subQueueLock.
+    private readonly Dictionary<Guid, QueuedJob> _subQueueById = new();
+    private readonly Dictionary<string, QueuedJob> _subQueueByKey = new(StringComparer.Ordinal);
+
     // UTC ticks of the most recent IncrementActive call; 0 = never active.
     // Stamped at job acquisition (not at job completion) so a downstream throttled push can
     // still report "the group did work in the last window" even when ActiveWorkers is back to 0.
@@ -72,7 +84,7 @@ public sealed class WorkerPool : IWorkerPool
 
     public int IdleWorkers => _idleWorkers;
     public int ActiveWorkers => _activeWorkers;
-    public int WaitingCount { get { lock (_subQueueLock) return _subQueue.Count; } }
+    public int WaitingCount => _waitingCount;
 
     /// <summary>
     /// Set by <see cref="Orchestration.QueueOrchestrator.Initialize"/> after pool construction.
@@ -113,8 +125,14 @@ public sealed class WorkerPool : IWorkerPool
     public void AddToQueue(QueuedJob job)
     {
         lock (_subQueueLock)
+        {
             _subQueue.Add(job);
+            _subQueueById[job.Id] = job;
+            _subQueueByKey[job.JobKey] = job;
+            _waitingCount++;
+        }
         _cachedRunnableCount = -1;
+        _cachedBlockedCount = -1;
     }
 
     /// <summary>
@@ -126,9 +144,15 @@ public sealed class WorkerPool : IWorkerPool
         lock (_subQueueLock)
         {
             foreach (var job in jobs)
+            {
                 _subQueue.Add(job);
+                _subQueueById[job.Id] = job;
+                _subQueueByKey[job.JobKey] = job;
+            }
+            _waitingCount += jobs.Count;
         }
         _cachedRunnableCount = -1;
+        _cachedBlockedCount = -1;
     }
 
     /// <summary>Removes <paramref name="id"/> from the sub-queue (called on forced discard).</summary>
@@ -137,10 +161,24 @@ public sealed class WorkerPool : IWorkerPool
         bool removed;
         lock (_subQueueLock)
         {
-            var job = _subQueue.FirstOrDefault(j => j.Id == id);
-            removed = job != null && _subQueue.Remove(job);
+            if (_subQueueById.TryGetValue(id, out var job))
+            {
+                _subQueue.Remove(job);
+                _subQueueById.Remove(id);
+                _subQueueByKey.Remove(job.JobKey);
+                _waitingCount--;
+                removed = true;
+            }
+            else
+            {
+                removed = false;
+            }
         }
-        if (removed) _cachedRunnableCount = -1;
+        if (removed)
+        {
+            _cachedRunnableCount = -1;
+            _cachedBlockedCount = -1;
+        }
         return removed;
     }
 
@@ -160,10 +198,9 @@ public sealed class WorkerPool : IWorkerPool
     {
         lock (_subQueueLock)
         {
-            var job = _subQueue.FirstOrDefault(j => j.JobKey == jobKey);
-            if (job == null) return false;
+            if (!_subQueueByKey.TryGetValue(jobKey, out var job)) return false;
             _subQueue.Remove(job);
-            _subQueue.Add(new QueuedJob
+            var promoted = new QueuedJob
             {
                 Id = job.Id,
                 JobType = job.JobType,
@@ -173,7 +210,10 @@ public sealed class WorkerPool : IWorkerPool
                 QueuedAt = DateTimeOffset.UtcNow,
                 ScheduledAt = null,
                 RetryCount = job.RetryCount,
-            });
+            };
+            _subQueue.Add(promoted);
+            _subQueueById[promoted.Id] = promoted;
+            _subQueueByKey[promoted.JobKey] = promoted;
             return true;
         }
     }
@@ -181,8 +221,15 @@ public sealed class WorkerPool : IWorkerPool
     /// <summary>Clears all waiting jobs from the sub-queue (called on queue clear).</summary>
     public void ClearQueue()
     {
-        lock (_subQueueLock) _subQueue.Clear();
+        lock (_subQueueLock)
+        {
+            _subQueue.Clear();
+            _subQueueById.Clear();
+            _subQueueByKey.Clear();
+            _waitingCount = 0;
+        }
         _cachedRunnableCount = -1;
+        _cachedBlockedCount = -1;
     }
 
     /// <summary>Number of waiting jobs with <c>RetryCount &gt; 0</c>.</summary>
@@ -193,15 +240,20 @@ public sealed class WorkerPool : IWorkerPool
 
     /// <summary>
     /// Number of waiting jobs whose type is currently excluded by an acquisition filter.
-    /// Computed on demand — do not call on the hot path.
+    /// Cached and invalidated on any queue or filter mutation.
     /// </summary>
     public int BlockedCount
     {
         get
         {
+            var cached = _cachedBlockedCount;
+            if (cached >= 0) return cached;
             var exclusions = _filterExclusions;
+            int count;
             lock (_subQueueLock)
-                return _subQueue.Count(j => _typeByName.TryGetValue(j.JobType, out var t) && exclusions.Contains(t));
+                count = _subQueue.Count(j => _typeByName.TryGetValue(j.JobType, out var t) && exclusions.Contains(t));
+            _cachedBlockedCount = count;
+            return count;
         }
     }
 
@@ -265,7 +317,11 @@ public sealed class WorkerPool : IWorkerPool
                 if (TryRegisterExecuting == null || !TryRegisterExecuting(job)) continue;
 
                 _subQueue.Remove(job);
+                _subQueueById.Remove(job.Id);
+                _subQueueByKey.Remove(job.JobKey);
+                _waitingCount--;
                 _cachedRunnableCount = -1;
+                _cachedBlockedCount = -1;
                 return job;
             }
         }
@@ -360,6 +416,7 @@ public sealed class WorkerPool : IWorkerPool
                 set.Add(t);
         _filterExclusions = set;
         _cachedRunnableCount = -1;
+        _cachedBlockedCount = -1;
         Signal(); // wake workers to retry acquisition with updated exclusions
     }
 

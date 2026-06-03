@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -76,6 +77,9 @@ public class JobChainContextRepository : IJobChainContextRepository
         context.MarkClean();
     }
 
+    public Task DeleteAsync(Guid chainId, CancellationToken ct = default) =>
+        _db.JobChains.Where(c => c.ChainId == chainId).ExecuteDeleteAsync(ct);
+
     public async Task AddOutcomesAsync(Guid chainId, IEnumerable<JobOutcome> outcomes, CancellationToken ct = default)
     {
         var outcomeList = outcomes.ToList();
@@ -86,14 +90,14 @@ public class JobChainContextRepository : IJobChainContextRepository
 
         var existing = string.IsNullOrEmpty(record.OutcomesJson)
             ? []
-            : System.Text.Json.JsonSerializer.Deserialize<List<JobOutcome>>(record.OutcomesJson) ?? [];
+            : JsonSerializer.Deserialize<List<JobOutcome>>(record.OutcomesJson) ?? [];
         existing.AddRange(outcomeList);
 
         var now = DateTimeOffset.UtcNow;
         await _db.JobChains
             .Where(c => c.ChainId == chainId)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(c => c.OutcomesJson, System.Text.Json.JsonSerializer.Serialize(existing))
+                .SetProperty(c => c.OutcomesJson, JsonSerializer.Serialize(existing))
                 .SetProperty(c => c.UpdatedAt, now),
             ct);
     }

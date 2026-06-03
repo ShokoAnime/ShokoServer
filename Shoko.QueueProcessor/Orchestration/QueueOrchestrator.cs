@@ -45,7 +45,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     private readonly Dictionary<Guid, ExecutingEntry> _executingSet = new();
     private readonly Dictionary<Type, int> _typeRunningCounts = new();
     private readonly Dictionary<string, int> _groupRunningCounts = new();
-    private int _globalRunning;
+    private volatile int _globalRunning;
 
     // Pool routing — populated by Initialize()
     private readonly Dictionary<Type, WorkerPool> _poolsByType = new();
@@ -907,7 +907,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         return result;
     }
 
-    public int ExecutingCount { get { lock (_gate) return _executingSet.Count; } }
+    public int ExecutingCount => _globalRunning;
 
     public IReadOnlyList<ExecutingEntry> GetExecuting()
     {

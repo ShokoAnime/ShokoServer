@@ -57,7 +57,7 @@ public class WorkerPoolPriorityTests
             new Dictionary<Type, string?>(),
             new Dictionary<string, int>());
         var retry = new RetryPolicyResolver(new RetryPolicy { MaxRetries = 0 });
-        var chainScopeRegistry = new ChainScopeRegistry(scopeFactory);
+        var chainScopeRegistry = new ChainScopeRegistry(scopeFactory, NullLogger<ChainScopeRegistry>.Instance);
         return new QueueOrchestrator(
             NullLogger<QueueOrchestrator>.Instance,
             buffer, scopeFactory, registry, retry,

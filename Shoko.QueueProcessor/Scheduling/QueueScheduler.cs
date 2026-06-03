@@ -134,7 +134,7 @@ public sealed class QueueScheduler : IQueueScheduler
             Type = type,
             Job = new QueuedJob
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 JobType = string.Intern(asmQualified),
                 JobKey = jobKey,
                 JobDataJson = JobDataSerializer.Serialize(instance),
@@ -236,7 +236,7 @@ internal sealed class JobChainBuilder : IJobChainBuilder
     private readonly QueueOrchestrator _orchestrator;
     private readonly IChainScopeRegistry _chainScopeRegistry;
     private readonly List<EnqueueContext> _entries = [];
-    private readonly Guid _chainId = Guid.NewGuid();
+    private readonly Guid _chainId = Guid.CreateVersion7();
 
     internal JobChainBuilder(QueueOrchestrator orchestrator, IChainScopeRegistry chainScopeRegistry)
     {

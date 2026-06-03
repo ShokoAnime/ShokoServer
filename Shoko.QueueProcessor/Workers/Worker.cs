@@ -189,7 +189,7 @@ internal sealed class Worker
                     thisEntry,
                     BuildExecutingItems(_orchestrator.GetExecuting()),
                     _orchestrator.WaitingCount, _orchestrator.BlockedWaitingCount,
-                    _orchestrator.MaxConcurrentJobs, _orchestrator.GetMetrics());
+                    _orchestrator.MaxConcurrentJobs);
             }
             catch (RequeueJobException requeueEx)
             {

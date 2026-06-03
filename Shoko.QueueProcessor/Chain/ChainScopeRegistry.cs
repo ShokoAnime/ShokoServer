@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Shoko.QueueProcessor.Chain;
 
@@ -13,11 +15,13 @@ namespace Shoko.QueueProcessor.Chain;
 public sealed class ChainScopeRegistry : IChainScopeRegistry, IDisposable
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<ChainScopeRegistry> _logger;
     private readonly ConcurrentDictionary<Guid, IServiceScope> _scopes = new();
 
-    public ChainScopeRegistry(IServiceScopeFactory scopeFactory)
+    public ChainScopeRegistry(IServiceScopeFactory scopeFactory, ILogger<ChainScopeRegistry> logger)
     {
         _scopeFactory = scopeFactory;
+        _logger = logger;
     }
 
     public IServiceScope GetOrCreateChainScope(Guid chainId) =>
@@ -29,7 +33,10 @@ public sealed class ChainScopeRegistry : IChainScopeRegistry, IDisposable
     public void CompleteChainScope(Guid chainId)
     {
         if (_scopes.TryRemove(chainId, out var scope))
+        {
             scope.Dispose();
+            _ = DeleteChainContextAsync(chainId);
+        }
     }
 
     public void Dispose()
@@ -37,5 +44,18 @@ public sealed class ChainScopeRegistry : IChainScopeRegistry, IDisposable
         foreach (var scope in _scopes.Values)
             scope.Dispose();
         _scopes.Clear();
+    }
+
+    private async Task DeleteChainContextAsync(Guid chainId)
+    {
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IJobChainContextRepository>().DeleteAsync(chainId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete chain context {ChainId} from database", chainId);
+        }
     }
 }

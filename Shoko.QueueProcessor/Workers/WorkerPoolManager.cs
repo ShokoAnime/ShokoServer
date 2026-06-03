@@ -100,6 +100,15 @@ public sealed class WorkerPoolManager : IHostedService
         // Seed orchestrator
         _orchestrator.Initialize(persistedJobs, _pools);
 
+        // Pre-warm the ThreadPool to avoid the 1-thread/second growth ramp-up under burst load.
+        // Worker threads block in GetAwaiter().GetResult() while async continuations — including
+        // job Process() calls — run on the ThreadPool. Without this, a sudden burst of completions
+        // can stall Kestrel request handling until the pool catches up.
+        var totalWorkers = _pools.Sum(p => p.MaxWorkers);
+        ThreadPool.GetMinThreads(out var currentMin, out var currentIoMin);
+        if (totalWorkers > currentMin)
+            ThreadPool.SetMinThreads(totalWorkers, currentIoMin);
+
         // Start workers
         _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         foreach (var pool in _pools)
