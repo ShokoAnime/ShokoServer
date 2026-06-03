@@ -10,6 +10,7 @@ using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Plugin.Input;
+using Shoko.Server.Plugin;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -125,6 +126,9 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     ///   plugins that require a restart, or exclude all plugins that require a
     ///   restart.
     /// </param>
+    /// <param name="showCorePlugin">
+    ///   Whether to include the core plugin in the results.
+    /// </param>
     /// <param name="allVersions">
     ///   Whether to include all versions of plugins, or only the active or
     ///   highest version.
@@ -140,6 +144,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
         [FromQuery] IncludeOnlyFilter installed = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter enabled = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter restartPending = IncludeOnlyFilter.True,
+        [FromQuery] bool showCorePlugin = false,
         [FromQuery] bool allVersions = false
     )
     {
@@ -154,6 +159,9 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
         return enumerable
             .Where(pluginInfo =>
             {
+                if (!showCorePlugin && pluginInfo.ID == CorePlugin.StaticID)
+                    return false;
+
                 if (active is not IncludeOnlyFilter.True)
                 {
                     var shouldHideActive = active is IncludeOnlyFilter.False;
