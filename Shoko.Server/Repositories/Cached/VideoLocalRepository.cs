@@ -15,6 +15,7 @@ using Shoko.Server.Exceptions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
@@ -537,6 +538,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
         => RepoFactory.CrossRef_File_Episode.GetAll()
                 .Select(a => GetByEd2k(a.Hash))
                 .WhereNotNull()
+                .Where(a => a.ReleaseInfo is { } releaseInfo && !(releaseInfo.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false))
                 .ToList();
 
     public IReadOnlyList<VideoLocal> GetIgnoredVideos()
