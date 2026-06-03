@@ -31,6 +31,14 @@ namespace Shoko.Server.API.v3.Controllers;
 [InitFriendly]
 public class LoggingController(ISettingsProvider settingsProvider, ILogService logService) : BaseController(settingsProvider)
 {
+    /// <summary>
+    ///   Get the ID of the currently running process.
+    /// </summary>
+    /// <returns>
+    ///   The process ID.
+    /// </returns>
+    [HttpGet("ProcessID")]
+    public ActionResult<int> GetProcessID() => logService.ProcessID;
 
     /// <summary>
     /// Read log entries across files filtered by a date range.
@@ -107,10 +115,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
     /// </remarks>
     /// <param name="from">Optional start date (inclusive).</param>
     /// <param name="to">Optional end date (inclusive).</param>
-    /// <param name="format">
-    /// Format to return the log entries as. Can be <c>simple</c>, <c>full</c>,
-    /// <c>json</c> or <c>legacy</c>.
-    /// </param>
+    /// <param name="format">Format to return the log entries as.</param>
     /// <param name="level">Comma-separated <see cref="LogLevel"/> names to include.</param>
     /// <param name="logger">Optional DSL filter on logger; inactive when omitted. See remarks.</param>
     /// <param name="caller">Optional DSL filter on caller; inactive when omitted. See remarks.</param>
@@ -123,7 +128,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
     public ActionResult DownloadLogRange(
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null,
-        [FromQuery] string? format = null,
+        [FromQuery] LogSerializeFormat format = LogSerializeFormat.Simple,
         [FromQuery] string? level = null,
         [FromQuery] string? logger = null,
         [FromQuery] string? caller = null,
@@ -140,10 +145,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
             return ValidationProblem(ModelState);
         }
 
-        if (!TryParseLogSerializeFormat(format, out var formatEnum, out var fmtError))
-            return ValidationProblem(fmtError, nameof(format));
-
-        if (!TryBuildLogDownloadOptions(from, to, formatEnum, level, logger, caller, message, exception, processId, threadId, out var downloadOptions, out var dslError))
+        if (!TryBuildLogDownloadOptions(from, to, format, level, logger, caller, message, exception, processId, threadId, out var downloadOptions, out var dslError))
             return ValidationProblem(dslError);
 
         var download = logService.DownloadRange(downloadOptions);
@@ -246,10 +248,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
     /// </remarks>
     /// <param name="from">Optional start date (inclusive, UTC).</param>
     /// <param name="to">Optional end date (inclusive, UTC).</param>
-    /// <param name="format">
-    /// Format to return the log entries as. Can be <c>simple</c>, <c>full</c>,
-    /// <c>json</c> or <c>legacy</c>.
-    /// </param>
+    /// <param name="format">Format to return the log entries as.</param>
     /// <param name="level">Comma-separated <see cref="LogLevel"/> names to include.</param>
     /// <param name="logger">Optional DSL filter on logger; inactive when omitted. See remarks.</param>
     /// <param name="caller">Optional DSL filter on caller; inactive when omitted. See remarks.</param>
@@ -263,7 +262,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
     public ActionResult DownloadCurrentLogFile(
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null,
-        [FromQuery] string? format = null,
+        [FromQuery] LogSerializeFormat format = LogSerializeFormat.Simple,
         [FromQuery] string? level = null,
         [FromQuery] string? logger = null,
         [FromQuery] string? caller = null,
@@ -280,10 +279,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
             return ValidationProblem(ModelState);
         }
 
-        if (!TryParseLogSerializeFormat(format, out var formatEnum, out var fmtError))
-            return ValidationProblem(fmtError, nameof(format));
-
-        if (!TryBuildLogDownloadOptions(from, to, formatEnum, level, logger, caller, message, exception, processId, threadId, out var downloadOptions, out var dslError))
+        if (!TryBuildLogDownloadOptions(from, to, format, level, logger, caller, message, exception, processId, threadId, out var downloadOptions, out var dslError))
             return ValidationProblem(dslError);
 
         var fileInfo = logService.GetCurrentLogFile();
@@ -390,10 +386,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
     /// <param name="fileID">Log file identifier.</param>
     /// <param name="from">Optional start date (inclusive, UTC).</param>
     /// <param name="to">Optional end date (inclusive, UTC).</param>
-    /// <param name="format">
-    /// Format to return the log entries as. Can be <c>simple</c>, <c>full</c>,
-    /// <c>json</c> or <c>legacy</c>.
-    /// </param>
+    /// <param name="format">Format to return the log entries as.</param>
     /// <param name="level">Comma-separated <see cref="LogLevel"/> names to include.</param>
     /// <param name="logger">Optional DSL filter on logger; inactive when omitted. See remarks.</param>
     /// <param name="caller">Optional DSL filter on caller; inactive when omitted. See remarks.</param>
@@ -408,7 +401,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
         [FromRoute] Guid fileID,
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null,
-        [FromQuery] string? format = null,
+        [FromQuery] LogSerializeFormat format = LogSerializeFormat.Simple,
         [FromQuery] string? level = null,
         [FromQuery] string? logger = null,
         [FromQuery] string? caller = null,
@@ -430,10 +423,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
 
         try
         {
-            if (!TryParseLogSerializeFormat(format, out var formatEnum, out var fmtError))
-                return ValidationProblem(fmtError, nameof(format));
-
-            if (!TryBuildLogDownloadOptions(from, to, formatEnum, level, logger, caller, message, exception, processId, threadId, out var downloadOptions, out var dslError))
+            if (!TryBuildLogDownloadOptions(from, to, format, level, logger, caller, message, exception, processId, threadId, out var downloadOptions, out var dslError))
                 return ValidationProblem(dslError);
 
             var download = logService.DownloadLogFile(fileInfo, downloadOptions);
@@ -505,25 +495,6 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
         };
         if (!LogService.TryCompileLogEntryFilter(options, out _, out errors))
             return false;
-
-        return true;
-    }
-
-    private static bool TryParseLogSerializeFormat(string? format, out LogSerializeFormat value, [NotNullWhen(false)] out string? error)
-    {
-        error = null;
-        if (string.IsNullOrWhiteSpace(format))
-        {
-            value = LogSerializeFormat.Simple;
-            return true;
-        }
-
-        if (!Enum.TryParse(format.Trim(), ignoreCase: true, out value) || !Enum.IsDefined(typeof(LogSerializeFormat), value))
-        {
-            value = LogSerializeFormat.Simple;
-            error = "Invalid format. Supported values: simple, full, json, legacy.";
-            return false;
-        }
 
         return true;
     }

@@ -28,6 +28,12 @@ public interface ILogService
     #region Log File Operations
 
     /// <summary>
+    ///   Gets the ID of the currently running process. May be useful to filter
+    ///   log entries.
+    /// </summary>
+    int ProcessID { get; }
+
+    /// <summary>
     ///   Lists all available log files, in most recent order, with the current
     ///   log file first.
     /// </summary>
