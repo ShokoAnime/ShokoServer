@@ -6,7 +6,6 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User.Enums;
-using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Models.Shoko;

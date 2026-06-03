@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Storage;
+
 using Timer = System.Timers.Timer;
 
 namespace Shoko.QueueProcessor.Orchestration;
@@ -155,9 +156,9 @@ public sealed class PersistenceBuffer : IAsyncDisposable
             _timer?.Stop();
             _timer?.Dispose();
             _timer = null;
-            inserts = [.._pendingInserts.Values];
-            deletes = [.._pendingDeletes];
-            activations = [.._pendingActivations];
+            inserts = [.. _pendingInserts.Values];
+            deletes = [.. _pendingDeletes];
+            activations = [.. _pendingActivations];
             _pendingInserts.Clear();
             _pendingDeletes.Clear();
             _pendingActivations.Clear();

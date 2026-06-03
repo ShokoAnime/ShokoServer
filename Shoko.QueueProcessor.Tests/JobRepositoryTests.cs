@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
@@ -170,7 +169,7 @@ public class JobRepositoryTests
         {
             var toDelete = Enumerable.Range(0, 3).Select(_ => FakeJob()).ToList();
             var toKeep = FakeJob();
-            await repo.InsertBatchAsync([..toDelete, toKeep]);
+            await repo.InsertBatchAsync([.. toDelete, toKeep]);
 
             await repo.DeleteBatchAsync(toDelete.Select(j => j.Id).ToList());
 
