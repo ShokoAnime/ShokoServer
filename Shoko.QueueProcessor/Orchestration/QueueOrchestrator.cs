@@ -528,6 +528,8 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         {
             foreach (var pool in _allPools)
                 pool.RemoveFromQueue(heldId);
+            // Remove the old DB record so it doesn't re-appear as a duplicate on restart.
+            _persistenceBuffer.OnComplete(heldId);
             lock (_gate) _heldForParent.Remove(heldId);
         }
 
@@ -600,6 +602,8 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         {
             foreach (var pool in _allPools)
                 pool.RemoveFromQueue(heldId);
+            // Remove the old DB record so it doesn't re-appear as an orphan on restart.
+            _persistenceBuffer.OnComplete(heldId);
             lock (_gate) _heldForParent.Remove(heldId);
         }
 
@@ -650,9 +654,13 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         {
             foreach (var (ctx, pool) in deferred)
             {
-                // Child was persisted with ParentJobId set; activate it (clear ParentJobId)
                 pool.AddToQueue(ctx.Job);
-                _persistenceBuffer.OnActivateChainChild(ctx.Job.Id);
+                if (ctx.Job.ParentJobId.HasValue)
+                    // Chain child: already in DB with ParentJobId set — UPDATE to activate it.
+                    _persistenceBuffer.OnActivateChainChild(ctx.Job.Id);
+                else
+                    // After-parent child (registered via RunAfterCurrent): never in DB — INSERT now.
+                    _persistenceBuffer.OnEnqueue(ctx.Job);
                 _metrics.RecordEnqueue(ctx.Type.Name, pool.Name);
             }
         }

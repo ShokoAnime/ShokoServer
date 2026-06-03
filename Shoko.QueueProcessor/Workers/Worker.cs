@@ -167,7 +167,16 @@ internal sealed class Worker
                     var ctx = scope.ServiceProvider.GetRequiredService<JobChainContextAccessor>().GetCurrentContext()!;
                     ctx.AddOutcome(new JobOutcome { JobId = job.Id, JobType = job.JobType, JobKey = job.JobKey, Status = JobOutcomeStatus.Succeeded, CompletedAt = DateTimeOffset.UtcNow });
                     var repo = scope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
-                    await repo.SaveAsync(ctx, CancellationToken.None).ConfigureAwait(false);
+                    try
+                    {
+                        await repo.SaveAsync(ctx, CancellationToken.None).ConfigureAwait(false);
+                    }
+                    catch (Exception saveEx)
+                    {
+                        // Don't let chain-context persistence block OnComplete — after-parent
+                        // children would be stuck forever if OnComplete is never called.
+                        _logger.LogError(saveEx, "Failed to save chain context for job {Id} ({JobType}); proceeding with OnComplete", job.Id, job.JobType);
+                    }
                 }
 
                 _orchestrator.OnComplete(job.Id);
@@ -189,13 +198,18 @@ internal sealed class Worker
                 // No chain context update — transient; job will retry with same chain state
                 await _orchestrator.OnFailureAsync(job.Id, requeueEx, incrementRetry: false, ct: ct).ConfigureAwait(false);
             }
-            catch (Exception ex) when (!ct.IsCancellationRequested)
+            catch (Exception ex)
             {
                 sw.Stop();
-                _logger.LogError(ex, "Job {Id} ({JobType}) threw an exception", job.Id, job.JobType);
+                var isCancellation = ct.IsCancellationRequested;
 
-                // Record failure/abort outcome before handing off (orchestrator records skipped children)
-                if (isChainJob && scope != null)
+                if (!isCancellation)
+                    _logger.LogError(ex, "Job {Id} ({JobType}) threw an exception", job.Id, job.JobType);
+                else
+                    _logger.LogDebug(ex, "Job {Id} ({JobType}) was cancelled", job.Id, job.JobType);
+
+                // Record failure/abort outcome before handing off; skip for cancellation (transient)
+                if (isChainJob && scope != null && !isCancellation)
                 {
                     try
                     {
@@ -224,7 +238,9 @@ internal sealed class Worker
                     }
                 }
 
-                await _orchestrator.OnFailureAsync(job.Id, ex, incrementRetry: true, ct: ct).ConfigureAwait(false);
+                // Use CancellationToken.None so cleanup always completes even during shutdown.
+                // Cancelled jobs use incrementRetry:false — don't penalise retry count or discard children.
+                await _orchestrator.OnFailureAsync(job.Id, ex, incrementRetry: !isCancellation, ct: CancellationToken.None).ConfigureAwait(false);
             }
             finally
             {
