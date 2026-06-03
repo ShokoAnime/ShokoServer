@@ -217,7 +217,6 @@ public static class FilterExtensions
                 var counts = new EpisodeCounts();
                 foreach (var ep in series.AnimeEpisodes)
                 {
-                    if (ep.VideoLocals.Count == 0) continue;
                     if (!(ep.GetUserRecord(userID)?.IsWatched ?? false)) continue;
                     switch (ep.AniDB_Episode?.EpisodeType)
                     {
@@ -490,7 +489,6 @@ public static class FilterExtensions
                 var counts = new EpisodeCounts();
                 foreach (var ep in series.SelectMany(ser => ser.AnimeEpisodes))
                 {
-                    if (ep.VideoLocals.Count == 0) continue;
                     if (!(ep.GetUserRecord(userID)?.IsWatched ?? false)) continue;
                     switch (ep.AniDB_Episode?.EpisodeType)
                     {
