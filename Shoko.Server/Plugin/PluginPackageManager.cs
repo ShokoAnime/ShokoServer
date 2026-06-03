@@ -183,8 +183,10 @@ public partial class PluginPackageManager(
                 if (release is not null)
                 {
                     var archive = release.Archives.First(archive =>
-                        archive.RuntimeIdentifier == plugin.Version.RuntimeIdentifier ||
-                        archive.RuntimeIdentifier is PluginManager.AnyRuntimeIdentifier
+                        archive.AbstractionVersion == plugin.Version.AbstractionVersion && (
+                            archive.RuntimeIdentifier == plugin.Version.RuntimeIdentifier ||
+                            archive.RuntimeIdentifier is PluginManager.AnyRuntimeIdentifier
+                        )
                     );
                     var repository = repositories.FirstOrDefault(r => r.ID == release.RepositoryID);
                     localPackages.Add(new PackageInfo
@@ -621,16 +623,20 @@ public partial class PluginPackageManager(
         var repositories = ListPackageRepositories();
         foreach (var manifest in packageManifests)
         {
-            var manifestPlugin = _pluginManager.GetPluginInfo(manifest.PackageID);
+            var manifestPlugins = _pluginManager.GetPluginInfos(manifest.PackageID);
             foreach (var release in manifest.Releases)
             {
-                var plugin = _pluginManager.GetPluginInfo(manifest.PackageID, release.Version);
                 var repository = repositories.FirstOrDefault(r => r.ID == release.RepositoryID);
                 foreach (var archive in release.Archives)
                 {
                     if (onlyCompatible && archive.RuntimeIdentifier is not PluginManager.AnyRuntimeIdentifier && archive.RuntimeIdentifier != _pluginManager.RuntimeIdentifier)
                         continue;
 
+                    var plugin = manifestPlugins.FirstOrDefault(p =>
+                        p.Version.Version == release.Version &&
+                        p.Version.AbstractionVersion == archive.AbstractionVersion &&
+                        p.Version.RuntimeIdentifier == archive.RuntimeIdentifier
+                    );
                     yield return new()
                     {
                         Manifest = manifest,
