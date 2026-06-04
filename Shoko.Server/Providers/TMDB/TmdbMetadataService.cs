@@ -1790,8 +1790,10 @@ public class TmdbMetadataService : ITmdbMetadataService
                 _tmdbNetwork.Save(tmdbNetwork);
                 _logger.LogDebug("Updated TMDB Network (Network={NetworkId})", network.Id);
             }
+
+            var settings = _settingsProvider.GetSettings();
             if (!string.IsNullOrEmpty(network.LogoPath))
-                await _imageService.DownloadImageByType(network.LogoPath, ImageEntityType.Logo, tmdbNetwork);
+                await _imageService.DownloadImageByType(network.LogoPath, ImageEntityType.Logo, tmdbNetwork, isDesired: settings.TMDB.AutoDownloadStudioImages);
         }
     }
 
@@ -2362,8 +2364,8 @@ public class TmdbMetadataService : ITmdbMetadataService
         }
 
         var settings = _settingsProvider.GetSettings();
-        if (!string.IsNullOrEmpty(company.LogoPath) && settings.TMDB.AutoDownloadStudioImages)
-            await _imageService.DownloadImageByType(company.LogoPath, ImageEntityType.Primary, tmdbCompany);
+        if (!string.IsNullOrEmpty(company.LogoPath))
+            await _imageService.DownloadImageByType(company.LogoPath, ImageEntityType.Primary, tmdbCompany, isDesired: settings.TMDB.AutoDownloadStudioImages);
     }
 
     private void PurgeCompany(int companyId)

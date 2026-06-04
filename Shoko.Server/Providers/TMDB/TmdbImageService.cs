@@ -17,7 +17,7 @@ public class TmdbImageService(ILogger<TmdbImageService> logger, IImageManager im
 {
     #region Image
 
-    public async Task DownloadImageByType(string filePath, ImageEntityType imageType, IWithImages entity, bool forceDownload = false)
+    public async Task DownloadImageByType(string filePath, ImageEntityType imageType, IWithImages entity, bool isDesired = true, bool forceDownload = false)
     {
         if (string.IsNullOrEmpty(filePath))
             return;
@@ -33,7 +33,7 @@ public class TmdbImageService(ILogger<TmdbImageService> logger, IImageManager im
         var imageEntity = imageManager.GetImageCrossReferencesForEntity(entity)
             .FirstOrDefault(xref => xref.ImageType == imageType && xref.Source == DataSource.TMDB && xref.ImageID == image.ID) ??
             imageManager.AddImageCrossReference(entity, image, new() { ImageType = imageType, Source = DataSource.TMDB });
-        imageManager.UpdateImageCrossReference(imageEntity, new() { Ordering = 0, IsDesired = true });
+        imageManager.UpdateImageCrossReference(imageEntity, new() { Ordering = 0, IsDesired = isDesired });
         if (!forceDownload && image.IsAvailable)
             return;
 
