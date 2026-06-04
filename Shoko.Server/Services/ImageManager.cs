@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
+using MimeMapping;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
@@ -401,6 +402,8 @@ public partial class ImageManager(
 
     #region Images | Add
 
+    public IReadOnlyList<string> AllowedMimeTypes { get; private set; } = ["image/jpeg", "image/png", "image/bmp", "image/gif", "image/tiff", "image/webp"];
+
     /// <inheritdoc/>
     public IImage AddImage(ImageData imageData)
     {
@@ -418,6 +421,7 @@ public partial class ImageManager(
                 ImageResourceID = imageData.ResourceID,
             };
 
+        var contentType = GetContentTypeFromResourceID(imageData.Source, imageData.ResourceID) ?? MimeUtility.UnknownMimeType;
         var image = new ShokoImage()
         {
             ID = id,
@@ -426,6 +430,7 @@ public partial class ImageManager(
             Width = imageData.Width,
             CountryCode = imageData.CountryCode,
             LanguageCode = imageData.LanguageCode,
+            ContentType = contentType,
             Source = imageData.Source,
             ResourceID = imageData.ResourceID,
             CreatedAt = DateTime.UtcNow,
@@ -438,8 +443,6 @@ public partial class ImageManager(
 
         return image;
     }
-
-    private static readonly string[] _allowedMimeTypes = ["image/jpeg", "image/png", "image/bmp", "image/gif", "image/tiff", "image/webp"];
 
     /// <inheritdoc/>
     public IImage UploadImage(Stream imageStream, string? contentType = null, bool userSubmitted = true)
@@ -455,18 +458,24 @@ public partial class ImageManager(
 
         TryConvertFromDataURL(ref imageByteArray, ref contentType);
 
+        var source = userSubmitted ? DataSource.User : DataSource.LocallyGenerated;
         if (contentType is not null)
         {
             contentType = contentType?.ToLower().Replace("jpg", "jpeg") ?? string.Empty;
             if (contentType is not { Length: > 8 } || contentType[0..6] is not "image/")
                 throw new ArgumentException("The provided content-type is not valid.", nameof(contentType));
 
-            if (!_allowedMimeTypes.Contains(contentType))
-                throw new ArgumentException("The provided content-type is not allowed.", nameof(contentType));
+            if (!AllowedMimeTypes.Contains(contentType))
+                throw new UnsupportedImageTypeException()
+                {
+                    ImageSource = source,
+                    ImageResourceID = string.Empty,
+                    FileExtension = string.Empty,
+                    DetectedMimeType = contentType,
+                };
         }
 
         var md5 = Convert.ToHexString(MD5.HashData(imageByteArray));
-        var source = userSubmitted ? DataSource.User : DataSource.LocallyGenerated;
         var id = IImageManager.GetIDForImageSourceAndResourceID(source, md5);
         if (imageRepository.GetByID(id) is { } existingImage)
         {
@@ -490,8 +499,14 @@ public partial class ImageManager(
         if (contentType is not null && expectedContentType != contentType)
             throw new ArgumentException("The provided content-type does not match the actual image format.", nameof(contentType));
 
-        if (contentType is null && !_allowedMimeTypes.Contains(expectedContentType))
-            throw new ArgumentException("The provided content-type is not allowed.", nameof(imageByteArray));
+        if (contentType is null && !AllowedMimeTypes.Contains(expectedContentType))
+            throw new UnsupportedImageTypeException()
+            {
+                ImageSource = source,
+                ImageResourceID = md5,
+                FileExtension = string.Empty,
+                DetectedMimeType = expectedContentType,
+            };
 
         var image = new ShokoImage()
         {
@@ -533,6 +548,51 @@ public partial class ImageManager(
         _ = Task.Run(() => ImageAdded?.Invoke(this, new() { Image = image }));
 
         return image;
+    }
+
+    /// <summary>
+    ///   Eagerly detect content type from a resource ID by treating it as a URL
+    ///   path, stripping query parameters, and looking up the file extension
+    ///   against the allowed MIME types.
+    /// </summary>
+    /// <returns>
+    ///   The MIME type if the extension maps to an allowed image type, or
+    ///   <c>null</c> if no extension could be detected in the resource ID.
+    /// </returns>
+    /// <exception cref="UnsupportedImageTypeException">
+    ///   Thrown if the resource ID contains a file extension that maps to a MIME
+    ///   type not in <see cref="AllowedMimeTypes"/>.
+    /// </exception>
+    public string? GetContentTypeFromResourceID(DataSource source, string resourceID)
+    {
+        if (string.IsNullOrEmpty(resourceID))
+            return null;
+
+        // Strip query parameters (treat as URL path)
+        var queryIndex = resourceID.IndexOf('?');
+        var path = queryIndex >= 0 ? resourceID[..queryIndex] : resourceID;
+
+        // Check for file extension
+        var ext = Path.GetExtension(path);
+        if (string.IsNullOrEmpty(ext))
+            return null;
+
+        // Look up MIME from extension
+        var mime = MimeUtility.GetMimeMapping(ext);
+        if (string.IsNullOrEmpty(mime) || mime == MimeUtility.UnknownMimeType)
+            return null;
+
+        // Validate against allowed image MIME types
+        if (!AllowedMimeTypes.Contains(mime))
+            throw new UnsupportedImageTypeException()
+            {
+                ImageSource = source,
+                ImageResourceID = resourceID,
+                FileExtension = ext,
+                DetectedMimeType = mime,
+            };
+
+        return mime;
     }
 
     #endregion
@@ -702,12 +762,19 @@ public partial class ImageManager(
 
         var downloaded = false;
         var remoteUrl = string.Format(template, image.ResourceID);
+        var originalContentType = shokoImage.ContentType;
         try
         {
             using var client = httpClientFactory.CreateClient("Default");
             var byteArray = await _retryPolicy.ExecuteAsync(async () => await client.GetByteArrayAsync(remoteUrl)).ConfigureAwait(false);
             if (GetImageFormat(byteArray) is not { } imageFormat)
-                throw new HttpRequestException($"Invalid or disallowed image data format at remote resource: {remoteUrl}", null, HttpStatusCode.ExpectationFailed);
+                throw new UnsupportedImageTypeException()
+                {
+                    ImageSource = image.Source,
+                    ImageResourceID = image.ResourceID,
+                    FileExtension = Path.GetExtension(image.ResourceID) ?? string.Empty,
+                    DetectedMimeType = "unknown",
+                };
 
             MagickImageInfo info;
             try
@@ -719,6 +786,9 @@ public partial class ImageManager(
                 throw new HttpRequestException($"Invalid or disallowed image data format at remote resource: {remoteUrl}", e, HttpStatusCode.ExpectationFailed);
             }
 
+            // Set the content type _before_ accessing the local path, so the local path will have the correct extension.
+            shokoImage.ContentType = $"image/{imageFormat}";
+
             Directory.CreateDirectory(Path.GetDirectoryName(image.LocalPath)!);
             if (File.Exists(image.LocalPath))
                 File.Delete(image.LocalPath);
@@ -726,10 +796,9 @@ public partial class ImageManager(
 
             logger.LogInformation("Image downloaded to cache: {DownloadUrl} (Image={ImageID})", remoteUrl, image.ID);
 
-            // Update metadata.
+            // Update metadata after successfully storing the file.
             shokoImage.Width = (int)info.Width;
             shokoImage.Height = (int)info.Height;
-            shokoImage.ContentType = $"image/{imageFormat}";
 
             return downloaded = true;
         }
@@ -740,6 +809,7 @@ public partial class ImageManager(
         }
         catch (Exception e)
         {
+            shokoImage.ContentType = originalContentType;
             logger.LogWarning("Image failed to download due to an unexpected error: {DownloadUrl} - {Message} (Image={ImageID})", remoteUrl, e.Message, image.ID);
             throw;
         }

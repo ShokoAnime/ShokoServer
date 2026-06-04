@@ -131,7 +131,8 @@ public class ShokoImage : IImage
         get
         {
             var id = ID.ToString("N");
-            return Path.Join(ApplicationPaths.Instance.ImagesPath, Source.ToString(), id[..2], id);
+            var ext = GetExtensionForMimeType(ContentType);
+            return Path.Join(ApplicationPaths.Instance.ImagesPath, Source.ToString(), id[..2], id + ext);
         }
     }
 
@@ -257,6 +258,38 @@ public class ShokoImage : IImage
         bool? isEnabled,
         bool? isDesired
     ) => GetCrossReferences(imageType, xrefSource, entitySource, entityType, isEnabled, isDesired);
+
+    #endregion
+
+    #region Static Helpers
+
+    public static string GetExtensionForMimeType(string contentType)
+    {
+        if (string.IsNullOrEmpty(contentType))
+            return ".bin";
+
+        var ext = contentType.ToLowerInvariant() switch
+        {
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/webp" => ".webp",
+            "image/gif" => ".gif",
+            "image/bmp" => ".bmp",
+            "image/tiff" => ".tif",
+            "image/svg+xml" => ".svg",
+            "image/svg" => ".svg",
+            "image/avif" => ".avif",
+            _ => null,
+        };
+        if (ext is not null)
+            return ext;
+
+        var mimeExt = MimeUtility.GetExtensions(contentType)?.FirstOrDefault();
+        if (mimeExt is not null)
+            return "." + mimeExt;
+
+        return ".bin";
+    }
 
     #endregion
 }

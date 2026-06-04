@@ -868,6 +868,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(147,  4, "INSERT INTO StoredRelocationPreset (StoredRelocationPresetID, ProviderID, Name, Configuration, IsDefault) SELECT StoredRelocationPipeID, ProviderID, Name, Configuration, 0 FROM StoredRelocationPipe;"),
         new(147,  5, "DROP TABLE StoredRelocationPipe;"),
         new(147,  6, DatabaseFixes.SetDefaultRenamer),
+        new(148,  1, DatabaseFixes.MoveImagesToExtensionPaths),
     ];
 
     #endregion

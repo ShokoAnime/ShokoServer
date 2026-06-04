@@ -948,6 +948,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(160,  4, "SET IDENTITY_INSERT StoredRelocationPreset ON; INSERT INTO StoredRelocationPreset (StoredRelocationPresetID, ProviderID, Name, Configuration, IsDefault) SELECT StoredRelocationPipeID, ProviderID, Name, Configuration, 0 FROM StoredRelocationPipe; SET IDENTITY_INSERT StoredRelocationPreset OFF;"),
         new(160,  5, "DROP TABLE StoredRelocationPipe;"),
         new(160,  6, DatabaseFixes.SetDefaultRenamer),
+        new(161,  1, DatabaseFixes.MoveImagesToExtensionPaths),
     ];
 
     #endregion

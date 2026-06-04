@@ -260,6 +260,11 @@ public interface IImageManager
     #region Images | Add
 
     /// <summary>
+    ///   The list of allowed MIME types for images.
+    /// </summary>
+    IReadOnlyList<string> AllowedMimeTypes { get; }
+
+    /// <summary>
     ///   Add a new image from provider data.
     /// </summary>
     /// <param name="imageData">
@@ -272,6 +277,10 @@ public interface IImageManager
     /// <exception cref="ImageDataExistsException">
     ///   Thrown when attempting to add image data for a resource which already
     ///   exists.
+    /// </exception>
+    /// <exception cref="UnsupportedImageTypeException">
+    ///   Thrown if the resource ID contains a file extension that maps to a MIME
+    ///   type not in the allowed image types list.
     /// </exception>
     /// <returns>
     ///   The newly created image.
@@ -297,10 +306,14 @@ public interface IImageManager
     /// </param>
     /// <exception cref="ArgumentException">
     ///   Thrown when the image stream is empty, the content type is
-    ///   invalid or not allowed.
+    ///   invalid, or the image data is not a valid image.
     /// </exception>
     /// <exception cref="ArgumentNullException">
-    ///   Thrown when the image stream or content type is <c>null</c>.
+    ///   Thrown when the image stream is <c>null</c>.
+    /// </exception>
+    /// <exception cref="UnsupportedImageTypeException">
+    ///   Thrown when the content type or detected image format is not in the
+    ///   allowed image types list.
     /// </exception>
     /// <returns>
     ///   The newly created image.
@@ -326,10 +339,14 @@ public interface IImageManager
     /// </param>
     /// <exception cref="ArgumentException">
     ///   Thrown when the image byte array is empty, the content type is
-    ///   invalid or not allowed.
+    ///   invalid, or the image data is not a valid image.
     /// </exception>
     /// <exception cref="ArgumentNullException">
-    ///   Thrown when the image byte array or content type is <c>null</c>.
+    ///   Thrown when the image byte array is <c>null</c>.
+    /// </exception>
+    /// <exception cref="UnsupportedImageTypeException">
+    ///   Thrown when the content type or detected image format is not in the
+    ///   allowed image types list.
     /// </exception>
     /// <returns>
     ///   The newly created image.
@@ -424,6 +441,9 @@ public interface IImageManager
     /// </exception>
     /// <exception cref="HttpRequestException">
     ///   Thrown when an error occurs while downloading the image from the provider.
+    /// </exception>
+    /// <exception cref="UnsupportedImageTypeException">
+    ///   Thrown when the downloaded bytes are not a recognized image format.
     /// </exception>
     /// <exception cref="IOException">
     ///   Thrown when an error occurs while writing the image file to disk.

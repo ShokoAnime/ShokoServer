@@ -1046,6 +1046,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(165,  4, "INSERT INTO `StoredRelocationPreset` (`StoredRelocationPresetID`, `ProviderID`, `Name`, `Configuration`, `IsDefault`) SELECT `StoredRelocationPipeID`, `ProviderID`, `Name`, `Configuration`, 0 FROM `StoredRelocationPipe`;"),
         new(165,  5, "DROP TABLE `StoredRelocationPipe`;"),
         new(165,  6, DatabaseFixes.SetDefaultRenamer),
+        new(166,  1, DatabaseFixes.MoveImagesToExtensionPaths),
     ];
 
     #endregion

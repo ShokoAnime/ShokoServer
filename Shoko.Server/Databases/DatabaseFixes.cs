@@ -22,6 +22,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image.Exceptions;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
@@ -1609,6 +1610,7 @@ public class DatabaseFixes
     public static void MigrateToUnifiedImages()
     {
         var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
+        var imageManager = (ImageManager)ISystemService.StaticServices.GetRequiredService<IImageManager>();
         var imagesPath = ApplicationPaths.Instance.ImagesPath;
         using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         var str = systemService.StartupMessage ?? string.Empty;
@@ -1811,21 +1813,38 @@ public class DatabaseFixes
                 continue;
             }
 
+            // Try eager detection from ResourceID as preferred source
+            var contentType = MimeUtility.UnknownMimeType;
+            try
+            {
+                if (imageManager.GetContentTypeFromResourceID(DataSource.TMDB, resourceID) is { Length: > 0 } eager)
+                    contentType = eager;
+            }
+            catch (UnsupportedImageTypeException ex)
+            {
+                _logger.Warn(ex, "Unsupported image type for {ResourceID}, falling back.", resourceID);
+            }
+            // Fallback to MimeUtility if eager detection didn't yield a result
+            if (contentType is MimeUtility.UnknownMimeType)
+            {
+                var mapped = MimeUtility.GetMimeMapping(resourceID);
+                if (!string.IsNullOrEmpty(mapped) && mapped != MimeUtility.UnknownMimeType)
+                    contentType = mapped;
+            }
+
             var guidStr = guid.ToString("N");
+            var ext = ShokoImage.GetExtensionForMimeType(contentType);
             var oldFileName = Path.GetFileNameWithoutExtension(resourceID);
             var oldFileExt = resourceID.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)
                 ? ".png"
                 : Path.GetExtension(resourceID);
             var oldHashedName = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(oldFileName))).ToLower();
             var oldPath = Path.Join(imagesPath, "TMDB_old", oldHashedName[..2], oldHashedName + oldFileExt);
-            var newPath = Path.Join(imagesPath, "TMDB", guidStr[..2], guidStr);
+            var newPath = Path.Join(imagesPath, "TMDB", guidStr[..2], guidStr + ext);
             var oldPathExists = File.Exists(oldPath);
             var newPathExists = File.Exists(newPath);
 
             var languageCode = old.Language is { Length: 2 } ? old.Language : null;
-            var contentType = MimeUtility.GetMimeMapping(resourceID);
-            if (string.IsNullOrEmpty(contentType) || contentType == MimeUtility.UnknownMimeType)
-                contentType = "image/jpeg";
 
             var width = old.Width > 0 ? old.Width : (int?)null;
             var height = old.Height > 0 ? old.Height : (int?)null;
@@ -1908,7 +1927,7 @@ public class DatabaseFixes
                 var oldHashedName = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(oldFileName))).ToLower();
                 var oldPath = Path.Join(imagesPath, "TMDB_old", oldHashedName[..2], oldHashedName + oldFileExt);
                 var newPath = Path.Join(imagesPath, "TMDB", guidStr[..2], guidStr);
-                MigrateImage(resourceID, DataSource.TMDB, oldPath, newPath);
+                MigrateImage(resourceID, DataSource.TMDB, oldPath, newPath, imageManager);
             }
 
             var mappedEntityType = old.TmdbEntityType switch
@@ -2078,7 +2097,9 @@ public class DatabaseFixes
 
             // Write blob to disk
             var guidStr = guid.ToString("N");
-            var newPath = Path.Join(imagesPath, "User", guidStr[..2], guidStr);
+            var contentType = metadata.ContentType ?? "image/png";
+            var ext = ShokoImage.GetExtensionForMimeType(contentType);
+            var newPath = Path.Join(imagesPath, "User", guidStr[..2], guidStr + ext);
             Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
             File.WriteAllBytes(newPath, old.AvatarImageBlob);
 
@@ -2131,7 +2152,7 @@ public class DatabaseFixes
                     resourceID
                 );
                 var newPath = Path.Join(imagesPath, "AniDB", guidStr[..2], guidStr);
-                MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath);
+                MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath, imageManager);
             }
 
             var entityID = anime.AnimeID.ToString();
@@ -2187,7 +2208,7 @@ public class DatabaseFixes
                     resourceID
                 );
                 var newPath = Path.Join(imagesPath, "AniDB", guidStr[..2], guidStr);
-                MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath);
+                MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath, imageManager);
             }
 
             var entityID = creator.CreatorID.ToString();
@@ -2242,7 +2263,7 @@ public class DatabaseFixes
                         ? sid[..2] : character.CharacterID.ToString(),
                     resourceID);
                 var newPath = Path.Join(imagesPath, "AniDB", guidStr[..2], guidStr);
-                MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath);
+                MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath, imageManager);
             }
 
             var entityID = character.CharacterID.ToString();
@@ -2311,15 +2332,34 @@ public class DatabaseFixes
         _logger.Info("Completed migration to unified images.");
     }
 
-    private static void MigrateImage(string resourceID, DataSource source, string oldPath, string newPath)
+    private static void MigrateImage(string resourceID, DataSource source, string oldPath, string newPath, ImageManager imageManager)
     {
         var guid = IImageManager.GetIDForImageSourceAndResourceID(source, resourceID);
         var oldPathExists = File.Exists(oldPath);
         var newPathExists = File.Exists(newPath);
 
-        var contentType = MimeUtility.GetMimeMapping(resourceID);
-        if (string.IsNullOrEmpty(contentType) || contentType == MimeUtility.UnknownMimeType)
-            contentType = "image/jpeg";
+        // Try eager detection from ResourceID as preferred source
+        var contentType = MimeUtility.UnknownMimeType;
+        try
+        {
+            if (imageManager.GetContentTypeFromResourceID(DataSource.TMDB, resourceID) is { Length: > 0 } eager)
+                contentType = eager;
+        }
+        catch (UnsupportedImageTypeException ex)
+        {
+            _logger.Warn(ex, "Unsupported image type for {ResourceID}, falling back.", resourceID);
+            return;
+        }
+        // Fallback to MimeUtility if eager detection didn't yield a result
+        if (contentType is MimeUtility.UnknownMimeType)
+        {
+            var mapped = MimeUtility.GetMimeMapping(resourceID);
+            if (!string.IsNullOrEmpty(mapped) && mapped != MimeUtility.UnknownMimeType)
+                contentType = mapped;
+        }
+
+        var ext = ShokoImage.GetExtensionForMimeType(contentType);
+        newPath += ext;
 
         var width = (int?)null;
         var height = (int?)null;
@@ -2387,6 +2427,73 @@ public class DatabaseFixes
         9 => ImageEntityType.Primary,
         _ => ImageEntityType.None,
     };
+
+    public static void MoveImagesToExtensionPaths()
+    {
+        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
+        var imageManager = (ImageManager)ISystemService.StaticServices.GetRequiredService<IImageManager>();
+        var imagesPath = ApplicationPaths.Instance.ImagesPath;
+        var images = RepoFactory.ShokoImage.GetAll();
+        var str = systemService.StartupMessage ?? string.Empty;
+
+        // Correct default ContentType from ResourceIDs
+        var correctedCount = 0;
+        foreach (var image in images)
+        {
+            if (image.ContentType is not MimeUtility.UnknownMimeType)
+                continue;
+
+            try
+            {
+                var contentType = imageManager.GetContentTypeFromResourceID(image.Source, image.ResourceID);
+                if (contentType is not null)
+                {
+                    image.ContentType = contentType;
+                    RepoFactory.ShokoImage.Save(image);
+                    correctedCount++;
+                }
+            }
+            catch (UnsupportedImageTypeException ex)
+            {
+                _logger.Warn(ex, "Unsupported image type for {ResourceID}, keeping default.", image.ResourceID);
+            }
+
+            if (correctedCount % 1000 == 0 && correctedCount > 0)
+                systemService.StartupMessage = $"{str} - Correcting image content types... {correctedCount}";
+        }
+        _logger.Info("Corrected {Count} image content types from resource IDs.", correctedCount);
+        systemService.StartupMessage = $"{str} - Corrected {correctedCount} image content types.";
+
+        // Move files to extension paths
+        var migratedCount = 0;
+        foreach (var image in images)
+        {
+            var id = image.ID.ToString("N");
+            var ext = ShokoImage.GetExtensionForMimeType(image.ContentType);
+            var source = image.Source.ToString();
+            var oldPath = Path.Join(imagesPath, source, id[..2], id);
+            var newPath = Path.Join(imagesPath, source, id[..2], id + ext);
+            if (File.Exists(oldPath))
+            {
+                if (!File.Exists(newPath))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
+                    File.Move(oldPath, newPath, overwrite: false);
+                }
+                else
+                {
+                    File.Delete(oldPath);
+                }
+            }
+
+            migratedCount++;
+            if (migratedCount % 1000 == 0)
+                systemService.StartupMessage = $"{str} - Moving images to extension paths... {migratedCount}/{images.Count}";
+        }
+
+        _logger.Info("Completed moving {Count} images to extension paths.", migratedCount);
+        systemService.StartupMessage = $"{str} - Completed moving {migratedCount} images to extension paths.";
+    }
 
     private class DNF_UserAvatarMetadata
     {
