@@ -1324,7 +1324,7 @@ public class DatabaseFixes
                             }
 
                             _logger.Warn("A RenameScript could not be converted to StoredRelocationPreset. Renamer name: " + renamerScript.ScriptName + " Renamer type: " + renamerScript.RenamerType + Environment.NewLine + "Script: " + Environment.NewLine + renamerScript.Script);
-
+                            SaveFailedRenamerItem("RenamerScript", renamerScript.RenamerType, renamerScript.ScriptName, Encoding.UTF8.GetBytes(renamerScript.Script), ".txt");
                             continue;
                         }
 
@@ -1342,6 +1342,7 @@ public class DatabaseFixes
                     catch (Exception ex)
                     {
                         _logger.Warn(ex, "A RenameScript could not be converted to StoredRelocationPreset. Renamer name: " + renamerScript.ScriptName + " Renamer type: " + renamerScript.RenamerType + Environment.NewLine + "Script: " + Environment.NewLine + renamerScript.Script);
+                        SaveFailedRenamerItem("RenamerScript", renamerScript.RenamerType, renamerScript.ScriptName, Encoding.UTF8.GetBytes(renamerScript.Script), ".txt");
                         continue;
                     }
                 }
@@ -1388,6 +1389,7 @@ public class DatabaseFixes
                         if (providerInfo is null)
                         {
                             _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPreset. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
+                            SaveFailedRenamerItem("RenamerConfig", renamerConfig.Type, renamerConfig.Name, renamerConfig.Settings, ".messagepack");
                             continue;
                         }
 
@@ -1397,6 +1399,7 @@ public class DatabaseFixes
                             if (config.GetType() != providerInfo.ConfigurationInfo.Type)
                             {
                                 _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPreset. Mismatched config type. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
+                                SaveFailedRenamerItem("RenamerConfig", renamerConfig.Type, renamerConfig.Name, renamerConfig.Settings, ".messagepack");
                                 continue;
                             }
                             configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(config as IConfiguration));
@@ -1407,7 +1410,7 @@ public class DatabaseFixes
                     catch (Exception ex)
                     {
                         _logger.Warn(ex, "A RenamerInstance could not be converted to StoredRelocationPreset. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
-
+                        SaveFailedRenamerItem("RenamerConfig", renamerConfig.Type, renamerConfig.Name, renamerConfig.Settings, ".messagepack");
                         continue;
                     }
                 }
@@ -1470,6 +1473,37 @@ public class DatabaseFixes
         }
 
         return new Tuple<bool, string>(true, null);
+    }
+
+    private static string GetFailedMigrationsBasePath()
+    {
+        var settings = ISettingsProvider.Instance.GetSettings();
+        var dirPath = settings.Database.DatabaseBackupDirectory;
+        return Path.Combine(
+            string.IsNullOrWhiteSpace(dirPath) ? ApplicationPaths.StaticDataPath
+                : Path.Combine(ApplicationPaths.StaticDataPath, dirPath),
+            "failed_migrations"
+        );
+    }
+
+    private static string SanitizeFileName(string name)
+        => Path.GetInvalidFileNameChars().Aggregate(name, (current, c) => current.Replace(c, '_'));
+
+    private static void SaveFailedRenamerItem(string category, string typeName, string name, byte[] data, string extension)
+    {
+        var dir = Path.Combine(GetFailedMigrationsBasePath(), category, SanitizeFileName(typeName));
+        Directory.CreateDirectory(dir);
+        var basePath = Path.Combine(dir, SanitizeFileName(name));
+        var filePath = basePath + extension;
+        if (File.Exists(filePath))
+        {
+            var copyIndex = 1;
+            do
+            {
+                filePath = $"{basePath} (copy #{++copyIndex}){extension}";
+            } while (File.Exists(filePath));
+        }
+        File.WriteAllBytes(filePath, data);
     }
 
     public static void SetDefaultRenamer()

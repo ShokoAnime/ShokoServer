@@ -400,6 +400,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IVideoReleaseService, VideoReleaseService>();
             services.AddSingleton<IVideoHashingService, VideoHashingService>();
             services.AddSingleton<IVideoRelocationService, VideoRelocationService>();
+            services.AddTransient<RelocationPresetMigrationService>();
             services.AddSingleton(typeof(ConfigurationProvider<>));
             services.AddSingleton<IUserService, UserService>();
             services.AddSingleton<IUserDataService, UserDataService>();
@@ -574,6 +575,9 @@ public class SystemService : ISystemService
 
             if (cancellationToken.IsCancellationRequested)
                 return;
+
+            StartupMessage = "Migrating failed relocation presets...";
+            _webHost!.Services.GetRequiredService<RelocationPresetMigrationService>().MigrateFailedPresets();
 
             StartupMessage = "Initializing UDP Connection Handler...";
             var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
