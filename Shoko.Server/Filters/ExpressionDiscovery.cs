@@ -6,7 +6,6 @@ using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
 using Shoko.Abstractions.Filtering.Expressions.Info;
 using Shoko.Abstractions.Filtering.Sorting;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
 
 #nullable enable

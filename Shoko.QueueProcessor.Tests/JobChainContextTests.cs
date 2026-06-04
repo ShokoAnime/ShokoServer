@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using Shoko.QueueProcessor.Chain;
 using Xunit;
 
