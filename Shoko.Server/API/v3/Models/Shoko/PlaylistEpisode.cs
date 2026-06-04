@@ -82,7 +82,6 @@ public class PlaylistEpisode
     /// <summary>
     /// Series poster.
     /// </summary>
-    [Required]
     public Image? SeriesPoster { get; set; }
 
     /// <summary>
@@ -99,6 +98,7 @@ public class PlaylistEpisodeIDs : IDs
     /// <summary>
     /// The related <see cref="AnidbEpisode"/> id.
     /// </summary>
+    [Required]
     public new int ID { get; set; }
 
     /// <summary>
@@ -110,10 +110,12 @@ public class PlaylistEpisodeIDs : IDs
     /// <summary>
     /// The related Shoko <see cref="Shoko.Episode"/> id, if available locally.
     /// </summary>
-    public int? ShokoEpisode { get; set; }
+    [Required]
+    public int ShokoEpisode { get; set; }
 
     /// <summary>
     /// The related Shoko <see cref="Shoko.Series"/> id, if available locally.
     /// </summary>
-    public int? ShokoSeries { get; set; }
+    [Required]
+    public int ShokoSeries { get; set; }
 }
