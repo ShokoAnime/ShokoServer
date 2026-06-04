@@ -135,8 +135,8 @@ public static class QueueProcessorExtensions
         this IServiceProvider serviceProvider,
         CancellationToken ct = default)
     {
-        using var scope = serviceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<QueueDbContext>();
+        var factory = serviceProvider.GetRequiredService<IDbContextFactory<QueueDbContext>>();
+        await using var db = await factory.CreateDbContextAsync(ct);
         await db.Database.MigrateAsync(ct);
     }
 
@@ -175,19 +175,26 @@ public static class QueueProcessorExtensions
 
     private static void RegisterDbContext(IServiceCollection services, QueueProcessorOptions options)
     {
-        switch (options.Provider)
-        {
-            case DatabaseProvider.SQLite:
-                services.AddScoped<QueueDbContext>(_ => new SqliteQueueDbContext(options.ConnectionString));
-                break;
-            case DatabaseProvider.MySQL:
-                services.AddScoped<QueueDbContext>(_ => new MySqlQueueDbContext(options.ConnectionString));
-                break;
-            case DatabaseProvider.SqlServer:
-                services.AddScoped<QueueDbContext>(_ => new SqlServerQueueDbContext(options.ConnectionString));
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(options.Provider));
-        }
+        services.AddSingleton<IDbContextFactory<QueueDbContext>>(new QueueDbContextRuntimeFactory(options));
     }
+}
+
+/// <summary>
+/// Creates a provider-appropriate <see cref="QueueDbContext"/> on each call.
+/// Registered as a singleton so both singleton and scoped consumers can obtain independent,
+/// short-lived contexts without sharing a <see cref="Microsoft.EntityFrameworkCore.DbContext"/>
+/// instance across threads.
+/// </summary>
+sealed file class QueueDbContextRuntimeFactory : IDbContextFactory<QueueDbContext>
+{
+    private readonly QueueProcessorOptions _options;
+    public QueueDbContextRuntimeFactory(QueueProcessorOptions options) => _options = options;
+
+    public QueueDbContext CreateDbContext() => _options.Provider switch
+    {
+        DatabaseProvider.SQLite => new SqliteQueueDbContext(_options.ConnectionString),
+        DatabaseProvider.MySQL => new MySqlQueueDbContext(_options.ConnectionString),
+        DatabaseProvider.SqlServer => new SqlServerQueueDbContext(_options.ConnectionString),
+        _ => throw new ArgumentOutOfRangeException(nameof(_options.Provider)),
+    };
 }

@@ -22,18 +22,25 @@ public class JobChainContextRepositoryTests
     private static string NewCs() =>
         $"Data Source=test_{Guid.NewGuid():N};Mode=Memory;Cache=Shared";
 
+    private static TestDbContextFactory MakeFactory(string cs) => new(cs);
+
+    private sealed class TestDbContextFactory(string cs) : IDbContextFactory<QueueDbContext>
+    {
+        public QueueDbContext CreateDbContext() => new SqliteQueueDbContext(cs);
+    }
+
     private static async Task<(SqliteConnection Keeper, string Cs, JobChainContextRepository Repo)> CreateAsync()
     {
         var cs = NewCs();
         var keeper = new SqliteConnection(cs);
         keeper.Open();
-        var ctx = new SqliteQueueDbContext(cs);
-        await ctx.Database.MigrateAsync();
-        return (keeper, cs, new JobChainContextRepository(ctx));
+        await using var migCtx = new SqliteQueueDbContext(cs);
+        await migCtx.Database.MigrateAsync();
+        return (keeper, cs, new JobChainContextRepository(MakeFactory(cs)));
     }
 
     private static JobChainContextRepository FreshRepo(string cs) =>
-        new(new SqliteQueueDbContext(cs));
+        new(MakeFactory(cs));
 
     private static JobOutcome MakeOutcome(string jobType, JobOutcomeStatus status = JobOutcomeStatus.Succeeded) =>
         new()
@@ -50,8 +57,8 @@ public class JobChainContextRepositoryTests
     [Fact]
     public async Task GetAsync_NonexistentChain_ReturnsNull()
     {
-        var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        var (keeper, _, repo) = await CreateAsync();
+        await using (keeper)
         {
             var result = await repo.GetAsync(Guid.NewGuid());
             Assert.Null(result);
@@ -62,7 +69,7 @@ public class JobChainContextRepositoryTests
     public async Task GetAsync_ExistingChain_ReturnsContextWithCorrectId()
     {
         var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        await using (keeper)
         {
             var chainId = Guid.NewGuid();
             await repo.GetOrCreateAsync(chainId);
@@ -70,7 +77,7 @@ public class JobChainContextRepositoryTests
             var loaded = await FreshRepo(cs).GetAsync(chainId);
 
             Assert.NotNull(loaded);
-            Assert.Equal(chainId, loaded!.ChainId);
+            Assert.Equal(chainId, loaded.ChainId);
         }
     }
 
@@ -79,8 +86,8 @@ public class JobChainContextRepositoryTests
     [Fact]
     public async Task GetOrCreateAsync_NewChain_CreatesActiveContext()
     {
-        var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        var (keeper, _, repo) = await CreateAsync();
+        await using (keeper)
         {
             var chainId = Guid.NewGuid();
 
@@ -95,7 +102,7 @@ public class JobChainContextRepositoryTests
     public async Task GetOrCreateAsync_ExistingChain_ReturnsSavedData()
     {
         var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        await using (keeper)
         {
             var chainId = Guid.NewGuid();
             var first = await repo.GetOrCreateAsync(chainId);
@@ -114,7 +121,7 @@ public class JobChainContextRepositoryTests
     public async Task SaveAsync_NewContext_InsertsRecord()
     {
         var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        await using (keeper)
         {
             var chainId = Guid.NewGuid();
             var context = new JobChainContext(chainId);
@@ -123,7 +130,7 @@ public class JobChainContextRepositoryTests
 
             var loaded = await FreshRepo(cs).GetAsync(chainId);
             Assert.NotNull(loaded);
-            Assert.Equal(chainId, loaded!.ChainId);
+            Assert.Equal(chainId, loaded.ChainId);
         }
     }
 
@@ -131,7 +138,7 @@ public class JobChainContextRepositoryTests
     public async Task SaveAsync_ExistingContext_UpdatesRecord()
     {
         var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        await using (keeper)
         {
             var chainId = Guid.NewGuid();
             await repo.GetOrCreateAsync(chainId);
@@ -151,7 +158,7 @@ public class JobChainContextRepositoryTests
     public async Task DataFields_StringAndInt_RoundTripThroughDatabase()
     {
         var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        await using (keeper)
         {
             var chainId = Guid.NewGuid();
             var context = new JobChainContext(chainId);
@@ -170,7 +177,7 @@ public class JobChainContextRepositoryTests
     public async Task DataFields_NullValue_OverwritesPreviousValue()
     {
         var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        await using (keeper)
         {
             var chainId = Guid.NewGuid();
             var context = new JobChainContext(chainId);
@@ -192,7 +199,7 @@ public class JobChainContextRepositoryTests
     public async Task ChainStatus_AllValues_RoundTripThroughDatabase()
     {
         var (keeper, cs, _) = await CreateAsync();
-        using (keeper)
+        await using (keeper)
         {
             foreach (var status in new[] { ChainStatus.Active, ChainStatus.Aborted, ChainStatus.Completed })
             {
@@ -212,14 +219,14 @@ public class JobChainContextRepositoryTests
     public async Task AddOutcomesAsync_BatchAdd_AllOutcomesPersisted()
     {
         var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        await using (keeper)
         {
             var chainId = Guid.NewGuid();
             await repo.GetOrCreateAsync(chainId);
 
             var outcomes = new[]
             {
-                MakeOutcome("TypeA", JobOutcomeStatus.Succeeded),
+                MakeOutcome("TypeA"),
                 MakeOutcome("TypeB", JobOutcomeStatus.Failed),
                 MakeOutcome("TypeC", JobOutcomeStatus.Aborted),
             };
@@ -237,8 +244,8 @@ public class JobChainContextRepositoryTests
     [Fact]
     public async Task AddOutcomesAsync_NonexistentChain_IsNoOp()
     {
-        var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        var (keeper, _, repo) = await CreateAsync();
+        await using (keeper)
         {
             var ex = await Record.ExceptionAsync(
                 () => repo.AddOutcomesAsync(Guid.NewGuid(), [MakeOutcome("T")]));
@@ -251,7 +258,7 @@ public class JobChainContextRepositoryTests
     public async Task AddOutcomesAsync_EmptyCollection_IsNoOp()
     {
         var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        await using (keeper)
         {
             var chainId = Guid.NewGuid();
             await repo.GetOrCreateAsync(chainId);
@@ -269,7 +276,7 @@ public class JobChainContextRepositoryTests
     public async Task DeleteAsync_RemovesChainRecord()
     {
         var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        await using (keeper)
         {
             var chainId = Guid.NewGuid();
             await repo.GetOrCreateAsync(chainId);
@@ -284,8 +291,8 @@ public class JobChainContextRepositoryTests
     [Fact]
     public async Task DeleteAsync_NonexistentChain_IsNoOp()
     {
-        var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        var (keeper, _, repo) = await CreateAsync();
+        await using (keeper)
         {
             var ex = await Record.ExceptionAsync(() => repo.DeleteAsync(Guid.NewGuid()));
             Assert.Null(ex);
@@ -298,7 +305,7 @@ public class JobChainContextRepositoryTests
     public async Task Outcomes_CanBeQueriedByJobId_AfterRoundTrip()
     {
         var (keeper, cs, repo) = await CreateAsync();
-        using (keeper)
+        await using (keeper)
         {
             var chainId = Guid.NewGuid();
             await repo.GetOrCreateAsync(chainId);
@@ -309,7 +316,7 @@ public class JobChainContextRepositoryTests
             var loaded = await FreshRepo(cs).GetAsync(chainId);
             var found = loaded!.GetOutcome(outcome.JobId);
             Assert.NotNull(found);
-            Assert.Equal(outcome.JobId, found!.JobId);
+            Assert.Equal(outcome.JobId, found.JobId);
             Assert.Equal(outcome.JobType, found.JobType);
         }
     }

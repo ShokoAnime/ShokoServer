@@ -22,14 +22,22 @@ public class JobRepositoryTests
     private static string NewCs() =>
         $"Data Source=test_{Guid.NewGuid():N};Mode=Memory;Cache=Shared";
 
-    private static async Task<(SqliteConnection Keeper, string Cs, SqliteQueueDbContext Ctx, JobRepository Repo)> CreateAsync()
+    private static IDbContextFactory<QueueDbContext> MakeFactory(string cs) =>
+        new TestDbContextFactory(cs);
+
+    private sealed class TestDbContextFactory(string cs) : IDbContextFactory<QueueDbContext>
+    {
+        public QueueDbContext CreateDbContext() => new SqliteQueueDbContext(cs);
+    }
+
+    private static async Task<(SqliteConnection Keeper, JobRepository Repo)> CreateAsync()
     {
         var cs = NewCs();
         var keeper = new SqliteConnection(cs);
         keeper.Open();
-        var ctx = new SqliteQueueDbContext(cs);
-        await ctx.Database.MigrateAsync();
-        return (keeper, cs, ctx, new JobRepository(ctx));
+        await using var migCtx = new SqliteQueueDbContext(cs);
+        await migCtx.Database.MigrateAsync();
+        return (keeper, new JobRepository(MakeFactory(cs)));
     }
 
     private static QueuedJob FakeJob(
@@ -54,8 +62,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task InsertBatchAsync_SingleJob_PersistedAndReloaded()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             var job = FakeJob(jobKey: "persisted-key");
 
@@ -73,8 +81,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task InsertBatchAsync_MultipleJobs_AllReloaded()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             var jobs = Enumerable.Range(0, 10).Select(_ => FakeJob()).ToList();
 
@@ -90,8 +98,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task InsertBatchAsync_DuplicateJobKey_ThrowsDbUpdateException()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             await repo.InsertBatchAsync([FakeJob(jobKey: "same-key")]);
 
@@ -105,8 +113,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task LoadAllAsync_OrdersBy_TypeThenScheduledAtThenPriorityDescThenQueuedAt()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             var baseTime = DateTimeOffset.UnixEpoch;
 
@@ -129,8 +137,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task LoadAllAsync_NullScheduledAt_SortedBeforeScheduledJobs()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             // SQLite NULL < any non-null value in ASC, so immediate jobs come first
             var immediate = FakeJob("k1");
@@ -149,8 +157,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task DeleteAsync_RemovesSingleJob()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             var job = FakeJob();
             await repo.InsertBatchAsync([job]);
@@ -164,8 +172,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task DeleteBatchAsync_RemovesAllSpecifiedJobs()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             var toDelete = Enumerable.Range(0, 3).Select(_ => FakeJob()).ToList();
             var toKeep = FakeJob();
@@ -182,8 +190,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task DeleteBatchAsync_EmptyCollection_IsNoOp()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             await repo.InsertBatchAsync([FakeJob()]);
 
@@ -199,8 +207,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task UpdateRetryAsync_UpdatesRetryCountAndScheduledAt()
     {
-        var (keeper, cs, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             var job = FakeJob();
             await repo.InsertBatchAsync([job]);
@@ -210,9 +218,8 @@ public class JobRepositoryTests
                 DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeMilliseconds());
             await repo.UpdateRetryAsync(job.Id, retryCount: 3, retryAt);
 
-            // Fresh context to bypass stale change tracker
-            await using var freshCtx = new SqliteQueueDbContext(cs);
-            var loaded = (await new JobRepository(freshCtx).LoadAllAsync()).Single();
+            // Each LoadAllAsync call creates a fresh context — no stale change tracker
+            var loaded = (await repo.LoadAllAsync()).Single();
 
             Assert.Equal(3, loaded.RetryCount);
             Assert.NotNull(loaded.ScheduledAt);
@@ -225,8 +232,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task ClearAllAsync_RemovesAllRows()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             await repo.InsertBatchAsync([FakeJob(), FakeJob(), FakeJob()]);
 
@@ -241,8 +248,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task ActivateChainChildrenAsync_NullsParentJobIdForSpecifiedJobs()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             var parentId = Guid.NewGuid();
             var child1 = FakeJob(parentJobId: parentId);
@@ -262,8 +269,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task ActivateChainChildrenAsync_EmptyCollection_IsNoOp()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             var child = FakeJob(parentJobId: Guid.NewGuid());
             await repo.InsertBatchAsync([child]);
@@ -280,8 +287,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task InsertBatchAsync_LargeBatch_PersistedAcrossChunkBoundary()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             const int count = 501; // crosses the 500-item chunk boundary
             var jobs = Enumerable.Range(0, count).Select(_ => FakeJob()).ToList();
@@ -297,8 +304,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task QueuedAt_RoundTrips_WithMillisecondPrecision()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             var original = DateTimeOffset.FromUnixTimeMilliseconds(1_748_964_123_456L);
             var job = FakeJob(queuedAt: original);
@@ -313,8 +320,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task ScheduledAt_WhenNull_RoundTripsAsNull()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             await repo.InsertBatchAsync([FakeJob(scheduledAt: null)]);
 
@@ -326,8 +333,8 @@ public class JobRepositoryTests
     [Fact]
     public async Task ScheduledAt_WhenSet_RoundTrips_WithMillisecondPrecision()
     {
-        var (keeper, _, ctx, repo) = await CreateAsync();
-        using (keeper) await using (ctx)
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
         {
             var scheduledAt = DateTimeOffset.FromUnixTimeMilliseconds(1_748_964_000_000L);
             await repo.InsertBatchAsync([FakeJob(scheduledAt: scheduledAt)]);

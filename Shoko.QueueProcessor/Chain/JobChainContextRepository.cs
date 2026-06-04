@@ -9,25 +9,33 @@ using Shoko.QueueProcessor.Storage;
 
 namespace Shoko.QueueProcessor.Chain;
 
+/// <summary>
+/// EF Core implementation of <see cref="IJobChainContextRepository"/>.
+/// Each method creates and disposes its own <see cref="QueueDbContext"/> via the factory so that
+/// concurrent callers (e.g. a worker starting a finally job while the abort handler is still writing
+/// outcomes) never share a context instance.
+/// </summary>
 public class JobChainContextRepository : IJobChainContextRepository
 {
-    private readonly QueueDbContext _db;
+    private readonly IDbContextFactory<QueueDbContext> _factory;
 
-    public JobChainContextRepository(QueueDbContext db)
+    public JobChainContextRepository(IDbContextFactory<QueueDbContext> factory)
     {
-        _db = db;
+        _factory = factory;
     }
 
     public async Task<JobChainContext?> GetAsync(Guid chainId, CancellationToken ct = default)
     {
-        var record = await _db.JobChains.FindAsync([chainId], ct);
+        await using var db = await _factory.CreateDbContextAsync(ct);
+        var record = await db.JobChains.FindAsync([chainId], ct);
         if (record == null) return null;
         return JobChainContext.Deserialize(chainId, (ChainStatus)record.Status, record.DataJson, record.ResultsJson, record.OutcomesJson);
     }
 
     public async Task<JobChainContext> GetOrCreateAsync(Guid chainId, CancellationToken ct = default)
     {
-        var record = await _db.JobChains.FindAsync([chainId], ct);
+        await using var db = await _factory.CreateDbContextAsync(ct);
+        var record = await db.JobChains.FindAsync([chainId], ct);
         if (record != null)
             return JobChainContext.Deserialize(chainId, (ChainStatus)record.Status, record.DataJson, record.ResultsJson, record.OutcomesJson);
 
@@ -39,16 +47,16 @@ public class JobChainContextRepository : IJobChainContextRepository
             CreatedAt = now,
             UpdatedAt = now,
         };
-        _db.JobChains.Add(record);
-        await _db.SaveChangesAsync(ct);
-        _db.ChangeTracker.Clear();
+        db.JobChains.Add(record);
+        await db.SaveChangesAsync(ct);
         return new JobChainContext(chainId);
     }
 
     public async Task SaveAsync(JobChainContext context, CancellationToken ct = default)
     {
+        await using var db = await _factory.CreateDbContextAsync(ct);
         var now = DateTimeOffset.UtcNow;
-        var rows = await _db.JobChains
+        var rows = await db.JobChains
             .Where(c => c.ChainId == context.ChainId)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(c => c.Status, (int)context.Status)
@@ -60,7 +68,7 @@ public class JobChainContextRepository : IJobChainContextRepository
 
         if (rows == 0)
         {
-            _db.JobChains.Add(new QueuedJobChain
+            db.JobChains.Add(new QueuedJobChain
             {
                 ChainId = context.ChainId,
                 Status = (int)context.Status,
@@ -70,22 +78,25 @@ public class JobChainContextRepository : IJobChainContextRepository
                 CreatedAt = now,
                 UpdatedAt = now,
             });
-            await _db.SaveChangesAsync(ct);
-            _db.ChangeTracker.Clear();
+            await db.SaveChangesAsync(ct);
         }
 
         context.MarkClean();
     }
 
-    public Task DeleteAsync(Guid chainId, CancellationToken ct = default) =>
-        _db.JobChains.Where(c => c.ChainId == chainId).ExecuteDeleteAsync(ct);
+    public async Task DeleteAsync(Guid chainId, CancellationToken ct = default)
+    {
+        await using var db = await _factory.CreateDbContextAsync(ct);
+        await db.JobChains.Where(c => c.ChainId == chainId).ExecuteDeleteAsync(ct);
+    }
 
     public async Task AddOutcomesAsync(Guid chainId, IEnumerable<JobOutcome> outcomes, CancellationToken ct = default)
     {
         var outcomeList = outcomes.ToList();
         if (outcomeList.Count == 0) return;
 
-        var record = await _db.JobChains.FindAsync([chainId], ct);
+        await using var db = await _factory.CreateDbContextAsync(ct);
+        var record = await db.JobChains.FindAsync([chainId], ct);
         if (record == null) return;
 
         var existing = string.IsNullOrEmpty(record.OutcomesJson)
@@ -94,7 +105,7 @@ public class JobChainContextRepository : IJobChainContextRepository
         existing.AddRange(outcomeList);
 
         var now = DateTimeOffset.UtcNow;
-        await _db.JobChains
+        await db.JobChains
             .Where(c => c.ChainId == chainId)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(c => c.OutcomesJson, JsonSerializer.Serialize(existing))
