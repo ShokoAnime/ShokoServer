@@ -1,19 +1,18 @@
 {
     "name": "Shoko Server Dev Container",
-    "image":"mcr.microsoft.com/devcontainers/dotnet:8.0-jammy",
+    "image": "mcr.microsoft.com/devcontainers/dotnet:10.0-noble",
     "appPort": 8111,
-    "onCreateCommand": "sudo apt update; sudo apt install -y librhash-dev mediainfo",
-    // restores nuget packages, installs the dotnet workloads and installs the dev https certificate
-    "postStartCommand": "dotnet restore; dotnet workload update; sudo dotnet dev-certs https --trust",
-    // reads the extensions list and installs them
-    // "postAttachCommand": "cat .vscode/extensions.json | jq -r .recommendations[] | xargs -n 1 code --install-extension",
+    // install system dependencies: curl + gnupg for general tooling,
+    //   mediainfo for video/audio metadata extraction,
+    //   librhash-dev for ED2K/CRC32/MD5/SHA1 hashing
+    "onCreateCommand": "sudo apt-get update && sudo apt-get install -y curl gnupg mediainfo librhash-dev",
+    // restores nuget packages, installs dotnet workloads, and trusts the dev HTTPS certificate
+    "postStartCommand": "dotnet restore && dotnet workload update && dotnet dev-certs https",
     "features": {
         "ghcr.io/devcontainers/features/dotnet:2": {
-            "version": "none",
-            "dotnetRuntimeVersions": "8.0",
-            "aspNetCoreRuntimeVersions": "8.0"
+            "version": "none"
         },
-        "ghcr.io/devcontainers-contrib/features/apt-packages:1": {
+        "ghcr.io/devcontainers-extra/features/apt-packages:1": {
             "preserve_apt_list": false,
             "packages": ["libfontconfig1"]
         },
@@ -23,11 +22,25 @@
         "ghcr.io/devcontainers/features/github-cli:1": {},
         "ghcr.io/eitsupi/devcontainer-features/jq-likes:2": {}
     },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "aaron-bond.better-comments",
+                "eamodio.gitlens",
+                "editorconfig.editorconfig",
+                "github.vscode-github-actions",
+                "k--kato.docomment",
+                "ms-dotnettools.csdevkit",
+                "ms-dotnettools.csharp",
+                "ms-dotnettools.vscode-dotnet-runtime"
+            ]
+        }
+    },
     "hostRequirements": {
         "memory": "8gb",
         "cpus": 4
     },
     "mounts": [
-      "source=/mnt,target=/mnt,type=bind"
+        "source=/mnt,target=/mnt,type=bind"
     ]
 }
