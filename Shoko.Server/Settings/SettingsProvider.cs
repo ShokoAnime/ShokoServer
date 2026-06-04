@@ -9,6 +9,9 @@ using Newtonsoft.Json;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Services;
@@ -31,6 +34,10 @@ public class SettingsProvider : ISettingsProvider, IDisposable
     private string[]? _episodeTitleLanguageOrder = null;
 
     private string[]? _descriptionLanguageOrder = null;
+
+    private bool? _downloadCharacters = null;
+
+    private bool? _downloadCreators = null;
 
     private bool _ready = false;
 
@@ -104,6 +111,39 @@ public class SettingsProvider : ISettingsProvider, IDisposable
             Parallel.ForEach(animeSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredOverview());
             shouldRenameAllGroups = true;
         }
+
+        // Track AniDB character image download setting and react to changes.
+        if (_downloadCharacters is null)
+        {
+            _downloadCharacters = eventArgs.Configuration.AniDb.DownloadCharacters;
+        }
+        else if (_ready && _downloadCharacters != eventArgs.Configuration.AniDb.DownloadCharacters)
+        {
+            _downloadCharacters = eventArgs.Configuration.AniDb.DownloadCharacters;
+            var characterXrefs = RepoFactory.ShokoImage_Entity.GetByEntity(DataSource.AniDB, DataEntityType.Character);
+            foreach (var xref in characterXrefs)
+            {
+                if (xref.Update(new ImageCrossReferenceUpdateData { IsDesired = _downloadCharacters.Value }, entity: null))
+                    RepoFactory.ShokoImage_Entity.Save(xref);
+            }
+        }
+
+        // Track AniDB creator image download setting and react to changes.
+        if (_downloadCreators is null)
+        {
+            _downloadCreators = eventArgs.Configuration.AniDb.DownloadCreators;
+        }
+        else if (_ready && _downloadCreators != eventArgs.Configuration.AniDb.DownloadCreators)
+        {
+            _downloadCreators = eventArgs.Configuration.AniDb.DownloadCreators;
+            var creatorXrefs = RepoFactory.ShokoImage_Entity.GetByEntity(DataSource.AniDB, DataEntityType.Creator);
+            foreach (var xref in creatorXrefs)
+            {
+                if (xref.Update(new ImageCrossReferenceUpdateData { IsDesired = _downloadCreators.Value }, entity: null))
+                    RepoFactory.ShokoImage_Entity.Save(xref);
+            }
+        }
+
         if (shouldRenameAllGroups)
         {
             var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
