@@ -546,6 +546,8 @@ jobs:
             ${{ secrets.DOCKER_REPO }}:${{ needs.current_info.outputs.tag_major }}-${{ matrix.arch }}
             ${{ secrets.DOCKER_REPO }}:${{ needs.current_info.outputs.tag_minor }}-${{ matrix.arch }}
           platforms: linux/${{ matrix.arch }}
+          cache-from: type=gha,scope=docker-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=docker-${{ matrix.arch }}
           build-args: |
             version=${{ needs.current_info.outputs.version }}
             channel=stable
