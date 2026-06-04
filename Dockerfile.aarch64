@@ -22,14 +22,14 @@ ENV PUID=1000 \
     LC_CTYPE=C.UTF-8 \
     LC_ALL=C.UTF-8
 
-RUN apt-get update && apt-get install -y gnupg curl
-
-RUN curl --retry 3 -O https://mediaarea.net/repo/deb/debian/pubkey.gpg
-# This converts the old format gpg key to the new format. The old format cannot be used with [signed-by] in the apt sources.list file.
-RUN gpg --no-default-keyring --keyring ./temp-keyring.gpg --import pubkey.gpg && gpg --no-default-keyring --keyring ./temp-keyring.gpg --export --output /usr/share/keyrings/mediainfo.gpg && rm pubkey.gpg
-RUN echo "deb [signed-by=/usr/share/keyrings/mediainfo.gpg] https://mediaarea.net/repo/deb/debian/ bookworm main" | tee -a /etc/apt/sources.list
-
-RUN apt-get update && apt-get install -y apt-utils gosu mediainfo librhash-dev
+RUN apt-get update && apt-get install -y gnupg curl \
+    && curl --retry 3 -O https://mediaarea.net/repo/deb/debian/pubkey.gpg \
+    # This converts the old format gpg key to the new format. The old format cannot be used with [signed-by] in the apt sources.list file.
+    && gpg --no-default-keyring --keyring ./temp-keyring.gpg --import pubkey.gpg \
+    && gpg --no-default-keyring --keyring ./temp-keyring.gpg --export --output /usr/share/keyrings/mediainfo.gpg \
+    && rm pubkey.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/mediainfo.gpg] https://mediaarea.net/repo/deb/debian/ bookworm main" | tee -a /etc/apt/sources.list \
+    && apt-get update && apt-get install -y apt-utils gosu mediainfo librhash-dev
 
 WORKDIR /usr/src/app/build
 COPY --from=build /usr/src/app/build .
