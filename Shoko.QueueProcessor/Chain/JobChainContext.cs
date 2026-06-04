@@ -6,14 +6,48 @@ using System.Text.Json;
 namespace Shoko.QueueProcessor.Chain;
 
 /// <summary>
-/// Shared in-memory context for all jobs in a chain. Persisted to <see cref="QueuedJobChain"/>
+/// Shared in-memory context for all jobs in a chain, persisted to <see cref="QueuedJobChain"/>
 /// after each job executes so crash recovery can reload it.
 /// </summary>
+/// <remarks>
+/// Three independent stores live here:
+/// <list type="bullet">
+///   <item>
+///     <term>Data</term>
+///     <description>
+///       A mutable string-keyed bag (<see cref="GetData{T}"/> / <see cref="SetData{T}"/>).
+///       Any job in the chain can read or write any key; last write wins. Use it to pass
+///       arbitrary forward state (e.g. an ID produced by an earlier job that later jobs need).
+///     </description>
+///   </item>
+///   <item>
+///     <term>Results</term>
+///     <description>
+///       A chronological log of per-job typed results. Each time a job calls <c>SetResult</c>
+///       a new entry is appended, so retried jobs (same ID) accumulate one entry per attempt.
+///       <see cref="GetResult{T}(string)"/> returns the most recent result for a job key.
+///       <see cref="GetResult{T}(Guid)"/> returns all attempts in chronological order
+///       (index 0 = first attempt, last index = most recent attempt).
+///     </description>
+///   </item>
+///   <item>
+///     <term>Outcomes</term>
+///     <description>
+///       An append-only audit log of <see cref="JobOutcome"/> records, one per job completion
+///       (success, failure, abort, or skip). Ordered by completion time.
+///       <see cref="GetOutcome(Guid)"/> returns the first recorded outcome for a job ID (its
+///       initial attempt). <see cref="GetOutcome(string)"/> returns the most recent outcome
+///       for a job key (its last attempt).
+///     </description>
+///   </item>
+/// </list>
+/// </remarks>
 public class JobChainContext
 {
     private readonly Dictionary<string, string> _data = new(StringComparer.Ordinal);
 
-    // Results keyed by job ID (Guid string). Type-based lookups scan this list for the last matching type.
+    // Chronological log of results. Multiple entries can share a JobId (one per retry attempt).
+    // Key-based lookup returns the last entry for that key; ID-based lookup returns all entries.
     private readonly List<JobResult> _results = [];
     private readonly List<JobOutcome> _outcomes = [];
 
@@ -30,12 +64,18 @@ public class JobChainContext
 
     // ── Shared data store ────────────────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Reads a shared value from the chain data bag. Returns <c>default</c> if the key does not exist.
+    /// </summary>
     public T? GetData<T>(string key)
     {
         if (!_data.TryGetValue(key, out var json)) return default;
         return JsonSerializer.Deserialize<T>(json);
     }
 
+    /// <summary>
+    /// Writes a shared value to the chain data bag. Overwrites any existing value for <paramref name="key"/>.
+    /// </summary>
     public void SetData<T>(string key, T? value)
     {
         _data[key] = JsonSerializer.Serialize(value);
@@ -43,44 +83,53 @@ public class JobChainContext
     }
 
     // ── Typed job results ────────────────────────────────────────────────────────────────────────
-    // Keyed by job ID so the same job type can appear multiple times in a chain without collision.
-    // Type-based accessors return the most recently stored result for that type.
 
-    public T? GetResult<T>(Guid jobId)
+    /// <summary>
+    /// Returns all results stored by the job identified by <paramref name="jobId"/>, in the order
+    /// they were recorded. Index 0 is the first attempt; the last index is the most recent attempt.
+    /// Returns an empty list if the job has not stored any result.
+    /// </summary>
+    public IReadOnlyList<T> GetResult<T>(Guid jobId) =>
+        _results
+            .Where(r => r.JobId == jobId)
+            .Select(r => JsonSerializer.Deserialize<T>(r.Json)!)
+            .ToList();
+
+    /// <summary>
+    /// Returns the most recent result stored by any job whose key matches <paramref name="jobKey"/>.
+    /// Returns <c>default</c> if no matching result exists.
+    /// </summary>
+    public T? GetResult<T>(string jobKey)
     {
-        var entry = _results.FirstOrDefault(r => r.JobId == jobId);
+        var entry = _results.LastOrDefault(r => r.JobKey == jobKey);
         return entry == null ? default : JsonSerializer.Deserialize<T>(entry.Json);
     }
 
-    public T? GetResult<T>(Type jobType)
+    /// <summary>
+    /// Appends a result entry for the given job. Called once per attempt, so retried jobs
+    /// accumulate multiple entries under the same <paramref name="jobId"/>.
+    /// </summary>
+    internal void SetResult<T>(Guid jobId, string jobKey, T value)
     {
-        var typeKey = TypeKey(jobType);
-        var entry = _results.LastOrDefault(r => r.TypeKey == typeKey);
-        return entry == null ? default : JsonSerializer.Deserialize<T>(entry.Json);
-    }
-
-    internal void SetResult<T>(Guid jobId, Type jobType, T value)
-    {
-        var typeKey = TypeKey(jobType);
-        var idx = _results.FindIndex(r => r.JobId == jobId);
-        var entry = new JobResult { JobId = jobId, TypeKey = typeKey, Json = JsonSerializer.Serialize(value) };
-        if (idx >= 0)
-            _results[idx] = entry;
-        else
-            _results.Add(entry);
+        _results.Add(new JobResult { JobId = jobId, JobKey = jobKey, Json = JsonSerializer.Serialize(value) });
         IsDirty = true;
     }
 
     // ── Outcome tracking ─────────────────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Returns the first recorded outcome for <paramref name="jobId"/> (its initial attempt),
+    /// or <c>null</c> if no outcome has been recorded for that job.
+    /// </summary>
     public JobOutcome? GetOutcome(Guid jobId) => _outcomes.Find(o => o.JobId == jobId);
 
-    public JobOutcome? GetOutcome(Type jobType)
-    {
-        var typeKey = TypeKey(jobType);
-        return _outcomes.LastOrDefault(o => o.JobType == typeKey);
-    }
+    /// <summary>
+    /// Returns the most recent outcome for the job identified by <paramref name="jobKey"/>,
+    /// or <c>null</c> if no outcome has been recorded for that key.
+    /// </summary>
+    public JobOutcome? GetOutcome(string jobKey) => _outcomes.LastOrDefault(o => o.JobKey == jobKey);
 
+    /// <summary>Returns all recorded outcomes in the order they were appended.</summary>
     public IReadOnlyList<JobOutcome> GetAllOutcomes() => _outcomes;
 
     // ── Internal mutation (Worker + Orchestrator) ────────────────────────────────────────────────
@@ -132,13 +181,10 @@ public class JobChainContext
         return ctx;
     }
 
-    private static string TypeKey(Type jobType) => jobType.AssemblyQualifiedName ?? jobType.FullName!;
-
-    // Used for serialization of the results list
     private class JobResult
     {
         public Guid JobId { get; set; }
-        public string TypeKey { get; set; } = string.Empty;
+        public string JobKey { get; set; } = string.Empty;
         public string Json { get; set; } = string.Empty;
     }
 }

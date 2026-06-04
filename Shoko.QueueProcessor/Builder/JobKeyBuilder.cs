@@ -9,6 +9,38 @@ using Shoko.QueueProcessor.Abstractions;
 namespace Shoko.QueueProcessor.Builder;
 
 /// <summary>
+/// Non-generic companion to <see cref="JobKeyBuilder{T}"/> for building a job key from a live
+/// <see cref="IQueueJob"/> instance when the concrete type is not known at compile time.
+/// Useful inside chain jobs that need to look up a previous job's result by key:
+/// <code>
+/// var key = JobKeyBuilder.BuildFor(new ProcessFileJob { Hash = this.Hash });
+/// var result = _chain.GetResult&lt;ProcessResult&gt;(key);
+/// </code>
+/// </summary>
+public static class JobKeyBuilder
+{
+    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _propertyCache = new();
+
+    /// <summary>
+    /// Builds the stable job key for <paramref name="job"/> by reading its current property values.
+    /// Produces the same key as <c>JobKeyBuilder&lt;T&gt;.Create().UsingJobData(j => ...).Build()</c>
+    /// for an equivalent configuration, without requiring the concrete type at compile time.
+    /// </summary>
+    public static string BuildFor(IQueueJob job)
+    {
+        var type = job.GetType();
+        var props = _propertyCache.GetOrAdd(type,
+            t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                  .Where(p => p.CanRead && p.CanWrite)
+                  .ToArray());
+        var data = new Dictionary<string, object?>(StringComparer.Ordinal);
+        foreach (var prop in props)
+            data[prop.Name] = prop.GetValue(job);
+        return JobKeyBuilder<IQueueJob>.BuildForType(type, data);
+    }
+}
+
+/// <summary>
 /// Builds a stable, human-readable string key that uniquely identifies a job instance.
 /// The key encodes the job type and the values of its <see cref="JobKeyMemberAttribute"/>-marked
 /// properties (or all primitive properties when no attributes are present).

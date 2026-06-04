@@ -138,7 +138,7 @@ internal sealed class Worker
                         var repo = scope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
                         accessor.Initialize(await repo.GetOrCreateAsync(job.ChainId!.Value, ct).ConfigureAwait(false));
                     }
-                    accessor.SetCurrentJob(job.Id, jobType);
+                    accessor.SetCurrentJob(job.Id, job.JobKey);
                 }
 
                 var instance = (IQueueJob)scope.ServiceProvider.GetRequiredService(jobType);

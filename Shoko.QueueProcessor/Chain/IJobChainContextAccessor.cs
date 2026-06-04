@@ -1,5 +1,5 @@
 using System;
-using Shoko.QueueProcessor.Abstractions;
+using System.Collections.Generic;
 
 namespace Shoko.QueueProcessor.Chain;
 
@@ -7,15 +7,18 @@ public interface IJobChainContextAccessor
 {
     JobChainContext? GetCurrentContext();
 
-    // Read results — type-based returns the most recent result of that type in the chain
-    T? GetResult<T>(Type jobType);
-    T? GetResult<TJob, T>() where TJob : IQueueJob;
-    // Precise lookup when the same job type appears more than once in the chain
-    T? GetResult<T>(Guid jobId);
+    /// <summary>Returns the most recent result stored by any job with <paramref name="jobKey"/>.</summary>
+    T? GetResult<T>(string jobKey);
+
+    /// <summary>
+    /// Returns all results stored by the job with <paramref name="jobId"/>, in chronological order.
+    /// Index 0 is the first attempt; the last index is the most recent attempt.
+    /// </summary>
+    IReadOnlyList<T> GetResult<T>(Guid jobId);
 
     T? GetData<T>(string key);
 
-    // Set result for the currently-executing job (called automatically by BaseJob<T>)
-    void SetResult<T>(Type jobType, T value);
+    /// <summary>Stores a result for the currently-executing job (called by job implementations).</summary>
+    void SetResult<T>(T value);
     void SetData<T>(string key, T? value);
 }

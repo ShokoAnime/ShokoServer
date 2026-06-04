@@ -79,7 +79,7 @@ public abstract class BaseJob<T> : BaseJob
     public sealed override async Task Execute()
     {
         var result = await Process();
-        _chainContextAccessor?.SetResult(GetType(), result);
+        _chainContextAccessor?.SetResult(result);
     }
 
     public new abstract Task<T> Process();

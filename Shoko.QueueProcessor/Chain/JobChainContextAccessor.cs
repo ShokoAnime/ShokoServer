@@ -1,5 +1,5 @@
 using System;
-using Shoko.QueueProcessor.Abstractions;
+using System.Collections.Generic;
 
 namespace Shoko.QueueProcessor.Chain;
 
@@ -12,22 +12,20 @@ public class JobChainContextAccessor : IJobChainContextAccessor
 {
     private JobChainContext? _context;
     private Guid _currentJobId;
-    private Type? _currentJobType;
+    private string _currentJobKey = string.Empty;
 
     public JobChainContext? GetCurrentContext() => _context;
 
-    public T? GetResult<T>(Type jobType) => _context == null ? default : _context.GetResult<T>(jobType);
+    public T? GetResult<T>(string jobKey) => _context == null ? default : _context.GetResult<T>(jobKey);
 
-    public T? GetResult<TJob, T>() where TJob : IQueueJob => _context == null ? default : _context.GetResult<T>(typeof(TJob));
-
-    public T? GetResult<T>(Guid jobId) => _context == null ? default : _context.GetResult<T>(jobId);
+    public IReadOnlyList<T> GetResult<T>(Guid jobId) => _context == null ? [] : _context.GetResult<T>(jobId);
 
     public T? GetData<T>(string key) => _context == null ? default : _context.GetData<T>(key);
 
-    public void SetResult<T>(Type jobType, T value)
+    public void SetResult<T>(T value)
     {
         if (_context != null && _currentJobId != Guid.Empty)
-            _context.SetResult(_currentJobId, jobType, value);
+            _context.SetResult(_currentJobId, _currentJobKey, value);
     }
 
     public void SetData<T>(string key, T? value) => _context?.SetData(key, value);
@@ -35,10 +33,10 @@ public class JobChainContextAccessor : IJobChainContextAccessor
     // Called by Worker to hydrate on first job or after crash-recovery scope rebuild
     internal void Initialize(JobChainContext context) => _context = context;
 
-    // Called by Worker before each job executes so SetResult tags results by job ID
-    internal void SetCurrentJob(Guid jobId, Type jobType)
+    // Called by Worker before each job executes so SetResult tags results by job ID and key
+    internal void SetCurrentJob(Guid jobId, string jobKey)
     {
         _currentJobId = jobId;
-        _currentJobType = jobType;
+        _currentJobKey = jobKey;
     }
 }
