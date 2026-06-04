@@ -1,6 +1,9 @@
 .vscode
 .vs
 .git
+.devcontainer
 .idea
+scripts
+Installer
 Shoko.*/bin/**/*
 Shoko.*/obj/**/*
