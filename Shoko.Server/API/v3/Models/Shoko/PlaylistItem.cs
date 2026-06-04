@@ -6,33 +6,43 @@ using System.Linq;
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 /// <summary>
-/// Playlist item.
+///   A single entry in a generated playlist. Groups one or more episodes with
+///   their associated video files.
 /// </summary>
 public class PlaylistItem
 {
     /// <summary>
-    /// The main episode for the playlist item.
+    ///   The primary episode for this playlist entry. Use
+    ///   <see cref="AdditionalEpisodes"/> for episodes that share the same
+    ///   video file (e.g. merged multi-episode files).
     /// </summary>
     [Required]
     public Episode Episode { get; }
 
     /// <summary>
-    /// Any additional episodes for the playlist item, if any.
+    ///   Additional episodes grouped under the same video file(s). This occurs
+    ///   when Shoko automatically merges consecutive playlist entries that
+    ///   reference the same video file.
     /// </summary>
     [Required]
     public IReadOnlyList<Episode> AdditionalEpisodes { get; }
 
     /// <summary>
-    /// All file parts for the playlist item.
+    ///   The video files that constitute this playlist entry. Multiple parts
+    ///   indicate a multi-part release (e.g. split across multiple files).
     /// </summary>
     [Required]
     public IReadOnlyList<File> Parts { get; }
 
     /// <summary>
-    /// Initializes a new <see cref="PlaylistItem"/>.
+    ///   Initializes a new <see cref="PlaylistItem"/>.
     /// </summary>
-    /// <param name="episodes">Episodes.</param>
-    /// <param name="files">Files.</param>
+    /// <param name="episodes">
+    ///   Episodes for this playlist entry. The first is the primary episode.
+    /// </param>
+    /// <param name="files">
+    ///   Video files for this playlist entry.
+    /// </param>
     public PlaylistItem(IReadOnlyList<Episode> episodes, IReadOnlyList<File> files)
     {
         Episode = episodes[0];

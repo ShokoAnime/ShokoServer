@@ -34,6 +34,15 @@ public class GeneratedPlaylistService(
     AuthTokensRepository authTokensRepository
 )
 {
+    /// <summary>
+    /// Attempts to parse a playlist from the given DSL items. Returns <c>true</c> if valid.
+    /// See <see cref="ParsePlaylist"/> for the DSL specification.
+    /// </summary>
+    /// <param name="items">Comma-separated playlist entries. Each entry is sub-item split by <c>+</c> or space.</param>
+    /// <param name="playlist">The parsed playlist tuples: episode groups and their associated video files.</param>
+    /// <param name="modelState">Optional model state dictionary to collect validation errors.</param>
+    /// <param name="fieldName">The field name to use for error keys. Defaults to <c>"playlist"</c>.</param>
+    /// <returns><c>true</c> if the playlist is valid; otherwise <c>false</c>.</returns>
     public bool TryParsePlaylist(string[] items, out IReadOnlyList<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> playlist, ModelStateDictionary? modelState = null, string fieldName = "playlist")
     {
         modelState ??= new();
@@ -41,6 +50,70 @@ public class GeneratedPlaylistService(
         return modelState.IsValid;
     }
 
+    /// <summary>
+    ///   Parses a playlist from the given DSL items.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    ///   Playlist item DSL. Each string in items is a comma-separated entry.
+    ///   Within an entry, sub-items are separated by <c>+</c> or a space.
+    /// </para>
+    /// <para>
+    ///   Prefixes:
+    ///     <c>a</c> = series (AniDB Anime ID),
+    ///     <c>s</c> = series (Shoko AnimeSeries ID),
+    ///     <c>e</c> = episode (AniDB Episode ID),
+    ///     <c>E</c> = episode (Shoko AnimeEpisode ID),
+    ///     <c>f</c> = file (ED2K hash),
+    ///     <c>r</c> = release group filter (AniDB Release Group ID).
+    ///
+    ///   A bare 32+ hex chars is treated as an ED2K hash.
+    ///   A bare number is a Shoko VideoLocal file ID.
+    /// </para>
+    /// <para>
+    ///   Release group interaction:
+    ///     <c>a id r gid</c> (or <c>s id r gid</c>) filters series files to a release group.
+    ///     <c>r gid e id</c> (or <c>E id</c>) filters episode files to a release group.
+    ///     <c>r gid f hash</c> is an error.
+    ///     <c>r gid</c> alone is a no-op.
+    ///
+    ///   In explicit <c>e id f hash</c> (or <c>E id f hash</c>) pairs, r is ignored.
+    ///   Without r, the most-used group is auto-selected.
+    /// </para>
+    /// <para>
+    ///   Series extras (appended after <c>+</c>, dash-separated):
+    ///     <c>a id+onlyUnwatched</c> (or <c>s id+...</c>),
+    ///     <c>includeSpecials</c>,
+    ///     <c>includeOthers</c>,
+    ///     <c>includeRewatching</c>.
+    /// </para>
+    /// <para>
+    ///   Examples:
+    ///     <c>a123</c> = next-up for anime 123 (AniDB ID).
+    ///     <c>s456</c> = next-up for Shoko series 456.
+    ///     <c>a123 r789</c> = same, group 789 only.
+    ///     <c>a123+onlyUnwatched</c> = unwatched only.
+    ///     <c>e98765</c> = episode 98765 (AniDB Episode ID).
+    ///     <c>E54321</c> = episode 54321 (Shoko AnimeEpisode ID).
+    ///     <c>r789 e98765</c> = episode 98765, group 789.
+    ///     <c>42</c> = file by VideoLocal ID.
+    ///     <c>hash</c> = file by ED2K.
+    ///     <c>hash-size</c> = file by ED2K+size.
+    /// </para>
+    /// </remarks>
+    /// <param name="items">
+    ///   Comma-separated playlist entries. Within each entry sub-items are
+    ///   split by <c>+</c> or space.
+    /// </param>
+    /// <param name="modelState">
+    ///   Optional model state dictionary to collect validation errors.
+    /// </param>
+    /// <param name="fieldName">
+    ///   The field name to use for error keys. Defaults to <c>"playlist"</c>.
+    /// </param>
+    /// <returns>
+    ///   The parsed playlist as a list of episode-group/video-file tuples.
+    /// </returns>
     public IReadOnlyList<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> ParsePlaylist(string[] items, ModelStateDictionary? modelState = null, string fieldName = "playlist")
     {
         items ??= [];
@@ -54,9 +127,9 @@ public class GeneratedPlaylistService(
 
             var releaseGroupID = -2;
             var subItems = item.Split(['+', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (subItems.Any(subItem => subItem[0] == 's'))
+            if (subItems.Any(subItem => subItem[0] is 'a' or 's'))
             {
-                var seriesItem = subItems.First(subItem => subItem[0] == 's');
+                var seriesItem = subItems.First(subItem => subItem[0] is 'a' or 's');
                 var releaseItem = subItems.FirstOrDefault(subItem => subItem[0] == 'r');
                 if (releaseItem is not null)
                 {
@@ -87,7 +160,10 @@ public class GeneratedPlaylistService(
                     modelState?.AddModelError($"{fieldName}[{index}]", $"Invalid series ID \"{item}\".");
                     continue;
                 }
-                if (seriesRepository.GetByAnimeID(seriesID) is not { } series)
+                var series = seriesItem[0] is 's'
+                    ? seriesRepository.GetByID(seriesID)
+                    : seriesRepository.GetByAnimeID(seriesID);
+                if (series is null)
                 {
                     modelState?.AddModelError($"{fieldName}[{index}]", $"Unknown series ID \"{item}\".");
                     continue;
@@ -159,6 +235,22 @@ public class GeneratedPlaylistService(
                             continue;
                         }
                         if (episodeRepository.GetByAniDBEpisodeID(episodeID) is not { } extraEpisode)
+                        {
+                            modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown episode ID \"{rawValue}\" at index {index} at offset {offset}");
+                            continue;
+                        }
+                        episodes.Add(extraEpisode);
+                        break;
+                    }
+
+                    case 'E':
+                    {
+                        if (!int.TryParse(rawValue[1..], out var episodeID) || episodeID <= 0)
+                        {
+                            modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Invalid episode ID \"{rawValue}\" at index {index} at offset {offset}");
+                            continue;
+                        }
+                        if (episodeRepository.GetByID(episodeID) is not { } extraEpisode)
                         {
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown episode ID \"{rawValue}\" at index {index} at offset {offset}");
                             continue;
@@ -370,6 +462,14 @@ public class GeneratedPlaylistService(
         return episodes is { Count: > 0 } ? [(episodes, [video])] : [];
     }
 
+    /// <summary>
+    /// Generates an M3U8 playlist file from the given playlist tuples.
+    /// Each video entry includes the streaming URL with an API key, series/episode metadata,
+    /// and poster artwork URL for media player plugin consumption.
+    /// </summary>
+    /// <param name="playlist">Parsed playlist tuples from <see cref="ParsePlaylist"/>.</param>
+    /// <param name="name">The output file name (without extension). Defaults to <c>"Playlist"</c>.</param>
+    /// <returns>A <c>.m3u8</c> file stream result.</returns>
     public FileStreamResult GeneratePlaylist(
         IEnumerable<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> playlist,
         string name = "Playlist"
