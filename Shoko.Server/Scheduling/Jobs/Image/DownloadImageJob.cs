@@ -7,6 +7,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
 
 #pragma warning disable CS0618
 #nullable enable
@@ -14,6 +15,7 @@ namespace Shoko.Server.Scheduling.Jobs.Image;
 
 [DatabaseRequired]
 [NetworkRequired]
+[LimitConcurrency(4)]
 [JobKeyGroup(JobKeyGroup.Image)]
 public class DownloadImageJob : BaseJob
 {
