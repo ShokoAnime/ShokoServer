@@ -147,7 +147,7 @@ public class PluginPackageController(
                 .Search(query, p => [p.Manifest.Name, p.Manifest.Overview, .. p.Manifest.Tags])
                 .Select(p => p.Result);
 
-        return packages.ToListResult(p => new PackageInfo(p, pluginManager), page, pageSize);
+        return packages.ToListResult(p => new PackageInfo(p, pluginManager.GetPluginInfos(p.Manifest.PackageID), pluginManager), page, pageSize);
     }
 
     /// <summary>
@@ -179,7 +179,7 @@ public class PluginPackageController(
                 .Search(query, p => [p.Manifest.Name, p.Manifest.Overview, .. p.Manifest.Tags])
                 .Select(p => p.Result);
 
-        return packages.ToListResult(p => new PackageInfo(p, pluginManager), page, pageSize);
+        return packages.ToListResult(p => new PackageInfo(p, pluginManager.GetPluginInfos(p.Manifest.PackageID), pluginManager), page, pageSize);
     }
 
     /// <summary>
@@ -191,8 +191,54 @@ public class PluginPackageController(
     [HttpGet("Installed")]
     public ActionResult<List<PackageInfo>> GetInstalledPackages()
         => packageManager.GetInstalledPackages()
-            .Select(p => new PackageInfo(p, pluginManager))
+            .Select(p => new PackageInfo(p, pluginManager.GetPluginInfos(p.Manifest.PackageID), pluginManager))
             .ToList();
+
+    /// <summary>
+    ///   Gets all available package manifests across all synced repositories.
+    /// </summary>
+    /// <param name="query">
+    ///   An optional query to filter packages by name.
+    /// </param>
+    /// <param name="allowSync">
+    ///   Whether to sync repositories before retrieving packages.
+    ///   Defaults to <c>false</c>.
+    /// </param>
+    /// <param name="forceSyncNow">
+    ///   Whether to forcefully sync the repositories.
+    ///   Defaults to <c>false</c>.
+    /// </param>
+    /// <param name="pageSize">
+    ///     The page size. Set to <code>0</code> to disable pagination.
+    /// </param>
+    /// <param name="page">
+    ///   The page index.
+    /// </param>
+    /// <returns>
+    ///   A list of <see cref="PackageManifestInfo"/> for all available packages.
+    /// </returns>
+    [HttpGet("Manifest")]
+    public async Task<ActionResult<ListResult<PackageManifestInfo>>> GetAvailablePackageManifests(
+        [FromQuery] string? query = null,
+        [FromQuery] bool allowSync = false,
+        [FromQuery] bool forceSyncNow = false,
+        [FromQuery, Range(0, 1000)] int pageSize = 20,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var manifests = await packageManager.GetAvailablePackageManifests(
+            allowSync: allowSync,
+            forceSyncNow: forceSyncNow
+        );
+
+        if (!string.IsNullOrEmpty(query))
+            return manifests
+                .Search(query, p => [p.Name, p.Overview, .. p.Tags])
+                .Select(p => p.Result)
+                .ToListResult(p => new PackageManifestInfo(p, pluginManager.GetPluginInfos(p.PackageID), pluginManager), page, pageSize);
+
+        return manifests.ToListResult(p => new PackageManifestInfo(p, pluginManager.GetPluginInfos(p.PackageID), pluginManager), page, pageSize);
+    }
 
     /// <summary>
     ///   Gets all available versions for a package ID.
@@ -238,7 +284,7 @@ public class PluginPackageController(
         );
 
         return packages
-            .Select(p => new PackageInfo(p, pluginManager))
+            .Select(p => new PackageInfo(p, pluginManager.GetPluginInfos(p.Manifest.PackageID), pluginManager))
             .ToList();
     }
 
@@ -270,7 +316,7 @@ public class PluginPackageController(
         if (manifest is null)
             return NotFound("Package not found");
 
-        return new PackageManifestInfo(manifest, pluginManager);
+        return new PackageManifestInfo(manifest, pluginManager.GetPluginInfos(manifest.PackageID), pluginManager);
     }
 
     /// <summary>

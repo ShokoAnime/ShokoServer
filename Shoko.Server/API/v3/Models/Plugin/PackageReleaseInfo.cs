@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 
 using AbstractPackageReleaseInfo = Shoko.Abstractions.Plugin.Models.PackageReleaseInfo;
 
@@ -13,7 +15,7 @@ namespace Shoko.Server.API.v3.Models.Plugin;
 /// <summary>
 /// Information about a package release.
 /// </summary>
-public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo, IPluginManager pluginManager)
+public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo, IReadOnlyList<LocalPluginInfo> pluginInfoList, IPluginManager pluginManager, bool includeArchives = true)
 {
     /// <summary>
     ///   Unique package repository identifier for the release.
@@ -40,6 +42,34 @@ public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo, IPluginM
     public string? SourceRevision { get; init; } = releaseInfo.SourceRevision;
 
     /// <summary>
+    ///   Whether the release is installed.
+    /// </summary>
+    [Required]
+    public bool IsInstalled { get; init; } = (
+        releaseInfo.SourceRevision is { Length: > 0 } a
+        ? pluginInfoList.FirstOrDefault(p =>
+            p.Version.SourceRevision is { Length: > 0 } b && string.Equals(a, b) &&
+            releaseInfo.Archives.Any(archiveInfo =>
+                p.Version.AbstractionVersion == archiveInfo.AbstractionVersion &&
+                p.Version.RuntimeIdentifier == archiveInfo.RuntimeIdentifier
+            )
+        )
+        : pluginInfoList.FirstOrDefault(p =>
+            p.Version.Version == releaseInfo.Version &&
+            (
+                releaseInfo.Archives.Any(archiveInfo =>
+                    p.Version.AbstractionVersion == archiveInfo.AbstractionVersion &&
+                    p.Version.RuntimeIdentifier == archiveInfo.RuntimeIdentifier
+                ) ||
+                releaseInfo.Archives.Any(archiveInfo =>
+                    p.Version.AbstractionVersion == archiveInfo.AbstractionVersion &&
+                    p.Version.RuntimeIdentifier == IPluginManager.AnyRuntimeIdentifier
+                )
+            )
+        )
+    ) is not null;
+
+    /// <summary>
     ///   When the release was made.
     /// </summary>
     [Required]
@@ -61,8 +91,8 @@ public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo, IPluginM
     ///   Available archives for different runtime environments and
     ///   architectures.
     /// </summary>
-    [Required]
-    public IReadOnlyList<PackageArchiveInfo> Archives { get; init; } = releaseInfo.Archives
-        .Select(a => new PackageArchiveInfo(a, pluginManager))
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<PackageArchiveInfo>? Archives { get; init; } = !includeArchives ? null : releaseInfo.Archives
+        .Select(a => new PackageArchiveInfo(releaseInfo, a, pluginInfoList, pluginManager))
         .ToList();
 }

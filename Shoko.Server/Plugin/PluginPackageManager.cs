@@ -175,7 +175,7 @@ public partial class PluginPackageManager(
                                     ) ||
                                     r.Archives.Any(archive =>
                                         plugin.Version.AbstractionVersion == archive.AbstractionVersion &&
-                                        archive.RuntimeIdentifier == PluginManager.AnyRuntimeIdentifier
+                                        archive.RuntimeIdentifier == IPluginManager.AnyRuntimeIdentifier
                                     )
                                 )
                             )
@@ -185,7 +185,7 @@ public partial class PluginPackageManager(
                     var archive = release.Archives.First(archive =>
                         archive.AbstractionVersion == plugin.Version.AbstractionVersion && (
                             archive.RuntimeIdentifier == plugin.Version.RuntimeIdentifier ||
-                            archive.RuntimeIdentifier is PluginManager.AnyRuntimeIdentifier
+                            archive.RuntimeIdentifier is IPluginManager.AnyRuntimeIdentifier
                         )
                     );
                     var repository = repositories.FirstOrDefault(r => r.ID == release.RepositoryID);
@@ -629,14 +629,24 @@ public partial class PluginPackageManager(
                 var repository = repositories.FirstOrDefault(r => r.ID == release.RepositoryID);
                 foreach (var archive in release.Archives)
                 {
-                    if (onlyCompatible && archive.RuntimeIdentifier is not PluginManager.AnyRuntimeIdentifier && archive.RuntimeIdentifier != _pluginManager.RuntimeIdentifier)
+                    if (onlyCompatible && archive.RuntimeIdentifier is not IPluginManager.AnyRuntimeIdentifier && archive.RuntimeIdentifier != _pluginManager.RuntimeIdentifier)
                         continue;
 
-                    var plugin = manifestPlugins.FirstOrDefault(p =>
-                        p.Version.Version == release.Version &&
-                        p.Version.AbstractionVersion == archive.AbstractionVersion &&
-                        p.Version.RuntimeIdentifier == archive.RuntimeIdentifier
-                    );
+                    var plugin = release.SourceRevision is { Length: > 0 } a
+                        ? manifestPlugins.FirstOrDefault(p =>
+                            p.Version.SourceRevision is { Length: > 0 } b && string.Equals(a, b) &&
+                            p.Version.AbstractionVersion == archive.AbstractionVersion &&
+                            p.Version.RuntimeIdentifier == archive.RuntimeIdentifier
+                        )
+                        : manifestPlugins.FirstOrDefault(p =>
+                            p.Version.Version == release.Version &&
+                            p.Version.AbstractionVersion == archive.AbstractionVersion &&
+                            p.Version.RuntimeIdentifier == archive.RuntimeIdentifier
+                        ) ?? manifestPlugins.FirstOrDefault(p =>
+                            p.Version.Version == release.Version &&
+                            p.Version.AbstractionVersion == archive.AbstractionVersion &&
+                            p.Version.RuntimeIdentifier == IPluginManager.AnyRuntimeIdentifier
+                        );
                     yield return new()
                     {
                         Manifest = manifest,

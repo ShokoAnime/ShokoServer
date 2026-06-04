@@ -28,6 +28,11 @@ public interface IPluginManager
     string RuntimeIdentifier { get; }
 
     /// <summary>
+    ///   The runtime identifier for universal platform support.
+    /// </summary>
+    const string AnyRuntimeIdentifier = "any";
+
+    /// <summary>
     ///   Checks if a plugin ABI and runtime ID is compatible with the current system.
     /// </summary>
     /// <param name="abstractionVersion">

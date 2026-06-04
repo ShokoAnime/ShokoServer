@@ -68,8 +68,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         _ => "any",
     };
 
-    internal const string AnyRuntimeIdentifier = "any";
-
     public bool IsAbiAndRuntimeCompatible(Version abstractionVersion, string runtimeIdentifier) =>
         (runtimeIdentifier is "any" || runtimeIdentifier == RuntimeIdentifier) &&
         AbstractionVersion.Major == abstractionVersion.Major &&
@@ -764,7 +762,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         IsEnabled = settings.Plugins.EnabledPlugins[name],
                         ContainingDirectory = dirPath,
                         Priority = settings.Plugins.Priority.IndexOf(name),
-                        CanLoad = version.RuntimeIdentifier is AnyRuntimeIdentifier || version.RuntimeIdentifier == RuntimeIdentifier,
+                        CanLoad = version.RuntimeIdentifier is IPluginManager.AnyRuntimeIdentifier || version.RuntimeIdentifier == RuntimeIdentifier,
                         CanUninstall = !isSystem,
                         DLLs = [dllPath, .. dlls.Except([dllPath])],
                         Thumbnail = thumbnailImage,
