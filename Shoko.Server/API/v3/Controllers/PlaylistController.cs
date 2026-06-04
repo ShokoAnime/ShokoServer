@@ -46,6 +46,7 @@ public class PlaylistController : BaseController
     ///
     /// | Prefix | Type and ID source |
     /// |--------|-------------------|
+    /// | `g` | **Group** — Shoko AnimeGroup ID. Follows prequel/sequel chain within the group (or all series with `includeAllSeries`). |
     /// | `a` | **Series** — AniDB Anime ID. Resolves to next-up episodes. |
     /// | `s` | **Series** — Shoko AnimeSeries ID. Resolves to next-up episodes. |
     /// | `e` | **Episode** — AniDB Episode ID. Resolves to the best file(s). |
@@ -59,7 +60,7 @@ public class PlaylistController : BaseController
     ///
     /// | Usage | Behavior |
     /// |-------|----------|
-    /// | `a id r gid` (or `s id r gid`) | Filters the series' episode cross-references to the given release group. |
+    /// | `a id r gid` (or `s id r gid`, `g id r gid`) | Filters the series' episode cross-references to the given release group. |
     /// | `r gid e id` (or `E id`) | Selects the episode, then picks only files from release group `gid`. |
     /// | `r gid f hash` | **Error:** a release group cannot be specified for a direct file reference. |
     /// | `r gid` alone | **No-op:** silently skipped — no episodes or files to resolve. |
@@ -77,6 +78,16 @@ public class PlaylistController : BaseController
     /// | `includeOthers` | Include other types (credits, trailers, etc.). |
     /// | `includeRewatching` | Include episodes currently being rewatched. |
     ///
+    /// **Group extras** (appended to `g` after a `+`, dash-separated):
+    ///
+    /// Same extras as series plus:
+    ///
+    /// | Extra | Effect |
+    /// |-------|--------|
+    /// | `recursive` | Include series from child groups. |
+    /// | `includeAllSeries` | Skip prequel/sequel chain, include all series by air date (implies recursive). |
+    /// | `includePrequels` | Walk prequel relations backward too. No-op if `includeAllSeries`. |
+    ///
     /// **Examples:**
     ///
     /// ```
@@ -85,6 +96,11 @@ public class PlaylistController : BaseController
     /// a123 r789                     Same, files from release group 789 only
     /// a123+onlyUnwatched            Only unwatched episodes
     /// s456+includeSpecials-includeOthers  Include specials and other types
+    /// g123                          Chain for Shoko group 123 (direct children, sequels only)
+    /// g123+recursive                Chain including child groups
+    /// g123+includePrequels          Chain walking prequels backward too
+    /// g123+includeAllSeries         All series in group, air date order
+    /// g123+includeAllSeries-onlyUnwatched  All series, unwatched only
     /// e98765                        Episode 98765 (AniDB Episode ID), best file
     /// E54321                        Episode 54321 (Shoko AnimeEpisode ID)
     /// r789 e98765                   Episode 98765, files from group 789
@@ -144,6 +160,7 @@ public class PlaylistController : BaseController
     ///
     /// | Prefix | Type and ID source |
     /// |--------|-------------------|
+    /// | `g` | **Group** — Shoko AnimeGroup ID. Follows prequel/sequel chain within the group (or all series with `includeAllSeries`). |
     /// | `a` | **Series** — AniDB Anime ID. Resolves to next-up episodes. |
     /// | `s` | **Series** — Shoko AnimeSeries ID. Resolves to next-up episodes. |
     /// | `e` | **Episode** — AniDB Episode ID. Resolves to the best file(s). |
@@ -157,7 +174,7 @@ public class PlaylistController : BaseController
     ///
     /// | Usage | Behavior |
     /// |-------|----------|
-    /// | `a id r gid` (or `s id r gid`) | Filters the series' episode cross-references to the given release group. |
+    /// | `a id r gid` (or `s id r gid`, `g id r gid`) | Filters the series' episode cross-references to the given release group. |
     /// | `r gid e id` (or `E id`) | Selects the episode, then picks only files from release group `gid`. |
     /// | `r gid f hash` | **Error:** a release group cannot be specified for a direct file reference. |
     /// | `r gid` alone | **No-op:** silently skipped — no episodes or files to resolve. |
@@ -175,6 +192,16 @@ public class PlaylistController : BaseController
     /// | `includeOthers` | Include other types (credits, trailers, etc.). |
     /// | `includeRewatching` | Include episodes currently being rewatched. |
     ///
+    /// **Group extras** (appended to `g` after a `+`, dash-separated):
+    ///
+    /// Same extras as series plus:
+    ///
+    /// | Extra | Effect |
+    /// |-------|--------|
+    /// | `recursive` | Include series from child groups. |
+    /// | `includeAllSeries` | Skip prequel/sequel chain, include all series by air date (implies recursive). |
+    /// | `includePrequels` | Walk prequel relations backward too. No-op if `includeAllSeries`. |
+    ///
     /// **Examples:**
     ///
     /// ```
@@ -183,6 +210,11 @@ public class PlaylistController : BaseController
     /// a123 r789                     Same, files from release group 789 only
     /// a123+onlyUnwatched            Only unwatched episodes
     /// s456+includeSpecials-includeOthers  Include specials and other types
+    /// g123                          Chain for Shoko group 123 (direct children, sequels only)
+    /// g123+recursive                Chain including child groups
+    /// g123+includePrequels          Chain walking prequels backward too
+    /// g123+includeAllSeries         All series in group, air date order
+    /// g123+includeAllSeries-onlyUnwatched  All series, unwatched only
     /// e98765                        Episode 98765 (AniDB Episode ID), best file
     /// E54321                        Episode 54321 (Shoko AnimeEpisode ID)
     /// r789 e98765                   Episode 98765, files from group 789

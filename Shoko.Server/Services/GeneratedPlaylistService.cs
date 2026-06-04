@@ -27,6 +27,7 @@ public class GeneratedPlaylistService(
     ISystemService systemService,
     IImageManager imageManager,
     IHttpContextAccessor contextAccessor,
+    AnimeGroupRepository groupRepository,
     AnimeSeriesService animeSeriesService,
     AnimeSeriesRepository seriesRepository,
     AnimeEpisodeRepository episodeRepository,
@@ -60,6 +61,7 @@ public class GeneratedPlaylistService(
     /// </para>
     /// <para>
     ///   Prefixes:
+    ///     <c>g</c> = group (Shoko AnimeGroup ID). Follows prequel/sequel chain within the group.
     ///     <c>a</c> = series (AniDB Anime ID),
     ///     <c>s</c> = series (Shoko AnimeSeries ID),
     ///     <c>e</c> = episode (AniDB Episode ID),
@@ -88,11 +90,23 @@ public class GeneratedPlaylistService(
     ///     <c>includeRewatching</c>.
     /// </para>
     /// <para>
+    ///   Group extras (appended after <c>+</c>, dash-separated):
+    ///     Same as series plus:
+    ///     <c>recursive</c> — include series from child groups,
+    ///     <c>includeAllSeries</c> — skip chain, include all series by air date (implies recursive),
+    ///     <c>includePrequels</c> — walk prequel relations backward too (no-op if includeAllSeries).
+    /// </para>
+    /// <para>
     ///   Examples:
     ///     <c>a123</c> = next-up for anime 123 (AniDB ID).
     ///     <c>s456</c> = next-up for Shoko series 456.
     ///     <c>a123 r789</c> = same, group 789 only.
     ///     <c>a123+onlyUnwatched</c> = unwatched only.
+    ///     <c>g123</c> = chain for Shoko group 123 (direct children, sequels only).
+    ///     <c>g123+recursive</c> = chain including child groups.
+    ///     <c>g123+includePrequels</c> = chain walking prequels backward too.
+    ///     <c>g123+includeAllSeries</c> = all series in group, air date order.
+    ///     <c>g123+includeAllSeries-onlyUnwatched</c> = all series, unwatched only.
     ///     <c>e98765</c> = episode 98765 (AniDB Episode ID).
     ///     <c>E54321</c> = episode 54321 (Shoko AnimeEpisode ID).
     ///     <c>r789 e98765</c> = episode 98765, group 789.
@@ -127,6 +141,90 @@ public class GeneratedPlaylistService(
 
             var releaseGroupID = -2;
             var subItems = item.Split(['+', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (subItems.Any(subItem => subItem[0] is 'g'))
+            {
+                var groupItem = subItems.First(subItem => subItem[0] is 'g');
+                var releaseItem = subItems.FirstOrDefault(subItem => subItem[0] == 'r');
+                if (releaseItem is not null)
+                {
+                    if (subItems.Length > 2)
+                    {
+                        modelState?.AddModelError($"{fieldName}[{index}]", $"Invalid item \"{item}\".");
+                        continue;
+                    }
+
+                    if (!int.TryParse(releaseItem[1..], out releaseGroupID) || releaseGroupID <= 0)
+                    {
+                        modelState?.AddModelError($"{fieldName}[{index}]", $"Invalid release group ID \"{releaseItem}\".");
+                        continue;
+                    }
+                }
+                else if (subItems.Length > 1)
+                {
+                    modelState?.AddModelError($"{fieldName}[{index}]", $"Invalid item \"{item}\".");
+                    continue;
+                }
+
+                var endIndex = groupItem.IndexOf(['+', ' ']);
+                if (endIndex == -1)
+                    endIndex = groupItem.Length;
+                var plusExtras = endIndex == groupItem.Length ? [] : groupItem[(endIndex + 1)..].Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (!int.TryParse(groupItem[1..endIndex], out var groupID) || groupID <= 0)
+                {
+                    modelState?.AddModelError($"{fieldName}[{index}]", $"Invalid group ID \"{item}\".");
+                    continue;
+                }
+                if (groupRepository.GetByID(groupID) is not { } group)
+                {
+                    modelState?.AddModelError($"{fieldName}[{index}]", $"Unknown group ID \"{item}\".");
+                    continue;
+                }
+
+                // Parse group-specific extras.
+                var onlyUnwatched = false;
+                var includeSpecials = false;
+                var includeOthers = false;
+                var includeRewatching = false;
+                var recursive = false;
+                var includeAllSeries = false;
+                var includePrequels = false;
+                if (plusExtras.Length > 0)
+                {
+                    if (plusExtras.Contains("onlyUnwatched"))
+                        onlyUnwatched = true;
+                    if (plusExtras.Contains("includeSpecials"))
+                        includeSpecials = true;
+                    if (plusExtras.Contains("includeOthers"))
+                        includeOthers = true;
+                    if (plusExtras.Contains("includeRewatching"))
+                        includeRewatching = true;
+                    if (plusExtras.Contains("recursive"))
+                        recursive = true;
+                    if (plusExtras.Contains("includeAllSeries"))
+                        includeAllSeries = true;
+                    if (plusExtras.Contains("includePrequels"))
+                        includePrequels = true;
+                }
+
+                foreach (var tuple in GetListForGroup(
+                    group,
+                    releaseGroupID,
+                    new()
+                    {
+                        OnlyUnwatched = onlyUnwatched,
+                        IncludeSpecials = includeSpecials,
+                        IncludeOthers = includeOthers,
+                        IncludeRewatching = includeRewatching,
+                        Recursive = recursive,
+                        IncludeAllSeries = includeAllSeries,
+                        IncludePrequels = includePrequels,
+                    }
+                ))
+                    playlist.Add(tuple);
+
+                continue;
+            }
+
             if (subItems.Any(subItem => subItem[0] is 'a' or 's'))
             {
                 var seriesItem = subItems.First(subItem => subItem[0] is 'a' or 's');
@@ -402,6 +500,160 @@ public class GeneratedPlaylistService(
         foreach (var episode in episodes)
             foreach (var tuple in GetListForEpisode(episode, releaseGroupID))
                 yield return tuple;
+    }
+
+    private record GroupQueryOptions
+    {
+        public bool OnlyUnwatched { get; init; }
+        public bool IncludeSpecials { get; init; }
+        public bool IncludeOthers { get; init; }
+        public bool IncludeRewatching { get; init; }
+        public bool Recursive { get; init; }
+        public bool IncludeAllSeries { get; init; }
+        public bool IncludePrequels { get; init; }
+    }
+
+    private IEnumerable<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> GetListForGroup(IShokoGroup group, int? releaseGroupID = null, GroupQueryOptions? options = null)
+    {
+        options ??= new();
+
+        var seriesList = options.Recursive || options.IncludeAllSeries
+            ? group.AllSeries
+            : group.Series;
+
+        IReadOnlyList<IShokoSeries> orderedSeries;
+        if (options.IncludeAllSeries)
+        {
+            orderedSeries = seriesList;
+        }
+        else
+        {
+            orderedSeries = BuildSeriesChain(seriesList, options.IncludePrequels);
+        }
+
+        var user = contextAccessor.HttpContext.GetUser();
+        foreach (var series in orderedSeries)
+        {
+            if (series is not AnimeSeries animeSeries)
+                continue;
+
+            var episodes = animeSeriesService.GetNextUpEpisodes(
+                animeSeries,
+                user.JMMUserID,
+                new()
+                {
+                    IncludeCurrentlyWatching = !options.OnlyUnwatched,
+                    IncludeSpecials = options.IncludeSpecials,
+                    IncludeOthers = options.IncludeOthers,
+                    IncludeRewatching = options.IncludeRewatching,
+                    IncludeMissing = false,
+                    IncludeUnaired = false,
+                }
+            );
+
+            foreach (var episode in episodes)
+                foreach (var tuple in GetListForEpisode(episode, releaseGroupID))
+                    yield return tuple;
+        }
+    }
+
+    private static IReadOnlyList<IShokoSeries> BuildSeriesChain(IReadOnlyList<IShokoSeries> seriesList, bool includePrequels)
+    {
+        if (seriesList.Count <= 1)
+            return seriesList;
+
+        var seriesByAnimeId = seriesList.ToDictionary(s => s.AnidbAnimeID);
+
+        // Build a directed graph of prequel/sequel relations within the group.
+        // BaseID → RelatedID is always forward in viewing order.
+        var nextMap = new Dictionary<int, List<int>>();
+        var prevMap = new Dictionary<int, List<int>>();
+
+        foreach (var series in seriesList)
+        {
+            foreach (var relation in series.RelatedSeries)
+            {
+                if (relation.RelationType is not (RelationType.Prequel or RelationType.Sequel))
+                    continue;
+
+                if (!seriesByAnimeId.ContainsKey(relation.RelatedID))
+                    continue;
+
+                if (!nextMap.TryGetValue(relation.BaseID, out var nextList))
+                {
+                    nextList = [];
+                    nextMap[relation.BaseID] = nextList;
+                }
+                nextList.Add(relation.RelatedID);
+
+                if (!prevMap.TryGetValue(relation.RelatedID, out var prevList))
+                {
+                    prevList = [];
+                    prevMap[relation.RelatedID] = prevList;
+                }
+                prevList.Add(relation.BaseID);
+            }
+        }
+
+        // Find root: the starting point of the chain.
+        int rootId;
+        if (includePrequels)
+        {
+            // Earliest airing series, walking both directions.
+            rootId = seriesList.OrderBy(s => s.AirDate?.ToDateTime() ?? DateTime.MaxValue).First().AnidbAnimeID;
+        }
+        else
+        {
+            // Series with no predecessor in the group; fall back to earliest airing.
+            var candidates = seriesList.Where(s => !prevMap.ContainsKey(s.AnidbAnimeID)).ToList();
+            rootId = candidates.Count > 0
+                ? candidates.OrderBy(s => s.AirDate?.ToDateTime() ?? DateTime.MaxValue).First().AnidbAnimeID
+                : seriesList.OrderBy(s => s.AirDate?.ToDateTime() ?? DateTime.MaxValue).First().AnidbAnimeID;
+        }
+
+        // Walk forward (sequels).
+        var forwardChain = new List<int>();
+        var visited = new HashSet<int>();
+        var current = rootId;
+        while (current != 0 && visited.Add(current))
+        {
+            forwardChain.Add(current);
+            if (!nextMap.TryGetValue(current, out var successors) || successors.Count == 0)
+                break;
+
+            current = PickBest(successors, seriesByAnimeId);
+        }
+
+        // Walk backward (prequels), if requested.
+        if (includePrequels)
+        {
+            var backwardChain = new List<int>();
+            current = rootId;
+            var backwardVisited = new HashSet<int>();
+            while (current != 0 && backwardVisited.Add(current))
+            {
+                if (!prevMap.TryGetValue(current, out var predecessors) || predecessors.Count == 0)
+                    break;
+
+                current = PickBest(predecessors, seriesByAnimeId);
+                backwardChain.Add(current);
+            }
+
+            backwardChain.Reverse();
+            forwardChain = [.. backwardChain, .. forwardChain];
+        }
+
+        return forwardChain.Select(id => seriesByAnimeId[id]).ToList();
+    }
+
+    private static int PickBest(IReadOnlyList<int> candidates, Dictionary<int, IShokoSeries> seriesByAnimeId)
+    {
+        return candidates
+            .Select(id => seriesByAnimeId[id])
+            .OrderByDescending(s => s.EpisodeCounts.Episodes)
+            .ThenBy(s => (int)s.Type)
+            .First()
+            .AnidbAnimeID;
     }
 
     private IEnumerable<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> GetListForEpisode(IShokoEpisode episode, int? releaseGroupID = null)
