@@ -1612,6 +1612,7 @@ public class DatabaseFixes
         var imagesPath = ApplicationPaths.Instance.ImagesPath;
         using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
         var str = systemService.StartupMessage ?? string.Empty;
+        var settings = ISettingsProvider.Instance.GetSettings();
 
         foreach (var (oldName, newName) in new (string, string)[]
         {
@@ -2204,7 +2205,7 @@ public class DatabaseFixes
                     EntityType = DataEntityType.Creator,
                     EntityID = creator.CreatorID.ToString(),
                     IsEnabled = true,
-                    IsDesired = true,
+                    IsDesired = settings.AniDb.DownloadCreators,
                     Source = DataSource.AniDB,
                     CreatedAt = DateTime.UtcNow,
                     LastUpdatedAt = DateTime.UtcNow,
@@ -2259,7 +2260,7 @@ public class DatabaseFixes
                     EntityType = DataEntityType.Character,
                     EntityID = character.CharacterID.ToString(),
                     IsEnabled = true,
-                    IsDesired = true,
+                    IsDesired = settings.AniDb.DownloadCharacters,
                     Source = DataSource.AniDB,
                     CreatedAt = DateTime.UtcNow,
                     LastUpdatedAt = DateTime.UtcNow,
