@@ -305,6 +305,8 @@ public partial class ImageManager(
                     xrefs.Add(filter(xrefRepository.GetByEntity(series.Source, series.EntityType, series.ID.ToString())));
                     foreach (var s in series.LinkedSeries)
                         xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
+                    foreach (var s in series.TmdbSeasons)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID)));
                     foreach (var m in series.LinkedMovies)
                         xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
                     break;
@@ -313,6 +315,8 @@ public partial class ImageManager(
                 {
                     foreach (var s in series.LinkedSeries)
                         xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
+                    foreach (var s in series.TmdbSeasons)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID)));
                     foreach (var m in series.LinkedMovies)
                         xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
                     break;
@@ -1163,6 +1167,8 @@ public partial class ImageManager(
                     xrefs.Add(filter(xrefRepository.GetByEntity(series.Source, series.EntityType, series.ID.ToString())));
                     foreach (var s in series.LinkedSeries)
                         xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
+                    foreach (var s in series.TmdbSeasons)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID)));
                     foreach (var m in series.LinkedMovies)
                         xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
                     break;
@@ -1171,6 +1177,8 @@ public partial class ImageManager(
                 {
                     foreach (var s in series.LinkedSeries)
                         xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
+                    foreach (var s in series.TmdbSeasons)
+                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID)));
                     foreach (var m in series.LinkedMovies)
                         xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
                     break;
