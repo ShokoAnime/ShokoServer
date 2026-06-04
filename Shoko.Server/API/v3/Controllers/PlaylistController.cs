@@ -113,14 +113,12 @@ public class PlaylistController : BaseController
     /// </remarks>
     /// <param name="items">Comma-separated playlist items. See remarks for the full DSL format.</param>
     /// <param name="include">Include items that are not included by default</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("Generate")]
     [ProducesResponseType(400)]
     public ActionResult<IReadOnlyList<PlaylistItem>> GetGeneratedPlaylistJson(
         [FromQuery(Name = "playlist"), ModelBinder(typeof(CommaDelimitedModelBinder))] string[]? items = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null
     )
     {
         include ??= [];
@@ -130,7 +128,16 @@ public class PlaylistController : BaseController
         return playlist
             .Select(tuple => new PlaylistItem(
                 tuple.episodes
-                    .Select(episode => new Episode(HttpContext, (episode as AnimeEpisode)!, includeDataFrom, withXRefs: include.Contains(FileNonDefaultIncludeType.XRefs)))
+                    .Select(episode =>
+                    {
+                        var animeEpisode = (episode as AnimeEpisode)!;
+                        return new PlaylistEpisode(
+                            animeEpisode,
+                            animeEpisode.AnimeSeries!,
+                            animeEpisode.AniDB_Episode!,
+                            animeEpisode.AniDB_Anime!
+                        );
+                    })
                     .ToList(),
                 tuple.videos
                     .Select(video => new File(

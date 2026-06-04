@@ -17,7 +17,7 @@ public class PlaylistItem
     ///   video file (e.g. merged multi-episode files).
     /// </summary>
     [Required]
-    public Episode Episode { get; }
+    public PlaylistEpisode Episode { get; }
 
     /// <summary>
     ///   Additional episodes grouped under the same video file(s). This occurs
@@ -25,7 +25,7 @@ public class PlaylistItem
     ///   reference the same video file.
     /// </summary>
     [Required]
-    public IReadOnlyList<Episode> AdditionalEpisodes { get; }
+    public IReadOnlyList<PlaylistEpisode> AdditionalEpisodes { get; }
 
     /// <summary>
     ///   The video files that constitute this playlist entry. Multiple parts
@@ -43,7 +43,7 @@ public class PlaylistItem
     /// <param name="files">
     ///   Video files for this playlist entry.
     /// </param>
-    public PlaylistItem(IReadOnlyList<Episode> episodes, IReadOnlyList<File> files)
+    public PlaylistItem(IReadOnlyList<PlaylistEpisode> episodes, IReadOnlyList<File> files)
     {
         Episode = episodes[0];
         AdditionalEpisodes = episodes.Skip(1).ToList();
