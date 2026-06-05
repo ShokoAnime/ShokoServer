@@ -105,9 +105,9 @@ public class QueueMetrics
             };
         }
 
+        // PoolStatus.WaitingCount already excludes blocked and scheduled (disjoint buckets).
         var totalScheduled = poolStatus.Values.Sum(p => p.ScheduledCount);
-        // Scheduled (not-yet-ready) jobs are a separate category — don't count them as waiting.
-        var totalWaiting = poolStatus.Values.Sum(p => p.WaitingCount) - totalScheduled;
+        var totalWaiting = poolStatus.Values.Sum(p => p.WaitingCount);
         var totalExecuting = poolStatus.Values.Sum(p => p.ActiveWorkers);
 
         return new QueueMetricsSnapshot

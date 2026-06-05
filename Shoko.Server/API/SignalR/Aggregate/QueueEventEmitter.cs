@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
+using Shoko.Abstractions.User;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Events;
 using Shoko.Server.API.SignalR.Models;
@@ -18,6 +20,10 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
     private readonly QueueStateEventHandler _queueStateEventHandler;
     private readonly QueueHandler _queueHandler;
     private QueueStateSignalRModel? _lastQueueState;
+
+    // Connections that opted in to per-pool detail. Empty by default — pool info is omitted unless
+    // a client explicitly requests it (queue.set_pool_info, or the queue_pools connect query flag).
+    private readonly ConcurrentDictionary<string, byte> _poolSubscribers = new();
 
     // Trailing-edge throttle: first push in a quiet period fires immediately; subsequent pushes
     // within ThrottleWindow are coalesced into a single trailing push at window end. Under burst
@@ -50,7 +56,7 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private QueueStateSignalRModel GetQueueState()
+    private QueueStateSignalRModel GetQueueState(bool includePools)
     {
         return new QueueStateSignalRModel
         {
@@ -69,26 +75,47 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
                 IsRunning = true,
                 StartTime = a.StartTime?.ToUniversalTime()
             }).OrderBy(a => a.StartTime).ToList(),
-            Pools = _queueHandler.GetPoolStatus().Values.Select(p => new Queue.PoolState
-            {
-                Name = p.Name,
-                MaxWorkers = p.MaxWorkers,
-                ActiveWorkers = p.ActiveWorkers,
-                IdleWorkers = p.IdleWorkers,
-                WaitingCount = p.WaitingCount,
-                ScheduledCount = p.ScheduledCount,
-                IsBlocked = p.IsBlocked,
-                HandledTypeNames = p.HandledTypeNames,
-                LastActiveAt = p.LastActiveAt?.UtcDateTime
-            }).OrderBy(p => p.Name).ToList()
+            // Per-pool detail is opt-in (it's the largest part of the payload and most clients
+            // only need the aggregate counts). Omitted unless the connection requested it.
+            Pools = includePools
+                ? _queueHandler.GetPoolStatus().Values.Select(p => new Queue.PoolState
+                {
+                    Name = p.Name,
+                    MaxWorkers = p.MaxWorkers,
+                    ActiveWorkers = p.ActiveWorkers,
+                    IdleWorkers = p.IdleWorkers,
+                    WaitingCount = p.WaitingCount,
+                    BlockedCount = p.BlockedCount,
+                    ScheduledCount = p.ScheduledCount,
+                    IsBlocked = p.IsBlocked,
+                    HandledTypeNames = p.HandledTypeNames,
+                    LastActiveAt = p.LastActiveAt?.UtcDateTime
+                }).OrderBy(p => p.Name).ToList()
+                : []
         };
     }
 
-    protected override object[] GetInitialMessages()
+    /// <summary>
+    /// Opt a connection in or out of per-pool detail in queue state messages. Pushes a fresh state
+    /// immediately so the change takes effect without waiting for the next queue event.
+    /// </summary>
+    public void SetIncludePools(string connectionId, bool include)
     {
-        var state = GetQueueState();
-        return [state];
+        if (include)
+            _poolSubscribers[connectionId] = 0;
+        else
+            _poolSubscribers.TryRemove(connectionId, out _);
+        RequestPush();
     }
+
+    protected override void OnConnectionRemoved(string connectionId)
+        => _poolSubscribers.TryRemove(connectionId, out _);
+
+    protected override object[] GetInitialMessages()
+        => [GetQueueState(includePools: false)];
+
+    protected override object[] GetInitialMessagesForUser(string connectionId, IUser user, DateTime? lastConnectedAt = null)
+        => [GetQueueState(_poolSubscribers.ContainsKey(connectionId))];
 
     private void OnQueueStarted(object? sender, EventArgs e) => RequestPush();
 
@@ -143,8 +170,19 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
 
     private async Task PushAsync()
     {
-        var state = GetQueueState();
-        _lastQueueState = state;
-        await SendAsync("state.changed", state);
+        var withoutPools = GetQueueState(includePools: false);
+        _lastQueueState = withoutPools;
+
+        var poolIds = _poolSubscribers.Keys.ToArray();
+        if (poolIds.Length == 0)
+        {
+            await SendAsync("state.changed", withoutPools);
+            return;
+        }
+
+        // Pool subscribers get the detailed payload; everyone else gets the lean one.
+        var withPools = GetQueueState(includePools: true);
+        await Hub.Clients.GroupExcept(Group, poolIds).SendCoreAsync(GetName("state.changed"), [withoutPools]);
+        await Hub.Clients.Clients(poolIds).SendCoreAsync(GetName("state.changed"), [withPools]);
     }
 }

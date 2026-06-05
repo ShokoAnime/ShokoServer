@@ -29,7 +29,9 @@ public class Queue
     public int ScheduledCount { get; set; }
 
     /// <summary>
-    /// The total number of jobs in the queue, regardless of state (waiting + blocked + scheduled + executing)
+    /// The number of jobs that are actionable now or in progress: waiting + blocked + executing.
+    /// This deliberately excludes <see cref="ScheduledCount"/> (jobs deferred to a future time), so an
+    /// otherwise-idle queue holding only scheduled jobs reports a total of 0.
     /// </summary>
     [Required]
     public int TotalCount { get; set; }
@@ -167,14 +169,19 @@ public class Queue
         public int IdleWorkers { get; init; }
 
         /// <summary>
-        /// Number of waiting jobs in this pool's sub-queue (includes blocked and scheduled).
+        /// Number of jobs in this pool that are ready to run now (excludes blocked and scheduled).
         /// </summary>
         [Required]
         public int WaitingCount { get; init; }
 
         /// <summary>
+        /// Number of jobs in this pool that can't run because an acquisition filter excludes them (e.g. a ban).
+        /// </summary>
+        [Required]
+        public int BlockedCount { get; init; }
+
+        /// <summary>
         /// Number of jobs in this pool deferred to a future scheduled time (not yet ready to run).
-        /// A subset of <see cref="WaitingCount"/>.
         /// </summary>
         [Required]
         public int ScheduledCount { get; init; }

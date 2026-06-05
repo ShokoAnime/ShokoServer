@@ -164,6 +164,7 @@ public class QueueController : BaseController
             ActiveWorkers = p.ActiveWorkers,
             IdleWorkers = p.IdleWorkers,
             WaitingCount = p.WaitingCount,
+            BlockedCount = p.BlockedCount,
             ScheduledCount = p.ScheduledCount,
             IsBlocked = p.IsBlocked,
             HandledTypeNames = p.HandledTypeNames,

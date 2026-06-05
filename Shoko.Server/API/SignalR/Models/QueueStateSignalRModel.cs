@@ -28,7 +28,8 @@ public class QueueStateSignalRModel
     public int ScheduledCount { get; set; }
 
     /// <summary>
-    /// The total number of jobs in the queue, regardless of state
+    /// The number of jobs that are actionable now or in progress: waiting + blocked + executing.
+    /// Excludes <see cref="ScheduledCount"/> (jobs deferred to a future time).
     /// </summary>
     public int TotalCount { get; set; }
 

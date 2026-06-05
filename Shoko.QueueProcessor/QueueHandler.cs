@@ -69,8 +69,12 @@ public class QueueHandler
     /// <summary>Jobs deferred to a future scheduled time (retry backoff / delayed re-fetch); not yet ready.</summary>
     public int ScheduledCount => _orchestrator.ScheduledWaitingCount;
 
-    /// <summary>Every job in the system: ready + blocked + scheduled + executing.</summary>
-    public int TotalCount => _orchestrator.WaitingCount + _orchestrator.ExecutingCount;
+    /// <summary>
+    /// Jobs that are actionable now or in progress: ready + blocked + executing. Deliberately
+    /// excludes <see cref="ScheduledCount"/> (jobs deferred to a future time), which would otherwise
+    /// make the queue look perpetually non-empty while it is idle and just waiting on a timer.
+    /// </summary>
+    public int TotalCount => _orchestrator.ReadyWaitingCount + _orchestrator.BlockedWaitingCount + _orchestrator.ExecutingCount;
 
     /// <summary>
     /// The maximum number of jobs that can execute concurrently across all pools.

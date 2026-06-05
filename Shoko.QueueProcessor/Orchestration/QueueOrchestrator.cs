@@ -1038,9 +1038,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             }
         }
 
-        var totalBlocked = poolStatus.Values
-            .Where(p => p.IsBlocked)
-            .Sum(p => p.WaitingCount);
+        var totalBlocked = poolStatus.Values.Sum(p => p.BlockedCount);
 
         return _metrics.GetSnapshot(poolStatus, typeCounts, _typeFriendlyNames, totalBlocked, totalRetrying);
     }

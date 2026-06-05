@@ -25,6 +25,11 @@ public class AggregateHub : Hub
     {
         await base.OnConnectedAsync();
         var context = Context.GetHttpContext();
+        // Opt this connection in to per-pool detail before joining, so the initial queue state
+        // (sent during the join) already reflects the choice. Off by default.
+        if (bool.TryParse(context?.Request.Query["queue_pools"].ToString(), out var wantPools) && wantPools)
+            SetQueuePoolInfo(true);
+
         var query = context?.Request.Query["feeds"]
             .Where(a => !string.IsNullOrEmpty(a))
             .SelectMany(a => a!.Split(","))
@@ -142,5 +147,16 @@ public class AggregateHub : Hub
     {
         if (paused) _queueHandler.Pause().GetAwaiter().GetResult();
         else _queueHandler.Resume().GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Opt this connection in or out of per-pool detail in the <c>queue:state.changed</c> feed.
+    /// Pool info is omitted by default; call with <c>true</c> to receive it.
+    /// </summary>
+    [HubMethodName("queue.set_pool_info")]
+    public void SetQueuePoolInfo(bool include)
+    {
+        if (_allFeeds!.TryGetValue("queue", out var emitter) && emitter is QueueEventEmitter queueEmitter)
+            queueEmitter.SetIncludePools(Context.ConnectionId, include);
     }
 }

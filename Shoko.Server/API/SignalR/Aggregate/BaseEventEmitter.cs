@@ -66,8 +66,16 @@ public abstract class BaseEventEmitter : IEventEmitter
 
         await Hub.Groups.RemoveFromGroupAsync(connectionId, Group);
 
+        OnConnectionRemoved(connectionId);
+
         return true;
     }
+
+    /// <summary>
+    /// Hook invoked when a connection leaves this feed, after it has been removed from the group.
+    /// Lets derived emitters drop any per-connection state they track.
+    /// </summary>
+    protected virtual void OnConnectionRemoved(string connectionId) { }
 
     public async Task SendAsync(string subject, params object[] args)
     {

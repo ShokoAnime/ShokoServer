@@ -411,14 +411,18 @@ public sealed class WorkerPool : IWorkerPool
     {
         var exclusions = _filterExclusions;
         var lastActiveTicks = Interlocked.Read(ref _lastActiveAtTicks);
+        // Disjoint buckets: WaitingCount reports only jobs ready to run now.
+        var blocked = BlockedCount;
+        var scheduled = ScheduledCount;
         return new PoolStatus
         {
             Name = Name,
             MaxWorkers = MaxWorkers,
             ActiveWorkers = _activeWorkers,
             IdleWorkers = _idleWorkers,
-            WaitingCount = WaitingCount,
-            ScheduledCount = ScheduledCount,
+            WaitingCount = Math.Max(0, WaitingCount - blocked - scheduled),
+            BlockedCount = blocked,
+            ScheduledCount = scheduled,
             IsBlocked = HandledTypes.Count > 0 && HandledTypes.All(t => exclusions.Contains(t)),
             HandledTypeNames = HandledTypes.Select(t => t.Name).ToList(),
             LastActiveAt = lastActiveTicks == 0 ? null : new DateTimeOffset(lastActiveTicks, TimeSpan.Zero)
