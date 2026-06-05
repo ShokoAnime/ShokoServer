@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;
 using Shoko.Abstractions.Extensions;
@@ -40,7 +41,8 @@ public static class SeriesSearch
     }
 
     private static string SanitizeSearchInput(this string value) =>
-        value.Replace('_', ' ')
+        value.Normalize(NormalizationForm.FormKC)
+            .Replace('_', ' ')
             .Replace('-', ' ')
             .CompactWhitespaces()
             .ToLowerInvariant();
@@ -48,7 +50,8 @@ public static class SeriesSearch
     // This forces ASCII, because it's faster to stop caring if ss and ß are the same
     // No it's not perfect, but it works better for those who just want to do lazy searching
     private static string ForceASCII(this string value) =>
-        value.FilterSearchCharacters()
+        value.Normalize(NormalizationForm.FormKC)
+            .FilterSearchCharacters()
             .CompactWhitespaces()
             .ToLowerInvariant();
 

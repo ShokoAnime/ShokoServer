@@ -1,0 +1,63 @@
+using System.Collections.Generic;
+using Shoko.Server.Utilities;
+using Xunit;
+
+// ReSharper disable StringLiteralTypo
+
+namespace Shoko.Tests;
+
+public class SeriesSearchNormalizationTest
+{
+    public static IEnumerable<object[]> FullwidthAsciiData => new List<object[]>
+    {
+        // Fullwidth ASCII title matched by normal ASCII query
+        new object[] { "Ｇｉｎｔａｍａ", "gintama", true },
+        new object[] { "ＧＩＮＴＡＭＡ", "gintama", true },
+        new object[] { "ｇｉｎｔａｍａ", "GINTAMA", true },
+        // Normal ASCII title matched by fullwidth query
+        new object[] { "Gintama", "Ｇｉｎｔａｍａ", true },
+        // Unrelated titles should not match
+        new object[] { "Ｎａｒｕｔｏ", "gintama", false },
+    };
+
+    public static IEnumerable<object[]> HalfwidthKatakanaData => new List<object[]>
+    {
+        // Halfwidth katakana title matched by fullwidth katakana query
+        new object[] { "ｱｲｳｴｵ", "アイウエオ", true },
+        // Fullwidth katakana title matched by halfwidth query
+        new object[] { "アイウエオ", "ｱｲｳｴｵ", true },
+    };
+
+    public static IEnumerable<object[]> MixedData => new List<object[]>
+    {
+        // Mix of fullwidth and normal characters
+        new object[] { "Ｇｉｎtama", "gintama", true },
+        new object[] { "gintama", "Ｇｉｎtama", true },
+    };
+
+    [Theory, MemberData(nameof(FullwidthAsciiData))]
+    public void FullwidthAsciiNormalization(string title, string query, bool expectMatch)
+        => Assert.Equal(expectMatch, title.FuzzyMatch(query));
+
+    [Theory, MemberData(nameof(HalfwidthKatakanaData))]
+    public void HalfwidthKatakanaNormalization(string title, string query, bool expectMatch)
+        => Assert.Equal(expectMatch, title.FuzzyMatch(query));
+
+    public static IEnumerable<object[]> EllipsisData => new List<object[]>
+    {
+        // U+2026 ellipsis in title matched by three-period query
+        new object[] { "Fullmetal Alchemist…", "Fullmetal Alchemist...", true },
+        // Three-period title matched by U+2026 query
+        new object[] { "Fullmetal Alchemist...", "Fullmetal Alchemist…", true },
+        // Unrelated title should not match
+        new object[] { "Naruto…", "Fullmetal Alchemist...", false },
+    };
+
+    [Theory, MemberData(nameof(MixedData))]
+    public void MixedWidthNormalization(string title, string query, bool expectMatch)
+        => Assert.Equal(expectMatch, title.FuzzyMatch(query));
+
+    [Theory, MemberData(nameof(EllipsisData))]
+    public void EllipsisNormalization(string title, string query, bool expectMatch)
+        => Assert.Equal(expectMatch, title.FuzzyMatch(query));
+}
