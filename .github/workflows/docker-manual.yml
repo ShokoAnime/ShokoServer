@@ -128,8 +128,6 @@ jobs:
             ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }}
             ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }}
           platforms: linux/${{ matrix.arch }}
-          cache-from: type=gha,scope=docker-${{ matrix.arch }}
-          cache-to: type=gha,mode=max,scope=docker-${{ matrix.arch }}
           build-args: |
             version=${{ github.event.inputs.version }}
             channel=${{ github.event.inputs.release }}
