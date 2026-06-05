@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.StaticFiles;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
@@ -65,6 +66,8 @@ public class FileController(
 ) : BaseController(settingsProvider)
 {
     private const string FileUserStatsNotFoundWithFileID = "No FileUserStats entry for the given fileID for the current user";
+
+    private const string FileClientDataNotFoundWithKey = "No client data entry for the given key for the given fileID for the current user";
 
     private const string FileNoPath = "Unable to resolve file location.";
 
@@ -848,6 +851,140 @@ public class FileController(
 
         // Merge with the existing entry and return an updated version of the stats.
         return body.MergeWithExisting(user, file);
+    }
+
+    /// <summary>
+    /// Get the entire client data bag for the <see cref="File"/> with the given
+    /// <paramref name="fileID"/> for the current user. Each value is an opaque
+    /// JSON token owned by the client/plugin that wrote it.
+    /// </summary>
+    /// <param name="fileID">Shoko file ID</param>
+    /// <returns>The client data bag.</returns>
+    [HttpGet("{fileID}/UserData/ClientData")]
+    public ActionResult<IReadOnlyDictionary<string, JToken>> GetFileClientData([FromRoute, Range(1, int.MaxValue)] int fileID)
+    {
+        var file = _videoLocals.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        var user = HttpContext.GetUser();
+        var userData = _userDataService.GetVideoUserData(file, user);
+        return Ok(userData?.ClientData ?? new Dictionary<string, JToken>());
+    }
+
+    /// <summary>
+    /// Get a single client data value by <paramref name="key"/> for the
+    /// <see cref="File"/> with the given <paramref name="fileID"/> for the
+    /// current user.
+    /// </summary>
+    /// <param name="fileID">Shoko file ID</param>
+    /// <param name="key">The client data key.</param>
+    /// <returns>The opaque JSON token stored under the key.</returns>
+    [HttpGet("{fileID}/UserData/ClientData/{*key}")]
+    public ActionResult<JToken> GetFileClientDataByKey([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string key)
+    {
+        var file = _videoLocals.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        var user = HttpContext.GetUser();
+        var userData = _userDataService.GetVideoUserData(file, user);
+        if (userData == null || !userData.ClientData.TryGetValue(key, out var value))
+            return NotFound(FileClientDataNotFoundWithKey);
+
+        return Ok(value);
+    }
+
+    /// <summary>
+    /// Replace the entire client data bag for the <see cref="File"/> with the
+    /// given <paramref name="fileID"/> for the current user. Any existing
+    /// entries not present in the request are removed. A <c>null</c> value is
+    /// stored as an explicit JSON null.
+    /// </summary>
+    /// <param name="fileID">Shoko file ID</param>
+    /// <param name="body">The new client data bag.</param>
+    /// <returns>The resulting client data bag.</returns>
+    [HttpPut("{fileID}/UserData/ClientData")]
+    public async Task<ActionResult<IReadOnlyDictionary<string, JToken>>> PutFileClientData([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] Dictionary<string, JToken?> body)
+    {
+        var file = _videoLocals.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        var user = HttpContext.GetUser();
+        var update = new VideoUserDataUpdate { ClearClientData = true };
+        foreach (var (key, value) in body)
+            update.SetClientData(key, value ?? JValue.CreateNull());
+
+        var userData = await _userDataService.SaveVideoUserData(file, user, update);
+        return Ok(userData.ClientData);
+    }
+
+    /// <summary>
+    /// Set a single client data value by <paramref name="key"/> for the
+    /// <see cref="File"/> with the given <paramref name="fileID"/> for the
+    /// current user. A <c>null</c> body is stored as an explicit JSON null; use
+    /// the DELETE endpoint to remove a key.
+    /// </summary>
+    /// <param name="fileID">Shoko file ID</param>
+    /// <param name="key">The client data key.</param>
+    /// <param name="value">The opaque JSON token to store.</param>
+    /// <returns>The stored JSON token.</returns>
+    [HttpPut("{fileID}/UserData/ClientData/{*key}")]
+    public async Task<ActionResult<JToken>> PutFileClientDataByKey([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string key, [FromBody] JToken? value)
+    {
+        var file = _videoLocals.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        var user = HttpContext.GetUser();
+        var token = value ?? JValue.CreateNull();
+        var update = new VideoUserDataUpdate();
+        update.SetClientData(key, token);
+
+        await _userDataService.SaveVideoUserData(file, user, update);
+        return Ok(token);
+    }
+
+    /// <summary>
+    /// Remove a single client data entry by <paramref name="key"/> for the
+    /// <see cref="File"/> with the given <paramref name="fileID"/> for the
+    /// current user.
+    /// </summary>
+    /// <param name="fileID">Shoko file ID</param>
+    /// <param name="key">The client data key to remove.</param>
+    [HttpDelete("{fileID}/UserData/ClientData/{*key}")]
+    public async Task<ActionResult> DeleteFileClientDataByKey([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string key)
+    {
+        var file = _videoLocals.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        var user = HttpContext.GetUser();
+        var update = new VideoUserDataUpdate();
+        update.SetClientData(key, null);
+
+        await _userDataService.SaveVideoUserData(file, user, update);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Clear all client data for the <see cref="File"/> with the given
+    /// <paramref name="fileID"/> for the current user.
+    /// </summary>
+    /// <param name="fileID">Shoko file ID</param>
+    [HttpDelete("{fileID}/UserData/ClientData")]
+    public async Task<ActionResult> ClearFileClientData([FromRoute, Range(1, int.MaxValue)] int fileID)
+    {
+        var file = _videoLocals.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        var user = HttpContext.GetUser();
+        var update = new VideoUserDataUpdate { ClearClientData = true };
+
+        await _userDataService.SaveVideoUserData(file, user, update);
+        return NoContent();
     }
 
     /// <summary>

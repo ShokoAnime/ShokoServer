@@ -1047,6 +1047,10 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(165,  5, "DROP TABLE `StoredRelocationPipe`;"),
         new(165,  6, DatabaseFixes.SetDefaultRenamer),
         new(166,  1, DatabaseFixes.MoveImagesToExtensionPaths),
+        new(167,  1, "ALTER TABLE `VideoLocal_User` ADD `LastVideoStreamIndex` INT NULL;"),
+        new(167,  2, "ALTER TABLE `VideoLocal_User` ADD `LastAudioStreamIndex` INT NULL;"),
+        new(167,  3, "ALTER TABLE `VideoLocal_User` ADD `LastSubtitleStreamIndex` INT NULL;"),
+        new(167,  4, "ALTER TABLE `VideoLocal_User` ADD `ClientData` TEXT NULL;"),
     ];
 
     #endregion

@@ -1,4 +1,6 @@
-﻿using FluentNHibernate.Mapping;
+﻿using FluentNHibernate;
+using FluentNHibernate.Mapping;
+using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Mappings;
@@ -17,5 +19,9 @@ public class VideoLocal_UserMap : ClassMap<VideoLocal_User>
         Map(x => x.WatchedCount).Not.Nullable();
         Map(x => x.ResumePosition).Not.Nullable();
         Map(x => x.LastUpdated).Not.Nullable();
+        Map(x => x.LastVideoStreamIndex);
+        Map(x => x.LastAudioStreamIndex);
+        Map(x => x.LastSubtitleStreamIndex);
+        Map(Reveal.Member<VideoLocal_User>("_clientData")).Access.Field().CustomType<JTokenDictionaryConverter>().Column("ClientData");
     }
 }

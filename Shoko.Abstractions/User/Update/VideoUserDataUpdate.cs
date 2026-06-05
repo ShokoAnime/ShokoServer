@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace Shoko.Abstractions.User.Update;
 
@@ -69,6 +71,90 @@ public class VideoUserDataUpdate
     public bool NoEpisodePropagation { get; set; }
 
     /// <summary>
+    ///   Indicates if <see cref="LastVideoStreamIndex"/> has been set to a
+    ///   value.
+    /// </summary>
+    public bool HasLastVideoStreamIndex { get; private set; }
+
+    private int? _lastVideoStreamIndex;
+
+    /// <summary>
+    ///   Override or set the last selected video stream index.
+    /// </summary>
+    public int? LastVideoStreamIndex
+    {
+        get => _lastVideoStreamIndex;
+        set
+        {
+            HasLastVideoStreamIndex = true;
+            _lastVideoStreamIndex = value;
+        }
+    }
+
+    /// <summary>
+    ///   Indicates if <see cref="LastAudioStreamIndex"/> has been set to a
+    ///   value.
+    /// </summary>
+    public bool HasLastAudioStreamIndex { get; private set; }
+
+    private int? _lastAudioStreamIndex;
+
+    /// <summary>
+    ///   Override or set the last selected audio stream index.
+    /// </summary>
+    public int? LastAudioStreamIndex
+    {
+        get => _lastAudioStreamIndex;
+        set
+        {
+            HasLastAudioStreamIndex = true;
+            _lastAudioStreamIndex = value;
+        }
+    }
+
+    /// <summary>
+    ///   Indicates if <see cref="LastSubtitleStreamIndex"/> has been set to a
+    ///   value.
+    /// </summary>
+    public bool HasLastSubtitleStreamIndex { get; private set; }
+
+    private int? _lastSubtitleStreamIndex;
+
+    /// <summary>
+    ///   Override or set the last selected subtitle stream index.
+    /// </summary>
+    public int? LastSubtitleStreamIndex
+    {
+        get => _lastSubtitleStreamIndex;
+        set
+        {
+            HasLastSubtitleStreamIndex = true;
+            _lastSubtitleStreamIndex = value;
+        }
+    }
+
+    /// <summary>
+    ///   When set to <c>true</c>, will clear all client data stored for this
+    ///   video.
+    /// </summary>
+    public bool ClearClientData { get; set; }
+
+    internal Dictionary<string, JToken?> _pendingClientData = new();
+
+    /// <summary>
+    ///   Gets the pending client data changes (key-value pairs).
+    /// </summary>
+    public IReadOnlyDictionary<string, JToken?> PendingClientData => _pendingClientData;
+
+    /// <summary>
+    ///   Set a client-specific data value. Pass a <c>null</c> reference to
+    ///   remove the key. To store an explicit JSON <c>null</c>, pass a
+    ///   <see cref="JValue"/> created via <see cref="JValue.CreateNull"/>.
+    /// </summary>
+    public void SetClientData(string clientKey, JToken? value)
+        => _pendingClientData[clientKey] = value;
+
+    /// <summary>
     ///   Initializes a new instance of the <see cref="VideoUserDataUpdate"/> class.
     /// </summary>
     public VideoUserDataUpdate() { }
@@ -85,5 +171,8 @@ public class VideoUserDataUpdate
         ProgressPosition = userData.ProgressPosition;
         LastPlayedAt = userData.LastPlayedAt;
         LastUpdatedAt = userData.LastUpdatedAt;
+        LastVideoStreamIndex = userData.LastVideoStreamIndex;
+        LastAudioStreamIndex = userData.LastAudioStreamIndex;
+        LastSubtitleStreamIndex = userData.LastSubtitleStreamIndex;
     }
 }

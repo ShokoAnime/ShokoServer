@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Video;
 
 namespace Shoko.Abstractions.User;
@@ -39,4 +41,27 @@ public interface IVideoUserData : IUserData
     /// Gets the video associated with this user data, if available.
     /// </summary>
     IVideo? Video { get; }
+
+    /// <summary>
+    ///   Gets the last selected video stream index, if known.
+    /// </summary>
+    int? LastVideoStreamIndex { get; }
+
+    /// <summary>
+    ///   Gets the last selected audio stream index, if known.
+    /// </summary>
+    int? LastAudioStreamIndex { get; }
+
+    /// <summary>
+    ///   Gets the last selected subtitle stream index, if known.
+    /// </summary>
+    int? LastSubtitleStreamIndex { get; }
+
+    /// <summary>
+    ///   Gets a read-only dictionary of client-specific data associated with
+    ///   this video for the user. Each value is an opaque <see cref="JToken"/>
+    ///   owned by the client/plugin that wrote it; the server does not
+    ///   interpret its contents.
+    /// </summary>
+    IReadOnlyDictionary<string, JToken> ClientData { get; }
 }

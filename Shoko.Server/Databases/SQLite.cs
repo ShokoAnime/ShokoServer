@@ -869,6 +869,10 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(147,  5, "DROP TABLE StoredRelocationPipe;"),
         new(147,  6, DatabaseFixes.SetDefaultRenamer),
         new(148,  1, DatabaseFixes.MoveImagesToExtensionPaths),
+        new(149,  1, "ALTER TABLE VideoLocal_User ADD LastVideoStreamIndex INTEGER NULL;"),
+        new(149,  2, "ALTER TABLE VideoLocal_User ADD LastAudioStreamIndex INTEGER NULL;"),
+        new(149,  3, "ALTER TABLE VideoLocal_User ADD LastSubtitleStreamIndex INTEGER NULL;"),
+        new(149,  4, "ALTER TABLE VideoLocal_User ADD ClientData TEXT NULL;"),
     ];
 
     #endregion

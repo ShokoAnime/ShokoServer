@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
@@ -175,6 +176,60 @@ public class UserDataService(
         else if (watchedStatusChanged && userDataUpdate.LastPlayedAt.HasValue)
         {
             userData.ProgressPosition = null;
+        }
+
+        // Set the last video stream index if the update has it.
+        if (userDataUpdate.HasLastVideoStreamIndex)
+        {
+            if (userDataUpdate.LastVideoStreamIndex != userData.LastVideoStreamIndex)
+            {
+                userData.LastVideoStreamIndex = userDataUpdate.LastVideoStreamIndex;
+                shouldSave = true;
+            }
+        }
+
+        // Set the last audio stream index if the update has it.
+        if (userDataUpdate.HasLastAudioStreamIndex)
+        {
+            if (userDataUpdate.LastAudioStreamIndex != userData.LastAudioStreamIndex)
+            {
+                userData.LastAudioStreamIndex = userDataUpdate.LastAudioStreamIndex;
+                shouldSave = true;
+            }
+        }
+
+        // Set the last subtitle stream index if the update has it.
+        if (userDataUpdate.HasLastSubtitleStreamIndex)
+        {
+            if (userDataUpdate.LastSubtitleStreamIndex != userData.LastSubtitleStreamIndex)
+            {
+                userData.LastSubtitleStreamIndex = userDataUpdate.LastSubtitleStreamIndex;
+                shouldSave = true;
+            }
+        }
+
+        // Clear all client data if requested.
+        if (userDataUpdate.ClearClientData)
+        {
+            if (userData.ClientData.Count > 0)
+            {
+                userData.ClearClientDataInternal();
+                shouldSave = true;
+            }
+        }
+
+        // Apply pending client data changes (per-key merge, never replace whole dict).
+        if (userDataUpdate.PendingClientData is { Count: > 0 })
+        {
+            foreach (var kvp in userDataUpdate.PendingClientData)
+            {
+                var key = kvp.Key;
+                var value = kvp.Value;
+                var before = userData.GetClientData(key);
+                userData.SetClientDataInternal(key, value);
+                if (!JToken.DeepEquals(before, userData.GetClientData(key)))
+                    shouldSave = true;
+            }
         }
 
         if (shouldSave)

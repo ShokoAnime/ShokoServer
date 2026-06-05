@@ -10,6 +10,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Services;
+using Shoko.Abstractions.User.Update;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Media;
 using Shoko.Server.API.v3.Models.Release;
@@ -359,6 +360,21 @@ public partial class File
         [Required]
         public DateTime LastUpdatedAt { get; set; }
 
+        /// <summary>
+        /// The last selected video stream index.
+        /// </summary>
+        public int? LastVideoStreamIndex { get; set; }
+
+        /// <summary>
+        /// The last selected audio stream index.
+        /// </summary>
+        public int? LastAudioStreamIndex { get; set; }
+
+        /// <summary>
+        /// The last selected subtitle stream index.
+        /// </summary>
+        public int? LastSubtitleStreamIndex { get; set; }
+
         public FileUserData()
         {
             ProgressPosition = TimeSpan.Zero;
@@ -373,18 +389,25 @@ public partial class File
             WatchedCount = userData?.PlaybackCount ?? 0;
             LastWatchedAt = userData?.LastPlayedAt?.ToUniversalTime();
             LastUpdatedAt = userData?.LastUpdatedAt.ToUniversalTime() ?? DateTime.UtcNow;
+            LastVideoStreamIndex = userData?.LastVideoStreamIndex;
+            LastAudioStreamIndex = userData?.LastAudioStreamIndex;
+            LastSubtitleStreamIndex = userData?.LastSubtitleStreamIndex;
         }
 
         public FileUserData MergeWithExisting(JMMUser user, VideoLocal file)
         {
             var userDataService = ISystemService.StaticServices.GetRequiredService<IUserDataService>();
-            var userData = userDataService.SaveVideoUserData(file, user, new()
+            var update = new VideoUserDataUpdate
             {
                 LastPlayedAt = LastWatchedAt,
                 LastUpdatedAt = LastUpdatedAt,
                 ProgressPosition = ProgressPosition,
                 PlaybackCount = WatchedCount,
-            }).GetAwaiter().GetResult();
+                LastVideoStreamIndex = LastVideoStreamIndex,
+                LastAudioStreamIndex = LastAudioStreamIndex,
+                LastSubtitleStreamIndex = LastSubtitleStreamIndex,
+            };
+            var userData = userDataService.SaveVideoUserData(file, user, update).GetAwaiter().GetResult();
             return new(userData);
         }
     }

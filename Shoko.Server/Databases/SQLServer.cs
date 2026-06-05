@@ -949,6 +949,10 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(160,  5, "DROP TABLE StoredRelocationPipe;"),
         new(160,  6, DatabaseFixes.SetDefaultRenamer),
         new(161,  1, DatabaseFixes.MoveImagesToExtensionPaths),
+        new(162,  1, "ALTER TABLE VideoLocal_User ADD LastVideoStreamIndex int NULL;"),
+        new(162,  2, "ALTER TABLE VideoLocal_User ADD LastAudioStreamIndex int NULL;"),
+        new(162,  3, "ALTER TABLE VideoLocal_User ADD LastSubtitleStreamIndex int NULL;"),
+        new(162,  4, "ALTER TABLE VideoLocal_User ADD ClientData nvarchar(max) NULL;"),
     ];
 
     #endregion
