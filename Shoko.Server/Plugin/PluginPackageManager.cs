@@ -1067,6 +1067,44 @@ public partial class PluginPackageManager(
     #region Update Checking
 
     /// <inheritdoc/>
+    public async Task<IReadOnlyList<PackageUpdateInfo>> GetAvailableUpdates(bool allowSync = false, bool forceSyncNow = false, bool includeInactive = false, bool includePinned = false, CancellationToken cancellationToken = default)
+    {
+        var manifests = await GetAvailablePackageManifests(allowSync: allowSync, forceSyncNow: forceSyncNow, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var localPackages = GetLocalPackages();
+        var availablePackages = FilterPackageManifests(manifests, onlyCompatible: true, onlyLatest: true);
+
+        var comparer = new SemverVersionComparer();
+        var updates = new List<PackageUpdateInfo>();
+        foreach (var availablePackage in availablePackages)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var localPackage = localPackages.FirstOrDefault(p => p.Manifest.PackageID == availablePackage.Manifest.PackageID && p.Plugin is not null);
+            if (localPackage is null)
+                continue;
+
+            if (!includeInactive && localPackage.Plugin is not { IsActive: true, IsEnabled: true })
+                continue;
+
+            if (!includePinned && localPackage.Plugin!.IsPinned)
+                continue;
+
+            if (comparer.Compare(availablePackage.Release.Version, localPackage.Release.Version) <= 0)
+                continue;
+
+            updates.Add(new PackageUpdateInfo
+            {
+                PackageID = availablePackage.Manifest.PackageID,
+                Name = availablePackage.Manifest.Name,
+                Current = localPackage,
+                Latest = availablePackage,
+            });
+        }
+
+        return updates;
+    }
+
+    /// <inheritdoc/>
     public async Task CheckForUpdates(bool? forceSync = null, bool? performUpgrade = null, CancellationToken cancellationToken = default)
     {
         var settings = configurationProvider.Load();
@@ -1116,42 +1154,31 @@ public partial class PluginPackageManager(
         if (!shouldUpgrade)
             return;
 
-        // Auto-upgrade logic
-        var manifests = await GetAvailablePackageManifests(allowSync: false, cancellationToken: cancellationToken).ConfigureAwait(false);
-        var localPackages = GetLocalPackages();
-        var availablePackages = FilterPackageManifests(manifests, onlyCompatible: true, onlyLatest: true);
-
-        var comparer = new SemverVersionComparer();
-        foreach (var availablePackage in availablePackages)
+        // Auto-upgrade logic. Include pinned plugins so we can log that they
+        // were skipped; active+enabled filtering is handled by the default.
+        var updates = await GetAvailableUpdates(allowSync: false, includePinned: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+        foreach (var update in updates)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var localPackage = localPackages.FirstOrDefault(p => p.Manifest.PackageID == availablePackage.Manifest.PackageID && p.Plugin is { IsActive: true, IsEnabled: true });
-            if (localPackage == null)
-                continue;
-
-            if (localPackage.Plugin!.IsPinned)
+            if (update.Current.Plugin is { IsPinned: true })
             {
-                _logger.LogInformation("Skipping auto-upgrade for pinned plugin {PluginName} at version {Version}", availablePackage.Manifest.Name, localPackage.Release.Version);
+                _logger.LogInformation("Skipping auto-upgrade for pinned plugin {PluginName} at version {Version}", update.Name, update.Current.Release.Version);
                 continue;
             }
 
-            // Compare versions - upgrade if newer version available
-            if (comparer.Compare(availablePackage.Release.Version, localPackage.Release.Version) > 0)
-            {
-                _logger.LogInformation("Auto-upgrading plugin {PluginName} from {OldVersion} to {NewVersion}",
-                    availablePackage.Manifest.Name,
-                    localPackage.Release.Version,
-                    availablePackage.Release.Version);
+            _logger.LogInformation("Auto-upgrading plugin {PluginName} from {OldVersion} to {NewVersion}",
+                update.Name,
+                update.Current.Release.Version,
+                update.Latest.Release.Version);
 
-                try
-                {
-                    await InstallPackage(availablePackage, cancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to auto-upgrade plugin {PluginName}", availablePackage.Manifest.Name);
-                }
+            try
+            {
+                await InstallPackage(update.Latest, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to auto-upgrade plugin {PluginName}", update.Name);
             }
         }
     }

@@ -264,6 +264,48 @@ public interface IPluginPackageManager
     #region Update Checking
 
     /// <summary>
+    ///   Gets the list of locally installed packages that have a newer
+    ///   compatible release available to update to.
+    /// </summary>
+    /// <remarks>
+    ///   By default only active, enabled, and non-pinned plugins with a newer
+    ///   version available are returned. Use <paramref name="includeInactive"/>
+    ///   and <paramref name="includePinned"/> to broaden the listing.
+    /// </remarks>
+    /// <param name="allowSync">
+    ///   Optional. Whether to sync repositories before retrieving packages.
+    /// </param>
+    /// <param name="forceSyncNow">
+    ///   Optional. Whether to forcefully sync the repositories.
+    /// </param>
+    /// <param name="includeInactive">
+    ///   Optional. Whether to include plugins that are not currently active and
+    ///   enabled. Defaults to <see langword="false"/>.
+    /// </param>
+    /// <param name="includePinned">
+    ///   Optional. Whether to include plugins whose installed version is pinned.
+    ///   Defaults to <see langword="false"/>.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   Optional. Cancellation token.
+    /// </param>
+    /// <returns>
+    ///   A list of <see cref="PackageUpdateInfo"/> describing the available
+    ///   updates.
+    /// </returns>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown if the operation was cancelled by the
+    ///   <paramref name="cancellationToken"/>.
+    /// </exception>
+    Task<IReadOnlyList<PackageUpdateInfo>> GetAvailableUpdates(
+        bool allowSync = false,
+        bool forceSyncNow = false,
+        bool includeInactive = false,
+        bool includePinned = false,
+        CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
     ///   Checks for plugin updates and optionally performs upgrades on enabled plugins.
     /// </summary>
     /// <param name="forceSync">

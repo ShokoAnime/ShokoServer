@@ -17,6 +17,8 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 using AbstractPackageInfo = Shoko.Abstractions.Plugin.Models.PackageInfo;
+using AbstractPackageUpdateInfo = Shoko.Abstractions.Plugin.Models.PackageUpdateInfo;
+using PackageUpdateInfo = Shoko.Server.API.v3.Models.Plugin.PackageUpdateInfo;
 using PluginInfo = Shoko.Server.API.v3.Models.Plugin.PluginInfo;
 
 #nullable enable
@@ -559,6 +561,64 @@ public class PluginPackageController(
     #endregion
 
     #region Update Checking
+
+    /// <summary>
+    ///   Gets the list of installed packages that have a newer compatible
+    ///   release available to update to.
+    /// </summary>
+    /// <param name="query">
+    ///   An optional query to filter packages by name.
+    /// </param>
+    /// <param name="allowSync">
+    ///   Whether to sync repositories before checking for updates.
+    ///   Defaults to <c>false</c>.
+    /// </param>
+    /// <param name="forceSyncNow">
+    ///   Whether to forcefully sync the repositories.
+    ///   Defaults to <c>false</c>.
+    /// </param>
+    /// <param name="includeInactive">
+    ///   Whether to include plugins that are not currently active and enabled.
+    ///   Defaults to <c>false</c>.
+    /// </param>
+    /// <param name="includePinned">
+    ///   Whether to include plugins whose installed version is pinned.
+    ///   Defaults to <c>false</c>.
+    /// </param>
+    /// <param name="pageSize">
+    ///     The page size. Set to <code>0</code> to disable pagination.
+    /// </param>
+    /// <param name="page">
+    ///   The page index.
+    /// </param>
+    /// <returns>
+    ///   A list of <see cref="PackageUpdateInfo"/> for all available updates.
+    /// </returns>
+    [HttpGet("Updates")]
+    public async Task<ActionResult<ListResult<PackageUpdateInfo>>> GetAvailableUpdates(
+        [FromQuery] string? query = null,
+        [FromQuery] bool allowSync = false,
+        [FromQuery] bool forceSyncNow = false,
+        [FromQuery] bool includeInactive = false,
+        [FromQuery] bool includePinned = false,
+        [FromQuery, Range(0, 1000)] int pageSize = 20,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var updates = (IEnumerable<AbstractPackageUpdateInfo>)await packageManager.GetAvailableUpdates(
+            allowSync: allowSync,
+            forceSyncNow: forceSyncNow,
+            includeInactive: includeInactive,
+            includePinned: includePinned
+        ).ConfigureAwait(false);
+
+        if (!string.IsNullOrEmpty(query))
+            updates = updates
+                .Search(query, u => [u.Name, u.Latest.Manifest.Overview, .. u.Latest.Manifest.Tags])
+                .Select(u => u.Result);
+
+        return updates.ToListResult(u => new PackageUpdateInfo(u), page, pageSize);
+    }
 
     /// <summary>
     ///   Checks for plugin updates and optionally performs upgrades on enabled plugins.
