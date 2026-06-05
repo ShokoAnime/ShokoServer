@@ -22,7 +22,14 @@ public class Queue
     public int BlockedCount { get; set; }
 
     /// <summary>
-    /// The total number of jobs waiting to execute, regardless of state
+    /// The number of jobs deferred to a future scheduled time (retry backoff or an intentionally
+    /// delayed re-fetch). These are not yet ready to run and are not counted in <see cref="WaitingCount"/>.
+    /// </summary>
+    [Required]
+    public int ScheduledCount { get; set; }
+
+    /// <summary>
+    /// The total number of jobs in the queue, regardless of state (waiting + blocked + scheduled + executing)
     /// </summary>
     [Required]
     public int TotalCount { get; set; }
@@ -96,6 +103,13 @@ public class Queue
         public bool IsBlocked { get; init; }
 
         /// <summary>
+        /// Indicates the item is deferred to a future <see cref="ScheduledAt"/> and is not yet ready
+        /// to run (retry backoff or an intentionally delayed re-fetch). Distinct from <see cref="IsBlocked"/>.
+        /// </summary>
+        [Required]
+        public bool IsScheduled { get; init; }
+
+        /// <summary>
         /// The name of the worker pool responsible for this job.
         /// </summary>
         public string? PoolName { get; init; }
@@ -105,6 +119,22 @@ public class Queue
         /// </summary>
         [Required]
         public int RetryCount { get; init; }
+
+        /// <summary>
+        /// The earliest time this job is scheduled to run, in UTC ±0 timezone. Null means it can
+        /// run as soon as a worker is free. A value in the future means the job is intentionally
+        /// deferred (e.g. an AniDB re-download backoff or a retry delay) and is waiting for this
+        /// time — it is not stuck. <see cref="IsBlocked"/> is also true while it is deferred.
+        /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime? ScheduledAt { get; init; }
+
+        /// <summary>
+        /// The <see cref="Key"/> of the job that must complete before this one runs, when it was
+        /// scheduled to follow another job. Null for standalone jobs or when the parent is no
+        /// longer in the queue.
+        /// </summary>
+        public string? ParentKey { get; init; }
     }
 
     public class PoolState
@@ -137,10 +167,17 @@ public class Queue
         public int IdleWorkers { get; init; }
 
         /// <summary>
-        /// Number of waiting jobs in this pool's sub-queue.
+        /// Number of waiting jobs in this pool's sub-queue (includes blocked and scheduled).
         /// </summary>
         [Required]
         public int WaitingCount { get; init; }
+
+        /// <summary>
+        /// Number of jobs in this pool deferred to a future scheduled time (not yet ready to run).
+        /// A subset of <see cref="WaitingCount"/>.
+        /// </summary>
+        [Required]
+        public int ScheduledCount { get; init; }
 
         /// <summary>
         /// True when every job type in this pool is currently excluded by an acquisition

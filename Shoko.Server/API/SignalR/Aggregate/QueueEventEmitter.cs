@@ -57,6 +57,7 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
             Running = _queueStateEventHandler.Running,
             WaitingCount = _queueHandler.WaitingCount,
             BlockedCount = _queueHandler.BlockedCount,
+            ScheduledCount = _queueHandler.ScheduledCount,
             TotalCount = _queueHandler.TotalCount,
             ThreadCount = _queueHandler.ThreadCount,
             CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(a => new Queue.QueueItem
@@ -75,6 +76,7 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
                 ActiveWorkers = p.ActiveWorkers,
                 IdleWorkers = p.IdleWorkers,
                 WaitingCount = p.WaitingCount,
+                ScheduledCount = p.ScheduledCount,
                 IsBlocked = p.IsBlocked,
                 HandledTypeNames = p.HandledTypeNames,
                 LastActiveAt = p.LastActiveAt?.UtcDateTime

@@ -189,6 +189,24 @@ public sealed class WorkerPool : IWorkerPool
     }
 
     /// <summary>
+    /// Resolves a waiting job's id to its job key, or returns <see langword="false"/> if no job
+    /// with that id is currently waiting in this pool's sub-queue.
+    /// </summary>
+    public bool TryGetJobKey(Guid id, out string? jobKey)
+    {
+        lock (_subQueueLock)
+        {
+            if (_subQueueById.TryGetValue(id, out var job))
+            {
+                jobKey = job.JobKey;
+                return true;
+            }
+        }
+        jobKey = null;
+        return false;
+    }
+
+    /// <summary>
     /// Promotes a waiting job to <paramref name="newPriority"/>, resets its queue time so it
     /// sorts before other jobs at the same priority, and clears any scheduled delay so it is
     /// eligible for immediate acquisition. Returns <see langword="false"/> if the job is not
@@ -239,8 +257,10 @@ public sealed class WorkerPool : IWorkerPool
     }
 
     /// <summary>
-    /// Number of waiting jobs whose type is currently excluded by an acquisition filter.
-    /// Cached and invalidated on any queue or filter mutation.
+    /// Number of waiting jobs whose type is currently excluded by an acquisition filter and that
+    /// are <em>not</em> deferred to a future <see cref="QueuedJob.ScheduledAt"/> — a job waiting on
+    /// its scheduled time is counted as <see cref="ScheduledCount"/>, not blocked, so the two
+    /// categories are disjoint. Cached and invalidated on any queue or filter mutation.
     /// </summary>
     public int BlockedCount
     {
@@ -249,11 +269,29 @@ public sealed class WorkerPool : IWorkerPool
             var cached = _cachedBlockedCount;
             if (cached >= 0) return cached;
             var exclusions = _filterExclusions;
+            var now = DateTimeOffset.UtcNow;
             int count;
             lock (_subQueueLock)
-                count = _subQueue.Count(j => _typeByName.TryGetValue(j.JobType, out var t) && exclusions.Contains(t));
+                count = _subQueue.Count(j =>
+                    !(j.ScheduledAt.HasValue && j.ScheduledAt.Value > now)
+                    && _typeByName.TryGetValue(j.JobType, out var t) && exclusions.Contains(t));
             _cachedBlockedCount = count;
             return count;
+        }
+    }
+
+    /// <summary>
+    /// Number of waiting jobs deferred to a future <see cref="QueuedJob.ScheduledAt"/> (retry
+    /// backoff or an intentionally delayed re-fetch). These are not yet ready to run and are not
+    /// counted as waiting. Computed on demand — only read from status/API paths, never the hot path.
+    /// </summary>
+    public int ScheduledCount
+    {
+        get
+        {
+            var now = DateTimeOffset.UtcNow;
+            lock (_subQueueLock)
+                return _subQueue.Count(j => j.ScheduledAt.HasValue && j.ScheduledAt.Value > now);
         }
     }
 
@@ -380,6 +418,7 @@ public sealed class WorkerPool : IWorkerPool
             ActiveWorkers = _activeWorkers,
             IdleWorkers = _idleWorkers,
             WaitingCount = WaitingCount,
+            ScheduledCount = ScheduledCount,
             IsBlocked = HandledTypes.Count > 0 && HandledTypes.All(t => exclusions.Contains(t)),
             HandledTypeNames = HandledTypes.Select(t => t.Name).ToList(),
             LastActiveAt = lastActiveTicks == 0 ? null : new DateTimeOffset(lastActiveTicks, TimeSpan.Zero)

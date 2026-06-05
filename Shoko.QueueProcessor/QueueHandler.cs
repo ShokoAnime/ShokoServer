@@ -60,9 +60,17 @@ public class QueueHandler
 
     // ── State counters ─────────────────────────────────────────────────────
 
-    public int WaitingCount => _orchestrator.WaitingCount;
+    /// <summary>Jobs ready to run now — not blocked by a filter and not deferred to a future time.</summary>
+    public int WaitingCount => _orchestrator.ReadyWaitingCount;
+
+    /// <summary>Jobs that can't run right now because an acquisition filter excludes them (e.g. a ban).</summary>
     public int BlockedCount => _orchestrator.BlockedWaitingCount;
-    public int TotalCount => _orchestrator.WaitingCount + _orchestrator.BlockedWaitingCount + _orchestrator.ExecutingCount;
+
+    /// <summary>Jobs deferred to a future scheduled time (retry backoff / delayed re-fetch); not yet ready.</summary>
+    public int ScheduledCount => _orchestrator.ScheduledWaitingCount;
+
+    /// <summary>Every job in the system: ready + blocked + scheduled + executing.</summary>
+    public int TotalCount => _orchestrator.WaitingCount + _orchestrator.ExecutingCount;
 
     /// <summary>
     /// The maximum number of jobs that can execute concurrently across all pools.
@@ -98,8 +106,14 @@ public class QueueHandler
     /// <summary>
     /// Returns a page of jobs (executing first, then waiting), with correct pagination and
     /// populated <see cref="QueueItem.Title"/> / <see cref="QueueItem.Details"/> for all items.
+    /// <para>
+    /// Executing and ready-to-run jobs are always included. The two waiting sub-categories are
+    /// controlled independently: filter-blocked jobs are hidden when <paramref name="excludeBlocked"/>
+    /// is set, and jobs deferred to a future scheduled time are hidden unless
+    /// <paramref name="includeScheduled"/> is set. Scheduled and blocked are disjoint categories.
+    /// </para>
     /// </summary>
-    public IReadOnlyList<QueueItem> GetJobs(int maxCount, int offset, bool excludeBlocked)
+    public IReadOnlyList<QueueItem> GetJobs(int maxCount, int offset, bool includeScheduled, bool excludeBlocked)
     {
         var executing = GetExecutingJobs();
         var result = new List<QueueItem>(maxCount);
@@ -114,24 +128,26 @@ public class QueueHandler
         if (result.Count >= maxCount)
             return result;
 
-        // Remaining slots filled from waiting
+        // Remaining slots filled from waiting. Pagination/filtering is delegated to GetWaiting so
+        // the offset applies to the post-filter set.
         var waitingOffset = Math.Max(0, offset - executing.Length);
         var waitingNeeded = maxCount - result.Count;
-        var waitingItems = _orchestrator.GetWaiting(waitingNeeded + waitingOffset, 0);
         var now = DateTimeOffset.UtcNow;
 
-        var skipped = 0;
-        foreach (var j in waitingItems)
+        Func<QueuedJob, bool>? filter = includeScheduled && !excludeBlocked
+            ? null
+            : j =>
+            {
+                // A future-scheduled job is "scheduled", never "blocked" — categories are disjoint.
+                if (j.ScheduledAt.HasValue && j.ScheduledAt.Value > now) return includeScheduled;
+                return !(excludeBlocked && _orchestrator.IsJobBlocked(j));
+            };
+
+        foreach (var j in _orchestrator.GetWaiting(waitingNeeded, waitingOffset, filter))
         {
-            var isRetryDelayed = j.ScheduledAt.HasValue && j.ScheduledAt.Value > now;
-            var isFilterBlocked = _orchestrator.IsJobBlocked(j);
-            var isBlocked = isRetryDelayed || isFilterBlocked;
-            if (excludeBlocked && isBlocked) continue;
-
-            if (skipped < waitingOffset) { skipped++; continue; }
-            if (result.Count >= maxCount) break;
-
-            result.Add(BuildWaitingItem(j, isBlocked));
+            var isScheduled = j.ScheduledAt.HasValue && j.ScheduledAt.Value > now;
+            var isFilterBlocked = !isScheduled && _orchestrator.IsJobBlocked(j);
+            result.Add(BuildWaitingItem(j, blocked: isFilterBlocked, scheduled: isScheduled));
         }
 
         return result;
@@ -166,7 +182,7 @@ public class QueueHandler
 
     // ── Helpers ────────────────────────────────────────────────────────────
 
-    private QueueItem BuildWaitingItem(QueuedJob j, bool isRetryDelayed)
+    private QueueItem BuildWaitingItem(QueuedJob j, bool blocked, bool scheduled)
     {
         var type = _orchestrator.TryResolveType(j.JobType);
         var jobType = type?.Name ?? GetShortTypeName(j.JobType);
@@ -196,7 +212,10 @@ public class QueueHandler
             Title = title,
             Details = details,
             RetryCount = j.RetryCount,
-            Blocked = isRetryDelayed
+            Blocked = blocked,
+            Scheduled = scheduled,
+            ScheduledAt = j.ScheduledAt,
+            ParentKey = j.ParentJobId.HasValue ? _orchestrator.TryGetJobKey(j.ParentJobId.Value) : null
         };
     }
 

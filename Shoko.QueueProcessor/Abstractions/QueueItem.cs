@@ -31,6 +31,12 @@ public record struct QueueItem
     /// <summary>True when this job is waiting but blocked by an acquisition filter.</summary>
     public bool Blocked { get; init; }
 
+    /// <summary>
+    /// True when this job is deferred to a future <see cref="ScheduledAt"/> and is not yet ready
+    /// to run (retry backoff or an intentionally delayed re-fetch). Distinct from <see cref="Blocked"/>.
+    /// </summary>
+    public bool Scheduled { get; init; }
+
     /// <summary>When the job started executing; null if still waiting.</summary>
     public DateTime? StartTime { get; init; }
 
@@ -39,4 +45,18 @@ public record struct QueueItem
 
     /// <summary>How many times this job has been retried.</summary>
     public int RetryCount { get; init; }
+
+    /// <summary>
+    /// Earliest time this job may be dispatched. <c>null</c> means "as soon as a worker is free".
+    /// A value in the future means the job is intentionally deferred (e.g. an AniDB re-download
+    /// backoff or a retry delay) and is waiting for this time — it is not stuck.
+    /// </summary>
+    public DateTimeOffset? ScheduledAt { get; init; }
+
+    /// <summary>
+    /// The <see cref="Key"/> of the job that must complete before this one runs, when it was
+    /// scheduled to follow another job. <c>null</c> for standalone jobs or when the parent is
+    /// no longer in the queue.
+    /// </summary>
+    public string? ParentKey { get; init; }
 }

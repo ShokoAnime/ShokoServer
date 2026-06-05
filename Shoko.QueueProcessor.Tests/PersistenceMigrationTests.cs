@@ -120,10 +120,13 @@ public class PersistenceMigrationTests
 
         await ctx.Database.MigrateAsync();
 
+        // Every migration defined in the assembly must be recorded as applied, in the same order —
+        // no hardcoded count/names, so newly added migrations are covered automatically.
+        var defined = ctx.Database.GetMigrations().ToList();
         var applied = (await ctx.Database.GetAppliedMigrationsAsync()).ToList();
-        Assert.Equal(2, applied.Count);
-        Assert.Equal("20260528013231_InitialCreate", applied[0]);
-        Assert.Equal("20260601154911_AddJobChainContext", applied[1]);
+
+        Assert.NotEmpty(defined);
+        Assert.Equal(defined, applied);
     }
 
     // ── Schema constraints ────────────────────────────────────────────────────

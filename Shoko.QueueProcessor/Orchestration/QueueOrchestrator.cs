@@ -862,10 +862,23 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     public int WaitingCount => _allPools.Sum(p => p.WaitingCount);
 
     /// <summary>
-    /// Number of waiting jobs whose type is currently excluded by an acquisition filter.
-    /// Computed on demand — do not call on the hot path.
+    /// Number of waiting jobs whose type is currently excluded by an acquisition filter (and that
+    /// are not deferred to a future scheduled time). Computed on demand — do not call on the hot path.
     /// </summary>
     public int BlockedWaitingCount => _allPools.Sum(p => p.BlockedCount);
+
+    /// <summary>
+    /// Number of waiting jobs deferred to a future <see cref="QueuedJob.ScheduledAt"/> — retry
+    /// backoff or an intentionally delayed re-fetch. Not yet ready to run; disjoint from
+    /// <see cref="BlockedWaitingCount"/> and <see cref="ReadyWaitingCount"/>.
+    /// </summary>
+    public int ScheduledWaitingCount => _allPools.Sum(p => p.ScheduledCount);
+
+    /// <summary>
+    /// Number of waiting jobs that are ready to run right now: not blocked by an acquisition filter
+    /// and not deferred to a future scheduled time. This is the true "waiting" figure.
+    /// </summary>
+    public int ReadyWaitingCount => _allPools.Sum(p => p.WaitingCount - p.BlockedCount - p.ScheduledCount);
 
     /// <summary>Total worker slots across all pools (sum of every pool's <see cref="WorkerPool.MaxWorkers"/>).</summary>
     public int TotalWorkerCount => _allPools.Sum(p => p.MaxWorkers);
@@ -981,6 +994,22 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     public bool IsQueued(string jobKey)
     {
         lock (_gate) return _jobKeyIndex.ContainsKey(jobKey);
+    }
+
+    /// <summary>
+    /// Resolves a job id to its current job key by searching executing jobs first, then every
+    /// pool sub-queue. Returns <c>null</c> if no job with that id is currently in the system
+    /// (e.g. a parent that has already completed). Used to surface parent linkage by key.
+    /// </summary>
+    public string? TryGetJobKey(Guid id)
+    {
+        lock (_gate)
+        {
+            if (_executingSet.TryGetValue(id, out var entry)) return entry.JobKey;
+        }
+        foreach (var pool in _allPools)
+            if (pool.TryGetJobKey(id, out var key)) return key;
+        return null;
     }
 
     public QueueMetricsSnapshot GetMetrics()

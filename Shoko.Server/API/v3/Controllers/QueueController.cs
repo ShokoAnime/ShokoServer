@@ -45,6 +45,7 @@ public class QueueController : BaseController
         {
             WaitingCount = _queueHandler.WaitingCount,
             BlockedCount = _queueHandler.BlockedCount,
+            ScheduledCount = _queueHandler.ScheduledCount,
             TotalCount = _queueHandler.TotalCount,
             ThreadCount = _queueHandler.ThreadCount,
             CurrentlyExecuting = _queueHandler.GetExecutingJobs().Select(ToQueueItem).OrderBy(a => a.StartTime).ToList(),
@@ -112,19 +113,26 @@ public class QueueController : BaseController
     /// </summary>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
-    /// <param name="showAll">Show all queue items, even those skipped from processing under the current conditions.</param>
+    /// <param name="showScheduled">Also include jobs deferred to a future scheduled time (not yet ready to run). Hidden by default.</param>
+    /// <param name="excludeBlocked">Hide jobs that can't run right now because an acquisition filter excludes them (e.g. a ban). Shown by default.</param>
     /// <returns>A full or partial representation of the queued items, depending on the page and page size used, and the remaining items in the queue.</returns>
     [Authorize("admin")]
     [HttpGet("Items")]
     public ActionResult<ListResult<Queue.QueueItem>> GetItemsInQueue(
         [FromQuery, Range(0, 1000)] int pageSize = 10,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] bool showAll = false
+        [FromQuery] bool showScheduled = false,
+        [FromQuery] bool excludeBlocked = false
     )
     {
         var offset = (page - 1) * pageSize;
-        var items = _queueHandler.GetJobs(pageSize, offset, !showAll).Select(ToQueueItem).ToList();
-        var total = showAll ? _queueHandler.TotalCount : _queueHandler.WaitingCount + _queueHandler.GetExecutingJobs().Length;
+        var items = _queueHandler.GetJobs(pageSize, offset, includeScheduled: showScheduled, excludeBlocked)
+            .Select(ToQueueItem).ToList();
+        // Total reflects exactly the categories being returned.
+        var total = _queueHandler.GetExecutingJobs().Length
+            + _queueHandler.WaitingCount
+            + (excludeBlocked ? 0 : _queueHandler.BlockedCount)
+            + (showScheduled ? _queueHandler.ScheduledCount : 0);
         return new ListResult<Queue.QueueItem>(total, items);
     }
 
@@ -139,8 +147,11 @@ public class QueueController : BaseController
             StartTime = a.StartTime,
             IsRunning = a.Running,
             IsBlocked = a.Blocked,
+            IsScheduled = a.Scheduled,
             PoolName = a.PoolName,
-            RetryCount = a.RetryCount
+            RetryCount = a.RetryCount,
+            ScheduledAt = a.ScheduledAt?.UtcDateTime,
+            ParentKey = a.ParentKey
         };
     }
 
@@ -153,6 +164,7 @@ public class QueueController : BaseController
             ActiveWorkers = p.ActiveWorkers,
             IdleWorkers = p.IdleWorkers,
             WaitingCount = p.WaitingCount,
+            ScheduledCount = p.ScheduledCount,
             IsBlocked = p.IsBlocked,
             HandledTypeNames = p.HandledTypeNames,
             LastActiveAt = p.LastActiveAt?.UtcDateTime

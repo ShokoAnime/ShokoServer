@@ -24,8 +24,14 @@ public record PoolStatus
     /// </summary>
     public bool IsBlocked { get; init; }
 
-    /// <summary>Number of waiting jobs in this pool's sub-queue.</summary>
+    /// <summary>Number of waiting jobs in this pool's sub-queue (includes blocked and scheduled).</summary>
     public int WaitingCount { get; init; }
+
+    /// <summary>
+    /// Number of jobs in this pool deferred to a future scheduled time (not yet ready to run).
+    /// A subset of <see cref="WaitingCount"/>.
+    /// </summary>
+    public int ScheduledCount { get; init; }
 
     /// <summary>Short names of job types handled by this pool.</summary>
     public IReadOnlyList<string> HandledTypeNames { get; init; } = [];

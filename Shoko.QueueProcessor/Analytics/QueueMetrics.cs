@@ -105,7 +105,9 @@ public class QueueMetrics
             };
         }
 
-        var totalWaiting = poolStatus.Values.Sum(p => p.WaitingCount);
+        var totalScheduled = poolStatus.Values.Sum(p => p.ScheduledCount);
+        // Scheduled (not-yet-ready) jobs are a separate category — don't count them as waiting.
+        var totalWaiting = poolStatus.Values.Sum(p => p.WaitingCount) - totalScheduled;
         var totalExecuting = poolStatus.Values.Sum(p => p.ActiveWorkers);
 
         return new QueueMetricsSnapshot
@@ -115,6 +117,7 @@ public class QueueMetrics
             ByType = byType,
             ByPool = poolStatus,
             TotalWaiting = totalWaiting,
+            TotalScheduled = totalScheduled,
             TotalExecuting = totalExecuting,
             TotalRetrying = totalRetrying,
             TotalBlocked = totalBlocked,

@@ -23,7 +23,12 @@ public class QueueStateSignalRModel
     public int BlockedCount { get; set; }
 
     /// <summary>
-    /// The total number of jobs waiting to execute, regardless of state
+    /// The number of jobs deferred to a future scheduled time (not yet ready to run). Not counted in <see cref="WaitingCount"/>.
+    /// </summary>
+    public int ScheduledCount { get; set; }
+
+    /// <summary>
+    /// The total number of jobs in the queue, regardless of state
     /// </summary>
     public int TotalCount { get; set; }
 

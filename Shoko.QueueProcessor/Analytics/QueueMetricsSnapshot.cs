@@ -21,8 +21,11 @@ public record QueueMetricsSnapshot
     /// <summary>Per-pool live status keyed by pool name.</summary>
     public IReadOnlyDictionary<string, PoolStatus> ByPool { get; init; } = new Dictionary<string, PoolStatus>();
 
-    /// <summary>Total jobs currently waiting (across all pools).</summary>
+    /// <summary>Total jobs currently waiting and ready to run (excludes blocked-only is not implied; excludes scheduled).</summary>
     public int TotalWaiting { get; init; }
+
+    /// <summary>Total jobs deferred to a future scheduled time (not yet ready to run).</summary>
+    public int TotalScheduled { get; init; }
 
     /// <summary>Total jobs currently executing (across all pools).</summary>
     public int TotalExecuting { get; init; }
