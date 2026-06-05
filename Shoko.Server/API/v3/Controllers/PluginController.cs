@@ -266,7 +266,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
             : NotFound("Plugin not found");
 
     /// <summary>
-    ///   Updates the active or highest version of a plugin by ID.
+    ///   Enable or disable a plugin by ID.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.
@@ -297,7 +297,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     }
 
     /// <summary>
-    ///   Updates the active or highest version of a plugin by ID.
+    ///   Enable or disable a plugin by ID using JSON Patch.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.
@@ -409,7 +409,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
             : NotFound("Plugin not found");
 
     /// <summary>
-    ///   Updates the specific version of a plugin by ID and version.
+    ///   Enable or disable a specific version of a plugin by ID and version.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.
@@ -444,7 +444,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     }
 
     /// <summary>
-    ///   Updates the specific version of a plugin by ID and version.
+    ///   Enable or disable a specific version of a plugin by ID and version using JSON Patch.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.
