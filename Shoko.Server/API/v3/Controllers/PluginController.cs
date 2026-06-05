@@ -266,14 +266,13 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
             : NotFound("Plugin not found");
 
     /// <summary>
-    ///   Enable or disable a plugin by ID.
+    ///   Enable, disable, pin, or unpin a plugin by ID.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.
     /// </param>
     /// <param name="body">
-    ///   The body containing the fields to update. Only the IsEnabled field is
-    ///   supported for now.
+    ///   The body containing the fields to update.
     /// </param>
     /// <returns>
     ///   The updated <see cref="PluginInfo"/> if a plugin is found.
@@ -293,18 +292,23 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
             else
                 pluginInfo = pluginManager.DisablePlugin(pluginInfo);
 
+        if (body.IsPinned.HasValue)
+            if (body.IsPinned.Value)
+                pluginInfo = pluginManager.PinPlugin(pluginInfo);
+            else
+                pluginInfo = pluginManager.UnpinPlugin(pluginInfo);
+
         return new PluginInfo(pluginInfo);
     }
 
     /// <summary>
-    ///   Enable or disable a plugin by ID using JSON Patch.
+    ///   Enable, disable, pin, or unpin a plugin by ID using JSON Patch.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.
     /// </param>
     /// <param name="body">
-    ///   A JSON Patch Document containing the fields to update. Only the
-    ///   IsEnabled field is supported for now.
+    ///   A JSON Patch Document containing the fields to update.
     /// </param>
     /// <returns>
     ///   The updated <see cref="PluginInfo"/> if a plugin is found.
@@ -315,13 +319,10 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<UpdatePluginInfoBody> body
     )
     {
-        if (pluginManager.GetPluginInfo(pluginID) is not { } pluginInfo)
+        if (pluginManager.GetPluginInfo(pluginID) is not { })
             return NotFound("Plugin not found");
 
-        var updatePluginInfoBody = new UpdatePluginInfoBody
-        {
-            IsEnabled = pluginInfo.IsEnabled,
-        };
+        var updatePluginInfoBody = new UpdatePluginInfoBody();
         body.ApplyTo(updatePluginInfoBody);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -409,7 +410,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
             : NotFound("Plugin not found");
 
     /// <summary>
-    ///   Enable or disable a specific version of a plugin by ID and version.
+    ///   Enable, disable, pin, or unpin a specific version of a plugin by ID and version.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.
@@ -418,8 +419,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     ///   The plugin version.
     /// </param>
     /// <param name="body">
-    ///   The body containing the fields to update. Only the IsEnabled field is
-    ///   supported for now.
+    ///   The body containing the fields to update.
     /// </param>
     /// <returns>
     ///   The updated <see cref="PluginInfo"/> if a plugin is found.
@@ -440,11 +440,17 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
             else
                 pluginInfo = pluginManager.DisablePlugin(pluginInfo);
 
+        if (body.IsPinned.HasValue)
+            if (body.IsPinned.Value)
+                pluginInfo = pluginManager.PinPlugin(pluginInfo);
+            else
+                pluginInfo = pluginManager.UnpinPlugin(pluginInfo);
+
         return new PluginInfo(pluginInfo);
     }
 
     /// <summary>
-    ///   Enable or disable a specific version of a plugin by ID and version using JSON Patch.
+    ///   Enable, disable, pin, or unpin a specific version of a plugin by ID and version using JSON Patch.
     /// </summary>
     /// <param name="pluginID">
     ///   The plugin ID.
@@ -453,8 +459,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     ///   The plugin version.
     /// </param>
     /// <param name="body">
-    ///   A JSON Patch Document containing the fields to update. Only the
-    ///   IsEnabled field is supported for now.
+    ///   A JSON Patch Document containing the fields to update.
     /// </param>
     /// <returns>
     ///   The updated <see cref="PluginInfo"/> if a plugin is found.
@@ -466,13 +471,10 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<UpdatePluginInfoBody> body
     )
     {
-        if (pluginManager.GetPluginInfo(pluginID, pluginVersion) is not { } pluginInfo)
+        if (pluginManager.GetPluginInfo(pluginID, pluginVersion) is not { })
             return NotFound("Plugin not found");
 
-        var updatePluginInfoBody = new UpdatePluginInfoBody
-        {
-            IsEnabled = pluginInfo.IsEnabled,
-        };
+        var updatePluginInfoBody = new UpdatePluginInfoBody();
         body.ApplyTo(updatePluginInfoBody);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
