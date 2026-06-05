@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 
 using AbstractPackageUpdateInfo = Shoko.Abstractions.Plugin.Models.PackageUpdateInfo;
 
@@ -10,7 +13,7 @@ namespace Shoko.Server.API.v3.Models.Plugin;
 /// Describes an available update for a locally installed package. The full
 /// package details are available through the other package endpoints.
 /// </summary>
-public class PackageUpdateInfo(AbstractPackageUpdateInfo updateInfo)
+public class PackageUpdateInfo(AbstractPackageUpdateInfo updateInfo, IReadOnlyList<LocalPluginInfo> pluginInfoList, IPluginManager pluginManager)
 {
     /// <summary>
     ///   The unique identifier of the package.
@@ -28,11 +31,11 @@ public class PackageUpdateInfo(AbstractPackageUpdateInfo updateInfo)
     ///   The currently installed version.
     /// </summary>
     [Required]
-    public Version Current { get; init; } = updateInfo.Current.Release.Version;
+    public PackageInfo Current { get; init; } = new(updateInfo.Current, pluginInfoList, pluginManager);
 
     /// <summary>
     ///   The latest available version to update to.
     /// </summary>
     [Required]
-    public Version Latest { get; init; } = updateInfo.Latest.Release.Version;
+    public PackageInfo Latest { get; init; } = new(updateInfo.Latest, pluginInfoList, pluginManager);
 }

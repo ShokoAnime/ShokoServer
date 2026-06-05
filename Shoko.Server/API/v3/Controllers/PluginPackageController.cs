@@ -617,7 +617,7 @@ public class PluginPackageController(
                 .Search(query, u => [u.Name, u.Latest.Manifest.Overview, .. u.Latest.Manifest.Tags])
                 .Select(u => u.Result);
 
-        return updates.ToListResult(u => new PackageUpdateInfo(u), page, pageSize);
+        return updates.ToListResult(u => new PackageUpdateInfo(u, pluginManager.GetPluginInfos(u.PackageID), pluginManager), page, pageSize);
     }
 
     /// <summary>
