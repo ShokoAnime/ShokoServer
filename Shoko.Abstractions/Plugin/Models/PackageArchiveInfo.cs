@@ -32,7 +32,9 @@ public sealed class PackageArchiveInfo
     public required string ArchiveUrl { get; init; }
 
     /// <summary>
-    ///   SHA256 checksum for integrity verification.
+    ///   Checksum for integrity verification. Defaults to SHA256. Can be
+    ///   prefixed with <c>"sha256:"</c>, <c>"sha1:"</c>, or <c>"md5:"</c> to
+    ///   use a different hash algorithm.
     /// </summary>
     [JsonPropertyName("checksum")]
     [JsonProperty("checksum")]

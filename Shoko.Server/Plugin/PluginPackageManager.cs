@@ -454,9 +454,30 @@ public partial class PluginPackageManager(
         }
     }
 
-    private async Task DownloadAndVerifyArchiveAsync(string downloadUrl, string destinationPath, string expectedChecksum, CancellationToken cancellationToken)
+    private async Task DownloadAndVerifyArchiveAsync(string downloadUrl, string destinationPath, string checksum, CancellationToken cancellationToken)
     {
         var httpClient = httpClientFactory.CreateClient("PluginPackages");
+
+        // Parse optional hash prefix (e.g. "sha256:...", "sha1:...", "md5:..."), default to SHA256.
+        string expectedChecksum;
+        HashAlgorithm hashAlgorithm;
+        if (checksum.IndexOf(':') is > -1 and var colonIndex)
+        {
+            var prefix = checksum[..colonIndex];
+            expectedChecksum = checksum[(colonIndex + 1)..];
+            hashAlgorithm = prefix.ToLowerInvariant() switch
+            {
+                "sha256" => SHA256.Create(),
+                "sha1" => SHA1.Create(),
+                "md5" => MD5.Create(),
+                _ => throw new ArgumentException($"Unknown hash prefix '{prefix}' in checksum. Supported prefixes: sha256:, sha1:, md5:."),
+            };
+        }
+        else
+        {
+            hashAlgorithm = SHA256.Create();
+            expectedChecksum = checksum;
+        }
 
         using var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
@@ -467,7 +488,6 @@ public partial class PluginPackageManager(
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         await using var fileStream = File.Create(destinationPath);
 
-        var sha256 = SHA256.Create();
         var hashBytes = new byte[1024 * 1024];
         int bytesRead;
         long totalBytesRead = 0;
@@ -477,16 +497,18 @@ public partial class PluginPackageManager(
             if (cancellationToken.IsCancellationRequested)
                 throw new OperationCanceledException("Download cancelled during data read.");
 
-            sha256.TransformBlock(hashBytes, 0, bytesRead, hashBytes, 0);
+            hashAlgorithm.TransformBlock(hashBytes, 0, bytesRead, hashBytes, 0);
             await fileStream.WriteAsync(hashBytes.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
             totalBytesRead += bytesRead;
         }
 
-        sha256.TransformFinalBlock([], 0, 0);
+        hashAlgorithm.TransformFinalBlock([], 0, 0);
 
         _logger.LogDebug($"Downloaded package with {totalBytesRead} bytes");
 
-        var actualHash = Convert.ToHexString(sha256.Hash!);
+        var actualHash = Convert.ToHexString(hashAlgorithm.Hash!);
+
+        hashAlgorithm.Dispose();
 
         if (!string.Equals(actualHash, expectedChecksum, StringComparison.InvariantCultureIgnoreCase))
         {
