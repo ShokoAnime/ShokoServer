@@ -19,6 +19,25 @@ const EndingMarkers = new Set([
     "?",
 ]);
 
+// Correct common type typos/synonyms to their canonical form.
+const TypeAliases = {
+    "feature": "feat",
+    "refacor": "refactor",
+    "mics": "misc",
+};
+
+// Slips where a scope was used as the type. Maps the bad type to the
+// canonical [type, scope] pair (only applied when no scope was parsed).
+const TypeToScope = {
+    "docker": ["repo", "docker"],
+};
+
+// Correct common scope typos/synonyms to their canonical form.
+const ScopeAliases = {
+    "abstraction": "abstractions",
+    "plugins": "plugin",
+};
+
 const Placeholders = {
     "H": "commit",
     "P": "parents",
@@ -171,13 +190,26 @@ const commitsList = commitOrder.reverse()
     .map((commit) => {
         const prMatch = commit.subject.match(/\(#(\d+)\)/);
         const prNumber = prMatch ? parseInt(prMatch[1], 10) : null;
+
+        // Normalize the type, then promote scope-as-type slips, then
+        // normalize the resulting scope.
+        let type = TypeAliases[commit.type] ?? commit.type;
+        let scope = commit.scope;
+        if (!scope && TypeToScope[type]) {
+            [type, scope] = TypeToScope[type];
+        }
+        if (scope) {
+            scope = ScopeAliases[scope] ?? scope;
+        }
+
         return {
             ...commit,
             subject: commit.subject.replace(/\[(?:skip|no) *ci\]/ig, "").replace(/\(#\d+\)/g, "").trim().replace(/[\.:]+^/, ""),
             body: commit.body ? commit.body.replace(/\[(?:skip|no) *ci\]/ig, "").trimEnd() : commit.body,
             isSkipCI: /\[(?:skip|no) *ci\]/i.test(commit.subject) || Boolean(commit.body && /\[(?:skip|no) *ci\]/i.test(commit.body)),
             prNumber,
-            type: commit.type == "feature" ? "feat" : commit.type === "refacor" ? "refactor" : commit.type == "mics" ? "misc" : commit.type,
+            type,
+            scope,
         };
     })
     .map((commit) => ({
