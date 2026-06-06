@@ -131,6 +131,8 @@ public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleas
             var releaseInfo = new ReleaseInfoWithProvider(release, providerInfo.Name);
             _matchAttempt.ProviderID = providerInfo.ID;
             _matchAttempt.ProviderName = providerInfo.Name;
+            if (!isRescan)
+                _matchAttempt.AttemptCount = 1;
             await _videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, addToMylist: !SkipMyList);
 
             _videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, releaseInfo);

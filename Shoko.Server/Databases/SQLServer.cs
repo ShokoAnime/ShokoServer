@@ -960,7 +960,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(163,  5, "UPDATE FileNameHash SET Hash = UPPER(Hash)"),
         new(163,  6, "UPDATE StoredReleaseInfo SET ED2K = UPPER(ED2K)"),
         new(163,  7, "UPDATE StoredReleaseInfo_MatchAttempt SET ED2K = UPPER(ED2K)"),
-        new(164,  1, "ALTER TABLE StoredReleaseInfo_MatchAttempt ADD AttemptCount INT NOT NULL DEFAULT 0"),
+        new(164,  1, "ALTER TABLE StoredReleaseInfo_MatchAttempt ADD AttemptCount INT NOT NULL DEFAULT 1"),
     ];
 
     #endregion
