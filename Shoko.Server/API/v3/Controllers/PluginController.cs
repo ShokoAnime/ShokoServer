@@ -154,8 +154,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
         if (!string.IsNullOrEmpty(query))
             enumerable = enumerable
                 .Search(query, p => [p.Name])
-                .Select(pluginInfo => pluginInfo.Result)
-                .OrderBy(pluginInfo => pluginInfo.LoadOrder);
+                .Select(pluginInfo => pluginInfo.Result);
         return enumerable
             .Where(pluginInfo =>
             {
@@ -189,6 +188,7 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
                 return true;
             })
             .Select(pluginInfo => new PluginInfo(pluginInfo))
+            .OrderBy(pluginInfo => pluginInfo.Name)
             .ToList();
     }
 
