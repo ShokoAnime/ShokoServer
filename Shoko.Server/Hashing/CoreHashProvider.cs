@@ -340,7 +340,7 @@ public class CoreHashProvider(ILogger<CoreHashProvider> logger, ConfigurationPro
         {
             Native.rhash_print(output, ctx, RHashIds.RHASH_SHA512, RhashPrintSumFlags.RHPR_DEFAULT);
             var sha512 = Marshal.PtrToStringAnsi(output)!;
-            hashes.Add(new HashDigest { Type = "SHA512", Value = sha512 });
+            hashes.Add(new HashDigest { Type = "SHA512", Value = sha512.ToUpperInvariant() });
         }
 
         Marshal.FreeHGlobal(output);
