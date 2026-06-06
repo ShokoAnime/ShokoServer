@@ -1225,7 +1225,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             if (extName is null)
                 return null;
 
-            var fileName = Path.ChangeExtension(dll, ".thumbnail" + extName);
+            var fileName = !string.IsNullOrEmpty(containingDirectory)
+                ? Path.Combine(containingDirectory, "thumbnail." + extName)
+                : Path.ChangeExtension(dll, ".thumbnail." + extName);
             File.WriteAllBytes(fileName, thumbnailBytes);
 
             return new()
