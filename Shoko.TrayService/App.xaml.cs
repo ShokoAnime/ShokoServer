@@ -7,7 +7,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Threading;
 using Hardcodet.Wpf.TaskbarNotification;
+using Microsoft.Win32;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -26,6 +29,7 @@ namespace Shoko.TrayService;
 public partial class App
 {
     private static TaskbarIcon? _icon;
+    private DispatcherTimer? _tooltipTimer;
     private ILogger _logger = null!;
 
     private void OnStartup(object a, StartupEventArgs e)
@@ -73,15 +77,66 @@ public partial class App
 
     private void InitialiseTaskbarIcon()
     {
+        ApplySystemTooltipTheme();
         _icon = new TaskbarIcon{
                                    ToolTipText = "Shoko Server",
                                    ContextMenu = CreateContextMenu(),
                                    MenuActivation = PopupActivationMode.RightClick,
                                    Visibility = Visibility.Visible
                                };
+        _icon.TrayToolTipOpen += OnTrayToolTipOpen;
+        _icon.TrayToolTipClose += OnTrayToolTipClose;
         using var iconStream = GetResourceStream(new Uri("pack://application:,,,/ShokoServer;component/db.ico"))?.Stream;
         if (iconStream is not null)
             _icon.Icon = new Icon(iconStream);
+    }
+
+    // Hardcodet fires NIN_POPUPOPEN after the hover delay even when the cursor has already
+    // left, because NIN_POPUPCLOSE arrives first (while the popup wasn't open yet) and is
+    // treated as a no-op. We mirror the system default tooltip duration so the popup
+    // auto-closes if Hardcodet never receives a matching NIN_POPUPCLOSE.
+    private void OnTrayToolTipOpen(object sender, RoutedEventArgs e)
+    {
+        _tooltipTimer?.Stop();
+        _tooltipTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        _tooltipTimer.Tick += (_, _) =>
+        {
+            _tooltipTimer?.Stop();
+            _tooltipTimer = null;
+            if (_icon?.TrayToolTipResolved is { IsOpen: true } tooltip)
+                tooltip.IsOpen = false;
+        };
+        _tooltipTimer.Start();
+    }
+
+    private void OnTrayToolTipClose(object sender, RoutedEventArgs e)
+    {
+        _tooltipTimer?.Stop();
+        _tooltipTimer = null;
+    }
+
+    // Hardcodet shows a WPF ToolTip popup rather than the native Win32 tooltip, so it
+    // ignores the system dark/light theme. Mirror the system tooltip colors so the popup
+    // matches the rest of the taskbar.
+    private void ApplySystemTooltipTheme()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+            var isDark = key?.GetValue("AppsUseLightTheme") is int appsUseLightTheme && appsUseLightTheme == 0;
+            if (!isDark)
+                return;
+
+            var style = new Style(typeof(ToolTip));
+            style.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(0x2B, 0x2B, 0x2B))));
+            style.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(Colors.White)));
+            style.Setters.Add(new Setter(Control.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(0x56, 0x56, 0x56))));
+            Resources[typeof(ToolTip)] = style;
+        }
+        catch
+        {
+            // non-critical, fall back to default WPF tooltip appearance
+        }
     }
 
     private ContextMenu CreateContextMenu()
