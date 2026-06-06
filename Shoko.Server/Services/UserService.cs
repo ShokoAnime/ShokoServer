@@ -112,10 +112,32 @@ public class UserService(
         {
             try
             {
-                var image = updateData.AvatarImageAsStream is { } stream
-                    ? _imageManager.UploadImage(stream)
-                    : _imageManager.UploadImage(updateData.AvatarImage!);
-                _imageManager.SetPreferredImageForEntity(user, ImageEntityType.Primary, image);
+                switch (updateData)
+                {
+                    case { AvatarImageAsStream: { } stream }:
+                    {
+                        var image = _imageManager.UploadImage(stream);
+                        _imageManager.SetPreferredImageForEntity(user, ImageEntityType.Primary, image);
+                        break;
+                    }
+
+                    case { AvatarImage: { } byteArray }:
+                    {
+                        var image = _imageManager.UploadImage(byteArray);
+                        _imageManager.SetPreferredImageForEntity(user, ImageEntityType.Primary, image);
+                        break;
+                    }
+
+                    case { AvatarImageAsStream: null, AvatarImage: null } when
+                    (
+                        _imageManager.GetImageCrossReferencesForEntity(user, imageType: ImageEntityType.Primary, linkedEntityImages: false)
+                            .FirstOrDefault(xref => xref.IsPreferred) is { } xref
+                    ):
+                    {
+                        _imageManager.UnsetPreferredImageForEntity(xref);
+                        break;
+                    }
+                }
             }
             catch (ArgumentException ex)
             {
