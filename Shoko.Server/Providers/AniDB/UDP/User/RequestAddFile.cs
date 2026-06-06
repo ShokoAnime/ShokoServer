@@ -41,7 +41,7 @@ public class RequestAddFile : UDPRequest<ResponseMyListFile>
     public bool IsWatched { get; set; }
     public DateTime? WatchedDate { get; set; }
 
-    protected override UDPResponse<ResponseMyListFile> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<ResponseMyListFile> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

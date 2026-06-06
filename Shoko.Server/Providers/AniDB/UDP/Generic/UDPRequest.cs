@@ -18,7 +18,7 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
     /// </summary>
     protected abstract string BaseCommand { get; }
 
-    protected abstract UDPResponse<T> ParseResponse(UDPResponse<string> response);
+    protected internal abstract UDPResponse<T> ParseResponse(UDPResponse<string> response);
 
     // Muting the warning, I read up, and it's the intended result here
     // ReSharper disable once StaticMemberInGenericType

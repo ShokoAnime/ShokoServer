@@ -27,7 +27,7 @@ public class RequestGetEpisode : UDPRequest<ResponseMyListFile>
     public int EpisodeNumber { get; set; }
     public EpisodeType EpisodeType { get; set; } = EpisodeType.Episode;
 
-    protected override UDPResponse<ResponseMyListFile> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<ResponseMyListFile> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

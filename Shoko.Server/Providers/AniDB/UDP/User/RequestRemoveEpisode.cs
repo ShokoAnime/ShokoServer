@@ -28,7 +28,7 @@ public class RequestRemoveEpisode : UDPRequest<Void>
     public int EpisodeNumber { get; set; }
     public EpisodeType EpisodeType { get; set; } = EpisodeType.Episode;
 
-    protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

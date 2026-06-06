@@ -14,7 +14,7 @@ public class RequestReleaseGroupStatus : UDPRequest<List<ResponseReleaseGroupSta
 
     protected override string BaseCommand => $"GROUPSTATUS aid={AnimeID}";
 
-    protected override UDPResponse<List<ResponseReleaseGroupStatus>> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<List<ResponseReleaseGroupStatus>> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

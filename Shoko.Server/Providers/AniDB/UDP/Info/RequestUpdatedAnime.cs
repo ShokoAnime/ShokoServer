@@ -13,7 +13,7 @@ public class RequestUpdatedAnime : UDPRequest<ResponseUpdatedAnime>
     protected override string BaseCommand =>
         $"UPDATED entity=1&time={AniDBExtensions.GetAniDBDateAsSeconds(LastUpdated)}";
 
-    protected override UDPResponse<ResponseUpdatedAnime> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<ResponseUpdatedAnime> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         if (code != UDPReturnCode.UPDATED)

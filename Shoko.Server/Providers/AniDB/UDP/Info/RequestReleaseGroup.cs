@@ -13,7 +13,7 @@ public class RequestReleaseGroup : UDPRequest<ResponseReleaseGroup>
 
     protected override string BaseCommand => $"GROUP gid={ReleaseGroupID}";
 
-    protected override UDPResponse<ResponseReleaseGroup> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<ResponseReleaseGroup> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

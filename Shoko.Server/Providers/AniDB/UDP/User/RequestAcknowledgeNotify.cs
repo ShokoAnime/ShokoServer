@@ -16,7 +16,7 @@ public class RequestAcknowledgeNotify : UDPRequest<Void>
 
     protected override string BaseCommand => $"NOTIFYACK type={(Type == AniDBNotifyType.Message ? "M" : "N")}&id={ID}";
 
-    protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         switch (code)

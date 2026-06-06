@@ -52,7 +52,7 @@ public class RequestUpdateEpisode : UDPRequest<Void>
     public bool? IsWatched { get; set; }
     public DateTime? WatchedDate { get; set; }
 
-    protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

@@ -17,7 +17,7 @@ public class RequestRemoveMyListID : UDPRequest<Void>
 
     public int MyListID { get; set; }
 
-    protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

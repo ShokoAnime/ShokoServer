@@ -16,7 +16,7 @@ public class RequestGetNotifyList : UDPRequest<IList<ResponseNotifyId>>
 
     protected override string BaseCommand => "NOTIFYLIST";
 
-    protected override UDPResponse<IList<ResponseNotifyId>> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<IList<ResponseNotifyId>> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         if (code != UDPReturnCode.NOTIFYLIST)

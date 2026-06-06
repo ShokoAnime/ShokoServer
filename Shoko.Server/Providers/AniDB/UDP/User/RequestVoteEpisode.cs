@@ -28,7 +28,7 @@ public class RequestVoteEpisode : UDPRequest<ResponseVote>
     /// </summary>
     protected override string BaseCommand => $"VOTE type=6&id={EpisodeID}&value={AniDBValue}";
 
-    protected override UDPResponse<ResponseVote> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<ResponseVote> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

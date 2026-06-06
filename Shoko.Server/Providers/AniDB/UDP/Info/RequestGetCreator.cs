@@ -19,7 +19,7 @@ public class RequestGetCreator : UDPRequest<ResponseGetCreator?>
 
     public int CreatorID { get; set; }
 
-    protected override UDPResponse<ResponseGetCreator?> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<ResponseGetCreator?> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

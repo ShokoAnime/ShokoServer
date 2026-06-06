@@ -9,7 +9,7 @@ public class RequestPing : UDPRequest<Void>
 {
     protected override string BaseCommand => "PING";
 
-    protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

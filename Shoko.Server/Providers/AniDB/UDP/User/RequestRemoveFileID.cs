@@ -17,7 +17,7 @@ public class RequestRemoveFileID : UDPRequest<Void>
 
     public int FileID { get; set; }
 
-    protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

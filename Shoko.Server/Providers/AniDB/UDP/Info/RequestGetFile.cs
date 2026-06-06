@@ -55,7 +55,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
     private static readonly Regex s_episodeFormat1 = new("^(\\d+'\\d+)+$", RegexOptions.Compiled);
     private static readonly Regex s_episodeFormat2 = new("^(\\d+,\\d+'?)+$", RegexOptions.Compiled);
 
-    protected override UDPResponse<ResponseGetFile> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<ResponseGetFile> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

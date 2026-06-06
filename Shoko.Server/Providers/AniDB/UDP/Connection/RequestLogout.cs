@@ -27,7 +27,7 @@ public class RequestLogout : UDPRequest<Void>
         return parsedResponse;
     }
 
-    protected override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<Void> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         return new UDPResponse<Void> { Code = code };

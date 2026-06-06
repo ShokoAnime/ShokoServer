@@ -23,7 +23,7 @@ public class RequestGetMessageContent : UDPRequest<ResponseMessageContent>
 
     protected override string BaseCommand => $"NOTIFYGET type=M&id={ID}";
 
-    protected override UDPResponse<ResponseMessageContent> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<ResponseMessageContent> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

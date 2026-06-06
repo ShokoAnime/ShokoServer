@@ -17,7 +17,7 @@ public class RequestGetNotifyCount : UDPRequest<ResponseNotificationCount>
 
     protected override string BaseCommand => $"NOTIFY buddy={(Buddies ? '1' : '0')}";
 
-    protected override UDPResponse<ResponseNotificationCount> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<ResponseNotificationCount> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         if (code != UDPReturnCode.NOTIFICATION_STATE)

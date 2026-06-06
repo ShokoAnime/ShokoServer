@@ -16,7 +16,7 @@ public class RequestLogin : UDPRequest<ResponseLogin>
     protected override string BaseCommand =>
         $"AUTH user={Username}&pass={Password}&protover=3&client=ommserver&clientver=2&comp=1&imgserver=1&enc=utf-16";
 
-    protected override UDPResponse<ResponseLogin> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<ResponseLogin> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

@@ -9,7 +9,7 @@ public class RequestMyListStats : UDPRequest<ResponseMyListStats>
 {
     protected override string BaseCommand => "MYLISTSTATS";
 
-    protected override UDPResponse<ResponseMyListStats> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<ResponseMyListStats> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;

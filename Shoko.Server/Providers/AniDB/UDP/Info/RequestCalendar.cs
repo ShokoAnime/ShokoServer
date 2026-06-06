@@ -11,7 +11,7 @@ public class RequestCalendar : UDPRequest<ResponseCalendar>
 {
     protected override string BaseCommand => "CALENDAR";
 
-    protected override UDPResponse<ResponseCalendar> ParseResponse(UDPResponse<string> response)
+    protected internal override UDPResponse<ResponseCalendar> ParseResponse(UDPResponse<string> response)
     {
         var code = response.Code;
         var receivedData = response.Response;
