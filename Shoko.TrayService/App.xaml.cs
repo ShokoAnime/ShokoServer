@@ -118,7 +118,7 @@ public partial class App
     // Hardcodet shows a WPF ToolTip popup rather than the native Win32 tooltip, so it
     // ignores the system dark/light theme. Mirror the system tooltip colors so the popup
     // matches the rest of the taskbar.
-    private void ApplySystemTooltipTheme()
+    private static void ApplySystemTooltipTheme()
     {
         try
         {
@@ -131,7 +131,7 @@ public partial class App
             style.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(0x2B, 0x2B, 0x2B))));
             style.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(Colors.White)));
             style.Setters.Add(new Setter(Control.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(0x56, 0x56, 0x56))));
-            Resources[typeof(ToolTip)] = style;
+            Application.Current.Resources[typeof(ToolTip)] = style;
         }
         catch
         {
