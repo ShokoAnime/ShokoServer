@@ -332,8 +332,11 @@ public class TmdbLinkingService
         _xrefAnidbTmdbShows.Delete(xref);
 
         var xrefs = _xrefAnidbTmdbEpisodes.GetOnlyByAnidbAnimeAndTmdbShowIDs(xref.AnidbAnimeID, xref.TmdbShowID).ToList();
-        if (_xrefAnidbTmdbShows.GetByAnidbAnimeID(xref.AnidbAnimeID).Count > 0 && _xrefAnidbTmdbEpisodes.GetByAnidbAnimeID(xref.AnidbAnimeID) is { Count: > 0 } extraXrefs)
-            xrefs.AddRange(extraXrefs);
+        // When removing the last show link, also remove floating episode xrefs (TmdbShowID=0)
+        // created by ResetAllEpisodeLinks. Only do this when no links remain so we don't
+        // accidentally delete xrefs that still belong to surviving show links.
+        if (_xrefAnidbTmdbShows.GetByAnidbAnimeID(xref.AnidbAnimeID).Count == 0)
+            xrefs.AddRange(_xrefAnidbTmdbEpisodes.GetOnlyByAnidbAnimeAndTmdbShowIDs(xref.AnidbAnimeID, 0));
         _logger.LogInformation("Removing {XRefsCount} episodes cross-references for AniDB anime (AnimeID={AnidbID}) and TMDB show (ID={TmdbID})", xrefs.Count, xref.AnidbAnimeID, xref.TmdbShowID);
         _xrefAnidbTmdbEpisodes.Delete(xrefs);
 
