@@ -83,6 +83,8 @@ public class SeriesController : BaseController
 
     private readonly IVideoReleaseService _videoReleaseService;
 
+    private readonly IVideoRelocationService _relocationService;
+
     private readonly IJobFactory _jobFactory;
     private readonly AniDB_AnimeRepository _anidbAnimes;
     private readonly AniDB_Anime_RelationRepository _anidbAnimeRelations;
@@ -115,6 +117,7 @@ public class SeriesController : BaseController
         IImageManager imageManager,
         IUserDataService userDataService,
         IVideoReleaseService videoReleaseService,
+        IVideoRelocationService relocationService,
         IJobFactory jobFactory,
         AniDB_AnimeRepository anidbAnimes,
         AniDB_Anime_RelationRepository anidbAnimeRelations,
@@ -146,6 +149,7 @@ public class SeriesController : BaseController
         _imageManager = imageManager;
         _userDataService = userDataService;
         _videoReleaseService = videoReleaseService;
+        _relocationService = relocationService;
         _jobFactory = jobFactory;
         _anidbAnimes = anidbAnimes;
         _anidbAnimeRelations = anidbAnimeRelations;
@@ -2492,21 +2496,8 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        var settings = SettingsProvider.GetSettings();
-        if (!settings.Plugins.Renamer.RelocateOnImport)
-            return Ok();
         foreach (var file in series.VideoLocals)
-        {
-            var filePath = file.FirstResolvedPlace?.Path;
-            if (string.IsNullOrEmpty(filePath))
-                continue;
-
-            await _scheduler.StartJob<RenameMoveFileJob>(c =>
-                {
-                    c.VideoLocalID = file.VideoLocalID;
-                }
-            );
-        }
+            await _relocationService.ScheduleAutoRelocationForVideo(file);
 
         return Ok();
     }

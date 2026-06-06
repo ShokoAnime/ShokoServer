@@ -60,12 +60,6 @@ public class RenameMoveFileLocationJob : BaseJob
             return;
         }
 
-        if (!folder.IsDropDestination && !folder.IsDropSource)
-        {
-            _logger.LogTrace("Not in a drop destination or source, skipping {FileName}. (Video={VideoID},Location={LocationID})", locationPath, _location.VideoID, _location.ID);
-            return;
-        }
-
         var result = await _relocationService.AutoRelocateFile(_location);
         if (!result.Success)
             _logger.LogTrace(result.Error.Exception, "Unable to relocate video file; {ErrorMessage} (Video={VideoID},Location={LocationID})", result.Error.Message, _location.VideoID, _location.ID);

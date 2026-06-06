@@ -36,7 +36,6 @@ using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -60,6 +59,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     private readonly IRequestFactory _requestFactory;
 
     private readonly IQueueScheduler _scheduler;
+
+    private readonly IVideoRelocationService _relocationService;
 
     private readonly IUDPConnectionHandler _udpConnectionHandler;
 
@@ -123,6 +124,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         ISettingsProvider settingsProvider,
         IRequestFactory requestFactory,
         IQueueScheduler scheduler,
+        IVideoRelocationService relocationService,
         IUDPConnectionHandler udpConnectionHandler,
         IHttpConnectionHandler httpConnectionHandler,
         HttpXmlUtils xmlUtils,
@@ -153,6 +155,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         _settingsProvider = settingsProvider;
         _requestFactory = requestFactory;
         _scheduler = scheduler;
+        _relocationService = relocationService;
         _serviceProvider = serviceProvider;
         _udpConnectionHandler = udpConnectionHandler;
         _httpConnectionHandler = httpConnectionHandler;
@@ -653,7 +656,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                 }
 
                 foreach (var video in videos)
-                    await _scheduler.RunAfterCurrent<RenameMoveFileJob>(job => job.VideoLocalID = video.VideoLocalID).ConfigureAwait(false);
+                    await _relocationService.ChainAutoRelocationForVideo(video, cancellationToken).ConfigureAwait(false);
             }
 
             if (!job.SkipTmdbUpdate)
@@ -662,7 +665,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                     {
                         job.TmdbShowID = xref.TmdbShowID;
                         job.DownloadImages = true;
-                    }).ConfigureAwait(false);
+                    }, cancellationToken).ConfigureAwait(false);
 
             await ProcessRelations(response, job, settings).ConfigureAwait(false);
 

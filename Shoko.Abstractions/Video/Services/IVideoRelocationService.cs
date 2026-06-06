@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Exceptions;
@@ -369,6 +370,38 @@ public interface IVideoRelocationService
     ///   scheduling the job in the queue.
     /// </returns>
     Task ScheduleAutoRelocationForVideoFile(IVideoFile file, bool prioritize = false);
+
+    /// <summary>
+    ///   Chains a relocation job for all files for a video immediately after the
+    ///   currently-executing job. Intended for use inside a running job.
+    /// </summary>
+    /// <param name="video">
+    ///   The video whose files should be scheduled for potential relocation.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   Token used to cancel the chain registration.
+    /// </param>
+    /// <returns>
+    ///   A <see cref="Task"/> representing the asynchronous operation of
+    ///   registering the chained job.
+    /// </returns>
+    Task ChainAutoRelocationForVideo(IVideo video, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    ///   Chains a relocation job for a video file immediately after the
+    ///   currently-executing job. Intended for use inside a running job.
+    /// </summary>
+    /// <param name="file">
+    ///   The video file to chain for potential relocation.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   Token used to cancel the chain registration.
+    /// </param>
+    /// <returns>
+    ///   A <see cref="Task"/> representing the asynchronous operation of
+    ///   registering the chained job.
+    /// </returns>
+    Task ChainAutoRelocationForVideoFile(IVideoFile file, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Potentially relocate a video file using the provided auto-relocate

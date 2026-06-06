@@ -458,7 +458,19 @@ public class VideoRelocationService(
         Third = 5000
     };
 
-    public async Task ScheduleAutoRelocationForVideo(IVideo video, bool prioritize = false)
+    public Task ScheduleAutoRelocationForVideo(IVideo video, bool prioritize = false)
+        => AutoRelocationForVideoCore(video, prioritize, chainAfterCurrent: false, CancellationToken.None);
+
+    public Task ChainAutoRelocationForVideo(IVideo video, CancellationToken cancellationToken = default)
+        => AutoRelocationForVideoCore(video, prioritize: false, chainAfterCurrent: true, cancellationToken);
+
+    public Task ScheduleAutoRelocationForVideoFile(IVideoFile file, bool prioritize = false)
+        => AutoRelocationForVideoFileCore(file, prioritize, chainAfterCurrent: false, CancellationToken.None);
+
+    public Task ChainAutoRelocationForVideoFile(IVideoFile file, CancellationToken cancellationToken = default)
+        => AutoRelocationForVideoFileCore(file, prioritize: false, chainAfterCurrent: true, cancellationToken);
+
+    private async Task AutoRelocationForVideoCore(IVideo video, bool prioritize, bool chainAfterCurrent, CancellationToken cancellationToken)
     {
         var fileName = video.Files is { Count: > 0 } files
             ? Path.GetFileName(files[0].RelativePath)
@@ -475,11 +487,27 @@ public class VideoRelocationService(
             return;
         }
 
+        var availableProviders = GetAvailableProviders().ToList();
+        if (availableProviders.Count == 0)
+        {
+            logger.LogTrace("No relocation providers available. Skipping relocation for video: {FileName} (Video={VideoID})", fileName, video.ID);
+            return;
+        }
+
+        if (video.CrossReferences.Count == 0 && !availableProviders.Any(p => p.SupportsUnrecognized))
+        {
+            logger.LogTrace("File is unrecognized and no available renamer supports unrecognized files. Skipping relocation for video: {FileName} (Video={VideoID})", fileName, video.ID);
+            return;
+        }
+
         logger.LogTrace("Scheduling relocation for video: {FileName} (Video={VideoID})", fileName, video.ID);
-        await schedulerFactory.StartJob<RenameMoveFileJob>(b => b.VideoLocalID = video.ID, prioritize: prioritize).ConfigureAwait(false);
+        if (chainAfterCurrent)
+            await schedulerFactory.RunAfterCurrent<RenameMoveFileJob>(b => b.VideoLocalID = video.ID, cancellationToken).ConfigureAwait(false);
+        else
+            await schedulerFactory.StartJob<RenameMoveFileJob>(b => b.VideoLocalID = video.ID, prioritize: prioritize, ct: cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task ScheduleAutoRelocationForVideoFile(IVideoFile file, bool prioritize = false)
+    private async Task AutoRelocationForVideoFileCore(IVideoFile file, bool prioritize, bool chainAfterCurrent, CancellationToken cancellationToken)
     {
         var locationPath = file.Path;
         var folder = file is VideoLocal_Place place ? place.ManagedFolder : file.ManagedFolder;
@@ -501,8 +529,24 @@ public class VideoRelocationService(
             return;
         }
 
+        var availableProviders = GetAvailableProviders().ToList();
+        if (availableProviders.Count == 0)
+        {
+            logger.LogTrace("No relocation providers available. Skipping relocation for video file: {Path}. (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
+            return;
+        }
+
+        if (file.Video.CrossReferences.Count == 0 && !availableProviders.Any(p => p.SupportsUnrecognized))
+        {
+            logger.LogTrace("File is unrecognized and no available renamer supports unrecognized files. Skipping relocation for video file: {Path}. (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
+            return;
+        }
+
         logger.LogTrace("Scheduling relocation for video file: {Path} (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
-        await schedulerFactory.StartJob<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (file.ManagedFolderID, file.RelativePath), prioritize: prioritize).ConfigureAwait(false);
+        if (chainAfterCurrent)
+            await schedulerFactory.RunAfterCurrent<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (file.ManagedFolderID, file.RelativePath), cancellationToken).ConfigureAwait(false);
+        else
+            await schedulerFactory.StartJob<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (file.ManagedFolderID, file.RelativePath), prioritize: prioritize, ct: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

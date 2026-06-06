@@ -311,10 +311,7 @@ public class VideoService : IVideoService
         var hasXrefs = videoIsKnown && video.EpisodeCrossReferences is { Count: > 0 };
         var shouldSave = videoIsKnown && locationAvailable && videoLocation.ID is 0;
         var shouldHash = !videoIsKnown || (video.Hashes is { } hashes && (hashes.Count == 0 || _videoHashingService.AllEnabledHashTypes.Any(a => !hashes.Any(b => b.Type == a))));
-        var shouldRelocate = hasXrefs && !shouldHash && locationAvailable && settings.Plugins.Renamer.RelocateOnImport && (
-            managedFolder.DropFolderType.HasFlag(DropFolderType.Source) ||
-            (managedFolder.DropFolderType.HasFlag(DropFolderType.Destination) && settings.Plugins.Renamer.AllowRelocationInsideDestinationOnImport)
-        );
+        var shouldRelocate = hasXrefs && !shouldHash && locationAvailable;
         if (locationAvailable)
         {
             if (videoLocation.ID is 0)
@@ -363,7 +360,7 @@ public class VideoService : IVideoService
         if (shouldRelocate)
         {
             _logger.LogTrace("Scheduling video relocation for: {Path}", absolutePath);
-            await _scheduler.StartJob<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (managedFolder.ID, relativePath));
+            await _relocationService.ScheduleAutoRelocationForVideoFile(videoLocation);
         }
 
         if (hasXrefs)

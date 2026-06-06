@@ -69,10 +69,10 @@ public class VideoReleaseService(
     // a circular dependency between this service, the user data service, and
     // the anime series service (which in turn depend on this service). So we
     // lazy init the user data service to break the circle.
-    private IUserDataService? _userDataService = null;
+    private IUserDataService? _userDataService;
 
     // Lazy init. to prevent circular dependency.
-    private IAnidbService? _anidbService = null;
+    private IAnidbService? _anidbService;
 
     private IServerSettings _settings => settingsProvider.GetSettings();
 
@@ -83,13 +83,11 @@ public class VideoReleaseService(
 
     private readonly HashSet<int> _unknownEpisodeIDs = [];
 
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
-    private bool _loaded = false;
+    private bool _loaded;
 
-    private bool _autoMatchEnabled = false;
-
-    public bool AutoMatchEnabled => _autoMatchEnabled;
+    public bool AutoMatchEnabled { get; private set; }
 
     public event EventHandler<VideoReleaseSavedEventArgs>? ReleaseSaved;
 
@@ -154,7 +152,7 @@ public class VideoReleaseService(
                     Priority = priority,
                 })
                 .ToDictionary(info => info.ID);
-            _autoMatchEnabled = _releaseProviderInfos.Values.Any(p => p.Enabled);
+            AutoMatchEnabled = _releaseProviderInfos.Values.Any(p => p.Enabled);
         }
 
         UpdateProviders(false);
@@ -283,7 +281,7 @@ public class VideoReleaseService(
         var changed = false;
         var config = configurationProvider.Load();
         var priority = existingProviders.Select(pI => pI.ID).ToList();
-        if (config.Priority.Count != priority.Count || !config.Priority.Select((p, i) => (p, i)).All((tuple) => priority[tuple.i] == tuple.p))
+        if (config.Priority.Count != priority.Count || config.Priority.Select((p, i) => (p, i)).Any(tuple => priority[tuple.i] != tuple.p))
         {
             config.Priority = priority;
             changed = true;
@@ -315,7 +313,7 @@ public class VideoReleaseService(
                         Priority = priority.IndexOf(info.ID),
                     })
                     .ToDictionary(info => info.ID);
-                _autoMatchEnabled = _releaseProviderInfos.Values.Any(p => p.Enabled);
+                AutoMatchEnabled = _releaseProviderInfos.Values.Any(p => p.Enabled);
             }
             configurationProvider.Save(config);
             if (fireEvent)
@@ -736,8 +734,7 @@ public class VideoReleaseService(
                 c.ReadStates = true;
             }).ConfigureAwait(false);
         // Rename and/or move the physical file(s) if needed.
-        if (_settings.Plugins.Renamer.RelocateOnImport)
-            await schedulerFactory.RunAfterCurrent<RenameMoveFileJob>(job => job.VideoLocalID = video.ID).ConfigureAwait(false);
+        await relocationService.ChainAutoRelocationForVideo(video).ConfigureAwait(false);
 
         try
         {
