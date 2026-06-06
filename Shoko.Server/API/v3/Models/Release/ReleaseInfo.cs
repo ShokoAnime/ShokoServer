@@ -136,6 +136,18 @@ public class ReleaseInfo : IReleaseInfo
     [Required]
     public DateTime Created { get; init; }
 
+    /// <summary>
+    /// Whether the release is publicly available. <c>null</c> means the
+    /// provider doesn't know.
+    /// </summary>
+    public bool? IsPublic { get; init; }
+
+    /// <summary>
+    /// When <c>true</c>, no provider will attempt to rescan this release.
+    /// </summary>
+    [Required]
+    public bool PreventRescan { get; init; }
+
     public ReleaseInfo()
     {
         ProviderName = "User";
@@ -164,6 +176,8 @@ public class ReleaseInfo : IReleaseInfo
         Released = releaseInfo.ReleasedAt;
         Updated = releaseInfo.LastUpdatedAt;
         Created = releaseInfo.CreatedAt;
+        IsPublic = releaseInfo.IsPublic;
+        PreventRescan = releaseInfo.PreventRescan;
     }
 
     #region IReleaseInfo implementation
