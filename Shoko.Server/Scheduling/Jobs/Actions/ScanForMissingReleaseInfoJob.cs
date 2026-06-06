@@ -41,7 +41,7 @@ public class ScanForMissingReleaseInfoJob : BaseJob
     public override async Task Execute()
     {
         var incompleteReleases = _releaseInfoRepository.GetAll()
-            .Where(r => r.Source == ReleaseSource.Unknown || r.AudioLanguages is null || r.SubtitleLanguages is null)
+            .Where(r => !r.PreventRescan && (r.Source == ReleaseSource.Unknown || r.AudioLanguages is null || r.SubtitleLanguages is null))
             .ToList();
 
         _logger.LogInformation("Found {Count} releases with missing info to evaluate for rescan.", incompleteReleases.Count);

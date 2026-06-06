@@ -120,4 +120,18 @@ public interface IReleaseInfo
     /// time.
     /// </summary>
     DateTime CreatedAt { get; }
+
+    /// <summary>
+    /// Whether the release is publicly available. <c>true</c> means the file
+    /// is available from a public source; <c>false</c> means it is a custom or
+    /// private release; <c>null</c> means the provider doesn't know.
+    /// </summary>
+    bool? IsPublic { get; }
+
+    /// <summary>
+    /// When <c>true</c>, no provider will attempt to rescan this release
+    /// regardless of the backoff schedule. Can be set by a provider or via the
+    /// API.
+    /// </summary>
+    bool PreventRescan { get; }
 }

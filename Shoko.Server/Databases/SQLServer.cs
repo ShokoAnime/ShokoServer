@@ -961,6 +961,9 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(163,  6, "UPDATE StoredReleaseInfo SET ED2K = UPPER(ED2K)"),
         new(163,  7, "UPDATE StoredReleaseInfo_MatchAttempt SET ED2K = UPPER(ED2K)"),
         new(164,  1, "ALTER TABLE StoredReleaseInfo_MatchAttempt ADD AttemptCount INT NOT NULL DEFAULT 1"),
+        new(165,  1, "ALTER TABLE StoredReleaseInfo ADD IsPublic BIT NULL"),
+        new(165,  2, "ALTER TABLE StoredReleaseInfo ADD PreventRescan BIT NOT NULL DEFAULT 0"),
+        new(165,  3, "UPDATE StoredReleaseInfo SET IsPublic = 1 WHERE ProviderName = 'AniDB' OR ProviderName LIKE 'AniDB+%' OR ProviderName LIKE '%+AniDB' OR ProviderName LIKE '%+AniDB+%'"),
     ];
 
     #endregion

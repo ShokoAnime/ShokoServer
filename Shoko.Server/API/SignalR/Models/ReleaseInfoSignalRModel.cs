@@ -76,6 +76,12 @@ public class ReleaseInfoSignalRModel : IReleaseInfo
     /// <inheritdoc />
     public DateTime Created { get; init; }
 
+    /// <inheritdoc />
+    public bool? IsPublic { get; init; }
+
+    /// <inheritdoc />
+    public bool PreventRescan { get; init; }
+
     public ReleaseInfoSignalRModel(IReleaseInfo releaseInfo)
     {
         ID = releaseInfo.ID;
@@ -98,6 +104,8 @@ public class ReleaseInfoSignalRModel : IReleaseInfo
         Released = releaseInfo.ReleasedAt;
         Updated = releaseInfo.LastUpdatedAt;
         Created = releaseInfo.CreatedAt;
+        IsPublic = releaseInfo.IsPublic;
+        PreventRescan = releaseInfo.PreventRescan;
     }
 
     #region IReleaseInfo implementation

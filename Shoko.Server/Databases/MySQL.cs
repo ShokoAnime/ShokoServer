@@ -1052,6 +1052,9 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(167,  3, "ALTER TABLE `VideoLocal_User` ADD `LastSubtitleStreamIndex` INT NULL;"),
         new(167,  4, "ALTER TABLE `VideoLocal_User` ADD `ClientData` TEXT NULL;"),
         new(168,  1, "ALTER TABLE `StoredReleaseInfo_MatchAttempt` ADD COLUMN `AttemptCount` INT NOT NULL DEFAULT 1"),
+        new(169,  1, "ALTER TABLE `StoredReleaseInfo` ADD COLUMN `IsPublic` TINYINT(1) NULL"),
+        new(169,  2, "ALTER TABLE `StoredReleaseInfo` ADD COLUMN `PreventRescan` TINYINT(1) NOT NULL DEFAULT 0"),
+        new(169,  3, "UPDATE `StoredReleaseInfo` SET `IsPublic` = 1 WHERE `ProviderName` = 'AniDB' OR `ProviderName` LIKE 'AniDB+%' OR `ProviderName` LIKE '%+AniDB' OR `ProviderName` LIKE '%+AniDB+%'"),
     ];
 
     #endregion

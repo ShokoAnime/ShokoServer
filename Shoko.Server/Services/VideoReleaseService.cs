@@ -532,6 +532,7 @@ public class VideoReleaseService(
 
     public async Task<bool> TryScheduleRescanForVideo(IVideo video, IReleaseInfo existingRelease, IReleaseMatchAttempt lastAttempt)
     {
+        if (existingRelease.PreventRescan) return false;
         foreach (var providerInfo in GetAvailableProviders(onlyEnabled: true))
         {
             var delay = providerInfo.Provider.GetRescanDelay(existingRelease, lastAttempt);
@@ -717,6 +718,7 @@ public class VideoReleaseService(
             }
 
             releaseUriMatches = string.Equals(existingRelease.ReleaseURI, releaseInfo.ReleaseURI);
+            releaseInfo.PreventRescan = releaseInfo.PreventRescan || existingRelease.PreventRescan;
             await ClearReleaseForVideo(video, existingRelease, removeFromMylist: addToMylist && !releaseUriMatches);
         }
 

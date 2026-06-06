@@ -53,6 +53,8 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         ReleasedAt = releaseInfo.ReleasedAt;
         LastUpdatedAt = releaseInfo.LastUpdatedAt;
         CreatedAt = releaseInfo.CreatedAt;
+        IsPublic = releaseInfo.IsPublic;
+        PreventRescan = releaseInfo.PreventRescan;
     }
 
     public int StoredReleaseInfoID { get; set; }
@@ -123,6 +125,10 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
     public DateTime LastUpdatedAt { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public bool? IsPublic { get; set; }
+
+    public bool PreventRescan { get; set; }
 
     private IReadOnlyList<EmbeddedCrossReference>? _embeddedCrossReferences;
 

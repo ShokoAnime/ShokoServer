@@ -145,6 +145,7 @@ public partial class AnidbReleaseProvider(
         {
             ID = IdPrefix + releaseId,
             ReleaseURI = $"{ReleasePrefix}{anidbFile.FileID}",
+            IsPublic = true,
             Version = anidbFile.Version,
             Comment = anidbFile.Description,
             OriginalFilename = anidbFile.Filename,
@@ -235,6 +236,7 @@ public partial class AnidbReleaseProvider(
     /// <inheritdoc/>
     public TimeSpan? GetRescanDelay(IReleaseInfo existingInfo, IReleaseMatchAttempt lastAttempt)
     {
+        if (existingInfo.IsPublic == false) return null;
         if (lastAttempt.ProviderName != Name) return null;
         if (existingInfo.Source != ReleaseSource.Unknown && existingInfo.MediaInfo is not null)
             return null;

@@ -38,6 +38,7 @@ using Shoko.Server.Utilities;
 
 using AbstractReleaseInfo = Shoko.Abstractions.Video.Release.ReleaseInfo;
 using AbstractReleaseVideoCrossReference = Shoko.Abstractions.Video.Release.ReleaseVideoCrossReference;
+using PatchReleaseBody = Shoko.Server.API.v3.Models.Release.Input.PatchReleaseBody;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using MediaInfoDto = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
@@ -520,6 +521,33 @@ public class FileController(
 
         if (file.ReleaseInfo is not { ReleaseURI: not null } releaseInfo)
             return NotFound(ReleaseNotFoundForFileID);
+
+        return new ReleaseInfo(releaseInfo);
+    }
+
+    /// <summary>
+    /// Patch the stored <see cref="ReleaseInfo"/> flags for the given <paramref name="fileID"/>.
+    /// Only non-null fields in the body are applied.
+    /// </summary>
+    /// <param name="fileID">Shoko File ID</param>
+    /// <param name="body">Fields to patch.</param>
+    [HttpPatch("{fileID}/Release")]
+    public ActionResult<ReleaseInfo> PatchFileReleaseByFileID([FromRoute, Range(1, int.MaxValue)] int fileID, [FromBody] PatchReleaseBody body)
+    {
+        var file = _videoLocals.GetByID(fileID);
+        if (file is null)
+            return NotFound(FileNotFoundWithFileID);
+
+        if (_storedReleaseInfos.GetByEd2kAndFileSize(file.Hash, file.FileSize) is not { } releaseInfo)
+            return NotFound(ReleaseNotFoundForFileID);
+
+        if (body.IsPublic.HasValue)
+            releaseInfo.IsPublic = body.IsPublic.Value;
+
+        if (body.PreventRescan.HasValue)
+            releaseInfo.PreventRescan = body.PreventRescan.Value;
+
+        _storedReleaseInfos.Save(releaseInfo);
 
         return new ReleaseInfo(releaseInfo);
     }

@@ -117,6 +117,16 @@ public class ReleaseInfo
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
+    /// Whether the release is publicly available. <c>null</c> means the provider doesn't know.
+    /// </summary>
+    public bool? IsPublic { get; set; }
+
+    /// <summary>
+    /// When <c>true</c>, no provider will attempt to rescan this release.
+    /// </summary>
+    public bool PreventRescan { get; set; }
+
+    /// <summary>
     /// Constructs a new <see cref="ReleaseInfo"/> instance.
     /// </summary>
     public ReleaseInfo()
@@ -151,6 +161,8 @@ public class ReleaseInfo
         Metadata = info.Metadata;
         ReleasedAt = info.ReleasedAt;
         CreatedAt = info.CreatedAt;
+        IsPublic = info.IsPublic;
+        PreventRescan = info.PreventRescan;
     }
 
     /// <summary>
@@ -179,5 +191,7 @@ public class ReleaseInfo
         Metadata = info.Metadata;
         ReleasedAt = info.ReleasedAt;
         CreatedAt = info.CreatedAt;
+        IsPublic = info.IsPublic;
+        PreventRescan = info.PreventRescan;
     }
 }
