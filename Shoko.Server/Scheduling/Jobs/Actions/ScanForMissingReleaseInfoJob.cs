@@ -9,10 +9,8 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
-using Shoko.QueueProcessor.Scheduling;
-using Shoko.Server.Providers.AniDB.Release;
+using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 
 #nullable enable
 namespace Shoko.Server.Scheduling.Jobs.Actions;
@@ -20,8 +18,8 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 /// <summary>
 /// Scans for <see cref="Models.Release.StoredReleaseInfo"/> records that are
 /// missing key fields (unknown source, missing audio or subtitle languages)
-/// and re-queues an AniDB lookup for each file on an exponential backoff
-/// schedule configured via <see cref="AnidbReleaseProvider.AnidbReleaseProviderSettings"/>.
+/// and re-queues the appropriate provider job for each file on the backoff
+/// schedule defined by each provider's <c>GetRescanDelay</c> method.
 /// </summary>
 [DatabaseRequired]
 [DisallowConcurrentExecution]
@@ -36,16 +34,12 @@ public class ScanForMissingReleaseInfoJob : BaseJob
 
     private readonly VideoLocalRepository _videoLocals;
 
-    private readonly IQueueScheduler _scheduler;
-
     public override string TypeName => "Scan for Missing Release Info";
 
     public override string Title => "Scanning for Missing Release Info";
 
     public override async Task Execute()
     {
-        var anidbProviderInfo = _videoReleaseService.GetProviderInfo<AnidbReleaseProvider>();
-
         var incompleteReleases = _releaseInfoRepository.GetAll()
             .Where(r => r.Source == ReleaseSource.Unknown || r.AudioLanguages is null || r.SubtitleLanguages is null)
             .ToList();
@@ -57,43 +51,41 @@ public class ScanForMissingReleaseInfoJob : BaseJob
         {
             var matchAttempts = _matchAttemptRepository.GetByEd2kAndFileSize(release.ED2K, release.FileSize);
             var latest = matchAttempts.MaxBy(m => m.AttemptEndedAt);
-            if (latest is null) continue;
-
-            var delay = anidbProviderInfo.Provider.GetRescanDelay(release, latest);
-            if (delay is null) continue;
-
-            if (DateTime.Now < latest.AttemptEndedAt + delay.Value) continue;
+            if (latest is null)
+            {
+                latest = new StoredReleaseInfo_MatchAttempt
+                {
+                    ED2K = release.ED2K,
+                    FileSize = release.FileSize,
+                    ProviderName = release.ProviderName,
+                    AttemptStartedAt = DateTime.UnixEpoch,
+                    AttemptEndedAt = DateTime.UnixEpoch,
+                    AttemptCount = 1,
+                    AttemptedProviderNames = [release.ProviderName],
+                };
+                _matchAttemptRepository.Save(latest);
+            }
 
             var videoLocal = _videoLocals.GetByEd2kAndSize(release.ED2K, release.FileSize);
             if (videoLocal is null) continue;
 
-            latest.AttemptCount++;
-            _matchAttemptRepository.Save(latest);
-
-            await _scheduler.StartJob<AnidbProcessFileJob>(job =>
-            {
-                job.VideoLocalID = videoLocal.VideoLocalID;
-                job.SkipMyList = true;
-                job.MatchAttemptID = latest.StoredReleaseInfo_MatchAttemptID;
-            });
-            queued++;
+            if (await _videoReleaseService.TryScheduleRescanForVideo(videoLocal, release, latest))
+                queued++;
         }
 
-        _logger.LogInformation("Queued {Queued} AniDB rescan jobs for files with missing release info.", queued);
+        _logger.LogInformation("Queued {Queued} provider rescan jobs for files with missing release info.", queued);
     }
 
     public ScanForMissingReleaseInfoJob(
         IVideoReleaseService videoReleaseService,
         StoredReleaseInfoRepository releaseInfoRepository,
         StoredReleaseInfo_MatchAttemptRepository matchAttemptRepository,
-        VideoLocalRepository videoLocals,
-        IQueueScheduler scheduler)
+        VideoLocalRepository videoLocals)
     {
         _videoReleaseService = videoReleaseService;
         _releaseInfoRepository = releaseInfoRepository;
         _matchAttemptRepository = matchAttemptRepository;
         _videoLocals = videoLocals;
-        _scheduler = scheduler;
     }
 
     protected ScanForMissingReleaseInfoJob() { }
