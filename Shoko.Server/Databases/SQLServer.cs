@@ -953,6 +953,13 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(162,  2, "ALTER TABLE VideoLocal_User ADD LastAudioStreamIndex int NULL;"),
         new(162,  3, "ALTER TABLE VideoLocal_User ADD LastSubtitleStreamIndex int NULL;"),
         new(162,  4, "ALTER TABLE VideoLocal_User ADD ClientData nvarchar(max) NULL;"),
+        new(163,  1, "UPDATE VideoLocal SET Hash = UPPER(Hash)"),
+        new(163,  2, "UPDATE VideoLocal_HashDigest SET Type = UPPER(Type)"),
+        new(163,  3, "UPDATE VideoLocal_HashDigest SET Value = UPPER(CAST(Value AS NVARCHAR(MAX))) WHERE Type IN ('ED2K', 'CRC32', 'MD5', 'SHA1', 'SHA256', 'SHA512')"),
+        new(163,  4, "UPDATE CrossRef_File_Episode SET Hash = UPPER(Hash) WHERE Hash IS NOT NULL"),
+        new(163,  5, "UPDATE FileNameHash SET Hash = UPPER(Hash)"),
+        new(163,  6, "UPDATE StoredReleaseInfo SET ED2K = UPPER(ED2K)"),
+        new(163,  7, "UPDATE StoredReleaseInfo_MatchAttempt SET ED2K = UPPER(ED2K)"),
     ];
 
     #endregion
