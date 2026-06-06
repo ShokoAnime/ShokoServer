@@ -530,6 +530,25 @@ public class VideoReleaseService(
         type.GetProperty(nameof(ProcessReleaseProviderJob.SkipMyList))?.SetValue(job, !addToMylist);
     }
 
+    public async Task<bool> TryScheduleRescanForVideo(IVideo video, IReleaseInfo existingRelease, IReleaseMatchAttempt lastAttempt)
+    {
+        foreach (var providerInfo in GetAvailableProviders(onlyEnabled: true))
+        {
+            var delay = providerInfo.Provider.GetRescanDelay(existingRelease, lastAttempt);
+            if (delay is null) continue;
+            if (DateTime.Now < lastAttempt.AttemptEndedAt + delay.Value) continue;
+
+            var concreteAttempt = (StoredReleaseInfo_MatchAttempt)lastAttempt;
+            concreteAttempt.AttemptCount++;
+            releaseInfoMatchAttemptRepository.Save(concreteAttempt);
+
+            var jobType = _providerJobTypes.GetValueOrDefault(providerInfo.Provider.GetType()) ?? typeof(ProcessReleaseProviderJob);
+            await schedulerFactory.Enqueue(jobType, j => SetProviderJobProps(j, video.ID, concreteAttempt.StoredReleaseInfo_MatchAttemptID, false));
+            return true;
+        }
+        return false;
+    }
+
     public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool addToMylist = true, bool isAutomatic = true, CancellationToken cancellationToken = default)
          => await FindReleaseForVideo(video, GetAvailableProviders(onlyEnabled: true), saveRelease, addToMylist, isAutomatic, cancellationToken);
 

@@ -242,6 +242,19 @@ public interface IVideoReleaseService
     Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool addToMylist = true, bool isAutomatic = true, CancellationToken cancellationToken = default);
 
     /// <summary>
+    ///   Checks all enabled providers for a rescan opportunity for the given
+    ///   video and schedules the appropriate provider job if one is due.
+    ///   The first provider whose <see cref="IReleaseInfoProvider.GetRescanDelay"/>
+    ///   returns a non-null delay that has elapsed wins; its attempt count is
+    ///   incremented and the corresponding job is queued.
+    /// </summary>
+    /// <returns>
+    ///   <c>true</c> if a rescan was scheduled; <c>false</c> if no provider
+    ///   wanted to rescan the file or the delay has not yet elapsed.
+    /// </returns>
+    Task<bool> TryScheduleRescanForVideo(IVideo video, IReleaseInfo existingRelease, IReleaseMatchAttempt lastAttempt);
+
+    /// <summary>
     ///   If parallel mode is disabled, then it will run all provided
     ///   <paramref name="providers"/>, in order, until a
     ///   release is found or all providers are exhausted. If parallel mode is
