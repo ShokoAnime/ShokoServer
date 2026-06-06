@@ -91,7 +91,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
 
                 // cheap but fast
                 var deprecated = parts[05].Equals("1");
-                if (!Enum.TryParse<GetFile_State>(parts[07], out var state)) state = GetFile_State.None;
+                if (!Enum.TryParse<GetFile_State>(parts[06], out var state)) state = GetFile_State.None;
                 var version = 1;
                 if (state.HasFlag(GetFile_State.IsV2))
                     version = 2;
@@ -107,8 +107,8 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                 bool? crc = state.HasFlag(GetFile_State.CRCMatch) ? true :
                     state.HasFlag(GetFile_State.CRCErr) ? false : null;
                 var chaptered = state.HasFlag(GetFile_State.Chaptered);
-                var quality = ParseQuality(parts[08]);
-                var source = ParseSource(parts[09]);
+                var quality = ParseQuality(parts[07]);
+                var source = ParseSource(parts[08]);
                 var description = parts[11];
                 var filename = parts[13];
                 var airDate = int.TryParse(parts[12], out var rawReleaseDate) && rawReleaseDate > 0
@@ -120,7 +120,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                 // episode xrefs
                 var xrefs = new List<ResponseGetFile.EpisodeXRef>();
                 // if it's a number, it's not more than one
-                if (int.TryParse(parts[2], out var eid))
+                if (int.TryParse(parts[02], out var eid))
                 {
                     xrefs.Add(new ResponseGetFile.EpisodeXRef { EpisodeID = eid, Percentage = 100 });
                 }
