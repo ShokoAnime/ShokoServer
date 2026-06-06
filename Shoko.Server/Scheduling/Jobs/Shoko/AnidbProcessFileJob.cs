@@ -93,12 +93,22 @@ public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleas
         _matchAttempt ??= _matchAttempts.GetByID(MatchAttemptID);
         if (_vlocal is null || _matchAttempt is null) return;
 
-        // Skip if a higher-priority provider already found a release for this file
+        var isRescan = false;
         if (_matchAttempt.AttemptStartedAt != _matchAttempt.AttemptEndedAt)
         {
-            if (_matchAttempt.ProviderID.HasValue)
+            // Attempt already completed; only continue if a matched provider wants to rescan for missing info
+            if (!_matchAttempt.ProviderID.HasValue) return;
+
+            var existingRelease = _videoReleaseService.GetCurrentReleaseForVideo(_vlocal);
+            var anidbProviderInfo = _videoReleaseService.GetProviderInfo<AnidbReleaseProvider>();
+            if (existingRelease is null || anidbProviderInfo is null
+                || anidbProviderInfo.Provider.GetRescanDelay(existingRelease, _matchAttempt) is null)
+            {
                 _logger.LogTrace("Release already found for {FileName}, skipping AniDB lookup.", _fileName);
-            return;
+                return;
+            }
+            isRescan = true;
+            _logger.LogTrace("Rescan triggered for {FileName} to update incomplete release info.", _fileName);
         }
 
         try
@@ -110,6 +120,11 @@ public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleas
             if (release is null || release.CrossReferences.Count < 1)
             {
                 _logger.LogTrace("No AniDB release found for {FileName}.", _fileName);
+                if (isRescan)
+                {
+                    _matchAttempt.AttemptEndedAt = DateTime.Now;
+                    _matchAttempts.Save(_matchAttempt);
+                }
                 return;
             }
 

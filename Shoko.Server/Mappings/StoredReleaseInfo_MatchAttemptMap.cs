@@ -19,5 +19,6 @@ public class StoredReleaseInfo_MatchAttemptMap : ClassMap<StoredReleaseInfo_Matc
         Map(x => x.EmbeddedAttemptProviderNames).Column("AttemptProviderNames").Not.Nullable();
         Map(x => x.AttemptStartedAt).Not.Nullable();
         Map(x => x.AttemptEndedAt).Not.Nullable();
+        Map(x => x.AttemptCount).Not.Nullable();
     }
 }

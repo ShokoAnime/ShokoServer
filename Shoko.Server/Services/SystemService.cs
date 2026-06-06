@@ -485,6 +485,7 @@ public class SystemService : ISystemService
             // acquisition filter will hold them out of the pool until startup signals DB ready.
             var registry = app.ApplicationServices.GetRequiredService<RecurringJobRegistry>();
             registry.Register<CheckNetworkAvailabilityJob>(TimeSpan.FromMinutes(30), runImmediately: true);
+            registry.Register<ScanForMissingReleaseInfoJob>(TimeSpan.FromHours(24), runImmediately: false);
         }
 
         private static string GetQueueConnectionString(QueueProcessorSettings q)

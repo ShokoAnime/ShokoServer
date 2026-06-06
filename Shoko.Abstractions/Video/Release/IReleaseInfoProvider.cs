@@ -54,6 +54,17 @@ public interface IReleaseInfoProvider
     ///   The release information, or <c>null</c> if not available.
     /// </returns>
     Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken);
+
+    /// <summary>
+    ///   Called when a release was previously matched but the stored release
+    ///   info may be incomplete. Returns the delay before this provider should
+    ///   be called again to fill in missing fields, or <c>null</c> if no
+    ///   further rescans should be scheduled — either because the info is
+    ///   already complete, this provider did not originally match the file, or
+    ///   the maximum number of rescan attempts has been reached.
+    /// </summary>
+    TimeSpan? GetRescanDelay(IReleaseInfo existingInfo, IReleaseMatchAttempt lastAttempt)
+        => null;
 }
 
 /// <summary>

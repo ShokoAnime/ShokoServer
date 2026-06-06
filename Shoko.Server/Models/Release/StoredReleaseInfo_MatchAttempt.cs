@@ -61,6 +61,13 @@ public class StoredReleaseInfo_MatchAttempt : IReleaseMatchAttempt
     /// </summary>
     public DateTime AttemptEndedAt { get; set; }
 
+    /// <summary>
+    /// Total number of times this file has been processed (original attempt
+    /// plus any subsequent rescans). Incremented by the missing-info scanner
+    /// before each rescan is queued.
+    /// </summary>
+    public int AttemptCount { get; set; }
+
     #endregion
 
     /// <summary>
