@@ -232,6 +232,17 @@ public partial class AnidbReleaseProvider(
         return releaseInfo;
     }
 
+    /// <inheritdoc/>
+    public TimeSpan? GetRescanDelay(IReleaseInfo existingInfo, IReleaseMatchAttempt lastAttempt)
+    {
+        if (lastAttempt.ProviderName != Name) return null;
+        if (existingInfo.Source != ReleaseSource.Unknown && existingInfo.MediaInfo is not null)
+            return null;
+        var settings = configurationProvider.Load();
+        if (lastAttempt.AttemptCount >= settings.RescanDelayHours.Length) return null;
+        return TimeSpan.FromHours(settings.RescanDelayHours[lastAttempt.AttemptCount]);
+    }
+
     [GeneratedRegex(@"(?:(?<![a-z0-9])(?:nc|creditless)[\s_.]*(?:ed|op)(?![a-z]))(?:[\s_.]*(?:\d+(?!\d*p)))?", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript)]
     private static partial Regex GeneratedCreditlessRegex();
 
@@ -264,5 +275,15 @@ public partial class AnidbReleaseProvider(
         [Display(Name = "Check if release is creditless")]
         [DefaultValue(true)]
         public bool CheckCreditless { get; set; } = true;
+
+        /// <summary>
+        /// Delay in hours before each successive rescan attempt for releases
+        /// with missing info (unknown source, or missing audio/subtitle
+        /// languages). The number of entries also controls the maximum number
+        /// of rescan attempts — once exhausted, no further rescans are
+        /// scheduled. Default: 5 attempts at 6 h, 1 d, 3 d, 1 w, 3 mo.
+        /// </summary>
+        [Display(Name = "Rescan backoff schedule (hours per attempt)")]
+        public int[] RescanDelayHours { get; set; } = [6, 24, 72, 168, 2160];
     }
 }

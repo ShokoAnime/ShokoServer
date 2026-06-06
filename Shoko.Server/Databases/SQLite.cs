@@ -873,6 +873,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(149,  2, "ALTER TABLE VideoLocal_User ADD LastAudioStreamIndex INTEGER NULL;"),
         new(149,  3, "ALTER TABLE VideoLocal_User ADD LastSubtitleStreamIndex INTEGER NULL;"),
         new(149,  4, "ALTER TABLE VideoLocal_User ADD ClientData TEXT NULL;"),
+        new(150,  1, "ALTER TABLE StoredReleaseInfo_MatchAttempt ADD COLUMN AttemptCount INTEGER NOT NULL DEFAULT 0"),
     ];
 
     #endregion

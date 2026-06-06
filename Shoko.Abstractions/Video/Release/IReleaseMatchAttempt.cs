@@ -43,4 +43,12 @@ public interface IReleaseMatchAttempt
     /// The time that the attempt was complete.
     /// </summary>
     public DateTime AttemptEndedAt { get; set; }
+
+    /// <summary>
+    /// Total number of times this file has been (re-)processed for release
+    /// info. Starts at 0 for the initial match attempt. Incremented by the
+    /// missing-info scanner before each rescan is queued, and used to compute
+    /// the backoff delay between rescans.
+    /// </summary>
+    public int AttemptCount { get; set; }
 }
