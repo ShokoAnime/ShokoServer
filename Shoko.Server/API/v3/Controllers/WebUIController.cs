@@ -367,13 +367,14 @@ public partial class WebUIController(
     /// You don't need to be authenticated to use this endpoint.
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
+    /// <param name="version">Optional specific version to install.</param>
     /// <param name="allowIncompatible">Allow downloading an incompatible version.</param>
     /// <returns></returns>
     [AllowAnonymous]
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpPost("Install")]
-    public async Task<ActionResult> InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
+    public async Task<ActionResult> InstallWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] string? version = null, [FromQuery] bool allowIncompatible = false)
     {
         var indexLocation = Path.Join(applicationPaths.WebPath, "index.html");
         if (System.IO.File.Exists(indexLocation))
@@ -386,19 +387,31 @@ public partial class WebUIController(
 
         try
         {
-            await updateService.UpdateWebComponent(channel, allowIncompatible);
+            if (!string.IsNullOrEmpty(version))
+            {
+                var history = await updateService.GetWebComponentHistory(channel).ConfigureAwait(false);
+                var match = history.FirstOrDefault(v =>
+                    v.Version.ToSemanticVersioningString() == version || v.ReleaseTag == version || (v.SourceRevision is { Length: > 0 } && v.SourceRevision == version));
+                if (match is null)
+                    return BadRequest($"Version '{version}' not found in the release history.");
+                await updateService.InstallWebComponentVersion(match).ConfigureAwait(false);
+            }
+            else
+            {
+                await updateService.UpdateWebComponent(channel, allowIncompatible).ConfigureAwait(false);
+            }
         }
         catch (WebException ex)
         {
             if (ex.Status != WebExceptionStatus.Success)
             {
                 logger.LogError(ex, "An error occurred while trying to install the Web UI.");
-                return Problem("Unable to use the GitHub API to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect to GitHub.");
+                return Problem("Unable to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect.");
             }
             throw;
         }
 
-        return Redirect("/webui/index.html");
+        return Redirect("/");
     }
 
     /// <inheritdoc cref="InstallWebUI"/>
@@ -408,30 +421,43 @@ public partial class WebUIController(
     [HttpGet("Install")]
     [Obsolete("Post is correct, but we want legacy versions of the webui boot-strapper to be able to install. We can remove this later™.")]
     public Task<ActionResult> UpdateWebUILegacy([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
-        => InstallWebUI(channel, allowIncompatible);
+        => InstallWebUI(channel, null, allowIncompatible);
 
     /// <summary>
     /// Update an existing version of the web ui to the latest for the selected
-    /// <paramref name="channel"/>.
+    /// <paramref name="channel"/>, or to a specific <paramref name="version"/>.
     /// </summary>
     /// <param name="channel">The release channel to use.</param>
+    /// <param name="version">Optional specific version to install.</param>
     /// <param name="allowIncompatible">Allow downloading an incompatible version.</param>
     /// <returns></returns>
     [DatabaseBlockedExempt]
     [InitFriendly]
     [HttpPost("Update")]
-    public async Task<ActionResult> UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
+    public async Task<ActionResult> UpdateWebUI([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] string? version = null, [FromQuery] bool allowIncompatible = false)
     {
         try
         {
-            await updateService.UpdateWebComponent(channel, allowIncompatible);
+            if (!string.IsNullOrEmpty(version))
+            {
+                var history = await updateService.GetWebComponentHistory(channel).ConfigureAwait(false);
+                var match = history.FirstOrDefault(v =>
+                    v.Version.ToSemanticVersioningString() == version || v.ReleaseTag == version || (v.SourceRevision is { Length: > 0 } && v.SourceRevision == version));
+                if (match is null)
+                    return BadRequest($"Version '{version}' not found in the release history.");
+                await updateService.InstallWebComponentVersion(match).ConfigureAwait(false);
+            }
+            else
+            {
+                await updateService.UpdateWebComponent(channel, allowIncompatible).ConfigureAwait(false);
+            }
         }
         catch (WebException ex)
         {
             if (ex.Status != WebExceptionStatus.Success)
             {
                 logger.LogError(ex, "An error occurred while trying to update the Web UI.");
-                return Problem("Unable to use the GitHub API to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect to GitHub.");
+                return Problem("Unable to check for an update. Check your connection and try again.", null, (int)HttpStatusCode.BadGateway, "Unable to connect.");
             }
             throw;
         }
@@ -459,7 +485,39 @@ public partial class WebUIController(
     [HttpGet("Update")]
     [Obsolete("Post is correct, but we want old versions of the webui to be able to update. We can remove this later™.")]
     public Task<ActionResult> UpdateWebUIOld([FromQuery] ReleaseChannel channel = ReleaseChannel.Auto, [FromQuery] bool allowIncompatible = false)
-        => UpdateWebUI(channel, allowIncompatible);
+        => UpdateWebUI(channel, null, allowIncompatible);
+
+    /// <summary>
+    /// Get the full release history for the web UI from the manifest.
+    /// </summary>
+    /// <param name="channel">Optional filter to a specific release channel.</param>
+    /// <param name="version">Optional filter to a specific version.</param>
+    /// <returns></returns>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("History")]
+    public async Task<ActionResult<List<ComponentVersion>>> GetWebUIHistory([FromQuery] ReleaseChannel? channel = null, [FromQuery] string? version = null)
+    {
+        try
+        {
+            var history = await updateService.GetWebComponentHistory(channel).ConfigureAwait(false);
+            if (!string.IsNullOrEmpty(version))
+            {
+                var match = history.FirstOrDefault(v =>
+                    v.Version.ToSemanticVersioningString() == version || v.ReleaseTag == version);
+                if (match is null)
+                    return NotFound($"Version '{version}' not found in the release history.");
+                return Ok(new List<ComponentVersion> { match.ToDto() });
+            }
+            return Ok(history.Select(v => v.ToDto()).ToList());
+        }
+        catch (WebException ex)
+        {
+            if (ex.Status != WebExceptionStatus.Success)
+                return StatusCode((int)HttpStatusCode.BadGateway, "Unable to fetch release manifest. Check your connection.");
+            throw;
+        }
+    }
 
     /// <summary>
     /// Check for latest version for the selected <paramref name="channel"/> and
@@ -483,7 +541,39 @@ public partial class WebUIController(
         catch (WebException ex)
         {
             if (ex.Status != WebExceptionStatus.Success)
-                return StatusCode((int)HttpStatusCode.BadGateway, "Unable to use the GitHub API to check for an update. Check your connection.");
+                return StatusCode((int)HttpStatusCode.BadGateway, "Unable to check for an update. Check your connection.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Get the full release history for the server from the manifest.
+    /// </summary>
+    /// <param name="channel">Optional filter to a specific release channel.</param>
+    /// <param name="version">Optional filter to a specific version.</param>
+    /// <returns></returns>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("ServerHistory")]
+    public async Task<ActionResult<List<ComponentVersion>>> GetServerHistory([FromQuery] ReleaseChannel? channel = null, [FromQuery] string? version = null)
+    {
+        try
+        {
+            var history = await updateService.GetServerHistory(channel).ConfigureAwait(false);
+            if (!string.IsNullOrEmpty(version))
+            {
+                var match = history.FirstOrDefault(v =>
+                    v.Version.ToSemanticVersioningString() == version || v.ReleaseTag == version);
+                if (match is null)
+                    return NotFound($"Version '{version}' not found in the release history.");
+                return Ok(new List<ComponentVersion> { match.ToDto() });
+            }
+            return Ok(history.Select(v => v.ToDto()).ToList());
+        }
+        catch (WebException ex)
+        {
+            if (ex.Status != WebExceptionStatus.Success)
+                return StatusCode((int)HttpStatusCode.BadGateway, "Unable to fetch release manifest. Check your connection.");
             throw;
         }
     }
@@ -511,7 +601,7 @@ public partial class WebUIController(
         catch (WebException ex)
         {
             if (ex.Status != WebExceptionStatus.Success)
-                return StatusCode((int)HttpStatusCode.BadGateway, "Unable to use the GitHub API to check for an update. Check your connection.");
+                return StatusCode((int)HttpStatusCode.BadGateway, "Unable to check for an update. Check your connection.");
             throw;
         }
     }

@@ -197,22 +197,21 @@ public class WebSettings
     public bool AlwaysUseDeveloperExceptions { get; set; } = false;
 
     /// <summary>
-    /// The name of the client repo to use.
+    /// The manifest URL for the Web UI component updates.
     /// </summary>
     [Visibility(Advanced = true, Size = DisplayElementSize.Large)]
-    [Display(Name = "Client Repo Name")]
-    [RegularExpression(@"^[a-zA-Z0-9_\-\.]+/[a-zA-Z0-9_\-\.]+$")]
-    [EnvironmentVariable("SHOKO_CLIENT_REPO")]
-    [DefaultValue("ShokoAnime/Shoko-WebUI")]
-    public string ClientRepoName { get; set; } = "ShokoAnime/Shoko-WebUI";
+    [Display(Name = "Client Manifest URL")]
+    [EnvironmentVariable("SHOKO_CLIENT_MANIFEST_URL")]
+    [DefaultValue("https://raw.githubusercontent.com/ShokoAnime/Shoko-WebUI/metadata/manifest.json")]
+    public string ClientManifestUrl { get; set; } = "https://raw.githubusercontent.com/ShokoAnime/Shoko-WebUI/metadata/manifest.json";
 
     /// <summary>
-    /// The name of the server repo to use.
+    /// The manifest URL for the server updates.
     /// </summary>
     [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
     [Visibility(Advanced = true, Size = DisplayElementSize.Large)]
-    [Display(Name = "Server Repo Name")]
-    [EnvironmentVariable("SHOKO_SERVER_REPO")]
-    [DefaultValue("ShokoAnime/ShokoServer")]
-    public string ServerRepoName { get; set; } = "ShokoAnime/ShokoServer";
+    [Display(Name = "Server Manifest URL")]
+    [EnvironmentVariable("SHOKO_SERVER_MANIFEST_URL")]
+    [DefaultValue("https://raw.githubusercontent.com/ShokoAnime/ShokoServer/metadata/manifest.json")]
+    public string ServerManifestUrl { get; set; } = "https://raw.githubusercontent.com/ShokoAnime/ShokoServer/metadata/manifest.json";
 }

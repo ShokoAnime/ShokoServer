@@ -430,27 +430,10 @@ public class SystemService : ISystemService
             services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
 
-            services.AddHttpClient("GitHub", client =>
-                {
-                    client.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
-                    client.DefaultRequestHeaders.Add("User-Agent", $"ShokoServer/{systemService.Version.Version.ToSemanticVersioningString()} (https://github.com/{settingsProvider.GetSettings().Web.ServerRepoName})");
-                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip");
-                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("deflate");
-                    client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("br");
-                    if (Environment.GetEnvironmentVariable("GITHUB_TOKEN") is { Length: > 0 } githubToken)
-                        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {githubToken}");
-                })
-                .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
-                .UseSocketsHttpHandler((handler, _) =>
-                {
-                    handler.AllowAutoRedirect = true;
-                    handler.AutomaticDecompression = DecompressionMethods.All;
-                    handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2);
-                });
-            services.AddHttpClient("PluginPackages", client =>
+            services.AddHttpClient("Default", client =>
                 {
                     client.DefaultRequestHeaders.Add("Accept", "application/json, text/plain");
-                    client.DefaultRequestHeaders.Add("User-Agent", $"ShokoServer/{systemService.Version.Version.ToSemanticVersioningString()} (https://github.com/{settingsProvider.GetSettings().Web.ServerRepoName})");
+                    client.DefaultRequestHeaders.Add("User-Agent", $"ShokoServer/{systemService.Version.Version.ToSemanticVersioningString()}");
                     client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("gzip");
                     client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("deflate");
                     client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("br");

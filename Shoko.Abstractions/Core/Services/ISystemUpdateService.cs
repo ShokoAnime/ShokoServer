@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Shoko.Abstractions.Core.Services;
@@ -11,13 +12,13 @@ public interface ISystemUpdateService
     #region Server
 
     /// <summary>
-    ///   The GitHub repository name for the server.
+    ///   The manifest URL for the server.
     /// </summary>
-    string ServerRepositoryName { get; set; }
+    string ServerManifestUrl { get; set; }
 
     /// <summary>
-    ///   Checks the GitHub repository specified by
-    ///   <see cref="ServerRepositoryName"/> for an update of the server.
+    ///   Checks the manifest URL specified by
+    ///   <see cref="ServerManifestUrl"/> for an update of the server.
     /// </summary>
     /// <param name="channel">
     ///   Optional. The release channel to use.
@@ -30,6 +31,23 @@ public interface ISystemUpdateService
     /// </returns>
     Task<ReleaseVersionInformation?> GetLatestServerVersion(ReleaseChannel channel = ReleaseChannel.Auto, bool force = false);
 
+    /// <summary>
+    ///   Get the full release history from the server manifest URL.
+    /// </summary>
+    /// <param name="channel">
+    ///   Optional. Filter to a specific release channel. If not set will show
+    ///   from all channel. If set to auto will show for the channel matching
+    ///   the running server.
+    /// </param>
+    /// <param name="force">
+    ///   Optional. Bypass the cache and search for a new version online.
+    /// </param>
+    /// <returns>
+    ///   A read-only list of server release version information, sorted by
+    ///   version descending.
+    /// </returns>
+    Task<IReadOnlyList<ReleaseVersionInformation>> GetServerHistory(ReleaseChannel? channel = null, bool force = false);
+
     #endregion
 
     #region Web Component
@@ -40,9 +58,9 @@ public interface ISystemUpdateService
     event EventHandler? WebComponentUpdated;
 
     /// <summary>
-    ///   The GitHub repository name for the web component.
+    ///   The manifest URL for the web component.
     /// </summary>
-    string ClientRepositoryName { get; set; }
+    string ClientManifestUrl { get; set; }
 
     /// <summary>
     ///   Load the web component version information from the installed into the
@@ -57,6 +75,19 @@ public interface ISystemUpdateService
     /// </summary>
     /// <returns>The version information, or <see langword="null"/> if not found.</returns>
     WebReleaseVersionInformation? LoadIncludedWebComponentVersionInformation();
+
+    /// <summary>
+    ///   Install a specific version of the web component from the manifest
+    ///   history.
+    /// </summary>
+    /// <param name="version">
+    ///   The specific version to install.
+    /// </param>
+    /// <returns>
+    ///   <see langword="true" /> if the update was installed successfully;
+    ///   otherwise, <see langword="false" />.
+    /// </returns>
+    Task<bool> InstallWebComponentVersion(WebReleaseVersionInformation version);
 
     /// <summary>
     ///   Finds and downloads the update for the web component for the selected
@@ -84,8 +115,8 @@ public interface ISystemUpdateService
     void ReactToManualWebComponentUpdate();
 
     /// <summary>
-    ///   Checks the GitHub repository specified by
-    ///   <see cref="ServerRepositoryName"/> for an update of the web component.
+    ///   Checks the manifest URL specified by
+    ///   <see cref="ClientManifestUrl"/> for an update of the web component.
     /// </summary>
     /// <param name="channel">
     ///   Optional. The release channel to use. Defaults to
@@ -103,6 +134,23 @@ public interface ISystemUpdateService
     ///   The latest version information.
     /// </returns>
     Task<WebReleaseVersionInformation> GetLatestWebComponentVersion(ReleaseChannel channel = ReleaseChannel.Auto, bool force = false, bool allowIncompatible = false);
+
+    /// <summary>
+    ///   Get the full release history from the web component manifest URL.
+    /// </summary>
+    /// <param name="channel">
+    ///   Optional. Filter to a specific release channel. If not set will show
+    ///   from all channel. If set to auto will show for the channel matching
+    ///   the running server.
+    /// </param>
+    /// <param name="force">
+    ///   Optional. Bypass the cache and fetch a new version online.
+    /// </param>
+    /// <returns>
+    ///   A read-only list of web component release version information, sorted by
+    ///   version descending.
+    /// </returns>
+    Task<IReadOnlyList<WebReleaseVersionInformation>> GetWebComponentHistory(ReleaseChannel? channel = null, bool force = false);
 
     #endregion
 }

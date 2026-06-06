@@ -12,4 +12,10 @@ public class WebReleaseVersionInformation : ReleaseVersionInformation
     ///   release.
     /// </summary>
     public Version? MinimumServerVersion { get; set; }
+
+    /// <summary>
+    ///   Maximum server version compatible with the Web UI, if set in the
+    ///   release.
+    /// </summary>
+    public Version? MaximumServerVersion { get; set; }
 }

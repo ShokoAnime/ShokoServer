@@ -1,11 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using SharpCompress.Common;
@@ -15,65 +16,164 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Utilities;
-using Shoko.Server.Plugin;
 
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 #nullable enable
 namespace Shoko.Server.Services;
 
-public partial class SystemUpdateService : ISystemUpdateService
+public partial class SystemUpdateService(
+    ILogger<SystemUpdateService> logger,
+    ISettingsProvider settingsProvider,
+    ISystemService systemService,
+    IHttpClientFactory httpClientFactory,
+    IApplicationPaths applicationPaths
+) : ISystemUpdateService
 {
-    private const string MinimumServerVersionPrefix = "Minimum Server Version: **";
+    private readonly SemverVersionComparer _versionComparer = new();
 
-    private const string MinimumServerVersionSuffix = "**";
+    private static readonly TimeSpan _cacheTTL = TimeSpan.FromHours(1);
 
-    [GeneratedRegex(@"^[a-z0-9_\-\.]+/[a-z0-9_\-\.]+$", RegexOptions.IgnoreCase | RegexOptions.Compiled)]
-    private static partial Regex CompiledRepoNameRegex();
+    #region Manifest Models
 
-    [GeneratedRegex(@"^[Vv]?(?<version>(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+))(?:-dev.(?<buildNumber>\d+))?$", RegexOptions.Compiled, "en-US")]
-    private static partial Regex ServerReleaseVersionRegex();
-
-    private readonly ISettingsProvider _settingsProvider;
-
-    private readonly ISystemService _systemService;
-
-    private readonly IHttpClientFactory _httpClientFactory;
-
-    private readonly IApplicationPaths _applicationPaths;
-
-    private SemverVersionComparer? _versionComparer;
-
-    private readonly IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions()
+    internal class ManifestModel
     {
-        ExpirationScanFrequency = TimeSpan.FromMinutes(50),
-    });
+        [JsonProperty("Stable")]
+        public List<ManifestEntry> Stable { get; set; } = [];
 
-    private readonly TimeSpan _cacheTTL = TimeSpan.FromHours(1);
-
-    public SystemUpdateService(ISettingsProvider settingsProvider, ISystemService systemService, IHttpClientFactory httpClientFactory, IApplicationPaths applicationPaths)
-    {
-        _settingsProvider = settingsProvider;
-        _systemService = systemService;
-        _httpClientFactory = httpClientFactory;
-        _applicationPaths = applicationPaths;
+        [JsonProperty("Dev")]
+        public List<ManifestEntry> Dev { get; set; } = [];
     }
+
+    internal class ManifestEntry
+    {
+        [JsonProperty("version")]
+        public string Version { get; set; } = string.Empty;
+
+        [JsonProperty("minServerVersion")]
+        public string? MinServerVersion { get; set; }
+
+        [JsonProperty("maxServerVersion")]
+        public string? MaxServerVersion { get; set; }
+
+        [JsonProperty("downloadUrl")]
+        public string DownloadUrl { get; set; } = string.Empty;
+
+        [JsonProperty("checksum")]
+        public string? Checksum { get; set; }
+
+        [JsonProperty("releaseNotes")]
+        public string? ReleaseNotes { get; set; }
+
+        [JsonProperty("commit")]
+        public string? Commit { get; set; }
+
+        [JsonProperty("tag")]
+        public string? Tag { get; set; }
+
+        [JsonProperty("date")]
+        public DateTime? Date { get; set; }
+    }
+
+    #endregion
 
     #region Helpers
 
-    /// <summary>
-    /// Download an api response from github.
-    /// </summary>
-    /// <param name="endpoint">Endpoint to probe for data.</param>
-    /// <param name="repoName">Repository name.</param>
-    /// <returns></returns>
-    /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
-    private async Task<dynamic> DownloadApiResponse(string endpoint, string repoName)
+    private async Task<IEnumerable<(ManifestEntry Entry, ReleaseChannel Channel, Version Version)>> FetchManifestAsync(string manifestUrl, string localName, bool force)
     {
-        repoName ??= ClientRepositoryName;
-        var client = _httpClientFactory.CreateClient("GitHub");
-        var response = await client.GetStringAsync(new Uri($"https://api.github.com/repos/{repoName}/{endpoint}")).ConfigureAwait(false);
-        return JsonConvert.DeserializeObject(response)!;
+        using var client = httpClientFactory.CreateClient("Default");
+        var cachedFilePath = Path.Join(applicationPaths.DataPath, localName);
+        ManifestModel? manifest = null;
+        try
+        {
+            if (!force && File.Exists(cachedFilePath) && File.GetLastWriteTimeUtc(cachedFilePath) > DateTime.UtcNow.Subtract(_cacheTTL))
+            {
+                var cached = File.ReadAllText(cachedFilePath);
+                manifest = JsonConvert.DeserializeObject<ManifestModel>(cached);
+            }
+            else
+            {
+                var response = await client.GetStringAsync(new Uri(manifestUrl));
+                manifest = JsonConvert.DeserializeObject<ManifestModel>(response);
+                File.WriteAllText(cachedFilePath, response);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (ex is not HttpRequestException { StatusCode: HttpStatusCode.NotFound })
+                logger.LogWarning(ex, "Failed to fetch manifest from {ManifestUrl}", manifestUrl);
+
+            if (!File.Exists(cachedFilePath))
+                return [];
+
+            try
+            {
+                var cached = File.ReadAllText(cachedFilePath);
+                manifest = JsonConvert.DeserializeObject<ManifestModel>(cached);
+            }
+            catch (Exception ex2)
+            {
+                logger.LogWarning(ex2, "Failed to parse cached manifest from {ManifestUrl}", manifestUrl);
+                return [];
+            }
+        }
+        if (manifest is null)
+            return [];
+
+        var collected = new List<(ManifestEntry Entry, ReleaseChannel Channel, Version Version)>();
+        foreach (var e in manifest.Stable ?? [])
+            collected.Add((e, ReleaseChannel.Stable, Version.Parse(e.Version.Replace("-dev", "").TrimStart('v').TrimStart('V'))));
+        foreach (var e in manifest.Dev ?? [])
+            collected.Add((e, ReleaseChannel.Dev, Version.Parse(e.Version.Replace("-dev", "").TrimStart('v').TrimStart('V'))));
+        return collected
+            .OrderByDescending(e => e.Version, _versionComparer)
+            .DistinctBy(e => e.Entry.Version);
+    }
+
+    private ReleaseVersionInformation EntryToReleaseInfo(ManifestEntry entry, ReleaseChannel channel)
+    {
+        var version = Version.Parse(entry.Version.Replace("-dev", "").TrimStart('v').TrimStart('V'));
+        var tag = entry.Tag;
+        if (string.IsNullOrEmpty(tag))
+            tag = $"v{version.ToSemanticVersioningString()}";
+
+        var commit = entry.Commit;
+        if (string.IsNullOrEmpty(commit))
+            commit = "";
+
+        return new ReleaseVersionInformation
+        {
+            Version = version,
+            Description = entry.ReleaseNotes?.Trim() ?? string.Empty,
+            SourceRevision = commit,
+            ReleaseTag = tag,
+            Channel = channel,
+            ReleasedAt = entry.Date ?? DateTime.MinValue,
+        };
+    }
+
+    private WebReleaseVersionInformation EntryToWebReleaseInfo(ManifestEntry entry, ReleaseChannel channel)
+    {
+        Version? minServerVersion = null;
+        if (entry.MinServerVersion is { Length: > 0 } minVer && Version.TryParse(minVer.Replace("-dev", "").TrimStart('v').TrimStart('V'), out var parsedMin))
+            minServerVersion = parsedMin;
+
+        Version? maxServerVersion = null;
+        if (entry.MaxServerVersion is { Length: > 0 } maxVer && Version.TryParse(maxVer.Replace("-dev", "").TrimStart('v').TrimStart('V'), out var parsedMax))
+            maxServerVersion = parsedMax;
+
+        var baseInfo = EntryToReleaseInfo(entry, channel);
+        return new WebReleaseVersionInformation
+        {
+            Version = baseInfo.Version,
+            Description = baseInfo.Description,
+            SourceRevision = baseInfo.SourceRevision,
+            ReleaseTag = baseInfo.ReleaseTag,
+            Channel = baseInfo.Channel,
+            ReleasedAt = baseInfo.ReleasedAt,
+            MinimumServerVersion = minServerVersion,
+            MaximumServerVersion = maxServerVersion
+        };
     }
 
     #endregion
@@ -84,17 +184,17 @@ public partial class SystemUpdateService : ISystemUpdateService
     public event EventHandler? WebComponentUpdated;
 
     /// <inheritdoc />
-    public string ClientRepositoryName
+    public string ClientManifestUrl
     {
-        get => _settingsProvider.GetSettings().Web.ClientRepoName;
+        get => settingsProvider.GetSettings().Web.ClientManifestUrl;
         set
         {
             // If validation fails then catch and swallow the exception.
             try
             {
-                var copy = _settingsProvider.GetSettings(true);
-                copy.Web.ClientRepoName = value;
-                _settingsProvider.SaveSettings(copy);
+                var copy = settingsProvider.GetSettings(true);
+                copy.Web.ClientManifestUrl = value;
+                settingsProvider.SaveSettings(copy);
             }
             catch { }
         }
@@ -103,7 +203,7 @@ public partial class SystemUpdateService : ISystemUpdateService
     /// <inheritdoc />
     public WebReleaseVersionInformation? LoadWebComponentVersionInformation()
     {
-        if (LoadWebUIVersionInfo(_applicationPaths) is not { } webVer)
+        if (LoadWebUIVersionInfo(applicationPaths) is not { } webVer)
             return null;
         return new()
         {
@@ -119,7 +219,7 @@ public partial class SystemUpdateService : ISystemUpdateService
     /// <inheritdoc />
     public WebReleaseVersionInformation? LoadIncludedWebComponentVersionInformation()
     {
-        if (LoadIncludedWebUIVersionInfo(_applicationPaths) is not { } webVer)
+        if (LoadIncludedWebUIVersionInfo(applicationPaths) is not { } webVer)
             return null;
         return new()
         {
@@ -135,28 +235,19 @@ public partial class SystemUpdateService : ISystemUpdateService
     /// <inheritdoc />
     public async Task<bool> UpdateWebComponent(ReleaseChannel channel = ReleaseChannel.Auto, bool allowIncompatible = false)
     {
-        var version = await GetLatestWebComponentVersion(channel, allowIncompatible: allowIncompatible).ConfigureAwait(false);
-        var release = await DownloadApiResponse($"releases/tags/{version.ReleaseTag}", ClientRepositoryName).ConfigureAwait(false);
-        if (release is null)
-            return false;
+        var version = await GetLatestWebComponentVersion(channel, allowIncompatible: allowIncompatible);
+        return await InstallWebComponentVersion(version);
+    }
 
-        string? url = null;
-        foreach (var assets in release.assets)
-        {
-            // We don't care what the zip is named, only that it is attached.
-            string fileName = assets.name;
-            if (Path.GetExtension(fileName) is ".zip")
-            {
-                url = assets.browser_download_url;
-                break;
-            }
-        }
+    /// <inheritdoc />
+    public async Task<bool> InstallWebComponentVersion(WebReleaseVersionInformation version)
+    {
+        var versions = await FetchManifestAsync(ClientManifestUrl, "web-manifest.json", false);
+        var entry = versions.FirstOrDefault(e => e.Version == version.Version);
+        if (entry.Entry is null)
+            throw new ArgumentException("Version not found in web-component manifest history!", nameof(version));
 
-        // Check if we were able to get a release.
-        if (string.IsNullOrWhiteSpace(url))
-            throw new Exception("404 Not found");
-
-        await DownloadAndInstallUpdate(url, version);
+        await DownloadAndInstallUpdate(entry.Entry.DownloadUrl, version);
 
         return true;
     }
@@ -170,107 +261,54 @@ public partial class SystemUpdateService : ISystemUpdateService
     /// <inheritdoc />
     public async Task<WebReleaseVersionInformation> GetLatestWebComponentVersion(ReleaseChannel channel = ReleaseChannel.Auto, bool force = false, bool allowIncompatible = false)
     {
-        if (channel == ReleaseChannel.Auto)
+        if (channel is ReleaseChannel.Auto)
             channel = GetCurrentWebUIReleaseChannel();
-        var key = $"webui:{channel}";
-        if (!force && _cache.TryGetValue<WebReleaseVersionInformation>(key, out var componentVersion))
-            return componentVersion!;
-        var isNotDev = channel is not ReleaseChannel.Dev;
+
+        var versions = await GetWebComponentHistory(channel, force);
         var currentServerVersion = Assembly.GetExecutingAssembly().GetName().Version!;
-        switch (channel)
+        foreach (var version in versions)
         {
-            // Check for dev channel updates.
-            case ReleaseChannel.Dev:
-            {
-                var releases = await DownloadApiResponse("releases?per_page=100&page=1", ClientRepositoryName).ConfigureAwait(false);
-                foreach (var release in releases)
-                {
-                    string tagName = release.tag_name;
-                    var plainTagName = tagName[0] == 'v' || tagName[0] == 'V' ? tagName[1..] : tagName;
-                    if (isNotDev && plainTagName.Contains("-dev"))
-                        continue;
-                    if (!Version.TryParse(plainTagName.Replace("-dev", ""), out var version))
-                        continue;
+            // Check minimum server version compatibility.
+            if (!allowIncompatible && version.MinimumServerVersion is var minServerVersion && _versionComparer.Compare(minServerVersion, currentServerVersion) > 0)
+                continue;
 
-                    string? description = release.body;
-                    var minServerVersion = GetMinimumServerVersion(description);
-                    _versionComparer ??= new();
-                    if (!allowIncompatible && (minServerVersion is null || _versionComparer.Compare(minServerVersion, currentServerVersion) > 0))
-                        continue;
+            // Check maximum server version compatibility.
+            if (!allowIncompatible && version.MaximumServerVersion is var maxServerVersion && _versionComparer.Compare(maxServerVersion, currentServerVersion) < 0)
+                continue;
 
-                    foreach (var asset in release.assets)
-                    {
-                        // We don't care what the zip is named, only that it is attached.
-                        string fileName = asset.name;
-                        if (Path.GetExtension(fileName) is ".zip")
-                        {
-                            var tag = await DownloadApiResponse($"git/ref/tags/{tagName}", ClientRepositoryName).ConfigureAwait(false);
-                            string commit = tag["object"].sha;
-                            DateTime releaseDate = release.published_at;
-                            releaseDate = releaseDate.ToUniversalTime();
-                            return _cache.Set(key, new WebReleaseVersionInformation
-                            {
-                                Version = version,
-                                MinimumServerVersion = minServerVersion,
-                                SourceRevision = commit,
-                                Channel = channel,
-                                ReleasedAt = releaseDate,
-                                ReleaseTag = tagName,
-                                Description = description?.Trim() ?? string.Empty,
-                            }, _cacheTTL);
-                        }
-                    }
-                }
-
-                // Stop now if we got here from the default case.
-                if (isNotDev)
-                {
-                    var webuiVersion = LoadWebUIVersionInfo();
-                    return _cache.Set(key, new WebReleaseVersionInformation
-                    {
-                        Version = webuiVersion?.VersionAsVersion ?? new(1, 0, 0),
-                        MinimumServerVersion = webuiVersion?.MinimumServerVersion,
-                        SourceRevision = webuiVersion?.Commit ?? "0000000000000000000000000000000000000000",
-                        Channel = channel,
-                        ReleasedAt = webuiVersion?.Date ?? DateTime.MinValue,
-                        ReleaseTag = webuiVersion?.Tag ?? "1.0.0",
-                        Description = string.Empty,
-                    }, _cacheTTL);
-                }
-
-                // Fallback to stable.
-                goto default;
-            }
-
-            // Check for stable channel updates.
-            default:
-            {
-                var latestRelease = await DownloadApiResponse("releases/latest", ClientRepositoryName).ConfigureAwait(false);
-                string? description = latestRelease.body;
-                var minServerVersion = GetMinimumServerVersion(description);
-                _versionComparer ??= new();
-                if (!allowIncompatible && (minServerVersion is null || _versionComparer.Compare(minServerVersion, currentServerVersion) > 0))
-                    goto case ReleaseChannel.Dev;
-
-                string tagName = latestRelease.tag_name;
-                var plainTagName = tagName[0] == 'v' || tagName[0] == 'V' ? tagName[1..] : tagName;
-                var version = Version.Parse(plainTagName.Replace("-dev", ""));
-                var tag = await DownloadApiResponse($"git/ref/tags/{tagName}", ClientRepositoryName).ConfigureAwait(false);
-                string commit = tag["object"].sha;
-                DateTime releaseDate = latestRelease.published_at;
-                releaseDate = releaseDate.ToUniversalTime();
-                return _cache.Set(key, new WebReleaseVersionInformation
-                {
-                    Version = version,
-                    MinimumServerVersion = minServerVersion,
-                    SourceRevision = commit,
-                    Channel = channel,
-                    ReleasedAt = releaseDate,
-                    ReleaseTag = tagName,
-                    Description = description?.Trim() ?? string.Empty,
-                }, _cacheTTL);
-            }
+            return version;
         }
+
+        // Dev channel fallback to stable.
+        if (channel is ReleaseChannel.Dev)
+            return await GetLatestWebComponentVersion(ReleaseChannel.Stable, force, allowIncompatible);
+
+        // If on a non-Dev channel and no compatible release was found, fall back
+        // to the currently installed version.
+        var webuiVersion = LoadWebUIVersionInfo();
+        return new WebReleaseVersionInformation
+        {
+            Version = webuiVersion?.VersionAsVersion ?? new(1, 0, 0),
+            MinimumServerVersion = webuiVersion?.MinimumServerVersion,
+            SourceRevision = webuiVersion?.Commit ?? "",
+            Channel = channel,
+            ReleasedAt = webuiVersion?.Date ?? DateTime.MinValue,
+            ReleaseTag = webuiVersion?.Tag ?? "1.0.0",
+            Description = string.Empty,
+        };
+
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<WebReleaseVersionInformation>> GetWebComponentHistory(ReleaseChannel? channel = null, bool force = false)
+    {
+        if (channel is ReleaseChannel.Auto)
+            channel = GetCurrentServerReleaseChannel();
+
+        return (await FetchManifestAsync(ClientManifestUrl, "webui-manifest.json", force))
+            .Where(tuple => !channel.HasValue || tuple.Channel == channel.Value)
+            .Select(tuple => EntryToWebReleaseInfo(tuple.Entry, tuple.Channel))
+            .ToList();
     }
 
     #region Web Component | Internals
@@ -281,10 +319,9 @@ public partial class SystemUpdateService : ISystemUpdateService
     /// <param name="url">direct link to version you want to install</param>
     /// <param name="version">Version to download.</param>
     /// <exception cref="WebException">An error occurred while downloading the resource.</exception>
-    /// <returns></returns>
     private async Task DownloadAndInstallUpdate(string url, WebReleaseVersionInformation version)
     {
-        var webuiDir = _applicationPaths.WebPath;
+        var webuiDir = applicationPaths.WebPath;
         var backupDir = Path.Combine(webuiDir, "old");
         var files = Directory.GetFiles(webuiDir);
         var directories = Directory.GetDirectories(webuiDir);
@@ -294,8 +331,8 @@ public partial class SystemUpdateService : ISystemUpdateService
             Directory.CreateDirectory(webuiDir);
 
         // Download the zip file.
-        var client = _httpClientFactory.CreateClient("GitHub");
-        var zipContent = await client.GetByteArrayAsync(url).ConfigureAwait(false);
+        var client = httpClientFactory.CreateClient("Default");
+        var zipContent = await client.GetByteArrayAsync(url);
 
         // Remove any old lingering backups.
         if (Directory.Exists(backupDir))
@@ -347,7 +384,7 @@ public partial class SystemUpdateService : ISystemUpdateService
     private void UpdateCachedVersionInfo(WebReleaseVersionInformation version)
     {
         // Load the web ui version info from disk.
-        var webUIFileInfo = new FileInfo(Path.Join(_applicationPaths.WebPath, "version.json"));
+        var webUIFileInfo = new FileInfo(Path.Join(applicationPaths.WebPath, "version.json"));
         if (!webUIFileInfo.Exists || JsonConvert.DeserializeObject<WebUIVersionInfo>(File.ReadAllText(webUIFileInfo.FullName)) is not { } webuiVersion)
             webuiVersion = new();
 
@@ -389,22 +426,6 @@ public partial class SystemUpdateService : ISystemUpdateService
         }
         if (changed)
             File.WriteAllText(webUIFileInfo.FullName, JsonConvert.SerializeObject(webuiVersion));
-    }
-
-    private Version? GetMinimumServerVersion(string? description)
-    {
-        if (string.IsNullOrEmpty(description))
-            return null;
-
-        if (description.IndexOf(MinimumServerVersionPrefix) is var index && index is -1)
-            return null;
-
-        var startIndex = index + MinimumServerVersionPrefix.Length;
-        var endIndex = description.IndexOf(MinimumServerVersionSuffix, startIndex);
-        if (endIndex is -1 || !Version.TryParse(description[startIndex..endIndex].Trim().TrimStart(['v', 'V']).Replace("-dev", ""), out var minVersion))
-            return null;
-
-        return minVersion;
     }
 
     private ReleaseChannel GetCurrentWebUIReleaseChannel()
@@ -519,129 +540,53 @@ public partial class SystemUpdateService : ISystemUpdateService
     #region Server
 
     /// <inheritdoc />
-    public string ServerRepositoryName
+    public string ServerManifestUrl
     {
-        get => _settingsProvider.GetSettings().Web.ServerRepoName;
+        get => settingsProvider.GetSettings().Web.ServerManifestUrl;
         set
         {
             // If validation fails then catch and swallow the exception.
             try
             {
-                var copy = _settingsProvider.GetSettings(true);
-                copy.Web.ServerRepoName = value;
-                _settingsProvider.SaveSettings(copy);
+                var copy = settingsProvider.GetSettings(true);
+                copy.Web.ServerManifestUrl = value;
+                settingsProvider.SaveSettings(copy);
             }
             catch { }
         }
     }
+
     /// <inheritdoc />
     public async Task<ReleaseVersionInformation?> GetLatestServerVersion(ReleaseChannel channel = ReleaseChannel.Auto, bool force = false)
     {
-        if (channel == ReleaseChannel.Auto)
+        if (channel is ReleaseChannel.Auto)
             channel = GetCurrentServerReleaseChannel();
-        var key = $"server:{channel}";
-        if (!force && _cache.TryGetValue<ReleaseVersionInformation>(key, out var componentVersion))
-            return componentVersion!;
-        switch (channel)
-        {
-            // Check for dev channel updates.
-            case ReleaseChannel.Dev:
-            {
-                var latestTags = await DownloadApiResponse($"tags?per_page=100&page=1", ServerRepositoryName).ConfigureAwait(false);
-                Version version = new("0.0.0.0");
-                var tagName = string.Empty;
-                var commitSha = string.Empty;
-                var regex = ServerReleaseVersionRegex();
-                foreach (var tagInfo in latestTags)
-                {
-                    string localTagName = tagInfo.name;
-                    if (regex.Match(localTagName) is { Success: true } regexResult)
-                    {
-                        Version localVersion;
-                        if (regexResult.Groups["buildNumber"].Success)
-                            localVersion = new Version(regexResult.Groups["version"].Value + "." + regexResult.Groups["buildNumber"].Value);
-                        else
-                            localVersion = new Version(regexResult.Groups["version"].Value + ".0");
-                        _versionComparer ??= new();
-                        if (_versionComparer.Compare(localVersion, version) > 0)
-                        {
-                            version = localVersion;
-                            tagName = localTagName;
-                            commitSha = tagInfo.commit.sha;
-                        }
-                    }
-                }
 
-                if (string.IsNullOrEmpty(commitSha))
-                {
-                    return null;
-                }
+        return (await FetchManifestAsync(ServerManifestUrl, "server-manifest.json", force))
+            .Where(tuple => tuple.Channel == channel)
+            .Select(tuple => EntryToReleaseInfo(tuple.Entry, tuple.Channel))
+            .FirstOrDefault();
+    }
 
-                var latestCommit = await DownloadApiResponse($"commits/{commitSha}", ServerRepositoryName).ConfigureAwait(false);
-                DateTime releaseDate = latestCommit.commit.author.date;
-                releaseDate = releaseDate.ToUniversalTime();
-                string description;
-                // We're on a local build.
-                if (PluginManager.GetVersionInformation().SourceRevision is not { Length: > 0 } currentCommit)
-                {
-                    description = "Local build detected. Unable to determine the relativeness of the latest daily release.";
-                }
-                // We're not on the latest daily release.
-                else if (!string.Equals(currentCommit, commitSha))
-                {
-                    var diff = await DownloadApiResponse($"compare/{commitSha}...{currentCommit}", ServerRepositoryName).ConfigureAwait(false);
-                    var aheadBy = (int)diff.ahead_by;
-                    var behindBy = (int)diff.behind_by;
-                    description = $"You are currently {aheadBy} commits ahead and {behindBy} commits behind the latest daily release.";
-                }
-                // We're on the latest daily release.
-                else
-                {
-                    description = "All caught up! You are running the latest daily release.";
-                }
-                return _cache.Set(key, new ReleaseVersionInformation
-                {
-                    Version = version,
-                    SourceRevision = commitSha,
-                    Channel = ReleaseChannel.Dev,
-                    ReleasedAt = releaseDate,
-                    ReleaseTag = tagName,
-                    Description = description,
-                }, _cacheTTL);
-            }
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ReleaseVersionInformation>> GetServerHistory(ReleaseChannel? channel = null, bool force = false)
+    {
+        if (channel is ReleaseChannel.Auto)
+            channel = GetCurrentServerReleaseChannel();
 
-            // Check for stable channel updates.
-            default:
-            {
-                var latestRelease = await DownloadApiResponse("releases/latest", ServerRepositoryName).ConfigureAwait(false);
-                string tagName = latestRelease.tag_name;
-                var tagResponse = await DownloadApiResponse($"git/ref/tags/{tagName}", ServerRepositoryName).ConfigureAwait(false);
-                var plainTagName = tagName[0] == 'v' || tagName[0] == 'V' ? tagName[1..] : tagName;
-                var version = Version.Parse(plainTagName.Replace("-dev", ""));
-                string commit = tagResponse["object"].sha;
-                DateTime releaseDate = latestRelease.published_at;
-                releaseDate = releaseDate.ToUniversalTime();
-                string? description = latestRelease.body;
-                return _cache.Set(key, new ReleaseVersionInformation
-                {
-                    Version = version,
-                    SourceRevision = commit,
-                    Channel = ReleaseChannel.Stable,
-                    ReleasedAt = releaseDate,
-                    ReleaseTag = tagName,
-                    Description = description?.Trim() ?? string.Empty,
-                }, _cacheTTL);
-            }
-        }
+        return (await FetchManifestAsync(ServerManifestUrl, "server-manifest.json", force))
+            .Where(tuple => !channel.HasValue || tuple.Channel == channel.Value)
+            .Select(tuple => EntryToReleaseInfo(tuple.Entry, tuple.Channel))
+            .ToList();
     }
 
     #region Server | Internals
 
     private ReleaseChannel GetCurrentServerReleaseChannel()
     {
-        if (_systemService.Version.Channel is ReleaseChannel.Debug)
+        if (systemService.Version.Channel is ReleaseChannel.Debug)
             return ReleaseChannel.Stable;
-        return _systemService.Version.Channel;
+        return systemService.Version.Channel;
     }
 
     #endregion
