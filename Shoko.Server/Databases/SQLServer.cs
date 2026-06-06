@@ -185,7 +185,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     public override bool HasVersionsTable()
     {
-        const string Sql = "SELECT Count(1) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Versions'";
+        const string Sql = "SELECT Count(1) FROM sys.tables WHERE name = 'Versions'";
         using var connection = new SqlConnection(GetConnectionString());
         var command = new SqlCommand(Sql, connection);
         connection.Open();
@@ -197,13 +197,13 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
     {
         ConnectionWrapper(GetConnectionString(), myConn =>
         {
-            var create = ExecuteScalar(myConn, "Select count(*) from sysobjects where name = 'Versions'") is 0;
+            var create = ExecuteScalar(myConn, "SELECT count(*) FROM sys.objects WHERE name = 'Versions'") is 0;
             if (create)
             {
                 SystemService.StartupMessage = "Database - Creating Initial Schema...";
                 ExecuteWithException(myConn, _createVersionTable);
             }
-            var updateVersionTable = ExecuteScalar(myConn, "SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE [TABLE_NAME] = 'Versions' and [COLUMN_NAME]='VersionRevision'") is 0;
+            var updateVersionTable = ExecuteScalar(myConn, "SELECT count(*) FROM sys.columns WHERE object_id = OBJECT_ID('Versions') AND name = 'VersionRevision'") is 0;
             if (updateVersionTable)
             {
                 ExecuteWithException(myConn, _updateVersionTable);
