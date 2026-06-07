@@ -303,7 +303,7 @@ public partial class SystemUpdateService(
     public async Task<IReadOnlyList<WebReleaseVersionInformation>> GetWebComponentHistory(ReleaseChannel? channel = null, bool force = false)
     {
         if (channel is ReleaseChannel.Auto)
-            channel = GetCurrentServerReleaseChannel();
+            channel = GetCurrentWebUIReleaseChannel();
 
         return (await FetchManifestAsync(ClientManifestUrl, "webui-manifest.json", force))
             .Where(tuple => !channel.HasValue || tuple.Channel == channel.Value)
