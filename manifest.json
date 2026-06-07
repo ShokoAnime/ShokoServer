@@ -1,0 +1,22 @@
+{
+  "Stable": [
+    {
+      "version": "5.3.3",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v5.3.3/Shoko.CLI_Framework_any-x64.zip",
+      "commit": "892461188e5f1cc3ccf1b9b6eb1d4dfd31bea6f8",
+      "tag": "v5.3.3",
+      "date": "2026-03-27T04:02:59+01:00",
+      "releaseNotes": ""
+    }
+  ],
+  "Dev": [
+    {
+      "version": "6.0.0-dev.247",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.247/Shoko.CLI_Framework_any-x64.zip",
+      "commit": "292057a2910e0b2edf18d100beafd06c678b5e17",
+      "tag": "v6.0.0-dev.247",
+      "date": "2026-06-06T22:02:57Z",
+      "releaseNotes": "`misc`: *'Use Case-Sensitive Collation for Places Where Needed.**"
+    }
+  ]
+}
