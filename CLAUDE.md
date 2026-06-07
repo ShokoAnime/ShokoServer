@@ -80,6 +80,7 @@ throughput gain on real libraries.
 
 - **`Shoko.Abstractions`** — NuGet package for plugin authors. Defines the interface contract between the core and plugins (`IPlugin`, `IShokoSeries`, `IShokoEpisode`, `IVideo`, `IUser`, and all service/metadata/video/user interfaces). Only update this when the plugin contract itself needs to change.
 - **`Shoko.Server`** — All implementation: API, database, repositories, services, scheduling, providers, models.
+- **`Shoko.QueueProcessor`** — Custom job queue engine. Defines `IQueueScheduler`, `IQueueJob`, `RecurringJobRegistry`, `IJobChainBuilder`, `IVideoReleaseProviderJob<T>`, persistence (`QueuedJob`, `JobRepository` via EF Core), concurrency/acquisition attributes, and the orchestration stack (`QueueOrchestrator`, `WorkerPool`, `WorkerPoolManager`). Referenced as a local project, not a NuGet package.
 - **`Shoko.CLI`** — Headless server entry point. Instantiates and manages `SystemService` directly.
 - **`Shoko.TrayService`** — Cross-platform tray app (Avalonia) embedding the server. Runs on Windows, Linux, and macOS.
 - **`Shoko.Tests`** — Unit tests.
@@ -91,7 +92,7 @@ throughput gain on real libraries.
 
 Entry points: `Shoko.CLI/Program.cs` (headless) or `Shoko.TrayService/Program.cs` (tray app). Both instantiate `new SystemService()` directly, which internally builds and starts the `IHost`.
 
-`Program.cs` → `SystemService` constructor (NLog, `PluginManager`, `ConfigurationService`, `SettingsProvider`) → `SystemService.StartAsync()` (builds and starts `IHost` / ASP.NET Core on port 8111) → `SystemService.LateStart()` (DB migrations via `DatabaseFixes`, init Quartz scheduler, UDP connection handler, file watchers).
+`Program.cs` → `SystemService` constructor (NLog, `PluginManager`, `ConfigurationService`, `SettingsProvider`) → `SystemService.StartAsync()` (builds and starts `IHost` / ASP.NET Core on port 8111) → `SystemService.LateStart()` (DB migrations via `DatabaseFixes`, init queue scheduler via `IQueueScheduler`, UDP connection handler, file watchers).
 
 **Note:** `LateStart()` is skipped during first-run setup mode (`InSetupMode == true`). It runs either on normal startup or when `CompleteSetup()` transitions out of setup mode.
 
@@ -182,9 +183,36 @@ Always prefer a cached repository over a direct one when both exist for the same
 
 ### Scheduling
 
-Quartz.NET with a custom in-memory `ThreadPooledJobStore` (`Shoko.Server/Scheduling/`). Jobs in `Jobs/` are DI-resolved via `JobFactory`. `QueueStateEventHandler` fires domain events (job added/started/completed) consumed by `QueueEventEmitter` → SignalR clients. `DatabaseLocks/` provides named locks to prevent concurrent conflicting DB operations.
+The scheduling system lives in `Shoko.QueueProcessor` — a database-backed job queue (SQLite/MySQL/SQL Server via EF Core `QueueDbContext`) with an O(1) in-memory deduplication index. Job definitions remain in `Shoko.Server/Scheduling/Jobs/`.
 
-**Note:** Quartz is referenced as local DLLs from `Dependencies/Quartz/` (not a NuGet package), using a custom/forked build.
+**Entry point — `IQueueScheduler`** (`Shoko.QueueProcessor/Abstractions/IQueueScheduler.cs`):
+- `Enqueue<T>()` — enqueue with dedup; no-op if already waiting or executing.
+- `EnqueueImmediate<T>()` — max-priority enqueue; returns a `Task` that completes when the job finishes.
+- `RunAfterCurrent<T>()` — registers a job to run immediately after the currently-executing job. Falls back to `Enqueue` with `prioritize: true` if called outside a worker context.
+- `CreateJobChain()` — returns an `IJobChainBuilder` for sequential chains.
+
+**Job chains — `IJobChainBuilder`** (`Shoko.QueueProcessor/Abstractions/IJobChainBuilder.cs`):
+Build with `.Then<T>().Then<T>()...` and submit with `.Enqueue()` (queue entry[0] normally) or `.EnqueueAfterCurrent()` (entry[0] after the current job, rest as a chain).
+
+**Recurring jobs — `RecurringJobRegistry`** (`Shoko.QueueProcessor/Scheduling/RecurringJobRegistry.cs`):
+Timer-based `IHostedService`. Call `Register<T>(interval)` from DI (plugin `Load` or `RegisterServices`). Registrations before `StartAsync` are armed on host boot; registrations after are armed immediately. Job types must first be registered via `AddQueueJobsFromAssembly`.
+
+**Concurrency attributes** (`Shoko.QueueProcessor/Concurrency/`):
+- `[LimitConcurrency(default, max?)]` — pool-level slot cap.
+- `[DisallowConcurrentExecution]` — at most one instance running at a time.
+- `[DisallowConcurrencyGroup("name")]` — mutual exclusion across jobs sharing a group name.
+
+**Acquisition filter attributes** — block dispatch until the condition is met:
+- `[DatabaseRequired]` — waits until the DB is initialized.
+- `[NetworkRequired]` — waits until network connectivity is confirmed.
+- `[AniDBUdpRateLimited]` — respects AniDB UDP rate limits.
+- `[AniDBHttpRateLimited]` — respects AniDB HTTP rate limits.
+
+**`IJobFactory`** (`Shoko.QueueProcessor/JobFactory.cs`): DI-resolved single-shot execution via `Execute<T>()`. Used internally by the worker and by tests or services that need to run a job inline.
+
+`QueueStateEventHandler` bridges job lifecycle events (added/started/completed) to `QueueEventEmitter` → SignalR clients.
+
+The queue system lives in the QueueProcessor project, but the Shoko-specific code, like jobs or more advanced acquisition filters, is defined in Shoko.Server/Scheduling.
 
 ### Plugin System
 
@@ -289,7 +317,7 @@ One anime can match multiple TMDB shows (e.g., split-cour series on TMDB) and on
 
 ### Job Chain
 
-When a file appears, jobs execute in sequence — each job enqueues the next upon completion:
+When a file appears, jobs execute in sequence via `IJobChainBuilder` / `RunAfterCurrent`:
 
 ```
 File appears on disk
@@ -303,12 +331,20 @@ HashFileJob  (Shoko.Server/Scheduling/Jobs/Shoko/HashFileJob.cs)
   Computes ED2K (primary), MD5, SHA1, CRC32 via IVideoHashingService
   Stores hashes, populates VideoLocal.Hash
         │
-        ▼
-ProcessFileJob  (Shoko.Server/Scheduling/Jobs/Shoko/ProcessFileJob.cs)
-  Queries release providers for episode mapping (hash + size)
-  Creates CrossRef_File_Episode + StoredReleaseInfo
+        ▼  [VideoReleaseService builds a chain via IJobChainBuilder]
+AnidbProcessFileJob  (Shoko.Server/Scheduling/Jobs/Shoko/AnidbProcessFileJob.cs)
+  Implements IVideoReleaseProviderJob<AnidbReleaseProvider>
+  Queries AniDB UDP for episode mapping; creates CrossRef_File_Episode + StoredReleaseInfo
   Adds file to AniDB MyList (unless skipped)
-        │  [on new AnimeID]
+─── or, for providers without a dedicated job class ───
+ProcessReleaseProviderJob  (Shoko.Server/Scheduling/Jobs/Shoko/ProcessReleaseProviderJob.cs)
+  Generic fallback; identified by ProviderID (Guid)
+        │
+        ▼
+FinalizeReleaseSearchJob  (Shoko.Server/Scheduling/Jobs/Shoko/FinalizeReleaseSearchJob.cs)
+  Always the last entry in every provider chain
+  Fires IVideoReleaseService.SearchCompleted; triggers relocation if configured
+        │  [on new AnimeID — enqueued by provider jobs]
         ▼
 GetAniDBAnimeJob  (Shoko.Server/Scheduling/Jobs/AniDB/GetAniDBAnimeJob.cs)
   Fetches full AniDB_Anime + all AniDB_Episode records via AniDB HTTP API
@@ -325,15 +361,17 @@ UpdateTmdbShowJob / UpdateTmdbMovieJob  (Shoko.Server/Scheduling/Jobs/TMDB/)
   Fetches titles + overviews in all configured languages
         │
         ▼
-Image download jobs  (DownloadAniDBImageJob, DownloadTmdbImageJob)
-  Download poster/backdrop/thumbnail files to local image cache
+Image download jobs  (DownloadImageJob)
+  Downloads poster/backdrop/thumbnail files to local image cache
 ```
 
 ### Orchestration Pattern
 
-Jobs do not use a central orchestrator. Each job enqueues its successor directly via `IJobFactory` / `IScheduler`. `ProcessFileJob` is the pivot: it reads the `AnimeID` from the AniDB response and checks whether `AniDB_Anime` already exists before deciding to enqueue `GetAniDBAnimeJob`.
+Jobs do not use a central orchestrator. Each job enqueues its successor via `IQueueScheduler.RunAfterCurrent<T>()` or `IJobChainBuilder`. The provider job chain is built by `VideoReleaseService` using `CreateJobChain()`: one entry per enabled `IReleaseInfoProvider` (using the provider's dedicated `IVideoReleaseProviderJob<TProvider>` class if registered, otherwise `ProcessReleaseProviderJob`), with `FinalizeReleaseSearchJob` appended as the terminal step. Provider jobs read the `AnimeID` from the release info and enqueue `GetAniDBAnimeJob` when a new anime is encountered.
 
-**`ImportJob`** (`Shoko.Server/Scheduling/Jobs/Actions/ImportJob.cs`) is a periodic sweep that catches anything the live pipeline missed: it calls `ActionService.ScheduleMissingAnidbAnimeForFiles()` to queue `GetAniDBAnimeJob` for any file whose anime was never fetched, and `IVideoService.ScheduleScanForManagedFolders()` to rescan all watched folders.
+**`ImportJob`** (`Shoko.Server/Scheduling/Jobs/Actions/ImportJob.cs`) is a periodic sweep that catches anything the live pipeline missed: it calls `IVideoService.ScheduleScanForManagedFolders()` to rescan all watched folders.
+
+**`ScanForMissingReleaseInfoJob`** (`Shoko.Server/Scheduling/Jobs/Actions/ScanForMissingReleaseInfoJob.cs`) is a recurring job (registered via `RecurringJobRegistry`) that finds `StoredReleaseInfo` records with unknown source or missing audio/subtitle languages and re-queues the appropriate provider job on each provider's backoff schedule (`GetRescanDelay()`).
 
 ### Intermediate Cache Models
 
@@ -343,7 +381,9 @@ Several models exist solely to avoid redundant I/O or external API calls. Jobs c
 
 **`VideoLocal_HashDigest`** (`Models/Shoko/VideoLocal_HashDigest.cs`) — stores all computed hash types (ED2K, CRC32, MD5, SHA1) for a `VideoLocal` as `Type + Value` rows. Written by `VideoHashingService` during `HashFileJob`. Read when displaying or cross-referencing file hashes without recomputing.
 
-**`StoredReleaseInfo`** (`Models/Release/StoredReleaseInfo.cs`) — caches the full release provider response: ED2K + FileSize, provider ID, release URI, source (BluRay/Web/etc.), codec flags (`IsCensored`, `IsCreditless`, `IsChaptered`), version, and cross-references to anime/episodes. Written by `IVideoReleaseService.FindReleaseForVideo()` inside `ProcessFileJob`. `ProcessFileJob` calls `GetCurrentReleaseForVideo()` first — if a `StoredReleaseInfo` already exists for the hash, the release provider lookup is skipped entirely. Queried by the API via `GetByEd2kAndFileSize()`, `GetByReleaseURI()`, `GetByAnidbEpisodeID()`.
+**`StoredReleaseInfo`** (`Models/Release/StoredReleaseInfo.cs`) — caches the full release provider response: ED2K + FileSize, provider ID, release URI, source (BluRay/Web/etc.), codec flags (`IsCensored`, `IsCreditless`, `IsChaptered`), version, and cross-references to anime/episodes. Written by `IVideoReleaseService.FindReleaseForVideo()` inside provider jobs. Provider jobs call `GetCurrentReleaseForVideo()` first — if a `StoredReleaseInfo` already exists for the hash, the lookup is skipped entirely. Queried by the API via `GetByEd2kAndFileSize()`, `GetByReleaseURI()`, `GetByAnidbEpisodeID()`.
+
+**`StoredReleaseInfo_MatchAttempt`** (`Models/Release/StoredReleaseInfo_MatchAttempt.cs`) — tracks per-provider match attempts for a file: `ProviderName`, `ProviderID`, `AttemptCount`, `AttemptStartedAt`, `AttemptEndedAt`, `EmbeddedAttemptProviderNames`. Written by provider jobs at the start of each attempt. Read by `ScanForMissingReleaseInfoJob` to apply per-provider backoff logic and skip providers that have already found a result.
 
 **`AniDB_AnimeUpdate`** (`Models/AniDB/AniDB_AnimeUpdate.cs`) — one row per `AnimeID`, storing only `UpdatedAt`. Written by `RequestGetAnime.UpdateAccessTime()` after every successful AniDB HTTP response. Read by the same method to decide whether the local `AniDB_Anime` record is stale enough to warrant a new fetch. `GetAniDBAnimeJob` respects `IgnoreTimeCheck` to force a refresh past this gate.
 
@@ -355,7 +395,7 @@ Several models exist solely to avoid redundant I/O or external API calls. Jobs c
 
 ### Unrecognized Files
 
-If no release provider returns a match, `ProcessFileJob` marks the file as unrecognized. The file can be linked to one or more episodes via the API or by plugins.
+If no release provider returns a match, the provider chain completes without creating a `StoredReleaseInfo` record and the file is considered unrecognized. The file can be linked to one or more episodes via the API or by plugins.
 
 **AVDump** (`AvdumpFileJob`) is an on-demand utility that submits a file's media info and hashes to AniDB for manual entry. It is unrelated to unrecognized file handling and only runs on explicit user/plugin request.
 
@@ -365,12 +405,11 @@ If no release provider returns a match, `ProcessFileJob` marks the file as unrec
 |-----|---------------------------------------|--------|
 | `HashFileJob` | 2 | I/O bound |
 | `MediaInfoJob` | 2 | I/O bound |
-| `ProcessFileJob` | 4 | AniDB UDP rate limit |
-| `GetAniDBAnimeJob` | 1 (1) | AniDB HTTP + bulkhead limit |
+| `AnidbProcessFileJob` | 4 | AniDB UDP rate limit |
+| `GetAniDBAnimeJob` | group-limited (`AniDB_HTTP`) | AniDB HTTP bulkhead |
 | `AVDumpFilesJob` | 1 (16) | AVDump resource limits |
 | `SearchTmdbJob` | 8 (24) | TMDB allows higher throughput |
 | `UpdateTmdbShowJob` | 1 (12) | TMDB allows higher throughput |
 | `UpdateTmdbMovieJob` | 1 (12) | TMDB allows higher throughput |
-| `DownloadAniDBImageJob` | 8 (16) | Image download throughput |
-| `DownloadTmdbImageJob` | 12 (24) | Image download throughput |
+| `DownloadImageJob` | 4 | Image download throughput |
 | `ValidateAllImagesJob` | 1 (1) | Sequential validation |
