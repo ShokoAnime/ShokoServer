@@ -135,7 +135,7 @@ public partial class SystemUpdateService(
         var version = Version.Parse(entry.Version.Replace("-dev", "").TrimStart('v').TrimStart('V'));
         var tag = entry.Tag;
         if (string.IsNullOrEmpty(tag))
-            tag = $"v{version.ToSemanticVersioningString()}";
+            tag = entry.Version;
 
         var commit = entry.Commit;
         if (string.IsNullOrEmpty(commit))
