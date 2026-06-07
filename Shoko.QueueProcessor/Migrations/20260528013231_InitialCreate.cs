@@ -15,14 +15,14 @@ namespace Shoko.QueueProcessor.Migrations
                 name: "Jobs",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    JobType = table.Column<string>(type: "TEXT", maxLength: 256, nullable: false),
-                    JobKey = table.Column<string>(type: "TEXT", maxLength: 512, nullable: false),
-                    JobDataJson = table.Column<string>(type: "TEXT", maxLength: 4096, nullable: true),
-                    Priority = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 0),
-                    QueuedAt = table.Column<long>(type: "INTEGER", nullable: false),
-                    ScheduledAt = table.Column<long>(type: "INTEGER", nullable: true),
-                    RetryCount = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 0)
+                    Id = table.Column<Guid>(nullable: false),
+                    JobType = table.Column<string>(maxLength: 256, nullable: false),
+                    JobKey = table.Column<string>(maxLength: 512, nullable: false),
+                    JobDataJson = table.Column<string>(maxLength: 4096, nullable: true),
+                    Priority = table.Column<int>(nullable: false, defaultValue: 0),
+                    QueuedAt = table.Column<long>(nullable: false),
+                    ScheduledAt = table.Column<long>(nullable: true),
+                    RetryCount = table.Column<int>(nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {

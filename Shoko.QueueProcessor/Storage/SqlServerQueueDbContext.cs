@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Shoko.QueueProcessor.Storage;
 
@@ -15,6 +16,8 @@ public class SqlServerQueueDbContext : QueueDbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
-            optionsBuilder.UseSqlServer(_connectionString);
+            optionsBuilder
+                .UseSqlServer(_connectionString)
+                .ReplaceService<IMigrationsAssembly, QueueMigrationsAssembly>();
     }
 }
