@@ -805,7 +805,7 @@ public partial class ShokoServiceImplementation : Controller
     {
         try
         {
-            ISystemService.StaticServices.GetRequiredService<ActionService>().CheckForCalendarUpdate(true).GetAwaiter().GetResult();
+            _scheduler.StartJob<GetAniDBCalendarJob>(c => c.ForceRefresh = true).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {

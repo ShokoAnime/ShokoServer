@@ -27,7 +27,6 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class GetUpdatedAniDBAnimeJob : BaseJob
 {
-    // TODO make this use Quartz scheduling
     private readonly IRequestFactory _requestFactory;
     private readonly IAnidbService _anidbService;
     private readonly ISettingsProvider _settingsProvider;

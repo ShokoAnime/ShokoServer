@@ -1628,7 +1628,7 @@ public class Common : BaseController
     {
         try
         {
-            await _actionService.CheckForCalendarUpdate(true);
+            await _scheduler.StartJob<GetAniDBCalendarJob>(c => c.ForceRefresh = true);
             return Ok();
         }
         catch (Exception ex)

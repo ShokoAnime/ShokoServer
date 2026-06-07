@@ -476,7 +476,7 @@ public class ActionController : BaseController
     [HttpGet("UpdateAniDBCalendar")]
     public async Task<ActionResult> UpdateAniDBCalendarData()
     {
-        await _actionService.CheckForCalendarUpdate(true);
+        await _scheduler.StartJob<GetAniDBCalendarJob>(c => c.ForceRefresh = true);
         return Ok();
     }
 
@@ -566,7 +566,7 @@ public class ActionController : BaseController
     [HttpGet("GetAniDBNotifications")]
     public async Task<ActionResult> GetAniDBNotifications()
     {
-        await _actionService.CheckForUnreadNotifications(true);
+        await _scheduler.StartJob<CheckAniDBNotificationsJob>(c => c.ForceRefresh = true);
         return Ok();
     }
 

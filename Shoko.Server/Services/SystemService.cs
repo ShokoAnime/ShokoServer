@@ -7,7 +7,6 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 using MessagePack;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -52,16 +51,17 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Services.Abstraction;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Services.Connectivity;
 using Shoko.Server.Services.ErrorHandling;
+using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Trinet.Core.IO.Ntfs;
 
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
-using Timer = System.Timers.Timer;
 
 #nullable enable
 namespace Shoko.Server.Services;
@@ -77,8 +77,6 @@ public class SystemService : ISystemService
     private readonly ConfigurationService _configurationService;
 
     private readonly SettingsProvider _settingsProvider;
-
-    private Timer? _autoUpdateTimer;
 
     private IHost? _webHost;
 
@@ -469,6 +467,53 @@ public class SystemService : ISystemService
             var registry = app.ApplicationServices.GetRequiredService<RecurringJobRegistry>();
             registry.Register<CheckNetworkAvailabilityJob>(TimeSpan.FromMinutes(30), runImmediately: true);
             registry.Register<ScanForMissingReleaseInfoJob>(TimeSpan.FromHours(24), runImmediately: false);
+
+            // Register settings-driven recurring jobs. Jobs whose frequency is Never are skipped
+            // entirely at startup; they are registered on-demand when settings change.
+            var settingsProvider = app.ApplicationServices.GetRequiredService<ISettingsProvider>();
+            var settings = settingsProvider.GetSettings();
+            var anidb = settings.AniDb;
+            var pluginUpdates = settings.Plugins.Updates;
+
+            if (anidb.Notification_UpdateFrequency != ScheduledUpdateFrequency.Never)
+                registry.Register<CheckAniDBNotificationsJob>(TimeSpan.FromHours(anidb.Notification_UpdateFrequency.Hours), runImmediately: false);
+            if (anidb.Calendar_UpdateFrequency != ScheduledUpdateFrequency.Never)
+                registry.Register<GetAniDBCalendarJob>(TimeSpan.FromHours(anidb.Calendar_UpdateFrequency.Hours), runImmediately: false);
+            if (anidb.Anime_UpdateFrequency != ScheduledUpdateFrequency.Never)
+                registry.Register<GetUpdatedAniDBAnimeJob>(TimeSpan.FromHours(anidb.Anime_UpdateFrequency.Hours), runImmediately: false);
+            if (anidb.MyList_UpdateFrequency != ScheduledUpdateFrequency.Never)
+                registry.Register<SyncAniDBMyListJob>(TimeSpan.FromHours(anidb.MyList_UpdateFrequency.Hours), runImmediately: false);
+            if (anidb.File_UpdateFrequency != ScheduledUpdateFrequency.Never)
+                registry.Register<CheckAniDBFileUpdatesJob>(TimeSpan.FromHours(anidb.File_UpdateFrequency.Hours), runImmediately: false);
+            if (pluginUpdates.IsAutoSyncEnabled && pluginUpdates.AutoUpdateFrequency != ScheduledUpdateFrequency.Never)
+                registry.Register<CheckPluginUpdatesJob>(TimeSpan.FromHours(pluginUpdates.AutoUpdateFrequency.Hours), runImmediately: false);
+
+            // Reschedule recurring jobs when frequency settings change.
+            var configProvider = app.ApplicationServices.GetRequiredService<ConfigurationProvider<ServerSettings>>();
+            configProvider.Saved += (_, args) =>
+            {
+                var s = args.Configuration;
+                RescheduleByFrequency<CheckAniDBNotificationsJob>(registry, s.AniDb.Notification_UpdateFrequency);
+                RescheduleByFrequency<GetAniDBCalendarJob>(registry, s.AniDb.Calendar_UpdateFrequency);
+                RescheduleByFrequency<GetUpdatedAniDBAnimeJob>(registry, s.AniDb.Anime_UpdateFrequency);
+                RescheduleByFrequency<SyncAniDBMyListJob>(registry, s.AniDb.MyList_UpdateFrequency);
+                RescheduleByFrequency<CheckAniDBFileUpdatesJob>(registry, s.AniDb.File_UpdateFrequency);
+
+                var pu = s.Plugins.Updates;
+                if (pu.IsAutoSyncEnabled && pu.AutoUpdateFrequency != ScheduledUpdateFrequency.Never)
+                    registry.Reschedule<CheckPluginUpdatesJob>(TimeSpan.FromHours(pu.AutoUpdateFrequency.Hours));
+                else
+                    registry.Unschedule<CheckPluginUpdatesJob>();
+            };
+        }
+
+        private static void RescheduleByFrequency<T>(RecurringJobRegistry registry, ScheduledUpdateFrequency freq)
+            where T : class, IQueueJob
+        {
+            if (freq == ScheduledUpdateFrequency.Never)
+                registry.Unschedule<T>();
+            else
+                registry.Reschedule<T>(TimeSpan.FromHours(freq.Hours));
         }
 
         private static string GetQueueConnectionString(QueueProcessorSettings q)
@@ -593,15 +638,6 @@ public class SystemService : ISystemService
 
                 Task.Run(() => SetupCompleted?.Invoke(this, EventArgs.Empty));
             }
-
-            // Start the timer for automatic updates now.
-            _autoUpdateTimer = new Timer
-            {
-                AutoReset = true,
-                Interval = TimeSpan.FromMinutes(5).TotalMilliseconds,
-            };
-            _autoUpdateTimer.Elapsed += AutoUpdateTimer_Elapsed;
-            _autoUpdateTimer.Start();
 
             StartedAt = DateTime.UtcNow;
 
@@ -814,8 +850,6 @@ public class SystemService : ISystemService
         _shutdownTokenSource.Cancel();
         if (_webHost is not null)
         {
-            _autoUpdateTimer?.Stop();
-
             var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
             fileWatcherService.StopWatchingFiles();
 
@@ -877,26 +911,6 @@ public class SystemService : ISystemService
     }
 
     #endregion
-
-    #endregion
-
-    #region Auto Update Timer
-
-    private void AutoUpdateTimer_Elapsed(object? sender, ElapsedEventArgs e)
-    {
-        if (RestartPending || ShutdownPending)
-            return;
-
-        var actionService = _webHost!.Services.GetRequiredService<ActionService>();
-
-        // TODO: Move all of these to Quartz
-        actionService.CheckForUnreadNotifications(false).GetAwaiter().GetResult();
-        actionService.CheckForCalendarUpdate(false).GetAwaiter().GetResult();
-        actionService.CheckForAnimeUpdate().GetAwaiter().GetResult();
-        actionService.CheckForMyListSyncUpdate(false).GetAwaiter().GetResult();
-        actionService.CheckForAniDBFileUpdate(false).GetAwaiter().GetResult();
-        actionService.CheckForPluginUpdates(false).GetAwaiter().GetResult();
-    }
 
     #endregion
 

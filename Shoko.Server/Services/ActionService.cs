@@ -417,42 +417,6 @@ public class ActionService
         return missingFiles.Count;
     }
 
-    public async Task CheckForUnreadNotifications(bool ignoreSchedule)
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (!ignoreSchedule && settings.AniDb.Notification_UpdateFrequency == ScheduledUpdateFrequency.Never) return;
-
-        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBNotify);
-        if (schedule == null)
-        {
-            schedule = new()
-            {
-                UpdateType = (int)ScheduledUpdateType.AniDBNotify,
-                UpdateDetails = string.Empty
-            };
-        }
-        else
-        {
-            var freqHours = settings.AniDb.Notification_UpdateFrequency.Hours;
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-
-            // The NOTIFY command must not be issued more than once every 20 minutes according to the AniDB UDP API documentation:
-            // https://wiki.anidb.net/UDP_API_Definition#NOTIFY:_Notifications
-            // We will use 30 minutes as a safe interval.
-            if (tsLastRun.TotalMinutes < 30) return;
-
-            // if we have run this in the last freqHours and are not forcing it, then exit
-            if (!ignoreSchedule && tsLastRun.TotalHours < freqHours) return;
-        }
-
-        schedule.LastUpdate = DateTime.Now;
-        _scheduledUpdates.Save(schedule);
-        await _scheduler.StartJob<GetAniDBNotifyJob>();
-
-        // process any unhandled moved file messages
-        await RefreshAniDBMovedFiles(false);
-    }
-
     public async Task RefreshAniDBMovedFiles(bool force)
     {
         var settings = _settingsProvider.GetSettings();
@@ -467,111 +431,6 @@ public class ActionService
                 }
             }
         }
-    }
-
-    public async Task CheckForCalendarUpdate(bool forceRefresh)
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (settings.AniDb.Calendar_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-
-        var freqHours = settings.AniDb.Calendar_UpdateFrequency.Hours;
-
-        // update the calendar every 12 hours
-        // we will always assume that an anime was downloaded via http first
-
-        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
-        if (schedule != null)
-        {
-            // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
-        }
-
-        await _scheduler.StartJob<GetAniDBCalendarJob>(c => c.ForceRefresh = forceRefresh);
-    }
-
-    public async Task CheckForAnimeUpdate()
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (settings.AniDb.Anime_UpdateFrequency == ScheduledUpdateFrequency.Never) return;
-
-        var freqHours = settings.AniDb.Anime_UpdateFrequency.Hours;
-
-        // check for any updated anime info every 12 hours
-
-        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
-        if (schedule != null)
-        {
-            // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours) return;
-        }
-
-        await _scheduler.StartJob<GetUpdatedAniDBAnimeJob>(c => c.ForceRefresh = true);
-    }
-
-    public async Task CheckForMyListSyncUpdate(bool forceRefresh)
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (settings.AniDb.MyList_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh) return;
-        var freqHours = settings.AniDb.MyList_UpdateFrequency.Hours;
-
-        // update the calendar every 24 hours
-
-        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
-        if (schedule != null)
-        {
-            // if we have run this in the last 24 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            _logger.LogTrace("Last AniDB MyList Sync: {Time} minutes ago", tsLastRun.TotalMinutes);
-            if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
-        }
-
-        await _scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = forceRefresh);
-    }
-
-    public async Task CheckForAniDBFileUpdate(bool forceRefresh)
-    {
-        var settings = _settingsProvider.GetSettings();
-        if (settings.AniDb.File_UpdateFrequency == ScheduledUpdateFrequency.Never && !forceRefresh)
-            return;
-
-        // check for any updated anime info every 12 hours
-        var freqHours = settings.AniDb.File_UpdateFrequency.Hours;
-        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
-        if (schedule != null)
-        {
-            // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours && !forceRefresh) return;
-        }
-
-        // files which have been hashed, but don't have an associated episode
-        if (_videoReleaseService.AutoMatchEnabled)
-        {
-            var filesWithoutEpisode = _videoLocals.GetVideosWithoutEpisode();
-            foreach (var vl in filesWithoutEpisode)
-            {
-                if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
-                {
-                    var matchAttempts = _storedReleaseInfoMatchAttempts.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
-                    if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
-                        continue;
-                }
-
-                await _videoReleaseService.ScheduleFindReleaseForVideo(vl);
-            }
-        }
-        await ScheduleMissingAnidbAnimeForFiles();
-
-        schedule ??= new()
-        {
-            UpdateType = (int)ScheduledUpdateType.AniDBFileUpdates,
-            UpdateDetails = string.Empty
-        };
-
-        schedule.LastUpdate = DateTime.Now;
-        _scheduledUpdates.Save(schedule);
     }
 
     public void CheckForPreviouslyIgnored()
@@ -677,7 +536,7 @@ public class ActionService
         foreach (var (episodeId, xrefs) in unknownEpisodeDict)
         {
             if (++index % 10 == 1)
-                _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime — {CurrentCount}/{MissingAnimeCount}", unknownEpisodeDict.Count, index + 1, unknownEpisodeDict.Count);
+                _logger.LogInformation("Attempting to fix cross-references with unknown anime — {CurrentCount}/{MissingAnimeCount}", index + 1, unknownEpisodeDict.Count);
 
             var episode = _anidbEpisodes.GetByEpisodeID(episodeId);
             if (episode is not null)
@@ -729,7 +588,7 @@ public class ActionService
         foreach (var animeID in missingAnimeSet)
         {
             if (++index % 10 == 1 || index == missingAnimeSet.Count)
-                _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update — {CurrentCount}/{MissingAnimeCount}", missingAnimeSet.Count, index + 1, missingAnimeSet.Count);
+                _logger.LogInformation("Queueing anime that needs an update — {CurrentCount}/{MissingAnimeCount}", index + 1, missingAnimeSet.Count);
 
             await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod);
         }
@@ -754,7 +613,7 @@ public class ActionService
             await _scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorID).ConfigureAwait(false);
 
             if (++progressCount % 10 == 0)
-                _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh. (Progress={Count}/{Total})", allMissingCreators.Count, progressCount, allMissingCreators.Count);
+                _logger.LogInformation("Scheduling AniDB Creators for a refresh. (Progress={Count}/{Total})", progressCount, allMissingCreators.Count);
         }
 
         _logger.LogInformation("Scheduled {Count} AniDB Creators in {TimeSpan}", allMissingCreators.Count, DateTime.Now - startedAt);
@@ -778,36 +637,4 @@ public class ActionService
         _logger.LogInformation("Queued Creation of {Count} Series that were missing.", missingSeries.Count);
     }
 
-    /// <summary>
-    ///   Schedules a plugin update check job.
-    /// </summary>
-    /// <param name="forceRefresh">
-    ///   Force sync even if not stale.
-    /// </param>
-    public async Task CheckForPluginUpdates(bool forceRefresh)
-    {
-        var settings = _settingsProvider.GetSettings();
-
-        // Check if auto-sync is enabled (must be enabled unless forcing)
-        if (!settings.Plugins.Updates.IsAutoSyncEnabled && !forceRefresh)
-            return;
-
-        // Check frequency setting (skip schedule check if forcing)
-        if (!forceRefresh)
-        {
-            if (settings.Plugins.Updates.AutoUpdateFrequency is ScheduledUpdateFrequency.Never)
-                return;
-
-            var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.PluginUpdates);
-            if (schedule != null)
-            {
-                var freqHours = settings.Plugins.Updates.AutoUpdateFrequency.Hours;
-                var tsLastRun = DateTime.Now - schedule.LastUpdate;
-                if (tsLastRun.TotalHours < freqHours)
-                    return;
-            }
-        }
-
-        await _pluginPackageManager.ScheduleCheckForUpdates(forceSync: forceRefresh ? true : null).ConfigureAwait(false);
-    }
 }

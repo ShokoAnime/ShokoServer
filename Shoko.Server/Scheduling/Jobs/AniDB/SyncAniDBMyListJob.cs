@@ -41,7 +41,6 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class SyncAniDBMyListJob : BaseJob
 {
-    // TODO make this use Quartz scheduling
     private readonly IRequestFactory _requestFactory;
     private readonly IQueueScheduler _scheduler;
     private readonly ISettingsProvider _settingsProvider;
