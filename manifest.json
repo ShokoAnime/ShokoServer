@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.249",
+      "tag": "v6.0.0-dev.249",
+      "commit": "0537d97ab676b07193e04e3bffe2dfb23a80996e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.249/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-07T01:40:06Z",
+      "releaseNotes": "\n`misc`: **Convert system timers to recurring jobs**.\n"
+    },
+    {
       "version": "6.0.0.248",
       "tag": "v6.0.0-dev.248",
       "commit": "94748dec0cae98c7eae2b99f391619230e14e512",
