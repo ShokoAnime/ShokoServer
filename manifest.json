@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.252",
+      "tag": "v6.0.0-dev.252",
+      "commit": "4c52bfa6af73e82b1ec597c2881919bd98c7d4e0",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.252/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-07T16:44:16Z",
+      "releaseNotes": "\n`fix`: **Infer web ui channel from current web ui version before server version**.\n\n`fix`: **Use raw version as tag if no tag field**.\n"
+    },
+    {
       "version": "6.0.0.251",
       "tag": "v6.0.0-dev.251",
       "commit": "72ffda578ead32af0e0059eb6108f5952bf396da",
