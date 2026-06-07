@@ -207,6 +207,18 @@ public class VideoService : IVideoService
 
     #region Video File
 
+    public int MaxAutoScanAttemptsPerVideo
+    {
+        get => _settingsProvider.GetSettings().Import.MaxAutoScanAttemptsPerFile;
+        set
+        {
+            if (value is < 0 or > 100)
+                throw new ArgumentOutOfRangeException(nameof(MaxAutoScanAttemptsPerVideo), value, "Value must be between 0 and 100");
+            _settingsProvider.GetSettings().Import.MaxAutoScanAttemptsPerFile = value;
+            _settingsProvider.SaveSettings();
+        }
+    }
+
     /// <inheritdoc/>
     public IEnumerable<IVideoFile> GetAllVideoFiles()
         => _placeRepository.GetAll().AsQueryable();
@@ -256,7 +268,7 @@ public class VideoService : IVideoService
     }
 
     /// <inheritdoc/>
-    public async Task NotifyVideoFileChangeDetected(string absolutePath, bool updateMylist = true)
+    public async Task NotifyVideoFileChangeDetected(string absolutePath, bool updateMylist = true, bool forceScan = false)
     {
         ArgumentException.ThrowIfNullOrEmpty(absolutePath);
 
@@ -264,11 +276,11 @@ public class VideoService : IVideoService
         if (managedFolder is null)
             throw new InvalidOperationException($"The path is outside of any managed folders: {absolutePath}");
 
-        await NotifyVideoFileChangeDetected(managedFolder, relativePath, updateMylist);
+        await NotifyVideoFileChangeDetected(managedFolder, relativePath, updateMylist, forceScan);
     }
 
     /// <inheritdoc/>
-    public async Task NotifyVideoFileChangeDetected(IManagedFolder managedFolder, string? relativePath = null, bool updateMylist = true)
+    public async Task NotifyVideoFileChangeDetected(IManagedFolder managedFolder, string? relativePath = null, bool updateMylist = true, bool forceScan = false)
     {
         ArgumentNullException.ThrowIfNull(managedFolder);
 
@@ -335,10 +347,10 @@ public class VideoService : IVideoService
 
         if (shouldSave)
         {
-            _logger.LogTrace("Saving video record for path: {Path} (Hash={Hash},Size={Size})", absolutePath, video.Hash, video.FileSize);
+            _logger.LogTrace("Saving video record for path: {Path} (ED2K={ED2K},Size={Size})", absolutePath, video.Hash, video.FileSize);
             _videoLocalRepository.Save(video, true);
 
-            _logger.LogTrace("Saving video file record for path: {Path} (Hash={Hash},Size={Size})", absolutePath, video.Hash, video.FileSize);
+            _logger.LogTrace("Saving video file record for path: {Path} (ED2K={ED2K},Size={Size})", absolutePath, video.Hash, video.FileSize);
             videoLocation.VideoID = video.VideoLocalID;
             _videoLocalPlaceRepository.Save(videoLocation);
         }
@@ -365,13 +377,31 @@ public class VideoService : IVideoService
 
         if (hasXrefs)
         {
-            _logger.LogTrace("Found existing video file with hashes and release info: {Path} (ED2K={Hash})", absolutePath, video.Hash);
+            _logger.LogTrace("Found existing video file with hashes and release info: {Path} (ED2K={ED2K},Size={Size})", absolutePath, video.Hash, video.FileSize);
             return;
         }
 
         if (!_videoReleaseService.AutoMatchEnabled)
         {
-            _logger.LogTrace("Found existing video file with hashes but without release info and auto-match is disabled: {Path} (ED2K={Hash})", absolutePath, video.Hash);
+            _logger.LogTrace("Found existing video file with hashes but without release info and auto-match is disabled: {Path} (ED2K={ED2K},Size={Size})", absolutePath, video.Hash, video.FileSize);
+            return;
+        }
+
+        if (
+            !forceScan &&
+            settings.Import.MaxAutoScanAttemptsPerFile > 0 &&
+            _videoReleaseService.GetReleaseMatchAttemptsForVideo(video) is { Count: var count } &&
+            count > settings.Import.MaxAutoScanAttemptsPerFile
+        )
+        {
+            _logger.LogTrace(
+                "Found existing video file with hashes but without release info with more than {MaxAutoScanAttemptsPerFile} attempts: {Path} (Attempts={Attempts},ED2K={ED2K},Size={Size})",
+                settings.Import.MaxAutoScanAttemptsPerFile,
+                absolutePath,
+                count,
+                video.Hash,
+                video.FileSize
+            );
             return;
         }
 
@@ -909,10 +939,10 @@ public class VideoService : IVideoService
         await Task.WhenAll(affectedSeries.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
-    public async Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null)
-        => await ScanManagedFolder((ShokoManagedFolder)folder, relativePath, onlyNewFiles, skipMylist, cleanUpStructure, checkFileSize);
+    public async Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false)
+        => await ScanManagedFolder((ShokoManagedFolder)folder, relativePath, onlyNewFiles, skipMylist, cleanUpStructure, checkFileSize, forceScan);
 
-    private async Task ScanManagedFolder(ShokoManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null)
+    private async Task ScanManagedFolder(ShokoManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false)
     {
         cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
         checkFileSize ??= _settingsProvider.GetSettings().Import.CheckFileSize;
@@ -1010,7 +1040,7 @@ public class VideoService : IVideoService
 
                 videosFound++;
 
-                await NotifyVideoFileChangeDetected(folder, relativePath, updateMylist: !skipMylist);
+                await NotifyVideoFileChangeDetected(folder, relativePath, updateMylist: !skipMylist, forceScan: forceScan);
             },
             new ExecutionDataflowBlockOptions
             {
@@ -1020,11 +1050,11 @@ public class VideoService : IVideoService
 
         _logger.LogDebug("Processing {Count} files in folder {FolderName} with {Parallelism} threads. (Folder={FolderID})", total, folder.Name, parallelism, folder.ID);
         for (var index = 0; index < total; index++)
-            await actionBlock.SendAsync(index).ConfigureAwait(false);
+            await actionBlock.SendAsync(index);
 
         actionBlock.Complete();
 
-        await actionBlock.Completion.ConfigureAwait(false);
+        await actionBlock.Completion;
 
         _logger.LogDebug("Found {FileCount} files and {VideoCount} videos in folder {FolderName} in {TimeSpan}. (Folder={FolderID},FilesScanTime={FilesAt})", filesFound, videosFound, folder.Name, DateTime.Now - startedAt, folder.ID, filesAt);
 
@@ -1049,14 +1079,18 @@ public class VideoService : IVideoService
         return FileSystemHelpers.GetFilePaths(folder.Path, recursive: true, filter: IsMatch);
     }
 
-    public async Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool prioritize = true)
+    public async Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false, bool prioritize = true)
     {
         cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
         checkFileSize ??= _settingsProvider.GetSettings().Import.CheckFileSize;
-        await _scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipMyList, j.CleanUpStructure, j.CheckFileSize) = (folder.ID, relativePath, onlyNewFiles, skipMylist, cleanUpStructure.Value, checkFileSize.Value), prioritize);
+        await _scheduler.StartJob<ScanFolderJob>(j =>
+            (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipMyList, j.CleanUpStructure, j.CheckFileSize, j.ForceScan) =
+            (folder.ID, relativePath, onlyNewFiles, skipMylist, cleanUpStructure.Value, checkFileSize.Value, forceScan),
+            prioritize
+        );
     }
 
-    public async Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true)
+    public async Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipMylist = false, bool? cleanUpStructure = null, bool forceScan = false, bool prioritize = true)
     {
         cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
 
@@ -1073,9 +1107,9 @@ public class VideoService : IVideoService
         }
 
         foreach (var source in sources)
-            await ScheduleScanForManagedFolder(source, skipMylist: skipMylist, cleanUpStructure: cleanUpStructure, prioritize: prioritize);
+            await ScheduleScanForManagedFolder(source, skipMylist: skipMylist, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
         foreach (var folder in rest)
-            await ScheduleScanForManagedFolder(folder, onlyNewFiles: onlyNewFiles.Value, skipMylist: skipMylist, cleanUpStructure: cleanUpStructure, prioritize: prioritize);
+            await ScheduleScanForManagedFolder(folder, onlyNewFiles: onlyNewFiles.Value, skipMylist: skipMylist, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
     }
 
     #endregion Managed Folder

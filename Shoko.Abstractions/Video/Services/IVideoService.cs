@@ -45,6 +45,15 @@ public interface IVideoService
     #region Video File
 
     /// <summary>
+    ///   Gets or sets the maximum number of attempts to auto-scan a video file.
+    ///   Set to <c>0</c> to disable auto-scanning. Default: <c>15</c>.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///   Thrown when the value is less than <c>0</c> or more than <c>100</c>.
+    /// </exception>
+    int MaxAutoScanAttemptsPerVideo { get; set; }
+
+    /// <summary>
     ///   Dispatched when a video file is first detected, either during a forced
     ///   import/scan or in a watched folder.
     ///   <br/>
@@ -190,13 +199,17 @@ public interface IVideoService
     ///   user's MyList if any releases are found and saved for any video files
     ///   or if any video files have been deleted.
     /// </param>
+    /// <param name="forceScan">
+    ///   Optional. Set to <c>true</c> to force a scan of the video even if it
+    ///   has exceeded the max allowed auto-scan attempts.
+    /// </param>
     /// <exception cref="ArgumentException">
     ///   <paramref name="absolutePath"/> is <see langword="null"/> or empty.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     ///   The path is outside of any managed folders.
     /// </exception>
-    Task NotifyVideoFileChangeDetected(string absolutePath, bool updateMylist = true);
+    Task NotifyVideoFileChangeDetected(string absolutePath, bool updateMylist = true, bool forceScan = false);
 
     /// <summary>
     ///   Notify the service that a something has changed in a managed folder at
@@ -213,10 +226,14 @@ public interface IVideoService
     ///   user's MyList if any releases are found and saved for any video files
     ///   or if any video files have been deleted.
     /// </param>
+    /// <param name="forceScan">
+    ///   Optional. Set to <c>true</c> to force a scan of the video even if it
+    ///   has exceeded the max allowed auto-scan attempts.
+    /// </param>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="managedFolder"/> is <see langword="null"/>.
     /// </exception>
-    Task NotifyVideoFileChangeDetected(IManagedFolder managedFolder, string? relativePath = null, bool updateMylist = true);
+    Task NotifyVideoFileChangeDetected(IManagedFolder managedFolder, string? relativePath = null, bool updateMylist = true, bool forceScan = false);
 
     #endregion
 
@@ -466,7 +483,14 @@ public interface IVideoService
     ///   in the existing collection will be checked. Incompatible with and not
     ///   used if <paramref name="onlyNewFiles"/> is <c>true</c>.
     /// </param>
-    Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null);
+    /// <param name="forceScan">
+    ///   Optional. Set to <c>true</c> to force a scan of the video even if it
+    ///   has exceeded the max allowed auto-scan attempts.
+    /// </param>
+    /// <returns>
+    ///   A task representing the asynchronous operation.
+    /// </returns>
+    Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false);
 
     /// <summary>
     ///   Schedules a scan of a managed folder, scheduling pre-processing jobs
@@ -497,13 +521,17 @@ public interface IVideoService
     ///   in the existing collection will be checked. Incompatible with and not
     ///   used if <paramref name="onlyNewFiles"/> is <c>true</c>.
     /// </param>
+    /// <param name="forceScan">
+    ///   Optional. Set to <c>true</c> to force a scan of the video even if it
+    ///   has exceeded the max allowed auto-scan attempts.
+    /// </param>
     /// <param name="prioritize">
     ///   Whether to prioritize this job in the queue.
     /// </param>
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
-    Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool prioritize = true);
+    Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false, bool prioritize = true);
 
     /// <summary>
     ///   Scans all managed folders, scheduling pre-processing jobs for new or
@@ -525,10 +553,14 @@ public interface IVideoService
     ///   from the bottom up. If not provided then it will follow the global
     ///   configuration.
     /// </param>
+    /// <param name="forceScan">
+    ///   Optional. Set to <c>true</c> to force a scan of the video even if it
+    ///   has exceeded the max allowed auto-scan attempts.
+    /// </param>
     /// <param name="prioritize">
     ///   Whether to prioritize this job in the queue.
     /// </param>
-    Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipMylist = false, bool? cleanUpStructure = null, bool prioritize = true);
+    Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipMylist = false, bool? cleanUpStructure = null, bool forceScan = false, bool prioritize = true);
 
     #endregion
 }

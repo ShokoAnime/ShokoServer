@@ -4,7 +4,6 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
-using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
@@ -31,6 +30,8 @@ internal class ScanFolderJob : BaseJob
 
     public bool CheckFileSize { get; set; }
 
+    public bool ForceScan { get; set; }
+
     public override string TypeName => "Scan Managed Folder";
 
     public override string Title => "Scanning Managed Folder";
@@ -42,18 +43,27 @@ internal class ScanFolderJob : BaseJob
             var details = new Dictionary<string, object>();
             if (!string.IsNullOrEmpty(_managedFolder))
                 details["Managed Folder"] = _managedFolder;
-            details["Managed Folder ID"] = ManagedFolderID;
-            if (!string.IsNullOrEmpty(RelativePath)) details["Relative Path"] = RelativePath;
-            if (OnlyNewFiles) details["Only New Files"] = true;
-            if (!SkipMyList) details["Add to MyList"] = true;
-            if (CleanUpStructure) details["Clean Up"] = true;
+            else
+                details["Managed Folder ID"] = ManagedFolderID;
+            if (!string.IsNullOrEmpty(RelativePath))
+                details["Relative Path"] = RelativePath;
+            if (OnlyNewFiles)
+                details["Only New Files"] = true;
+            if (!SkipMyList)
+                details["Add to MyList"] = true;
+            if (CleanUpStructure)
+                details["Clean Up"] = true;
+            if (CheckFileSize)
+                details["Check File Size"] = true;
+            if (ForceScan)
+                details["Force Scan"] = true;
             return details;
         }
     }
 
     public override void PostInit()
     {
-        _managedFolder = _managedFolders.GetByID(ManagedFolderID)?.Name;
+        _managedFolder = _videoService.GetManagedFolderByID(ManagedFolderID)?.Name;
     }
 
     public override async Task Execute()
@@ -62,17 +72,20 @@ internal class ScanFolderJob : BaseJob
         if (managedFolder == null)
             return;
 
-        await _videoService.ScanManagedFolder(managedFolder, relativePath: RelativePath, onlyNewFiles: OnlyNewFiles, skipMylist: SkipMyList, cleanUpStructure: CleanUpStructure, checkFileSize: CheckFileSize);
+        await _videoService.ScanManagedFolder(
+            managedFolder,
+            relativePath: RelativePath,
+            onlyNewFiles: OnlyNewFiles,
+            skipMylist: SkipMyList,
+            cleanUpStructure: CleanUpStructure,
+            checkFileSize: CheckFileSize,
+            forceScan: ForceScan
+        );
     }
 
-    private readonly ShokoManagedFolderRepository _managedFolders;
-    public ScanFolderJob(IVideoService videoService,
-        ShokoManagedFolderRepository managedFolders
-    )
+    public ScanFolderJob(IVideoService videoService)
     {
         _videoService = videoService;
-        _managedFolders = managedFolders;
-
     }
 
     protected ScanFolderJob() { }
