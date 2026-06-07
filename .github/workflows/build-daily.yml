@@ -741,9 +741,13 @@ jobs:
 
   update-manifest:
     runs-on: ubuntu-latest
-    name: Update Dev Manifest
+
     needs:
       - current_info
+      - add-tag
+
+    name: Update Dev Manifest
+
     steps:
       - uses: actions/checkout@v4
         with:
