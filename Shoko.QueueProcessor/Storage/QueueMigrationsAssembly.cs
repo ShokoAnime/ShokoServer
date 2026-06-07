@@ -2,13 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
-#pragma warning disable EF1001 // MigrationsAssembly is EF Core internal API — intentional subclass for migration discovery re-routing
-using Microsoft.EntityFrameworkCore.Migrations.Internal;
 
 namespace Shoko.QueueProcessor.Storage;
 
@@ -24,26 +20,48 @@ namespace Shoko.QueueProcessor.Storage;
 /// provider's SQL generator still produces provider-appropriate DDL from the untyped columns.
 /// </para>
 /// </summary>
-internal sealed class QueueMigrationsAssembly : MigrationsAssembly
+internal sealed class QueueMigrationsAssembly : IMigrationsAssembly
 {
-    private IReadOnlyDictionary<string, TypeInfo>? _migrations;
+    private readonly Lazy<IReadOnlyDictionary<string, TypeInfo>> _migrations = new(BuildMigrations);
+    private readonly Lazy<ModelSnapshot?> _modelSnapshot = new(BuildModelSnapshot);
 
-    public QueueMigrationsAssembly(
-        ICurrentDbContext currentContext,
-        IDbContextOptions options,
-        IMigrationsIdGenerator idGenerator,
-        IDiagnosticsLogger<DbLoggerCategory.Migrations> logger)
-        : base(currentContext, options, idGenerator, logger) { }
+    public Assembly Assembly => typeof(SqliteQueueDbContext).Assembly;
 
-    public override IReadOnlyDictionary<string, TypeInfo> Migrations
-        => LazyInitializer.EnsureInitialized(ref _migrations, GetQueueMigrations)!;
+    public ModelSnapshot? ModelSnapshot => _modelSnapshot.Value;
 
-    private IReadOnlyDictionary<string, TypeInfo> GetQueueMigrations()
-        => Assembly.DefinedTypes
+    public IReadOnlyDictionary<string, TypeInfo> Migrations => _migrations.Value;
+
+    public string? FindMigrationId(string nameOrId)
+    {
+        var id = nameOrId.TrimStart('[').TrimEnd(']');
+        return Migrations.Keys.FirstOrDefault(k =>
+            string.Equals(k, id, StringComparison.OrdinalIgnoreCase) ||
+            k.EndsWith("_" + id, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public Migration CreateMigration(TypeInfo migrationClass, string activeProvider)
+    {
+        var migration = (Migration)Activator.CreateInstance(migrationClass.AsType())!;
+        migration.ActiveProvider = activeProvider;
+        return migration;
+    }
+
+    private static ModelSnapshot? BuildModelSnapshot()
+        => typeof(SqliteQueueDbContext).Assembly.GetExportedTypes()
             .Where(t =>
-                t.IsSubclassOf(typeof(Migration))
-                && t.GetCustomAttribute<DbContextAttribute>()?.ContextType == typeof(SqliteQueueDbContext))
-            .OrderBy(t => t.GetCustomAttribute<MigrationAttribute>()?.Id)
+                t.IsSubclassOf(typeof(ModelSnapshot)) &&
+                t.GetCustomAttribute<DbContextAttribute>()?.ContextType == typeof(SqliteQueueDbContext))
+            .FirstOrDefault()
+            ?.GetConstructor([])
+            ?.Invoke(null) as ModelSnapshot;
+
+    private static IReadOnlyDictionary<string, TypeInfo> BuildMigrations()
+        => typeof(SqliteQueueDbContext).Assembly.DefinedTypes
+            .Where(t =>
+                t.IsSubclassOf(typeof(Migration)) &&
+                t.GetCustomAttribute<MigrationAttribute>() is not null &&
+                t.GetCustomAttribute<DbContextAttribute>()?.ContextType == typeof(SqliteQueueDbContext))
+            .OrderBy(t => t.GetCustomAttribute<MigrationAttribute>()!.Id)
             .ToDictionary(
                 t => t.GetCustomAttribute<MigrationAttribute>()!.Id,
                 t => t,
