@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.251",
+      "tag": "v6.0.0-dev.251",
+      "commit": "72ffda578ead32af0e0059eb6108f5952bf396da",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.251/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-07T16:03:25Z",
+      "releaseNotes": "\n`feat`: **Respect max auto scan attempts during folder scan & expose max attempts in abstraction**.\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.45**.\n"
+    },
+    {
       "version": "6.0.0.250",
       "tag": "v6.0.0-dev.250",
       "commit": "08ac6a011d5d77e1568dc94c6da7e35c225057c0",
