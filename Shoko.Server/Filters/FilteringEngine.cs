@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
@@ -157,7 +156,7 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
                         logger.LogError(
                             e,
                             "There was an error while evaluating filter expression: {Expression} (GroupID={GroupID}, SeriesID={SeriesID})",
-                            filter.Expression,
+                            expression,
                             a.GroupID,
                             a.SeriesID is 0 ? null : a.SeriesID
                         );
@@ -219,39 +218,5 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
         }
 
         public int Key => GroupID;
-    }
-
-    private sealed class LazyDictionary<TKey, TValue>(Dictionary<TKey, Lazy<TValue>>? dictionary = null) : IReadOnlyDictionary<TKey, TValue> where TKey : notnull
-    {
-        private readonly Dictionary<TKey, Lazy<TValue>> _dictionary = dictionary ?? [];
-
-        public TValue this[TKey key] => _dictionary[key].Value;
-
-        public IEnumerable<TKey> Keys => _dictionary.Keys;
-
-        public IEnumerable<TValue> Values => _dictionary.Values.Select(a => a.Value);
-
-        public int Count => _dictionary.Count;
-
-        public bool ContainsKey(TKey key)
-            => _dictionary.ContainsKey(key);
-
-        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
-            => _dictionary.Select(a => new KeyValuePair<TKey, TValue>(a.Key, a.Value.Value)).GetEnumerator();
-
-        public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
-        {
-            if (_dictionary.TryGetValue(key, out var lazy))
-            {
-                value = lazy.Value;
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-            => GetEnumerator();
     }
 }

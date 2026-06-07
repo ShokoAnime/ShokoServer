@@ -25,7 +25,7 @@ public interface IMetadataFilteringService
     /// <param name="time">The time. Needed if the filter is time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
     /// <returns>A list of matching groups.</returns>
-    IReadOnlyList<IShokoGroup> FilterGroups(IFilterPreset filter, IUser user, DateTime? time = null, bool skipSorting = false);
+    IReadOnlyList<IShokoGroup> FilterGroups(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
 
     /// <summary>
     ///   Evaluate the given filter and return matching series.
@@ -35,7 +35,7 @@ public interface IMetadataFilteringService
     /// <param name="time">The time. Needed if the filter is time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
     /// <returns>A list of matching series.</returns>
-    IReadOnlyList<IShokoSeries> FilterSeries(IFilterPreset filter, IUser user, DateTime? time = null, bool skipSorting = false);
+    IReadOnlyList<IShokoSeries> FilterSeries(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
 
     /// <summary>
     ///   Batch evaluate multiple filters and return matching groups per filter.
@@ -46,7 +46,7 @@ public interface IMetadataFilteringService
     /// <param name="time">The time. Needed if the filters are time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
     /// <returns>A dictionary mapping each filter to its matching groups.</returns>
-    IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoGroup>> BatchFilterGroups<TFilter>(IReadOnlyList<TFilter> filters, IUser user, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset;
+    IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoGroup>> BatchFilterGroups<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset;
 
     /// <summary>
     ///   Batch evaluate multiple filters and return matching series per filter.
@@ -57,5 +57,5 @@ public interface IMetadataFilteringService
     /// <param name="time">The time. Needed if the filters are time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
     /// <returns>A dictionary mapping each filter to its matching series.</returns>
-    IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoSeries>> BatchFilterSeries<TFilter>(IReadOnlyList<TFilter> filters, IUser user, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset;
+    IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoSeries>> BatchFilterSeries<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset;
 }

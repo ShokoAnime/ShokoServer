@@ -1,46 +1,57 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 
+#nullable enable
 namespace Shoko.Server.Filters;
 
 public class MetadataFilteringService(
     IFilteringEngine engine,
     AnimeGroupRepository groupRepository,
-    AnimeSeriesRepository seriesRepository,
-    ILogger<MetadataFilteringService> logger
+    AnimeSeriesRepository seriesRepository
 ) : IMetadataFilteringService
 {
     public IFilteringEngine Engine => engine;
 
-    public IReadOnlyList<IShokoGroup> FilterGroups(IFilterPreset filter, IUser user, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyList<IShokoGroup> FilterGroups(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
     {
         ArgumentNullException.ThrowIfNull(filter);
-        ArgumentNullException.ThrowIfNull(user);
+        var needsUser = (filter.Expression?.UserDependent ?? false) || (filter.SortingExpression?.UserDependent ?? false);
+        if (needsUser)
+            ArgumentNullException.ThrowIfNull(user);
+        if (needsUser && user is not JMMUser)
+            throw new ArgumentException("Input user must be of type JMMUser.", nameof(user));
+        if (filter.IsDirectory)
+            return [];
 
         var tuples = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
-        var groupIds = tuples.Select(t => t.GroupID).Distinct().Where(id => id != 0).ToHashSet();
-
-        return groupIds
-            .Select(groupRepository.GetByID)
+        return tuples
+            .DistinctBy(t => t.GroupID)
+            .Select(t => groupRepository.GetByID(t.GroupID))
             .Where(g => g is not null)
             .Cast<IShokoGroup>()
             .ToList();
     }
 
-    public IReadOnlyList<IShokoSeries> FilterSeries(IFilterPreset filter, IUser user, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyList<IShokoSeries> FilterSeries(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
     {
         ArgumentNullException.ThrowIfNull(filter);
-        ArgumentNullException.ThrowIfNull(user);
+        var needsUser = (filter.Expression?.UserDependent ?? false) || (filter.SortingExpression?.UserDependent ?? false);
+        if (needsUser)
+            ArgumentNullException.ThrowIfNull(user);
+        if (needsUser && user is not JMMUser)
+            throw new ArgumentException("Input user must be of type JMMUser.", nameof(user));
+        if (filter.IsDirectory)
+            return [];
 
         var tuples = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
-
         return tuples
             .Select(t => seriesRepository.GetByID(t.SeriesID))
             .Where(s => s is not null)
@@ -48,74 +59,93 @@ public class MetadataFilteringService(
             .ToList();
     }
 
-    public IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoGroup>> BatchFilterGroups<TFilter>(IReadOnlyList<TFilter> filters, IUser user, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoGroup>> BatchFilterGroups<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false)
         where TFilter : IFilterPreset
     {
         ArgumentNullException.ThrowIfNull(filters);
-        ArgumentNullException.ThrowIfNull(user);
-
-        var results = new Dictionary<TFilter, IReadOnlyList<IShokoGroup>>();
-
-        foreach (var filter in filters.Where(f => !f.IsDirectory))
+        if (filters.Count == 0)
+            return new Dictionary<TFilter, IReadOnlyList<IShokoGroup>>();
+        var hasSeries = filters.Any(a => a.ApplyAtSeriesLevel);
+        var seriesNeedsUser = hasSeries && filters.Any(a =>
         {
-            try
-            {
-                var tuples = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
-                var groupIds = tuples.Select(t => t.GroupID).Distinct().Where(id => id != 0).ToHashSet();
+            if (!a.ApplyAtSeriesLevel) return false;
+            if (a.Expression?.UserDependent ?? false) return true;
+            if (skipSorting) return false;
+            return a.SortingExpression?.UserDependent ?? false;
+        });
+        var hasGroups = filters.Any(a => !a.ApplyAtSeriesLevel);
+        var groupsNeedUser = hasGroups && filters.Any(a =>
+        {
+            if (a.ApplyAtSeriesLevel) return false;
+            if (a.Expression?.UserDependent ?? false) return true;
+            if (skipSorting) return false;
+            return a.SortingExpression?.UserDependent ?? false;
+        });
+        var needsUser = seriesNeedsUser || groupsNeedUser;
+        if (needsUser)
+            ArgumentNullException.ThrowIfNull(user);
+        if (needsUser && user is not JMMUser)
+            throw new ArgumentException("Input user must be of type JMMUser.", nameof(user));
 
-                var groups = groupIds
-                    .Select(groupRepository.GetByID)
-                    .Where(g => g is not null)
-                    .Cast<IShokoGroup>()
-                    .ToList();
-
-                results[filter] = groups;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error evaluating batch filter {FilterType}", filter.GetType().Name);
-                results[filter] = [];
-            }
-        }
-
-        foreach (var filter in filters.Where(f => f.IsDirectory).Except(results.Keys))
-            results[filter] = [];
-
-        return results;
+        return new LazyDictionary<TFilter, IReadOnlyList<IShokoGroup>>(
+            filters.ToDictionary(
+                filter => filter,
+                filter => filter.IsDirectory
+                    ? new Lazy<IReadOnlyList<IShokoGroup>>(() => [])
+                    : new Lazy<IReadOnlyList<IShokoGroup>>(() =>
+                        engine.EvaluateFilterWithTuples(filter, user, time, skipSorting)
+                            .DistinctBy(t => t.GroupID)
+                            .Select(t => groupRepository.GetByID(t.GroupID))
+                            .WhereNotNull()
+                            .Cast<IShokoGroup>()
+                            .ToList()
+                    )
+            )
+        );
     }
 
-    public IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoSeries>> BatchFilterSeries<TFilter>(IReadOnlyList<TFilter> filters, IUser user, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoSeries>> BatchFilterSeries<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false)
         where TFilter : IFilterPreset
     {
         ArgumentNullException.ThrowIfNull(filters);
-        ArgumentNullException.ThrowIfNull(user);
-
-        var results = new Dictionary<TFilter, IReadOnlyList<IShokoSeries>>();
-
-        foreach (var filter in filters.Where(f => !f.IsDirectory))
+        if (filters.Count == 0)
+            return new Dictionary<TFilter, IReadOnlyList<IShokoSeries>>();
+        var hasSeries = filters.Any(a => a.ApplyAtSeriesLevel);
+        var seriesNeedsUser = hasSeries && filters.Any(a =>
         {
-            try
-            {
-                var tuples = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
+            if (!a.ApplyAtSeriesLevel) return false;
+            if (a.Expression?.UserDependent ?? false) return true;
+            if (skipSorting) return false;
+            return a.SortingExpression?.UserDependent ?? false;
+        });
+        var hasGroups = filters.Any(a => !a.ApplyAtSeriesLevel);
+        var groupsNeedUser = hasGroups && filters.Any(a =>
+        {
+            if (a.ApplyAtSeriesLevel) return false;
+            if (a.Expression?.UserDependent ?? false) return true;
+            if (skipSorting) return false;
+            return a.SortingExpression?.UserDependent ?? false;
+        });
+        var needsUser = seriesNeedsUser || groupsNeedUser;
+        if (needsUser)
+            ArgumentNullException.ThrowIfNull(user);
+        if (needsUser && user is not JMMUser)
+            throw new ArgumentException("Input user must be of type JMMUser.", nameof(user));
 
-                var series = tuples
-                    .Select(t => seriesRepository.GetByID(t.SeriesID))
-                    .Where(s => s is not null)
-                    .Cast<IShokoSeries>()
-                    .ToList();
-
-                results[filter] = series;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error evaluating batch filter {FilterType}", filter.GetType().Name);
-                results[filter] = [];
-            }
-        }
-
-        foreach (var filter in filters.Where(f => f.IsDirectory).Except(results.Keys))
-            results[filter] = [];
-
-        return results;
+        return new LazyDictionary<TFilter, IReadOnlyList<IShokoSeries>>(
+            filters.ToDictionary(
+                filter => filter,
+                filter => filter.IsDirectory
+                    ? new Lazy<IReadOnlyList<IShokoSeries>>(() => [])
+                    : new Lazy<IReadOnlyList<IShokoSeries>>(() =>
+                        engine.EvaluateFilterWithTuples(filter, user, time, skipSorting)
+                            .Select(t => t.SeriesID)
+                            .Select(seriesRepository.GetByID)
+                            .WhereNotNull()
+                            .Cast<IShokoSeries>()
+                            .ToList()
+                    )
+            )
+        );
     }
 }
