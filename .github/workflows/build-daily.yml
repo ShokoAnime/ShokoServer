@@ -739,12 +739,51 @@ jobs:
           tag: ${{ needs.current_info.outputs.tag }}
           message: Shoko Server v${{ needs.current_info.outputs.version }} Pre-Release
 
+  update-manifest:
+    runs-on: ubuntu-latest
+    name: Update Dev Manifest
+    needs:
+      - current_info
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: master-branch
+      - uses: actions/checkout@v4
+        with:
+          ref: metadata
+          path: metadata-branch
+      - name: Build entry JSON
+        env:
+          RELEASE_NOTES: ${{ needs.current_info.outputs.changelog }}
+        run: |
+          jq -n \
+            --arg version "${{ needs.current_info.outputs.version }}" \
+            --arg tag "${{ needs.current_info.outputs.tag }}" \
+            --arg commit "${{ github.sha }}" \
+            --arg downloadUrl "https://github.com/${{ github.repository }}/releases/download/${{ needs.current_info.outputs.tag }}/Shoko.CLI_Framework_any-x64.zip" \
+            --arg date "${{ needs.current_info.outputs.date }}" \
+            --arg releaseNotes "$RELEASE_NOTES" \
+            '{version: $version, tag: $tag, commit: $commit, downloadUrl: $downloadUrl, date: $date, releaseNotes: $releaseNotes}' \
+            > /tmp/entry.json
+      - name: Update manifest
+        run: |
+          node master-branch/.github/workflows/update-manifest.mjs \
+            "$(pwd)/metadata-branch/manifest.json" \
+            "$(cat /tmp/entry.json)" \
+            Dev
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "repo(manifest): update dev manifest [skip ci]"
+          branch: metadata
+          repository: metadata-branch
+          file_pattern: manifest.json
+
   sentry-upload:
     runs-on: ubuntu-latest
 
     needs:
       - current_info
-      - add-tag
+      - update-manifest
 
     name: Upload version info to Sentry.io
 
