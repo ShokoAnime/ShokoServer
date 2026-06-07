@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.248",
+      "tag": "v6.0.0-dev.248",
+      "commit": "94748dec0cae98c7eae2b99f391619230e14e512",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.248/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-07T01:00:56Z",
+      "releaseNotes": "\n`feat` (`api`): **Replace github api with manifest-based updates**:\n\nReplaced the GitHub API (releases, tags, commits) with manifest\nJSON files served from the `metadata` branch on both the WebUI\nand server repos. This removes the direct dependency on the GitHub\nAPI and the GITHUB_TOKEN environment variable.\n\n`repo` (`manifest`): **Add manifest update workflows and script**:\n\nAdd update-manifest.mjs to manage the server manifest on the metadata\nbranch, and add update-manifest jobs to both build-daily.yml and\nbuild-release.yml that run before sentry-upload. Daily builds prepend\na Dev entry and rotate to at most 30 entries, stable releases use the\nrelease body as release notes, and commit messages use the repo(manifest)\nformat.\n\n`repo` (`workflows`): **Fix dependency graph in build flow**.\n"
+    },
+    {
       "version": "6.0.0-dev.247",
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.247/Shoko.CLI_Framework_any-x64.zip",
       "commit": "292057a2910e0b2edf18d100beafd06c678b5e17",
