@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.254",
+      "tag": "v6.0.0-dev.254",
+      "commit": "1ab713d74c25e9f0eb0bec7982d19b403773afd5",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.254/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-07T17:52:52Z",
+      "releaseNotes": "\n`misc`: **Update CLAUDE.md with changes to the new Queue and Import Process**.\n"
+    },
+    {
       "version": "6.0.0.253",
       "tag": "v6.0.0-dev.253",
       "commit": "f4d16653da65ac655d1d0de7ce9c8a50671e9576",
