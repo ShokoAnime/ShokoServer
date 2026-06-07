@@ -31,8 +31,8 @@ public class PlaylistEpisode
         var tmdbMovie = shokoEpisode.TmdbMovieCrossReferences.FirstOrDefault()?.TmdbMovie;
         IDs = new PlaylistEpisodeIDs
         {
-            ID = anidbEpisode.ID,
-            Series = anidbAnime.ID,
+            AnidbEpisode = anidbEpisode.ID,
+            AnidbAnime = anidbAnime.ID,
             ShokoSeries = shokoSeries.ID,
             ShokoEpisode = shokoEpisode.ID,
             TmdbShow = tmdbShow?.ID,
@@ -100,28 +100,28 @@ public class PlaylistEpisode
 /// <summary>
 /// IDs for a <see cref="PlaylistEpisode"/>.
 /// </summary>
-public class PlaylistEpisodeIDs : IDs
+public class PlaylistEpisodeIDs
 {
     /// <summary>
-    /// The related <see cref="AnidbEpisode"/> id.
+    /// The related AniDB episode id.
     /// </summary>
     [Required]
-    public new int ID { get; set; }
+    public int AnidbEpisode { get; set; }
 
     /// <summary>
-    /// The related <see cref="Series.AniDB"/> id.
+    /// The related AniDB anime id.
     /// </summary>
     [Required]
-    public int Series { get; set; }
+    public int AnidbAnime { get; set; }
 
     /// <summary>
-    /// The related Shoko <see cref="Shoko.Episode"/> id, if available locally.
+    /// The related Shoko episode id, if available locally.
     /// </summary>
     [Required]
     public int ShokoEpisode { get; set; }
 
     /// <summary>
-    /// The related Shoko <see cref="Shoko.Series"/> id, if available locally.
+    /// The related Shoko series id, if available locally.
     /// </summary>
     [Required]
     public int ShokoSeries { get; set; }
