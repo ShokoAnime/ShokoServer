@@ -65,6 +65,12 @@ if [ ! -d "$SHOKO_HOME" ]; then
     fi
 fi
 
+# Enable crash dump generation to SHOKO_HOME for segfault diagnosis.
+export DOTNET_DbgMiniDumpType=4
+export DOTNET_DbgMiniDumpName=$SHOKO_HOME/coredump.%p.%d.dmp
+export DOTNET_EnableCrashReport=1
+export DOTNET_CrashReportPath=$SHOKO_HOME/crash.%p.json
+
 # Set ownership of application data to shoko user.
 OWNER=$(stat -c '%u:%g' "$SHOKO_HOME" 2>/dev/null)
 if [ "$OWNER" != "$PUID:$PGID" ] && [ "${NO_CHOWN:-}" != "true" ]; then
@@ -112,6 +118,8 @@ ARGS=""
 # Run the server, and restart it if it exits with code 140 (Custom restart exit code).
 # Set up signal forwarding to the dotnet process
 trap 'kill -TERM $DOTNET_PID 2>/dev/null; exit 143' TERM INT
+
+ulimit -c unlimited
 
 while true; do
   gosu $USER:$GROUP /usr/src/app/build/Shoko.CLI $ARGS &
