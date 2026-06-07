@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -26,12 +27,18 @@ public class PlaylistEpisode
     /// <param name="anidbAnime">AniDB anime metadata.</param>
     public PlaylistEpisode(IShokoEpisode shokoEpisode, IShokoSeries shokoSeries, IAnidbEpisode anidbEpisode, IAnidbAnime anidbAnime)
     {
+        var tmdbShow = shokoSeries.TmdbShowCrossReferences.FirstOrDefault()?.TmdbShow;
+        var tmdbMovie = shokoEpisode.TmdbMovieCrossReferences.FirstOrDefault()?.TmdbMovie;
         IDs = new PlaylistEpisodeIDs
         {
             ID = anidbEpisode.ID,
             Series = anidbAnime.ID,
             ShokoSeries = shokoSeries.ID,
             ShokoEpisode = shokoEpisode.ID,
+            TmdbShow = tmdbShow?.ID,
+            TmdbMovie = tmdbMovie?.ID,
+            TvdbShow = tmdbShow?.TvdbShowID,
+            ImdbMovie = tmdbMovie?.ImdbMovieID
         };
         Title = shokoEpisode.Title;
         Number = anidbEpisode.EpisodeNumber;
@@ -118,4 +125,25 @@ public class PlaylistEpisodeIDs : IDs
     /// </summary>
     [Required]
     public int ShokoSeries { get; set; }
+
+    /// <summary>
+    /// The first TMDB show id linked to the episode's series.
+    /// </summary>
+    public int? TmdbShow { get; set; }
+
+    /// <summary>
+    /// The first TMDB movie id linked to the episode.
+    /// </summary>
+    public int? TmdbMovie { get; set; }
+
+    /// <summary>
+    /// The TvDB show id linked to the first TMDB show linked to the episode's
+    /// series.
+    /// </summary>
+    public int? TvdbShow { get; set; }
+
+    /// <summary>
+    /// The IMDB movie id linked to the first TMDB movie linked to the episode.
+    /// </summary>
+    public string? ImdbMovie { get; set; }
 }
