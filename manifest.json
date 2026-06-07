@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.250",
+      "tag": "v6.0.0-dev.250",
+      "commit": "08ac6a011d5d77e1568dc94c6da7e35c225057c0",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.250/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-07T01:54:37Z",
+      "releaseNotes": "\n`misc`: **For some reason, UIX_VideoLocal_Hash index was existing on my database, so check it in the migrations**.\n"
+    },
+    {
       "version": "6.0.0.249",
       "tag": "v6.0.0-dev.249",
       "commit": "0537d97ab676b07193e04e3bffe2dfb23a80996e",
