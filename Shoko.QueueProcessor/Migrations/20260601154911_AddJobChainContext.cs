@@ -13,33 +13,30 @@ namespace Shoko.QueueProcessor.Migrations
             migrationBuilder.AddColumn<Guid>(
                 name: "ChainId",
                 table: "Jobs",
-                type: "TEXT",
                 nullable: true);
 
             migrationBuilder.AddColumn<bool>(
                 name: "IsChainFinally",
                 table: "Jobs",
-                type: "INTEGER",
                 nullable: false,
                 defaultValue: false);
 
             migrationBuilder.AddColumn<Guid>(
                 name: "ParentJobId",
                 table: "Jobs",
-                type: "TEXT",
                 nullable: true);
 
             migrationBuilder.CreateTable(
                 name: "JobChains",
                 columns: table => new
                 {
-                    ChainId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Status = table.Column<int>(type: "INTEGER", nullable: false),
-                    DataJson = table.Column<string>(type: "TEXT", nullable: true),
-                    ResultsJson = table.Column<string>(type: "TEXT", nullable: true),
-                    OutcomesJson = table.Column<string>(type: "TEXT", nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
+                    ChainId = table.Column<Guid>(nullable: false),
+                    Status = table.Column<int>(nullable: false),
+                    DataJson = table.Column<string>(nullable: true),
+                    ResultsJson = table.Column<string>(nullable: true),
+                    OutcomesJson = table.Column<string>(nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(nullable: false)
                 },
                 constraints: table =>
                 {
