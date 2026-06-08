@@ -9,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Bulkhead;
-using Polly.RateLimit;
 using Polly.Retry;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
@@ -193,8 +192,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     // This policy will ensure only 10 requests can be in-flight at the same time.
     private readonly AsyncBulkheadPolicy _bulkheadPolicy;
 
-    // This policy will ensure we can only make 40 requests per 10 seconds.
-    private readonly AsyncRateLimitPolicy _rateLimitPolicy;
+    private readonly TmdbRateLimiter _rateLimiter;
 
     // This policy, together with the above policy, will ensure the rate limits are enforced, while also ensuring we
     // throw if an exception that's not rate-limit related is thrown.
@@ -228,7 +226,7 @@ public class TmdbMetadataService : ITmdbMetadataService
                 return _retryPolicy.ExecuteAsync(() =>
                 {
                     ++attempts;
-                    return _rateLimitPolicy.ExecuteAsync(() => func(CachedClient));
+                    return _rateLimiter.EnsureRateAsync(() => func(CachedClient));
                 });
             }).ConfigureAwait(false);
 
@@ -248,6 +246,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         ILogger<TmdbMetadataService> logger,
         IQueueScheduler scheduler,
         ISettingsProvider settingsProvider,
+        TmdbRateLimiter rateLimiter,
         TmdbImageService imageService,
         TmdbLinkingService linkingService,
         AnimeSeriesRepository animeSeries,
@@ -306,12 +305,11 @@ public class TmdbMetadataService : ITmdbMetadataService
         _xrefTmdbCompanyEntity = xrefTmdbCompanyEntity;
         _xrefTmdbShowNetwork = xrefTmdbShowNetwork;
         _entityLock = new(logger);
+        _rateLimiter = rateLimiter;
         _instance ??= this;
         _bulkheadPolicy = Policy.BulkheadAsync(_maxConcurrency, int.MaxValue);
-        _rateLimitPolicy = Policy.RateLimitAsync(45, TimeSpan.FromSeconds(10), 45);
         _retryPolicy = Policy
-            .Handle<RateLimitRejectedException>()
-            .Or<HttpRequestException>()
+            .Handle<HttpRequestException>()
             .Or<GeneralHttpException>()
             .Or<RequestLimitExceededException>()
             .WaitAndRetryAsync(int.MaxValue, (_, _) => TimeSpan.Zero, async (ex, ts, retryCount, ctx) =>
@@ -319,22 +317,17 @@ public class TmdbMetadataService : ITmdbMetadataService
                 // Retry on rate limit exceptions, throw on everything else.
                 switch (ex)
                 {
-                    // If we got a _local_ rate limit exception, wait and try again.
-                    case RateLimitRejectedException rlrEx:
-                    {
-                        var retryAfter = rlrEx.RetryAfter;
-                        await Task.Delay(retryAfter).ConfigureAwait(false);
-                        break;
-                    }
-                    // If we got a _remote_ rate limit exception, wait and try again.
+                    // If we got a _remote_ rate limit exception, notify the rate limiter and wait.
                     case RequestLimitExceededException rleEx:
                     {
-                        // Note: We don't actually wait here since the library has already waited for us.
                         var retryAfter = rleEx.RetryAfter ?? TimeSpan.FromSeconds(1);
                         _logger.LogTrace("Hit remote rate limit. Waiting and retrying. Retry count: {RetryCount}, Retry after: {RetryAfter}", retryCount, retryAfter);
+                        _rateLimiter.NotifyRateLimitExceeded(retryAfter);
+                        var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 50));
+                        await Task.Delay(retryAfter + jitter).ConfigureAwait(false);
                         break;
                     }
-                    // If we timed out or got a too many requests exception, just wait and try again.
+                    // If we timed out, wait and try again (up to 3 times).
                     case HttpRequestException hrEx when hrEx.InnerException is TaskCanceledException:
                     {
                         // If we timed out more than 3 times, just throw the exception, since the exceptions were likely caused by other network issues.
@@ -674,19 +667,19 @@ public class TmdbMetadataService : ITmdbMetadataService
             .Concat(existingCrewDict.Values.Select(crew => crew.TmdbPersonID))
             .Except(peopleToKeep)
             .ToHashSet();
-        foreach (var personId in peopleToKeep)
+        await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToKeep, async personId =>
         {
             var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentMovieId: tmdbMovie.Id);
             if (added)
-                peopleAdded++;
+                Interlocked.Increment(ref peopleAdded);
             if (updated)
-                peopleUpdated++;
-        }
-        foreach (var personId in peopleToPurge)
+                Interlocked.Increment(ref peopleUpdated);
+        });
+        await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToPurge, async personId =>
         {
             if (await PurgePerson(personId))
-                peoplePurged++;
-        }
+                Interlocked.Increment(ref peoplePurged);
+        });
 
         _logger.LogDebug("Added/removed {a}/{u}/{r}/{s} staff for movie {MovieTitle} (Movie={MovieId})",
             peopleAdded,
@@ -1348,21 +1341,21 @@ public class TmdbMetadataService : ITmdbMetadataService
         var peopleAdded = 0;
         var peopleUpdated = 0;
         var peoplePurged = 0;
-        var peopleToCheck = allPeopleToAddOrKeep.ToArray().Distinct().ToList();
-        var peopleToPurge = allPeopleToPotentiallyRemove.ToArray().Distinct().Except(peopleToCheck).ToList();
-        foreach (var personId in peopleToCheck)
+        var peopleToCheck = allPeopleToAddOrKeep.Distinct().ToList();
+        var peopleToPurge = allPeopleToPotentiallyRemove.Distinct().Except(peopleToCheck).ToList();
+        await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToCheck, async personId =>
         {
             var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentShowId: show.Id);
             if (added)
-                peopleAdded++;
+                Interlocked.Increment(ref peopleAdded);
             if (updated)
-                peopleUpdated++;
-        }
-        foreach (var personId in peopleToPurge)
+                Interlocked.Increment(ref peopleUpdated);
+        });
+        await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToPurge, async personId =>
         {
             if (await PurgePerson(personId))
-                peoplePurged++;
-        }
+                Interlocked.Increment(ref peoplePurged);
+        });
 
         _logger.LogDebug("Added/removed {a}/{u}/{r}/{s} staff for show {ShowTitle} (Show={ShowId})",
             peopleAdded,
@@ -2482,8 +2475,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     {
         var people = _tmdbPeople.GetAll().Where(p => !IsPersonLinkedToOtherEntities(p.TmdbPersonID)).ToList();
         _logger.LogDebug("Checking {count} orphaned staff members if they should be purged.", people.Count);
-        foreach (var person in people)
-            await PurgePerson(person.TmdbPersonID, force: true);
+        await ProcessWithConcurrencyAsync(_maxConcurrency, people, person => PurgePerson(person.TmdbPersonID, force: true));
     }
 
     public async Task<bool> PurgePerson(int personId, bool force = false)
