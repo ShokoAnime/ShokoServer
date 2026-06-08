@@ -23,11 +23,15 @@ namespace Shoko.QueueProcessor.Storage;
 internal sealed class QueueMigrationsAssembly : IMigrationsAssembly
 {
     private readonly Lazy<IReadOnlyDictionary<string, TypeInfo>> _migrations = new(BuildMigrations);
-    private readonly Lazy<ModelSnapshot?> _modelSnapshot = new(BuildModelSnapshot);
 
     public Assembly Assembly => typeof(SqliteQueueDbContext).Assembly;
 
-    public ModelSnapshot? ModelSnapshot => _modelSnapshot.Value;
+    // Returning null intentionally: this class is only registered for non-SQLite providers.
+    // The SQLite snapshot has HasColumnType("TEXT") baked in; if EF Core falls back to the
+    // snapshot model during SQL generation it would pass "TEXT" to the SQL Server generator,
+    // which rejects TEXT as a primary-key type. Null forces the provider's own CLR type
+    // mapper (uniqueidentifier, nvarchar, bigint, bit, datetimeoffset, …) instead.
+    public ModelSnapshot? ModelSnapshot => null;
 
     public IReadOnlyDictionary<string, TypeInfo> Migrations => _migrations.Value;
 
@@ -45,15 +49,6 @@ internal sealed class QueueMigrationsAssembly : IMigrationsAssembly
         migration.ActiveProvider = activeProvider;
         return migration;
     }
-
-    private static ModelSnapshot? BuildModelSnapshot()
-        => typeof(SqliteQueueDbContext).Assembly.GetExportedTypes()
-            .Where(t =>
-                t.IsSubclassOf(typeof(ModelSnapshot)) &&
-                t.GetCustomAttribute<DbContextAttribute>()?.ContextType == typeof(SqliteQueueDbContext))
-            .FirstOrDefault()
-            ?.GetConstructor([])
-            ?.Invoke(null) as ModelSnapshot;
 
     private static IReadOnlyDictionary<string, TypeInfo> BuildMigrations()
         => typeof(SqliteQueueDbContext).Assembly.DefinedTypes
