@@ -273,7 +273,7 @@ public partial class SystemUpdateService(
                 continue;
 
             // Check maximum server version compatibility.
-            if (!allowIncompatible && version.MaximumServerVersion is var maxServerVersion && _versionComparer.Compare(maxServerVersion, currentServerVersion) < 0)
+            if (!allowIncompatible && version.MaximumServerVersion is { } maxServerVersion && _versionComparer.Compare(maxServerVersion, currentServerVersion) < 0)
                 continue;
 
             return version;
