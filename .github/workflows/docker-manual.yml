@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
         with:
           ref: "${{ github.event.inputs.ref }}"
           submodules: recursive
@@ -88,23 +88,23 @@ jobs:
           ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
-      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-qemu-action@v3
         name: Set up QEMU
         with:
           platforms: arm64
         if: ${{ matrix.arch == 'arm64' }}
 
-      - uses: docker/setup-buildx-action@v2
+      - uses: docker/setup-buildx-action@v3
         name: Set up Docker Buildx
 
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into GitHub Container Registry
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into Docker Hub
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -118,7 +118,7 @@ jobs:
       # Disabled provenance for now, until it works with docker manifest create.
       # The manifest list produced by the new feature is incompatible with the
       # expected format used in the docker manifest create command.
-      - uses: docker/build-push-action@v4
+      - uses: docker/build-push-action@v6
         name: Build and Push the Docker image
         with:
           context: .
@@ -140,14 +140,14 @@ jobs:
     name: Push combined tag for both images
     runs-on: ubuntu-latest
     steps:
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into GitHub Container Registry
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into Docker Hub
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
