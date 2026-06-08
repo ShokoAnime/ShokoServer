@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.262",
+      "tag": "v6.0.0-dev.262",
+      "commit": "54fd7e6a1edbdbca054acdb626d49aadebee493a",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.262/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-08T15:49:21Z",
+      "releaseNotes": "\n`misc`: **Add support for job upgrading**.\n"
+    },
+    {
       "version": "6.0.0.261",
       "tag": "v6.0.0-dev.261",
       "commit": "e47b32663d6047ba16e299a2664b93e15ffa49ee",
