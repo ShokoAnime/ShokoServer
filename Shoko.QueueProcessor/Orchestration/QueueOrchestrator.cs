@@ -251,10 +251,10 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 return Task.CompletedTask;  // already queued or executing
             _jobKeyIndex[job.JobKey] = job.Id;
             _allKnownJobIds.Add(job.Id);
+            _persistenceBuffer.OnEnqueue(job);
         }
 
         pool.AddToQueue(job);
-        _persistenceBuffer.OnEnqueue(job);
         _metrics.RecordEnqueue(type.Name, pool.Name);
 
         if (!_paused) pool.Signal();
@@ -295,6 +295,11 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 _allKnownJobIds.Add(entry.Ctx.Job.Id);
                 toEnqueue.Add(entry);
             }
+            // Buffer the batch while still under _gate so that any concurrent RegisterChainAfterJob /
+            // RegisterAfterParent that steals a key can call OnComplete before our OnEnqueue fires,
+            // guaranteeing the fast-path cancel-out works correctly.
+            if (toEnqueue.Count > 0)
+                _persistenceBuffer.OnEnqueueBatch(toEnqueue.Select(e => e.Ctx.Job));
         }
 
         if (toEnqueue.Count == 0) return Task.CompletedTask;
@@ -311,9 +316,6 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
         foreach (var (pool, batch) in poolBatches)
             pool.AddRangeToQueue(batch);
-
-        // Single persistence-buffer call for the entire batch.
-        _persistenceBuffer.OnEnqueueBatch(toEnqueue.Select(e => e.Ctx.Job));
 
         if (!_paused) SignalAllPools();
 
@@ -362,6 +364,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             {
                 _jobKeyIndex[job.JobKey] = job.Id;
                 action = ImmediateAction.Enqueue;
+                _persistenceBuffer.OnEnqueue(job);
             }
             else if (_jobKeyIndex.TryGetValue(job.JobKey, out var existingId) && _executingSet.ContainsKey(existingId))
             {
@@ -377,7 +380,6 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         {
             case ImmediateAction.Enqueue:
                 pool.AddToQueue(job);
-                _persistenceBuffer.OnEnqueue(job);
                 _metrics.RecordEnqueue(type.Name, pool.Name);
                 if (!_paused) pool.Signal();
                 var item = string.IsNullOrEmpty(context.DisplayItem.PoolName)
