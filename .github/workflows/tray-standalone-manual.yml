@@ -62,7 +62,7 @@ jobs:
 
     steps:
       - name: Checkout branch
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.event.inputs.ref }}"
           submodules: recursive
@@ -83,20 +83,20 @@ jobs:
 
       - name: Get release info
         id: release_info
-        uses: revam/gh-action-get-tag-and-version@v1
+        uses: revam/gh-action-get-tag-and-version@v3
         with:
-          tag: "${{ github.event.inputs.ref }}"
+          use_tag_ref: "${{ github.event.inputs.ref }}"
           prefix: v
-          prefixRegex: "[vV]?"
+          prefix_regex: "[vV]?"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
       - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=${{ github.event.inputs.release }}%2ccommit=${{ github.sha }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: Shoko.TrayService
           path: Shoko.Server/bin/Release/net10.0/win-x64/publish/

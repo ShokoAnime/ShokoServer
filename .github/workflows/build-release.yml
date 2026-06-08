@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.sha }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
           fetch-depth: 0 # This is set to download the full git history for the repo
@@ -46,7 +46,7 @@ jobs:
 
       - id: commit_info
         name: Shorten Commit Hash
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const sha = context.sha.substring(0, 7);
@@ -63,12 +63,12 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -93,12 +93,12 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -196,7 +196,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
 
@@ -226,7 +226,7 @@ jobs:
         if: ${{ matrix.rid == 'linux-arm64' }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -262,7 +262,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
 
@@ -292,7 +292,7 @@ jobs:
         if: ${{ matrix.rid == 'linux-arm64' }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -327,7 +327,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.sha }}"
 
@@ -351,7 +351,7 @@ jobs:
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -386,7 +386,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.ref }}"
 
@@ -410,7 +410,7 @@ jobs:
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -482,7 +482,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.ref }}"
 
@@ -505,23 +505,23 @@ jobs:
           ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
-      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-qemu-action@v3
         name: Set up QEMU
         with:
           platforms: arm64
         if: ${{ matrix.arch == 'arm64' }}
 
-      - uses: docker/setup-buildx-action@v2
+      - uses: docker/setup-buildx-action@v3
         name: Set up Docker Buildx
 
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into GitHub Container Registry
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into Docker Hub
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -530,7 +530,7 @@ jobs:
       # Disabled provenance for now, until it works with docker manifest create.
       # The manifest list produced by the new feature is incompatible with the
       # expected format used in the docker manifest create command.
-      - uses: docker/build-push-action@v4
+      - uses: docker/build-push-action@v6
         name: Build and Push the Docker image
         with:
           context: .
@@ -573,14 +573,14 @@ jobs:
           - ${{ needs.current_info.outputs.tag_minor }}
 
     steps:
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into GitHub Container Registry
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into Docker Hub
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -655,12 +655,12 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: "${{ github.ref }}"
 
       - name: Push Sentry release "${{ needs.current_info.outputs.version }}"
-        uses: getsentry/action-release@v1.2.1
+        uses: getsentry/action-release@v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}

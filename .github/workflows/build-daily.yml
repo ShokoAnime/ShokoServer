@@ -233,7 +233,7 @@ jobs:
           ref: "${{ github.sha }}"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -267,7 +267,7 @@ jobs:
           ref: "${{ github.sha }}"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -353,7 +353,7 @@ jobs:
         if: ${{ matrix.rid == 'linux-arm64' }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -430,7 +430,7 @@ jobs:
         if: ${{ matrix.rid == 'linux-arm64' }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -506,7 +506,7 @@ jobs:
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ env.AVD3_URL }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -576,7 +576,7 @@ jobs:
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ env.AVD3_URL }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -638,23 +638,23 @@ jobs:
           ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
-      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-qemu-action@v3
         name: Set up QEMU
         with:
           platforms: arm64
         if: ${{ matrix.arch == 'arm64' }}
 
-      - uses: docker/setup-buildx-action@v2
+      - uses: docker/setup-buildx-action@v3
         name: Set up Docker Buildx
 
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into GitHub Container Registry
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         name: Log into Docker Hub
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -799,7 +799,7 @@ jobs:
 
       # Only add the release to sentry if the build is successful.
       - name: Push Sentry Release "${{ needs.current_info.outputs.version }}"
-        uses: getsentry/action-release@v1.2.1
+        uses: getsentry/action-release@v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
