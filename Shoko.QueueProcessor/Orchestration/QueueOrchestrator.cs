@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -59,6 +60,11 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
     // O(1) dedup index: JobKey → Id (covers waiting + executing + pending-insert + after-parent)
     private readonly Dictionary<string, Guid> _jobKeyIndex = new(StringComparer.Ordinal);
+
+    // Merge handlers registered via RegisterMergeHandler. Registered handlers take priority over
+    // IJobMerge. ConcurrentDictionary because RegisterMergeHandler may be called from plugin
+    // registration code concurrently with queue initialization.
+    private readonly ConcurrentDictionary<Type, Func<IQueueJob, IQueueJob, bool>> _mergeHandlers = new();
 
     // Pending completion callbacks registered by EnqueueImmediate callers.
     // Keyed by JobKey; resolved in OnComplete or faulted in OnFailureAsync (real failures only).
@@ -231,6 +237,93 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     }
 
     /// <summary>
+    /// Registers a merge handler for <paramref name="jobType"/>. When a new enqueue collides
+    /// with a waiting job of this type, <paramref name="handler"/> is invoked with the existing
+    /// and incoming instances. The handler mutates the existing instance and returns
+    /// <see langword="true"/> if any parameter was upgraded.
+    /// Takes priority over <see cref="IJobMerge"/> if both are present on the same type.
+    /// </summary>
+    public void RegisterMergeHandler(Type jobType, Func<IQueueJob, IQueueJob, bool> handler)
+        => _mergeHandlers[jobType] = handler;
+
+    private bool HasMergeHandler(Type type)
+        => _mergeHandlers.ContainsKey(type) || typeof(IJobMerge).IsAssignableFrom(type);
+
+    /// <summary>
+    /// Creates uninitialized instances of <paramref name="type"/>, hydrates them from the provided
+    /// JSON strings, and calls the registered handler (priority) or <see cref="IJobMerge.TryMerge"/>
+    /// (fallback). Returns the new serialized JSON if data changed, or <see langword="null"/> if not.
+    /// </summary>
+    private string? ComputeMergedJson(Type type, string? existingJson, string? incomingJson)
+    {
+        var existing = (IQueueJob)RuntimeHelpers.GetUninitializedObject(type);
+        Builder.JobDataSerializer.Apply(existing, existingJson);
+        var incoming = (IQueueJob)RuntimeHelpers.GetUninitializedObject(type);
+        Builder.JobDataSerializer.Apply(incoming, incomingJson);
+
+        bool changed;
+        if (_mergeHandlers.TryGetValue(type, out var handler))
+            changed = handler(existing, incoming);
+        else if (existing is IJobMerge mergeable)
+            changed = mergeable.TryMerge(incoming);
+        else
+            return null;
+
+        return changed ? Builder.JobDataSerializer.Serialize(existing) : null;
+    }
+
+    /// <summary>
+    /// Searches <see cref="_afterParentCallbacks"/> for a deferred job with the given key.
+    /// If found and a merge handler is registered, merges the incoming data in-place and
+    /// buffers a persistence update. Returns <see langword="true"/> if the job was found
+    /// in the deferred map (regardless of whether data changed).
+    /// <para>MUST be called under <see cref="_gate"/>.</para>
+    /// </summary>
+    private bool TryUpgradeDeferredUnderLock(string jobKey, Guid existingId, EnqueueContext context)
+    {
+        foreach (var parentMap in _afterParentCallbacks.Values)
+        {
+            if (!parentMap.TryGetValue(jobKey, out var entry)) continue;
+            var mergedJson = ComputeMergedJson(context.Type, entry.Ctx.Job.JobDataJson, context.Job.JobDataJson);
+            if (mergedJson != null)
+            {
+                entry.Ctx.Job.JobDataJson = mergedJson;
+                _persistenceBuffer.OnUpdate(existingId, mergedJson);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Iterates all pools outside <see cref="_gate"/> to find and upgrade a waiting job's data.
+    /// Also promotes priority if the incoming request has a higher priority value.
+    /// <para>
+    /// Race safety: if the job is acquired by a worker between the gate-check and this call,
+    /// <see cref="WorkerPool.TryGetAndUpdateData"/> returns <see langword="false"/> for all
+    /// pools — no upgrade applied, matching the "executing = no-op" contract.
+    /// </para>
+    /// </summary>
+    private void TryUpgradeWaiting(Guid existingId, EnqueueContext context)
+    {
+        string? mergedJson = null;
+        foreach (var pool in _allPools)
+        {
+            if (!pool.TryGetAndUpdateData(existingId, currentJson =>
+            {
+                mergedJson = ComputeMergedJson(context.Type, currentJson, context.Job.JobDataJson);
+                return mergedJson;
+            })) continue;
+
+            if (mergedJson != null)
+                _persistenceBuffer.OnUpdate(existingId, mergedJson);
+            if (context.Job.Priority > 0 && pool.TryPromotePriority(context.Job.JobKey, context.Job.Priority))
+                if (!_paused) pool.Signal();
+            break;
+        }
+    }
+
+    /// <summary>
     /// Enqueues a job: dedup check (O(1)), routes to pool sub-queue, buffers insert, signals pool.
     /// Everything the orchestrator needs is in <paramref name="context"/>; nothing is rebuilt
     /// here. The scheduler has already pre-resolved the <see cref="Type"/> and pulled
@@ -245,13 +338,36 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         if (!_poolsByType.TryGetValue(type, out var pool))
             throw new InvalidOperationException($"No pool handles job type '{type.FullName}'.");
 
+        var isExisting = false;
+        var shouldUpgrade = false;
+        var upgradeId = Guid.Empty;
         lock (_gate)
         {
-            if (_jobKeyIndex.ContainsKey(job.JobKey))
-                return Task.CompletedTask;  // already queued or executing
-            _jobKeyIndex[job.JobKey] = job.Id;
-            _allKnownJobIds.Add(job.Id);
-            _persistenceBuffer.OnEnqueue(job);
+            if (_jobKeyIndex.TryGetValue(job.JobKey, out var existingId))
+            {
+                isExisting = true;
+                if (!_executingSet.ContainsKey(existingId) && HasMergeHandler(type))
+                {
+                    if (!TryUpgradeDeferredUnderLock(job.JobKey, existingId, context))
+                    {
+                        shouldUpgrade = true;
+                        upgradeId = existingId;
+                    }
+                }
+            }
+            else
+            {
+                _jobKeyIndex[job.JobKey] = job.Id;
+                _allKnownJobIds.Add(job.Id);
+                _persistenceBuffer.OnEnqueue(job);
+            }
+        }
+
+        if (isExisting)
+        {
+            if (shouldUpgrade)
+                TryUpgradeWaiting(upgradeId, context);
+            return Task.CompletedTask;
         }
 
         pool.AddToQueue(job);

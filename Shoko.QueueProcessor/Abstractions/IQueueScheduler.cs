@@ -105,4 +105,14 @@ public interface IQueueScheduler
     /// Provider-agnostic general-purpose overload of <see cref="RunAfterCurrent{T}"/>.
     /// </summary>
     Task RunAfterCurrent(Type jobType, Action<IQueueJob>? configure = null);
+
+    /// <summary>
+    /// Registers a merge handler for job type <typeparamref name="T"/>. When a new enqueue
+    /// collides with an already-waiting job of the same key, <paramref name="handler"/> is
+    /// invoked with (existing, incoming). The handler must mutate the existing instance and return
+    /// <see langword="true"/> if any property was upgraded.
+    /// Takes priority over <see cref="IJobMerge"/> if both are present on the same type.
+    /// Intended for external callers (plugins) that cannot modify the job type directly.
+    /// </summary>
+    void RegisterMergeHandler<T>(Func<T, T, bool> handler) where T : class, IQueueJob;
 }

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -20,7 +21,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [DatabaseRequired]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetAniDBAnimeJob : BaseJob<AniDB_Anime?>
+public class GetAniDBAnimeJob : BaseJob<AniDB_Anime?>, IJobMerge
 {
     private readonly ISettingsProvider _settingsProvider;
 
@@ -33,6 +34,7 @@ public class GetAniDBAnimeJob : BaseJob<AniDB_Anime?>
     /// <summary>
     /// The ID of the AniDB anime to update.
     /// </summary>
+    [JobKeyMember]
     public int AnimeID { get; set; }
 
     /// <summary>
@@ -172,6 +174,24 @@ public class GetAniDBAnimeJob : BaseJob<AniDB_Anime?>
     {
         // We have the title helper. May as well use it to provide better info for the user
         _animeName = _anidbAnimes.GetByAnimeID(AnimeID)?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title;
+    }
+
+    public bool TryMerge(IQueueJob incoming)
+    {
+        if (incoming is not GetAniDBAnimeJob other) return false;
+        var changed = false;
+        // OR-semantics: if either request enables a flag, the merged job enables it
+        if (!DownloadRelations  && other.DownloadRelations)  { DownloadRelations  = true; changed = true; }
+        if (!IgnoreTimeCheck    && other.IgnoreTimeCheck)    { IgnoreTimeCheck    = true; changed = true; }
+        if (!IgnoreHttpBans     && other.IgnoreHttpBans)     { IgnoreHttpBans     = true; changed = true; }
+        if (!CreateSeriesEntry  && other.CreateSeriesEntry)  { CreateSeriesEntry  = true; changed = true; }
+        if (!UseRemote          && other.UseRemote)          { UseRemote          = true; changed = true; }
+        if (!UseCache           && other.UseCache)           { UseCache           = true; changed = true; }
+        // AND-semantics: SkipTmdbUpdate=false means "do update TMDB" — false wins
+        if (SkipTmdbUpdate      && !other.SkipTmdbUpdate)    { SkipTmdbUpdate     = false; changed = true; }
+        // MIN-semantics: lower RelDepth = can recurse deeper
+        if (other.RelDepth < RelDepth)                       { RelDepth = other.RelDepth; changed = true; }
+        return changed;
     }
 
     public override async Task<AniDB_Anime?> Process()

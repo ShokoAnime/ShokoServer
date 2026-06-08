@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,6 +38,8 @@ public sealed class PersistenceBuffer : IAsyncDisposable
     private readonly HashSet<Guid> _pendingDeletes = new();
     // Pending activations: chain-deferred jobs already in DB whose ParentJobId must be cleared
     private readonly HashSet<Guid> _pendingActivations = new();
+    // Pending data updates: last-write-wins per Id, for upgraded waiting jobs
+    private readonly Dictionary<Guid, string?> _pendingUpdates = new();
     private readonly object _bufferLock = new();
 
     private readonly SemaphoreSlim _flushGate = new(1, 1);
@@ -85,6 +88,35 @@ public sealed class PersistenceBuffer : IAsyncDisposable
     }
 
     /// <summary>
+    /// Buffers a <c>JobDataJson</c> update for an upgraded waiting job.
+    /// <list type="bullet">
+    ///   <item>If the job is still in <c>_pendingInserts</c> (not yet in DB), mutates it
+    ///   in-place — zero extra DB writes, same pattern as <see cref="OnActivateChainChild"/>.</item>
+    ///   <item>If pending delete, the update is irrelevant (DELETE wins) — no-op.</item>
+    ///   <item>Otherwise queues an UPDATE in <c>_pendingUpdates</c>.</item>
+    /// </list>
+    /// </summary>
+    public void OnUpdate(Guid id, string? newJson)
+    {
+        bool shouldFlush;
+        lock (_bufferLock)
+        {
+            if (_pendingInserts.TryGetValue(id, out var pendingJob))
+            {
+                pendingJob.JobDataJson = newJson;
+                return;
+            }
+            if (_pendingDeletes.Contains(id)) return;
+
+            _pendingUpdates[id] = newJson;
+            shouldFlush = _pendingInserts.Count + _pendingDeletes.Count +
+                          _pendingActivations.Count + _pendingUpdates.Count >= _maxFlushBatch;
+            if (!shouldFlush) ArmTimerLocked();
+        }
+        if (shouldFlush) _ = FlushNowAsync(CancellationToken.None);
+    }
+
+    /// <summary>
     /// Marks a completed job for deletion. If the job was still in the insert buffer
     /// (completed before the flush fired), it is cancelled out and never written to the DB.
     /// </summary>
@@ -101,6 +133,8 @@ public sealed class PersistenceBuffer : IAsyncDisposable
 
             // If the job was pending an activation UPDATE, drop it — DELETE supersedes.
             _pendingActivations.Remove(id);
+            // If the job was pending a data UPDATE, drop it — DELETE supersedes.
+            _pendingUpdates.Remove(id);
 
             _pendingDeletes.Add(id);
             shouldFlush = _pendingDeletes.Count >= _maxFlushBatch;
@@ -150,6 +184,7 @@ public sealed class PersistenceBuffer : IAsyncDisposable
         QueuedJob[] inserts;
         Guid[] deletes;
         Guid[] activations;
+        (Guid Id, string? NewJson)[] updates;
 
         lock (_bufferLock)
         {
@@ -159,32 +194,39 @@ public sealed class PersistenceBuffer : IAsyncDisposable
             inserts = [.. _pendingInserts.Values];
             deletes = [.. _pendingDeletes];
             activations = [.. _pendingActivations];
+            updates = [.. _pendingUpdates.Select(kv => (kv.Key, kv.Value))];
             _pendingInserts.Clear();
             _pendingDeletes.Clear();
             _pendingActivations.Clear();
+            _pendingUpdates.Clear();
         }
 
-        if (inserts.Length == 0 && deletes.Length == 0 && activations.Length == 0) return;
+        if (inserts.Length == 0 && deletes.Length == 0 && activations.Length == 0 && updates.Length == 0) return;
 
         await _flushGate.WaitAsync(ct);
         try
         {
             using var scope = _scopeFactory.CreateScope();
             var repo = scope.ServiceProvider.GetRequiredService<IJobRepository>();
-            if (inserts.Length > 0)
+            if (deletes.Length > 0)
             {
-                _logger.LogDebug("PersistenceBuffer: flushing {InsertCount} inserts", inserts.Length);
-                await repo.InsertBatchAsync(inserts, ct);
+                _logger.LogDebug("PersistenceBuffer: flushing {DeleteCount} deletes", deletes.Length);
+                await repo.DeleteBatchAsync(deletes, ct);
             }
             if (activations.Length > 0)
             {
                 _logger.LogDebug("PersistenceBuffer: flushing {ActivationCount} chain activations", activations.Length);
                 await repo.ActivateChainChildrenAsync(activations, ct);
             }
-            if (deletes.Length > 0)
+            if (updates.Length > 0)
             {
-                _logger.LogDebug("PersistenceBuffer: flushing {DeleteCount} deletes", deletes.Length);
-                await repo.DeleteBatchAsync(deletes, ct);
+                _logger.LogDebug("PersistenceBuffer: flushing {UpdateCount} data updates", updates.Length);
+                await repo.UpdateDataBatchAsync(updates, ct);
+            }
+            if (inserts.Length > 0)
+            {
+                _logger.LogDebug("PersistenceBuffer: flushing {InsertCount} inserts", inserts.Length);
+                await repo.InsertBatchAsync(inserts, ct);
             }
         }
         catch (Exception ex)

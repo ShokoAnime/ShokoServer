@@ -39,9 +39,6 @@ public sealed class QueueScheduler : IQueueScheduler
         if (configure != null) keyBuilder.UsingJobData(configure);
         var key = keyBuilder.Build();
 
-        if (_orchestrator.IsQueued(key))
-            return Task.CompletedTask;
-
         // RuntimeHelpers.GetUninitializedObject bypasses constructors so jobs are not required
         // to have a parameterless constructor — injected services are constructor parameters,
         // not settable properties, and are irrelevant for serialisation.
@@ -163,9 +160,6 @@ public sealed class QueueScheduler : IQueueScheduler
         var data = JobDataSerializer.DiffFromDefaultUntyped(jobType, configure);
         var key = JobKeyBuilder<IQueueJob>.BuildForType(jobType, data);
 
-        if (_orchestrator.IsQueued(key))
-            return Task.CompletedTask;
-
         var instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
         configure?.Invoke(instance);
 
@@ -225,6 +219,9 @@ public sealed class QueueScheduler : IQueueScheduler
     }
 
     public bool IsQueued(string jobKey) => _orchestrator.IsQueued(jobKey);
+
+    public void RegisterMergeHandler<T>(Func<T, T, bool> handler) where T : class, IQueueJob
+        => _orchestrator.RegisterMergeHandler(typeof(T), (e, i) => handler((T)e, (T)i));
 }
 
 /// <summary>

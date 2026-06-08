@@ -236,6 +236,45 @@ public sealed class WorkerPool : IWorkerPool
         }
     }
 
+    /// <summary>
+    /// Finds a waiting job by <paramref name="id"/>, calls <paramref name="updater"/> with its
+    /// current <see cref="QueuedJob.JobDataJson"/>, and if the updater returns a non-null string,
+    /// replaces the job in the sub-queue with an updated copy (sort position is preserved since
+    /// Priority/QueuedAt/Id are unchanged). Returns <see langword="true"/> if the job was found
+    /// in this pool (regardless of whether the updater returned non-null).
+    /// </summary>
+    public bool TryGetAndUpdateData(Guid id, Func<string?, string?> updater)
+    {
+        lock (_subQueueLock)
+        {
+            if (!_subQueueById.TryGetValue(id, out var existing)) return false;
+
+            var newJson = updater(existing.JobDataJson);
+            if (newJson != null)
+            {
+                _subQueue.Remove(existing);
+                var updated = new QueuedJob
+                {
+                    Id = existing.Id,
+                    JobType = existing.JobType,
+                    JobKey = existing.JobKey,
+                    JobDataJson = newJson,
+                    Priority = existing.Priority,
+                    QueuedAt = existing.QueuedAt,
+                    ScheduledAt = existing.ScheduledAt,
+                    RetryCount = existing.RetryCount,
+                    ChainId = existing.ChainId,
+                    IsChainFinally = existing.IsChainFinally,
+                    ParentJobId = existing.ParentJobId,
+                };
+                _subQueue.Add(updated);
+                _subQueueById[id] = updated;
+                _subQueueByKey[existing.JobKey] = updated;
+            }
+            return true;
+        }
+    }
+
     /// <summary>Clears all waiting jobs from the sub-queue (called on queue clear).</summary>
     public void ClearQueue()
     {

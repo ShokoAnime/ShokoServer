@@ -47,4 +47,10 @@ public interface IJobRepository
     /// chain-deferred to active. Called by <see cref="Orchestration.PersistenceBuffer"/> on activation flush.
     /// </summary>
     Task ActivateChainChildrenAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct = default);
+
+    /// <summary>
+    /// Updates <see cref="QueuedJob.JobDataJson"/> for each (Id, NewJson) pair.
+    /// Called by <see cref="Orchestration.PersistenceBuffer"/> on upgrade flush.
+    /// </summary>
+    Task UpdateDataBatchAsync(IReadOnlyCollection<(Guid Id, string? NewJson)> updates, CancellationToken ct = default);
 }
