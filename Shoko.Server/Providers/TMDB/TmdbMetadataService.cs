@@ -320,9 +320,11 @@ public class TmdbMetadataService : ITmdbMetadataService
                 switch (ex)
                 {
                     // If we got a _local_ rate limit exception, wait and try again.
+                    // Jitter is added so concurrent callers don't all wake up simultaneously
+                    // and compete for the same token (thundering herd).
                     case RateLimitRejectedException rlrEx:
                     {
-                        var retryAfter = rlrEx.RetryAfter;
+                        var retryAfter = rlrEx.RetryAfter + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 50));
                         await Task.Delay(retryAfter).ConfigureAwait(false);
                         break;
                     }
