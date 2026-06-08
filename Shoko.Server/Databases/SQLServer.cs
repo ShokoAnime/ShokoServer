@@ -243,7 +243,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     private readonly IReadOnlyList<DatabaseCommand> _createTables =
     [
-        new(  1,   1,"CREATE TABLE AniDB_Anime( AniDB_AnimeID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, EpisodeCount int NOT NULL, AirDate datetime NULL, EndDate datetime NULL, URL varchar(max) NULL, Picname varchar(max) NULL, BeginYear int NOT NULL, EndYear int NOT NULL, AnimeType int NOT NULL, MainTitle nvarchar(500) NOT NULL, AllTitles nvarchar(1500) NOT NULL, AllCategories nvarchar(MAX) NOT NULL, AllTags nvarchar(MAX) NOT NULL, Description varchar(max) NOT NULL, EpisodeCountNormal int NOT NULL, EpisodeCountSpecial int NOT NULL, Rating int NOT NULL, VoteCount int NOT NULL, TempRating int NOT NULL, TempVoteCount int NOT NULL, AvgReviewRating int NOT NULL, ReviewCount int NOT NULL, DateTimeUpdated datetime NOT NULL, DateTimeDescUpdated datetime NOT NULL, ImageEnabled int NOT NULL, AwardList varchar(max) NOT NULL, Restricted int NOT NULL, AnimePlanetID int NULL, ANNID int NULL, AllCinemaID int NULL, AnimeNfo int NULL, [LatestEpisodeNumber] [int] NULL, CONSTRAINT [PK_AniDB_Anime] PRIMARY KEY CLUSTERED  ( [AniDB_AnimeID] ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
+        new(  1,   1,"CREATE TABLE AniDB_Anime( AniDB_AnimeID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, EpisodeCount int NOT NULL, AirDate varchar(10) NULL, EndDate varchar(10) NULL, URL varchar(max) NULL, Picname varchar(max) NULL, BeginYear int NOT NULL, EndYear int NOT NULL, AnimeType int NOT NULL, MainTitle nvarchar(500) NOT NULL, AllTitles nvarchar(1500) NOT NULL, AllCategories nvarchar(MAX) NOT NULL, AllTags nvarchar(MAX) NOT NULL, Description varchar(max) NOT NULL, EpisodeCountNormal int NOT NULL, EpisodeCountSpecial int NOT NULL, Rating int NOT NULL, VoteCount int NOT NULL, TempRating int NOT NULL, TempVoteCount int NOT NULL, AvgReviewRating int NOT NULL, ReviewCount int NOT NULL, DateTimeUpdated datetime NOT NULL, DateTimeDescUpdated datetime NOT NULL, ImageEnabled int NOT NULL, AwardList varchar(max) NOT NULL, Restricted int NOT NULL, AnimePlanetID int NULL, ANNID int NULL, AllCinemaID int NULL, AnimeNfo int NULL, [LatestEpisodeNumber] [int] NULL, CONSTRAINT [PK_AniDB_Anime] PRIMARY KEY CLUSTERED  ( [AniDB_AnimeID] ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
         new(  1,   2, "CREATE UNIQUE INDEX UIX_AniDB_Anime_AnimeID ON AniDB_Anime(AnimeID)"),
         new(  1,   3, "CREATE TABLE AniDB_Anime_Category ( AniDB_Anime_CategoryID int IDENTITY(1,1) NOT NULL, AnimeID int NOT NULL, CategoryID int NOT NULL, Weighting int NOT NULL, CONSTRAINT [PK_AniDB_Anime_Category] PRIMARY KEY CLUSTERED  ( AniDB_Anime_CategoryID ASC )WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY] ) ON [PRIMARY] "),
         new(  1,   4, "CREATE INDEX IX_AniDB_Anime_Category_AnimeID on AniDB_Anime_Category(AnimeID)"),
@@ -983,6 +983,12 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(166, 17, "ALTER TABLE StoredReleaseInfo_MatchAttempt ALTER COLUMN ED2K NVARCHAR(40) COLLATE SQL_Latin1_General_CP1_CS_AS NOT NULL"),
         new(166, 18, "ALTER TABLE VideoLocal_HashDigest ALTER COLUMN Type NVARCHAR(32) COLLATE SQL_Latin1_General_CP1_CS_AS NOT NULL"),
         new(166, 19, "ALTER TABLE VideoLocal_HashDigest ALTER COLUMN Value NVARCHAR(MAX) COLLATE SQL_Latin1_General_CP1_CS_AS NOT NULL"),
+        new(167,  1, "ALTER TABLE AniDB_Anime ADD AirDate_new varchar(10) NULL"),
+        new(167,  2, "ALTER TABLE AniDB_Anime ADD EndDate_new varchar(10) NULL"),
+        new(167,  3, "UPDATE AniDB_Anime SET AirDate_new = CONVERT(varchar(10), AirDate, 120), EndDate_new = CONVERT(varchar(10), EndDate, 120)"),
+        new(167,  4, "ALTER TABLE AniDB_Anime DROP COLUMN AirDate; ALTER TABLE AniDB_Anime DROP COLUMN EndDate"),
+        new(167,  5, "EXEC sp_rename 'AniDB_Anime.AirDate_new', 'AirDate', 'COLUMN'"),
+        new(167,  6, "EXEC sp_rename 'AniDB_Anime.EndDate_new', 'EndDate', 'COLUMN'"),
     ];
 
     #endregion
