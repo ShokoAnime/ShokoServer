@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.261",
+      "tag": "v6.0.0-dev.261",
+      "commit": "e47b32663d6047ba16e299a2664b93e15ffa49ee",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.261/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-08T13:13:04Z",
+      "releaseNotes": "\n`fix`: **Fix a race condition in Queue persistence buffer handling**.\n"
+    },
+    {
       "version": "6.0.0.260",
       "tag": "v6.0.0-dev.260",
       "commit": "2b1c0361755f875130744526b81106cbdfa85330",
