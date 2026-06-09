@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.266",
+      "tag": "v6.0.0-dev.266",
+      "commit": "6f6370fcb63fedd92024d9ff79de7dc893b3255d",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.266/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-09T10:36:19Z",
+      "releaseNotes": "\n`refactor` (`filtering`): **Consolidate filter interfaces and move hierarchy logic to service**:\n\nRenamed `IFilterPreset` to `IFilter` as the abstract filter interface\n(no `IsDirectory`), and `IStoredFilterPreset` to `IFilterPreset` as the\npersisted preset interface (gained `IsDirectory`). `GenericFilterPreset`\nbecame `GenericFilter` implementing `IFilter`. The engine and services\nnow use `filter is IFilterPreset { IsDirectory: true }` instead of\n`filter.IsDirectory` when checking if it is a directory.\n\nAdded `IsAllowedToSee(IShokoGroup)`, `IsAllowedToSee(IShokoSeries)`,\nand `IsAllowedToSee(IAnidbAnime)` to the `IUser` interface, exposing the\ntag-based permission checks in the abstraction layer. The filtering\nengine and service now call `user.IsAllowedToSee()` instead of casting\nto `JMMUser` and calling `AllowedGroup`/`AllowedSeries`, making them\ncompletely user-agnostic.\n\nAdded three methods to `IMetadataFilteringService`:\n`GetTopLevelFilteredGroups`, `GetFilteredSubGroups`, and\n`GetFilteredSeriesInGroup` — consolidating the group chain building,\nhierarchy scoping, and fallback sort logic that previously lived across\nfour private methods in `FilterController`. And introduced `FilteredGroupResult`\nwith `GroupIDChains` (plural, `IReadOnlyList<IReadOnlyList<int>>`) to carry all\nhierarchy paths from top-level group to matching sub-groups, along with the\nmatching `SeriesIDs` set.\n\nRenamed `ISortingCriteriaHelp` to `ISortingExpressionHelp`,\n`GetAvailableSortingCriteria` to `GetAvailableSortingExpressions`, and\nthe static helpers `GetSortingCriteriaHelp` to `GetSortingExpressionHelp`\nin `ExpressionDiscovery` and all call sites.\n\nAdded `AllParentGroups` to `IShokoGroup` with an explicit interface\nimplementation on `AnimeGroup` delegating to the existing\n`AllGroupsAbove`.\n\n`FilterController` lost ~150 lines of hierarchy/scoping logic to the\nservice layer. The redundant `AllowedGroup`/`AllowedSeries` checks were\nnot carried forward because `FilteringEngine` already applies them\nduring filter evaluation.\n\nUpdated `Group` DTO constructor to accept `IReadOnlySet<int>?` instead\nof `HashSet<int>?` for `seriesIDs`.\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.47**.\n"
+    },
+    {
       "version": "6.0.0.265",
       "tag": "v6.0.0-dev.265",
       "commit": "72aa62fbe23eb6acb63374e75cec7eb777b62d44",
