@@ -1291,10 +1291,11 @@ public class TmdbMetadataService : ITmdbMetadataService
                 tmdbSeason.HiddenEpisodeCount = hiddenEpisodeCount;
                 seasonUpdated = true;
             }
-            if (seasonUpdated && !seasonAlreadySaved)
+            if (seasonUpdated)
             {
                 tmdbSeason.LastUpdatedAt = DateTime.Now;
-                seasonsToSave.Add(tmdbSeason);
+                if (!seasonAlreadySaved)
+                    seasonsToSave.Add(tmdbSeason);
             }
             Interlocked.Add(ref totalEpisodeCount, episodeCount);
             Interlocked.Add(ref totalHiddenEpisodeCount, hiddenEpisodeCount);
