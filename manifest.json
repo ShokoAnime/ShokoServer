@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.264",
+      "tag": "v6.0.0-dev.264",
+      "commit": "8c66f163e83ee3552abd5f5f4bf2dfe9fdafc78e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.264/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-09T01:58:52Z",
+      "releaseNotes": "\n`misc`: **Hopefully fix duplicate job key saving**.\n"
+    },
+    {
       "version": "6.0.0.263",
       "tag": "v6.0.0-dev.263",
       "commit": "ccf3a8238200a8c7c62bf69ee38680152ed36df3",
