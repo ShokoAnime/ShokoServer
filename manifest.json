@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.265",
+      "tag": "v6.0.0-dev.265",
+      "commit": "72aa62fbe23eb6acb63374e75cec7eb777b62d44",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.265/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-09T05:38:28Z",
+      "releaseNotes": "\n`fix`: **Fix EF Setup for Multiple Backends**.\n"
+    },
+    {
       "version": "6.0.0.264",
       "tag": "v6.0.0-dev.264",
       "commit": "8c66f163e83ee3552abd5f5f4bf2dfe9fdafc78e",
