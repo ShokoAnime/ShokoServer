@@ -203,6 +203,41 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// <summary>
     /// Execute the given function with the TMDb client, applying rate limiting and retry policies.
     /// </summary>
+    private Task OnTmdbRetryAsync(Exception ex, TimeSpan ts, int retryCount, Context ctx)
+    {
+        switch (ex)
+        {
+            // If we got a _remote_ rate limit exception, notify the rate limiter.
+            // The rate limiter's WaitForBackoffAsync handles the actual delay on the next acquire.
+            case RequestLimitExceededException rleEx:
+            {
+                var rlRetryCount = ctx.TryGetValue("rateLimitRetryCount", out var rlVal) ? (int)rlVal : 0;
+                if (rlRetryCount >= 10)
+                    throw ex;
+                ctx["rateLimitRetryCount"] = rlRetryCount + 1;
+                var retryAfter = rleEx.RetryAfter ?? TimeSpan.FromSeconds(1);
+                _logger.LogTrace("Hit remote rate limit. Waiting and retrying. Retry count: {RetryCount}, Retry after: {RetryAfter}", retryCount, retryAfter);
+                _rateLimiter.NotifyRateLimitExceeded(retryAfter);
+                break;
+            }
+            // If we timed out, wait and try again (up to 3 times).
+            case HttpRequestException hrEx when hrEx.InnerException is TaskCanceledException:
+            {
+                var timeoutRetryCount = ctx.TryGetValue("timeoutRetryCount", out var timeoutRetryCountValue) ? (int)timeoutRetryCountValue : 0;
+                if (timeoutRetryCount >= 3)
+                    throw ex;
+                ctx["timeoutRetryCount"] = timeoutRetryCount + 1;
+                break;
+            }
+            case GeneralHttpException ghEx:
+                _logger.LogWarning(ghEx, "Got a general HTTP exception while processing TMDb request: {StatusCode}", (int)ghEx.HttpStatusCode);
+                throw ex;
+            default:
+                throw ex;
+        }
+        return Task.CompletedTask;
+    }
+
     /// <typeparam name="T">The type of the result of the function.</typeparam>
     /// <param name="func">The function to execute with the TMDb client.</param>
     /// <param name="displayName">The name of the function to display in the logs.</param>
@@ -312,43 +347,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             .Handle<HttpRequestException>()
             .Or<GeneralHttpException>()
             .Or<RequestLimitExceededException>()
-            .WaitAndRetryAsync(int.MaxValue, (_, _) => TimeSpan.Zero, async (ex, ts, retryCount, ctx) =>
-            {
-                // Retry on rate limit exceptions, throw on everything else.
-                switch (ex)
-                {
-                    // If we got a _remote_ rate limit exception, notify the rate limiter.
-                    // The rate limiter's WaitForBackoffAsync handles the actual delay on the next acquire.
-                    case RequestLimitExceededException rleEx:
-                    {
-                        var rlRetryCount = ctx.TryGetValue("rateLimitRetryCount", out var rlVal) ? (int)rlVal : 0;
-                        if (rlRetryCount >= 10)
-                            goto default;
-                        ctx["rateLimitRetryCount"] = rlRetryCount + 1;
-                        var retryAfter = rleEx.RetryAfter ?? TimeSpan.FromSeconds(1);
-                        _logger.LogTrace("Hit remote rate limit. Waiting and retrying. Retry count: {RetryCount}, Retry after: {RetryAfter}", retryCount, retryAfter);
-                        _rateLimiter.NotifyRateLimitExceeded(retryAfter);
-                        break;
-                    }
-                    // If we timed out, wait and try again (up to 3 times).
-                    case HttpRequestException hrEx when hrEx.InnerException is TaskCanceledException:
-                    {
-                        // If we timed out more than 3 times, just throw the exception, since the exceptions were likely caused by other network issues.
-                        var timeoutRetryCount = ctx.TryGetValue("timeoutRetryCount", out var timeoutRetryCountValue) ? (int)timeoutRetryCountValue : 0;
-                        if (timeoutRetryCount >= 3)
-                            goto default;
-                        ctx["timeoutRetryCount"] = timeoutRetryCount + 1;
-                        break;
-                    }
-                    case GeneralHttpException ghEx:
-                    {
-                        _logger.LogWarning(ghEx, "Got a general HTTP exception while processing TMDb request: {StatusCode}", (int)ghEx.HttpStatusCode);
-                        goto default;
-                    }
-                    default:
-                        throw ex;
-                }
-            });
+            .WaitAndRetryAsync(int.MaxValue, (_, _) => TimeSpan.Zero, OnTmdbRetryAsync);
     }
 
     public async Task ScheduleSearchForMatch(int anidbId, bool force)

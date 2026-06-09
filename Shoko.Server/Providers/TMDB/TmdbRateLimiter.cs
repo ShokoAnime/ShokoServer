@@ -53,6 +53,7 @@ public class TmdbRateLimiter : IDisposable
     {
         _settingsProvider.Saved -= OnSettingsSaved;
         _limiter.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private void OnSettingsSaved(object? sender, ConfigurationSavedEventArgs<ServerSettings> eventArgs)
