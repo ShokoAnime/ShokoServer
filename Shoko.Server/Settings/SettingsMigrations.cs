@@ -37,7 +37,7 @@ public static partial class SettingsMigrations
         var migrationsToApply = _migrations
             .Where(a => a.Key > version)
             .Select(a => (a.Key, Fn: a.Key == 15
-                ? (Func<string, string>?)(s => MigrateQuartzToQueue(s, dataPath))
+                ? (s => MigrateQuartzToQueue(s, dataPath))
                 : a.Value))
             .Where(a => a.Fn is not null)
             .OrderBy(a => a.Key)

@@ -70,7 +70,7 @@ public class DashboardController : BaseController
             .Where(a => a.GetUserRecord(User.JMMUserID)?.WatchedDate != null)
             .ToList();
         // Count local watched series in the user's collection.
-        var watchedSeries = allSeries.Count((Func<AnimeSeries, bool>)(series =>
+        var watchedSeries = allSeries.Count(series =>
         {
             // If we don't have an anime entry then something is very wrong, but
             // we don't care about that right now, so just skip it.
@@ -96,10 +96,10 @@ public class DashboardController : BaseController
             // normal episodes.
             var totalWatchableNormalEpisodes = anime.EpisodeCountNormal - missingNormalEpisodesTotal;
             var count = episodeDict[series]
-                .Count((Func<AnimeEpisode, bool>)(episode => episode.AniDB_Episode.EpisodeType == EpisodeType.Episode &&
-                                  episode.GetUserRecord(User.JMMUserID)?.WatchedDate != null));
+                .Count(episode => episode.AniDB_Episode.EpisodeType == EpisodeType.Episode &&
+                                  episode.GetUserRecord(User.JMMUserID)?.WatchedDate != null);
             return count >= totalWatchableNormalEpisodes;
-        }));
+        });
         // Calculate watched hours for both local episodes and non-local episodes.
         var hoursWatched = Math.Round(
             (decimal)watchedEpisodes.Sum(a => a.VideoLocals.FirstOrDefault()?.DurationTimeSpan.TotalHours ?? new TimeSpan(0, 0, a.AniDB_Episode?.LengthSeconds ?? 0).TotalHours),
