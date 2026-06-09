@@ -237,4 +237,9 @@ public class TMDBSettings
     [EnvironmentVariable("TMDB_IMAGE_CDN_URL")]
     [Url]
     public string? ImageCdnUrl { get; set; }
+
+    /// <summary>
+    /// Rate limit settings for the TMDB API.
+    /// </summary>
+    public TmdbRateLimitSettings RateLimit { get; set; } = new();
 }
