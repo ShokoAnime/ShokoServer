@@ -12,7 +12,7 @@ namespace Shoko.Server.Providers.TMDB;
 
 /// <summary>
 /// Rate limiter for the TMDB API (~40 req/sec enforced by TMDB).
-/// Uses a fixed window to enforce a local request cap and adapts to server-enforced
+/// Uses a sliding window to smooth request distribution and adapts to server-enforced
 /// 429 backoff via <see cref="NotifyRateLimitExceeded"/>.
 /// </summary>
 public sealed class TmdbRateLimiter : IDisposable
@@ -76,7 +76,7 @@ public sealed class TmdbRateLimiter : IDisposable
         {
             PermitLimit = maxRequests,
             Window = TimeSpan.FromMilliseconds(windowMs),
-            SegmentsPerWindow = 1,
+            SegmentsPerWindow = 10,
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = int.MaxValue,
             AutoReplenishment = true,
@@ -91,7 +91,15 @@ public sealed class TmdbRateLimiter : IDisposable
     {
         var delay = retryAfter ?? TimeSpan.FromSeconds(1);
         var until = DateTimeOffset.UtcNow + delay;
-        Interlocked.Exchange(ref _backoffUntilTicks, until.UtcTicks);
+        var newTicks = until.UtcTicks;
+        long current;
+        do
+        {
+            current = Interlocked.Read(ref _backoffUntilTicks);
+            if (newTicks <= current)
+                return;
+        }
+        while (Interlocked.CompareExchange(ref _backoffUntilTicks, newTicks, current) != current);
         _logger.LogTrace("TMDB rate limit exceeded. Backing off until {Until}", until);
     }
 
@@ -101,12 +109,18 @@ public sealed class TmdbRateLimiter : IDisposable
     /// </summary>
     public async Task<T> EnsureRateAsync<T>(Func<Task<T>> action)
     {
-        await WaitForBackoffAsync(_disposeCts.Token);
-        using var lease = await _limiter.AcquireAsync(1, _disposeCts.Token);
-        // Re-check backoff: a 429 may have arrived from a concurrent caller after
-        // WaitForBackoffAsync returned but before we acquired the slot.
-        await WaitForBackoffAsync(_disposeCts.Token);
-        return await action();
+        while (true)
+        {
+            await WaitForBackoffAsync(_disposeCts.Token);
+            using var lease = await _limiter.AcquireAsync(1, _disposeCts.Token);
+            // Re-check backoff: a 429 may have arrived after WaitForBackoffAsync returned
+            // but before we acquired the slot. Release the slot and retry rather than
+            // holding it idle for the full backoff duration.
+            var backoffTicks = Interlocked.Read(ref _backoffUntilTicks);
+            if (backoffTicks > 0 && DateTimeOffset.UtcNow.UtcTicks < backoffTicks)
+                continue;
+            return await action();
+        }
     }
 
     private async Task WaitForBackoffAsync(CancellationToken cancellationToken = default)
