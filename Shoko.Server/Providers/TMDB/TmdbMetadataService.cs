@@ -1176,8 +1176,8 @@ public class TmdbMetadataService : ITmdbMetadataService
         var existingSeasons = _tmdbSeasons.GetByTmdbShowID(show.Id)
             .ToDictionary(season => season.Id);
         var seasonsToAdd = 0;
-        var seasonsToSkip = new HashSet<int>();
-        var seasonsToSave = new List<TMDB_Season>();
+        var seasonsToSkip = new ConcurrentBag<int>();
+        var seasonsToSave = new ConcurrentBag<TMDB_Season>();
         var seasonEventsToEmit = new ConcurrentDictionary<TMDB_Season, UpdateReason>();
 
         var totalEpisodeCount = 0;
@@ -1191,14 +1191,14 @@ public class TmdbMetadataService : ITmdbMetadataService
         var episodeEventsToEmit = new ConcurrentDictionary<TMDB_Episode, UpdateReason>();
         var allPeopleToAddOrKeep = new ConcurrentBag<int>();
         var allPeopleToPotentiallyRemove = new ConcurrentBag<int>();
-        foreach (var reducedSeason in show.Seasons!)
+        await ProcessWithConcurrencyAsync(_maxConcurrency, show.Seasons!, async reducedSeason =>
         {
             _logger.LogDebug("Checking season {SeasonNumber} for show {ShowTitle} (Show={ShowId})", reducedSeason.SeasonNumber, show.Name, show.Id);
             var season = await UseClient(c => c.GetTvSeasonAsync(show.Id, reducedSeason.SeasonNumber, TvSeasonMethods.Translations), $"Get season {reducedSeason.SeasonNumber} for show {show.Id} \"{show.Name}\"").ConfigureAwait(false) ??
                 throw new Exception($"Unable to fetch season {reducedSeason.SeasonNumber} for show \"{show.Name}\".");
             if (!existingSeasons.TryGetValue(reducedSeason.Id, out var tmdbSeason))
             {
-                seasonsToAdd++;
+                Interlocked.Increment(ref seasonsToAdd);
                 tmdbSeason = new(reducedSeason.Id);
             }
             var newlyAddedSeason = tmdbSeason.CreatedAt == tmdbSeason.LastUpdatedAt;
@@ -1206,12 +1206,14 @@ public class TmdbMetadataService : ITmdbMetadataService
             var seasonUpdated = tmdbSeason.Populate(show, season);
             seasonUpdated = UpdateTitlesAndOverviews(tmdbSeason, season.Translations, preferredTitleLanguages, preferredOverviewLanguages) || seasonUpdated;
 
+            var seasonAlreadySaved = false;
             if ((newlyAddedSeason && shouldFireEvents) || seasonUpdated)
             {
                 seasonEventsToEmit.TryAdd(tmdbSeason, newlyAddedSeason ? UpdateReason.Added : UpdateReason.Updated);
                 if (shouldFireEvents)
                     tmdbSeason.LastUpdatedAt = DateTime.Now;
                 seasonsToSave.Add(tmdbSeason);
+                seasonAlreadySaved = true;
             }
 
             seasonsToSkip.Add(tmdbSeason.Id);
@@ -1223,7 +1225,7 @@ public class TmdbMetadataService : ITmdbMetadataService
                 _logger.LogDebug("Checking episode {EpisodeNumber} in season {SeasonNumber} for show {ShowTitle} (Show={ShowId})", reducedEpisode.EpisodeNumber, reducedSeason.SeasonNumber, show.Name, show.Id);
                 if (!existingEpisodes.TryGetValue(reducedEpisode.Id, out var tmdbEpisode))
                 {
-                    episodesToAdd++;
+                    Interlocked.Increment(ref episodesToAdd);
                     tmdbEpisode = new(reducedEpisode.Id);
                 }
                 var newlyAddedEpisode = tmdbEpisode.CreatedAt == tmdbEpisode.LastUpdatedAt;
@@ -1289,17 +1291,14 @@ public class TmdbMetadataService : ITmdbMetadataService
                 tmdbSeason.HiddenEpisodeCount = hiddenEpisodeCount;
                 seasonUpdated = true;
             }
-            if (seasonUpdated)
+            if (seasonUpdated && !seasonAlreadySaved)
             {
                 tmdbSeason.LastUpdatedAt = DateTime.Now;
-                if (!seasonsToSave.Contains(tmdbSeason))
-                    seasonsToSave.Add(tmdbSeason);
+                seasonsToSave.Add(tmdbSeason);
             }
-            totalEpisodeCount += episodeCount;
-            totalHiddenEpisodeCount += hiddenEpisodeCount;
-            episodeBag.Clear();
-            hiddenEpisodeBag.Clear();
-        }
+            Interlocked.Add(ref totalEpisodeCount, episodeCount);
+            Interlocked.Add(ref totalHiddenEpisodeCount, hiddenEpisodeCount);
+        });
 
         var seasonsToRemove = existingSeasons.Values
             .ExceptBy(seasonsToSkip, season => season.Id)
@@ -2431,14 +2430,14 @@ public class TmdbMetadataService : ITmdbMetadataService
             if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
 
         _logger.LogDebug("Found {Count} unique missing TMDB People for Episode & Movie staff", missingIds.Count);
-        foreach (var personId in missingIds)
+        await ProcessWithConcurrencyAsync(_maxConcurrency, missingIds, async personId =>
         {
             var (_, updated) = await UpdatePerson(personId, forceRefresh: true);
             if (updated)
-                updateCount++;
+                Interlocked.Increment(ref updateCount);
             else
-                skippedCount++;
-        }
+                Interlocked.Increment(ref skippedCount);
+        });
 
         _logger.LogInformation("Updated missing TMDB People: Found/Updated/Skipped {Found}/{Updated}/{Skipped}",
             missingIds.Count, updateCount, skippedCount);
