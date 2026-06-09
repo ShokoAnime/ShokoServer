@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Concurrent;
 using System.Threading;
+using System.Threading.RateLimiting;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
@@ -11,96 +11,68 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.Providers.TMDB;
 
 /// <summary>
-/// Sliding-window rate limiter for the TMDB API (~40 req/sec enforced by TMDB).
-/// Tracks real request timestamps so callers can observe <see cref="CallsInWindow"/>
-/// and <see cref="RemainingInWindow"/>, and adapts to server-enforced 429 backoff
-/// via <see cref="NotifyRateLimitExceeded"/>.
+/// Rate limiter for the TMDB API (~40 req/sec enforced by TMDB).
+/// Uses a fixed window to enforce a local request cap and adapts to server-enforced
+/// 429 backoff via <see cref="NotifyRateLimitExceeded"/>.
 /// </summary>
-public class TmdbRateLimiter
+public class TmdbRateLimiter : IDisposable
 {
     private readonly ILogger<TmdbRateLimiter> _logger;
 
-    private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private readonly ConfigurationProvider<ServerSettings> _settingsProvider;
 
-    private readonly ConcurrentQueue<long> _requestTimestamps = new();
+    private volatile SlidingWindowRateLimiter _limiter;
+
+    private volatile int _maxRequestsPerWindow;
 
     private long _backoffUntilTicks;
 
-    private readonly object _settingsLock = new();
-
-    private readonly ConfigurationProvider<ServerSettings> _settingsProvider;
-
-    private int? _maxRequestsPerWindow;
-
-    private int? _windowDurationMs;
-
-    private int MaxRequestsPerWindow
-    {
-        get
-        {
-            EnsureUsable();
-            return _maxRequestsPerWindow!.Value;
-        }
-    }
-
-    private int WindowDurationMs
-    {
-        get
-        {
-            EnsureUsable();
-            return _windowDurationMs!.Value;
-        }
-    }
+    /// <summary>
+    /// Number of requests recorded in the current window.
+    /// </summary>
+    public int CallsInWindow =>
+        _maxRequestsPerWindow - (int)(_limiter.GetStatistics()?.CurrentAvailablePermits ?? _maxRequestsPerWindow);
 
     /// <summary>
-    /// Number of requests recorded in the current sliding window.
+    /// Remaining request capacity in the current window.
     /// </summary>
-    public int CallsInWindow
-    {
-        get
-        {
-            PruneOldTimestamps();
-            return _requestTimestamps.Count;
-        }
-    }
-
-    /// <summary>
-    /// Remaining request capacity in the current sliding window.
-    /// </summary>
-    public int RemainingInWindow => Math.Max(0, MaxRequestsPerWindow - CallsInWindow);
+    public int RemainingInWindow =>
+        (int)(_limiter.GetStatistics()?.CurrentAvailablePermits ?? _maxRequestsPerWindow);
 
     public TmdbRateLimiter(ILogger<TmdbRateLimiter> logger, ConfigurationProvider<ServerSettings> settingsProvider)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
+        var settings = settingsProvider.Load().TMDB.RateLimit;
+        _maxRequestsPerWindow = settings.MaxRequestsPerWindow;
+        _limiter = CreateLimiter(settings.MaxRequestsPerWindow, settings.WindowDurationMs);
         _settingsProvider.Saved += OnSettingsSaved;
     }
 
-    ~TmdbRateLimiter()
+    public void Dispose()
     {
         _settingsProvider.Saved -= OnSettingsSaved;
+        _limiter.Dispose();
     }
 
     private void OnSettingsSaved(object? sender, ConfigurationSavedEventArgs<ServerSettings> eventArgs)
     {
-        EnsureUsable(true);
+        var settings = _settingsProvider.Load().TMDB.RateLimit;
+        _maxRequestsPerWindow = settings.MaxRequestsPerWindow;
+        // The old limiter is not explicitly disposed so any in-flight AcquireAsync can complete normally.
+        _limiter = CreateLimiter(settings.MaxRequestsPerWindow, settings.WindowDurationMs);
     }
 
-    private void EnsureUsable(bool force = false)
-    {
-        if (!force && _maxRequestsPerWindow.HasValue)
-            return;
-
-        lock (_settingsLock)
+    private static SlidingWindowRateLimiter CreateLimiter(int maxRequests, int windowMs)
+        => new(new SlidingWindowRateLimiterOptions
         {
-            if (!force && _maxRequestsPerWindow.HasValue)
-                return;
-
-            var settings = _settingsProvider.Load().TMDB.RateLimit;
-            _maxRequestsPerWindow = settings.MaxRequestsPerWindow;
-            _windowDurationMs = settings.WindowDurationMs;
-        }
-    }
+            PermitLimit = maxRequests,
+            Window = TimeSpan.FromMilliseconds(windowMs),
+            SegmentsPerWindow = 1,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = int.MaxValue,
+            AutoReplenishment = true,
+        });
 
     /// <summary>
     /// Signal that TMDB returned a 429. All pending <see cref="EnsureRateAsync{T}"/> calls
@@ -117,68 +89,32 @@ public class TmdbRateLimiter
 
     /// <summary>
     /// Acquire a rate-limit slot, then execute <paramref name="action"/>.
-    /// The slot is recorded before the action runs; the action itself executes
-    /// outside the internal lock so concurrent calls are allowed.
+    /// Blocks if the current window is full or a server 429 backoff is active.
     /// </summary>
     public async Task<T> EnsureRateAsync<T>(Func<Task<T>> action)
     {
-        await AcquireSlotAsync();
+        await WaitForBackoffAsync();
+        using var lease = await _limiter.AcquireAsync(1);
         return await action();
     }
 
-    private void PruneOldTimestamps()
-    {
-        var cutoff = DateTimeOffset.UtcNow.AddMilliseconds(-WindowDurationMs).UtcTicks;
-        while (_requestTimestamps.TryPeek(out var oldest) && oldest < cutoff)
-            _requestTimestamps.TryDequeue(out _);
-    }
-
-    private async Task AcquireSlotAsync()
+    private async Task WaitForBackoffAsync()
     {
         while (true)
         {
-            await _semaphore.WaitAsync();
-
-            PruneOldTimestamps();
-
-            // Honour server-enforced backoff (set by NotifyRateLimitExceeded).
-            // Do NOT clear the field here — every concurrent caller must see the backoff
-            // until the timestamp naturally expires (UtcNow >= backoffTicks).
             var backoffTicks = Interlocked.Read(ref _backoffUntilTicks);
-            if (backoffTicks > 0 && DateTimeOffset.UtcNow.UtcTicks < backoffTicks)
-            {
-                var backoffWait = new DateTimeOffset(backoffTicks, TimeSpan.Zero) - DateTimeOffset.UtcNow;
-                _semaphore.Release();
-                if (backoffWait > TimeSpan.Zero)
-                {
-                    var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 50));
-                    _logger.LogTrace("TMDB server backoff active. Waiting {Wait}ms", (backoffWait + jitter).TotalMilliseconds);
-                    await Task.Delay(backoffWait + jitter);
-                }
-                continue;
-            }
-
-            // Slot available — record the timestamp and return.
-            if (_requestTimestamps.Count < MaxRequestsPerWindow)
-            {
-                _requestTimestamps.Enqueue(DateTimeOffset.UtcNow.UtcTicks);
-                _semaphore.Release();
-                _logger.LogTrace("TMDB slot acquired. Calls in window: {Calls}/{Max}", _requestTimestamps.Count, MaxRequestsPerWindow);
+            if (backoffTicks == 0 || DateTimeOffset.UtcNow.UtcTicks >= backoffTicks)
                 return;
-            }
 
-            // Window full — wait until the oldest recorded request expires.
-            _requestTimestamps.TryPeek(out var oldestTick);
-            var expiry = new DateTimeOffset(oldestTick, TimeSpan.Zero).AddMilliseconds(WindowDurationMs);
-            var waitTime = expiry - DateTimeOffset.UtcNow;
-            _semaphore.Release();
-
-            if (waitTime > TimeSpan.Zero)
+            var wait = new DateTimeOffset(backoffTicks, TimeSpan.Zero) - DateTimeOffset.UtcNow;
+            if (wait > TimeSpan.Zero)
             {
-                var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 50));
-                _logger.LogTrace("TMDB window full ({Calls}/{Max}). Waiting {Wait}ms", _requestTimestamps.Count, MaxRequestsPerWindow, (waitTime + jitter).TotalMilliseconds);
-                await Task.Delay(waitTime + jitter);
+                var jitter = Jitter();
+                _logger.LogTrace("TMDB server backoff active. Waiting {Wait}ms", (wait + jitter).TotalMilliseconds);
+                await Task.Delay(wait + jitter);
             }
         }
     }
+
+    internal static TimeSpan Jitter() => TimeSpan.FromMilliseconds(Random.Shared.Next(0, 50));
 }

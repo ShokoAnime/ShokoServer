@@ -317,14 +317,17 @@ public class TmdbMetadataService : ITmdbMetadataService
                 // Retry on rate limit exceptions, throw on everything else.
                 switch (ex)
                 {
-                    // If we got a _remote_ rate limit exception, notify the rate limiter and wait.
+                    // If we got a _remote_ rate limit exception, notify the rate limiter.
+                    // The rate limiter's WaitForBackoffAsync handles the actual delay on the next acquire.
                     case RequestLimitExceededException rleEx:
                     {
+                        var rlRetryCount = ctx.TryGetValue("rateLimitRetryCount", out var rlVal) ? (int)rlVal : 0;
+                        if (rlRetryCount >= 10)
+                            goto default;
+                        ctx["rateLimitRetryCount"] = rlRetryCount + 1;
                         var retryAfter = rleEx.RetryAfter ?? TimeSpan.FromSeconds(1);
                         _logger.LogTrace("Hit remote rate limit. Waiting and retrying. Retry count: {RetryCount}, Retry after: {RetryAfter}", retryCount, retryAfter);
                         _rateLimiter.NotifyRateLimitExceeded(retryAfter);
-                        var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 50));
-                        await Task.Delay(retryAfter + jitter).ConfigureAwait(false);
                         break;
                     }
                     // If we timed out, wait and try again (up to 3 times).
@@ -2636,22 +2639,20 @@ public class TmdbMetadataService : ITmdbMetadataService
             .ToList();
         while (tasks.Count > 0)
         {
+            var task = await Task.WhenAny(tasks).ConfigureAwait(false);
+            tasks.Remove(task);
             try
             {
-                var task = await Task.WhenAny(tasks).ConfigureAwait(false);
-                tasks.Remove(task);
+                await task.ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                var task = tasks.First(task => task.IsFaulted);
-                tasks.Remove(task);
                 exceptions.Add(ex);
                 if (exceptions.Count > maxConcurrent)
                 {
                     cancellationTokenSource.Cancel();
                     throw new AggregateException(exceptions);
                 }
-                continue;
             }
         }
 
