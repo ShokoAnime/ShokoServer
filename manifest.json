@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.268",
+      "tag": "v6.0.0-dev.268",
+      "commit": "5e848aac567adb9bec01e60f5f3aee03cbb96f8c",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.268/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-09T21:50:51Z",
+      "releaseNotes": "\n`fix`: **Revert faulty `Lazy<TService>` usage as ASP.NET did not like that**.\n"
+    },
+    {
       "version": "6.0.0.267",
       "tag": "v6.0.0-dev.267",
       "commit": "9ab9b27a600499547163a115a5da6d7e477d163d",
