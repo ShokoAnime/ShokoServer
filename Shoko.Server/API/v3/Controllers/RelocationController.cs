@@ -50,11 +50,21 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="relocationService">
 ///   Relocation service.
 /// </param>
+/// <param name="presetManager">
+///   Relocation preset manager.
+/// </param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class RelocationController(ISettingsProvider settingsProvider, IPluginManager pluginManager, IConfigurationService configurationService, IVideoService videoService, IVideoRelocationService relocationService) : BaseController(settingsProvider)
+public class RelocationController(
+    ISettingsProvider settingsProvider,
+    IPluginManager pluginManager,
+    IConfigurationService configurationService,
+    IVideoService videoService,
+    IVideoRelocationService relocationService,
+    IRelocationPresetManager presetManager
+) : BaseController(settingsProvider)
 {
     #region Settings
 
@@ -70,9 +80,9 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     public ActionResult<RelocationSummary> GetRelocationSummary()
         => new RelocationSummary
         {
-            RenameOnImport = relocationService.RenameOnImport,
-            MoveOnImport = relocationService.MoveOnImport,
-            AllowRelocationInsideDestinationOnImport = relocationService.AllowRelocationInsideDestinationOnImport,
+            RenameOnImport = presetManager.RenameOnImport,
+            MoveOnImport = presetManager.MoveOnImport,
+            AllowRelocationInsideDestinationOnImport = presetManager.AllowRelocationInsideDestinationOnImport,
             ProviderCount = relocationService.GetAvailableProviders().Count(),
         };
 
@@ -92,11 +102,11 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     public ActionResult UpdateRelocationSettings([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateRelocationSettingsBody body)
     {
         if (body.RenameOnImport.HasValue)
-            relocationService.RenameOnImport = body.RenameOnImport.Value;
+            presetManager.RenameOnImport = body.RenameOnImport.Value;
         if (body.MoveOnImport.HasValue)
-            relocationService.MoveOnImport = body.MoveOnImport.Value;
+            presetManager.MoveOnImport = body.MoveOnImport.Value;
         if (body.AllowRelocationInsideDestinationOnImport.HasValue)
-            relocationService.AllowRelocationInsideDestinationOnImport = body.AllowRelocationInsideDestinationOnImport.Value;
+            presetManager.AllowRelocationInsideDestinationOnImport = body.AllowRelocationInsideDestinationOnImport.Value;
 
         return Ok();
     }
@@ -185,7 +195,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
         IRelocationPreset preset;
         if (body is { ProviderID: null, Configuration: null or { Type: JTokenType.Null } })
         {
-            if (relocationService.GetDefaultPreset() is not { ProviderInfo: { } } defaultPreset)
+            if (presetManager.GetDefaultPreset() is not { ProviderInfo: { } } defaultPreset)
                 return ValidationProblem("Default RelocationPreset not available or otherwise unusable.", nameof(body.ProviderID));
 
             preset = defaultPreset;
@@ -220,9 +230,9 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
         return Ok(InternalBatchPreviewFiles(
             body.FileIDs,
             preset,
-            move ?? relocationService.MoveOnImport,
-            rename ?? relocationService.RenameOnImport,
-            allowRelocationInsideDestination ?? relocationService.AllowRelocationInsideDestinationOnImport
+            move ?? presetManager.MoveOnImport,
+            rename ?? presetManager.RenameOnImport,
+            allowRelocationInsideDestination ?? presetManager.AllowRelocationInsideDestinationOnImport
         ));
     }
 
@@ -322,16 +332,16 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
         [FromQuery] bool? allowRelocationInsideDestination = null
     )
     {
-        if (relocationService.GetDefaultPreset() is not { ProviderInfo: { } } preset)
+        if (presetManager.GetDefaultPreset() is not { ProviderInfo: { } } preset)
             return ValidationProblem("Default RelocationPreset not available or otherwise unusable.");
 
         return Ok(InternalBatchRelocateFiles(fileIDs, new AutoRelocateRequest
         {
             Preset = preset,
-            DeleteEmptyDirectories = deleteEmptyDirectories && (move ?? relocationService.MoveOnImport),
-            Move = move ?? relocationService.MoveOnImport,
-            Rename = rename ?? relocationService.RenameOnImport,
-            AllowRelocationInsideDestination = allowRelocationInsideDestination ?? relocationService.AllowRelocationInsideDestinationOnImport,
+            DeleteEmptyDirectories = deleteEmptyDirectories && (move ?? presetManager.MoveOnImport),
+            Move = move ?? presetManager.MoveOnImport,
+            Rename = rename ?? presetManager.RenameOnImport,
+            AllowRelocationInsideDestination = allowRelocationInsideDestination ?? presetManager.AllowRelocationInsideDestinationOnImport,
         }));
     }
 
@@ -436,7 +446,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     /// </returns>
     [HttpGet("Preset")]
     public ActionResult<List<ApiRelocationPreset>> GetAllRelocationPresets()
-        => relocationService.GetStoredPresets()
+        => presetManager.GetStoredPresets()
             .Select(presetInfo => new ApiRelocationPreset(presetInfo, presetInfo.ProviderInfo))
             .WhereNotNull()
             .ToList();
@@ -487,7 +497,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
                 configuration = (IRelocationProviderConfiguration)configurationService.New(providerInfo.ConfigurationInfo);
             }
         }
-        var presetInfo = relocationService.StorePreset(providerInfo.Provider, body.Name, configuration, body.IsDefault);
+        var presetInfo = presetManager.StorePreset(providerInfo.Provider, body.Name, configuration, body.IsDefault);
 
         return new ApiRelocationPreset(presetInfo, presetInfo.ProviderInfo);
     }
@@ -504,7 +514,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     [HttpGet("Preset/{presetID}")]
     public ActionResult<ApiRelocationPreset> GetRelocationPresetByPresetID([FromRoute] Guid presetID)
     {
-        if (relocationService.GetStoredPreset(presetID) is not { } presetInfo)
+        if (presetManager.GetStoredPreset(presetID) is not { } presetInfo)
             return NotFound("Relocation preset not found");
 
         return new ApiRelocationPreset(presetInfo, presetInfo.ProviderInfo);
@@ -524,7 +534,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     [HttpPut("Preset/{presetID}")]
     public ActionResult<ApiRelocationPreset> PutRelocationPresetByPresetID([FromRoute] Guid presetID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ModifyRelocationPresetBody body)
     {
-        if (relocationService.GetStoredPreset(presetID) is not { } presetInfo)
+        if (presetManager.GetStoredPreset(presetID) is not { } presetInfo)
             return NotFound("Relocation preset not found");
 
         var updated = false;
@@ -539,7 +549,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
             updated = true;
         }
         if (updated)
-            relocationService.UpdatePreset(presetInfo);
+            presetManager.UpdatePreset(presetInfo);
 
         return new ApiRelocationPreset(presetInfo, presetInfo.ProviderInfo);
     }
@@ -562,7 +572,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     [HttpPatch("Preset/{presetID}")]
     public ActionResult<ApiRelocationPreset> PatchRelocationPresetByPresetID([FromRoute] Guid presetID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument<ModifyRelocationPresetBody> patchDocument)
     {
-        if (relocationService.GetStoredPreset(presetID) is not { } presetInfo)
+        if (presetManager.GetStoredPreset(presetID) is not { } presetInfo)
             return NotFound("Relocation preset not found");
 
         var body = new ModifyRelocationPresetBody() { Name = presetInfo.Name, IsDefault = presetInfo.IsDefault };
@@ -586,13 +596,13 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     [HttpDelete("Preset/{presetID}")]
     public ActionResult DeleteRelocationPresetByPresetID([FromRoute] Guid presetID)
     {
-        if (relocationService.GetStoredPreset(presetID) is not { } presetInfo)
+        if (presetManager.GetStoredPreset(presetID) is not { } presetInfo)
             return NotFound("Relocation preset not found");
 
         if (presetInfo.IsDefault)
             return BadRequest("The default relocation preset cannot be deleted.");
 
-        relocationService.DeletePreset(presetInfo);
+        presetManager.DeletePreset(presetInfo);
 
         return NoContent();
     }
@@ -609,7 +619,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     [HttpGet("Preset/{presetID}/Provider")]
     public ActionResult<RelocationProvider> GetRelocationProviderByPresetID([FromRoute] Guid presetID)
     {
-        if (relocationService.GetStoredPreset(presetID) is not { } presetInfo)
+        if (presetManager.GetStoredPreset(presetID) is not { } presetInfo)
             return NotFound("Relocation preset not found");
 
         if (presetInfo.ProviderInfo is not { } providerInfo)
@@ -655,15 +665,15 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
         bool? allowRelocationInsideDestination = null
     )
     {
-        if (relocationService.GetStoredPreset(presetID) is not { } presetInfo)
+        if (presetManager.GetStoredPreset(presetID) is not { } presetInfo)
             return NotFound("Relocation preset not found");
 
         return Ok(InternalBatchPreviewFiles(
             fileIDs,
             presetInfo,
-            move ?? relocationService.MoveOnImport,
-            rename ?? relocationService.RenameOnImport,
-            allowRelocationInsideDestination ?? relocationService.AllowRelocationInsideDestinationOnImport
+            move ?? presetManager.MoveOnImport,
+            rename ?? presetManager.RenameOnImport,
+            allowRelocationInsideDestination ?? presetManager.AllowRelocationInsideDestinationOnImport
         ));
     }
 
@@ -709,7 +719,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
         [FromQuery] bool? allowRelocationInsideDestination = null
     )
     {
-        if (relocationService.GetStoredPreset(presetID) is not { } presetInfo)
+        if (presetManager.GetStoredPreset(presetID) is not { } presetInfo)
             return NotFound("Relocation preset not found");
 
         return Ok(
@@ -717,9 +727,9 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
             {
                 Preset = presetInfo,
                 DeleteEmptyDirectories = deleteEmptyDirectories,
-                Move = move ?? relocationService.MoveOnImport,
-                Rename = rename ?? relocationService.RenameOnImport,
-                AllowRelocationInsideDestination = allowRelocationInsideDestination ?? relocationService.AllowRelocationInsideDestinationOnImport,
+                Move = move ?? presetManager.MoveOnImport,
+                Rename = rename ?? presetManager.RenameOnImport,
+                AllowRelocationInsideDestination = allowRelocationInsideDestination ?? presetManager.AllowRelocationInsideDestinationOnImport,
             })
         );
     }
@@ -742,7 +752,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     [HttpGet("Preset/{presetID}/Configuration")]
     public ActionResult GetConfigurationForRelocationPresetByPresetID(Guid presetID)
     {
-        if (relocationService.GetStoredPreset(presetID) is not { } presetInfo)
+        if (presetManager.GetStoredPreset(presetID) is not { } presetInfo)
             return NotFound("Relocation preset not found");
 
         if (presetInfo.ProviderInfo is not { } providerInfo)
@@ -784,7 +794,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     [HttpPut("Preset/{presetID}/Configuration")]
     public ActionResult PutConfigurationForRelocationPresetByPresetID(Guid presetID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body)
     {
-        if (relocationService.GetStoredPreset(presetID) is not { } presetInfo)
+        if (presetManager.GetStoredPreset(presetID) is not { } presetInfo)
             return NotFound("Relocation preset not found");
 
         try
@@ -816,7 +826,7 @@ public class RelocationController(ISettingsProvider settingsProvider, IPluginMan
     [HttpPatch("Preset/{presetID}/Configuration")]
     public ActionResult PatchConfigurationForRelocationPresetByPresetID(Guid presetID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument patchDocument)
     {
-        if (relocationService.GetStoredPreset(presetID) is not { } presetInfo)
+        if (presetManager.GetStoredPreset(presetID) is not { } presetInfo)
             return NotFound("Relocation preset not found");
 
         try

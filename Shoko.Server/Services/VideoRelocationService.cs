@@ -50,7 +50,7 @@ public class VideoRelocationService(
     StoredRelocationPresetRepository storedRelocationPresetRepository,
     FileNameHashRepository fileNameHash,
     ShokoManagedFolderRepository managedFolders
-) : IVideoRelocationService
+) : IVideoRelocationService, IRelocationPresetManager
 {
     private Dictionary<Guid, RelocationProviderInfo> _relocationProviderInfos = [];
 
@@ -234,14 +234,22 @@ public class VideoRelocationService(
     #region Presets
 
     public RelocationPresetInfo? GetDefaultPreset()
-        => storedRelocationPresetRepository.GetDefault() is { } preset
-            ? new RelocationPresetInfo(this, configurationService, preset)
-            : null;
+    {
+        if (storedRelocationPresetRepository.GetDefault() is not { } preset)
+            return null;
+
+        var providerInfo = GetProviderInfo(preset.ProviderID);
+        return new RelocationPresetInfo(this, configurationService, preset, providerInfo);
+    }
 
     public IEnumerable<RelocationPresetInfo> GetStoredPresets(bool? available = null)
     {
         var presets = storedRelocationPresetRepository.GetAll()
-            .Select(preset => new RelocationPresetInfo(this, configurationService, preset));
+            .Select(preset =>
+            {
+                var providerInfo = GetProviderInfo(preset.ProviderID);
+                return new RelocationPresetInfo(this, configurationService, preset, providerInfo);
+            });
         if (available is null) return presets;
         return presets.Where(p => p.ProviderInfo is null == available.Value);
     }
@@ -249,7 +257,11 @@ public class VideoRelocationService(
     public IReadOnlyList<RelocationPresetInfo> GetStoredPresets(Guid providerID)
         => storedRelocationPresetRepository
             .GetByProviderID(providerID)
-            .Select(preset => new RelocationPresetInfo(this, configurationService, preset))
+            .Select(preset =>
+            {
+                var providerInfo = GetProviderInfo(preset.ProviderID);
+                return new RelocationPresetInfo(this, configurationService, preset, providerInfo);
+            })
             .OrderBy(preset => preset.Name)
             .ThenBy(preset => preset.ID)
             .ToList();
@@ -265,14 +277,22 @@ public class VideoRelocationService(
             .ToList();
 
     public RelocationPresetInfo? GetStoredPreset(Guid presetID)
-        => storedRelocationPresetRepository.GetByPresetID(presetID) is { } preset
-            ? new RelocationPresetInfo(this, configurationService, preset)
-            : null;
+    {
+        if (storedRelocationPresetRepository.GetByPresetID(presetID) is not { } preset)
+            return null;
+
+        var providerInfo = GetProviderInfo(preset.ProviderID);
+        return new RelocationPresetInfo(this, configurationService, preset, providerInfo);
+    }
 
     public RelocationPresetInfo? GetStoredPreset(string? name)
-        => storedRelocationPresetRepository.GetByName(name) is { } preset
-            ? new RelocationPresetInfo(this, configurationService, preset)
-            : null;
+    {
+        if (storedRelocationPresetRepository.GetByName(name) is not { } preset)
+            return null;
+
+        var providerInfo = GetProviderInfo(preset.ProviderID);
+        return new RelocationPresetInfo(this, configurationService, preset, providerInfo);
+    }
 
     public RelocationPresetInfo StorePreset(IRelocationProvider provider, string name, IRelocationProviderConfiguration? configuration = null, bool setDefault = false)
     {
@@ -323,7 +343,7 @@ public class VideoRelocationService(
             Task.Run(() => ProvidersUpdated?.Invoke(this, EventArgs.Empty));
         }
 
-        var presetInfo = new RelocationPresetInfo(this, configurationService, preset);
+        var presetInfo = new RelocationPresetInfo(this, configurationService, preset, providerInfo);
 
         Task.Run(() => PresetStored?.Invoke(this, new() { RelocationPreset = presetInfo }));
 
@@ -393,7 +413,11 @@ public class VideoRelocationService(
 
         if (updated)
         {
-            Task.Run(() => PresetUpdated?.Invoke(this, new() { RelocationPreset = new RelocationPresetInfo(this, configurationService, storedPreset) }));
+            Task.Run(() =>
+            {
+                var providerInfo = GetProviderInfo(storedPreset.ProviderID);
+                PresetUpdated?.Invoke(this, new() { RelocationPreset = new RelocationPresetInfo(this, configurationService, storedPreset, providerInfo) });
+            });
         }
 
         return updated;
@@ -409,7 +433,11 @@ public class VideoRelocationService(
 
         storedRelocationPresetRepository.Delete(storedPreset);
 
-        Task.Run(() => PresetDeleted?.Invoke(this, new() { RelocationPreset = new RelocationPresetInfo(this, configurationService, storedPreset) }));
+        Task.Run(() =>
+        {
+            var providerInfo = GetProviderInfo(storedPreset.ProviderID);
+            PresetDeleted?.Invoke(this, new() { RelocationPreset = new RelocationPresetInfo(this, configurationService, storedPreset, providerInfo) });
+        });
     }
 
     private string FindNextAvailableName(string name)
@@ -698,7 +726,8 @@ public class VideoRelocationService(
 
     internal RelocationResponse ProcessPreset(IVideoFile place, IRelocationPreset? preset = null, bool? move = null, bool? rename = null, bool? allowRelocationInsideDestination = null, CancellationToken? cancellationToken = null)
     {
-        var service = (IVideoRelocationService)this;
+        var presetManager = (IRelocationPresetManager)this;
+        var relocationService = (IVideoRelocationService)this;
         var settings = settingsProvider.GetSettings();
         var shouldMove = move ?? settings.Plugins.Renamer.MoveOnImport;
         var shouldRename = rename ?? settings.Plugins.Renamer.RenameOnImport;
@@ -718,14 +747,14 @@ public class VideoRelocationService(
             return RelocationResponse.FromError("Not relocating file because it's in a drop destination not also marked as a drop source and relocating inside destinations is disabled.");
         if (preset is null)
         {
-            var defaultPreset = service.GetDefaultPreset();
+            var defaultPreset = presetManager.GetDefaultPreset();
             if (defaultPreset is null)
                 return RelocationResponse.FromError("No default renamer configured and no renamer config given.");
 
             preset = defaultPreset;
         }
 
-        if (service.GetProviderInfo(preset.ProviderID) is not { } providerInfo)
+        if (relocationService.GetProviderInfo(preset.ProviderID) is not { } providerInfo)
             return RelocationResponse.FromError($"No relocation provider with ID \"{preset.ProviderID}\" is unavailable or unknown.");
 
         var videoLocal = place.Video;

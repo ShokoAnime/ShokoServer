@@ -16,6 +16,7 @@ namespace Shoko.Server.Services;
 
 public class RelocationPresetMigrationService(
     IVideoRelocationService relocationService,
+    IRelocationPresetManager presetManager,
     IConfigurationService configurationService,
     ISettingsProvider settingsProvider,
     ILogger<RelocationPresetMigrationService> logger)
@@ -72,7 +73,7 @@ public class RelocationPresetMigrationService(
                     provider.ConfigurationInfo!.Type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
                         .FirstOrDefault(b => b.Name == "Script")
                         ?.SetValue(config, script);
-                    relocationService.StorePreset(provider.Provider, name, config);
+                    presetManager.StorePreset(provider.Provider, name, config);
                     logger.LogInformation("Re-imported failed migration preset: {File}", file);
                     File.Delete(file);
                 }
@@ -119,7 +120,7 @@ public class RelocationPresetMigrationService(
                         continue;
                     }
 
-                    relocationService.StorePreset(provider.Provider, name, config);
+                    presetManager.StorePreset(provider.Provider, name, config);
                     logger.LogInformation("Re-imported failed migration preset: {File}", file);
                     File.Delete(file);
                 }

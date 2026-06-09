@@ -398,7 +398,9 @@ public class SystemService : ISystemService
             services.AddSingleton<IVideoService, VideoService>();
             services.AddSingleton<IVideoReleaseService, VideoReleaseService>();
             services.AddSingleton<IVideoHashingService, VideoHashingService>();
-            services.AddSingleton<IVideoRelocationService, VideoRelocationService>();
+            services.AddSingleton<VideoRelocationService>();
+            services.AddSingleton<IVideoRelocationService>(sp => sp.GetRequiredService<VideoRelocationService>());
+            services.AddSingleton<IRelocationPresetManager>(sp => sp.GetRequiredService<VideoRelocationService>());
             services.AddTransient<RelocationPresetMigrationService>();
             services.AddSingleton(typeof(ConfigurationProvider<>));
             services.AddSingleton<IUserService, UserService>();

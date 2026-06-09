@@ -13,12 +13,13 @@ namespace Shoko.Abstractions.Video.Relocation;
 ///   An info object representing a relocation preset with extra helpers
 ///   utilizing the services.
 /// </summary>
-/// <param name="relocationService">The relocation service.</param>
+/// <param name="presetManager">The relocation preset manager.</param>
 /// <param name="configurationService">The configuration service.</param>
 /// <param name="preset">The stored relocation preset to get the initial details from.</param>
-public class RelocationPresetInfo(IVideoRelocationService relocationService, IConfigurationService configurationService, IRelocationPreset preset) : IStoredRelocationPreset
+/// <param name="providerInfo">The provider info, or <c>null</c> if the provider is unavailable.</param>
+public class RelocationPresetInfo(IRelocationPresetManager presetManager, IConfigurationService configurationService, IRelocationPreset preset, RelocationProviderInfo? providerInfo) : IStoredRelocationPreset
 {
-    private readonly IVideoRelocationService _relocationService = relocationService;
+    private readonly IRelocationPresetManager _presetManager = presetManager;
 
     private readonly IConfigurationService _configurationService = configurationService;
 
@@ -42,14 +43,11 @@ public class RelocationPresetInfo(IVideoRelocationService relocationService, ICo
     /// </summary>
     public IRelocationPreset Preset { get; set; } = preset;
 
-    private RelocationProviderInfo? _providerInfo;
-
     /// <summary>
     ///   Gets the provider info for the given <see cref="ProviderID"/>, if
     ///   available in the current runtime environment.
     /// </summary>
-    public RelocationProviderInfo? ProviderInfo
-        => _providerInfo ??= _relocationService.GetProviderInfo(ProviderID);
+    public RelocationProviderInfo? ProviderInfo { get; } = providerInfo;
 
     /// <summary>
     ///   Attempts to load the configuration for the stored relocation preset.
@@ -73,7 +71,7 @@ public class RelocationPresetInfo(IVideoRelocationService relocationService, ICo
         if (Configuration is null)
         {
             Configuration = Encoding.UTF8.GetBytes(_configurationService.Serialize(_configurationService.New(providerInfo.ConfigurationInfo)));
-            _relocationService.UpdatePreset(this);
+            _presetManager.UpdatePreset(this);
         }
 
         var configuration = _configurationService.Deserialize(providerInfo.ConfigurationInfo, Encoding.UTF8.GetString(Configuration));
@@ -114,7 +112,7 @@ public class RelocationPresetInfo(IVideoRelocationService relocationService, ICo
                 return false;
 
             Configuration = null;
-            _relocationService.UpdatePreset(this);
+            _presetManager.UpdatePreset(this);
             return true;
         }
 
@@ -131,7 +129,7 @@ public class RelocationPresetInfo(IVideoRelocationService relocationService, ICo
         if (Configuration is null || !configurationBytes.SequenceEqual(Configuration))
         {
             Configuration = configurationBytes;
-            _relocationService.UpdatePreset(this);
+            _presetManager.UpdatePreset(this);
             return true;
         }
 
@@ -172,7 +170,7 @@ public class RelocationPresetInfo(IVideoRelocationService relocationService, ICo
                 return false;
 
             Configuration = null;
-            _relocationService.UpdatePreset(this);
+            _presetManager.UpdatePreset(this);
             return true;
         }
 
@@ -190,7 +188,7 @@ public class RelocationPresetInfo(IVideoRelocationService relocationService, ICo
         if (Configuration is null || !((IEnumerable<byte>)configurationBytes).SequenceEqual(Configuration))
         {
             Configuration = configurationBytes;
-            _relocationService.UpdatePreset(this);
+            _presetManager.UpdatePreset(this);
             return true;
         }
 
