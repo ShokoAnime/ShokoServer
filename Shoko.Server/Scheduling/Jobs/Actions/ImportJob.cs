@@ -1,4 +1,6 @@
+using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
@@ -29,8 +31,15 @@ public class ImportJob : BaseJob
         // TMDB association checks
         await _service.RunImport_ScanTMDB();
 
-        // TMDB Purge people
-        await _service.RunImport_PurgeUnlinkedTmdbPeople();
+        // TMDB Purge people — partial failures are non-fatal; log and continue.
+        try
+        {
+            await _service.RunImport_PurgeUnlinkedTmdbPeople();
+        }
+        catch (AggregateException ex)
+        {
+            _logger.LogWarning(ex, "TMDB: Failed to purge one or more people during import");
+        }
 
         // TMDB Purge networks
         await _service.RunImport_PurgeUnlinkedTmdbShowNetworks();

@@ -9,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Bulkhead;
-using Polly.RateLimit;
 using Polly.Retry;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
@@ -193,8 +192,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     // This policy will ensure only 10 requests can be in-flight at the same time.
     private readonly AsyncBulkheadPolicy _bulkheadPolicy;
 
-    // This policy will ensure we can only make 40 requests per 10 seconds.
-    private readonly AsyncRateLimitPolicy _rateLimitPolicy;
+    private readonly TmdbRateLimiter _rateLimiter;
 
     // This policy, together with the above policy, will ensure the rate limits are enforced, while also ensuring we
     // throw if an exception that's not rate-limit related is thrown.
@@ -205,6 +203,41 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// <summary>
     /// Execute the given function with the TMDb client, applying rate limiting and retry policies.
     /// </summary>
+    private Task OnTmdbRetryAsync(Exception ex, TimeSpan ts, int retryCount, Context ctx)
+    {
+        switch (ex)
+        {
+            // If we got a _remote_ rate limit exception, notify the rate limiter.
+            // The rate limiter's WaitForBackoffAsync handles the actual delay on the next acquire.
+            case RequestLimitExceededException rleEx:
+            {
+                var rlRetryCount = ctx.TryGetValue("rateLimitRetryCount", out var rlVal) ? (int)rlVal : 0;
+                if (rlRetryCount >= 10)
+                    throw ex;
+                ctx["rateLimitRetryCount"] = rlRetryCount + 1;
+                var retryAfter = rleEx.RetryAfter ?? TimeSpan.FromSeconds(1);
+                _logger.LogTrace("Hit remote rate limit. Waiting and retrying. Retry count: {RetryCount}, Retry after: {RetryAfter}", retryCount, retryAfter);
+                _rateLimiter.NotifyRateLimitExceeded(retryAfter);
+                break;
+            }
+            // If we timed out, wait and try again (up to 3 times).
+            case HttpRequestException hrEx when hrEx.InnerException is TaskCanceledException:
+            {
+                var timeoutRetryCount = ctx.TryGetValue("timeoutRetryCount", out var timeoutRetryCountValue) ? (int)timeoutRetryCountValue : 0;
+                if (timeoutRetryCount >= 3)
+                    throw ex;
+                ctx["timeoutRetryCount"] = timeoutRetryCount + 1;
+                break;
+            }
+            case GeneralHttpException ghEx:
+                _logger.LogWarning(ghEx, "Got a general HTTP exception while processing TMDb request: {StatusCode}", (int)ghEx.HttpStatusCode);
+                throw ex;
+            default:
+                throw ex;
+        }
+        return Task.CompletedTask;
+    }
+
     /// <typeparam name="T">The type of the result of the function.</typeparam>
     /// <param name="func">The function to execute with the TMDb client.</param>
     /// <param name="displayName">The name of the function to display in the logs.</param>
@@ -228,7 +261,7 @@ public class TmdbMetadataService : ITmdbMetadataService
                 return _retryPolicy.ExecuteAsync(() =>
                 {
                     ++attempts;
-                    return _rateLimitPolicy.ExecuteAsync(() => func(CachedClient));
+                    return _rateLimiter.EnsureRateAsync(() => func(CachedClient));
                 });
             }).ConfigureAwait(false);
 
@@ -248,6 +281,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         ILogger<TmdbMetadataService> logger,
         IQueueScheduler scheduler,
         ISettingsProvider settingsProvider,
+        TmdbRateLimiter rateLimiter,
         TmdbImageService imageService,
         TmdbLinkingService linkingService,
         AnimeSeriesRepository animeSeries,
@@ -306,53 +340,14 @@ public class TmdbMetadataService : ITmdbMetadataService
         _xrefTmdbCompanyEntity = xrefTmdbCompanyEntity;
         _xrefTmdbShowNetwork = xrefTmdbShowNetwork;
         _entityLock = new(logger);
+        _rateLimiter = rateLimiter;
         _instance ??= this;
         _bulkheadPolicy = Policy.BulkheadAsync(_maxConcurrency, int.MaxValue);
-        _rateLimitPolicy = Policy.RateLimitAsync(45, TimeSpan.FromSeconds(10), 45);
         _retryPolicy = Policy
-            .Handle<RateLimitRejectedException>()
-            .Or<HttpRequestException>()
-            .Or<GeneralHttpException>()
+            .Handle<HttpRequestException>()
             .Or<RequestLimitExceededException>()
-            .WaitAndRetryAsync(int.MaxValue, (_, _) => TimeSpan.Zero, async (ex, ts, retryCount, ctx) =>
-            {
-                // Retry on rate limit exceptions, throw on everything else.
-                switch (ex)
-                {
-                    // If we got a _local_ rate limit exception, wait and try again.
-                    case RateLimitRejectedException rlrEx:
-                    {
-                        var retryAfter = rlrEx.RetryAfter;
-                        await Task.Delay(retryAfter).ConfigureAwait(false);
-                        break;
-                    }
-                    // If we got a _remote_ rate limit exception, wait and try again.
-                    case RequestLimitExceededException rleEx:
-                    {
-                        // Note: We don't actually wait here since the library has already waited for us.
-                        var retryAfter = rleEx.RetryAfter ?? TimeSpan.FromSeconds(1);
-                        _logger.LogTrace("Hit remote rate limit. Waiting and retrying. Retry count: {RetryCount}, Retry after: {RetryAfter}", retryCount, retryAfter);
-                        break;
-                    }
-                    // If we timed out or got a too many requests exception, just wait and try again.
-                    case HttpRequestException hrEx when hrEx.InnerException is TaskCanceledException:
-                    {
-                        // If we timed out more than 3 times, just throw the exception, since the exceptions were likely caused by other network issues.
-                        var timeoutRetryCount = ctx.TryGetValue("timeoutRetryCount", out var timeoutRetryCountValue) ? (int)timeoutRetryCountValue : 0;
-                        if (timeoutRetryCount >= 3)
-                            goto default;
-                        ctx["timeoutRetryCount"] = timeoutRetryCount + 1;
-                        break;
-                    }
-                    case GeneralHttpException ghEx:
-                    {
-                        _logger.LogWarning(ghEx, "Got a general HTTP exception while processing TMDb request: {StatusCode}", (int)ghEx.HttpStatusCode);
-                        goto default;
-                    }
-                    default:
-                        throw ex;
-                }
-            });
+            .Or<GeneralHttpException>()
+            .WaitAndRetryAsync(int.MaxValue, (_, _) => TimeSpan.Zero, OnTmdbRetryAsync);
     }
 
     public async Task ScheduleSearchForMatch(int anidbId, bool force)
@@ -674,18 +669,32 @@ public class TmdbMetadataService : ITmdbMetadataService
             .Concat(existingCrewDict.Values.Select(crew => crew.TmdbPersonID))
             .Except(peopleToKeep)
             .ToHashSet();
-        foreach (var personId in peopleToKeep)
+        try
         {
-            var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentMovieId: tmdbMovie.Id);
-            if (added)
-                peopleAdded++;
-            if (updated)
-                peopleUpdated++;
+            await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToKeep, async personId =>
+            {
+                var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentMovieId: tmdbMovie.Id);
+                if (added)
+                    Interlocked.Increment(ref peopleAdded);
+                if (updated)
+                    Interlocked.Increment(ref peopleUpdated);
+            });
         }
-        foreach (var personId in peopleToPurge)
+        catch (AggregateException ex)
         {
-            if (await PurgePerson(personId))
-                peoplePurged++;
+            _logger.LogWarning(ex, "TMDB: Failed to update one or more people during movie cast/crew update (Movie={MovieId})", tmdbMovie.Id);
+        }
+        try
+        {
+            await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToPurge, async personId =>
+            {
+                if (await PurgePerson(personId))
+                    Interlocked.Increment(ref peoplePurged);
+            });
+        }
+        catch (AggregateException ex)
+        {
+            _logger.LogWarning(ex, "TMDB: Failed to purge one or more people during movie cast/crew update (Movie={MovieId})", tmdbMovie.Id);
         }
 
         _logger.LogDebug("Added/removed {a}/{u}/{r}/{s} staff for movie {MovieTitle} (Movie={MovieId})",
@@ -1167,8 +1176,8 @@ public class TmdbMetadataService : ITmdbMetadataService
         var existingSeasons = _tmdbSeasons.GetByTmdbShowID(show.Id)
             .ToDictionary(season => season.Id);
         var seasonsToAdd = 0;
-        var seasonsToSkip = new HashSet<int>();
-        var seasonsToSave = new List<TMDB_Season>();
+        var seasonsToSkip = new ConcurrentBag<int>();
+        var seasonsToSave = new ConcurrentBag<TMDB_Season>();
         var seasonEventsToEmit = new ConcurrentDictionary<TMDB_Season, UpdateReason>();
 
         var totalEpisodeCount = 0;
@@ -1182,14 +1191,14 @@ public class TmdbMetadataService : ITmdbMetadataService
         var episodeEventsToEmit = new ConcurrentDictionary<TMDB_Episode, UpdateReason>();
         var allPeopleToAddOrKeep = new ConcurrentBag<int>();
         var allPeopleToPotentiallyRemove = new ConcurrentBag<int>();
-        foreach (var reducedSeason in show.Seasons!)
+        await ProcessWithConcurrencyAsync(_maxConcurrency, show.Seasons!, async reducedSeason =>
         {
             _logger.LogDebug("Checking season {SeasonNumber} for show {ShowTitle} (Show={ShowId})", reducedSeason.SeasonNumber, show.Name, show.Id);
             var season = await UseClient(c => c.GetTvSeasonAsync(show.Id, reducedSeason.SeasonNumber, TvSeasonMethods.Translations), $"Get season {reducedSeason.SeasonNumber} for show {show.Id} \"{show.Name}\"").ConfigureAwait(false) ??
                 throw new Exception($"Unable to fetch season {reducedSeason.SeasonNumber} for show \"{show.Name}\".");
             if (!existingSeasons.TryGetValue(reducedSeason.Id, out var tmdbSeason))
             {
-                seasonsToAdd++;
+                Interlocked.Increment(ref seasonsToAdd);
                 tmdbSeason = new(reducedSeason.Id);
             }
             var newlyAddedSeason = tmdbSeason.CreatedAt == tmdbSeason.LastUpdatedAt;
@@ -1197,12 +1206,14 @@ public class TmdbMetadataService : ITmdbMetadataService
             var seasonUpdated = tmdbSeason.Populate(show, season);
             seasonUpdated = UpdateTitlesAndOverviews(tmdbSeason, season.Translations, preferredTitleLanguages, preferredOverviewLanguages) || seasonUpdated;
 
+            var seasonAlreadySaved = false;
             if ((newlyAddedSeason && shouldFireEvents) || seasonUpdated)
             {
                 seasonEventsToEmit.TryAdd(tmdbSeason, newlyAddedSeason ? UpdateReason.Added : UpdateReason.Updated);
                 if (shouldFireEvents)
                     tmdbSeason.LastUpdatedAt = DateTime.Now;
                 seasonsToSave.Add(tmdbSeason);
+                seasonAlreadySaved = true;
             }
 
             seasonsToSkip.Add(tmdbSeason.Id);
@@ -1214,7 +1225,7 @@ public class TmdbMetadataService : ITmdbMetadataService
                 _logger.LogDebug("Checking episode {EpisodeNumber} in season {SeasonNumber} for show {ShowTitle} (Show={ShowId})", reducedEpisode.EpisodeNumber, reducedSeason.SeasonNumber, show.Name, show.Id);
                 if (!existingEpisodes.TryGetValue(reducedEpisode.Id, out var tmdbEpisode))
                 {
-                    episodesToAdd++;
+                    Interlocked.Increment(ref episodesToAdd);
                     tmdbEpisode = new(reducedEpisode.Id);
                 }
                 var newlyAddedEpisode = tmdbEpisode.CreatedAt == tmdbEpisode.LastUpdatedAt;
@@ -1283,14 +1294,12 @@ public class TmdbMetadataService : ITmdbMetadataService
             if (seasonUpdated)
             {
                 tmdbSeason.LastUpdatedAt = DateTime.Now;
-                if (!seasonsToSave.Contains(tmdbSeason))
+                if (!seasonAlreadySaved)
                     seasonsToSave.Add(tmdbSeason);
             }
-            totalEpisodeCount += episodeCount;
-            totalHiddenEpisodeCount += hiddenEpisodeCount;
-            episodeBag.Clear();
-            hiddenEpisodeBag.Clear();
-        }
+            Interlocked.Add(ref totalEpisodeCount, episodeCount);
+            Interlocked.Add(ref totalHiddenEpisodeCount, hiddenEpisodeCount);
+        });
 
         var seasonsToRemove = existingSeasons.Values
             .ExceptBy(seasonsToSkip, season => season.Id)
@@ -1348,20 +1357,34 @@ public class TmdbMetadataService : ITmdbMetadataService
         var peopleAdded = 0;
         var peopleUpdated = 0;
         var peoplePurged = 0;
-        var peopleToCheck = allPeopleToAddOrKeep.ToArray().Distinct().ToList();
-        var peopleToPurge = allPeopleToPotentiallyRemove.ToArray().Distinct().Except(peopleToCheck).ToList();
-        foreach (var personId in peopleToCheck)
+        var peopleToCheck = allPeopleToAddOrKeep.Distinct().ToList();
+        var peopleToPurge = allPeopleToPotentiallyRemove.Distinct().Except(peopleToCheck).ToList();
+        try
         {
-            var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentShowId: show.Id);
-            if (added)
-                peopleAdded++;
-            if (updated)
-                peopleUpdated++;
+            await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToCheck, async personId =>
+            {
+                var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentShowId: show.Id);
+                if (added)
+                    Interlocked.Increment(ref peopleAdded);
+                if (updated)
+                    Interlocked.Increment(ref peopleUpdated);
+            });
         }
-        foreach (var personId in peopleToPurge)
+        catch (AggregateException ex)
         {
-            if (await PurgePerson(personId))
-                peoplePurged++;
+            _logger.LogWarning(ex, "TMDB: Failed to update one or more people during show cast/crew update (Show={ShowId})", show.Id);
+        }
+        try
+        {
+            await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToPurge, async personId =>
+            {
+                if (await PurgePerson(personId))
+                    Interlocked.Increment(ref peoplePurged);
+            });
+        }
+        catch (AggregateException ex)
+        {
+            _logger.LogWarning(ex, "TMDB: Failed to purge one or more people during show cast/crew update (Show={ShowId})", show.Id);
         }
 
         _logger.LogDebug("Added/removed {a}/{u}/{r}/{s} staff for show {ShowTitle} (Show={ShowId})",
@@ -2408,14 +2431,14 @@ public class TmdbMetadataService : ITmdbMetadataService
             if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
 
         _logger.LogDebug("Found {Count} unique missing TMDB People for Episode & Movie staff", missingIds.Count);
-        foreach (var personId in missingIds)
+        await ProcessWithConcurrencyAsync(_maxConcurrency, missingIds, async personId =>
         {
             var (_, updated) = await UpdatePerson(personId, forceRefresh: true);
             if (updated)
-                updateCount++;
+                Interlocked.Increment(ref updateCount);
             else
-                skippedCount++;
-        }
+                Interlocked.Increment(ref skippedCount);
+        });
 
         _logger.LogInformation("Updated missing TMDB People: Found/Updated/Skipped {Found}/{Updated}/{Skipped}",
             missingIds.Count, updateCount, skippedCount);
@@ -2482,8 +2505,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     {
         var people = _tmdbPeople.GetAll().Where(p => !IsPersonLinkedToOtherEntities(p.TmdbPersonID)).ToList();
         _logger.LogDebug("Checking {count} orphaned staff members if they should be purged.", people.Count);
-        foreach (var person in people)
-            await PurgePerson(person.TmdbPersonID, force: true);
+        await ProcessWithConcurrencyAsync(_maxConcurrency, people, person => PurgePerson(person.TmdbPersonID, force: true));
     }
 
     public async Task<bool> PurgePerson(int personId, bool force = false)
@@ -2624,14 +2646,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         var tasks = enumerable
             .Select(item => Task.Run(async () =>
             {
-                try
-                {
-                    await semaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
+                await semaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
                 try
                 {
                     await processAsync(item).ConfigureAwait(false);
@@ -2641,25 +2656,27 @@ public class TmdbMetadataService : ITmdbMetadataService
                     semaphore.Release();
                 }
             }))
-            .ToList();
+            .ToHashSet();
         while (tasks.Count > 0)
         {
+            var task = await Task.WhenAny(tasks).ConfigureAwait(false);
+            tasks.Remove(task);
             try
             {
-                var task = await Task.WhenAny(tasks).ConfigureAwait(false);
-                tasks.Remove(task);
+                await task.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException oce) when (oce.CancellationToken == cancellationTokenSource.Token)
+            {
+                // Task was cancelled because another task failed — not counted as an error.
             }
             catch (Exception ex)
             {
-                var task = tasks.First(task => task.IsFaulted);
-                tasks.Remove(task);
                 exceptions.Add(ex);
-                if (exceptions.Count > maxConcurrent)
+                if (exceptions.Count >= maxConcurrent)
                 {
                     cancellationTokenSource.Cancel();
                     throw new AggregateException(exceptions);
                 }
-                continue;
             }
         }
 
