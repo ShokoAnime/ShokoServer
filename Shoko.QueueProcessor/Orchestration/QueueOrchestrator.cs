@@ -625,6 +625,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 if (!_executingSet.ContainsKey(parentId))
                 {
                     immediateEnqueue = [(ctx, targetPool)];
+                    _jobKeyIndex[ctx.Job.JobKey] = ctx.Job.Id;
                 }
                 else
                 {
@@ -713,6 +714,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 // Parent already completed — enqueue immediately (no ParentJobId needed)
                 ctx.Job.ParentJobId = null;
                 immediateEnqueue = [(ctx, targetPool)];
+                _jobKeyIndex[ctx.Job.JobKey] = ctx.Job.Id;
             }
         }
 
