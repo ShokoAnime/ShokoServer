@@ -1,4 +1,3 @@
-#pragma warning disable CS8618
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,6 +10,7 @@ using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories.Cached;
 
+#pragma warning disable CS8618
 #nullable enable
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 

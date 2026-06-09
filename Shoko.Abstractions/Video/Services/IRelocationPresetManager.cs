@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Video.Relocation;
 

@@ -12,7 +12,6 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 

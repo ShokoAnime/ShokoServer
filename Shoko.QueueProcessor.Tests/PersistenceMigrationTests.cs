@@ -6,7 +6,6 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Shoko.QueueProcessor.Storage;
 using Shoko.QueueProcessor.Storage.Contexts;
 using Xunit;
 

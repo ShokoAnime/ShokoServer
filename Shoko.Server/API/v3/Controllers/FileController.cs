@@ -38,10 +38,10 @@ using Shoko.Server.Utilities;
 
 using AbstractReleaseInfo = Shoko.Abstractions.Video.Release.ReleaseInfo;
 using AbstractReleaseVideoCrossReference = Shoko.Abstractions.Video.Release.ReleaseVideoCrossReference;
-using PatchReleaseBody = Shoko.Server.API.v3.Models.Release.Input.PatchReleaseBody;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using MediaInfoDto = Shoko.Server.API.v3.Models.Shoko.MediaInfo;
+using PatchReleaseBody = Shoko.Server.API.v3.Models.Release.Input.PatchReleaseBody;
 using Path = System.IO.Path;
 using ReleaseInfo = Shoko.Server.API.v3.Models.Release.ReleaseInfo;
 
