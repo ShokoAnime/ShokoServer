@@ -34,6 +34,7 @@ namespace Shoko.Server.Services;
 public class AnimeSeriesService
 {
     private readonly ILogger<AnimeSeriesService> _logger;
+    private readonly IServiceProvider _serviceProvider;
     private readonly VideoLocal_UserRepository _vlUsers;
     private readonly AnimeGroupService _groupService;
     private readonly IQueueScheduler _scheduler;
@@ -44,11 +45,12 @@ public class AnimeSeriesService
     private readonly StoredReleaseInfoRepository _storedReleaseInfos;
     private readonly AniDB_GroupStatusRepository _anidbGroupStatuses;
     private readonly AniDB_Anime_StaffRepository _anidbAnimeStaff;
-    private readonly Lazy<IAnidbService> _anidbService;
-    private readonly Lazy<IShokoGroupManager> _groupManager;
+    private IAnidbService? _anidbService;
+    private IShokoGroupManager? _groupManager;
 
     public AnimeSeriesService(
         ILogger<AnimeSeriesService> logger,
+        IServiceProvider serviceProvider,
         IQueueScheduler schedulerFactory,
         AnimeGroupService groupService,
         VideoLocal_UserRepository vlUsers,
@@ -63,6 +65,7 @@ public class AnimeSeriesService
         Lazy<IShokoGroupManager> groupManager)
     {
         _logger = logger;
+        _serviceProvider = serviceProvider;
         _scheduler = schedulerFactory;
         _groupService = groupService;
         _vlUsers = vlUsers;
@@ -73,8 +76,6 @@ public class AnimeSeriesService
         _storedReleaseInfos = storedReleaseInfos;
         _anidbGroupStatuses = anidbGroupStatuses;
         _anidbAnimeStaff = anidbAnimeStaff;
-        _anidbService = anidbService;
-        _groupManager = groupManager;
     }
 
     public async Task<(bool, Dictionary<AnimeEpisode, UpdateReason>)> CreateAnimeEpisodes(AnimeSeries series)
@@ -460,7 +461,8 @@ public class AnimeSeriesService
         if (!completelyRemove)
             return;
 
-        await _anidbService.Value.PurgeAnimeByID(series.AniDB_ID, removeFromMylist).ConfigureAwait(false);
+        _anidbService ??= _serviceProvider.GetRequiredService<IAnidbService>();
+        await _anidbService.PurgeAnimeByID(series.AniDB_ID, removeFromMylist).ConfigureAwait(false);
     }
 
     internal async Task DeleteSeriesInternal(AnimeSeries series, bool deleteFiles, bool updateGroups, bool removeFromMylist = true)
@@ -499,7 +501,8 @@ public class AnimeSeriesService
                     parent = next;
                 }
 
-                await _groupManager.Value.DeleteGroup(parent);
+                _groupManager ??= _serviceProvider.GetRequiredService<IShokoGroupManager>();
+                await _groupManager.DeleteGroup(parent);
             }
             else
             {
