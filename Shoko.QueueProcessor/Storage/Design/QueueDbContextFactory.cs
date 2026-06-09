@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Shoko.QueueProcessor.Storage.Contexts;
 
-namespace Shoko.QueueProcessor.Storage;
+[assembly: DesignTimeServicesReference("Shoko.QueueProcessor.Storage.Design.QueueDesignTimeServices, Shoko.QueueProcessor")]
+
+namespace Shoko.QueueProcessor.Storage.Design;
 
 /// <summary>
 /// Design-time factory used by <c>dotnet ef migrations add</c>.

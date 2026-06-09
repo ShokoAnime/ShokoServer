@@ -2,11 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace Shoko.QueueProcessor.Storage;
+namespace Shoko.QueueProcessor.Storage.Contexts;
 
 /// <summary>
 /// Custom <see cref="IMigrationsAssembly"/> that returns migrations tagged for

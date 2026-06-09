@@ -1,14 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace Shoko.QueueProcessor.Storage;
+namespace Shoko.QueueProcessor.Storage.Contexts;
 
-/// <summary>MySQL/MariaDB-backed queue database context (via Pomelo).</summary>
-public class MySqlQueueDbContext : QueueDbContext
+/// <summary>SQL Server-backed queue database context.</summary>
+public class SqlServerQueueDbContext : QueueDbContext
 {
     private readonly string _connectionString;
 
-    public MySqlQueueDbContext(string connectionString)
+    public SqlServerQueueDbContext(string connectionString)
     {
         _connectionString = connectionString;
     }
@@ -17,7 +17,7 @@ public class MySqlQueueDbContext : QueueDbContext
     {
         if (!optionsBuilder.IsConfigured)
             optionsBuilder
-                .UseMySql(_connectionString, ServerVersion.AutoDetect(_connectionString))
+                .UseSqlServer(_connectionString)
                 .ReplaceService<IMigrationsAssembly, QueueMigrationsAssembly>();
     }
 }

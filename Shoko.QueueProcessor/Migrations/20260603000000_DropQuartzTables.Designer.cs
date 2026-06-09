@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Shoko.QueueProcessor.Storage;
+using Shoko.QueueProcessor.Storage.Contexts;
 
 #nullable disable
 
@@ -22,26 +23,19 @@ namespace Shoko.QueueProcessor.Migrations
 
             modelBuilder.Entity("Shoko.QueueProcessor.Chain.QueuedJobChain", b =>
                 {
-                    b.Property<Guid>("ChainId")
-                        .HasColumnType("TEXT");
+                    b.Property<Guid>("ChainId");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<DateTimeOffset>("CreatedAt");
 
-                    b.Property<string>("DataJson")
-                        .HasColumnType("TEXT");
+                    b.Property<string>("DataJson");
 
-                    b.Property<string>("OutcomesJson")
-                        .HasColumnType("TEXT");
+                    b.Property<string>("OutcomesJson");
 
-                    b.Property<string>("ResultsJson")
-                        .HasColumnType("TEXT");
+                    b.Property<string>("ResultsJson");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("INTEGER");
+                    b.Property<int>("Status");
 
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<DateTimeOffset>("UpdatedAt");
 
                     b.HasKey("ChainId");
 
@@ -50,49 +44,38 @@ namespace Shoko.QueueProcessor.Migrations
 
             modelBuilder.Entity("Shoko.QueueProcessor.Storage.QueuedJob", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("TEXT");
+                    b.Property<Guid>("Id");
 
-                    b.Property<Guid?>("ChainId")
-                        .HasColumnType("TEXT");
+                    b.Property<Guid?>("ChainId");
 
                     b.Property<bool>("IsChainFinally")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
                         .HasDefaultValue(false);
 
                     b.Property<string>("JobDataJson")
-                        .HasMaxLength(4096)
-                        .HasColumnType("TEXT");
+                        .HasMaxLength(4096);
 
                     b.Property<string>("JobKey")
                         .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("TEXT");
+                        .HasMaxLength(512);
 
                     b.Property<string>("JobType")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
+                        .HasMaxLength(256);
 
-                    b.Property<Guid?>("ParentJobId")
-                        .HasColumnType("TEXT");
+                    b.Property<Guid?>("ParentJobId");
 
                     b.Property<int>("Priority")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
                         .HasDefaultValue(0);
 
-                    b.Property<long>("QueuedAt")
-                        .HasColumnType("INTEGER");
+                    b.Property<long>("QueuedAt");
 
                     b.Property<int>("RetryCount")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
                         .HasDefaultValue(0);
 
-                    b.Property<long?>("ScheduledAt")
-                        .HasColumnType("INTEGER");
+                    b.Property<long?>("ScheduledAt");
 
                     b.HasKey("Id");
 

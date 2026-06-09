@@ -15,6 +15,7 @@ using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.QueueProcessor.Storage;
+using Shoko.QueueProcessor.Storage.Contexts;
 using Shoko.QueueProcessor.Workers;
 
 namespace Shoko.QueueProcessor;

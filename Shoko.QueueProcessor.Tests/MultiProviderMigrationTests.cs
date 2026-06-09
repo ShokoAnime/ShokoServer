@@ -1,6 +1,7 @@
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Shoko.QueueProcessor.Storage;
+using Shoko.QueueProcessor.Storage.Contexts;
 using Xunit;
 
 namespace Shoko.QueueProcessor.Tests;

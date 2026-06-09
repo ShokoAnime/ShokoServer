@@ -1,7 +1,9 @@
+using System;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Shoko.QueueProcessor.Chain;
 
-namespace Shoko.QueueProcessor.Storage;
+namespace Shoko.QueueProcessor.Storage.Contexts;
 
 /// <summary>
 /// Base EF Core <see cref="DbContext"/> for the queue. Provider-specific subclasses
@@ -15,6 +17,16 @@ public abstract class QueueDbContext : DbContext
     protected QueueDbContext() { }
 
     protected QueueDbContext(DbContextOptions options) : base(options) { }
+
+    // SQLite has no native DateTimeOffset; all providers store as Unix milliseconds for
+    // portability — ORDER BY works correctly and column is compact and sortable.
+    private static readonly ValueConverter<DateTimeOffset, long> _dateTimeOffsetConverter =
+        new(dto => dto.ToUnixTimeMilliseconds(),
+            l => DateTimeOffset.FromUnixTimeMilliseconds(l));
+
+    private static readonly ValueConverter<DateTimeOffset?, long?> _nullableDateTimeOffsetConverter =
+        new(dto => dto.HasValue ? dto.Value.ToUnixTimeMilliseconds() : null,
+            l => l.HasValue ? DateTimeOffset.FromUnixTimeMilliseconds(l.Value) : null);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,6 +43,9 @@ public abstract class QueueDbContext : DbContext
             entity.Property(j => j.Priority).HasDefaultValue(0);
             entity.Property(j => j.RetryCount).HasDefaultValue(0);
             entity.Property(j => j.IsChainFinally).HasDefaultValue(false);
+
+            entity.Property(j => j.QueuedAt).HasConversion(_dateTimeOffsetConverter);
+            entity.Property(j => j.ScheduledAt).HasConversion(_nullableDateTimeOffsetConverter);
 
             // Startup load: grouped by type then ordered within pool sub-queue.
             // ORDER BY JobType, ScheduledAt, Priority DESC, QueuedAt ASC
@@ -56,5 +71,6 @@ public abstract class QueueDbContext : DbContext
             entity.Property(c => c.CreatedAt).IsRequired();
             entity.Property(c => c.UpdatedAt).IsRequired();
         });
+
     }
 }
