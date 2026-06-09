@@ -60,9 +60,7 @@ public class AnimeSeriesService
         AnimeSeriesRepository animeSeries,
         StoredReleaseInfoRepository storedReleaseInfos,
         AniDB_GroupStatusRepository anidbGroupStatuses,
-        AniDB_Anime_StaffRepository anidbAnimeStaff,
-        Lazy<IAnidbService> anidbService,
-        Lazy<IShokoGroupManager> groupManager)
+        AniDB_Anime_StaffRepository anidbAnimeStaff)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
