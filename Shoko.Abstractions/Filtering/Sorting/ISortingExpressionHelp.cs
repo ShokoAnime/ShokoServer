@@ -5,7 +5,7 @@ namespace Shoko.Abstractions.Filtering.Sorting;
 /// <summary>
 ///   Describes a sorting expression available for use in filter presets.
 /// </summary>
-public interface ISortingCriteriaHelp
+public interface ISortingExpressionHelp
 {
     /// <summary>
     ///   The implementation type of the SortingExpression.

@@ -215,7 +215,7 @@ public class Filter : BaseModel
             => PossibleParameterPairs?.Length > 0;
     }
 
-    public class SortingCriteriaHelp(ISortingCriteriaHelp help)
+    public class SortingCriteriaHelp(ISortingExpressionHelp help)
     {
         /// <summary>
         /// The internal type name of the FilterExpression<br/>

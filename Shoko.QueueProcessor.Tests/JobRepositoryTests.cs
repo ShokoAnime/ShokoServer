@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Shoko.QueueProcessor.Storage;
+using Shoko.QueueProcessor.Storage.Contexts;
 using Xunit;
 
 namespace Shoko.QueueProcessor.Tests;

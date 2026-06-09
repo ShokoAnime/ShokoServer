@@ -14,16 +14,16 @@ namespace Shoko.Server.Filters;
 
 public class FilterPresetManager(FilterPresetRepository filterPresetRepository) : IFilterPresetManager
 {
-    public IReadOnlyList<IStoredFilterPreset> GetTopLevelPresets()
+    public IReadOnlyList<IFilterPreset> GetTopLevelPresets()
         => filterPresetRepository.GetTopLevel();
 
-    public IStoredFilterPreset? GetPresetById(int filterID)
+    public IFilterPreset? GetPresetById(int filterID)
         => filterPresetRepository.GetByID(filterID);
 
-    public IReadOnlyList<IStoredFilterPreset> GetPresetsByParentPreset(IStoredFilterPreset filterPreset)
+    public IReadOnlyList<IFilterPreset> GetPresetsByParentPreset(IFilterPreset filterPreset)
         => filterPreset.ID <= 0 || !filterPreset.IsDirectory ? [] : filterPresetRepository.GetByParentID(filterPreset.ID);
 
-    public IStoredFilterPreset CreatePreset(FilterPresetData input)
+    public IFilterPreset CreatePreset(FilterPresetData input)
     {
         int? parentFilterId = input.ParentFilterID.HasValue && input.ParentFilterID.Value > 0
             ? input.ParentFilterID.Value
@@ -63,7 +63,7 @@ public class FilterPresetManager(FilterPresetRepository filterPresetRepository) 
         return fp;
     }
 
-    public IStoredFilterPreset UpdatePreset(IStoredFilterPreset filter, FilterPresetUpdateData input)
+    public IFilterPreset UpdatePreset(IFilterPreset filter, FilterPresetUpdateData input)
     {
         var fp = filterPresetRepository.GetByID(filter.ID) ??
             throw new KeyNotFoundException($"Filter preset with ID '{filter.ID}' was not stored in the database.");
@@ -121,7 +121,7 @@ public class FilterPresetManager(FilterPresetRepository filterPresetRepository) 
         return fp;
     }
 
-    public void DeletePreset(IStoredFilterPreset filter)
+    public void DeletePreset(IFilterPreset filter)
     {
         var fp = filterPresetRepository.GetByID(filter.ID);
         if (fp is not null)
@@ -138,13 +138,13 @@ public class FilterPresetManager(FilterPresetRepository filterPresetRepository) 
     public IReadOnlyList<IFilterExpressionHelp> GetAvailableFilterExpressions(FilterExpressionGroup? group = null)
         => ExpressionDiscovery.GetExpressionHelp(group);
 
-    public ISortingCriteriaHelp GetHelpForSortingType<T>() where T : SortingExpression
+    public ISortingExpressionHelp GetHelpForSortingType<T>() where T : SortingExpression
         => GetHelpForSortingType(typeof(T)) ??
             throw new ArgumentException($"Sorting expression not part of the Shoko.Abstractions assembly: {typeof(T).FullName}", nameof(T));
 
-    public ISortingCriteriaHelp? GetHelpForSortingType(Type sortingType)
-        => ExpressionDiscovery.GetSortingCriteriaHelp(sortingType);
+    public ISortingExpressionHelp? GetHelpForSortingType(Type sortingType)
+        => ExpressionDiscovery.GetSortingExpressionHelp(sortingType);
 
-    public IReadOnlyList<ISortingCriteriaHelp> GetAvailableSortingCriteria()
-        => ExpressionDiscovery.GetSortingCriteriaHelp();
+    public IReadOnlyList<ISortingExpressionHelp> GetAvailableSortingExpressions()
+        => ExpressionDiscovery.GetSortingExpressionHelp();
 }

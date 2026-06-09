@@ -32,6 +32,7 @@ public class FilterController(
     TreeController treeController,
     FilterFactory factory,
     IFilteringEngine filterEvaluator,
+    IMetadataFilteringService filteringService,
     AnimeGroupRepository _animeGroups,
     AnimeSeriesRepository _animeSeries,
     FilterPresetRepository _filterPresets
@@ -281,38 +282,12 @@ public class FilterController(
 
     private ListResult<Group> GetFilteredGroups(FilterPreset filterPreset, int pageSize, int page, bool includeEmpty, bool randomImages)
     {
-        // Just return early because the every group will be filtered out.
-        var results = filterEvaluator.EvaluateFilterWithGrouping(filterPreset, User);
-        if (results.Count is 0)
-            return new ListResult<Group>();
-
-        var seriesIDs = results.SelectMany(a => a).ToHashSet();
-        var groupIDChains = results
-            .Select(a =>
-                _animeGroups.GetByID(a.Key)!.AllGroupsAbove
-                    .Select(b => b.AnimeGroupID)
-                    .Append(a.Key)
-                    .ToArray()
-            )
-            .ToArray();
-
-        // Sort the results because they're unordered.
-        if (filterPreset.SortingExpression is null)
-            return results
-                .Select(group => _animeGroups.GetByID(group.Key)?.TopLevelAnimeGroup)
-                .WhereNotNull()
-                .DistinctBy(group => group.AnimeGroupID)
-                .Where(group => includeEmpty || group.AllSeries.Any(s => s.VideoLocals.Count > 0))
-                .OrderBy(group => group.SortName)
-                .ToListResult(group => new Group(group, User.JMMUserID, randomImages, groupIDChains, seriesIDs), page, pageSize);
-
-        // The results are pre-sorted, so just return them as-is.
-        return results
-            .Select(group => _animeGroups.GetByID(group.Key)?.TopLevelAnimeGroup)
-            .WhereNotNull()
-            .DistinctBy(group => group.AnimeGroupID)
-            .Where(group => includeEmpty || group.AllSeries.Any(s => s.VideoLocals.Count > 0))
-            .ToListResult(group => new Group(group, User.JMMUserID, randomImages, groupIDChains, seriesIDs), page, pageSize);
+        var user = User;
+        return filteringService.GetTopLevelFilteredGroups(filterPreset, user)
+            .Select(r => (r, group: (AnimeGroup)r.Group))
+            .Where(t => includeEmpty || t.group.AllSeries.Any(s => s.VideoLocals.Count > 0))
+            .Select(t => new Group(t.group, user.JMMUserID, randomImages, t.r.GroupIDChains, t.r.SeriesIDs))
+            .ToListResult(page, pageSize);
     }
 
     /// <summary>
@@ -362,26 +337,11 @@ public class FilterController(
 
     private ListResult<Series> GetFilteredSeries(FilterPreset filterPreset, int pageSize, int page, bool includeMissing, bool randomImages)
     {
-        // Just return early because the every group will be filtered out.
-        var results = filterEvaluator.EvaluateFilterWithTuples(filterPreset, User);
-        if (results.Count is 0)
-            return new ListResult<Series>();
-
-        // Sort the results because they're unordered.
         var user = User;
-        if (filterPreset.SortingExpression is null)
-            return results
-                .Select(tuple => _animeSeries.GetByID(tuple.SeriesID))
-                .Where(series => user.AllowedSeries(series) && (includeMissing || series.VideoLocals.Count > 0))
-                .OrderBy(series => series.Title.ToSortName())
-                .ThenBy(series => series.AniDB_ID)
-                .ToListResult(series => new Series(series, User.JMMUserID, randomImages), page, pageSize);
-
-        // The results are pre-sorted, so just return them as-is.
-        return results
-            .Select(tuple => _animeSeries.GetByID(tuple.SeriesID))
-            .Where(series => user.AllowedSeries(series) && (includeMissing || series.VideoLocals.Count > 0))
-            .ToListResult(series => new Series(series, User.JMMUserID, randomImages), page, pageSize);
+        return filteringService.GetAllFilteredSeries(filterPreset, user)
+            .Cast<AnimeSeries>()
+            .Where(s => s is not null && (includeMissing || s.VideoLocals.Count > 0))
+            .ToListResult(s => new Series(s, user.JMMUserID, randomImages), page, pageSize);
     }
 
     /// <summary>
@@ -463,52 +423,11 @@ public class FilterController(
 
     private List<Group> GetFilteredSubGroups(AnimeGroup group, FilterPreset filterPreset, bool randomImages, bool includeEmpty)
     {
-        // Directories should only contain sub-filters, not groups and series.
-        if (filterPreset.IsDirectory)
-            return [];
-
-        // Just return early because the every group will be filtered out.
         var user = User;
-        var results = filterEvaluator.EvaluateFilterWithGrouping(filterPreset, user);
-        if (results.Count is 0)
-            return [];
-
-        var groupIDs = group.Children.Select(a => a.AnimeGroupID).ToHashSet();
-        var groupIDChains = results
-            .Select(a =>
-                _animeGroups.GetByID(a.Key)!.AllGroupsAbove
-                    .Select(b => b.AnimeGroupID)
-                    .Append(a.Key)
-                    .ToArray()
-            )
-            .Where(groupIDs.Overlaps)
-            .ToArray();
-        var orderedGroupIDs = groupIDChains
-            .SelectMany(a => a)
-            .ToArray();
-        groupIDs.IntersectWith(orderedGroupIDs);
-        var seriesIDs = results
-            .IntersectBy(groupIDs, a => a.Key)
-            .SelectMany(a => a)
-            .ToHashSet();
-        if (groupIDs.Count is 0)
-            return [];
-
-        // Sort the results because they're unordered.
-        if (filterPreset.SortingExpression is null)
-            return groupIDs
-                .Select(_animeGroups.GetByID)
-                .Where(a => user.AllowedGroup(a) && (includeEmpty || !a.AllSeries.Any(s => s.VideoLocals.Count > 0)))
-                .OrderBy(g => g.SortName)
-                .Select(g => new Group(g, User.JMMUserID, randomImages, groupIDChains, seriesIDs))
-                .ToList();
-
-        // The results are pre-sorted, so just return them as-is.
-        return groupIDs
-            .OrderBy(a => Array.IndexOf(orderedGroupIDs, a))
-            .Select(_animeGroups.GetByID)
-            .Where(a => user.AllowedGroup(a) && (includeEmpty || !a.AllSeries.Any(s => s.VideoLocals.Count > 0)))
-            .Select(g => new Group(g, User.JMMUserID, randomImages, groupIDChains, seriesIDs))
+        return filteringService.GetFilteredSubGroups(filterPreset, group, user)
+            .Select(r => (r, group: (AnimeGroup)r.Group))
+            .Where(t => includeEmpty || t.group.AllSeries.Any(s => s.VideoLocals.Count > 0))
+            .Select(t => new Group(t.group, user.JMMUserID, randomImages, t.r.GroupIDChains, t.r.SeriesIDs))
             .ToList();
     }
 
@@ -569,43 +488,10 @@ public class FilterController(
         AnimeGroup group, FilterPreset filterPreset, bool recursive, bool includeMissing, bool randomImages, HashSet<DataSourceType>? includeDataFrom
     )
     {
-        // Directories should only contain sub-filters, not groups and series.
-        if (filterPreset.IsDirectory)
-            return [];
-
         var user = User;
-        if (!filterPreset.ApplyAtSeriesLevel)
-            return (recursive ? group.AllSeries : group.Series)
-                .Where(a => user.AllowedSeries(a) && (includeMissing || a.VideoLocals.Count > 0))
-                .OrderBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
-                .Select(series => new Series(series, user.JMMUserID, randomImages, includeDataFrom))
-                .ToList();
-
-        // Just return early because the every series will be filtered out.
-        var results = filterEvaluator.EvaluateFilterWithTuples(filterPreset, user);
-        if (results.Count is 0)
-            return [];
-
-        var validGroupIDs = recursive
-            ? group.AllChildren.Prepend(group).Select(a => a.AnimeGroupID).ToHashSet()
-            : [group.AnimeGroupID];
-        var seriesIDs = results.Where(a => validGroupIDs.Contains(a.GroupID)).Select(a => a.SeriesID).ToHashSet();
-        if (seriesIDs.Count is 0)
-            return [];
-
-        // Sort the results because they're unordered.
-        if (filterPreset.SortingExpression is null)
-            return seriesIDs
-                .Select(_animeSeries.GetByID)
-                .Where(a => user.AllowedSeries(a) && (includeMissing || ((a?.VideoLocals.Count ?? 0) != 0)))
-                .OrderBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
-                .Select(a => new Series(a, user.JMMUserID, randomImages, includeDataFrom))
-                .ToList();
-
-        // The results are pre-sorted, so just return them as-is.
-        return seriesIDs
-            .Select(_animeSeries.GetByID)
-            .Where(a => user.AllowedSeries(a) && (includeMissing || ((a?.VideoLocals.Count ?? 0) != 0)))
+        return filteringService.GetFilteredSeriesInGroup(filterPreset, group, recursive, user)
+            .Cast<AnimeSeries>()
+            .Where(a => includeMissing || (a.VideoLocals.Count > 0))
             .Select(a => new Series(a, user.JMMUserID, randomImages, includeDataFrom))
             .ToList();
     }
@@ -805,7 +691,7 @@ public class FilterController(
     /// </remarks>
     [HttpGet("SortingCriteria")]
     public ActionResult<Filter.SortingCriteriaHelp[]> GetSortingCriteria()
-        => _sortingTypes ??= ExpressionDiscovery.GetSortingCriteriaHelp()
+        => _sortingTypes ??= ExpressionDiscovery.GetSortingExpressionHelp()
             .Select(a => new Filter.SortingCriteriaHelp(a))
             .ToArray();
 

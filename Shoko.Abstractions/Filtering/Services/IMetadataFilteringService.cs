@@ -17,6 +17,8 @@ public interface IMetadataFilteringService
     /// </summary>
     IFilteringEngine Engine { get; }
 
+    #region Group
+
     /// <summary>
     ///   Evaluate the given filter and return matching groups.
     /// </summary>
@@ -25,17 +27,32 @@ public interface IMetadataFilteringService
     /// <param name="time">The time. Needed if the filter is time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
     /// <returns>A list of matching groups.</returns>
-    IReadOnlyList<IShokoGroup> FilterGroups(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
+    IReadOnlyList<IShokoGroup> GetAllFilteredGroups(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
 
     /// <summary>
-    ///   Evaluate the given filter and return matching series.
+    ///   Evaluate the filter and return groups resolved to their top-level
+    ///   ancestor with hierarchy chain information. Each result contains the
+    ///   top-level group, the chain of group IDs from top to the matching
+    ///   sub-group, and the set of series IDs that matched within that scope.
     /// </summary>
     /// <param name="filter">The filter to evaluate.</param>
     /// <param name="user">The user. Needed if the filter is user-specific.</param>
     /// <param name="time">The time. Needed if the filter is time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
-    /// <returns>A list of matching series.</returns>
-    IReadOnlyList<IShokoSeries> FilterSeries(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
+    /// <returns>A list of filtered group results resolved to top-level.</returns>
+    IReadOnlyList<FilteredGroupResult> GetTopLevelFilteredGroups(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
+
+    /// <summary>
+    ///   Evaluate the filter and return only groups that are direct children of
+    ///   the specified parent group, with hierarchy chain information.
+    /// </summary>
+    /// <param name="filter">The filter to evaluate.</param>
+    /// <param name="parentGroup">The parent group to scope results to.</param>
+    /// <param name="user">The user. Needed if the filter is user-specific.</param>
+    /// <param name="time">The time. Needed if the filter is time-specific.</param>
+    /// <param name="skipSorting">Skip sorting the results.</param>
+    /// <returns>A list of filtered group results within the parent group.</returns>
+    IReadOnlyList<FilteredGroupResult> GetFilteredSubGroups(IFilter filter, IShokoGroup parentGroup, IUser? user = null, DateTime? time = null, bool skipSorting = false);
 
     /// <summary>
     ///   Batch evaluate multiple filters and return matching groups per filter.
@@ -46,7 +63,34 @@ public interface IMetadataFilteringService
     /// <param name="time">The time. Needed if the filters are time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
     /// <returns>A dictionary mapping each filter to its matching groups.</returns>
-    IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoGroup>> BatchFilterGroups<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset;
+    IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoGroup>> BatchFilterGroups<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilter;
+
+    #endregion
+
+    #region Series
+
+    /// <summary>
+    ///   Evaluate the given filter and return matching series.
+    /// </summary>
+    /// <param name="filter">The filter to evaluate.</param>
+    /// <param name="user">The user. Needed if the filter is user-specific.</param>
+    /// <param name="time">The time. Needed if the filter is time-specific.</param>
+    /// <param name="skipSorting">Skip sorting the results.</param>
+    /// <returns>A list of matching series.</returns>
+    IReadOnlyList<IShokoSeries> GetAllFilteredSeries(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
+
+    /// <summary>
+    ///   Evaluate the filter and return series IDs that belong to the specified
+    ///   group (and its descendants if <paramref name="recursive"/> is <c>true</c>).
+    /// </summary>
+    /// <param name="filter">The filter to evaluate.</param>
+    /// <param name="group">The group to scope results to.</param>
+    /// <param name="recursive">Include series from sub-groups.</param>
+    /// <param name="user">The user. Needed if the filter is user-specific.</param>
+    /// <param name="time">The time. Needed if the filter is time-specific.</param>
+    /// <param name="skipSorting">Skip sorting the results.</param>
+    /// <returns>A list of series IDs matching the filter within the group scope.</returns>
+    IReadOnlyList<IShokoSeries> GetFilteredSeriesInGroup(IFilter filter, IShokoGroup group, bool recursive = false, IUser? user = null, DateTime? time = null, bool skipSorting = false);
 
     /// <summary>
     ///   Batch evaluate multiple filters and return matching series per filter.
@@ -57,5 +101,7 @@ public interface IMetadataFilteringService
     /// <param name="time">The time. Needed if the filters are time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
     /// <returns>A dictionary mapping each filter to its matching series.</returns>
-    IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoSeries>> BatchFilterSeries<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset;
+    IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoSeries>> BatchFilterSeries<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilter;
+
+    #endregion
 }

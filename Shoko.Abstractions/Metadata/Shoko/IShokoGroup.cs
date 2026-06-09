@@ -51,6 +51,11 @@ public interface IShokoGroup : ICollection, IMetadata<int>, IWithCreationDate, I
     IShokoGroup? ParentGroup { get; }
 
     /// <summary>
+    ///   All parent groups, starting from the direct parent up to the top-level group.
+    /// </summary>
+    IReadOnlyList<IShokoGroup> AllParentGroups { get; }
+
+    /// <summary>
     /// The top-level group this group belongs to. It can refer to itself if it
     /// is a top-level group.
     /// </summary>

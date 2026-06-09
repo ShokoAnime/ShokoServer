@@ -97,7 +97,7 @@ public class Group : BaseModel
 
     #region Constructors
 
-    public Group(AnimeGroup group, int userID = 0, bool randomizeImages = false, IReadOnlyList<IReadOnlyList<int>>? groupIDChains = null, HashSet<int>? seriesIDs = null)
+    public Group(AnimeGroup group, int userID = 0, bool randomizeImages = false, IReadOnlyList<IReadOnlyList<int>>? groupIDChains = null, IReadOnlySet<int>? seriesIDs = null)
     {
         var allSeries = group.AllSeries;
         var subGroupCount = groupIDChains is null ? group.Children.Count : group.Children.Count(a => groupIDChains.Any(b => b.Contains(a.AnimeGroupID)));

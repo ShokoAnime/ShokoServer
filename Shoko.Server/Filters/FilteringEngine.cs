@@ -8,7 +8,6 @@ using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Filtering.Sorting.Selectors;
 using Shoko.Abstractions.User;
-using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 
 #nullable enable
@@ -16,40 +15,37 @@ namespace Shoko.Server.Filters;
 
 public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupRepository groupRepository, AnimeSeriesRepository seriesRepository) : IFilteringEngine
 {
-    public IReadOnlyList<IGrouping<int, int>> EvaluateFilterWithGrouping(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyList<IGrouping<int, int>> EvaluateFilterWithGrouping(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
         => EvaluateFilterWithTuples(filter, user, time, skipSorting).GroupBy(a => a.GroupID, a => a.SeriesID).ToArray();
 
-    public IReadOnlyList<(int GroupID, int SeriesID)> EvaluateFilterWithTuples(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyList<(int GroupID, int SeriesID)> EvaluateFilterWithTuples(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
     {
         ArgumentNullException.ThrowIfNull(filter);
         var needsUser = (filter.Expression?.UserDependent ?? false) || (filter.SortingExpression?.UserDependent ?? false);
         if (needsUser)
             ArgumentNullException.ThrowIfNull(user);
-        if (needsUser && user is not JMMUser)
-            throw new ArgumentException("Input user must be of type JMMUser.", nameof(user));
-        if (filter.IsDirectory)
+        if (filter is IFilterPreset { IsDirectory: true })
             return [];
 
         var now = time?.ToLocalTime() ?? DateTime.Now;
-        var shokoUser = user as JMMUser;
         var filterable = filter.ApplyAtSeriesLevel switch
         {
             true when needsUser => seriesRepository.GetAll()
                 .AsParallel()
-                .Where(a => shokoUser?.AllowedSeries(a) ?? true)
+                .Where(a => user!.IsAllowedToSee(a))
                 .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now))),
             true => seriesRepository.GetAll()
                 .AsParallel()
-                .Where(a => shokoUser?.AllowedSeries(a) ?? true)
+                .Where(a => user?.IsAllowedToSee(a) ?? true)
                 .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now))),
             false when needsUser =>
                 groupRepository.GetAll()
                     .AsParallel()
-                    .Where(a => shokoUser?.AllowedGroup(a) ?? true)
+                    .Where(a => user!.IsAllowedToSee(a))
                     .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now))),
             false => groupRepository.GetAll()
                 .AsParallel()
-                .Where(a => shokoUser?.AllowedGroup(a) ?? true)
+                .Where(a => user?.IsAllowedToSee(a) ?? true)
                 .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now))),
         };
         var filtered = filterable.Where(a =>
@@ -79,10 +75,10 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
         return result.ToArray();
     }
 
-    public IReadOnlyDictionary<TFilter, IReadOnlyList<(int GroupID, int SeriesID)>> BatchPrepareFiltersWithTuples<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset
+    public IReadOnlyDictionary<TFilter, IReadOnlyList<(int GroupID, int SeriesID)>> BatchPrepareFiltersWithTuples<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false) where TFilter : IFilter
         => InternalBatchPrepareFilters(filters, a => a, user, time, skipSorting);
 
-    public IReadOnlyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>> BatchPrepareFiltersWithGrouping<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset
+    public IReadOnlyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>> BatchPrepareFiltersWithGrouping<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false) where TFilter : IFilter
         => InternalBatchPrepareFilters(filters, a => a.GroupBy(a => a.GroupID, a => a.SeriesID), user, time, skipSorting);
 
     private IReadOnlyDictionary<TFilter, IReadOnlyList<TValue>> InternalBatchPrepareFilters<TFilter, TValue>(
@@ -91,7 +87,7 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
         IUser? user,
         DateTime? time = null,
         bool skipSorting = false
-    ) where TFilter : IFilterPreset
+    ) where TFilter : IFilter
     {
         ArgumentNullException.ThrowIfNull(filters);
         if (filters.Count == 0)
@@ -115,30 +111,27 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
         var needsUser = seriesNeedsUser || groupsNeedUser;
         if (needsUser)
             ArgumentNullException.ThrowIfNull(user);
-        if (needsUser && user is not JMMUser)
-            throw new ArgumentException("Input user must be of type JMMUser.", nameof(user));
-        var shokoUser = user as JMMUser;
         var now = time?.ToLocalTime() ?? DateTime.Now;
         var series = !hasSeries ? [] : seriesNeedsUser
             ? seriesRepository.GetAll()
-                .Where(a => shokoUser?.AllowedSeries(a) ?? true)
+                .Where(a => user!.IsAllowedToSee(a))
                 .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now)))
                 .ToArray()
             : seriesRepository.GetAll()
-                .Where(a => shokoUser?.AllowedSeries(a) ?? true)
+                .Where(a => user?.IsAllowedToSee(a) ?? true)
                 .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now)))
                 .ToArray();
         var groups = !hasGroups ? [] : groupsNeedUser
             ? groupRepository.GetAll()
-                .Where(a => shokoUser?.AllowedGroup(a) ?? true)
+                .Where(a => user!.IsAllowedToSee(a))
                 .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now)))
                 .ToArray()
             : groupRepository.GetAll()
-                .Where(a => shokoUser?.AllowedGroup(a) ?? true)
+                .Where(a => user?.IsAllowedToSee(a) ?? true)
                 .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now)))
                 .ToArray();
         var results = new Dictionary<TFilter, Lazy<IReadOnlyList<TValue>>>();
-        foreach (var filter in filters.Where(a => !a.IsDirectory))
+        foreach (var filter in filters.Where(a => a is not IFilterPreset { IsDirectory: true }))
         {
             var filterable = filter.ApplyAtSeriesLevel ? series : groups;
             var expression = filter.Expression;
@@ -179,7 +172,7 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
         return new LazyDictionary<TFilter, IReadOnlyList<TValue>>(results);
     }
 
-    private static IOrderedEnumerable<FilterableWithID> OrderFilterable(IFilterPreset filter, IEnumerable<FilterableWithID> filtered, DateTime now)
+    private static IOrderedEnumerable<FilterableWithID> OrderFilterable(IFilter filter, IEnumerable<FilterableWithID> filtered, DateTime now)
     {
         if (filter.SortingExpression is null)
         {

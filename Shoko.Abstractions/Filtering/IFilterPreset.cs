@@ -1,18 +1,34 @@
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Sorting;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Abstractions.Filtering;
 
 /// <summary>
-/// Represents a saved filter configuration with an expression and optional sorting.
+///   A filter preset stored in the database, extending <see cref="IFilter"/>
+///   with metadata, persistence properties, and the <see cref="IsDirectory"/> flag.
 /// </summary>
-public interface IFilterPreset
+public interface IFilterPreset : IFilter, IMetadata<int>
 {
     /// <summary>
-    ///   Indicates that this filtering should happen at the series level and
-    ///   not the group level, which is the default.
+    ///   The id of the parent filter preset if this is a sub-filter.
     /// </summary>
-    bool ApplyAtSeriesLevel { get; }
+    int? ParentFilterID { get; }
+
+    /// <summary>
+    ///   The name of this filter preset.
+    /// </summary>
+    string Name { get; }
+
+    /// <summary>
+    ///   Indicates that this filter cannot be edited.
+    /// </summary>
+    bool Locked { get; }
+
+    /// <summary>
+    ///   Indicates that this filter should be hidden from normal UIs.
+    /// </summary>
+    bool Hidden { get; }
 
     /// <summary>
     ///   Indicates that this is a directory filter, and therefore will always
@@ -21,13 +37,12 @@ public interface IFilterPreset
     bool IsDirectory { get; }
 
     /// <summary>
-    ///   The expression to evaluate. Omitting will disable filtering and return
-    ///   all results.
+    ///   The expression to evaluate. Plugins should use the typed <see cref="IFilter.Expression"/> property.
     /// </summary>
-    IFilterExpression<bool>? Expression { get; }
+    new FilterExpression<bool>? Expression { get; }
 
     /// <summary>
-    ///   The sorting expression to evaluate. Leave blank for default sorting.
+    ///   The sorting expression to evaluate.
     /// </summary>
-    ISortingExpression? SortingExpression { get; }
+    new SortingExpression? SortingExpression { get; }
 }
