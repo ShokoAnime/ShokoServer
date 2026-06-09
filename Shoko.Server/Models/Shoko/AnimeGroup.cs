@@ -702,6 +702,8 @@ public class AnimeGroup : IShokoGroup
 
     IReadOnlyList<IShokoGroup> IShokoGroup.AllGroups => AllChildren.ToList();
 
+    IReadOnlyList<IShokoGroup> IShokoGroup.AllParentGroups => AllGroupsAbove;
+
     IShokoSeries IShokoGroup.MainSeries => MainSeries ??
         throw new NullReferenceException($"Unable to get main series for group {AnimeGroupID} when accessed through IShokoGroup.MainSeries");
 

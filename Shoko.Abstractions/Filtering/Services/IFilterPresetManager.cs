@@ -17,7 +17,7 @@ public interface IFilterPresetManager
     /// <returns>
     ///   The top-level filter presets.
     /// </returns>
-    IReadOnlyList<IStoredFilterPreset> GetTopLevelPresets();
+    IReadOnlyList<IFilterPreset> GetTopLevelPresets();
 
     /// <summary>
     ///   Get a filter preset by its ID.
@@ -28,7 +28,7 @@ public interface IFilterPresetManager
     /// <returns>
     ///   The filter preset.
     /// </returns>
-    IStoredFilterPreset? GetPresetById(int filterID);
+    IFilterPreset? GetPresetById(int filterID);
 
     /// <summary>
     ///   Get all sub-filters of a parent filter preset.
@@ -39,7 +39,7 @@ public interface IFilterPresetManager
     /// <returns>
     ///   The sub-filters.
     /// </returns>
-    IReadOnlyList<IStoredFilterPreset> GetPresetsByParentPreset(IStoredFilterPreset filterPreset);
+    IReadOnlyList<IFilterPreset> GetPresetsByParentPreset(IFilterPreset filterPreset);
 
     /// <summary>
     ///   Create a new filter preset.
@@ -47,7 +47,7 @@ public interface IFilterPresetManager
     /// <param name="data">
     ///   The input data.
     /// </param>
-    IStoredFilterPreset CreatePreset(FilterPresetData data);
+    IFilterPreset CreatePreset(FilterPresetData data);
 
     /// <summary>
     ///   Update an existing filter preset.
@@ -61,7 +61,7 @@ public interface IFilterPresetManager
     /// <returns>
     ///   The updated filter preset.
     /// </returns>
-    IStoredFilterPreset UpdatePreset(IStoredFilterPreset filterPreset, FilterPresetUpdateData updateData);
+    IFilterPreset UpdatePreset(IFilterPreset filterPreset, FilterPresetUpdateData updateData);
 
     /// <summary>
     ///   Delete a filter preset.
@@ -69,7 +69,7 @@ public interface IFilterPresetManager
     /// <param name="filterPreset">
     ///   The filter preset to delete.
     /// </param>
-    void DeletePreset(IStoredFilterPreset filterPreset);
+    void DeletePreset(IFilterPreset filterPreset);
 
     /// <summary>
     ///   Get help metadata for the given filter expression.
@@ -111,7 +111,7 @@ public interface IFilterPresetManager
     /// <returns>
     ///   The help metadata.
     /// </returns>
-    ISortingCriteriaHelp GetHelpForSortingType<T>() where T : SortingExpression;
+    ISortingExpressionHelp GetHelpForSortingType<T>() where T : SortingExpression;
 
     /// <summary>
     ///   Get help metadata for the given sorting criteria.
@@ -122,10 +122,10 @@ public interface IFilterPresetManager
     /// <returns>
     ///   The help metadata.
     /// </returns>
-    ISortingCriteriaHelp? GetHelpForSortingType(Type sortingType);
+    ISortingExpressionHelp? GetHelpForSortingType(Type sortingType);
 
     /// <summary>
     ///   Get help metadata for available sorting expressions.
     /// </summary>
-    IReadOnlyList<ISortingCriteriaHelp> GetAvailableSortingCriteria();
+    IReadOnlyList<ISortingExpressionHelp> GetAvailableSortingExpressions();
 }

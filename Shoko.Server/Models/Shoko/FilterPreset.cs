@@ -9,7 +9,7 @@ using Shoko.Server.Server;
 #nullable enable
 namespace Shoko.Server.Models.Shoko;
 
-public class FilterPreset : IStoredFilterPreset
+public class FilterPreset : IFilterPreset
 {
     #region Database Columns
 
@@ -51,17 +51,18 @@ public class FilterPreset : IStoredFilterPreset
 
     #endregion
 
-    #region IFilterPreset Implementation
+    #region IFilter Implementation
 
-    IFilterExpression<bool>? IFilterPreset.Expression => Expression;
+    IFilterExpression<bool>? IFilter.Expression => Expression;
 
-    ISortingExpression? IFilterPreset.SortingExpression => SortingExpression;
+    ISortingExpression? IFilter.SortingExpression => SortingExpression;
 
     #endregion
 
-    #region IStoredFilterPreset Implementation
+    #region IFilterPreset Implementation
 
-    int? IStoredFilterPreset.ParentFilterID => ParentFilterPresetID;
+    int? IFilterPreset.ParentFilterID => ParentFilterPresetID;
+    bool IFilterPreset.IsDirectory => IsDirectory;
 
     #endregion
 }

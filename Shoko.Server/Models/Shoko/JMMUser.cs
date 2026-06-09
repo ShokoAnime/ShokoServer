@@ -11,6 +11,7 @@ using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User;
@@ -66,11 +67,38 @@ public class JMMUser : IIdentity, IUser
         }
     }
 
+    /// <inheritdoc/>
+    public bool IsAllowedToSee(IShokoSeries ser)
+    {
+        if (ser is not AnimeSeries shokoSeries)
+            throw new ArgumentException("Expected AnimeSeries", nameof(ser));
+        if (GetHideCategories().Count == 0) return true;
+        var anime = shokoSeries.AniDB_Anime;
+        if (anime == null) return false;
+        return !GetHideCategories().FindInEnumerable(anime.Tags.Select(a => a.TagName));
+    }
+
+    /// <inheritdoc/>
+    public bool IsAllowedToSee(IAnidbAnime anime)
+    {
+        if (anime is not AniDB_Anime anidbAnime)
+            throw new ArgumentException("Expected AniDB_Anime", nameof(anime));
+        if (GetHideCategories().Count == 0) return true;
+        return !GetHideCategories().FindInEnumerable(anidbAnime.Tags.Select(a => a.TagName));
+    }
+
+    /// <inheritdoc/>
+    public bool IsAllowedToSee(IShokoGroup grp)
+    {
+        if (grp is not AnimeGroup shokoGroup)
+            throw new ArgumentException("Expected AnimeGroup", nameof(grp));
+        if (GetHideCategories().Count == 0) return true;
+        return !GetHideCategories().FindInEnumerable(shokoGroup.Tags.Select(a => a.TagName));
+    }
+
     /// <summary>
     /// Returns whether a user is allowed to view this series
     /// </summary>
-    /// <param name="ser"></param>
-    /// <returns></returns>
     public bool AllowedSeries(AnimeSeries ser)
     {
         if (GetHideCategories().Count == 0) return true;
@@ -82,8 +110,6 @@ public class JMMUser : IIdentity, IUser
     /// <summary>
     /// Returns whether a user is allowed to view this anime
     /// </summary>
-    /// <param name="anime"></param>
-    /// <returns></returns>
     public bool AllowedAnime(AniDB_Anime anime)
     {
         if (GetHideCategories().Count == 0) return true;

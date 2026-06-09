@@ -158,18 +158,18 @@ internal static class ExpressionDiscovery
             _ => (null, null, null),
         };
 
-    public static IReadOnlyList<ISortingCriteriaHelp> GetSortingCriteriaHelp()
+    public static IReadOnlyList<ISortingExpressionHelp> GetSortingExpressionHelp()
         => AppDomain.CurrentDomain.GetAssemblies()
             .SelectMany(a => a.GetTypes())
             .Where(a => a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType &&
                 typeof(SortingExpression).IsAssignableFrom(a)
             )
             .OrderBy(a => a.FullName)
-            .Select(GetSortingCriteriaHelp)
+            .Select(GetSortingExpressionHelp)
             .WhereNotNull()
             .ToList();
 
-    public static ISortingCriteriaHelp? GetSortingCriteriaHelp(Type sortingType)
+    public static ISortingExpressionHelp? GetSortingExpressionHelp(Type sortingType)
     {
         if (sortingType == typeof(FilterExpression) || sortingType.IsAbstract || sortingType.IsGenericType || !typeof(SortingExpression).IsAssignableFrom(sortingType))
             return null;
@@ -178,7 +178,7 @@ internal static class ExpressionDiscovery
         if (criteria == null)
             return null;
 
-        return new SortingCriteriaHelpEntry
+        return new SortingExpressionHelpEntry
         {
             InternalType = sortingType,
             Type = sortingType.Name.TrimEnd("SortingSelector").Trim(),
@@ -204,7 +204,7 @@ internal static class ExpressionDiscovery
         public required string[][]? PossibleParameterPairs { get; init; }
     }
 
-    private class SortingCriteriaHelpEntry : ISortingCriteriaHelp
+    private class SortingExpressionHelpEntry : ISortingExpressionHelp
     {
         public required Type InternalType { get; init; }
         public required string Type { get; init; }

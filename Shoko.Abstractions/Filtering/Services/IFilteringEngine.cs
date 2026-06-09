@@ -38,7 +38,7 @@ public interface IFilteringEngine
     ///   dependent.
     /// </exception>
     /// <returns>SeriesIDs, grouped by the direct parent GroupID</returns>
-    IReadOnlyList<IGrouping<int, int>> EvaluateFilterWithGrouping(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
+    IReadOnlyList<IGrouping<int, int>> EvaluateFilterWithGrouping(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
 
     /// <summary>
     ///   Evaluate the given filter, applying the necessary logic to each series
@@ -67,7 +67,7 @@ public interface IFilteringEngine
     ///   dependent.
     /// </exception>
     /// <returns>A list of tuples of (GroupID, SeriesID).</returns>
-    IReadOnlyList<(int GroupID, int SeriesID)> EvaluateFilterWithTuples(IFilterPreset filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
+    IReadOnlyList<(int GroupID, int SeriesID)> EvaluateFilterWithTuples(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
 
     /// <summary>
     ///   Prepare the input filters, returning a dictionary which lazily
@@ -99,7 +99,7 @@ public interface IFilteringEngine
     /// <returns>
     ///   A lazy dictionary of seriesIDs, grouped by the direct parent GroupID per filter.
     /// </returns>
-    IReadOnlyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>> BatchPrepareFiltersWithGrouping<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset;
+    IReadOnlyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>> BatchPrepareFiltersWithGrouping<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilter;
 
     /// <summary>
     ///   Prepare the input filters, returning a dictionary which lazily
@@ -128,5 +128,5 @@ public interface IFilteringEngine
     /// <returns>
     ///   A lazy dictionary of tuples of (GroupID, SeriesID) per filter.
     /// </returns>
-    IReadOnlyDictionary<TFilter, IReadOnlyList<(int GroupID, int SeriesID)>> BatchPrepareFiltersWithTuples<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilterPreset;
+    IReadOnlyDictionary<TFilter, IReadOnlyList<(int GroupID, int SeriesID)>> BatchPrepareFiltersWithTuples<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilter;
 }
