@@ -17,7 +17,6 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 
@@ -28,10 +27,11 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class GroupController(ISettingsProvider settingsProvider, IImageManager _imageManager, AnimeGroupCreator _groupCreator, AnimeSeriesService _seriesService, AnimeGroupService _groupService,
+public class GroupController(ISettingsProvider settingsProvider, IImageManager _imageManager, AnimeGroupCreator _groupCreator,
     AniDB_Anime_RelationRepository _anidbAnimeRelations,
     AnimeGroupRepository _animeGroups,
-    AnimeSeriesRepository _animeSeries
+    AnimeSeriesRepository _animeSeries,
+    IShokoGroupManager _groupManagementService
 ) : BaseController(settingsProvider)
 {
     #region Return messages
@@ -136,24 +136,13 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpPost]
     public ActionResult<Group> CreateGroup([FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
-        var animeGroup = new AnimeGroup
-        {
-            GroupName = string.Empty,
-            Description = string.Empty,
-            IsManuallyNamed = 0,
-            DateTimeCreated = DateTime.Now,
-            DateTimeUpdated = DateTime.Now,
-            MissingEpisodeCount = 0,
-            MissingEpisodeCountGroups = 0,
-            OverrideDescription = 0,
-        };
-        var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState);
+        var group = body.MergeWithExisting(null, User.JMMUserID, ModelState);
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
         }
 
-        return Created($"/api/v3/Group/{animeGroup.AnimeGroupID}", group);
+        return Created($"/api/v3/Group/{group.IDs.ID}", group);
     }
 
     #endregion
@@ -168,18 +157,13 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpGet("{groupID}")]
     public ActionResult<Group> GetGroup([FromRoute, Range(1, int.MaxValue)] int groupID)
     {
-        var group = _animeGroups.GetByID(groupID);
-        if (group == null)
-        {
+        if (_animeGroups.GetByID(groupID) is not { } animeGroup)
             return NotFound(GroupNotFound);
-        }
 
-        if (!User.AllowedGroup(group))
-        {
+        if (!User.AllowedGroup(animeGroup))
             return Forbid(GroupForbiddenForUser);
-        }
 
-        return new Group(group, User.JMMUserID);
+        return new Group(animeGroup, User.JMMUserID);
     }
 
     /// <summary>
@@ -195,22 +179,15 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpPut("{groupID}")]
     public ActionResult<Group> PutGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
-        var animeGroup = _animeGroups.GetByID(groupID);
-        if (animeGroup == null)
-        {
+        if (_animeGroups.GetByID(groupID) is not { } animeGroup)
             return NotFound(GroupNotFound);
-        }
 
         if (!User.AllowedGroup(animeGroup))
-        {
             return Forbid(GroupForbiddenForUser);
-        }
 
         var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState);
         if (!ModelState.IsValid)
-        {
             return ValidationProblem(ModelState);
-        }
 
         return group;
     }
@@ -230,30 +207,21 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpPatch("{groupID}")]
     public ActionResult<Group> PatchGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] JsonPatchDocument<Group.Input.CreateOrUpdateGroupBody> patchDocument)
     {
-        var animeGroup = _animeGroups.GetByID(groupID);
-        if (animeGroup == null)
-        {
+        if (_animeGroups.GetByID(groupID) is not { } animeGroup)
             return NotFound(GroupNotFound);
-        }
 
         if (!User.AllowedGroup(animeGroup))
-        {
             return Forbid(GroupForbiddenForUser);
-        }
 
         // Patch the body with the existing model.
         var body = new Group.Input.CreateOrUpdateGroupBody(animeGroup);
         patchDocument.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
-        {
             return ValidationProblem(ModelState);
-        }
 
         var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState);
         if (!ModelState.IsValid)
-        {
             return ValidationProblem(ModelState);
-        }
 
         return group;
     }
@@ -272,17 +240,12 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromQuery] bool recursive = false)
     {
-        var group = _animeGroups.GetByID(groupID);
-        if (group == null)
-        {
+        if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
-        }
 
         var user = User;
         if (!user.AllowedGroup(group))
-        {
             return Forbid(GroupForbiddenForUser);
-        }
 
         var seriesDict = (recursive ? group.AllSeries : group.Series)
             .ToDictionary(series => series.AniDB_ID);
@@ -331,8 +294,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         [FromQuery] bool includeUndesired = false
     )
     {
-        var group = _animeGroups.GetByID(groupID);
-        if (group == null)
+        if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
 
         var user = User;
@@ -356,8 +318,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] Image.LegacyImageType imageType)
     {
-        var group = _animeGroups.GetByID(groupID);
-        if (group == null)
+        if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
 
         var user = User;
@@ -402,8 +363,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
-        var group = _animeGroups.GetByID(groupID);
-        if (group == null)
+        if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
 
         var user = User;
@@ -439,9 +399,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [Obsolete("Use the image management controller's unset preferred endpoint instead.")]
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID, [FromRoute] Image.LegacyImageType imageType)
     {
-        // Check if the series exists and if the user can access the series.
-        var group = _animeGroups.GetByID(groupID);
-        if (group == null)
+        if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
 
         var user = User;
@@ -489,11 +447,8 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpDelete("{groupID}")]
     public async Task<ActionResult> DeleteGroup([FromRoute, Range(1, int.MaxValue)] int groupID, bool deleteSeries = false, bool deleteFiles = false)
     {
-        var group = _animeGroups.GetByID(groupID);
-        if (group == null)
-        {
+        if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
-        }
 
         var seriesList = group.AllSeries;
         if (!deleteSeries && seriesList.Count != 0)
@@ -502,12 +457,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
                 $"{nameof(deleteSeries)} is not true, and the group contains series. Move them, or set {nameof(deleteSeries)} to true");
         }
 
-        foreach (var series in seriesList)
-        {
-            await _seriesService.DeleteSeries(series, deleteFiles, false);
-        }
-
-        _groupService.DeleteGroup(group);
+        await _groupManagementService.DeleteGroup(group, deleteSeries, deleteFiles);
 
         return NoContent();
     }
@@ -524,11 +474,8 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpPost("{groupID}/Recalculate")]
     public async Task<ActionResult> RecalculateStats([FromRoute, Range(1, int.MaxValue)] int groupID)
     {
-        var group = _animeGroups.GetByID(groupID);
-        if (group == null)
-        {
+        if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
-        }
 
         await _groupCreator.RecalculateStatsContractsForGroup(group);
         return Ok();

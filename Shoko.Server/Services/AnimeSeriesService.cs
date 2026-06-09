@@ -10,6 +10,7 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
@@ -38,33 +39,42 @@ public class AnimeSeriesService
     private readonly IQueueScheduler _scheduler;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly UserDataService _userDataService;
-    private readonly IServiceProvider _serviceProvider;
     private readonly AnimeEpisodeRepository _animeEpisodes;
-    private readonly AnimeGroupRepository _animeGroups;
     private readonly AnimeSeriesRepository _animeSeries;
     private readonly StoredReleaseInfoRepository _storedReleaseInfos;
     private readonly AniDB_GroupStatusRepository _anidbGroupStatuses;
     private readonly AniDB_Anime_StaffRepository _anidbAnimeStaff;
-    private IAnidbService? _anidbService;
+    private readonly Lazy<IAnidbService> _anidbService;
+    private readonly Lazy<IShokoGroupManager> _groupManager;
 
-    public AnimeSeriesService(ILogger<AnimeSeriesService> logger, IServiceProvider serviceProvider, IQueueScheduler schedulerFactory, AnimeGroupService groupService,
-        VideoLocal_UserRepository vlUsers, IVideoReleaseService videoReleaseService, IUserDataService userDataService,
-        AnimeEpisodeRepository animeEpisodes, AnimeGroupRepository animeGroups, AnimeSeriesRepository animeSeries,
-        StoredReleaseInfoRepository storedReleaseInfos, AniDB_GroupStatusRepository anidbGroupStatuses, AniDB_Anime_StaffRepository anidbAnimeStaff)
+    public AnimeSeriesService(
+        ILogger<AnimeSeriesService> logger,
+        IQueueScheduler schedulerFactory,
+        AnimeGroupService groupService,
+        VideoLocal_UserRepository vlUsers,
+        IVideoReleaseService videoReleaseService,
+        IUserDataService userDataService,
+        AnimeEpisodeRepository animeEpisodes,
+        AnimeSeriesRepository animeSeries,
+        StoredReleaseInfoRepository storedReleaseInfos,
+        AniDB_GroupStatusRepository anidbGroupStatuses,
+        AniDB_Anime_StaffRepository anidbAnimeStaff,
+        Lazy<IAnidbService> anidbService,
+        Lazy<IShokoGroupManager> groupManager)
     {
         _logger = logger;
-        _serviceProvider = serviceProvider;
         _scheduler = schedulerFactory;
         _groupService = groupService;
         _vlUsers = vlUsers;
         _videoReleaseService = videoReleaseService;
         _userDataService = (UserDataService)userDataService;
         _animeEpisodes = animeEpisodes;
-        _animeGroups = animeGroups;
         _animeSeries = animeSeries;
         _storedReleaseInfos = storedReleaseInfos;
         _anidbGroupStatuses = anidbGroupStatuses;
         _anidbAnimeStaff = anidbAnimeStaff;
+        _anidbService = anidbService;
+        _groupManager = groupManager;
     }
 
     public async Task<(bool, Dictionary<AnimeEpisode, UpdateReason>)> CreateAnimeEpisodes(AnimeSeries series)
@@ -159,59 +169,6 @@ public class AnimeSeriesService
         _userDataService.CreateUserRecordsForNewEpisode(existingEp);
 
         return (existingEp, isNew, updated);
-    }
-
-    public void MoveSeries(AnimeSeries series, AnimeGroup newGroup, bool updateGroupStats = true, bool updateEvent = true)
-    {
-        // Skip moving series if it's already part of the group.
-        if (series.AnimeGroupID == newGroup.AnimeGroupID)
-            return;
-
-        var oldGroupID = series.AnimeGroupID;
-        // Update the stats for the series and group.
-        series.AnimeGroupID = newGroup.AnimeGroupID;
-        series.DateTimeUpdated = DateTime.Now;
-        UpdateStats(series, true, true);
-        if (updateGroupStats)
-            _groupService.UpdateStatsFromTopLevel(newGroup.TopLevelAnimeGroup, true, true);
-
-        var oldGroup = _animeGroups.GetByID(oldGroupID);
-        if (oldGroup is not null)
-        {
-            // This was the only one series in the group so delete the now orphan group.
-            if (oldGroup.AllSeries.Count == 0)
-            {
-                _groupService.DeleteGroup(oldGroup, false);
-            }
-            else
-            {
-                var updatedOldGroup = false;
-                if (oldGroup.DefaultAnimeSeriesID.HasValue && oldGroup.DefaultAnimeSeriesID.Value == series.AnimeSeriesID)
-                {
-                    oldGroup.DefaultAnimeSeriesID = null;
-                    updatedOldGroup = true;
-                }
-
-                if (oldGroup.MainAniDBAnimeID.HasValue && oldGroup.MainAniDBAnimeID.Value == series.AniDB_ID)
-                {
-                    oldGroup.MainAniDBAnimeID = null;
-                    updatedOldGroup = true;
-                }
-
-                if (updatedOldGroup)
-                    _animeGroups.Save(oldGroup);
-            }
-
-            // Update the top group
-            var topGroup = oldGroup.TopLevelAnimeGroup;
-            if (topGroup.AnimeGroupID != oldGroup.AnimeGroupID)
-            {
-                _groupService.UpdateStatsFromTopLevel(topGroup, true, true);
-            }
-        }
-
-        if (updateEvent)
-            ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
     }
 
     public async Task QueueUpdateStats(AnimeSeries series)
@@ -503,8 +460,7 @@ public class AnimeSeriesService
         if (!completelyRemove)
             return;
 
-        _anidbService ??= _serviceProvider.GetRequiredService<IAnidbService>();
-        await _anidbService.PurgeAnimeByID(series.AniDB_ID, removeFromMylist).ConfigureAwait(false);
+        await _anidbService.Value.PurgeAnimeByID(series.AniDB_ID, removeFromMylist).ConfigureAwait(false);
     }
 
     internal async Task DeleteSeriesInternal(AnimeSeries series, bool deleteFiles, bool updateGroups, bool removeFromMylist = true)
@@ -543,7 +499,7 @@ public class AnimeSeriesService
                     parent = next;
                 }
 
-                _groupService.DeleteGroup(parent);
+                await _groupManager.Value.DeleteGroup(parent);
             }
             else
             {

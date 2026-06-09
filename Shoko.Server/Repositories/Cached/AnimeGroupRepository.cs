@@ -180,7 +180,7 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
     }
 
     public List<AnimeGroup> GetByParentID(int parentID)
-        => ReadLock(() => _parentIDs!.GetMultiple(parentID));
+        => parentID <= 0 ? [] : ReadLock(() => _parentIDs!.GetMultiple(parentID));
 
     public List<AnimeGroup> GetAllTopLevelGroups()
         => GetByParentID(0);

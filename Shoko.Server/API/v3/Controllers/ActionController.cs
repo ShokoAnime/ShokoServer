@@ -33,7 +33,7 @@ public class ActionController : BaseController
     private readonly ILogger<ActionController> _logger;
     private readonly AnimeGroupCreator _groupCreator;
     private readonly ActionService _actionService;
-    private readonly AnimeGroupService _groupService;
+    private readonly IShokoGroupManager _groupService;
     private readonly TmdbMetadataService _tmdbMetadataService;
     private readonly TmdbLinkingService _tmdbLinkingService;
     private readonly IVideoService _videoService;
@@ -53,7 +53,7 @@ public class ActionController : BaseController
         ISettingsProvider settingsProvider,
         ActionService actionService,
         AnimeGroupCreator groupCreator,
-        AnimeGroupService groupService,
+        IShokoGroupManager groupService,
         IImageManager imageManager,
         VideoLocalRepository videoLocals,
         JMMUserRepository jmmUsers

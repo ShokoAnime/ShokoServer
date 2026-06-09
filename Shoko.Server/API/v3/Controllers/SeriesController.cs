@@ -102,6 +102,7 @@ public class SeriesController : BaseController
     private readonly TMDB_ShowRepository _tmdbShows;
     private readonly VideoLocal_PlaceRepository _videoLocalPlaces;
     private readonly VideoLocal_UserRepository _videoLocalUsers;
+    private readonly     IShokoGroupManager _groupManagementService;
 
     public SeriesController(
         ISettingsProvider settingsProvider,
@@ -134,7 +135,8 @@ public class SeriesController : BaseController
         TMDB_SeasonRepository tmdbSeasons,
         TMDB_ShowRepository tmdbShows,
         VideoLocal_PlaceRepository videoLocalPlaces,
-        VideoLocal_UserRepository videoLocalUsers
+        VideoLocal_UserRepository videoLocalUsers,
+        IShokoGroupManager groupManagementService
     ) : base(settingsProvider)
     {
         _actionService = actionService;
@@ -167,6 +169,7 @@ public class SeriesController : BaseController
         _tmdbShows = tmdbShows;
         _videoLocalPlaces = videoLocalPlaces;
         _videoLocalUsers = videoLocalUsers;
+        _groupManagementService = groupManagementService;
     }
 
     #region Return messages
@@ -2883,7 +2886,7 @@ public class SeriesController : BaseController
         if (group == null)
             return ValidationProblem("No Group entry for the given groupID", "groupID");
 
-        _seriesService.MoveSeries(series, group);
+        _groupManagementService.MoveSeries(series, group);
 
         return Ok();
     }

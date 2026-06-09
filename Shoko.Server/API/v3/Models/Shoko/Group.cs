@@ -7,13 +7,14 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Core.Update;
+using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-using Shoko.Server.Services;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -265,158 +266,80 @@ public class Group : BaseModel
                 GroupIDs = group.Children.Select(group => group.AnimeGroupID).ToList();
             }
 
-            public Group? MergeWithExisting(AnimeGroup group, int userID, ModelStateDictionary modelState)
+            public Group? MergeWithExisting(AnimeGroup? group, int userID, ModelStateDictionary modelState)
             {
-                // Validate if the parent exists if a parent id is set.
-                AnimeGroup? parent = null;
-                if (ParentGroupID.HasValue && ParentGroupID.Value != 0)
-                {
-                    parent = RepoFactory.AnimeGroup.GetByID(ParentGroupID.Value);
-                    if (parent == null)
-                    {
-                        modelState.AddModelError(nameof(ParentGroupID), $"Unable to get parent group with id \"{ParentGroupID.Value}\".");
-                    }
-                    else
-                    {
-                        if (GroupIDs is not null && parent.IsDescendantOf(GroupIDs))
-                            modelState.AddModelError(nameof(ParentGroupID), "Infinite recursion detected between selected parent group and child groups.");
-                        if (group.AnimeGroupID != 0 && parent.IsDescendantOf(group.AnimeGroupID))
-                            modelState.AddModelError(nameof(ParentGroupID), "Infinite recursion detected between selected parent group and current group.");
-                    }
-                }
-
-                // Get the groups and validate the group ids.
-                var childGroups = GroupIDs == null ? [] : GroupIDs
+                group ??= new() { DateTimeCreated = DateTime.Now, DateTimeUpdated = DateTime.Now };
+                var parent = ParentGroupID is > 0 ? RepoFactory.AnimeGroup.GetByID(ParentGroupID.Value) : null;
+                var groupList = GroupIDs is null ? [] : GroupIDs
                     .Select(groupID => groupID > 0 ? RepoFactory.AnimeGroup.GetByID(groupID) : null)
                     .WhereNotNull()
                     .ToList();
-                if (childGroups.Count != (GroupIDs?.Count ?? 0))
-                {
-                    var unknownGroupIDs = GroupIDs!
-                        .Where(id => !childGroups.Any(childGroup => childGroup.AnimeGroupID == id))
-                        .ToList();
-                    modelState.AddModelError(nameof(GroupIDs), $"Unable to get child groups with ids \"{string.Join("\", \"", unknownGroupIDs)}\".");
-                }
-
-                // Get the series and validate the series ids.
-                var seriesList = SeriesIDs == null ? [] : SeriesIDs
+                var seriesList = SeriesIDs is null ? [] : SeriesIDs
                     .Select(id => id > 0 ? RepoFactory.AnimeSeries.GetByID(id) : null)
                     .WhereNotNull()
                     .ToList();
-                if (seriesList.Count != (SeriesIDs?.Count ?? 0))
-                {
-                    var unknownSeriesIDs = SeriesIDs!
-                        .Where(id => !seriesList.Any(series => series.AnimeSeriesID == id))
-                        .ToList();
-                    modelState.AddModelError(nameof(SeriesIDs), $"Unable to get series with ids \"{string.Join("\", \"", unknownSeriesIDs)}\".");
-                }
-
-                // Get a list of all the series across the new inputs and the existing group.
                 var allSeriesList = seriesList
-                        .Concat(childGroups.SelectMany(childGroup => childGroup.AllSeries))
+                        .Concat(groupList.SelectMany(childGroup => childGroup.AllSeries))
                         .Concat(group.AllSeries)
                         .DistinctBy(series => series.AnimeSeriesID)
                         .ToList();
-                if (allSeriesList.Count == 0)
-                {
-                    modelState.AddModelError(nameof(SeriesIDs), "Unable to create an empty group without any series or child groups.");
-                    modelState.AddModelError(nameof(GroupIDs), "Unable to create an empty group without any series or child groups.");
-                }
+                var preferredSeries = PreferredSeriesID is > 0 ? allSeriesList.FirstOrDefault(series => series.AnimeSeriesID == PreferredSeriesID.Value) : null;
 
-                // Find the preferred series among the list of series.
-                AnimeSeries? preferredSeries = null;
-                if (PreferredSeriesID.HasValue && PreferredSeriesID.Value != 0)
+                // Determine if this is a new or existing group.
+                var groupManager = ISystemService.StaticServices.GetRequiredService<IShokoGroupManager>();
+                try
                 {
-                    preferredSeries = allSeriesList
-                        .FirstOrDefault(series => series.AnimeSeriesID == PreferredSeriesID.Value);
-                    if (preferredSeries == null)
-                        modelState.AddModelError(nameof(PreferredSeriesID), $"Unable to find the preferred series with id \"{PreferredSeriesID.Value}\" within the group.");
-                }
+                    var isNew = group.AnimeGroupID == 0;
+                    if (isNew)
+                    {
+                        group = (AnimeGroup)groupManager.CreateGroup(new()
+                        {
+                            Groups = groupList,
+                            Series = seriesList,
+                            Name = !string.IsNullOrWhiteSpace(Name) ? Name : (preferredSeries?.Title ?? "New Group"),
+                            Description = Description,
+                            ParentGroup = parent,
+                            MainSeries = preferredSeries,
+                        });
+                    }
+                    else
+                    {
+                        var update = new GroupUpdateData
+                        {
+                            Groups = groupList,
+                            Series = seriesList,
+                        };
 
-                // Return now if we encountered any validation errors.
-                if (!modelState.IsValid)
+                        if (HasCustomName is true && !string.IsNullOrWhiteSpace(Name))
+                            update.Name = group.GroupName; // lock current name without changing value
+                        else if (HasCustomName is false)
+                            update.Name = null;
+                        else if (!string.IsNullOrWhiteSpace(Name))
+                            update.Name = Name;
+
+                        if (HasCustomDescription is true && string.IsNullOrWhiteSpace(Description))
+                            update.Description = group.Description;
+                        else if (HasCustomDescription is false)
+                            update.Description = null;
+                        else if (Description is not null)
+                            update.Description = Description;
+
+                        if (ParentGroupID.HasValue)
+                            update.ParentGroup = ParentGroupID.Value is 0 ? null : parent;
+
+                        if (PreferredSeriesID.HasValue)
+                            update.MainSeries = preferredSeries;
+
+                        group = (AnimeGroup)groupManager.UpdateGroup(group, update);
+                    }
+                }
+                catch (GenericValidationException ex)
+                {
+                    foreach (var (key, values) in ex.ValidationErrors)
+                        foreach (var value in values)
+                            modelState.AddModelError(key, value);
                     return null;
-
-                // Save the group now if it's a new group, so we can get a valid
-                // id to use.
-                if (group.AnimeGroupID == 0)
-                    RepoFactory.AnimeGroup.Save(group);
-
-                // Move the group under the new parent.
-                if (ParentGroupID.HasValue)
-                    group.AnimeGroupParentID = ParentGroupID.Value == 0 ? null : ParentGroupID.Value;
-
-                // Move the child groups under the new group.
-                foreach (var childGroup in childGroups)
-                {
-                    // Skip adding child groups already part of the group.
-                    if (childGroup.AnimeGroupParentID.HasValue && childGroup.AnimeGroupParentID.Value == group.AnimeGroupID)
-                        continue;
-
-                    childGroup.AnimeGroupParentID = group.AnimeGroupID;
-                    childGroup.DateTimeUpdated = DateTime.Now;
-                    RepoFactory.AnimeGroup.Save(childGroup, false);
                 }
-
-                // Move the series over to the new group.
-                var seriesService = ISystemService.StaticServices.GetRequiredService<AnimeSeriesService>();
-                foreach (var series in seriesList)
-                    seriesService.MoveSeries(series, group, updateGroupStats: false, updateEvent: false);
-
-                var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
-                // Set the main series and maybe update the group
-                // name/description.
-                if (PreferredSeriesID.HasValue)
-                    groupService.SetMainSeries(group, preferredSeries!);
-
-                // Check if the names have changed if we omit the value, or if
-                // we set it to true.
-                if (HasCustomName ?? true)
-                {
-                    // Lock the name if it's set to true.
-                    if (HasCustomName.HasValue)
-                        group.IsManuallyNamed = 1;
-
-                    // The group name changed.
-                    if (!string.IsNullOrWhiteSpace(Name) && !string.Equals(group.GroupName, Name))
-                    {
-                        group.IsManuallyNamed = 1;
-                        group.GroupName = Name;
-                    }
-                }
-                // Reset the name.
-                else
-                {
-                    group.IsManuallyNamed = 0;
-                    group.GroupName = (preferredSeries ?? group.MainSeries)?.Title ?? group.GroupName;
-                }
-
-                // Same as above, but for the description.
-                if (HasCustomDescription ?? true)
-                {
-                    if (HasCustomDescription.HasValue)
-                        group.OverrideDescription = 1;
-
-                    // The description changed.
-                    if (!string.IsNullOrWhiteSpace(Description) && !string.Equals(group.Description, Description))
-                    {
-                        group.OverrideDescription = 1;
-                        group.Description = Description;
-                    }
-                }
-                // Reset the description.
-                else
-                {
-                    group.OverrideDescription = 0;
-                    group.Description = (preferredSeries ?? group.MainSeries)?.PreferredOverview?.Value ?? group.Description;
-                }
-
-                // Update stats for all groups in the chain
-                groupService.UpdateStatsFromTopLevel(group.TopLevelAnimeGroup, true, true);
-
-                // Emit the updated events now, after the groups and series states have been properly updated.
-                foreach (var series in seriesList)
-                    ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
 
                 // Return a new representation of the group.
                 return new Group(group, userID);

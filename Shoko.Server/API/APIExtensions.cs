@@ -57,6 +57,7 @@ public static partial class APIExtensions
         services.AddSingleton<IEventEmitter, ReleaseEventEmitter>();
         services.AddSingleton<IEventEmitter, UserDataEventEmitter>();
         services.AddSingleton<IEventEmitter, UserEventEmitter>();
+        services.AddSingleton<IEventEmitter, GroupEventEmitter>();
         services.AddSingleton<ShokoServiceImplementationService>();
         services.AddScoped<GeneratedPlaylistService>();
         services.AddScoped<FilterFactory>();

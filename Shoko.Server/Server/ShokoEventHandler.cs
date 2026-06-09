@@ -30,6 +30,12 @@ public class ShokoEventHandler
 
     public event EventHandler<MovieInfoUpdatedEventArgs>? MovieUpdated;
 
+    public event EventHandler<GroupInfoUpdatedEventArgs>? GroupUpdated;
+
+    public event EventHandler<SeriesMovedEventArgs>? SeriesMoved;
+
+    public event EventHandler? GroupsRecreated;
+
     public event EventHandler<AnidbAvdumpEventArgs>? AvdumpEvent;
 
     private static ShokoEventHandler? _instance;
@@ -117,6 +123,23 @@ public class ShokoEventHandler
     {
         ArgumentNullException.ThrowIfNull(movie, nameof(movie));
         MovieUpdated?.Invoke(null, new(movie, reason));
+    }
+
+    public void OnGroupUpdated(IShokoGroup group, UpdateReason reason)
+    {
+        ArgumentNullException.ThrowIfNull(group, nameof(group));
+        GroupUpdated?.Invoke(null, new(group, reason));
+    }
+
+    public void OnSeriesMoved(IShokoSeries series, int oldGroupID, int newGroupID)
+    {
+        ArgumentNullException.ThrowIfNull(series, nameof(series));
+        SeriesMoved?.Invoke(null, new(series, oldGroupID, newGroupID));
+    }
+
+    public void OnGroupsRecreated()
+    {
+        GroupsRecreated?.Invoke(null, EventArgs.Empty);
     }
 
     public void OnAVDumpMessage(AnidbAvdumpEventType messageType, string? message = null)

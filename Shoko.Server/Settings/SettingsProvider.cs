@@ -11,6 +11,7 @@ using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
@@ -146,8 +147,8 @@ public class SettingsProvider : ISettingsProvider, IDisposable
 
         if (shouldRenameAllGroups)
         {
-            var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
-            Task.Factory.StartNew(groupService.RenameAllGroups, TaskCreationOptions.LongRunning);
+            var groupManager = ISystemService.StaticServices.GetRequiredService<IShokoGroupManager>();
+            Task.Factory.StartNew(groupManager.RenameAllGroups, TaskCreationOptions.LongRunning);
         }
     }
 

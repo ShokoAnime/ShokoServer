@@ -16,116 +16,19 @@ public class AnimeGroupService
 
     private readonly AnimeGroup_UserRepository _groupUsers;
 
-    private readonly StoredReleaseInfoRepository _storedReleaseInfo;
-
     private readonly AnimeGroupRepository _groups;
-
-    private readonly AnimeSeries_UserRepository _seriesUsers;
-
-    private readonly AnimeSeriesRepository _animeSeries;
 
     private readonly JMMUserRepository _jmmUsers;
 
     private readonly UserDataService _userDataService;
 
-    public AnimeGroupService(ILogger<AnimeGroupService> logger, AnimeGroup_UserRepository groupUsers, StoredReleaseInfoRepository storedReleaseInfo, AnimeGroupRepository groups,
-        AnimeSeries_UserRepository seriesUsers, IUserDataService userDataService, AnimeSeriesRepository animeSeries, JMMUserRepository jmmUsers)
+    public AnimeGroupService(ILogger<AnimeGroupService> logger, AnimeGroup_UserRepository groupUsers, AnimeGroupRepository groups, IUserDataService userDataService, JMMUserRepository jmmUsers)
     {
         _groupUsers = groupUsers;
         _logger = logger;
-        _storedReleaseInfo = storedReleaseInfo;
         _groups = groups;
-        _seriesUsers = seriesUsers;
         _userDataService = (UserDataService)userDataService;
-        _animeSeries = animeSeries;
         _jmmUsers = jmmUsers;
-    }
-
-    public void DeleteGroup(AnimeGroup group, bool updateParent = true)
-    {
-        // delete all sub groups
-        foreach (var subGroup in group.AllChildren)
-        {
-            DeleteGroup(subGroup, false);
-        }
-
-        _groups.Delete(group);
-
-        // finally update stats
-        if (updateParent)
-        {
-            UpdateStatsFromTopLevel(group.Parent?.TopLevelAnimeGroup, true, true);
-        }
-    }
-
-    public void SetMainSeries(AnimeGroup group, AnimeSeries? series)
-    {
-        // Set the id before potentially resetting the fields, so the getter uses
-        // the new id instead of the old.
-        group.DefaultAnimeSeriesID = series?.AnimeSeriesID;
-
-        ValidateMainSeries(group);
-
-        // Reset the name/description if the group is not manually named.
-        var current = series ?? (group.MainAniDBAnimeID.HasValue
-            ? _animeSeries.GetByAnimeID(group.MainAniDBAnimeID.Value)
-            : group.AllSeries.FirstOrDefault());
-        if (group.IsManuallyNamed == 0 && current != null)
-            group.GroupName = current!.Title;
-        if (group.OverrideDescription == 0 && current != null)
-            group.Description = current!.PreferredOverview?.Value ?? string.Empty;
-
-        // Save the changes for this group only.
-        group.DateTimeUpdated = DateTime.Now;
-        _groups.Save(group, false);
-    }
-
-    public void ValidateMainSeries(AnimeGroup group)
-    {
-        if (group.MainAniDBAnimeID == null && group.DefaultAnimeSeriesID == null) return;
-        var allSeries = group.AllSeries;
-
-        // User overridden main series.
-        if (group.DefaultAnimeSeriesID.HasValue && !allSeries.Any(series => series.AnimeSeriesID == group.DefaultAnimeSeriesID.Value))
-        {
-            throw new InvalidOperationException("Cannot set default series to a series that does not exist in the group");
-        }
-
-        // Auto selected main series.
-        if (group.MainAniDBAnimeID.HasValue && !allSeries.Any(series => series.AniDB_ID == group.MainAniDBAnimeID.Value))
-        {
-            throw new InvalidOperationException("Cannot set default series to a series that does not exist in the group");
-        }
-    }
-
-    /// <summary>
-    /// Rename all groups without a manually set name according to the current
-    /// language preference.
-    /// </summary>
-    public void RenameAllGroups()
-    {
-        _logger.LogInformation("Starting RenameAllGroups");
-        foreach (var grp in _groups.GetAll())
-        {
-            // Skip renaming any groups that are fully manually managed.
-            if (grp.IsManuallyNamed == 1 && grp.OverrideDescription == 1)
-                continue;
-
-            var series = grp.MainSeries;
-            if (series != null)
-            {
-                // Reset the name/description as needed.
-                if (grp.IsManuallyNamed == 0)
-                    grp.GroupName = series.Title;
-                if (grp.OverrideDescription == 0)
-                    grp.Description = series.PreferredOverview?.Value ?? string.Empty;
-
-                // Save the changes for this group only.
-                grp.DateTimeUpdated = DateTime.Now;
-                _groups.Save(grp, false);
-            }
-        }
-        _logger.LogInformation("Finished RenameAllGroups");
     }
 
     /// <summary>

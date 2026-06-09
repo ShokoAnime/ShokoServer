@@ -290,12 +290,17 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
 
     public AnimeSeries? GetByAnimeID(int id)
     {
+        if (id <= 0)
+            return null;
         return ReadLock(() => AniDBIds!.GetOne(id));
     }
 
-    public List<AnimeSeries> GetByGroupID(int groupid)
+    public List<AnimeSeries> GetByGroupID(int groupID)
     {
-        return ReadLock(() => Groups!.GetMultiple(groupid));
+        if (groupID <= 0)
+            return [];
+
+        return ReadLock(() => Groups!.GetMultiple(groupID));
     }
 
     public List<AnimeSeries> GetWithMissingEpisodes()

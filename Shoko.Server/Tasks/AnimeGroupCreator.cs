@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.QueueProcessor;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -308,6 +309,7 @@ public class AnimeGroupCreator
                     _animeSeriesRepo.GetByAnimeID(mainAnimeId);
                 animeGroup = CreateAnimeGroup(mainSeries, mainAnimeId, DateTime.Now);
                 _animeGroupRepo.Save(animeGroup, true);
+                ShokoEventHandler.Instance.OnGroupUpdated(animeGroup, UpdateReason.Added);
             }
             // Update the group details if we have the main series for the group.
             else if (mainAnimeId == series.AniDB_ID)
@@ -329,6 +331,7 @@ public class AnimeGroupCreator
                 }
                 animeGroup.DateTimeUpdated = DateTime.Now;
                 _animeGroupRepo.Save(animeGroup, true);
+                ShokoEventHandler.Instance.OnGroupUpdated(animeGroup, UpdateReason.Updated);
             }
         }
         else // We're not auto grouping (e.g. we're doing group per series)
@@ -336,6 +339,7 @@ public class AnimeGroupCreator
             animeGroup = new AnimeGroup();
             animeGroup.Populate(series, DateTime.Now);
             _animeGroupRepo.Save(animeGroup, true);
+            ShokoEventHandler.Instance.OnGroupUpdated(animeGroup, UpdateReason.Added);
         }
 
         return animeGroup;
@@ -375,6 +379,7 @@ public class AnimeGroupCreator
                 // Find the main series for the group.
                 animeGroup = CreateAnimeGroup(null, mainAnimeId, DateTime.Now);
                 _animeGroupRepo.Save(animeGroup, true);
+                ShokoEventHandler.Instance.OnGroupUpdated(animeGroup, UpdateReason.Added);
             }
             // Update the group details if we have the main series for the group.
             else if (mainAnimeId == anime.AnimeID)
@@ -396,6 +401,7 @@ public class AnimeGroupCreator
                 }
                 animeGroup.DateTimeUpdated = DateTime.Now;
                 _animeGroupRepo.Save(animeGroup, true);
+                ShokoEventHandler.Instance.OnGroupUpdated(animeGroup, UpdateReason.Updated);
             }
         }
         else // We're not auto grouping (e.g. we're doing group per series)
@@ -403,6 +409,7 @@ public class AnimeGroupCreator
             animeGroup = new AnimeGroup();
             animeGroup.Populate(anime, DateTime.Now);
             _animeGroupRepo.Save(animeGroup, true);
+            ShokoEventHandler.Instance.OnGroupUpdated(animeGroup, UpdateReason.Added);
         }
 
         return animeGroup;
@@ -466,6 +473,7 @@ public class AnimeGroupCreator
             _animeGroupUserRepo.Populate(session, false);
 
             _logger.LogInformation("Successfully completed re-creating all groups");
+            ShokoEventHandler.Instance.OnGroupsRecreated();
             taskSource.SetResult();
         }
         catch (Exception e)
