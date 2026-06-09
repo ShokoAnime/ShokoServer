@@ -701,7 +701,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             peopleAdded,
             peopleUpdated,
             peoplePurged,
-            peopleToPurge.Count + peopleToPurge.Count - peopleAdded - peopleUpdated - peoplePurged,
+            peopleToKeep.Count + peopleToPurge.Count - peopleAdded - peopleUpdated - peoplePurged,
             tmdbMovie.EnglishTitle,
             tmdbMovie.Id
         );
@@ -830,21 +830,16 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public async Task PurgeAllUnusedMovies()
     {
-        var allMovies = _tmdbMovies.GetAll().Select(movie => movie.TmdbMovieID)
-            .Concat(_shokoImageXrefRepository.GetByEntity(DataSource.TMDB, DataEntityType.Movie).Select(xref => int.Parse(xref.EntityID)))
-            .Concat(_xrefAnidbTmdbMovies.GetAll().Select(xref => xref.TmdbMovieID))
-            .Concat(_xrefTmdbCompanyEntity.GetAll().Where(x => x.TmdbEntityType is DataEntityType.Movie).Select(x => x.TmdbEntityID))
-            .Concat(_tmdbMovieCast.GetAll().Select(x => x.TmdbMovieID))
-            .Concat(_tmdbMovieCrew.GetAll().Select(x => x.TmdbMovieID))
-            .Concat(_tmdbCollections.GetAll().Select(collection => collection.TmdbCollectionID))
-            .Concat(_xrefTmdbCollectionMovies.GetAll().Select(collectionMovie => collectionMovie.TmdbMovieID))
-            .ToHashSet();
-        var toKeep = _xrefAnidbTmdbMovies.GetAll()
-            .Select(xref => xref.TmdbMovieID)
-            .ToHashSet();
-        var toBePurged = allMovies
-            .Except(toKeep)
-            .ToHashSet();
+        var toKeep = _xrefAnidbTmdbMovies.GetAll().Select(xref => xref.TmdbMovieID).ToHashSet();
+        // Seeded with toKeep so AllCount in the log includes xref-linked IDs that have no TMDB_Movie row yet.
+        var allMovies = new HashSet<int>(toKeep);
+        allMovies.UnionWith(_tmdbMovies.GetAll().Select(m => m.TmdbMovieID));
+        allMovies.UnionWith(_shokoImageXrefRepository.GetByEntity(DataSource.TMDB, DataEntityType.Movie).Select(xref => int.Parse(xref.EntityID)));
+        allMovies.UnionWith(_xrefTmdbCompanyEntity.GetAll().Where(x => x.TmdbEntityType is DataEntityType.Movie).Select(x => x.TmdbEntityID));
+        allMovies.UnionWith(_tmdbMovieCast.GetAll().Select(x => x.TmdbMovieID));
+        allMovies.UnionWith(_tmdbMovieCrew.GetAll().Select(x => x.TmdbMovieID));
+        allMovies.UnionWith(_xrefTmdbCollectionMovies.GetAll().Select(x => x.TmdbMovieID));
+        var toBePurged = allMovies.Except(toKeep).ToHashSet();
 
         _logger.LogInformation("Scheduling {Count} out of {AllCount} movies to be purged.", toBePurged.Count, allMovies.Count);
         foreach (var movieID in toBePurged)
@@ -1220,7 +1215,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
             var episodeBag = new ConcurrentBag<TMDB_Episode>();
             var hiddenEpisodeBag = new ConcurrentBag<TMDB_Episode>();
-            await ProcessWithConcurrencyAsync(_maxConcurrency, season.Episodes!, async (reducedEpisode) =>
+            await ProcessWithConcurrencyAsync(1, season.Episodes!, async (reducedEpisode) =>
             {
                 _logger.LogDebug("Checking episode {EpisodeNumber} in season {SeasonNumber} for show {ShowTitle} (Show={ShowId})", reducedEpisode.EpisodeNumber, reducedSeason.SeasonNumber, show.Name, show.Id);
                 if (!existingEpisodes.TryGetValue(reducedEpisode.Id, out var tmdbEpisode))
@@ -1346,7 +1341,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
         if (quickRefresh)
             return (
-                seasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || episodesToSave.IsEmpty || episodesToRemove.Count > 0,
+                seasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || !episodesToSave.IsEmpty || episodesToRemove.Count > 0,
                 seasonEventsToEmit.ToDictionary(),
                 episodeEventsToEmit.ToDictionary(),
                 totalEpisodeCount,
@@ -1397,7 +1392,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         );
 
         return (
-            seasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || episodesToSave.IsEmpty || episodesToRemove.Count > 0 || peopleAdded > 0 || peoplePurged > 0,
+            seasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || !episodesToSave.IsEmpty || episodesToRemove.Count > 0 || peopleAdded > 0 || peoplePurged > 0,
             seasonEventsToEmit.ToDictionary(),
             episodeEventsToEmit.ToDictionary(),
             totalEpisodeCount,
@@ -1928,23 +1923,19 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public async Task PurgeAllUnusedShows()
     {
-        var allShows = _tmdbShows.GetAll().Select(show => show.TmdbShowID)
-            .Concat(_shokoImageXrefRepository.GetByEntity(DataSource.TMDB, DataEntityType.Show).Select(xref => int.Parse(xref.EntityID)))
-            .Concat(_xrefAnidbTmdbShows.GetAll().Select(xref => xref.TmdbShowID))
-            .Concat(_xrefTmdbCompanyEntity.GetAll().Where(x => x.TmdbEntityType is DataEntityType.Show).Select(x => x.TmdbEntityID))
-            .Concat(_xrefTmdbShowNetwork.GetAll().Select(x => x.TmdbShowID))
-            .Concat(_tmdbSeasons.GetAll().Select(x => x.TmdbShowID))
-            .Concat(_tmdbEpisodes.GetAll().Select(x => x.TmdbShowID))
-            .Concat(_tmdbAlternateOrdering.GetAll().Select(ordering => ordering.TmdbShowID))
-            .Concat(_tmdbAlternateOrderingSeasons.GetAll().Select(season => season.TmdbShowID))
-            .Concat(_tmdbAlternateOrderingEpisodes.GetAll().Select(episode => episode.TmdbShowID))
-            .ToHashSet();
-        var toKeep = _xrefAnidbTmdbShows.GetAll()
-            .Select(xref => xref.TmdbShowID)
-            .ToHashSet();
-        var toBePurged = allShows
-            .Except(toKeep)
-            .ToHashSet();
+        var toKeep = _xrefAnidbTmdbShows.GetAll().Select(xref => xref.TmdbShowID).ToHashSet();
+        // Seeded with toKeep so AllCount in the log includes xref-linked IDs that have no TMDB_Show row yet.
+        var allShows = new HashSet<int>(toKeep);
+        allShows.UnionWith(_tmdbShows.GetAll().Select(s => s.TmdbShowID));
+        allShows.UnionWith(_shokoImageXrefRepository.GetByEntity(DataSource.TMDB, DataEntityType.Show).Select(xref => int.Parse(xref.EntityID)));
+        allShows.UnionWith(_xrefTmdbCompanyEntity.GetAll().Where(x => x.TmdbEntityType is DataEntityType.Show).Select(x => x.TmdbEntityID));
+        allShows.UnionWith(_xrefTmdbShowNetwork.GetAll().Select(x => x.TmdbShowID));
+        allShows.UnionWith(_tmdbSeasons.GetAll().Select(x => x.TmdbShowID));
+        allShows.UnionWith(_tmdbEpisodes.GetAll().Select(x => x.TmdbShowID));
+        allShows.UnionWith(_tmdbAlternateOrdering.GetAll().Select(x => x.TmdbShowID));
+        allShows.UnionWith(_tmdbAlternateOrderingSeasons.GetAll().Select(x => x.TmdbShowID));
+        allShows.UnionWith(_tmdbAlternateOrderingEpisodes.GetAll().Select(x => x.TmdbShowID));
+        var toBePurged = allShows.Except(toKeep).ToHashSet();
 
         _logger.LogInformation("Scheduling {Count} out of {AllCount} shows to be purged.", toBePurged.Count, allShows.Count);
         foreach (var showID in toBePurged)
@@ -2011,19 +2002,20 @@ public class TmdbMetadataService : ITmdbMetadataService
         var xrefsToRemove = _xrefTmdbShowNetwork.GetByTmdbShowID(showId);
         foreach (var xref in xrefsToRemove)
         {
-            // Delete xref or purge company.
+            // Delete xref or purge network. Always delete the xref first so PurgeShowNetwork's
+            // re-check guard sees Count == 0 and proceeds with cleanup.
             var xrefs = _xrefTmdbShowNetwork.GetByTmdbNetworkID(xref.TmdbNetworkID);
-            if (xrefs.Count > 1)
-                _xrefTmdbShowNetwork.Delete(xref);
-            else
+            _xrefTmdbShowNetwork.Delete(xref);
+            if (xrefs.Count == 1)
                 await PurgeShowNetwork(xref.TmdbNetworkID);
         }
     }
 
     public async Task PurgeUnlinkedShowNetworks()
     {
-        var networks = _tmdbNetwork.GetAll().Where(p => _xrefTmdbShowNetwork.GetByTmdbNetworkID(p.TmdbNetworkID).Count == 0).ToList();
-        _logger.LogDebug("Checking {count} orphaned staff members if they should be purged.", networks.Count);
+        var linkedNetworkIds = _xrefTmdbShowNetwork.GetAll().Select(x => x.TmdbNetworkID).ToHashSet();
+        var networks = _tmdbNetwork.GetAll().Where(p => !linkedNetworkIds.Contains(p.TmdbNetworkID)).ToList();
+        _logger.LogDebug("Checking {count} orphaned networks if they should be purged.", networks.Count);
         foreach (var network in networks)
             await PurgeShowNetwork(network.TmdbNetworkID);
     }
@@ -2032,6 +2024,10 @@ public class TmdbMetadataService : ITmdbMetadataService
     {
         using (await GetLockForEntity(DataEntityType.Network, networkId, "metadata & images", "Purge").ConfigureAwait(false))
         {
+            // Re-check under the lock: abort if the network was re-linked since the caller's snapshot.
+            if (_xrefTmdbShowNetwork.GetByTmdbNetworkID(networkId).Count > 0)
+                return;
+
             var tmdbNetwork = _tmdbNetwork.GetByTmdbNetworkID(networkId);
             if (tmdbNetwork is not null)
             {
@@ -2053,13 +2049,6 @@ public class TmdbMetadataService : ITmdbMetadataService
             }
 
             _imageService.PurgeImages(tmdbNetwork ?? new() { TmdbNetworkID = networkId });
-
-            var xrefs = _xrefTmdbShowNetwork.GetByTmdbNetworkID(networkId);
-            if (xrefs.Count > 0)
-            {
-                _logger.LogDebug("Removing {count} cross-references for TMDB Network (Network={NetworkId})", xrefs.Count, networkId);
-                _xrefTmdbShowNetwork.Delete(xrefs);
-            }
         }
     }
 
@@ -2503,9 +2492,10 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public async Task PurgeUnlinkedPeople()
     {
-        var people = _tmdbPeople.GetAll().Where(p => !IsPersonLinkedToOtherEntities(p.TmdbPersonID)).ToList();
+        var linkedPersonIds = GetLinkedPersonIds();
+        var people = _tmdbPeople.GetAll().Where(p => !linkedPersonIds.Contains(p.TmdbPersonID)).ToList();
         _logger.LogDebug("Checking {count} orphaned staff members if they should be purged.", people.Count);
-        await ProcessWithConcurrencyAsync(_maxConcurrency, people, person => PurgePerson(person.TmdbPersonID, force: true));
+        await ProcessWithConcurrencyAsync(_maxConcurrency, people, person => PurgePerson(person.TmdbPersonID));
     }
 
     public async Task<bool> PurgePerson(int personId, bool force = false)
@@ -2519,13 +2509,13 @@ public class TmdbMetadataService : ITmdbMetadataService
             {
                 if (!person.LastOrphanedAt.HasValue)
                 {
-                    person.LastOrphanedAt = DateTime.Now;
+                    person.LastOrphanedAt = DateTime.UtcNow;
                     _tmdbPeople.Save(person);
                     _logger.LogDebug("Marked staff member as orphaned. (Person={PersonId})", personId);
                     return false;
                 }
                 // Keep orphaned people for 7 days before purging.
-                if (person.LastOrphanedAt.Value.AddDays(7) > DateTime.Now)
+                if (person.LastOrphanedAt.Value.AddDays(7) > DateTime.UtcNow)
                 {
                     _logger.LogDebug("Staff member has not been orphaned for 7 days yet. Skipping. (Person={PersonId})", personId);
                     return false;
@@ -2604,6 +2594,16 @@ public class TmdbMetadataService : ITmdbMetadataService
         }
     }
 
+    private HashSet<int> GetLinkedPersonIds()
+    {
+        var ids = new HashSet<int>();
+        ids.UnionWith(_tmdbMovieCast.GetAll().Select(x => x.TmdbPersonID));
+        ids.UnionWith(_tmdbMovieCrew.GetAll().Select(x => x.TmdbPersonID));
+        ids.UnionWith(_tmdbEpisodeCast.GetAll().Select(x => x.TmdbPersonID));
+        ids.UnionWith(_tmdbEpisodeCrew.GetAll().Select(x => x.TmdbPersonID));
+        return ids;
+    }
+
     private bool IsPersonLinkedToOtherEntities(int tmdbPersonId)
     {
         var movieCastLinks = _tmdbMovieCast.GetByTmdbPersonID(tmdbPersonId);
@@ -2665,9 +2665,9 @@ public class TmdbMetadataService : ITmdbMetadataService
             {
                 await task.ConfigureAwait(false);
             }
-            catch (OperationCanceledException oce) when (oce.CancellationToken == cancellationTokenSource.Token)
+            catch (OperationCanceledException)
             {
-                // Task was cancelled because another task failed — not counted as an error.
+                // Task was cancelled (internal failure or external shutdown) — not counted as an error.
             }
             catch (Exception ex)
             {
