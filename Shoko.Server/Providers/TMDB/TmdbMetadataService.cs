@@ -2015,7 +2015,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     {
         var linkedNetworkIds = _xrefTmdbShowNetwork.GetAll().Select(x => x.TmdbNetworkID).ToHashSet();
         var networks = _tmdbNetwork.GetAll().Where(p => !linkedNetworkIds.Contains(p.TmdbNetworkID)).ToList();
-        _logger.LogDebug("Checking {count} orphaned networks if they should be purged.", networks.Count);
+        _logger.LogDebug("Checking {Count} orphaned networks if they should be purged.", networks.Count);
         foreach (var network in networks)
             await PurgeShowNetwork(network.TmdbNetworkID);
     }
