@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.270",
+      "tag": "v6.0.0-dev.270",
+      "commit": "f93ab22a6ed5b8e525e67b7608159f87866ca214",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.270/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-10T13:38:18Z",
+      "releaseNotes": "\n`fix` (`tmdb`): **Lower default rate limit from 30 to 10 requests per second**:\n\nConservative default to avoid overwhelming end-user hardware with API\nrequests and the data processing each response triggers.\n\n`fix` (`tmdb`): **Correct episodesToSave inversion and fix purge method issues**:\n\n- Fix inverted `episodesToSave.IsEmpty` check — was returning `changed=true`\n  when no episodes changed, causing spurious DB saves and `OnSeriesUpdated`\n  events on every quick-refresh pass\n- `PurgeAllUnusedMovies` / `PurgeAllUnusedShows`: replace chained `Concat`\n  iterators with `HashSet.UnionWith`; eliminates duplicate `GetAll()` on the\n  AniDB xref table\n- `PurgeUnlinkedShowNetworks`: precompute linked network ID set; add re-check\n  under lock to prevent purging a network re-linked by a concurrent show update;\n  fix log message copy-paste (\"staff members\" → \"networks\")\n- `PurgeUnlinkedPeople`: extract `GetLinkedPersonIds()` as single source of\n  truth for the four cast/crew tables; eliminates N+1 queries\n\n`chore` (`tmdb`): **Fix log placeholder casing in PurgeUnlinkedShowNetworks**. (_Skip CI_)\n\n`chore` (`tmdb`): **Fix `contentRanting` typo in local variable names**.\n"
+    },
+    {
       "version": "6.0.0.269",
       "tag": "v6.0.0-dev.269",
       "commit": "70356b0839af38c9f020c9e1acdce47f02e133f3",
