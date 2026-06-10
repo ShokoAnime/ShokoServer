@@ -499,13 +499,13 @@ public class TmdbMetadataService : ITmdbMetadataService
 
             var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
             var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
-            var contentRantingLanguages = settings.TMDB.DownloadAllContentRatings
+            var contentRatingLanguages = settings.TMDB.DownloadAllContentRatings
                 ? null
                 : Languages.PreferredNamingLanguages.Select(a => a.Language)
                     .Concat(Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language))
                     .Except([TitleLanguage.Main, TitleLanguage.Unknown, TitleLanguage.None])
                     .ToHashSet();
-            var updated = tmdbMovie.Populate(movie, contentRantingLanguages);
+            var updated = tmdbMovie.Populate(movie, contentRatingLanguages);
             var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbMovie, movie.Translations, preferredTitleLanguages, preferredOverviewLanguages);
             updated = titlesUpdated || overviewsUpdated || updated;
             updated = UpdateMovieExternalIDs(tmdbMovie, movie.ExternalIds!) || updated;
@@ -1093,14 +1093,14 @@ public class TmdbMetadataService : ITmdbMetadataService
 
             var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
             var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
-            var contentRantingLanguages = settings.TMDB.DownloadAllContentRatings
+            var contentRatingLanguages = settings.TMDB.DownloadAllContentRatings
                 ? null
                 : Languages.PreferredNamingLanguages.Select(a => a.Language)
                     .Concat(Languages.PreferredEpisodeNamingLanguages.Select(a => a.Language))
                     .Except([TitleLanguage.Main, TitleLanguage.Unknown, TitleLanguage.None])
                     .ToHashSet();
             var shouldFireEvents = !quickRefresh || xrefs.Count > 0;
-            var updated = tmdbShow.Populate(show, contentRantingLanguages);
+            var updated = tmdbShow.Populate(show, contentRatingLanguages);
             var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages);
             updated = titlesUpdated || overviewsUpdated || updated;
             updated = UpdateShowExternalIDs(tmdbShow, show.ExternalIds!) || updated;
