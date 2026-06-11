@@ -710,8 +710,7 @@ public class VideoReleaseService(
             // If the new release info is **EXACTLY** the same as the existing one, then just return the existing one.
             if (existingRelease == releaseInfo)
             {
-                existingRelease.LastUpdatedAt = DateTime.Now;
-                matchAttempt.AttemptEndedAt = existingRelease.LastUpdatedAt;
+                matchAttempt.AttemptEndedAt = DateTime.Now;
                 releaseInfoRepository.Save(existingRelease);
                 releaseInfoMatchAttemptRepository.Save(matchAttempt);
                 return existingRelease;
