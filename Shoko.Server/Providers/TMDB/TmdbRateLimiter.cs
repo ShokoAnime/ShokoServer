@@ -76,6 +76,8 @@ public sealed class TmdbRateLimiter : IDisposable
         {
             PermitLimit = maxRequests,
             Window = TimeSpan.FromMilliseconds(windowMs),
+            // 10 segments divide the window into sub-intervals, smoothing request distribution and
+            // reducing burst spikes that would occur at the boundary of a single-segment window.
             SegmentsPerWindow = 10,
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = int.MaxValue,
@@ -93,6 +95,8 @@ public sealed class TmdbRateLimiter : IDisposable
         var until = DateTimeOffset.UtcNow + delay;
         var newTicks = until.UtcTicks;
         long current;
+        // CAS loop: multiple concurrent callers may receive 429s at the same time.
+        // Keep whichever deadline is furthest in the future so the longest backoff wins.
         do
         {
             current = Interlocked.Read(ref _backoffUntilTicks);
@@ -125,6 +129,8 @@ public sealed class TmdbRateLimiter : IDisposable
 
     private async Task WaitForBackoffAsync(CancellationToken cancellationToken = default)
     {
+        // Loop: a concurrent 429 can arrive mid-wait and push the deadline forward.
+        // Re-read the ticks after each delay to catch that case before returning.
         while (true)
         {
             var backoffTicks = Interlocked.Read(ref _backoffUntilTicks);

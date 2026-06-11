@@ -194,8 +194,10 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private readonly TmdbRateLimiter _rateLimiter;
 
-    // This policy, together with the above policy, will ensure the rate limits are enforced, while also ensuring we
-    // throw if an exception that's not rate-limit related is thrown.
+    // Retries on HTTP/rate-limit/general HTTP exceptions. The zero-delay between retries is intentional —
+    // actual rate-limit pausing happens inside TmdbRateLimiter.EnsureRateAsync. int.MaxValue retries are
+    // safe because OnTmdbRetryAsync enforces per-type caps (10 for 429s, 3 for timeouts) and re-throws
+    // immediately for all other exception types.
     private readonly AsyncRetryPolicy _retryPolicy;
 
     private readonly KeyedEntityLockHelper _entityLock;
@@ -682,6 +684,8 @@ public class TmdbMetadataService : ITmdbMetadataService
         }
         catch (AggregateException ex)
         {
+            // Partial cast/crew failures are non-fatal: a missing person record does not invalidate the
+            // movie. Log and continue so a transient API error doesn't abort the entire movie update.
             _logger.LogWarning(ex, "TMDB: Failed to update one or more people during movie cast/crew update (Movie={MovieId})", tmdbMovie.Id);
         }
         try
@@ -694,6 +698,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         }
         catch (AggregateException ex)
         {
+            // Same reasoning: a purge failure for one person should not block cleanup of the rest.
             _logger.LogWarning(ex, "TMDB: Failed to purge one or more people during movie cast/crew update (Movie={MovieId})", tmdbMovie.Id);
         }
 
@@ -832,6 +837,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     {
         var toKeep = _xrefAnidbTmdbMovies.GetAll().Select(xref => xref.TmdbMovieID).ToHashSet();
         // Seeded with toKeep so AllCount in the log includes xref-linked IDs that have no TMDB_Movie row yet.
+        // UnionWith calls each GetAll() exactly once; a Concat chain would re-enumerate the same sources.
         var allMovies = new HashSet<int>(toKeep);
         allMovies.UnionWith(_tmdbMovies.GetAll().Select(m => m.TmdbMovieID));
         allMovies.UnionWith(_shokoImageXrefRepository.GetByEntity(DataSource.TMDB, DataEntityType.Movie).Select(xref => int.Parse(xref.EntityID)));
@@ -1215,6 +1221,9 @@ public class TmdbMetadataService : ITmdbMetadataService
 
             var episodeBag = new ConcurrentBag<TMDB_Episode>();
             var hiddenEpisodeBag = new ConcurrentBag<TMDB_Episode>();
+            // Concurrency 1: episode tasks run inside the outer season loop which already runs at
+            // _maxConcurrency. Allowing episode parallelism too would produce _maxConcurrency² API
+            // calls in flight simultaneously, overwhelming the rate limiter.
             await ProcessWithConcurrencyAsync(1, season.Episodes!, async (reducedEpisode) =>
             {
                 _logger.LogDebug("Checking episode {EpisodeNumber} in season {SeasonNumber} for show {ShowTitle} (Show={ShowId})", reducedEpisode.EpisodeNumber, reducedSeason.SeasonNumber, show.Name, show.Id);
@@ -1367,6 +1376,8 @@ public class TmdbMetadataService : ITmdbMetadataService
         }
         catch (AggregateException ex)
         {
+            // Partial cast/crew failures are non-fatal: a missing person record does not invalidate
+            // the show. Log and continue so a transient API error doesn't abort the entire show update.
             _logger.LogWarning(ex, "TMDB: Failed to update one or more people during show cast/crew update (Show={ShowId})", show.Id);
         }
         try
@@ -1379,6 +1390,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         }
         catch (AggregateException ex)
         {
+            // Same reasoning: a purge failure for one person should not block cleanup of the rest.
             _logger.LogWarning(ex, "TMDB: Failed to purge one or more people during show cast/crew update (Show={ShowId})", show.Id);
         }
 
@@ -1925,6 +1937,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     {
         var toKeep = _xrefAnidbTmdbShows.GetAll().Select(xref => xref.TmdbShowID).ToHashSet();
         // Seeded with toKeep so AllCount in the log includes xref-linked IDs that have no TMDB_Show row yet.
+        // UnionWith calls each GetAll() exactly once; a Concat chain would re-enumerate the same sources.
         var allShows = new HashSet<int>(toKeep);
         allShows.UnionWith(_tmdbShows.GetAll().Select(s => s.TmdbShowID));
         allShows.UnionWith(_shokoImageXrefRepository.GetByEntity(DataSource.TMDB, DataEntityType.Show).Select(xref => int.Parse(xref.EntityID)));
@@ -2013,6 +2026,8 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     public async Task PurgeUnlinkedShowNetworks()
     {
+        // Build the linked-network set once before iterating. Checking inside the loop would
+        // issue a DB query per network; precomputing keeps the snapshot consistent and avoids N queries.
         var linkedNetworkIds = _xrefTmdbShowNetwork.GetAll().Select(x => x.TmdbNetworkID).ToHashSet();
         var networks = _tmdbNetwork.GetAll().Where(p => !linkedNetworkIds.Contains(p.TmdbNetworkID)).ToList();
         _logger.LogDebug("Checking {Count} orphaned networks if they should be purged.", networks.Count);
@@ -2594,6 +2609,12 @@ public class TmdbMetadataService : ITmdbMetadataService
         }
     }
 
+    /// <summary>
+    /// Returns the set of all person IDs currently referenced by at least one cast or crew record
+    /// across movies and episodes. Used as the single source of truth when deciding which
+    /// <see cref="TMDB_Person"/> records are safe to purge, avoiding the old pattern of issuing
+    /// up to 4 DB queries per person to check linkage.
+    /// </summary>
     private HashSet<int> GetLinkedPersonIds()
     {
         var ids = new HashSet<int>();
@@ -2646,6 +2667,9 @@ public class TmdbMetadataService : ITmdbMetadataService
         var tasks = enumerable
             .Select(item => Task.Run(async () =>
             {
+                // The semaphore is acquired inside the Task.Run lambda so all tasks are started
+                // immediately but only maxConcurrent proceed at a time. Tasks that haven't acquired
+                // the semaphore yet are cancelled cleanly when cancellationTokenSource fires.
                 await semaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
                 try
                 {
@@ -2656,6 +2680,7 @@ public class TmdbMetadataService : ITmdbMetadataService
                     semaphore.Release();
                 }
             }))
+            // HashSet gives O(1) removal after Task.WhenAny; a List would scan the whole set each time.
             .ToHashSet();
         while (tasks.Count > 0)
         {
@@ -2672,6 +2697,9 @@ public class TmdbMetadataService : ITmdbMetadataService
             catch (Exception ex)
             {
                 exceptions.Add(ex);
+                // Abort once failures fill all concurrency slots: a systemic error would keep piling
+                // up exceptions with no successful work happening. Cancel remaining tasks and surface
+                // everything at once via AggregateException.
                 if (exceptions.Count >= maxConcurrent)
                 {
                     cancellationTokenSource.Cancel();
