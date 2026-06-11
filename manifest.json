@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.274",
+      "tag": "v6.0.0-dev.274",
+      "commit": "6d5e43768821a5f34da741c47bd4336f5411545c",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.274/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-11T03:13:55Z",
+      "releaseNotes": "\n`fix`: **Re-use the last imported at date if the release URI matches between the old and new release**.\n"
+    },
+    {
       "version": "6.0.0.273",
       "tag": "v6.0.0-dev.273",
       "commit": "7db2d091146b7a3f19b5d2ca130581e3d788c577",
