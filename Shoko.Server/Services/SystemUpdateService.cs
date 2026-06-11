@@ -245,7 +245,7 @@ public partial class SystemUpdateService(
         var versions = await FetchManifestAsync(ClientManifestUrl, "web-manifest.json", false);
         var entry = versions.FirstOrDefault(e => e.Version == version.Version);
         if (entry.Entry is null)
-            throw new ArgumentException("Version not found in web-component manifest history!", nameof(version));
+            return false;
 
         await DownloadAndInstallUpdate(entry.Entry.DownloadUrl, version);
 
