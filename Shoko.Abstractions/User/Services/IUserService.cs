@@ -175,18 +175,18 @@ public interface IUserService
     IUser? AuthenticateUser(string username, string password);
 
     /// <summary>
-    ///   List all registered REST API devices for the user.
+    ///   Get all API tokens for a user.
     /// </summary>
     /// <param name="user">
-    ///   The user to list the tokens for.
+    ///   The user to list tokens for.
     /// </param>
     /// <returns>
-    ///   The device names registered for the user.
+    ///   The API tokens registered for the user.
     /// </returns>
-    IReadOnlyList<string> ListRestApiDevicesForUser(IUser user);
+    IReadOnlyList<ApiToken> GetApiTokensForUser(IUser user);
 
     /// <summary>
-    ///   Generate a new REST API token for the given user.
+    ///   Generate a new API token for the given user.
     /// </summary>
     /// <param name="user">
     ///   The user to generate the token for.
@@ -199,24 +199,49 @@ public interface IUserService
     ///   <paramref name="deviceName"/> is <c>null</c> or empty.
     /// </exception>
     /// <returns>
-    ///   The newly created or existing REST API token for the user and device.
+    ///   The newly created or existing API token for the user and device.
     /// </returns>
-    Task<string> GenerateRestApiTokenForUser(IUser user, string deviceName);
+    Task<ApiToken> GenerateApiTokenForUser(IUser user, string deviceName);
 
     /// <summary>
-    ///   Get the REST API token and device name from the HTTP context.
+    ///   Generate a new API token for the given user with an expiration time.
+    /// </summary>
+    /// <param name="user">
+    ///   The user to generate the token for.
+    /// </param>
+    /// <param name="deviceName">
+    ///   Device name to set for the API key.
+    /// </param>
+    /// <param name="expiresAt">
+    ///   The time at which the token expires. Must be at least 57 seconds from
+    ///   <see cref="DateTime.Now"/>.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="user"/> is <c>null</c> or
+    ///   <paramref name="deviceName"/> is <c>null</c> or empty.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="expiresAt"/> is less than 57 seconds from
+    ///   <see cref="DateTime.Now"/>.
+    /// </exception>
+    /// <returns>
+    ///   The newly created API token for the user and device.
+    /// </returns>
+    Task<ApiToken> GenerateApiTokenForUser(IUser user, string deviceName, DateTime expiresAt);
+
+    /// <summary>
+    ///   Get the API token from the HTTP context.
     /// </summary>
     /// <param name="context">
     ///   The HTTP context.
     /// </param>
     /// <returns>
-    ///   The REST API token and device name as a tuple if authenticated through
-    ///   the HTTP context, otherwise an empty tuple with <c>null</c> values.
+    ///   The API token if authenticated through the HTTP context, otherwise <c>null</c>.
     /// </returns>
-    (string? Token, string? DeviceName) GetRestApiTokenFromHttpContext(HttpContext context);
+    ApiToken? GetApiTokenFromHttpContext(HttpContext context);
 
     /// <summary>
-    ///   Invalidate a REST API token for the given user and device.
+    ///   Invalidate a API token for the given user and device.
     /// </summary>
     /// <param name="user">
     ///   The user to invalidate the token for.
@@ -227,10 +252,10 @@ public interface IUserService
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
-    Task<bool> InvalidateRestApiDeviceForUser(IUser user, string deviceName);
+    Task<bool> InvalidateApiDeviceForUser(IUser user, string deviceName);
 
     /// <summary>
-    ///   Invalidate all REST API tokens for the given user.
+    ///   Invalidate all API tokens for the given user.
     /// </summary>
     /// <param name="user">
     ///   The user to invalidate the tokens for.
@@ -238,16 +263,27 @@ public interface IUserService
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
-    Task<bool> InvalidateRestApiTokensForUser(IUser user);
+    Task<bool> InvalidateApiTokensForUser(IUser user);
 
     /// <summary>
-    ///   Invalidate the given REST API token.
+    ///   Invalidate the given API token.
     /// </summary>
     /// <param name="token">
-    ///   The token to invalidate the token for.
+    ///   The token to invalidate.
     /// </param>
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
-    Task<bool> InvalidateRestApiToken(string token);
+    Task<bool> InvalidateApiToken(ApiToken token);
+
+    /// <summary>
+    ///   Invalidate the given API token.
+    /// </summary>
+    /// <param name="token">
+    ///   The token to invalidate.
+    /// </param>
+    /// <returns>
+    ///   A task representing the asynchronous operation.
+    /// </returns>
+    Task<bool> InvalidateApiToken(string token);
 }

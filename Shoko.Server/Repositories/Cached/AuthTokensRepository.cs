@@ -31,11 +31,19 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
         var tokens = ReadLock(_tokens!.GetMultiple(token.ToLowerInvariant().Trim()).ToList);
         var auth = tokens.FirstOrDefault();
-        if (tokens.Count <= 1)
-            return auth;
+        if (tokens.Count > 1)
+        {
+            tokens.Remove(auth);
+            Delete(tokens);
+        }
 
-        tokens.Remove(auth);
-        tokens.ForEach(Delete);
+        // Lazy-invalidate the token upon read if it hasn't been cleaned up yet.
+        if (auth is { ExpiresAt: not null } && auth.ExpiresAt.Value < DateTime.Now)
+        {
+            Delete(auth);
+            return null;
+        }
+
         return auth;
     }
 
@@ -52,46 +60,55 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
             return false;
 
         var tokens = ReadLock(() => _tokens!.GetMultiple(token));
-        tokens.ForEach(Delete);
+        Delete(tokens);
         return tokens.Count > 0;
     }
 
     public IReadOnlyList<AuthTokens> GetByUserID(int userID)
         => ReadLock(() => _userIDs!.GetMultiple(userID));
 
-    public string CreateNewApiKey(JMMUser user, string device)
+    public AuthTokens CreateNewApiKey(JMMUser user, string device)
     {
-        if (user == null)
-            return string.Empty;
-
-        // get tokens that are invalid
-        var uid = user.JMMUserID;
-        var ids = ReadLock(() => _userIDs!.GetMultiple(uid));
-        var tokens = ids.Where(a => !string.IsNullOrEmpty(a.Token) && a.DeviceName.Trim().Equals(device.Trim(), StringComparison.InvariantCultureIgnoreCase))
+        var allTokensForUser = ReadLock(() => _userIDs!.GetMultiple(user.JMMUserID));
+        var existingTokens = allTokensForUser
+            .Where(a => !a.ExpiresAt.HasValue && !string.IsNullOrEmpty(a.Token) && a.DeviceName.Trim().Equals(device.Trim(), StringComparison.InvariantCultureIgnoreCase))
             .ToList();
-        var auth = tokens.FirstOrDefault();
-        if (tokens.Count > 1)
-        {
-            if (auth != null)
-                tokens.Remove(auth);
-
-            Delete(tokens);
-        }
-
-        var invalidTokens = ids
+        var invalidTokens = allTokensForUser
             .Where(a => string.IsNullOrEmpty(a.Token))
             .ToList();
+        if (existingTokens.Count > 1)
+            invalidTokens.AddRange(existingTokens.Skip(1));
+
         Delete(invalidTokens);
 
-        var apiKey = auth?.Token.ToLowerInvariant().Trim() ?? string.Empty;
+        var validToken = existingTokens.FirstOrDefault();
+        if (!string.IsNullOrEmpty(validToken?.Token.ToLowerInvariant().Trim()))
+            return validToken!;
 
-        if (!string.IsNullOrEmpty(apiKey))
-            return apiKey;
+        var token = new AuthTokens
+        {
+            UserID = user.JMMUserID,
+            DeviceName = device.Trim(),
+            Token = Guid.NewGuid().ToString().ToLowerInvariant().Trim(),
+        };
 
-        apiKey = Guid.NewGuid().ToString().ToLowerInvariant().Trim();
-        var newToken = new AuthTokens { UserID = uid, DeviceName = device.Trim(), Token = apiKey };
-        Save(newToken);
+        Save(token);
 
-        return apiKey;
+        return token;
+    }
+
+    public AuthTokens CreateExpiringApiKey(JMMUser user, string device, DateTime expiresAt)
+    {
+        var token = new AuthTokens
+        {
+            UserID = user.JMMUserID,
+            DeviceName = device.Trim(),
+            Token = Guid.NewGuid().ToString().ToLowerInvariant().Trim(),
+            ExpiresAt = expiresAt,
+        };
+
+        Save(token);
+
+        return token;
     }
 }

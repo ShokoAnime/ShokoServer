@@ -741,7 +741,7 @@ public class GeneratedPlaylistService(
         if (string.IsNullOrEmpty(apiKey))
         {
             var user = contextAccessor.HttpContext.GetUser();
-            apiKey = authTokensRepository.CreateNewApiKey(user, "playlist");
+            apiKey = authTokensRepository.CreateNewApiKey(user, "playlist").Token;
         }
         foreach (var (episodes, videos) in playlist)
         {

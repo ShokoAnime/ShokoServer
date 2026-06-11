@@ -267,6 +267,7 @@ public class UserService(
             }
         }
 
+        _authTokensRepository.DeleteAllWithUserID(user.ID);
         _groupUserRepository.Delete(_groupUserRepository.GetByUserID(user.ID));
         _seriesUserRepository.Delete(_seriesUserRepository.GetByUserID(user.ID));
         _episodeUserRepository.Delete(_episodeUserRepository.GetByUserID(user.ID));
@@ -278,25 +279,56 @@ public class UserService(
     public IUser? AuthenticateUser(string username, string password)
         => string.IsNullOrEmpty(username) ? null : _userRepository.AuthenticateUser(username, password);
 
-    public (string? Token, string? DeviceName) GetRestApiTokenFromHttpContext(HttpContext context)
-        => context.GetToken();
+    public ApiToken? GetApiTokenFromHttpContext(HttpContext context)
+    {
+        var (token, device) = context.GetToken();
+        if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(device))
+            return null;
 
-    public Task<string> GenerateRestApiTokenForUser(IUser user, string deviceName)
+        var authToken = _authTokensRepository.GetByToken(token);
+        if (authToken is null)
+            return null;
+
+        var user = _userRepository.GetByID(authToken.UserID);
+        if (user is null)
+            return null;
+
+        return new ApiToken(user, authToken.DeviceName, token, authToken.ExpiresAt);
+    }
+
+    public Task<ApiToken> GenerateApiTokenForUser(IUser user, string deviceName)
     {
         ArgumentNullException.ThrowIfNull(user);
         if (user.ID is <= 0 || _userRepository.GetByID(user.ID) is not { } otherUser)
             throw new ArgumentException("User is not stored in the database!", nameof(user));
 
         var token = _authTokensRepository.CreateNewApiKey(otherUser, deviceName);
-        return Task.FromResult(token);
+        return Task.FromResult(new ApiToken(otherUser, deviceName, token.Token, token.ExpiresAt));
     }
 
-    public IReadOnlyList<string> ListRestApiDevicesForUser(IUser user)
+    public Task<ApiToken> GenerateApiTokenForUser(IUser user, string deviceName, DateTime expiresAt)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        ArgumentException.ThrowIfNullOrEmpty(deviceName);
+        if (user.ID is <= 0 || _userRepository.GetByID(user.ID) is not { } otherUser)
+            throw new ArgumentException("User is not stored in the database!", nameof(user));
+
+        if (expiresAt.Kind == DateTimeKind.Utc)
+            expiresAt = expiresAt.ToLocalTime();
+
+        if (expiresAt - DateTime.Now < TimeSpan.FromSeconds(57))
+            throw new ArgumentException("Expiration must be at least 1 minute from now", nameof(expiresAt));
+
+        var token = _authTokensRepository.CreateExpiringApiKey(otherUser, deviceName, expiresAt);
+        return Task.FromResult(new ApiToken(otherUser, deviceName, token.Token, token.ExpiresAt));
+    }
+
+    public IReadOnlyList<ApiToken> GetApiTokensForUser(IUser user)
         => _authTokensRepository.GetByUserID(user.ID)
-            .Select(a => a.DeviceName)
+            .Select(t => new ApiToken(user, t.DeviceName, t.Token, t.ExpiresAt))
             .ToList();
 
-    public Task<bool> InvalidateRestApiDeviceForUser(IUser user, string deviceName)
+    public Task<bool> InvalidateApiDeviceForUser(IUser user, string deviceName)
     {
         var tokens = _authTokensRepository.GetByUserID(user.ID)
             .Where(a => a.DeviceName.Equals(deviceName, StringComparison.InvariantCultureIgnoreCase))
@@ -306,9 +338,12 @@ public class UserService(
         return Task.FromResult(tokens.Count > 0);
     }
 
-    public Task<bool> InvalidateRestApiTokensForUser(IUser user)
+    public Task<bool> InvalidateApiTokensForUser(IUser user)
         => Task.FromResult(_authTokensRepository.DeleteAllWithUserID(user.ID));
 
-    public Task<bool> InvalidateRestApiToken(string token)
+    public Task<bool> InvalidateApiToken(ApiToken token)
+        => Task.FromResult(_authTokensRepository.DeleteWithToken(token.Token));
+
+    public Task<bool> InvalidateApiToken(string token)
         => Task.FromResult(_authTokensRepository.DeleteWithToken(token));
 }

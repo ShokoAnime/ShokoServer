@@ -235,7 +235,7 @@ public class UserController(IUserService userService, ISettingsProvider settings
 
         await userService.ChangeUserPassword(user, body.Password);
         if (body.RevokeAPIKeys)
-            await userService.InvalidateRestApiTokensForUser(user);
+            await userService.InvalidateApiTokensForUser(user);
 
         return Ok();
     }

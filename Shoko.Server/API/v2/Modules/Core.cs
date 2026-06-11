@@ -505,7 +505,7 @@ public class Core : BaseController
             return APIStatus.NotFound();
 
         await service.ChangeUserPassword(user, body.Password).ConfigureAwait(false);
-        await service.InvalidateRestApiTokensForUser(user).ConfigureAwait(false);
+        await service.InvalidateApiTokensForUser(user).ConfigureAwait(false);
         return APIStatus.OK();
     }
 
@@ -522,7 +522,7 @@ public class Core : BaseController
             return APIStatus.NotFound();
 
         await service.ChangeUserPassword(user, body.Password).ConfigureAwait(false);
-        await service.InvalidateRestApiTokensForUser(user).ConfigureAwait(false);
+        await service.InvalidateApiTokensForUser(user).ConfigureAwait(false);
         return APIStatus.OK();
     }
 

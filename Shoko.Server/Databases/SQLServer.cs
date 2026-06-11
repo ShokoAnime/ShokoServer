@@ -989,6 +989,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(167,  4, "ALTER TABLE AniDB_Anime DROP COLUMN AirDate; ALTER TABLE AniDB_Anime DROP COLUMN EndDate"),
         new(167,  5, "EXEC sp_rename 'AniDB_Anime.AirDate_new', 'AirDate', 'COLUMN'"),
         new(167,  6, "EXEC sp_rename 'AniDB_Anime.EndDate_new', 'EndDate', 'COLUMN'"),
+        new(168,  1, "ALTER TABLE AuthTokens ADD ExpiresAt datetime2 NULL"),
     ];
 
     #endregion

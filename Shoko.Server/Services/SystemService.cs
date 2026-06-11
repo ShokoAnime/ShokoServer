@@ -474,6 +474,7 @@ public class SystemService : ISystemService
             registry.Register<CheckNetworkAvailabilityJob>(TimeSpan.FromMinutes(30), runImmediately: true);
             registry.Register<ScanForMissingReleaseInfoJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<PeriodicImageMaintenanceJob>(TimeSpan.FromHours(24), runImmediately: false);
+            registry.Register<CleanupExpiredTokensJob>(TimeSpan.FromHours(24), runImmediately: false);
 
             // Register settings-driven recurring jobs. Jobs whose frequency is Never are skipped
             // entirely at startup; they are registered on-demand when settings change.

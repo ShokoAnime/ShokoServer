@@ -3019,7 +3019,7 @@ public partial class ShokoServiceImplementation
                 .GetAwaiter()
                 .GetResult();
             if (revokeapikey)
-                service.InvalidateRestApiTokensForUser(user)
+                service.InvalidateApiTokensForUser(user)
                     .ConfigureAwait(false)
                     .GetAwaiter()
                     .GetResult();

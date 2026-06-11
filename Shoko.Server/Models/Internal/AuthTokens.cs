@@ -1,4 +1,5 @@
-﻿
+﻿using System;
+
 namespace Shoko.Server.Models.Internal;
 
 public class AuthTokens
@@ -7,4 +8,5 @@ public class AuthTokens
     public int UserID { get; set; }
     public string DeviceName { get; set; }
     public string Token { get; set; }
+    public DateTime? ExpiresAt { get; set; }
 }

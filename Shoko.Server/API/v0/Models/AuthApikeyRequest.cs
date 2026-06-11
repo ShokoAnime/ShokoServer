@@ -3,16 +3,10 @@ using System.ComponentModel.DataAnnotations;
 #nullable enable
 namespace Shoko.Server.API.v0.Models;
 
-public class AuthUser
+public class AuthApikeyRequest
 {
-    [Required(ErrorMessage = "Username is required")]
-    public string user { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "Password is required", AllowEmptyStrings = true)]
-    public string pass { get; set; } = string.Empty;
-
     [Required(ErrorMessage = "Device is required")]
-    public string device { get; set; } = string.Empty;
+    public string device { get; set; } = null!;
 
     /// <summary>
     /// Optional token expiration. Accepted formats:

@@ -1079,6 +1079,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(171,  2, "UPDATE `AniDB_Anime` SET AirDate_new = DATE_FORMAT(AirDate, '%Y-%m-%d'), EndDate_new = DATE_FORMAT(EndDate, '%Y-%m-%d')"),
         new(171,  3, "ALTER TABLE `AniDB_Anime` DROP COLUMN AirDate, DROP COLUMN EndDate"),
         new(171,  4, "ALTER TABLE `AniDB_Anime` CHANGE AirDate_new AirDate varchar(10) NULL, CHANGE EndDate_new EndDate varchar(10) NULL"),
+        new(172,  1, "ALTER TABLE `AuthTokens` ADD COLUMN `ExpiresAt` DATETIME NULL"),
     ];
 
     #endregion

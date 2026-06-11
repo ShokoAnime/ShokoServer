@@ -4,6 +4,8 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shoko.Abstractions.Core.Services;
@@ -51,16 +53,15 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
             return Task.FromResult(AuthenticateResult.Fail("Server not fully started yet"));
         }
 
-        // Get Authorization header value and join with the query
+        // Collect auth tokens from the request headers and query parameters.
         var authKeys = Request.Headers["apikey"]
+            .Union(Request.Headers.Authorization.Where(a => a.StartsWith(BearerPrefix)).Select(a => a[BearerPrefix.Length..]))
             .Union(Request.Query["apikey"])
             .ToList();
 
         // SignalR auth handling.
-        if (authKeys.Count == 0 && Request.Path.ToString().StartsWith("/signalr/"))
-            authKeys = Request.Headers.Authorization.Where(a => a.StartsWith(BearerPrefix)).Select(a => a[BearerPrefix.Length..])
-                .Union(Request.Query["access_token"])
-                .ToList();
+        if (authKeys.Count == 0 && Request.HttpContext.GetEndpoint()?.Metadata.GetMetadata<HubMetadata>() is not null)
+            authKeys = Request.Query["access_token"].ToList();
 
         if (authKeys.Count == 0)
         {
