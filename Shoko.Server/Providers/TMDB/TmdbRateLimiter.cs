@@ -47,7 +47,7 @@ public sealed class TmdbRateLimiter : IDisposable
         _settingsProvider = settingsProvider;
         var settings = settingsProvider.Load().TMDB.RateLimit;
         _maxRequestsPerWindow = settings.MaxRequestsPerWindow;
-        _limiter = CreateLimiter(settings.MaxRequestsPerWindow, settings.WindowDurationMs);
+        _limiter = CreateLimiter(settings.MaxRequestsPerWindow, settings.WindowDurationMs, settings.TMDB_API_Limits);
         _settingsProvider.Saved += OnSettingsSaved;
     }
 
@@ -65,20 +65,18 @@ public sealed class TmdbRateLimiter : IDisposable
         var settings = _settingsProvider.Load().TMDB.RateLimit;
         _maxRequestsPerWindow = settings.MaxRequestsPerWindow;
         var oldLimiter = _limiter;
-        _limiter = CreateLimiter(settings.MaxRequestsPerWindow, settings.WindowDurationMs);
+        _limiter = CreateLimiter(settings.MaxRequestsPerWindow, settings.WindowDurationMs, settings.TMDB_API_Limits);
         // Dispose the old limiter after a grace period to let any in-flight AcquireAsync calls complete.
         _ = Task.Delay(TimeSpan.FromSeconds(15))
             .ContinueWith(_ => oldLimiter.Dispose(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
     }
 
-    private static SlidingWindowRateLimiter CreateLimiter(int maxRequests, int windowMs)
+    private static SlidingWindowRateLimiter CreateLimiter(int maxRequests, int windowMs, int segmentsPerWindow)
         => new(new SlidingWindowRateLimiterOptions
         {
             PermitLimit = maxRequests,
             Window = TimeSpan.FromMilliseconds(windowMs),
-            // 10 segments divide the window into sub-intervals, smoothing request distribution and
-            // reducing burst spikes that would occur at the boundary of a single-segment window.
-            SegmentsPerWindow = 10,
+            SegmentsPerWindow = segmentsPerWindow,
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = int.MaxValue,
             AutoReplenishment = true,

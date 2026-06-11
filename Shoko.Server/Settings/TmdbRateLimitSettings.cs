@@ -28,4 +28,15 @@ public class TmdbRateLimitSettings
     [Display(Name = "Window Duration (ms)")]
     [Range(100, 10000)]
     public int WindowDurationMs { get; set; } = 1000;
+
+    /// <summary>
+    /// Number of segments the sliding window is divided into.
+    /// More segments distribute request replenishment more evenly across the window,
+    /// reducing burst spikes at segment boundaries.
+    /// </summary>
+    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
+    [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
+    [Display(Name = "Window Segments")]
+    [Range(1, 100)]
+    public int TMDB_API_Limits { get; set; } = 10;
 }
