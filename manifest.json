@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.276",
+      "tag": "v6.0.0-dev.276",
+      "commit": "e28c5fe841a5a6c81dcc9de15247b485aa85aba8",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.276/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-11T09:51:39Z",
+      "releaseNotes": "\n`feat`: **Add periodic image maintenance job with auto-purge and auto-validate**:\n\nAdds a `PeriodicImageMaintenanceJob` that runs every 24 hours and\nconditionally purges orphaned images and validates image integrity\nbased on two new ImageSettings toggles (`AutoPurge`, `AutoValidate`).\n\n- `AutoPurge` (default: on) — removes orphaned images older than 7 days\n- `AutoValidate` (default: off) — checks all available images for\n  corruption and re-queues downloads for broken ones\n\n  Closes #1078\n"
+    },
+    {
       "version": "6.0.0.275",
       "tag": "v6.0.0-dev.275",
       "commit": "55c9ca02c057cbba46658de7df88c7e3b6068cfe",
