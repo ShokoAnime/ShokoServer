@@ -75,6 +75,8 @@ public class TestFilterable : IFilterableInfo
     public IReadOnlySet<string> ManagedFolderIDs { get; init; }
     public IReadOnlySet<string> ManagedFolderNames { get; init; }
     public IReadOnlySet<string> FilePaths { get; init; }
+    public IReadOnlySet<string> AbsoluteFilePaths { get; init; }
+    public IReadOnlySet<string> ContainingFolderPaths { get; init; }
     public IReadOnlySet<string> CharacterIDs { get; init; }
     public IReadOnlyDictionary<CastRoleType, IReadOnlySet<string>> CharacterAppearances { get; init; }
     public IReadOnlySet<string> CreatorIDs { get; init; }

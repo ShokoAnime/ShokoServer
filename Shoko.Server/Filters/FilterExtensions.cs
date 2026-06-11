@@ -186,7 +186,11 @@ public static class FilterExtensions
             ManagedFolderNamesDelegate = () =>
                 series.VideoLocals.Select(a => a.FirstValidPlace?.ManagedFolder?.Name).WhereNotNull().ToHashSet(),
             FilePathsDelegate = () =>
-                series.VideoLocals.Select(a => a.FirstValidPlace?.RelativePath).WhereNotNull().ToHashSet(),
+                series.VideoLocals.SelectMany(a => a.Places.Select(b => b.RelativePath)).ToHashSet(),
+            AbsoluteFilePathsDelegate = () =>
+                series.VideoLocals.SelectMany(a => a.Places).Select(b => System.IO.Path.Join(b.ManagedFolder!.Path, b.RelativePath)).ToHashSet(),
+            ContainingFolderPathsDelegate = () =>
+                series.VideoLocals.SelectMany(a => a.Places).Select(b => System.IO.Path.GetDirectoryName(System.IO.Path.Join(b.ManagedFolder!.Path, b.RelativePath))!).ToHashSet(),
             ReleaseGroupNamesDelegate = () =>
                 series.VideoLocals.Select(a => a.ReleaseGroup?.Name).WhereNotNull().ToHashSet(),
             ReleaseProviderNamesDelegate = () =>
@@ -432,7 +436,11 @@ public static class FilterExtensions
             ManagedFolderNamesDelegate = () =>
                 series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.ManagedFolder?.Name)).WhereNotNull().ToHashSet(),
             FilePathsDelegate = () =>
-                series.SelectMany(s => s.VideoLocals.Select(a => a.FirstValidPlace?.RelativePath)).WhereNotNull().ToHashSet(),
+                series.SelectMany(s => s.VideoLocals.SelectMany(a => a.Places.Select(b => b.RelativePath))).ToHashSet(),
+            AbsoluteFilePathsDelegate = () =>
+                series.SelectMany(s => s.VideoLocals.SelectMany(a => a.Places).Select(b => System.IO.Path.Join(b.ManagedFolder!.Path, b.RelativePath))).ToHashSet(),
+            ContainingFolderPathsDelegate = () =>
+                series.SelectMany(s => s.VideoLocals.SelectMany(a => a.Places).Select(b => System.IO.Path.GetDirectoryName(System.IO.Path.Join(b.ManagedFolder!.Path, b.RelativePath))!)).ToHashSet(),
             ReleaseGroupNamesDelegate = () =>
                 series.SelectMany(s => s.VideoLocals.Select(a => a.ReleaseGroup?.Name)).WhereNotNull().ToHashSet(),
             ReleaseProviderNamesDelegate = () =>

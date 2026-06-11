@@ -323,9 +323,19 @@ public interface IFilterableInfo
     IReadOnlySet<string> ManagedFolderNames { get; }
 
     /// <summary>
-    /// Relative File Paths
+    /// Relative paths within managed folders for the files in the filterable.
     /// </summary>
     IReadOnlySet<string> FilePaths { get; }
+
+    /// <summary>
+    /// Absolute paths of the files for the filterable.
+    /// </summary>
+    IReadOnlySet<string> AbsoluteFilePaths { get; }
+
+    /// <summary>
+    /// Absolute paths of the folders containing the files for the filterable.
+    /// </summary>
+    IReadOnlySet<string> ContainingFolderPaths { get; }
 
     /// <summary>
     /// Character IDs

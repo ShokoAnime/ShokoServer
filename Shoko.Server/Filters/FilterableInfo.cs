@@ -51,6 +51,8 @@ public class Filterable : IFilterableInfo
     private readonly Lazy<IReadOnlySet<string>> _managedFolderIDs;
     private readonly Lazy<IReadOnlySet<string>> _managedFolderNames;
     private readonly Lazy<IReadOnlySet<string>> _filePaths;
+    private readonly Lazy<IReadOnlySet<string>> _absoluteFilePaths;
+    private readonly Lazy<IReadOnlySet<string>> _containingFolderPaths;
     private readonly Lazy<IReadOnlySet<(int year, YearlySeason season)>> _seasons;
     private readonly Lazy<int> _seriesCount;
     private readonly Lazy<int> _groupCount;
@@ -539,6 +541,20 @@ public class Filterable : IFilterableInfo
     public required Func<IReadOnlySet<string>> FilePathsDelegate
     {
         init => _filePaths = new Lazy<IReadOnlySet<string>>(value);
+    }
+
+    public IReadOnlySet<string> AbsoluteFilePaths => _absoluteFilePaths.Value;
+
+    public required Func<IReadOnlySet<string>> AbsoluteFilePathsDelegate
+    {
+        init => _absoluteFilePaths = new Lazy<IReadOnlySet<string>>(value);
+    }
+
+    public IReadOnlySet<string> ContainingFolderPaths => _containingFolderPaths.Value;
+
+    public required Func<IReadOnlySet<string>> ContainingFolderPathsDelegate
+    {
+        init => _containingFolderPaths = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public IReadOnlySet<string> ReleaseGroupNames => _releaseGroupNames.Value;
