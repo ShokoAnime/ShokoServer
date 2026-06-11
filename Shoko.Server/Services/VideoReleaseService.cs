@@ -704,6 +704,7 @@ public class VideoReleaseService(
             releaseInfo.Hashes = hashes.Count < 1 ? null : hashes;
         }
 
+        var lastImportedAt = (DateTime?)null;
         var releaseUriMatches = false;
         if (releaseInfoRepository.GetByEd2kAndFileSize(video.ED2K, video.Size) is { } existingRelease)
         {
@@ -717,6 +718,11 @@ public class VideoReleaseService(
             }
 
             releaseUriMatches = string.Equals(existingRelease.ReleaseURI, releaseInfo.ReleaseURI);
+
+            // Re-use the last imported at date if the release URI matches between the old and new release.
+            if (releaseUriMatches && video is VideoLocal vl0 && vl0.DateTimeImported is not null)
+                lastImportedAt = vl0.DateTimeImported;
+
             releaseInfo.PreventRescan = releaseInfo.PreventRescan || existingRelease.PreventRescan;
             await ClearReleaseForVideo(video, existingRelease, removeFromMylist: addToMylist && !releaseUriMatches);
         }
@@ -734,7 +740,7 @@ public class VideoReleaseService(
         // Mark the video as imported if needed.
         if (video is VideoLocal videoLocal && videoLocal.DateTimeImported is null)
         {
-            videoLocal.DateTimeImported = DateTime.Now;
+            videoLocal.DateTimeImported = lastImportedAt ?? DateTime.Now;
             videoRepository.Save(videoLocal);
         }
 
