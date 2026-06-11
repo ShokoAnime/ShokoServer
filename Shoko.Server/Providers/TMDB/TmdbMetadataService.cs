@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
@@ -1253,9 +1254,9 @@ public class TmdbMetadataService : ITmdbMetadataService
 
             seasonsToSkip.Add(tmdbSeason.Id);
 
-            var episodeBag = new ConcurrentBag<TMDB_Episode>();
-            var hiddenEpisodeBag = new ConcurrentBag<TMDB_Episode>();
-            await ProcessWithConcurrencyAsync(1, season.Episodes!, async (reducedEpisode) =>
+            var episodeBag = new List<TMDB_Episode>();
+            var hiddenEpisodeBag = new List<TMDB_Episode>();
+            foreach (var reducedEpisode in season.Episodes!)
             {
                 _logger.LogDebug("Checking episode {EpisodeNumber} in season {SeasonNumber} for show {ShowTitle} (Show={ShowId})", reducedEpisode.EpisodeNumber, reducedSeason.SeasonNumber, show.Name, show.Id);
                 if (!existingEpisodes.TryGetValue(reducedEpisode.Id, out var tmdbEpisode))
@@ -1312,7 +1313,7 @@ public class TmdbMetadataService : ITmdbMetadataService
                     hiddenEpisodeBag.Add(tmdbEpisode);
                 else
                     episodeBag.Add(tmdbEpisode);
-            });
+            }
 
             var episodeCount = episodeBag.Count;
             var hiddenEpisodeCount = hiddenEpisodeBag.Count;
@@ -1405,8 +1406,10 @@ public class TmdbMetadataService : ITmdbMetadataService
                     Interlocked.Increment(ref peopleUpdated);
             });
         }
-        catch (AggregateException ex)
+        catch (Exception ex)
         {
+            // Partial cast/crew failures are non-fatal: a missing person record does not invalidate
+            // the show. Log and continue so a transient API error doesn't abort the entire show update.
             _logger.LogWarning(ex, "TMDB: Failed to update one or more people during show cast/crew update (Show={ShowId})", show.Id);
             // Same as the movie path: cast/crew rows referencing a person with no TMDB_Person row
             // cause HTTP 500s when the API resolves cast. Remove entries for any person IDs that
@@ -1440,7 +1443,7 @@ public class TmdbMetadataService : ITmdbMetadataService
                     Interlocked.Increment(ref peoplePurged);
             });
         }
-        catch (AggregateException ex)
+        catch (Exception ex)
         {
             _logger.LogWarning(ex, "TMDB: Failed to purge one or more people during show cast/crew update (Show={ShowId})", show.Id);
         }
@@ -2703,50 +2706,27 @@ public class TmdbMetadataService : ITmdbMetadataService
         if (maxConcurrent < 1)
             throw new ArgumentOutOfRangeException(nameof(maxConcurrent), "Concurrency level must be at least 1.");
 
-        var semaphore = new SemaphoreSlim(maxConcurrent);
-        var exceptions = new List<Exception>();
-        var cancellationTokenSource = new CancellationTokenSource();
-        var tasks = enumerable
-            .Select(item => Task.Run(async () =>
+        // Workers catch individually so the block never faults — all items complete before exceptions surface.
+        var exceptions = new ConcurrentBag<Exception>();
+        var block = new ActionBlock<T>(
+            async item =>
             {
-                await semaphore.WaitAsync(cancellationTokenSource.Token).ConfigureAwait(false);
-                try
+                try { await processAsync(item); }
+                catch (Exception ex)
                 {
-                    await processAsync(item).ConfigureAwait(false);
+                    exceptions.Add(ex);
+                    if (Interlocked.Increment(ref failureCount) >= maxConcurrent)
+                        await cts.CancelAsync();
                 }
-                finally
-                {
-                    semaphore.Release();
-                }
-            }))
-            .ToHashSet();
-        while (tasks.Count > 0)
-        {
-            var task = await Task.WhenAny(tasks).ConfigureAwait(false);
-            tasks.Remove(task);
-            try
-            {
-                await task.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Task was cancelled (internal failure or external shutdown) — not counted as an error.
-            }
-            catch (Exception ex)
-            {
-                exceptions.Add(ex);
-                if (exceptions.Count >= maxConcurrent)
-                {
-                    cancellationTokenSource.Cancel();
-                    throw new AggregateException(exceptions);
-                }
-            }
-        }
-
-        cancellationTokenSource.Dispose();
-        semaphore.Dispose();
-
-        if (exceptions.Count > 0)
+            },
+            new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = maxConcurrent, CancellationToken = cts.Token }
+        );
+        foreach (var item in enumerable)
+            block.Post(item);
+        block.Complete();
+        try { await block.Completion.ConfigureAwait(false); }
+        catch (OperationCanceledException) { /* circuit breaker fired — block aborted cleanly */ }
+        if (!exceptions.IsEmpty)
             throw new AggregateException(exceptions);
     }
 
