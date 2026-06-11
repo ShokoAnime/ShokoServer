@@ -683,6 +683,29 @@ public class TmdbMetadataService : ITmdbMetadataService
         catch (AggregateException ex)
         {
             _logger.LogWarning(ex, "TMDB: Failed to update one or more people during movie cast/crew update (Movie={MovieId})", tmdbMovie.Id);
+            // Cast/crew rows were already written above. Any person ID whose fetch failed leaves a
+            // dangling reference — the API cannot resolve cast without a matching TMDB_Person row and
+            // will return HTTP 500.
+            var missingPersonIds = peopleToKeep
+                .Where(id => _tmdbPeople.GetByTmdbPersonID(id) is null)
+                .ToHashSet();
+            if (missingPersonIds.Count > 0)
+            {
+                var orphanedCast = _tmdbMovieCast.GetByTmdbMovieID(tmdbMovie.Id)
+                    .Where(c => missingPersonIds.Contains(c.TmdbPersonID))
+                    .ToList();
+                var orphanedCrew = _tmdbMovieCrew.GetByTmdbMovieID(tmdbMovie.Id)
+                    .Where(c => missingPersonIds.Contains(c.TmdbPersonID))
+                    .ToList();
+                if (orphanedCast.Count > 0 || orphanedCrew.Count > 0)
+                {
+                    _logger.LogWarning(
+                        "TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Movie={MovieId})",
+                        orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, tmdbMovie.Id);
+                    _tmdbMovieCast.Delete(orphanedCast);
+                    _tmdbMovieCrew.Delete(orphanedCrew);
+                }
+            }
         }
         try
         {
@@ -1189,6 +1212,23 @@ public class TmdbMetadataService : ITmdbMetadataService
         await ProcessWithConcurrencyAsync(_maxConcurrency, show.Seasons!, async reducedSeason =>
         {
             _logger.LogDebug("Checking season {SeasonNumber} for show {ShowTitle} (Show={ShowId})", reducedSeason.SeasonNumber, show.Name, show.Id);
+
+            // Skipped seasons still need their episode counts registered so season totals stay accurate.
+            if (changedItems.HasValue && !changedItems.Value.SeasonNumbers.Contains(reducedSeason.SeasonNumber) &&
+                existingSeasons.TryGetValue(reducedSeason.Id, out var tmdbSeasonCached))
+            {
+                seasonsToSkip.Add(tmdbSeasonCached.Id);
+                var localEpisodes = _tmdbEpisodes.GetByTmdbSeasonID(tmdbSeasonCached.Id);
+                foreach (var ep in localEpisodes)
+                    episodesToSkip.Add(ep.Id);
+                var visibleCount = localEpisodes.Count(e => !e.IsHidden);
+                Interlocked.Add(ref totalEpisodeCount, visibleCount);
+                Interlocked.Add(ref totalHiddenEpisodeCount, localEpisodes.Count - visibleCount);
+                _logger.LogDebug("Skipping unchanged season {SeasonNumber} for show {ShowTitle} (Show={ShowId}).", reducedSeason.SeasonNumber, show.Name, show.Id);
+                return;
+            }
+
+
             var season = await UseClient(c => c.GetTvSeasonAsync(show.Id, reducedSeason.SeasonNumber, TvSeasonMethods.Translations), $"Get season {reducedSeason.SeasonNumber} for show {show.Id} \"{show.Name}\"").ConfigureAwait(false) ??
                 throw new Exception($"Unable to fetch season {reducedSeason.SeasonNumber} for show \"{show.Name}\".");
             if (!existingSeasons.TryGetValue(reducedSeason.Id, out var tmdbSeason))
@@ -1368,6 +1408,29 @@ public class TmdbMetadataService : ITmdbMetadataService
         catch (AggregateException ex)
         {
             _logger.LogWarning(ex, "TMDB: Failed to update one or more people during show cast/crew update (Show={ShowId})", show.Id);
+            // Same as the movie path: cast/crew rows referencing a person with no TMDB_Person row
+            // cause HTTP 500s when the API resolves cast. Remove entries for any person IDs that
+            // are still absent from the database after the fan-out.
+            var missingPersonIds = peopleToCheck
+                .Where(id => _tmdbPeople.GetByTmdbPersonID(id) is null)
+                .ToHashSet();
+            if (missingPersonIds.Count > 0)
+            {
+                var orphanedCast = _tmdbEpisodeCast.GetByTmdbShowID(show.Id)
+                    .Where(c => missingPersonIds.Contains(c.TmdbPersonID))
+                    .ToList();
+                var orphanedCrew = _tmdbEpisodeCrew.GetByTmdbShowID(show.Id)
+                    .Where(c => missingPersonIds.Contains(c.TmdbPersonID))
+                    .ToList();
+                if (orphanedCast.Count > 0 || orphanedCrew.Count > 0)
+                {
+                    _logger.LogWarning(
+                        "TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Show={ShowId})",
+                        orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, show.Id);
+                    _tmdbEpisodeCast.Delete(orphanedCast);
+                    _tmdbEpisodeCrew.Delete(orphanedCrew);
+                }
+            }
         }
         try
         {
@@ -2770,6 +2833,96 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private Task<IDisposable> GetLockForEntity(DataEntityType entityType, int id, string metadataKey, string reason)
         => _entityLock.GetLockForEntityAsync(entityType, id, metadataKey, reason);
+
+    /// <summary>
+    /// Returns <see langword="true"/> if TMDB has recorded any changes for the given movie since
+    /// <paramref name="since"/>, or if the TMDB Changes API 14-day window has been exceeded (in
+    /// which case a full refresh is required because the history is no longer available).
+    /// </summary>
+    private async Task<bool> HasMovieChangedSinceAsync(int movieId, DateTime since)
+    {
+        // The TMDB Changes API covers at most the last 14 days. Treat anything older as changed
+        // so the caller always falls through to a full refresh when history is unavailable.
+        if (since < DateTime.Now.AddDays(-14))
+            return true;
+        var changes = await UseClient(c => c.GetMovieChangesAsync(movieId, 0, since, null), $"Get changes for movie {movieId}").ConfigureAwait(false);
+        return changes is { Count: > 0 };
+    }
+
+    /// <summary>
+    /// Fetches the set of changed seasons and episodes for the given show from the TMDB Changes
+    /// API since <paramref name="since"/>, for use as a selective-refresh filter.
+    /// </summary>
+    /// <returns>
+    /// <para><see langword="null"/> if the 14-day Changes API window has been exceeded or the API
+    /// call failed — the caller should fall back to a full refresh of all seasons and episodes.</para>
+    /// <para>Empty sets if no season or episode changes were reported — the caller can skip the update.</para>
+    /// <para>Populated sets containing the season numbers and (season, episode) pairs that changed.</para>
+    /// </returns>
+    private async Task<(HashSet<int> SeasonNumbers, HashSet<(int Season, int Episode)> Episodes)?> GetShowChangedItemsAsync(int showId, DateTime since)
+    {
+        // The TMDB Changes API covers at most the last 14 days. Return null to signal the caller
+        // to perform a full refresh rather than a selective one.
+        if (since < DateTime.Now.AddDays(-14))
+            return null;
+        var changes = await UseClient(c => c.GetTvShowChangesAsync(showId, 0, since, null), $"Get changes for show {showId}").ConfigureAwait(false);
+        if (changes is null)
+            return null;
+        return ParseShowChanges(changes);
+    }
+
+    /// <summary>
+    /// Parses a TMDB Changes API response into the sets of season numbers and (season, episode)
+    /// pairs that changed, for use as a selective-refresh filter in
+    /// <see cref="UpdateShowSeasonsAndEpisodes"/>.
+    /// </summary>
+    /// <remarks>
+    /// Only <c>"episode"</c> and <c>"season"</c> change keys are processed; all other keys
+    /// (e.g. <c>"name"</c>, <c>"overview"</c>) are ignored. Episode changes also implicitly add
+    /// their season number to <c>SeasonNumbers</c> so season metadata is always refreshed when
+    /// one of its episodes changed.
+    /// </remarks>
+    internal static (HashSet<int> SeasonNumbers, HashSet<(int Season, int Episode)> Episodes) ParseShowChanges(IList<Change> changes)
+    {
+        var seasonNumbers = new HashSet<int>();
+        var episodes = new HashSet<(int Season, int Episode)>();
+        foreach (var change in changes)
+        {
+            if (change.Key is not ("episode" or "season"))
+                continue;
+            foreach (var item in change.Items ?? [])
+            {
+                // Each change item type stores its payload differently; normalise to a JObject.
+                var value = item switch
+                {
+                    ChangeItemAdded added => added.Value as JObject,
+                    ChangeItemUpdated updated => updated.Value as JObject,
+                    ChangeItemDestroyed destroyed => destroyed.Value as JObject,
+                    ChangeItemDeleted deleted => deleted.OriginalValue as JObject, // deleted items carry the previous value
+                    _ => null,
+                };
+                if (value is null)
+                    continue;
+
+                var seasonNumber = value["season_number"]?.Value<int>();
+                if (!seasonNumber.HasValue)
+                    continue;
+
+                seasonNumbers.Add(seasonNumber.Value);
+
+                // For episode changes, also record the specific (season, episode) pair so the
+                // fast-path can skip episodes within the season that were not individually changed.
+                if (change.Key == "episode")
+                {
+                    var episodeNumber = value["episode_number"]?.Value<int>();
+                    if (episodeNumber.HasValue)
+                        episodes.Add((seasonNumber.Value, episodeNumber.Value));
+                }
+            }
+        }
+        return (seasonNumbers, episodes);
+    }
+
 
     #endregion
 }
