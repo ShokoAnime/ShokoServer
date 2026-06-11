@@ -73,6 +73,28 @@ public interface IImageManager
 
     #endregion
 
+    #region Image Cross Reference Resolvers
+
+    /// <summary>
+    ///   Adds the image cross-reference resolvers to the service.
+    /// </summary>
+    /// <remarks>
+    ///   This should be called once per instance of the service, and will be
+    ///   called during start-up. Calling it multiple times will have no effect.
+    /// </remarks>
+    /// <param name="resolvers">
+    ///   The resolvers to add.
+    /// </param>
+    void AddParts(IEnumerable<IImageCrossReferenceResolver> resolvers);
+
+    /// <summary>
+    ///   Gets a read-only list of the image cross-reference resolvers
+    ///   registered with the service.
+    /// </summary>
+    IReadOnlyList<IImageCrossReferenceResolver> ImageCrossReferenceResolvers { get; }
+
+    #endregion
+
     #region Images
 
     /// <summary>

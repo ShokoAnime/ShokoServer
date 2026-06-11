@@ -217,6 +217,21 @@ public partial class ImageManager(
 
     #endregion
 
+    #region Image Cross Reference Resolvers
+
+    private List<IImageCrossReferenceResolver> _resolvers = [];
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IImageCrossReferenceResolver> ImageCrossReferenceResolvers => _resolvers;
+
+    /// <inheritdoc/>
+    public void AddParts(IEnumerable<IImageCrossReferenceResolver> resolvers)
+    {
+        _resolvers = resolvers.ToList();
+    }
+
+    #endregion
+
     #region Images
 
     /// <inheritdoc/>
@@ -1490,6 +1505,11 @@ public partial class ImageManager(
                 entityID = user.ID.ToString();
                 return true;
         }
+
+        foreach (var resolver in _resolvers)
+            if (resolver.TryGetMetadataForEntity(entity, out entitySource, out entityType, out entityID, out entitySeasonNumber, out entityEpisodeNumber, out releasedAt))
+                return true;
+
         return false;
     }
 
@@ -1578,8 +1598,10 @@ public partial class ImageManager(
         (DataSource.TMDB, DataEntityType.Network) => !int.TryParse(entityID, out var tmdbNetworkID)
             ? null : _tmdbNetworks.GetByTmdbNetworkID(tmdbNetworkID),
 
-        // Default
-        _ => null,
+        // Plugins
+        _ => _resolvers
+            .Select(r => r.GetEntity(entitySource, entityType, entityID))
+            .FirstOrDefault(result => result is not null),
     };
 
     public static bool IsImageValid(string path)

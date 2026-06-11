@@ -32,6 +32,11 @@ public enum DataEntityType : byte
     BoxSet = Collection,
 
     /// <summary>
+    ///   Alias for <see cref="Collection"/>.
+    /// </summary>
+    Franchise = Collection,
+
+    /// <summary>
     ///   Any kind of series.
     /// </summary>
     Series = 2,
@@ -105,4 +110,9 @@ public enum DataEntityType : byte
     ///   Any kind of user.
     /// </summary>
     User = 11,
+
+    /// <summary>
+    ///   Any kind of library.
+    /// </summary>
+    Library = 12,
 }

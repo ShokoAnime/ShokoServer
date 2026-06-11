@@ -12,6 +12,12 @@ namespace Shoko.Abstractions.Metadata.Enums;
 public enum DataSource : byte
 {
     /// <summary>
+    ///   Plugin extensions. Used when a plugin provides data for an entity type
+    ///   the core doesn't have built-in support for.
+    /// </summary>
+    Plugin = 0xFB,
+
+    /// <summary>
     /// Locally Generated (Automatic).
     /// </summary>
     LocallyGenerated = 0xFC,
