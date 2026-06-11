@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.271",
+      "tag": "v6.0.0-dev.271",
+      "commit": "23a45cff182214d674397fd199f18949a0290ef1",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.271/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-11T01:40:55Z",
+      "releaseNotes": "\n`feat` (`filtering`): **Add `AbsoluteFilePaths`, `ContainingFolderPaths`, and generic expression types**:\n\n- Added `AbsoluteFilePaths` and `ContainingFolderPaths` to `IFilterableInfo`\n  with implementations in `Filterable`, `FilterExtensions`, and `TestFilterable`\n- Created `AbsoluteFilePathsSelector` and `ContainingFolderPathsSelector`\n- Moved `GenericFilter` into the `Generic` sub-namespace\n- Added `GenericFilterExpression` and `GenericSortingExpression` for plugins\n  with overloaded constructors accepting `Handler` delegates\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.49**.\n"
+    },
+    {
       "version": "6.0.0.270",
       "tag": "v6.0.0-dev.270",
       "commit": "f93ab22a6ed5b8e525e67b7608159f87866ca214",
