@@ -19,6 +19,8 @@ public class Filterable : IFilterableInfo
     private readonly Lazy<int> _hiddenEpisodes;
     private readonly Lazy<EpisodeCounts> _episodeCounts;
     private readonly Lazy<EpisodeCounts> _localEpisodeCounts;
+    private readonly Lazy<EpisodeCounts> _missingEpisodeCounts;
+    private readonly Lazy<EpisodeCounts> _unairedEpisodeCounts;
     private readonly Lazy<FileSourceCounts> _fileSourceCounts;
     private readonly Lazy<IReadOnlyDictionary<string, int>> _releaseProviderCounts;
     private readonly Lazy<bool> _hasTmdbAutoLinkingDisabled;
@@ -33,6 +35,7 @@ public class Filterable : IFilterableInfo
     private readonly Lazy<int> _missingAnilistEpisodeLinks;
     private readonly Lazy<double> _highestAniDBRating;
     private readonly Lazy<bool> _isFinished;
+    private readonly Lazy<bool> _isRestricted;
     private readonly Lazy<DateTime?> _lastAddedDate;
     private readonly Lazy<PartialDateOnly?> _lastAirDate;
     private readonly Lazy<double> _lowestAniDBRating;
@@ -366,6 +369,13 @@ public class Filterable : IFilterableInfo
         init => _isFinished = new Lazy<bool>(value);
     }
 
+    public bool IsRestricted => _isRestricted.Value;
+
+    public required Func<bool> IsRestrictedDelegate
+    {
+        init => _isRestricted = new Lazy<bool>(value);
+    }
+
     public PartialDateOnly? AirDate => _airDate.Value;
 
     public required Func<PartialDateOnly?> AirDateDelegate
@@ -427,6 +437,20 @@ public class Filterable : IFilterableInfo
     public required Func<EpisodeCounts> LocalEpisodeCountsDelegate
     {
         init => _localEpisodeCounts = new Lazy<EpisodeCounts>(value);
+    }
+
+    public EpisodeCounts MissingEpisodeCounts => _missingEpisodeCounts.Value;
+
+    public required Func<EpisodeCounts> MissingEpisodeCountsDelegate
+    {
+        init => _missingEpisodeCounts = new Lazy<EpisodeCounts>(value);
+    }
+
+    public EpisodeCounts UnairedEpisodeCounts => _unairedEpisodeCounts.Value;
+
+    public required Func<EpisodeCounts> UnairedEpisodeCountsDelegate
+    {
+        init => _unairedEpisodeCounts = new Lazy<EpisodeCounts>(value);
     }
 
     public FileSourceCounts FileSourceCounts => _fileSourceCounts.Value;

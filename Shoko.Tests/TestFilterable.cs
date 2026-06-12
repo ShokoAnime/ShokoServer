@@ -50,6 +50,7 @@ public class TestFilterable : IFilterableInfo
     public bool HasTraktAutoLinkingDisabled { get; init; }
     public bool HasMissingTraktLink { get; init; }
     public bool IsFinished { get; init; }
+    public bool IsRestricted { get; init; }
     public PartialDateOnly? AirDate { get; init; }
     public PartialDateOnly? LastAirDate { get; init; }
     public DateTime AddedDate { get; init; }
@@ -59,6 +60,8 @@ public class TestFilterable : IFilterableInfo
     public int HiddenEpisodes { get; init; }
     public EpisodeCounts EpisodeCounts { get; init; }
     public EpisodeCounts LocalEpisodeCounts { get; init; }
+    public EpisodeCounts MissingEpisodeCounts { get; init; }
+    public EpisodeCounts UnairedEpisodeCounts { get; init; }
     public FileSourceCounts FileSourceCounts { get; init; }
     public IReadOnlyDictionary<string, int> ReleaseProviderCounts { get; init; }
     public double LowestAniDBRating { get; init; }

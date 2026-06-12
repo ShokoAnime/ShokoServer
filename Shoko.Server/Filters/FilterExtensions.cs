@@ -124,6 +124,8 @@ public static class FilterExtensions
                 0,
             IsFinishedDelegate = () =>
                 series.AniDB_Anime?.EndDate is { } endDate && endDate < now.Date,
+            IsRestrictedDelegate = () =>
+                series.AniDB_Anime?.IsRestricted ?? false,
             LastAirDateDelegate = () =>
                 series.EndDate ?? series.AllAnimeEpisodes.Select(a => a.AniDB_Episode?.GetAirDateAsPartialDateOnly()).WhereNotNull().Cast<PartialDateOnly?>().Max(),
             AddedDateDelegate = () =>
@@ -140,6 +142,10 @@ public static class FilterExtensions
                 (series as ISeries).EpisodeCounts,
             LocalEpisodeCountsDelegate = () =>
                 (series as IShokoSeries).LocalEpisodeCounts,
+            MissingEpisodeCountsDelegate = () =>
+                (series as IShokoSeries).MissingEpisodeCounts,
+            UnairedEpisodeCountsDelegate = () =>
+                (series as IShokoSeries).UnairedEpisodeCounts,
             FileSourceCountsDelegate = () =>
                 (series as IShokoSeries).FileSourceCounts,
             ReleaseProviderCountsDelegate = () =>
@@ -383,6 +389,8 @@ public static class FilterExtensions
                 0,
             IsFinishedDelegate = () =>
                 series.All(a => a.EndDate is not null && a.EndDate <= now.Date),
+            IsRestrictedDelegate = () =>
+                series.Any(a => a.AniDB_Anime?.IsRestricted ?? false),
             AddedDateDelegate = () =>
                 group.DateTimeCreated,
             LastAddedDateDelegate = () =>
@@ -397,6 +405,10 @@ public static class FilterExtensions
                 (group as IShokoGroup).EpisodeCounts,
             LocalEpisodeCountsDelegate = () =>
                 (group as IShokoGroup).LocalEpisodeCounts,
+            MissingEpisodeCountsDelegate = () =>
+                (group as IShokoGroup).MissingEpisodeCounts,
+            UnairedEpisodeCountsDelegate = () =>
+                (group as IShokoGroup).UnairedEpisodeCounts,
             FileSourceCountsDelegate = () =>
                 (group as IShokoGroup).FileSourceCounts,
             ReleaseProviderCountsDelegate = () =>

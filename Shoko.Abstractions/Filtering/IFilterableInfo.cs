@@ -202,6 +202,12 @@ public interface IFilterableInfo
     bool IsFinished { get; }
 
     /// <summary>
+    /// Indicates the filterable, or any series within the filterable, is
+    /// restricted.
+    /// </summary>
+    bool IsRestricted { get; }
+
+    /// <summary>
     /// First Air Date
     /// </summary>
     PartialDateOnly? AirDate { get; }
@@ -245,6 +251,16 @@ public interface IFilterableInfo
     /// Local episode counts broken down by type (what is downloaded).
     /// </summary>
     EpisodeCounts LocalEpisodeCounts { get; }
+
+    /// <summary>
+    /// Missing episode counts broken down by type (aired but not locally available).
+    /// </summary>
+    EpisodeCounts MissingEpisodeCounts { get; }
+
+    /// <summary>
+    /// Unaired episode counts broken down by type (not yet aired and not locally available).
+    /// </summary>
+    EpisodeCounts UnairedEpisodeCounts { get; }
 
     /// <summary>
     /// File source counts.

@@ -924,6 +924,52 @@ public class AnimeSeries : IShokoSeries
         }
     }
 
+    EpisodeCounts IShokoSeries.MissingEpisodeCounts
+    {
+        get
+        {
+            var counts = new EpisodeCounts();
+            foreach (var ep in AnimeEpisodes)
+            {
+                if (ep.VideoLocals.Count > 0) continue;
+                if (!(ep.AniDB_Episode?.HasAired ?? false)) continue;
+                switch (ep.AniDB_Episode?.EpisodeType)
+                {
+                    case EpisodeType.Episode: counts.Episodes++; break;
+                    case EpisodeType.Special: counts.Specials++; break;
+                    case EpisodeType.Credits: counts.Credits++; break;
+                    case EpisodeType.Trailer: counts.Trailers++; break;
+                    case EpisodeType.Parody: counts.Parodies++; break;
+                    default: counts.Others++; break;
+                }
+            }
+            return counts;
+        }
+    }
+
+    EpisodeCounts IShokoSeries.UnairedEpisodeCounts
+    {
+        get
+        {
+            var counts = new EpisodeCounts();
+            foreach (var ep in AnimeEpisodes)
+            {
+                if (ep.VideoLocals.Count > 0) continue;
+                if (ep.AniDB_Episode?.HasAired ?? false) continue;
+                switch (ep.AniDB_Episode?.EpisodeType)
+                {
+                    case EpisodeType.Episode: counts.Episodes++; break;
+                    case EpisodeType.Special: counts.Specials++; break;
+                    case EpisodeType.Credits: counts.Credits++; break;
+                    case EpisodeType.Trailer: counts.Trailers++; break;
+                    case EpisodeType.Parody: counts.Parodies++; break;
+                    default: counts.Others++; break;
+                }
+            }
+            return counts;
+        }
+    }
+
     IReadOnlyDictionary<string, int> IShokoSeries.ReleaseProviderCounts
     {
         get

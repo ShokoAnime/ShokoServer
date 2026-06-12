@@ -102,6 +102,16 @@ public interface IShokoGroup : ICollection, IMetadata<int>, IWithCreationDate, I
     EpisodeCounts LocalEpisodeCounts { get; }
 
     /// <summary>
+    /// The missing episode counts for the group, broken down by type (aired but not locally available).
+    /// </summary>
+    EpisodeCounts MissingEpisodeCounts { get; }
+
+    /// <summary>
+    /// The unaired episode counts for the group, broken down by type (not yet aired and not locally available).
+    /// </summary>
+    EpisodeCounts UnairedEpisodeCounts { get; }
+
+    /// <summary>
     /// The file source counts for the group.
     /// </summary>
     FileSourceCounts FileSourceCounts { get; }

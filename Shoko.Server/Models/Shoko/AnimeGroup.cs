@@ -773,6 +773,46 @@ public class AnimeGroup : IShokoGroup
         }
     }
 
+    EpisodeCounts IShokoGroup.MissingEpisodeCounts
+    {
+        get
+        {
+            var series = (this as IShokoGroup).AllSeries;
+            var counts = new EpisodeCounts();
+            foreach (var ser in series)
+            {
+                var mec = ser.MissingEpisodeCounts;
+                counts.Episodes += mec.Episodes;
+                counts.Specials += mec.Specials;
+                counts.Credits += mec.Credits;
+                counts.Trailers += mec.Trailers;
+                counts.Parodies += mec.Parodies;
+                counts.Others += mec.Others;
+            }
+            return counts;
+        }
+    }
+
+    EpisodeCounts IShokoGroup.UnairedEpisodeCounts
+    {
+        get
+        {
+            var series = (this as IShokoGroup).AllSeries;
+            var counts = new EpisodeCounts();
+            foreach (var ser in series)
+            {
+                var uec = ser.UnairedEpisodeCounts;
+                counts.Episodes += uec.Episodes;
+                counts.Specials += uec.Specials;
+                counts.Credits += uec.Credits;
+                counts.Trailers += uec.Trailers;
+                counts.Parodies += uec.Parodies;
+                counts.Others += uec.Others;
+            }
+            return counts;
+        }
+    }
+
     IReadOnlyDictionary<string, int> IShokoGroup.ReleaseProviderCounts
     {
         get
