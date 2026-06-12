@@ -126,9 +126,8 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
         get
         {
             if (AniDB_Anime is not { } anidbAnime) return false;
-            if (anidbAnime.GetFinishedAiring()) return true;
             var date = GetAirDateAsDate();
-            if (date == null) return false;
+            if (date == null) return anidbAnime.GetFinishedAiring();
 
             return date.Value.ToLocalTime() < DateTime.Now;
         }
