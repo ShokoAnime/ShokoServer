@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.280",
+      "tag": "v6.0.0-dev.280",
+      "commit": "fa05c0aeeae660473327fa176c9d56718b5eed4e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.280/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-12T23:27:50Z",
+      "releaseNotes": "\n`feat` (`filtering`): **Add missing and unaired episode counts, selectors, and is restricted expression**:\n\nAdded `MissingEpisodeCounts` and `UnairedEpisodeCounts` as `EpisodeCounts`\nproperties on `IFilterableInfo`, `IShokoSeries`, and `IShokoGroup`. Both\nare computed on-the-fly from `AniDB_Episode.HasAired` and local file\navailability — missing = aired without local files, unaired = not yet\naired without local files.\n\nAdded 26 expression/selector/sorting files for per-type filtering and\nsorting on missing and unaired counts, plus an `IsRestrictedExpression`\ninfo expression that wraps the new `IFilterableInfo.IsRestricted`.\n\n`chore` (`abstractions`): **Bump version to 6.0.0-alpha.53**.\n"
+    },
+    {
       "version": "6.0.0.279",
       "tag": "v6.0.0-dev.279",
       "commit": "837932824c4104e1077532748a51bf1fab35de49",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.251/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-07T16:03:25Z",
       "releaseNotes": "\n`feat`: **Respect max auto scan attempts during folder scan & expose max attempts in abstraction**.\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.45**.\n"
-    },
-    {
-      "version": "6.0.0.250",
-      "tag": "v6.0.0-dev.250",
-      "commit": "08ac6a011d5d77e1568dc94c6da7e35c225057c0",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.250/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-07T01:54:37Z",
-      "releaseNotes": "\n`misc`: **For some reason, UIX_VideoLocal_Hash index was existing on my database, so check it in the migrations**.\n"
     }
   ]
 }
