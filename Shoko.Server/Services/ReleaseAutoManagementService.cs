@@ -1,11 +1,14 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
 
 #nullable enable
@@ -24,13 +27,15 @@ public class ReleaseAutoManagementService(
     VideoLocal_PlaceRepository videoLocalPlaces,
     CrossRef_File_EpisodeRepository crossRefs,
     AnimeSeriesRepository animeSeries,
+    AniDB_AnimeRepository anidbAnime,
+    StoredReleaseInfoRepository releaseInfoRepository,
     IVideoService videoService,
     ILogger<ReleaseAutoManagementService> logger)
 {
     /// <summary>
     /// Entry point called at the end of <c>FinalizeReleaseSearchJob</c>.
     /// Groups all files for each series the video belongs to, ranks the
-    /// candidates, and deletes any that are fully covered by a better release.
+    /// candidates, and removes redundant files according to configured preferences.
     /// </summary>
     public async Task CheckAndAutoManage(VideoLocal video)
     {
@@ -55,7 +60,6 @@ public class ReleaseAutoManagementService(
 
     private async Task CheckSeriesAsync(AnimeSeries series)
     {
-        // Collect every place for every video linked to this series.
         var videos = videoLocals.GetByAniDBAnimeID(series.AniDB_ID);
         var places = videos.SelectMany(v => videoLocalPlaces.GetByVideoLocal(v.VideoLocalID)).ToList();
         if (places.Count == 0)
@@ -66,19 +70,112 @@ public class ReleaseAutoManagementService(
             return;
 
         var ranked = comparer.Rank(candidates);
-        var redundant = comparer.GetRedundantCandidates(ranked);
-        if (redundant.Count == 0)
+        var prefs = settingsProvider.GetSettings().ReleaseComparisonPreferences;
+
+        if (prefs.PerFileDeletionForAiringSeries && IsSeriesAiring(series))
+        {
+            // Per-file redundancy for airing series: delete individual files from secondary
+            // candidates when the primary already covers those specific episodes, while
+            // keeping files for episodes the primary hasn't reached yet.
+            var primary = ranked[0];
+            if (primary.EpisodeCoverage.Count == 0)
+                return;
+
+            var videoLookup = videos.ToDictionary(v => v.VideoLocalID);
+            foreach (var candidate in ranked.Skip(1))
+                await ProcessCandidatePerFileAsync(primary, candidate, videoLookup, series, prefs);
+        }
+        else
+        {
+            // Whole-candidate redundancy: only delete when the entire candidate is covered.
+            var redundant = comparer.GetRedundantCandidates(ranked);
+            if (redundant.Count == 0)
+                return;
+
+            if (!prefs.AllowDeletion)
+            {
+                LogRedundant(series, ranked[0], redundant);
+                return;
+            }
+
+            foreach (var candidate in redundant)
+                await DeleteCandidateAsync(candidate);
+        }
+    }
+
+    private async Task ProcessCandidatePerFileAsync(
+        VideoReleaseCandidate primary,
+        VideoReleaseCandidate secondary,
+        Dictionary<int, VideoLocal> videoLookup,
+        AnimeSeries series,
+        ReleaseComparisonPreferences prefs)
+    {
+        var redundantPlaces = new List<VideoLocal_Place>();
+        var keptCount = 0;
+
+        foreach (var place in secondary.Places)
+        {
+            var fileCoverage = GetFileEpisodeCoverage(place, videoLookup);
+            if (fileCoverage.Count > 0 && fileCoverage.IsSubsetOf(primary.EpisodeCoverage))
+                redundantPlaces.Add(place);
+            else
+                keptCount++;
+        }
+
+        if (redundantPlaces.Count == 0)
             return;
 
-        var prefs = settingsProvider.GetSettings().ReleaseComparisonPreferences;
         if (!prefs.AllowDeletion)
         {
-            LogRedundant(series, ranked[0], redundant);
+            logger.LogInformation(
+                "Series {SeriesTitle} (AniDB {AnimeID}, airing): {RedundantCount}/{TotalCount} file(s) in candidate " +
+                "{Key} are individually redundant against primary {PrimaryKey}. AllowDeletion is false — no files will be removed.",
+                series.Title, series.AniDB_ID, redundantPlaces.Count, secondary.Places.Count, secondary.Key, primary.Key);
+
+            if (keptCount > 0)
+                logger.LogDebug(
+                    "  {KeptCount} file(s) in candidate {Key} cover episodes not yet reached by the primary and will be retained.",
+                    keptCount, secondary.Key);
             return;
         }
 
-        foreach (var candidate in redundant)
-            await DeleteCandidateAsync(candidate);
+        logger.LogInformation(
+            "Auto-management (airing series): deleting {RedundantCount}/{TotalCount} redundant file(s) from candidate {Key} " +
+            "for series {SeriesTitle} (AniDB {AnimeID})",
+            redundantPlaces.Count, secondary.Places.Count, secondary.Key, series.Title, series.AniDB_ID);
+
+        if (keptCount > 0)
+            logger.LogDebug(
+                "  Retaining {KeptCount} file(s) in candidate {Key} covering episodes not yet reached by the primary.",
+                keptCount, secondary.Key);
+
+        foreach (var place in redundantPlaces)
+            await videoService.DeleteVideoFile(place, removeFile: false, removeFolders: false);
+    }
+
+    private bool IsSeriesAiring(AnimeSeries series)
+    {
+        var anime = anidbAnime.GetByAnimeID(series.AniDB_ID);
+        if (anime is null)
+            return false;
+        // Airing = no end date yet, or end date is in the future.
+        return anime.EndDate is null || anime.EndDate > DateTime.Now;
+    }
+
+    private IReadOnlySet<(EpisodeType, int)> GetFileEpisodeCoverage(
+        VideoLocal_Place place, Dictionary<int, VideoLocal> videoLookup)
+    {
+        if (!videoLookup.TryGetValue(place.VideoID, out var video))
+            return new HashSet<(EpisodeType, int)>();
+        var sri = releaseInfoRepository.GetByEd2kAndFileSize(video.Hash, video.FileSize);
+        if (sri is null)
+            return new HashSet<(EpisodeType, int)>();
+        return sri.CrossReferences
+            .Select(x => x is EmbeddedCrossReference ecr
+                ? (ecr.EpisodeType, ecr.EpisodeNumber)
+                : (EpisodeType.Episode, x.AnidbEpisodeID))
+            .Where(k => k.Item2 > 0)
+            .ToHashSet();
     }
 
     private void LogRedundant(AnimeSeries series, VideoReleaseCandidate primary,

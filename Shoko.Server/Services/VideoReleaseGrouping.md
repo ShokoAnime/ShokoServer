@@ -44,8 +44,8 @@ non-default value *and* those values differ).
 | Standard resolution | `MediaInfoUtility.GetStandardResolution(width, height)` → e.g. `1080p`, `720p` | Hard (when known) | Bucketed, not exact pixels; null = unknown, never conflicts |
 | Release group | `StoredReleaseInfo.GroupID` + `.GroupSource` | Soft | Files with no SRI (or no group recorded) are compatible with any group |
 | Release source | `StoredReleaseInfo.Source` | Soft | `BluRay`, `Web`, `DVD`, etc.; `Unknown` never conflicts |
-| Audio language set | `StoredReleaseInfo.AudioLanguages`, or `AudioStream.Language` from MediaInfo | Soft | Empty list = unknown, never conflicts; non-empty sets must match exactly (sorted) |
-| Subtitle language set | `StoredReleaseInfo.SubtitleLanguages`, or internal `TextStream.Language` from MediaInfo | Soft | Same rule |
+| Audio language set | `StoredReleaseInfo.AudioLanguages` (primary); `AudioStream.Language` from MediaInfo (fallback for unrecognized files only) | Soft | Empty list = unknown, never conflicts; non-empty sets must match exactly (sorted) |
+| Subtitle language set | `StoredReleaseInfo.SubtitleLanguages` (primary); internal `TextStream.Language` from MediaInfo (fallback for unrecognized files only) | Soft | Same rule |
 | Primary audio codec | `MediaInfoUtility.TranslateCodec(first audioStream)` → e.g. `FLAC`, `AAC`, `AC3` | Soft | Null = unknown, never conflicts |
 | Container format | `GeneralStream.Format` → e.g. `MATROSKA`, `MPEG-4` | Soft | Null = unknown, never conflicts |
 
@@ -54,6 +54,20 @@ A v2 patch of an episode is a correction to the same release, not a distinct
 release. `IsCorrupted` and `IsChaptered` are normal per-file variations within a
 single release (e.g. one corrupt file in an otherwise clean batch). These fields
 only matter during the **collision split** phase described below.
+
+### Language source priority
+
+Language data comes from two sources, applied in strict priority order:
+
+1. **`StoredReleaseInfo.AudioLanguages` / `.SubtitleLanguages`** (AniDB, manually
+   curated) — used whenever an SRI record exists for the file, even if the
+   language list is empty. An empty SRI language list means "AniDB has no
+   language recorded for this file," which is treated as a wildcard, not a
+   reason to fall back to MediaInfo.
+2. **MediaInfo stream tags** (`AudioStream.Language`, `TextStream.Language`) —
+   used only when no SRI record exists (unrecognized files). MediaInfo language
+   tags are often missing or inaccurate, so they are never used in preference
+   to AniDB data.
 
 ### Missing fields are wildcards
 
@@ -83,17 +97,27 @@ same episode. The grouper applies these checks in order and yields the first one
 that applies:
 
 1. **No collision** — each episode is covered by exactly one file → keep together.
-2. **Partial collision** — some episodes are covered by multiple files but others
-   are not (the "Air v2 patch" case) → keep together; this is a mixed-patch
-   release, not two parallel releases.
+2. **Partial collision** — *some* episodes are covered by multiple files but at
+   least one episode has only a single file → keep together. This is a
+   mixed-patch release: the group corrected a handful of episodes (v2 patches)
+   while leaving the rest at v1. Dropping the v1 files would leave those
+   unpatched episodes without any file.
 3. **All episodes collide, different versions** → split one candidate per
-   `StoredReleaseInfo.Version`. This is the "complete v1 and v2 batch" case.
+   `StoredReleaseInfo.Version`. This is the "complete v1 and v2 batch" case —
+   every episode has a file on both sides, so neither side becomes incomplete
+   after the split.
 4. **All episodes collide, same version, different quality tier**
    (`IsCorrupted` / `IsChaptered` differ) → split one candidate per quality
    tier so the caller can prefer the better set.
 5. **All episodes collide, same version, same quality tier** → keep together
    (ambiguous; for example, a combined-episode file that covers the same episode
    as a single-episode file).
+
+**Full vs. partial collision example:** a group releases 24 episodes where
+only episodes 5, 10, and 15 have both v1 and v2 files. Episodes 1–4, 6–9, etc.
+have only v1. That is a *partial* collision (step 2) — stay together. If
+*all* 24 episodes have both a v1 and a v2 file, that is a *full* collision
+(step 3) — split into two candidates.
 
 ---
 
@@ -195,9 +219,35 @@ handles airing series naturally without any end-date guard:
 ### `AllowDeletion`
 
 By default `AllowDeletion = false`. In this mode the service logs which candidates
-it would delete but removes nothing. Set `AllowDeletion = true` to enable actual
-file removal. Deletion removes files from the database only (`removeFile: false`);
-the physical files on disk are not touched.
+(or files) it would delete but removes nothing. Set `AllowDeletion = true` to enable
+actual file removal. Deletion removes files from the database only
+(`removeFile: false`); the physical files on disk are not touched.
+
+### `PerFileDeletionForAiringSeries`
+
+Default: `true`.
+
+For **completed series** the whole-candidate rule is always sufficient: once a
+preferred release has caught up with every episode, every lower-ranked candidate
+whose coverage is a subset is fully redundant and can be deleted as a unit.
+
+For **airing series** a secondary candidate may be only *partially* covered —
+the preferred release has files for eps 1–8 while the secondary has eps 1–10.
+Deleting the entire secondary would remove eps 9 and 10, which nothing else covers.
+
+When `PerFileDeletionForAiringSeries = true` and the series is still airing
+(`AniDB_Anime.EndDate` is null or in the future), redundancy is evaluated
+**per file** instead of per candidate:
+
+- Each file in a secondary candidate is checked individually.
+- A file is redundant if its own episode coverage (from its SRI cross-references)
+  is a subset of the primary's episode coverage.
+- Only redundant files are deleted; non-redundant files in the same candidate
+  (covering episodes the primary has not yet reached) are retained.
+- A file with no SRI record (unknown episode coverage) is always retained.
+
+When the setting is `false`, or when the series is complete, the whole-candidate
+rule applies regardless.
 
 ### `EpisodeTypeScope`
 
@@ -400,6 +450,44 @@ When ep 5 arrives for both, the check is run again: 1080p still fully covers 720
 → B remains redundant. If ep 5 arrives only in 720p, 1080p's coverage is now
 missing ep 5, so `B.EpisodeCoverage ⊄ A.EpisodeCoverage` and B is no longer
 redundant until 1080p catches up.
+
+---
+
+### Multiple groups, airing series — per-file deletion
+
+> Three groups are releasing the same show. Group A (HEVC) is preferred but is
+> two episodes behind Group C (H264). Group B has one episode and ranks below A.
+
+```
+show/[a] ep01 hevc gerdub.mkv   ← ep 1, HEVC, German dub  ┐ candidate A
+show/[a] ep02 hevc gersub.mkv   ← ep 2, HEVC, German sub  ┘
+show/[b] ep01 h264 gersub.mkv   ← ep 1, H264, German sub    candidate B
+show/[c] ep01 h264 engsub.mkv   ← ep 1, H264, English sub ┐
+show/[c] ep02 h264 engsub.mkv   ← ep 2, H264, English sub ├ candidate C
+show/[c] ep03 h264 engsub.mkv   ← ep 3, H264, English sub ┘
+```
+
+Grouping creates three candidates (different groups / codecs / language sets).
+The comparison service (with default `VideoCodecOrder = [HEVC, H264, ...]`) ranks
+A first. Series is still airing and `PerFileDeletionForAiringSeries = true`:
+
+| File | File episode coverage | ⊆ A's coverage {1,2}? | Action |
+|------|-----------------------|------------------------|--------|
+| B ep1 | {1} | yes | **delete** |
+| C ep1 | {1} | yes | **delete** |
+| C ep2 | {2} | yes | **delete** |
+| C ep3 | {3} | no  | **keep** |
+
+Result:
+
+```
+show/[a] ep01 hevc gerdub.mkv   ← kept (primary)
+show/[a] ep02 hevc gersub.mkv   ← kept (primary)
+show/[c] ep03 h264 engsub.mkv   ← kept (not yet covered by A)
+```
+
+When ep 3 arrives for Group A, `CheckAndAutoManage` runs again: A now covers
+{1,2,3} and C ep3's coverage {3} ⊆ {1,2,3} → C ep3 is deleted.
 
 ---
 
