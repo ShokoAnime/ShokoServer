@@ -110,17 +110,9 @@ public class ReleaseAutoManagementService(
         AnimeSeries series,
         ReleaseComparisonPreferences prefs)
     {
-        var redundantPlaces = new List<VideoLocal_Place>();
-        var keptCount = 0;
-
-        foreach (var place in secondary.Places)
-        {
-            var fileCoverage = GetFileEpisodeCoverage(place, videoLookup);
-            if (fileCoverage.Count > 0 && fileCoverage.IsSubsetOf(primary.EpisodeCoverage))
-                redundantPlaces.Add(place);
-            else
-                keptCount++;
-        }
+        var redundantPlaces = comparer.GetRedundantPlaces(
+            primary, secondary, p => GetFileEpisodeCoverage(p, videoLookup));
+        var keptCount = secondary.Places.Count - redundantPlaces.Count;
 
         if (redundantPlaces.Count == 0)
             return;

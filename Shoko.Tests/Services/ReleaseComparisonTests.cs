@@ -67,6 +67,8 @@ public class ReleaseComparisonTests
     private static IReadOnlySet<(EpisodeType, int)> Episodes(params (EpisodeType, int)[] eps)
         => new HashSet<(EpisodeType, int)>(eps);
 
+    private static VideoLocal_Place MakePlace(int id) => new() { ID = id };
+
     // ── signal comparison ─────────────────────────────────────────────────────
 
     [Fact]
@@ -326,5 +328,164 @@ public class ReleaseComparisonTests
         // The 1080p covers (Episode,1),(Episode,2); the special covers (Special,1),(Special,2).
         // They don't overlap → neither is redundant.
         Assert.Empty(redundant);
+    }
+
+    // ── CompareWithDecision ───────────────────────────────────────────────────
+
+    [Fact]
+    public void CompareWithDecision_ReturnsDecidingSignalAndValues()
+    {
+        var svc = MakeService();
+        var bluray = MakeCandidate(source: ReleaseSource.BluRay);
+        var web = MakeCandidate(source: ReleaseSource.Web);
+
+        var decision = svc.CompareWithDecision(bluray, web);
+
+        Assert.True(decision.Result < 0, "BluRay should win");
+        Assert.Equal(ReleaseSignalType.Source, decision.DecidingSignal);
+        Assert.Equal("BluRay", decision.PrimaryValue);
+        Assert.Equal("Web", decision.RunnerUpValue);
+    }
+
+    [Fact]
+    public void CompareWithDecision_BWins_PrimaryValueIsB()
+    {
+        // When b ranks higher, PrimaryValue should describe b (the winner), not a.
+        var svc = MakeService();
+        var web = MakeCandidate(source: ReleaseSource.Web);
+        var bluray = MakeCandidate(source: ReleaseSource.BluRay);
+
+        var decision = svc.CompareWithDecision(web, bluray);
+
+        Assert.True(decision.Result > 0, "BluRay (b) should win");
+        Assert.Equal("BluRay", decision.PrimaryValue);
+        Assert.Equal("Web", decision.RunnerUpValue);
+    }
+
+    [Fact]
+    public void CompareWithDecision_AllTied_ReturnsNullSignal()
+    {
+        var prefs = new ReleaseComparisonPreferences
+        {
+            SignalPriority = [ReleaseSignalType.Source],
+        };
+        var svc = MakeService(prefs);
+        var a = MakeCandidate(source: ReleaseSource.BluRay);
+        var b = MakeCandidate(source: ReleaseSource.BluRay);
+
+        var decision = svc.CompareWithDecision(a, b);
+
+        Assert.Equal(0, decision.Result);
+        Assert.Null(decision.DecidingSignal);
+        Assert.Null(decision.PrimaryValue);
+        Assert.Null(decision.RunnerUpValue);
+    }
+
+    // ── per-file redundancy ───────────────────────────────────────────────────
+
+    [Fact]
+    public void GetRedundantPlaces_FileCoveredByPrimary_IsRedundant()
+    {
+        var svc = MakeService();
+        var primary = MakeCandidate(key: "1080p", resolution: "1080p",
+            coverage: Episodes((EpisodeType.Episode, 1), (EpisodeType.Episode, 2), (EpisodeType.Episode, 3)));
+
+        var place = MakePlace(1);
+        var secondary = MakeCandidate(key: "720p", resolution: "720p",
+            coverage: Episodes((EpisodeType.Episode, 1)),
+            places: [place]);
+
+        var redundant = svc.GetRedundantPlaces(primary, secondary,
+            _ => Episodes((EpisodeType.Episode, 1)));
+
+        Assert.Single(redundant);
+        Assert.Same(place, redundant[0]);
+    }
+
+    [Fact]
+    public void GetRedundantPlaces_FileCoversEpisodeNotInPrimary_IsRetained()
+    {
+        var svc = MakeService();
+        var primary = MakeCandidate(key: "1080p", resolution: "1080p",
+            coverage: Episodes((EpisodeType.Episode, 1), (EpisodeType.Episode, 2)));
+
+        var place = MakePlace(3);
+        var secondary = MakeCandidate(key: "720p", resolution: "720p",
+            coverage: Episodes((EpisodeType.Episode, 1), (EpisodeType.Episode, 2), (EpisodeType.Episode, 3)),
+            places: [place]);
+
+        var redundant = svc.GetRedundantPlaces(primary, secondary,
+            _ => Episodes((EpisodeType.Episode, 3)));
+
+        Assert.Empty(redundant);
+    }
+
+    [Fact]
+    public void GetRedundantPlaces_EmptyFileCoverage_AlwaysRetained()
+    {
+        // File with no SRI (empty coverage) must never be considered redundant.
+        var svc = MakeService();
+        var primary = MakeCandidate(key: "1080p", resolution: "1080p",
+            coverage: Episodes((EpisodeType.Episode, 1), (EpisodeType.Episode, 2)));
+
+        var place = MakePlace(1);
+        var secondary = MakeCandidate(key: "720p", resolution: "720p",
+            coverage: new HashSet<(EpisodeType, int)>(),
+            places: [place]);
+
+        var redundant = svc.GetRedundantPlaces(primary, secondary,
+            _ => new HashSet<(EpisodeType, int)>());
+
+        Assert.Empty(redundant);
+    }
+
+    [Fact]
+    public void GetRedundantPlaces_PrimaryHasNoCoverage_NothingRedundant()
+    {
+        // When the primary has no coverage data we can't safely judge redundancy.
+        var svc = MakeService();
+        var primary = MakeCandidate(key: "1080p", resolution: "1080p",
+            coverage: new HashSet<(EpisodeType, int)>());
+
+        var place = MakePlace(1);
+        var secondary = MakeCandidate(key: "720p", resolution: "720p",
+            coverage: Episodes((EpisodeType.Episode, 1)),
+            places: [place]);
+
+        var redundant = svc.GetRedundantPlaces(primary, secondary,
+            _ => Episodes((EpisodeType.Episode, 1)));
+
+        Assert.Empty(redundant);
+    }
+
+    [Fact]
+    public void GetRedundantPlaces_AiringSeriesScenario_OnlyUncoveredEpisodeKept()
+    {
+        // Primary (HEVC) covers eps 1-2. Secondary (H264) has files for eps 1, 2, 3.
+        // Files for 1 and 2 are redundant; file for ep 3 is retained.
+        var svc = MakeService();
+        var primary = MakeCandidate(key: "hevc", videoCodec: "HEVC",
+            coverage: Episodes((EpisodeType.Episode, 1), (EpisodeType.Episode, 2)));
+
+        var placeEp1 = MakePlace(1);
+        var placeEp2 = MakePlace(2);
+        var placeEp3 = MakePlace(3);
+        var secondary = MakeCandidate(key: "h264", videoCodec: "H264",
+            coverage: Episodes((EpisodeType.Episode, 1), (EpisodeType.Episode, 2), (EpisodeType.Episode, 3)),
+            places: [placeEp1, placeEp2, placeEp3]);
+
+        var coverageByPlace = new Dictionary<VideoLocal_Place, IReadOnlySet<(EpisodeType, int)>>
+        {
+            [placeEp1] = Episodes((EpisodeType.Episode, 1)),
+            [placeEp2] = Episodes((EpisodeType.Episode, 2)),
+            [placeEp3] = Episodes((EpisodeType.Episode, 3)),
+        };
+
+        var redundant = svc.GetRedundantPlaces(primary, secondary, p => coverageByPlace[p]);
+
+        Assert.Equal(2, redundant.Count);
+        Assert.Contains(placeEp1, redundant);
+        Assert.Contains(placeEp2, redundant);
+        Assert.DoesNotContain(placeEp3, redundant);
     }
 }
