@@ -1,0 +1,96 @@
+using System.Collections.Generic;
+
+#nullable enable
+namespace Shoko.Server.Settings;
+
+public class ReleaseComparisonPreferences
+{
+    /// <summary>
+    /// Ordered list of quality signals used to rank release candidates.
+    /// Comparison stops at the first signal where the two candidates differ.
+    /// </summary>
+    public List<ReleaseSignalType> SignalPriority { get; set; } =
+    [
+        ReleaseSignalType.Source,
+        ReleaseSignalType.IsCorrupted,
+        ReleaseSignalType.Resolution,
+        ReleaseSignalType.BitDepth,
+        ReleaseSignalType.VideoCodec,
+        ReleaseSignalType.Chapters,
+        ReleaseSignalType.AudioStreamCount,
+        ReleaseSignalType.SubtitleStreamCount,
+        ReleaseSignalType.AudioCodec,
+        ReleaseSignalType.SubGroup,
+        ReleaseSignalType.Version,
+        ReleaseSignalType.IsCensored,
+    ];
+
+    /// <summary>Ordered source preference: first entry is most preferred.</summary>
+    public List<string> SourceOrder { get; set; } = ["BluRay", "DVD", "TV", "Web", "Unknown"];
+
+    /// <summary>Ordered resolution preference: first entry is most preferred.</summary>
+    public List<string> ResolutionOrder { get; set; } = ["2160p", "1440p", "1080p", "720p", "480p"];
+
+    /// <summary>Ordered video codec preference: first entry is most preferred.</summary>
+    public List<string> VideoCodecOrder { get; set; } = ["HEVC", "H264", "AV1", "MPEG4", "VC1", "MPEG2"];
+
+    /// <summary>Ordered audio codec preference: first entry is most preferred.</summary>
+    public List<string> AudioCodecOrder { get; set; } = ["FLAC", "DCA", "AAC", "AC3", "MP3"];
+
+    /// <summary>
+    /// Ordered release-group preference: first entry is most preferred.
+    /// Empty list means no group preference — subgroup comparison is always a tie.
+    /// </summary>
+    public List<string> SubGroupOrder { get; set; } = [];
+
+    /// <summary>When true, 10-bit video is preferred over 8-bit; when false, the opposite.</summary>
+    public bool PreferHigherBitDepth { get; set; } = true;
+
+    /// <summary>
+    /// When true, redundant release candidates are automatically deleted.
+    /// Must be explicitly set; defaults to false (preview/display mode only).
+    /// </summary>
+    public bool AllowDeletion { get; set; } = false;
+
+    /// <summary>
+    /// Controls how episode coverage is measured for mixed-type releases
+    /// (releases that contain both regular episodes and specials).
+    /// </summary>
+    public EpisodeTypeScope EpisodeTypeScope { get; set; } = EpisodeTypeScope.KeepTogether;
+}
+
+/// <summary>Signals available for sequential release comparison.</summary>
+public enum ReleaseSignalType
+{
+    Source,
+    Resolution,
+    VideoCodec,
+    BitDepth,
+    AudioStreamCount,
+    SubtitleStreamCount,
+    AudioCodec,
+    Chapters,
+    SubGroup,
+    Version,
+    IsCorrupted,
+    IsCensored,
+}
+
+/// <summary>
+/// Controls whether releases covering mixed episode types (regular + specials)
+/// are treated as a single unit or ranked independently per type.
+/// </summary>
+public enum EpisodeTypeScope
+{
+    /// <summary>
+    /// Coverage is measured holistically across all episode types.
+    /// A specials-only release is never superseded by a regular-episode-only release.
+    /// </summary>
+    KeepTogether,
+
+    /// <summary>
+    /// Coverage is evaluated separately for regular episodes and non-regular episodes.
+    /// Allows selecting different releases for regular episodes and specials.
+    /// </summary>
+    BestPerType,
+}

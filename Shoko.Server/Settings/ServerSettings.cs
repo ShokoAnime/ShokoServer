@@ -152,6 +152,9 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     /// <inheritdoc />
     public FileQualityPreferences FileQualityPreferences { get; set; } = new();
 
+    /// <summary>Release-level comparison preferences used by the release management system.</summary>
+    public ReleaseComparisonPreferences ReleaseComparisonPreferences { get; set; } = new();
+
     /// <inheritdoc />
     [Display(Name = "Logging")]
     public LoggingSettings Logging { get; set; } = new();
