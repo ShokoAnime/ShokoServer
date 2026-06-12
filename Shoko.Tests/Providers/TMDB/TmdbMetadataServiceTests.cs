@@ -1,7 +1,11 @@
+using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Reflection;
 using Newtonsoft.Json.Linq;
 using Shoko.Server.Providers.TMDB;
 using TMDbLib.Objects.Changes;
+using TMDbLib.Objects.Exceptions;
 using Xunit;
 
 namespace Shoko.Tests.Providers.TMDB;
@@ -254,4 +258,40 @@ public class TmdbMetadataServiceTests
         Assert.Contains(2, seasons);
         Assert.Empty(episodes);
     }
+}
+
+public class TmdbTransientExceptionTests
+{
+    private static readonly ConstructorInfo _rleCtor =
+        typeof(RequestLimitExceededException).GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance)[0];
+
+    private static RequestLimitExceededException MakeRequestLimitExceeded()
+    {
+        var sm = Activator.CreateInstance(typeof(TMDbStatusMessage))!;
+        return (RequestLimitExceededException)_rleCtor.Invoke([sm, null, null]);
+    }
+
+    [Fact]
+    public void HttpRequestException_IsTransient()
+        => Assert.True(TmdbMetadataService.IsTmdbTransient(new HttpRequestException()));
+
+    [Fact]
+    public void RequestLimitExceededException_IsTransient()
+        => Assert.True(TmdbMetadataService.IsTmdbTransient(MakeRequestLimitExceeded()));
+
+    [Fact]
+    public void NotFoundException_IsNotTransient()
+        => Assert.False(TmdbMetadataService.IsTmdbTransient(new NotFoundException(null!)));
+
+    [Fact]
+    public void GeneralHttpException_IsNotTransient()
+        => Assert.False(TmdbMetadataService.IsTmdbTransient(new GeneralHttpException(System.Net.HttpStatusCode.InternalServerError)));
+
+    [Fact]
+    public void TmdbApiKeyUnavailableException_IsNotTransient()
+        => Assert.False(TmdbMetadataService.IsTmdbTransient(new TmdbApiKeyUnavailableException()));
+
+    [Fact]
+    public void ArbitraryException_IsNotTransient()
+        => Assert.False(TmdbMetadataService.IsTmdbTransient(new InvalidOperationException("unexpected")));
 }
