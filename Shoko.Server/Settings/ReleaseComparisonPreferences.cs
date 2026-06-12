@@ -53,6 +53,19 @@ public class ReleaseComparisonPreferences
     public bool AllowDeletion { get; set; } = false;
 
     /// <summary>
+    /// When true and a series is still airing, redundancy is evaluated per-file
+    /// rather than per-candidate. Individual files whose episode coverage is
+    /// already provided by a higher-ranked candidate are deleted, while the
+    /// remaining files in that candidate (covering episodes the primary has not
+    /// yet reached) are retained.
+    ///
+    /// When false (or when the series has finished airing), the existing
+    /// whole-candidate rule applies: a secondary candidate is only deleted if
+    /// its entire episode coverage is already subsumed by the primary.
+    /// </summary>
+    public bool PerFileDeletionForAiringSeries { get; set; } = true;
+
+    /// <summary>
     /// Controls how episode coverage is measured for mixed-type releases
     /// (releases that contain both regular episodes and specials).
     /// </summary>
