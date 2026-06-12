@@ -86,6 +86,7 @@ public static partial class SettingsMigrations
         // using applicationPaths.DataPath. The null tombstone here ensures Version == 15.
         { 15, null },
         { 16, MigrateDefaultRenamerToStatic },
+        { 17, MigrateTmdbMaxRequestsPerWindow },
     };
 
     /// <summary>
@@ -346,6 +347,22 @@ public static partial class SettingsMigrations
 
         queueObj["SQLiteFilePath"] = filePath;
         queueObj.Remove("ConnectionString");
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateTmdbMaxRequestsPerWindow(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        if (currentSettings["TMDB"] is not JObject tmdb) return currentSettings.ToString();
+        if (tmdb["RateLimit"] is not JObject rateLimit) return currentSettings.ToString();
+
+        var old = rateLimit["MaxRequestsPerWindow"];
+        if (old is not null)
+        {
+            rateLimit["TMDB_API_Limits"] ??= old.DeepClone();
+            rateLimit.Remove("MaxRequestsPerWindow");
+        }
 
         return currentSettings.ToString();
     }

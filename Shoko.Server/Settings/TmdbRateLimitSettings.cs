@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 
@@ -11,13 +12,14 @@ public class TmdbRateLimitSettings
 {
     /// <summary>
     /// Maximum number of requests allowed within the rate limit window.
-    /// TMDB enforces approximately 40 requests per second; this defaults to 10 to avoid overwhelming
+    /// TMDB enforces a maximum of 40 requests per second; this defaults to 10 to avoid overwhelming
     /// end-user hardware with API requests and the data processing that follows each one.
     ///</summary>
     [Badge("Debug", Theme = DisplayColorTheme.Warning)]
     [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
-    [Display(Name = "Max Requests Per Window")]
+    [Display(Name = "API Rate Limit")]
     [Range(1, 40)]
+    [JsonProperty("TMDB_API_Limits")]
     public int MaxRequestsPerWindow { get; set; } = 10;
 
     /// <summary>
