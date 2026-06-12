@@ -32,6 +32,8 @@ public class FinalizeReleaseSearchJob : BaseJob
 
     private readonly StoredReleaseInfo_MatchAttemptRepository _matchAttempts;
 
+    private readonly ReleaseAutoManagementService _releaseAutoManagement;
+
     private VideoLocal? _vlocal;
 
     private StoredReleaseInfo_MatchAttempt? _matchAttempt;
@@ -94,6 +96,9 @@ public class FinalizeReleaseSearchJob : BaseJob
             _videoReleaseService.FireSearchCompleted(_vlocal, matchAttempt);
         }
 
+        // Check for redundant releases and potentially auto-delete them.
+        await _releaseAutoManagement.CheckAndAutoManage(_vlocal);
+
         // Trigger the relocation if necessary.
         if (ShouldRelocate)
             await _relocationService.ScheduleAutoRelocationForVideo(_vlocal);
@@ -103,13 +108,15 @@ public class FinalizeReleaseSearchJob : BaseJob
         IVideoReleaseService videoReleaseService,
         VideoLocalRepository videoLocals,
         IVideoRelocationService relocationService,
-        StoredReleaseInfo_MatchAttemptRepository matchAttempts
+        StoredReleaseInfo_MatchAttemptRepository matchAttempts,
+        ReleaseAutoManagementService releaseAutoManagement
     )
     {
         _videoReleaseService = (VideoReleaseService)videoReleaseService;
         _videoLocals = videoLocals;
         _relocationService = relocationService;
         _matchAttempts = matchAttempts;
+        _releaseAutoManagement = releaseAutoManagement;
     }
 
     protected FinalizeReleaseSearchJob() { }

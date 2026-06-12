@@ -70,6 +70,10 @@ public class EpisodeController : BaseController
     private readonly AnimeEpisode_UserRepository _animeEpisodeUsers;
     private readonly TMDB_EpisodeRepository _tmdbEpisodes;
     private readonly TMDB_MovieRepository _tmdbMovies;
+    private readonly VideoLocalRepository _videoLocals;
+    private readonly VideoLocal_PlaceRepository _videoLocalPlaces;
+    private readonly VideoReleaseGroupingService _releaseGrouper;
+    private readonly ReleaseComparisonService _releaseComparer;
 
     public EpisodeController(
         ISettingsProvider settingsProvider,
@@ -84,7 +88,11 @@ public class EpisodeController : BaseController
         AnimeEpisodeRepository animeEpisodes,
         AnimeEpisode_UserRepository animeEpisodeUsers,
         TMDB_EpisodeRepository tmdbEpisodes,
-        TMDB_MovieRepository tmdbMovies
+        TMDB_MovieRepository tmdbMovies,
+        VideoLocalRepository videoLocals,
+        VideoLocal_PlaceRepository videoLocalPlaces,
+        VideoReleaseGroupingService releaseGrouper,
+        ReleaseComparisonService releaseComparer
     ) : base(settingsProvider)
     {
         _seriesService = seriesService;
@@ -99,6 +107,10 @@ public class EpisodeController : BaseController
         _animeEpisodeUsers = animeEpisodeUsers;
         _tmdbEpisodes = tmdbEpisodes;
         _tmdbMovies = tmdbMovies;
+        _videoLocals = videoLocals;
+        _videoLocalPlaces = videoLocalPlaces;
+        _releaseGrouper = releaseGrouper;
+        _releaseComparer = releaseComparer;
     }
 
     /// <summary>
@@ -993,6 +1005,83 @@ public class EpisodeController : BaseController
         await _userDataService.SetEpisodeWatchedStatus(episode, user, watched, noVideoPropagation: !updateFiles);
 
         return Ok();
+    }
+
+    #endregion
+
+    #region Release Management
+
+    /// <summary>
+    /// Get the primary release chosen for the given episode and the reason it was selected.
+    /// </summary>
+    /// <remarks>
+    /// Groups all files for the episode's series into release candidates, ranks them by the
+    /// configured signal priority, and returns the highest-ranked candidate that covers this
+    /// episode together with a brief explanation: <c>OnlyRelease</c> when there is only one
+    /// option, or <c>Ranked</c> when multiple candidates were compared — in which case
+    /// <c>DecidingSignal</c>, <c>PrimaryValue</c>, and <c>RunnerUpValue</c> describe the
+    /// first signal that broke the tie.
+    /// </remarks>
+    /// <param name="episodeID">Shoko Episode ID.</param>
+    /// <returns>Primary release details and selection reason, or 404 if no release covers the episode.</returns>
+    [HttpGet("{episodeID}/PrimaryRelease")]
+    [ProducesResponseType(typeof(PrimaryReleaseInfo), 200)]
+    [ProducesResponseType(404)]
+    public ActionResult<PrimaryReleaseInfo> GetPrimaryRelease([FromRoute, Range(1, int.MaxValue)] int episodeID)
+    {
+        var episode = _animeEpisodes.GetByID(episodeID);
+        if (episode is null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var anidbEpisode = episode.AniDB_Episode;
+        if (anidbEpisode is null)
+            return NotFound(AnidbNotFoundForEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        // Collect all places for every video linked to this series.
+        var places = _videoLocals
+            .GetByAniDBAnimeID(series.AniDB_ID)
+            .SelectMany(v => _videoLocalPlaces.GetByVideoLocal(v.VideoLocalID))
+            .ToList();
+
+        // Group into release candidates and filter to those covering this episode.
+        var episodeKey = (anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber);
+        var covering = _releaseGrouper.Group(places)
+            .Where(c => c.EpisodeCoverage.Contains(episodeKey))
+            .ToList();
+
+        if (covering.Count == 0)
+            return NotFound("No release found for this episode.");
+
+        var ranked = _releaseComparer.Rank(covering);
+        var primary = ranked[0];
+
+        if (ranked.Count == 1)
+        {
+            return Ok(new PrimaryReleaseInfo
+            {
+                CandidateCount = 1,
+                Primary = new ReleaseCandidateSummary(primary),
+                Reason = PrimaryReleaseReason.OnlyRelease,
+            });
+        }
+
+        var decision = _releaseComparer.CompareWithDecision(primary, ranked[1]);
+        return Ok(new PrimaryReleaseInfo
+        {
+            CandidateCount = ranked.Count,
+            Primary = new ReleaseCandidateSummary(primary),
+            Reason = PrimaryReleaseReason.Ranked,
+            DecidingSignal = decision.DecidingSignal,
+            PrimaryValue = decision.PrimaryValue,
+            RunnerUpValue = decision.RunnerUpValue,
+        });
     }
 
     #endregion

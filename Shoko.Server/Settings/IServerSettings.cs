@@ -104,6 +104,11 @@ public interface IServerSettings
     FileQualityPreferences FileQualityPreferences { get; set; }
 
     /// <summary>
+    /// Release-level comparison preferences used by the release management system.
+    /// </summary>
+    ReleaseComparisonPreferences ReleaseComparisonPreferences { get; set; }
+
+    /// <summary>
     /// The logging settings.
     /// </summary>
     LoggingSettings Logging { get; set; }
