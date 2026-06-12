@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.Release;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Settings;
 
 #nullable enable
@@ -92,6 +93,32 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider)
                 redundant.Add(candidate);
         }
         return redundant;
+    }
+
+    /// <summary>
+    /// Returns the places from <paramref name="secondary"/> whose individual episode
+    /// coverage — determined by calling <paramref name="getCoverage"/> per place —
+    /// is a subset of <paramref name="primary"/>'s coverage. These files are
+    /// individually redundant: the primary already provides a higher-ranked
+    /// alternative for every episode they cover.
+    /// Places whose coverage is empty (unknown, no SRI) are always retained.
+    /// </summary>
+    public IReadOnlyList<VideoLocal_Place> GetRedundantPlaces(
+        VideoReleaseCandidate primary,
+        VideoReleaseCandidate secondary,
+        Func<VideoLocal_Place, IReadOnlySet<(EpisodeType, int)>> getCoverage)
+    {
+        if (primary.EpisodeCoverage.Count == 0)
+            return [];
+
+        var result = new List<VideoLocal_Place>();
+        foreach (var place in secondary.Places)
+        {
+            var coverage = getCoverage(place);
+            if (coverage.Count > 0 && coverage.IsSubsetOf(primary.EpisodeCoverage))
+                result.Add(place);
+        }
+        return result;
     }
 
     /// <summary>

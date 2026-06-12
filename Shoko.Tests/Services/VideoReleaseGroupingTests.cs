@@ -599,6 +599,47 @@ public class VideoReleaseGroupingTests
     }
 
     /// <summary>
+    /// When every episode in a subset (here 5, 10, 15) has both a v1 and a v2 file
+    /// and there are no other episodes, the collision is total — every episode in
+    /// the bucket has duplicates — so the bucket splits into one candidate per
+    /// version. This is the "full collision on specific episodes" case.
+    /// </summary>
+    [Fact]
+    public void AllEpisodesHaveBothVersions_SplitIntoTwoCandidates()
+    {
+        var media = MakeMedia(width: 1280, height: 720);
+        var doki = (string hash, long size, string ep, int ver) =>
+            MakeSri(hash, size, "584", "AniDB", "Doki", "Doki", ReleaseSource.BluRay, version: ver, episodes: [ep]);
+
+        var resolved = new[]
+        {
+            // v1 files for eps 5, 10, 15
+            new ResolvedVideoPlace(MakePlace(1, 1, 1, "Show/[Doki] Show - 05v1.mkv"),
+                MakeVideo(1, "h5v1", 600_000_000, media), doki("h5v1", 600_000_000, "5", 1)),
+            new ResolvedVideoPlace(MakePlace(2, 2, 1, "Show/[Doki] Show - 10v1.mkv"),
+                MakeVideo(2, "h10v1", 610_000_000, media), doki("h10v1", 610_000_000, "10", 1)),
+            new ResolvedVideoPlace(MakePlace(3, 3, 1, "Show/[Doki] Show - 15v1.mkv"),
+                MakeVideo(3, "h15v1", 605_000_000, media), doki("h15v1", 605_000_000, "15", 1)),
+            // v2 files for the same eps — every episode now has two files
+            new ResolvedVideoPlace(MakePlace(4, 4, 1, "Show/[Doki] Show - 05v2.mkv"),
+                MakeVideo(4, "h5v2", 620_000_000, media), doki("h5v2", 620_000_000, "5", 2)),
+            new ResolvedVideoPlace(MakePlace(5, 5, 1, "Show/[Doki] Show - 10v2.mkv"),
+                MakeVideo(5, "h10v2", 625_000_000, media), doki("h10v2", 625_000_000, "10", 2)),
+            new ResolvedVideoPlace(MakePlace(6, 6, 1, "Show/[Doki] Show - 15v2.mkv"),
+                MakeVideo(6, "h15v2", 615_000_000, media), doki("h15v2", 615_000_000, "15", 2)),
+        };
+
+        var candidates = Group(resolved);
+
+        // Every episode (5, 10, 15) is covered by both a v1 and a v2 file →
+        // full collision → split into two candidates, one per version.
+        Assert.Equal(2, candidates.Count);
+        Assert.All(candidates, c => Assert.Equal(3, c.Places.Count));
+        Assert.Contains(candidates, c => c.Version == 1);
+        Assert.Contains(candidates, c => c.Version == 2);
+    }
+
+    /// <summary>
     /// When a v2 batch exists for most episodes but not all (one episode was
     /// never re-encoded), the collision is only partial. The grouper conservatively
     /// keeps everything in one candidate rather than splitting.
