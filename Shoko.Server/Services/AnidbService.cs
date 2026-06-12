@@ -557,7 +557,13 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                     ).ConfigureAwait(false);
                 }
                 if (ex is null)
+                {
+                    // Anime data is fresh but a new file may have just been linked; refresh stats
+                    // so missing-episode counts stay accurate without waiting for the next HTTP fetch.
+                    if (anime is not null && _seriesRepository.GetByAnimeID(job.AnimeID) is not null)
+                        await _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = job.AnimeID).ConfigureAwait(false);
                     return null;
+                }
                 throw ex;
             }
 

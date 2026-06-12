@@ -544,7 +544,16 @@ public class VideoReleaseService(
             releaseInfoMatchAttemptRepository.Save(concreteAttempt);
 
             var jobType = _providerJobTypes.GetValueOrDefault(providerInfo.Provider.GetType()) ?? typeof(ProcessReleaseProviderJob);
-            await schedulerFactory.Enqueue(jobType, j => SetProviderJobProps(j, video.ID, concreteAttempt.StoredReleaseInfo_MatchAttemptID, false));
+            var matchAttemptID = concreteAttempt.StoredReleaseInfo_MatchAttemptID;
+            await schedulerFactory.CreateJobChain()
+                .Then(jobType, j => SetProviderJobProps(j, video.ID, matchAttemptID, false))
+                .Then<FinalizeReleaseSearchJob>(c =>
+                {
+                    c.VideoLocalID = video.ID;
+                    c.MatchAttemptID = matchAttemptID;
+                    c.ShouldRelocate = false;
+                })
+                .Enqueue();
             return true;
         }
         return false;
@@ -1024,12 +1033,16 @@ public class VideoReleaseService(
                 logger.LogInformation("Queuing immediate GET for AniDB_Anime: {AnimeID}", animeID);
                 _anidbService ??= serviceProvider.GetRequiredService<IAnidbService>();
                 await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod, prioritize: true);
+                // Stats after this provider job (cross-refs visible); GetAniDBAnimeJob will schedule a second refresh after episodes are created.
+                await schedulerFactory.RunAfterCurrent<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
             }
             else if (!animeRecentlyUpdated)
             {
                 logger.LogInformation("Queuing GET for AniDB_Anime: {AnimeID}", animeID);
                 _anidbService ??= serviceProvider.GetRequiredService<IAnidbService>();
                 await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod);
+                // Stats after this provider job (cross-refs visible); GetAniDBAnimeJob will schedule a second refresh after episodes are created.
+                await schedulerFactory.RunAfterCurrent<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
             }
             else
             {

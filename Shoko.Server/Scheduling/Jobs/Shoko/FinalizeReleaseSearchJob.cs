@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
@@ -70,8 +70,11 @@ public class FinalizeReleaseSearchJob : BaseJob
         _vlocal = _videoLocals.GetByID(VideoLocalID);
         _matchAttempt = _matchAttempts.GetByID(MatchAttemptID);
         if (_vlocal is not null && _matchAttempt is not null)
-            _attemptNumber = _matchAttempts.GetByEd2kAndFileSize(_vlocal.Hash, _vlocal.FileSize)
-                .FindIndex(m => m.StoredReleaseInfo_MatchAttemptID == MatchAttemptID) + 1;
+        {
+            var allAttempts = _matchAttempts.GetByEd2kAndFileSize(_vlocal.Hash, _vlocal.FileSize).ToList();
+            var idx = allAttempts.FindIndex(m => m.StoredReleaseInfo_MatchAttemptID == MatchAttemptID);
+            if (idx >= 0) _attemptNumber = idx + 1;
+        }
         _fileName = VideoService.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
 
