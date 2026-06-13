@@ -31,6 +31,14 @@ public class ReleaseCandidate
     public required string Key { get; init; }
 
     /// <summary>
+    /// True when every file in this candidate has a <c>StoredReleaseInfo</c>
+    /// record. When false, quality signals are derived from MediaInfo only and
+    /// may be less accurate.
+    /// </summary>
+    [Required]
+    public required bool HasReleaseInfo { get; init; }
+
+    /// <summary>
     /// True when the primary candidate (rank 1) fully covers every episode this
     /// candidate covers, making it safe to delete.
     /// </summary>
@@ -115,12 +123,18 @@ public class ReleaseCandidate
         bool isRedundant,
         Dictionary<int, VideoLocal> videoLookup,
         HashSet<int>? redundantPlaceIDs = null,
-        ReleaseComparisonService.CompareDecision? decision = null)
+        ReleaseComparisonService.CompareDecision? decision = null,
+        Dictionary<int, IReadOnlySet<(EpisodeType, int)>>? placeEpisodeCoverage = null)
     {
         var files = candidate.Places
             .Select(place =>
             {
                 videoLookup.TryGetValue(place.VideoID, out var video);
+                var episodes = placeEpisodeCoverage?.TryGetValue(place.ID, out var cov) == true
+                    ? cov.Select(e => new EpisodeCoverage { Type = e.Item1, Number = e.Item2 })
+                          .OrderBy(e => e.Type).ThenBy(e => e.Number)
+                          .ToList()
+                    : (IReadOnlyList<EpisodeCoverage>)[];
                 return new File
                 {
                     PlaceID = place.ID,
@@ -128,6 +142,7 @@ public class ReleaseCandidate
                     AbsolutePath = place.Path,
                     FileSize = video?.FileSize ?? 0,
                     IsRedundant = redundantPlaceIDs?.Contains(place.ID) ?? isRedundant,
+                    Episodes = episodes,
                 };
             })
             .ToList();
@@ -156,6 +171,7 @@ public class ReleaseCandidate
         {
             Rank = rank,
             Key = candidate.Key,
+            HasReleaseInfo = candidate.HasReleaseInfo,
             IsRedundant = isRedundant,
             DecidingSignal = decision?.DecidingSignal,
             WinnerValue = decision?.PrimaryValue,
@@ -210,6 +226,14 @@ public class ReleaseCandidate
         /// </summary>
         [Required]
         public required bool IsRedundant { get; init; }
+
+        /// <summary>
+        /// Episodes this specific file covers. Empty when the file has no
+        /// <c>StoredReleaseInfo</c> record (use the candidate-level
+        /// <see cref="ReleaseCandidate.Episodes"/> as a fallback in that case).
+        /// </summary>
+        [Required]
+        public required IReadOnlyList<EpisodeCoverage> Episodes { get; init; }
     }
 
     /// <summary>

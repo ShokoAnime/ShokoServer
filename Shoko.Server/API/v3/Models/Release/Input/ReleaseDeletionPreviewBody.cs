@@ -10,8 +10,15 @@ namespace Shoko.Server.API.v3.Models.Release.Input;
 public class ReleaseDeletionPreviewBody
 {
     /// <summary>
-    /// Series IDs to exclude from the preview. These series will not appear
-    /// in the result even if they have redundant candidates.
+    /// When provided, only these series are included in the preview. Takes
+    /// priority over <see cref="ExcludedSeriesIDs"/>. Useful for a
+    /// single-series preview launched from the detail view.
+    /// </summary>
+    public List<int>? IncludedSeriesIDs { get; set; }
+
+    /// <summary>
+    /// Series IDs to exclude from the preview. Ignored when
+    /// <see cref="IncludedSeriesIDs"/> is provided.
     /// </summary>
     public List<int>? ExcludedSeriesIDs { get; set; }
 
@@ -32,7 +39,7 @@ public class ReleaseDeletionPreviewBody
         public required int SeriesID { get; set; }
 
         /// <summary>
-        /// The <see cref="ReleaseCandidateDTO.Key"/> of the candidate to treat as
+        /// The <see cref="ReleaseCandidate.Key"/> of the candidate to treat as
         /// the primary (best) release. All other candidates will be evaluated as
         /// secondary against this one.
         /// </summary>
