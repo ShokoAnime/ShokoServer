@@ -255,10 +255,12 @@ public class TmdbShow
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = (alternateOrdering is null ? show.Cast : alternateOrdering.Cast)
                 .Select(cast => new Role(cast))
+                .Where(r => !r.IsStub)
                 .ToList();
         if (include.HasFlag(IncludeDetails.Crew))
             Crew = (alternateOrdering is null ? show.Crew : alternateOrdering.Crew)
                 .Select(cast => new Role(cast))
+                .Where(r => !r.IsStub)
                 .ToList();
         if (include.HasFlag(IncludeDetails.YearlySeasons))
             YearlySeasons = show.YearlySeasons.ToV3Dto();

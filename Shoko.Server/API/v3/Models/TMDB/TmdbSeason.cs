@@ -152,10 +152,12 @@ public class TmdbSeason
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = season.Cast
                 .Select(cast => new Role(cast))
+                .Where(r => !r.IsStub)
                 .ToList();
         if (include.HasFlag(IncludeDetails.Crew))
             Crew = season.Crew
                 .Select(crew => new Role(crew))
+                .Where(r => !r.IsStub)
                 .ToList();
         if (include.HasFlag(IncludeDetails.YearlySeasons))
             YearlySeasons = season.YearlySeasons.ToV3Dto();

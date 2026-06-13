@@ -211,10 +211,12 @@ public class TmdbEpisode
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = episode.Cast
                 .Select(cast => new Role(cast))
+                .Where(r => !r.IsStub)
                 .ToList();
         if (include.HasFlag(IncludeDetails.Crew))
             Crew = episode.Crew
                 .Select(crew => new Role(crew))
+                .Where(r => !r.IsStub)
                 .ToList();
         if (include.HasFlag(IncludeDetails.Ordering))
         {

@@ -25,6 +25,20 @@ public class UpdateTmdbPersonJob : BaseJob
 
     public virtual bool DownloadImages { get; set; }
 
+    /// <summary>
+    /// Loop-prevention hint: the show that triggered this job. When set, <see cref="TmdbMetadataService.PurgePersonInternal"/>
+    /// skips re-scheduling an update for this show, preventing a cascade when the person 404s.
+    /// Not a true parent-context ID — the person update is independent of any specific show.
+    /// </summary>
+    public virtual int? TmdbShowID { get; set; }
+
+    /// <summary>
+    /// Loop-prevention hint: the movie that triggered this job. When set, <see cref="TmdbMetadataService.PurgePersonInternal"/>
+    /// skips re-scheduling an update for this movie, preventing a cascade when the person 404s.
+    /// Not a true parent-context ID — the person update is independent of any specific movie.
+    /// </summary>
+    public virtual int? TmdbMovieID { get; set; }
+
     public virtual string? PersonName { get; set; }
 
     public override void PostInit()
@@ -43,7 +57,7 @@ public class UpdateTmdbPersonJob : BaseJob
     public override async Task Execute()
     {
         _logger.LogInformation("Processing UpdateTmdbPersonJob: {TmdbPersonId}", TmdbPersonID);
-        await _tmdbService.UpdatePerson(TmdbPersonID, ForceRefresh, DownloadImages).ConfigureAwait(false);
+        await _tmdbService.UpdatePerson(TmdbPersonID, ForceRefresh, DownloadImages, currentShowId: TmdbShowID, currentMovieId: TmdbMovieID).ConfigureAwait(false);
     }
 
     private readonly TMDB_PersonRepository _tmdbPeople;

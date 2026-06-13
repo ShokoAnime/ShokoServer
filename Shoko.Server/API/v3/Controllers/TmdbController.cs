@@ -301,6 +301,7 @@ public partial class TmdbController : BaseController
 
         return movie.Cast
             .Select(cast => new Role(cast))
+            .Where(r => !r.IsStub)
             .ToList();
     }
 
@@ -317,6 +318,7 @@ public partial class TmdbController : BaseController
 
         return movie.Crew
             .Select(cast => new Role(cast))
+            .Where(r => !r.IsStub)
             .ToList();
     }
 
@@ -1269,6 +1271,7 @@ public partial class TmdbController : BaseController
 
                 return alternateOrdering.Cast
                     .Select(cast => new Role(cast))
+                    .Where(r => !r.IsStub)
                     .ToList();
             }
 
@@ -1278,6 +1281,7 @@ public partial class TmdbController : BaseController
 
         return show.Cast
             .Select(cast => new Role(cast))
+            .Where(r => !r.IsStub)
             .ToList();
     }
 
@@ -1309,6 +1313,7 @@ public partial class TmdbController : BaseController
 
                 return alternateOrdering.Crew
                     .Select(cast => new Role(cast))
+                    .Where(r => !r.IsStub)
                     .ToList();
             }
 
@@ -1318,6 +1323,7 @@ public partial class TmdbController : BaseController
 
         return show.Crew
             .Select(cast => new Role(cast))
+            .Where(r => !r.IsStub)
             .ToList();
     }
 
@@ -2071,6 +2077,7 @@ public partial class TmdbController : BaseController
 
             return altOrderSeason.Cast
                 .Select(cast => new Role(cast))
+                .Where(r => !r.IsStub)
                 .ToList();
         }
 
@@ -2083,6 +2090,7 @@ public partial class TmdbController : BaseController
 
         return season.Cast
             .Select(cast => new Role(cast))
+            .Where(r => !r.IsStub)
             .ToList();
     }
 
@@ -2101,6 +2109,7 @@ public partial class TmdbController : BaseController
 
             return altOrderSeason.Crew
                 .Select(crew => new Role(crew))
+                .Where(r => !r.IsStub)
                 .ToList();
         }
 
@@ -2113,6 +2122,7 @@ public partial class TmdbController : BaseController
 
         return season.Crew
             .Select(crew => new Role(crew))
+            .Where(r => !r.IsStub)
             .ToList();
     }
 
@@ -2608,6 +2618,7 @@ public partial class TmdbController : BaseController
 
         return episode.Cast
             .Select(cast => new Role(cast))
+            .Where(r => !r.IsStub)
             .ToList();
     }
 
@@ -2624,6 +2635,7 @@ public partial class TmdbController : BaseController
 
         return episode.Crew
             .Select(cast => new Role(cast))
+            .Where(r => !r.IsStub)
             .ToList();
     }
 

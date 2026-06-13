@@ -17,7 +17,7 @@ public class TmdbRateLimitSettings
     ///</summary>
     [Badge("Debug", Theme = DisplayColorTheme.Warning)]
     [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
-    [Display(Name = "API Rate Limit")]
+    [Display(Name = "Max Requests Per Window")]
     [Range(1, 40)]
     [JsonProperty("TMDB_API_Limits")]
     public int MaxRequestsPerWindow { get; set; } = 10;

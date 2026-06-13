@@ -502,10 +502,23 @@ public class TmdbMetadataService : ITmdbMetadataService
                 return false;
             }
 
-            if (!forceRefresh && !newlyAdded && !await HasMovieChangedSinceAsync(movieId, tmdbMovie.LastUpdatedAt).ConfigureAwait(false))
+            if (!forceRefresh && !newlyAdded)
             {
-                _logger.LogInformation("Skipping update of movie {MovieID} as no changes were detected on TMDB since {LastUpdatedAt}.", movieId, tmdbMovie.LastUpdatedAt);
-                return false;
+                bool hasChanged;
+                try
+                {
+                    hasChanged = await HasMovieChangedSinceAsync(movieId, tmdbMovie.LastUpdatedAt).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (IsTmdbTransient(ex))
+                {
+                    _logger.LogWarning(ex, "TMDB: Transient error checking changes for movie {MovieId}; proceeding with full refresh.", movieId);
+                    hasChanged = true;
+                }
+                if (!hasChanged)
+                {
+                    _logger.LogInformation("Skipping update of movie {MovieID} as no changes were detected on TMDB since {LastUpdatedAt}.", movieId, tmdbMovie.LastUpdatedAt);
+                    return false;
+                }
             }
 
             // Abort if we couldn't find the movie by id.
@@ -706,19 +719,38 @@ public class TmdbMetadataService : ITmdbMetadataService
                     // Transient failure — preserve cast/crew rows and retry later.
                     transientlyFailedMoviePeople.Add(personId);
                 }
-            });
+            }, onDropped: transientlyFailedMoviePeople.Add);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "TMDB: Failed to update one or more people during movie cast/crew update (Movie={MovieId})", tmdbMovie.Id);
-            // Cast/crew rows were already written above. Any person ID whose fetch failed leaves a
-            // dangling reference — the API cannot resolve cast without a matching TMDB_Person row and
-            // will return HTTP 500. Exclude transient failures: their rows are intentionally preserved
-            // and the retry job will fill in the TMDB_Person row.
-            CleanupOrphanedMovieCastCrew(tmdbMovie, peopleToKeep, transientlyFailedMoviePeople.ToHashSet());
         }
-        foreach (var personId in transientlyFailedMoviePeople)
-            await _scheduler.Enqueue<UpdateTmdbPersonJob>(j => { j.TmdbPersonID = personId; j.DownloadImages = downloadImages; });
+        // Schedule retries for transiently-failed people first; their cast/crew rows are preserved.
+        // Then clean up rows for people that permanently failed — the excluded set ensures
+        // transient failures are skipped in CleanupOrphanedCastCrew.
+        var transientlyFailedMovieSet = transientlyFailedMoviePeople.ToHashSet();
+        try
+        {
+            await Task.WhenAll(transientlyFailedMovieSet.Select(personId =>
+                _scheduler.Enqueue<UpdateTmdbPersonJob>(j => { j.TmdbPersonID = personId; j.DownloadImages = downloadImages; j.TmdbMovieID = tmdbMovie.Id; })));
+        }
+        finally
+        {
+            CleanupOrphanedCastCrew(peopleToKeep, transientlyFailedMovieSet, missingPersonIds =>
+            {
+                var orphanedCast = _tmdbMovieCast.GetByTmdbMovieID(tmdbMovie.Id)
+                    .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
+                var orphanedCrew = _tmdbMovieCrew.GetByTmdbMovieID(tmdbMovie.Id)
+                    .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
+                if (orphanedCast.Count > 0 || orphanedCrew.Count > 0)
+                {
+                    _logger.LogWarning("TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Movie={MovieId})",
+                        orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, tmdbMovie.Id);
+                    _tmdbMovieCast.Delete(orphanedCast);
+                    _tmdbMovieCrew.Delete(orphanedCrew);
+                }
+            });
+        }
         try
         {
             await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToPurge, async personId =>
@@ -1129,8 +1161,18 @@ public class TmdbMetadataService : ITmdbMetadataService
             // Null result (14-day window exceeded or API failure) triggers a full refresh in UpdateShowSeasonsAndEpisodes.
             // Not applied on forced refreshes or newly-added shows — those always do a full fetch.
             (HashSet<int> SeasonNumbers, HashSet<(int Season, int Episode)> Episodes)? changedItems = null;
-            if (!newlyAdded && !forceRefresh)
-                changedItems = await GetShowChangedItemsAsync(showId, tmdbShow.LastUpdatedAt).ConfigureAwait(false);
+            if (!newlyAdded && !forceRefresh && !quickRefresh)
+            {
+                try
+                {
+                    changedItems = await GetShowChangedItemsAsync(showId, tmdbShow.LastUpdatedAt).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (IsTmdbTransient(ex))
+                {
+                    _logger.LogWarning(ex, "TMDB: Transient error checking changes for show {ShowId}; proceeding with full refresh.", showId);
+                    changedItems = null;
+                }
+            }
 
             var preferredTitleLanguages = settings.TMDB.DownloadAllTitles ? null : Languages.PreferredNamingLanguages.Select(a => a.Language).ToHashSet();
             var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
@@ -1205,45 +1247,27 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private sealed class ShowSeasonUpdateState
     {
-        public readonly bool DownloadCrewAndCast;
-        public readonly bool QuickRefresh;
-        public readonly bool ShouldFireEvents;
-        public readonly (HashSet<int> SeasonNumbers, HashSet<(int Season, int Episode)> Episodes)? ChangedItems;
-        public readonly HashSet<TitleLanguage>? PreferredTitleLanguages;
-        public readonly HashSet<TitleLanguage>? PreferredOverviewLanguages;
+        public required bool DownloadCrewAndCast { get; init; }
+        public required bool QuickRefresh { get; init; }
+        public required bool ShouldFireEvents { get; init; }
+        public required (HashSet<int> SeasonNumbers, HashSet<(int Season, int Episode)> Episodes)? ChangedItems { get; init; }
+        public required HashSet<TitleLanguage>? PreferredTitleLanguages { get; init; }
+        public required HashSet<TitleLanguage>? PreferredOverviewLanguages { get; init; }
         public int SeasonsToAdd;
         public int EpisodesToAdd;
         public int TotalEpisodeCount;
         public int TotalHiddenEpisodeCount;
-        public readonly Dictionary<int, TMDB_Season> ExistingSeasons;
-        public readonly ConcurrentDictionary<int, TMDB_Episode> ExistingEpisodes;
-        public readonly ConcurrentBag<int> SeasonsToSkip = new();
-        public readonly ConcurrentBag<TMDB_Season> SeasonsToSave = new();
-        public readonly ConcurrentDictionary<TMDB_Season, UpdateReason> SeasonEventsToEmit = new();
-        public readonly ConcurrentBag<int> EpisodesToSkip = new();
-        public readonly ConcurrentBag<TMDB_Episode> EpisodesToSave = new();
-        public readonly ConcurrentDictionary<TMDB_Episode, UpdateReason> EpisodeEventsToEmit = new();
-        public readonly ConcurrentDictionary<int, byte> AllPeopleToAddOrKeep = new();
-        public readonly ConcurrentDictionary<int, byte> AllPeopleToPotentiallyRemove = new();
-
-        public ShowSeasonUpdateState(
-            bool downloadCrewAndCast,
-            bool quickRefresh,
-            bool shouldFireEvents,
-            (HashSet<int> SeasonNumbers, HashSet<(int Season, int Episode)> Episodes)? changedItems,
-            (HashSet<TitleLanguage>? Titles, HashSet<TitleLanguage>? Overviews) preferredLanguages,
-            Dictionary<int, TMDB_Season> existingSeasons,
-            ConcurrentDictionary<int, TMDB_Episode> existingEpisodes)
-        {
-            DownloadCrewAndCast = downloadCrewAndCast;
-            QuickRefresh = quickRefresh;
-            ShouldFireEvents = shouldFireEvents;
-            ChangedItems = changedItems;
-            PreferredTitleLanguages = preferredLanguages.Titles;
-            PreferredOverviewLanguages = preferredLanguages.Overviews;
-            ExistingSeasons = existingSeasons;
-            ExistingEpisodes = existingEpisodes;
-        }
+        public required Dictionary<int, TMDB_Season> ExistingSeasons { get; init; }
+        public required Dictionary<int, TMDB_Episode> ExistingEpisodes { get; init; }
+        public required ILookup<int, int> EpisodePeople { get; init; }
+        public readonly HashSet<int> SeasonsToSkip = [];
+        public readonly List<TMDB_Season> SeasonsToSave = [];
+        public readonly Dictionary<TMDB_Season, UpdateReason> SeasonEventsToEmit = [];
+        public readonly HashSet<int> EpisodesToSkip = [];
+        public readonly List<TMDB_Episode> EpisodesToSave = [];
+        public readonly Dictionary<TMDB_Episode, UpdateReason> EpisodeEventsToEmit = [];
+        public readonly HashSet<int> AllPeopleToAddOrKeep = [];
+        public readonly HashSet<int> AllPeopleToPotentiallyRemove = [];
     }
 
     private async Task<(bool episodesOrSeasonsUpdated, Dictionary<TMDB_Season, UpdateReason> updatedSeasons, Dictionary<TMDB_Episode, UpdateReason> updatedEpisodes, int episodeCount, int hiddenEpisodeCount)> UpdateShowSeasonsAndEpisodes(TvShow show, bool downloadCrewAndCast = false, bool forceRefresh = false, bool downloadImages = false, bool quickRefresh = false, bool shouldFireEvents = false, (HashSet<int> SeasonNumbers, HashSet<(int Season, int Episode)> Episodes)? changedItems = null)
@@ -1253,13 +1277,27 @@ public class TmdbMetadataService : ITmdbMetadataService
         var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
 
         var existingSeasons = _tmdbSeasons.GetByTmdbShowID(show.Id).ToDictionary(season => season.Id);
-        var existingEpisodes = new ConcurrentDictionary<int, TMDB_Episode>();
-        foreach (var episode in _tmdbEpisodes.GetByTmdbShowID(show.Id))
-            existingEpisodes.TryAdd(episode.Id, episode);
+        var existingEpisodes = _tmdbEpisodes.GetByTmdbShowID(show.Id).ToDictionary(episode => episode.Id);
 
-        var state = new ShowSeasonUpdateState(downloadCrewAndCast, quickRefresh, shouldFireEvents, changedItems, (preferredTitleLanguages, preferredOverviewLanguages), existingSeasons, existingEpisodes);
-        await ProcessWithConcurrencyAsync(_maxConcurrency, show.Seasons!, reducedSeason =>
-            ProcessShowSeasonAsync(show, reducedSeason, state));
+        var episodePeople = downloadCrewAndCast
+            ? _tmdbEpisodeCast.GetByTmdbShowID(show.Id).Select(c => (c.TmdbEpisodeID, c.TmdbPersonID))
+                .Concat(_tmdbEpisodeCrew.GetByTmdbShowID(show.Id).Select(c => (c.TmdbEpisodeID, c.TmdbPersonID)))
+                .ToLookup(x => x.TmdbEpisodeID, x => x.TmdbPersonID)
+            : Enumerable.Empty<(int, int)>().ToLookup(x => x.Item1, x => x.Item2);
+        var state = new ShowSeasonUpdateState
+        {
+            DownloadCrewAndCast = downloadCrewAndCast,
+            QuickRefresh = quickRefresh,
+            ShouldFireEvents = shouldFireEvents,
+            ChangedItems = changedItems,
+            PreferredTitleLanguages = preferredTitleLanguages,
+            PreferredOverviewLanguages = preferredOverviewLanguages,
+            ExistingSeasons = existingSeasons,
+            ExistingEpisodes = existingEpisodes,
+            EpisodePeople = episodePeople,
+        };
+        foreach (var reducedSeason in show.Seasons!)
+            await ProcessShowSeasonAsync(show, reducedSeason, state);
 
         var seasonsToRemove = existingSeasons.Values.ExceptBy(state.SeasonsToSkip, s => s.Id).ToList();
         var episodesToRemove = existingEpisodes.Values.ExceptBy(state.EpisodesToSkip, e => e.Id).ToList();
@@ -1302,9 +1340,9 @@ public class TmdbMetadataService : ITmdbMetadataService
 
         if (quickRefresh)
             return (
-                state.SeasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || !state.EpisodesToSave.IsEmpty || episodesToRemove.Count > 0,
-                state.SeasonEventsToEmit.ToDictionary(),
-                state.EpisodeEventsToEmit.ToDictionary(),
+                state.SeasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || state.EpisodesToSave.Count > 0 || episodesToRemove.Count > 0,
+                state.SeasonEventsToEmit,
+                state.EpisodeEventsToEmit,
                 state.TotalEpisodeCount,
                 state.TotalHiddenEpisodeCount
             );
@@ -1314,9 +1352,9 @@ public class TmdbMetadataService : ITmdbMetadataService
             peopleAdded, peopleUpdated, peoplePurged, peopleSkipped, show.Name, show.Id);
 
         return (
-            state.SeasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || !state.EpisodesToSave.IsEmpty || episodesToRemove.Count > 0 || peopleAdded > 0 || peoplePurged > 0,
-            state.SeasonEventsToEmit.ToDictionary(),
-            state.EpisodeEventsToEmit.ToDictionary(),
+            state.SeasonsToSave.Count > 0 || seasonsToRemove.Count > 0 || state.EpisodesToSave.Count > 0 || episodesToRemove.Count > 0 || peopleAdded > 0 || peoplePurged > 0,
+            state.SeasonEventsToEmit,
+            state.EpisodeEventsToEmit,
             state.TotalEpisodeCount,
             state.TotalHiddenEpisodeCount
         );
@@ -1327,8 +1365,8 @@ public class TmdbMetadataService : ITmdbMetadataService
         var added = 0;
         var updated = 0;
         var purged = 0;
-        var peopleToCheck = state.AllPeopleToAddOrKeep.Keys.ToHashSet();
-        var peopleToPurge = state.AllPeopleToPotentiallyRemove.Keys.Except(peopleToCheck).ToList();
+        var peopleToCheck = state.AllPeopleToAddOrKeep;
+        var peopleToPurge = state.AllPeopleToPotentiallyRemove.Except(peopleToCheck).ToList();
         var transientlyFailedShowPeople = new ConcurrentBag<int>();
         try
         {
@@ -1347,15 +1385,38 @@ public class TmdbMetadataService : ITmdbMetadataService
                     // Transient failure — preserve cast/crew rows and retry later.
                     transientlyFailedShowPeople.Add(personId);
                 }
-            });
+            }, onDropped: transientlyFailedShowPeople.Add);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "TMDB: Failed to update one or more people during show cast/crew update (Show={ShowId})", show.Id);
-            CleanupOrphanedShowCastCrew(show, peopleToCheck, transientlyFailedShowPeople.ToHashSet());
         }
-        foreach (var personId in transientlyFailedShowPeople)
-            await _scheduler.Enqueue<UpdateTmdbPersonJob>(j => { j.TmdbPersonID = personId; j.DownloadImages = downloadImages; });
+        // Schedule retries for transiently-failed people first; their cast/crew rows are preserved.
+        // Then clean up rows for people that permanently failed — the excluded set ensures
+        // transient failures are skipped in CleanupOrphanedCastCrew.
+        var transientlyFailedShowSet = transientlyFailedShowPeople.ToHashSet();
+        try
+        {
+            await Task.WhenAll(transientlyFailedShowSet.Select(personId =>
+                _scheduler.Enqueue<UpdateTmdbPersonJob>(j => { j.TmdbPersonID = personId; j.DownloadImages = downloadImages; j.TmdbShowID = show.Id; })));
+        }
+        finally
+        {
+            CleanupOrphanedCastCrew(peopleToCheck, transientlyFailedShowSet, missingPersonIds =>
+            {
+                var orphanedCast = _tmdbEpisodeCast.GetByTmdbShowID(show.Id)
+                    .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
+                var orphanedCrew = _tmdbEpisodeCrew.GetByTmdbShowID(show.Id)
+                    .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
+                if (orphanedCast.Count > 0 || orphanedCrew.Count > 0)
+                {
+                    _logger.LogWarning("TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Show={ShowId})",
+                        orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, show.Id);
+                    _tmdbEpisodeCast.Delete(orphanedCast);
+                    _tmdbEpisodeCrew.Delete(orphanedCrew);
+                }
+            });
+        }
         try
         {
             await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToPurge, async personId =>
@@ -1371,60 +1432,13 @@ public class TmdbMetadataService : ITmdbMetadataService
         return (added, updated, purged, peopleToPurge.Count + peopleToCheck.Count - added - updated - purged);
     }
 
-    private void CleanupOrphanedMovieCastCrew(TMDB_Movie movie, HashSet<int> peopleToKeep, HashSet<int> transientlyFailed)
+    private void CleanupOrphanedCastCrew(IReadOnlyCollection<int> people, HashSet<int> transientlyFailed, Action<HashSet<int>> deleteOrphansAndLog)
     {
-        // Cast/crew rows referencing a person with no TMDB_Person row cause HTTP 500s when the
-        // API resolves cast; remove entries for any person IDs absent from the database after the fan-out.
-        // Exclude transient failures: their rows are intentionally preserved and the retry job will
-        // fill in the TMDB_Person row.
-        var candidates = peopleToKeep.Except(transientlyFailed).ToHashSet();
+        var candidates = people.Except(transientlyFailed).ToHashSet();
         var existingIds = _tmdbPeople.GetExistingTmdbPersonIDs(candidates);
         var missingPersonIds = candidates.Except(existingIds).ToHashSet();
         if (missingPersonIds.Count > 0)
-        {
-            var orphanedCast = _tmdbMovieCast.GetByTmdbMovieID(movie.Id)
-                .Where(c => missingPersonIds.Contains(c.TmdbPersonID))
-                .ToList();
-            var orphanedCrew = _tmdbMovieCrew.GetByTmdbMovieID(movie.Id)
-                .Where(c => missingPersonIds.Contains(c.TmdbPersonID))
-                .ToList();
-            if (orphanedCast.Count > 0 || orphanedCrew.Count > 0)
-            {
-                _logger.LogWarning(
-                    "TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Movie={MovieId})",
-                    orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, movie.Id);
-                _tmdbMovieCast.Delete(orphanedCast);
-                _tmdbMovieCrew.Delete(orphanedCrew);
-            }
-        }
-    }
-
-    private void CleanupOrphanedShowCastCrew(TvShow show, IReadOnlyCollection<int> peopleToCheck, HashSet<int> transientlyFailed)
-    {
-        // Cast/crew rows referencing a person with no TMDB_Person row cause HTTP 500s when the
-        // API resolves cast; remove entries for any person IDs absent from the database after the fan-out.
-        // Exclude transient failures: their rows are intentionally preserved and the retry job will
-        // fill in the TMDB_Person row.
-        var candidates = peopleToCheck.Except(transientlyFailed).ToHashSet();
-        var existingIds = _tmdbPeople.GetExistingTmdbPersonIDs(candidates);
-        var missingPersonIds = candidates.Except(existingIds).ToHashSet();
-        if (missingPersonIds.Count > 0)
-        {
-            var orphanedCast = _tmdbEpisodeCast.GetByTmdbShowID(show.Id)
-                .Where(c => missingPersonIds.Contains(c.TmdbPersonID))
-                .ToList();
-            var orphanedCrew = _tmdbEpisodeCrew.GetByTmdbShowID(show.Id)
-                .Where(c => missingPersonIds.Contains(c.TmdbPersonID))
-                .ToList();
-            if (orphanedCast.Count > 0 || orphanedCrew.Count > 0)
-            {
-                _logger.LogWarning(
-                    "TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Show={ShowId})",
-                    orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, show.Id);
-                _tmdbEpisodeCast.Delete(orphanedCast);
-                _tmdbEpisodeCrew.Delete(orphanedCrew);
-            }
-        }
+            deleteOrphansAndLog(missingPersonIds);
     }
 
     private async Task ProcessShowSeasonAsync(TvShow show, SearchTvSeason reducedSeason, ShowSeasonUpdateState state)
@@ -1494,10 +1508,9 @@ public class TmdbMetadataService : ITmdbMetadataService
         Interlocked.Add(ref state.TotalHiddenEpisodeCount, localEpisodes.Count - visibleCount);
         if (state.DownloadCrewAndCast)
         {
-            foreach (var cast in _tmdbEpisodeCast.GetByTmdbSeasonID(season.Id))
-                state.AllPeopleToAddOrKeep.TryAdd(cast.TmdbPersonID, 0);
-            foreach (var crew in _tmdbEpisodeCrew.GetByTmdbSeasonID(season.Id))
-                state.AllPeopleToAddOrKeep.TryAdd(crew.TmdbPersonID, 0);
+            foreach (var ep in localEpisodes)
+                foreach (var personId in state.EpisodePeople[ep.Id])
+                    state.AllPeopleToAddOrKeep.Add(personId);
         }
         _logger.LogDebug("Skipping unchanged season {SeasonNumber} for show {ShowTitle} (Show={ShowId}).", reducedSeason.SeasonNumber, show.Name, show.Id);
         return true;
@@ -1571,7 +1584,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         return updated;
     }
 
-    private bool TrySkipUnchangedEpisode(
+    private static bool TrySkipUnchangedEpisode(
         TMDB_Episode tmdbEpisode,
         TvSeason season,
         TvSeasonEpisode reducedEpisode,
@@ -1586,10 +1599,8 @@ public class TmdbMetadataService : ITmdbMetadataService
         (tmdbEpisode.IsHidden ? hiddenEpisodeBag : episodeBag).Add(tmdbEpisode);
         if (state.DownloadCrewAndCast)
         {
-            foreach (var cast in _tmdbEpisodeCast.GetByTmdbEpisodeID(tmdbEpisode.Id))
-                state.AllPeopleToAddOrKeep.TryAdd(cast.TmdbPersonID, 0);
-            foreach (var crew in _tmdbEpisodeCrew.GetByTmdbEpisodeID(tmdbEpisode.Id))
-                state.AllPeopleToAddOrKeep.TryAdd(crew.TmdbPersonID, 0);
+            foreach (var personId in state.EpisodePeople[tmdbEpisode.Id])
+                state.AllPeopleToAddOrKeep.Add(personId);
         }
         return true;
     }
@@ -1598,9 +1609,9 @@ public class TmdbMetadataService : ITmdbMetadataService
     {
         var (castOrCrewUpdated, peopleToAddOrKeep, peopleToPotentiallyRemove) = UpdateEpisodeCastAndCrew(tmdbEpisode, credits);
         foreach (var personId in peopleToAddOrKeep)
-            state.AllPeopleToAddOrKeep.TryAdd(personId, 0);
+            state.AllPeopleToAddOrKeep.Add(personId);
         foreach (var personId in peopleToPotentiallyRemove)
-            state.AllPeopleToPotentiallyRemove.TryAdd(personId, 0);
+            state.AllPeopleToPotentiallyRemove.Add(personId);
         return castOrCrewUpdated;
     }
 
@@ -2856,7 +2867,8 @@ public class TmdbMetadataService : ITmdbMetadataService
     private static async Task ProcessWithConcurrencyAsync<T>(
         int maxConcurrent,
         IEnumerable<T> enumerable,
-        Func<T, Task> processAsync
+        Func<T, Task> processAsync,
+        Action<T>? onDropped = null
     )
     {
         if (maxConcurrent < 1)
@@ -2868,7 +2880,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         var block = new ActionBlock<T>(
             async item =>
             {
-                if (cts.IsCancellationRequested) return;
+                if (cts.IsCancellationRequested) { onDropped?.Invoke(item); return; }
                 try { await processAsync(item); }
                 catch (Exception ex)
                 {
@@ -2971,6 +2983,10 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private Task<IDisposable> GetLockForEntity(DataEntityType entityType, int id, string metadataKey, string reason)
         => _entityLock.GetLockForEntityAsync(entityType, id, metadataKey, reason);
+
+    #endregion
+
+    #region Changes (Shared)
 
     /// <summary>
     /// Returns <see langword="true"/> if TMDB has recorded any changes for the given movie since
