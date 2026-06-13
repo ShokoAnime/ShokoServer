@@ -200,7 +200,7 @@ public class ReleaseAutoManagementService(
         return anime.EndDate is null || anime.EndDate > DateTime.Now;
     }
 
-    private IReadOnlySet<(EpisodeType, int)> GetFileEpisodeCoverage(
+    public IReadOnlySet<(EpisodeType, int)> GetFileEpisodeCoverage(
         VideoLocal_Place place, Dictionary<int, VideoLocal> videoLookup)
     {
         if (!videoLookup.TryGetValue(place.VideoID, out var video))
