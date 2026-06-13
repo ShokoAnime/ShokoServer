@@ -58,6 +58,52 @@ public class ReleaseAutoManagementService(
         }
     }
 
+    /// <summary>
+    /// Computes which file locations would be considered redundant for a series,
+    /// given a pre-ranked list of candidates and an optional override for which
+    /// candidate is the primary. Does not delete anything.
+    /// </summary>
+    /// <param name="series">The series to evaluate.</param>
+    /// <param name="ranked">Candidates already ranked best-first.</param>
+    /// <param name="videoLookup">Map of VideoLocalID to VideoLocal, used for per-file coverage.</param>
+    /// <param name="preferPerFile">
+    /// When true and the series is airing, per-file redundancy is used instead of
+    /// whole-candidate redundancy. Pass null to use the server setting.
+    /// </param>
+    public IReadOnlyList<VideoLocal_Place> ComputeRedundantPlaces(
+        AnimeSeries series,
+        IReadOnlyList<VideoReleaseCandidate> ranked,
+        Dictionary<int, VideoLocal> videoLookup,
+        bool? preferPerFile = null)
+    {
+        if (ranked.Count <= 1)
+            return [];
+
+        var prefs = settingsProvider.GetSettings().ReleaseComparisonPreferences;
+        var usePerFile = (preferPerFile ?? prefs.PerFileDeletionForAiringSeries) && IsSeriesAiring(series);
+
+        if (usePerFile)
+        {
+            var primary = ranked[0];
+            if (primary.EpisodeCoverage.Count == 0)
+                return [];
+
+            var result = new List<VideoLocal_Place>();
+            foreach (var candidate in ranked.Skip(1))
+            {
+                var redundantPlaces = comparer.GetRedundantPlaces(
+                    primary, candidate, p => GetFileEpisodeCoverage(p, videoLookup));
+                result.AddRange(redundantPlaces);
+            }
+            return result;
+        }
+        else
+        {
+            var redundant = comparer.GetRedundantCandidates(ranked);
+            return redundant.SelectMany(c => c.Places).ToList();
+        }
+    }
+
     private async Task CheckSeriesAsync(AnimeSeries series)
     {
         var videos = videoLocals.GetByAniDBAnimeID(series.AniDB_ID);
@@ -145,7 +191,7 @@ public class ReleaseAutoManagementService(
             await videoService.DeleteVideoFile(place, removeFile: false, removeFolders: false);
     }
 
-    private bool IsSeriesAiring(AnimeSeries series)
+    public bool IsSeriesAiring(AnimeSeries series)
     {
         var anime = anidbAnime.GetByAnimeID(series.AniDB_ID);
         if (anime is null)
