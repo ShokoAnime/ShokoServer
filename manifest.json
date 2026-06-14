@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.283",
+      "tag": "v6.0.0-dev.283",
+      "commit": "56ebac9c53dd0493e0ffd889d0718dd27b592b35",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.283/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-14T21:28:33Z",
+      "releaseNotes": "\n`fix`: **Correct next up & continue watching episode logic**.\n\n`misc`: **Remove mentions of JMM in code**.\n"
+    },
+    {
       "version": "6.0.0.282",
       "tag": "v6.0.0-dev.282",
       "commit": "f2d68a242e23795caea15a234ba73ee78cbc131c",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.254/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-07T17:52:52Z",
       "releaseNotes": "\n`misc`: **Update CLAUDE.md with changes to the new Queue and Import Process**.\n"
-    },
-    {
-      "version": "6.0.0.253",
-      "tag": "v6.0.0-dev.253",
-      "commit": "f4d16653da65ac655d1d0de7ce9c8a50671e9576",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.253/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-07T16:49:44Z",
-      "releaseNotes": "\n`repo` (`docker`): **Enable crash dump generation via DOTNET env vars**:\n\nSet DOTNET_DbgMiniDumpType, DOTNET_DbgMiniDumpName, DOTNET_EnableCrashReport,\nand DOTNET_CrashReportPath in  so crash dumps land in\n. Also add  before the server loop.\nContainer still needs  at runtime for .NET to\nwrite the dump.\n"
     }
   ]
 }
