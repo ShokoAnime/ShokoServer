@@ -27,39 +27,17 @@ public record ResolvedVideoPlace(VideoLocal_Place Place, VideoLocal Video, Store
 /// MediaInfo stream signals.
 /// </summary>
 /// <remarks>
-/// <para>
-/// A release contains exactly one file per episode. Two files that cover the
-/// same episode must therefore belong to different releases — unless one is
-/// a version-patch of the other within the same release (e.g. v2 correcting
-/// a single episode while the rest remain v1).
-/// </para>
-/// <para>
-/// Grouping is a two-pass process:
-/// </para>
+/// Grouping is a three-pass process:
 /// <list type="number">
-///   <item>
-///     <b>Fuzzy grouping</b> — files are placed into the first bucket where
-///     no known signal conflicts with the bucket's existing files. A missing
-///     field (null, empty, or unknown) is treated as a wildcard and never
-///     causes a split on its own. Only when <em>both</em> sides of a comparison
-///     have a known, non-default value that differs is a conflict declared.
-///     SRI-backed files are processed first so they seed buckets with complete
-///     signals before unrecognised files are considered.
-///   </item>
-///   <item>
-///     <b>Episode-collision split</b> — within each bucket, episode identifiers
-///     are compared across files. If <em>every</em> episode is covered by more
-///     than one file and those files carry different version numbers, the bucket
-///     is split by version into separate candidates. When only <em>some</em>
-///     episodes collide (mixed-patch release), the bucket stays together.
-///   </item>
+///   <item><b>Fuzzy grouping</b> — files are placed into the first bucket where no
+///     known signal conflicts with the bucket's existing files.</item>
+///   <item><b>Version-strategy candidates</b> — within each bucket, episodes covered
+///     by multiple version numbers produce a BestAvailable candidate (highest version
+///     per episode) and a Consistent(v) candidate for each older version.</item>
+///   <item><b>Gap-fill candidates</b> — when one single-family candidate lacks episodes
+///     covered by another, a combined candidate is generated using the first as the
+///     anchor and the second to fill the gap.</item>
 /// </list>
-/// <para>
-/// The resulting <see cref="VideoReleaseCandidate.Key"/> is a SHA-256 hex
-/// fingerprint of the quality signals (group, source, languages, codec,
-/// resolution, stream counts, flags, version). Folder location is excluded so
-/// candidates with identical quality profiles share a key.
-/// </para>
 /// </remarks>
 public class VideoReleaseGroupingService(
     VideoLocalRepository videoLocalRepository,
@@ -81,14 +59,29 @@ public class VideoReleaseGroupingService(
 
     /// <summary>
     /// Groups pre-resolved place records into release candidates.
-    /// Useful when the caller already has the video and release info loaded,
-    /// or for testing without repository dependencies.
     /// </summary>
     public IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<ResolvedVideoPlace> resolved)
-        => FuzzyGroup(resolved.Select(BuildSignature).ToList())
-            .SelectMany(SplitOnEpisodeCollisions)
-            .Select(BuildCandidate)
-            .ToList();
+    {
+        var sigs = resolved.Select(BuildSignature).ToList();
+        var buckets = FuzzyGroup(sigs);
+
+        // Phase 2: version-strategy candidates per family
+        var singleFamilySpecs = buckets.SelectMany(GenerateVersionStrategyCandidates).ToList();
+
+        // Phase 3: gap-fill candidates across families
+        var gapFillSpecs = GenerateGapFillCandidates(singleFamilySpecs);
+
+        // Build candidates, dedup by file set
+        var seenFileSets = new HashSet<string>();
+        var result = new List<VideoReleaseCandidate>();
+        foreach (var spec in singleFamilySpecs.Concat(gapFillSpecs))
+        {
+            var fileSetKey = string.Join(",", spec.Files.Select(f => f.Place.ID).OrderBy(id => id));
+            if (seenFileSets.Add(fileSetKey))
+                result.Add(BuildCandidate(spec));
+        }
+        return result;
+    }
 
     private static FileSignature BuildSignature(ResolvedVideoPlace r)
     {
@@ -118,7 +111,6 @@ public class VideoReleaseGroupingService(
         IReadOnlyList<TitleLanguage> subLangs;
         if (sri is not null)
         {
-            // Filter TitleLanguage.None — an empty/unset entry in SRI means "unknown", not a language.
             audioLangs = sri.AudioLanguages?.Where(l => l != TitleLanguage.None).ToList() ?? [];
             subLangs = sri.SubtitleLanguages?.Where(l => l != TitleLanguage.None).ToList() ?? [];
         }
@@ -142,9 +134,9 @@ public class VideoReleaseGroupingService(
             isChaptered = true;
 
         var episodeIds = sri?.CrossReferences
-            .Select(x => x is EmbeddedCrossReference ecr
-                ? (ecr.EpisodeType, ecr.EpisodeNumber)
-                : (EpisodeType.Episode, x.AnidbEpisodeID))
+            .Select(x => (
+                x is EmbeddedCrossReference ecr ? ecr.EpisodeType : EpisodeType.Episode,
+                x.AnidbEpisodeID))
             .Where(k => k.Item2 > 0)
             .ToHashSet() ?? new HashSet<(EpisodeType, int)>();
 
@@ -170,11 +162,9 @@ public class VideoReleaseGroupingService(
     /// Places each signature into the first existing bucket where it does not
     /// conflict with any file already in that bucket. Files with SRI are
     /// processed first so they seed buckets with complete signals.
-    /// A missing field on either side is never a conflict.
     /// </summary>
     private static List<List<FileSignature>> FuzzyGroup(List<FileSignature> signatures)
     {
-        // SRI-backed files first — they carry more complete signals and seed buckets
         var ordered = signatures.OrderByDescending(s => s.ReleaseInfo is not null).ToList();
         var buckets = new List<List<FileSignature>>();
 
@@ -192,8 +182,7 @@ public class VideoReleaseGroupingService(
 
     /// <summary>
     /// Returns true when the two signatures do not conflict on any known signal.
-    /// Missing values (null, empty, zero, Unknown enum, empty language list) on
-    /// either side are treated as wildcards.
+    /// Missing values on either side are treated as wildcards.
     /// </summary>
     private static bool AreCompatible(FileSignature a, FileSignature b)
     {
@@ -225,109 +214,169 @@ public class VideoReleaseGroupingService(
         return true;
     }
 
-    private static string? GroupKey(StoredReleaseInfo? sri) =>
-        !string.IsNullOrEmpty(sri?.GroupID) && !string.IsNullOrEmpty(sri?.GroupSource)
-            ? $"{sri.GroupID}|{sri.GroupSource}"
-            : null;
-
-    private static bool NullOrCompatible(string? a, string? b) =>
-        string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || a == b;
-
-    private static bool LanguageSetsMatch(IReadOnlyList<TitleLanguage> a, IReadOnlyList<TitleLanguage> b)
-    {
-        if (a.Count != b.Count) return false;
-        var setA = a.ToHashSet();
-        return b.All(l => setA.Contains(l));
-    }
-
     /// <summary>
-    /// Checks whether a bucket needs to be split into per-version candidates.
-    /// A split occurs only when <em>every</em> episode in the bucket is covered
-    /// by files from more than one version — indicating parallel complete
-    /// releases rather than a mixed-patch single release.
+    /// For each FuzzyGroup bucket, generates one or more version-strategy candidates:
+    /// BestAvailable (highest version per episode) and Consistent(v) for each older version
+    /// when version-colliding episodes exist.
     /// </summary>
-    private static IEnumerable<List<FileSignature>> SplitOnEpisodeCollisions(List<FileSignature> signatures)
+    private static IEnumerable<CandidateSpec> GenerateVersionStrategyCandidates(List<FileSignature> signatures)
     {
-        // Without episode data on every file we cannot check coverage
+        // Without episode data on every SRI-backed file we cannot determine version collisions
         if (signatures.Any(s => s.ReleaseInfo is null || s.EpisodeIds.Count == 0))
         {
-            yield return signatures;
+            yield return new CandidateSpec(signatures, ReleaseVersionStrategy.BestAvailable,
+                MaxVersion(signatures), false, []);
             yield break;
         }
 
-        // Map each episode to the set of files that cover it
-        var episodeToFiles = signatures
-            .SelectMany(s => s.EpisodeIds.Select(id => (EpisodeId: id, Sig: s)))
-            .GroupBy(x => x.EpisodeId)
-            .ToDictionary(g => g.Key, g => g.Select(x => x.Sig).ToList());
+        // Map each episode to the set of (version, sig) pairs covering it
+        var episodeToVersionedFiles = signatures
+            .SelectMany(s => s.EpisodeIds.Select(ep => (ep, Version: s.ReleaseInfo!.Version, Sig: s)))
+            .GroupBy(x => x.ep)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(x => (x.Version, x.Sig)).ToList());
 
-        var colliding = episodeToFiles.Where(kv => kv.Value.Count > 1).ToList();
+        // Version-colliding episodes: same episode, different version numbers
+        var collidingEpisodes = episodeToVersionedFiles
+            .Where(kv => kv.Value.Select(x => x.Version).Distinct().Count() > 1)
+            .Select(kv => kv.Key)
+            .ToHashSet();
 
-        // No collisions → single release
-        if (colliding.Count == 0)
+        if (collidingEpisodes.Count == 0)
         {
-            yield return signatures;
+            yield return new CandidateSpec(signatures, ReleaseVersionStrategy.BestAvailable,
+                MaxVersion(signatures), false, []);
             yield break;
         }
 
-        // Some-but-not-all episodes collide → mixed-patch single release; keep together.
-        // This is the Air scenario: most episodes are v1, a handful were later patched to v2.
-        if (colliding.Count < episodeToFiles.Count)
-        {
-            yield return signatures;
-            yield break;
-        }
+        var maxVersion = MaxVersion(signatures);
 
-        // Every episode has multiple files — check version differences first
-        var versionsInFirstCollision = colliding[0].Value
+        // BestAvailable: for each colliding episode, keep only the highest-version file(s)
+        var bestAvailableFiles = SelectFilesForStrategy(episodeToVersionedFiles, collidingEpisodes, bestAvailable: true);
+        yield return new CandidateSpec(bestAvailableFiles, ReleaseVersionStrategy.BestAvailable, maxVersion, false, []);
+
+        // Consistent(v) for each distinct version below maxVersion
+        var distinctVersionsBeforeMax = signatures
+            .Where(s => (s.ReleaseInfo?.Version ?? 0) > 0)
             .Select(s => s.ReleaseInfo!.Version)
             .Distinct()
-            .ToList();
-        if (versionsInFirstCollision.Count > 1)
-        {
-            // True parallel releases — split one bucket per version
-            foreach (var versionGroup in signatures.GroupBy(s => s.ReleaseInfo!.Version))
-                yield return [.. versionGroup];
-            yield break;
-        }
+            .Where(v => v < maxVersion)
+            .OrderBy(v => v);
 
-        // Same version — check if colliding files differ on quality (corrupt vs clean, chaptered vs not).
-        // Within a single release, quality flags can vary per-file; only split when there IS an
-        // alternative (all episodes collide) and the alternatives genuinely differ in quality.
-        var qualityTierGroups = signatures.GroupBy(QualityTierKey).ToList();
-        if (qualityTierGroups.Count > 1)
+        foreach (var version in distinctVersionsBeforeMax)
         {
-            foreach (var tierGroup in qualityTierGroups)
-                yield return [.. tierGroup];
-            yield break;
+            var consistentFiles = SelectFilesForStrategy(episodeToVersionedFiles, collidingEpisodes,
+                bestAvailable: false, targetVersion: version);
+            if (consistentFiles.Count == 0) continue;
+            yield return new CandidateSpec(consistentFiles, ReleaseVersionStrategy.Consistent, version, false, []);
         }
-
-        // Same version, same quality tier — keep together (ambiguous, e.g. combined-episode file)
-        yield return signatures;
     }
 
     /// <summary>
-    /// Groups the colliding files by their per-file quality tier so that
-    /// "better" files (not corrupt, chaptered) form one candidate while
-    /// "worse" files form another, preserving the ability to prefer one over the other.
+    /// For each single-family spec with partial episode coverage, generates gap-fill candidates
+    /// by pairing the anchor with another spec's files restricted to uncovered episodes.
+    /// Anchors with fewer than 2 episodes are skipped (degenerate case).
     /// </summary>
-    private static string QualityTierKey(FileSignature sig)
+    private static IEnumerable<CandidateSpec> GenerateGapFillCandidates(List<CandidateSpec> singleFamilySpecs)
     {
-        var isCorrupted = sig.ReleaseInfo?.IsCorrupted ?? false;
-        var isChaptered = sig.IsChaptered ?? false;
-        // Higher "true" values indicate better quality; distinct combinations form separate tiers
-        return $"{!isCorrupted}|{isChaptered}";
+        var allEpisodes = singleFamilySpecs
+            .SelectMany(s => s.Files.SelectMany(f => f.EpisodeIds))
+            .ToHashSet();
+
+        for (var i = 0; i < singleFamilySpecs.Count; i++)
+        {
+            var anchor = singleFamilySpecs[i];
+            var anchorEps = anchor.Files.SelectMany(f => f.EpisodeIds).ToHashSet();
+
+            // Require at least 2 covered episodes to be a meaningful anchor
+            if (anchorEps.Count < 2) continue;
+            if (anchorEps.SetEquals(allEpisodes)) continue;
+
+            var gapEps = allEpisodes.Except(anchorEps).ToHashSet();
+
+            for (var j = 0; j < singleFamilySpecs.Count; j++)
+            {
+                if (i == j) continue;
+                var filler = singleFamilySpecs[j];
+
+                // Only use filler files that cover at least one gap episode
+                var fillerFiles = filler.Files
+                    .Where(f => f.EpisodeIds.Any(ep => gapEps.Contains(ep)))
+                    .ToList();
+                if (fillerFiles.Count == 0) continue;
+
+                var fillerGroupShortName = fillerFiles
+                    .Select(f => f.ReleaseInfo?.GroupShortName)
+                    .FirstOrDefault(n => n is not null);
+                IReadOnlyList<string> secondaryGroups = fillerGroupShortName is not null
+                    ? [fillerGroupShortName]
+                    : [];
+
+                yield return new CandidateSpec(
+                    anchor.Files.Concat(fillerFiles).ToList(),
+                    anchor.Strategy,
+                    anchor.Version,
+                    IsMixed: true,
+                    SecondaryGroupShortNames: secondaryGroups);
+            }
+        }
     }
 
-    private static VideoReleaseCandidate BuildCandidate(List<FileSignature> signatures)
+    /// <summary>
+    /// Selects files for a version strategy. For BestAvailable, picks the highest-version
+    /// file per colliding episode (tiebreaker: prefer non-corrupted). For Consistent,
+    /// picks files of a specific target version. Non-colliding episodes always pass through.
+    /// </summary>
+    private static List<FileSignature> SelectFilesForStrategy(
+        Dictionary<(EpisodeType, int), List<(int Version, FileSignature Sig)>> episodeToVersionedFiles,
+        HashSet<(EpisodeType, int)> collidingEpisodes,
+        bool bestAvailable,
+        int targetVersion = 0)
     {
-        // Use the first SRI-backed file as the representative for group metadata only.
+        var selectedPlaceIds = new HashSet<int>();
+        var selectedSigs = new List<FileSignature>();
+
+        foreach (var (ep, epFiles) in episodeToVersionedFiles)
+        {
+            List<FileSignature> chosen;
+            if (collidingEpisodes.Contains(ep))
+            {
+                if (bestAvailable)
+                {
+                    var epMax = epFiles.Max(x => x.Version);
+                    var maxVersionFiles = epFiles.Where(x => x.Version == epMax).ToList();
+                    // Tiebreaker: prefer non-corrupted when versions match
+                    var nonCorrupted = maxVersionFiles.Where(x => x.Sig.ReleaseInfo?.IsCorrupted != true).ToList();
+                    chosen = (nonCorrupted.Count > 0 ? nonCorrupted : maxVersionFiles).Select(x => x.Sig).ToList();
+                }
+                else
+                {
+                    chosen = epFiles.Where(x => x.Version == targetVersion).Select(x => x.Sig).ToList();
+                }
+            }
+            else
+            {
+                // Non-colliding: include all files for this episode in every strategy
+                chosen = epFiles.Select(x => x.Sig).ToList();
+            }
+
+            foreach (var sig in chosen)
+            {
+                if (selectedPlaceIds.Add(sig.Place.ID))
+                    selectedSigs.Add(sig);
+            }
+        }
+
+        return selectedSigs;
+    }
+
+    private static VideoReleaseCandidate BuildCandidate(CandidateSpec spec)
+    {
+        var signatures = spec.Files;
         var rep = signatures.FirstOrDefault(s => s.ReleaseInfo is not null) ?? signatures[0];
         var sri = rep.ReleaseInfo;
 
-        // Quality signals: most common non-null value across all files (majority vote).
-        // Prevents one outlier file (e.g. a bonus H264 OVA in an otherwise HEVC release)
-        // from misrepresenting the release's actual quality tier.
         var videoCodec          = MajorityRef(signatures.Select(s => s.VideoCodec));
         var resolution          = MajorityRef(signatures.Select(s => s.Resolution));
         var bitDepth            = Majority(signatures.Select(s => s.BitDepth > 0 ? (int?)s.BitDepth : null)) ?? 0;
@@ -337,35 +386,32 @@ public class VideoReleaseGroupingService(
         var subtitleStreamCount = Majority(signatures.Select(s => s.SubtitleStreamCount > 0 ? (int?)s.SubtitleStreamCount : null)) ?? 0;
         var source              = Majority(signatures.Select(s => s.ReleaseInfo?.Source is { } src and not ReleaseSource.Unknown ? (ReleaseSource?)src : null))
                                   ?? ReleaseSource.Unknown;
-        var version             = Majority(signatures.Select(s => s.ReleaseInfo?.Version is > 0 ? (int?)s.ReleaseInfo.Version : null)) ?? 0;
         var audioLanguages      = MajorityLanguageSet(signatures.Select(s => s.AudioLanguages));
         var subtitleLanguages   = MajorityLanguageSet(signatures.Select(s => s.SubtitleLanguages));
 
-        // "Any true" semantics: these flags warn about or advertise the whole candidate.
-        var isCorrupted = signatures.Any(s => s.ReleaseInfo?.IsCorrupted == true);
-        var isChaptered = signatures.Any(s => s.IsChaptered == true) ? (bool?)true
-            : signatures.Any(s => s.IsChaptered == false) ? false
-            : null;
-        var isCensored  = signatures.Any(s => s.ReleaseInfo?.IsCensored == true) ? (bool?)true
-            : signatures.Any(s => s.ReleaseInfo?.IsCensored == false) ? false
-            : null;
+        // Majority+mixed for quality flags
+        var (isChaptered, isChapteredMixed)   = MajorityWithMix(signatures.Select(s => s.IsChaptered));
+        var (isCensored, isCensoredMixed)     = MajorityWithMix(signatures.Select(s => s.ReleaseInfo?.IsCensored));
+        var (isCreditless, isCreditlessMixed) = MajorityWithMix(signatures.Select(s => s.ReleaseInfo?.IsCreditless));
 
-        // Episode coverage: union of all files' episode IDs.
+        // Any-true for corruption — one corrupt file contaminates the whole candidate
+        var isCorrupted = signatures.Any(s => s.ReleaseInfo?.IsCorrupted == true);
+
         var episodeCoverage = signatures.SelectMany(s => s.EpisodeIds).ToHashSet();
 
-        var sortedAudio = string.Join(",", audioLanguages.Select(l => l.GetString()).Order());
-        var sortedSubs  = string.Join(",", subtitleLanguages.Select(l => l.GetString()).Order());
+        var sortedAudio          = string.Join(",", audioLanguages.Select(l => l.GetString()).Order());
+        var sortedSubs           = string.Join(",", subtitleLanguages.Select(l => l.GetString()).Order());
+        var sortedSecondaryGroups = string.Join(",", spec.SecondaryGroupShortNames.Order());
 
         var key = ComputeKey(
             sri?.GroupID, sri?.GroupSource,
-            source,
-            sortedAudio, sortedSubs,
+            source, sortedAudio, sortedSubs,
             videoCodec, bitDepth, resolution,
             audioCodec, container,
             audioStreamCount, subtitleStreamCount,
-            isChaptered, isCensored, sri?.IsCreditless,
-            isCorrupted, version
-        );
+            isChaptered, isCensored, isCreditless,
+            isCorrupted, spec.Version,
+            spec.Strategy, spec.IsMixed, sortedSecondaryGroups);
 
         return new VideoReleaseCandidate
         {
@@ -386,13 +432,31 @@ public class VideoReleaseGroupingService(
             AudioStreamCount = audioStreamCount,
             SubtitleStreamCount = subtitleStreamCount,
             IsChaptered = isChaptered,
+            IsChapteredMixed = isChapteredMixed,
             IsCensored = isCensored,
-            IsCreditless = sri?.IsCreditless,
+            IsCensoredMixed = isCensoredMixed,
+            IsCreditless = isCreditless,
+            IsCreditlessMixed = isCreditlessMixed,
             IsCorrupted = isCorrupted,
-            Version = version,
+            Version = spec.Version,
+            VersionStrategy = spec.Strategy,
+            IsMixed = spec.IsMixed,
+            SecondaryGroupNames = spec.SecondaryGroupShortNames,
             Places = signatures.Select(s => s.Place).ToList(),
             EpisodeCoverage = episodeCoverage,
         };
+    }
+
+    private static int MaxVersion(IEnumerable<FileSignature> sigs)
+        => sigs.Max(s => s.ReleaseInfo?.Version ?? 0);
+
+    private static (bool? Majority, bool IsMixed) MajorityWithMix(IEnumerable<bool?> values)
+    {
+        var knownValues = values.Where(v => v.HasValue).Select(v => v!.Value).ToList();
+        if (knownValues.Count == 0) return (null, false);
+        var trueCount = knownValues.Count(v => v);
+        var falseCount = knownValues.Count - trueCount;
+        return (trueCount >= falseCount, trueCount > 0 && falseCount > 0);
     }
 
     private static T? Majority<T>(IEnumerable<T?> values) where T : struct
@@ -417,11 +481,6 @@ public class VideoReleaseGroupingService(
                .FirstOrDefault()
                ?.First() ?? [];
 
-    /// <summary>
-    /// Returns a SHA-256 hex fingerprint of the given quality signals.
-    /// The folder location is intentionally excluded so candidates with
-    /// identical quality profiles share a key.
-    /// </summary>
     private static string ComputeKey(
         string? groupId, string? groupSource,
         ReleaseSource source,
@@ -430,7 +489,8 @@ public class VideoReleaseGroupingService(
         string? audioCodec, string? container,
         int audioStreamCount, int subtitleStreamCount,
         bool? isChaptered, bool? isCensored, bool? isCreditless,
-        bool isCorrupted, int version)
+        bool isCorrupted, int version,
+        ReleaseVersionStrategy strategy, bool isMixed, string sortedSecondaryGroups)
     {
         static string Tri(bool? v) => v is null ? "?" : v.Value ? "1" : "0";
 
@@ -451,10 +511,28 @@ public class VideoReleaseGroupingService(
             Tri(isCensored),
             Tri(isCreditless),
             isCorrupted ? "1" : "0",
-            version
+            version,
+            (int)strategy,
+            isMixed ? "1" : "0",
+            sortedSecondaryGroups
         );
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(signal));
         return Convert.ToHexStringLower(hash);
+    }
+
+    private static string? GroupKey(StoredReleaseInfo? sri) =>
+        !string.IsNullOrEmpty(sri?.GroupID) && !string.IsNullOrEmpty(sri?.GroupSource)
+            ? $"{sri.GroupID}|{sri.GroupSource}"
+            : null;
+
+    private static bool NullOrCompatible(string? a, string? b) =>
+        string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || a == b;
+
+    private static bool LanguageSetsMatch(IReadOnlyList<TitleLanguage> a, IReadOnlyList<TitleLanguage> b)
+    {
+        if (a.Count != b.Count) return false;
+        var setA = a.ToHashSet();
+        return b.All(l => setA.Contains(l));
     }
 
     private static string GetParentDirectory(string relativePath)
@@ -462,6 +540,13 @@ public class VideoReleaseGroupingService(
         var lastSlash = relativePath.LastIndexOf('/');
         return lastSlash <= 0 ? string.Empty : relativePath[..lastSlash];
     }
+
+    private sealed record CandidateSpec(
+        List<FileSignature> Files,
+        ReleaseVersionStrategy Strategy,
+        int Version,
+        bool IsMixed,
+        IReadOnlyList<string> SecondaryGroupShortNames);
 
     private sealed class FileSignature
     {

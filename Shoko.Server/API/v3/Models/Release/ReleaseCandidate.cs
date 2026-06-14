@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Models.Release;
@@ -49,6 +51,7 @@ public class ReleaseCandidate
     /// The quality signal that caused this candidate to rank below the previous
     /// one in the ordered list. Null for the primary (rank 1) candidate.
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public ReleaseSignalType? DecidingSignal { get; init; }
 
     /// <summary>
@@ -97,6 +100,19 @@ public class ReleaseCandidate
 
     public int Version { get; init; }
 
+    [JsonConverter(typeof(StringEnumConverter))]
+    public ReleaseVersionStrategy VersionStrategy { get; init; }
+
+    public bool IsMixed { get; init; }
+
+    public IReadOnlyList<string> SecondaryGroupNames { get; init; } = [];
+
+    public bool IsChapteredMixed { get; init; }
+
+    public bool IsCensoredMixed { get; init; }
+
+    public bool IsCreditlessMixed { get; init; }
+
     public IReadOnlyList<string> AudioLanguages { get; init; } = [];
 
     public IReadOnlyList<string> SubtitleLanguages { get; init; } = [];
@@ -124,14 +140,15 @@ public class ReleaseCandidate
         Dictionary<int, VideoLocal> videoLookup,
         HashSet<int>? redundantPlaceIDs = null,
         ReleaseComparisonService.CompareDecision? decision = null,
-        Dictionary<int, IReadOnlySet<(EpisodeType, int)>>? placeEpisodeCoverage = null)
+        Dictionary<int, IReadOnlySet<(EpisodeType, int)>>? placeEpisodeCoverage = null,
+        Dictionary<int, (EpisodeType Type, int Number)>? episodeLookup = null)
     {
         var files = candidate.Places
             .Select(place =>
             {
                 videoLookup.TryGetValue(place.VideoID, out var video);
                 var episodes = placeEpisodeCoverage?.TryGetValue(place.ID, out var cov) == true
-                    ? cov.Select(e => new EpisodeCoverage { Type = e.Item1, Number = e.Item2 })
+                    ? cov.Select(e => ResolveEpisode(e.Item1, e.Item2, episodeLookup))
                           .OrderBy(e => e.Type).ThenBy(e => e.Number)
                           .ToList()
                     : (IReadOnlyList<EpisodeCoverage>)[];
@@ -148,7 +165,7 @@ public class ReleaseCandidate
             .ToList();
 
         var episodes = candidate.EpisodeCoverage
-            .Select(e => new EpisodeCoverage { Type = e.Type, Number = e.Number })
+            .Select(e => ResolveEpisode(e.Type, e.Number, episodeLookup))
             .OrderBy(e => e.Type)
             .ThenBy(e => e.Number)
             .ToList();
@@ -191,11 +208,26 @@ public class ReleaseCandidate
             IsCreditless = candidate.IsCreditless,
             IsCorrupted = candidate.IsCorrupted,
             Version = candidate.Version,
+            VersionStrategy = candidate.VersionStrategy,
+            IsMixed = candidate.IsMixed,
+            SecondaryGroupNames = candidate.SecondaryGroupNames,
+            IsChapteredMixed = candidate.IsChapteredMixed,
+            IsCensoredMixed = candidate.IsCensoredMixed,
+            IsCreditlessMixed = candidate.IsCreditlessMixed,
             AudioLanguages = candidate.AudioLanguages.Select(l => l.ToString()).ToList(),
             SubtitleLanguages = candidate.SubtitleLanguages.Select(l => l.ToString()).ToList(),
             Files = files,
             Episodes = episodes,
         };
+    }
+
+    private static EpisodeCoverage ResolveEpisode(
+        EpisodeType type, int anidbEpisodeID,
+        Dictionary<int, (EpisodeType Type, int Number)>? episodeLookup)
+    {
+        if (episodeLookup is not null && episodeLookup.TryGetValue(anidbEpisodeID, out var resolved))
+            return new EpisodeCoverage { Type = resolved.Type, Number = resolved.Number };
+        return new EpisodeCoverage { Type = type, Number = anidbEpisodeID };
     }
 
     /// <summary>

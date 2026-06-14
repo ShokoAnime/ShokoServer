@@ -113,9 +113,43 @@ public class VideoReleaseCandidate
 
     /// <summary>
     /// Release version from the provider (1 = original, 2+ = updated).
-    /// Corresponds to <c>FileQualityFilterType.VERSION</c>.
+    /// For <see cref="ReleaseVersionStrategy.BestAvailable"/>, this is the
+    /// maximum version across all files. For
+    /// <see cref="ReleaseVersionStrategy.Consistent"/>, this is the target version.
     /// </summary>
     public int Version { get; init; }
+
+    /// <summary>
+    /// How files were selected when multiple versions of the same episode exist.
+    /// </summary>
+    public ReleaseVersionStrategy VersionStrategy { get; init; }
+
+    /// <summary>
+    /// True when files in this candidate come from more than one release family
+    /// (i.e., a gap-fill candidate with an anchor and a filler group).
+    /// </summary>
+    public bool IsMixed { get; init; }
+
+    /// <summary>
+    /// Short names of secondary contributing groups for gap-fill candidates.
+    /// Empty for single-family candidates.
+    /// </summary>
+    public IReadOnlyList<string> SecondaryGroupNames { get; init; } = [];
+
+    /// <summary>
+    /// True when files in this candidate disagree on chapter status.
+    /// </summary>
+    public bool IsChapteredMixed { get; init; }
+
+    /// <summary>
+    /// True when files in this candidate disagree on censor status.
+    /// </summary>
+    public bool IsCensoredMixed { get; init; }
+
+    /// <summary>
+    /// True when files in this candidate disagree on creditless status.
+    /// </summary>
+    public bool IsCreditlessMixed { get; init; }
 
     /// <summary>
     /// All file locations that belong to this release candidate.
