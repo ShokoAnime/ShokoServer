@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.281",
+      "tag": "v6.0.0-dev.281",
+      "commit": "67aa7df8db18c6c587dadad96138e33abdd7542e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.281/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-14T17:50:25Z",
+      "releaseNotes": "\n`refactor`: **Move APIv3 auth endpoint to APIv3, fix missing token from APIv3 response**.\n"
+    },
+    {
       "version": "6.0.0.280",
       "tag": "v6.0.0-dev.280",
       "commit": "fa05c0aeeae660473327fa176c9d56718b5eed4e",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.252/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-07T16:44:16Z",
       "releaseNotes": "\n`fix`: **Infer web ui channel from current web ui version before server version**.\n\n`fix`: **Use raw version as tag if no tag field**.\n"
-    },
-    {
-      "version": "6.0.0.251",
-      "tag": "v6.0.0-dev.251",
-      "commit": "72ffda578ead32af0e0059eb6108f5952bf396da",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.251/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-07T16:03:25Z",
-      "releaseNotes": "\n`feat`: **Respect max auto scan attempts during folder scan & expose max attempts in abstraction**.\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.45**.\n"
     }
   ]
 }
