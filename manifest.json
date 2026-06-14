@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.282",
+      "tag": "v6.0.0-dev.282",
+      "commit": "f2d68a242e23795caea15a234ba73ee78cbc131c",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.282/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-14T18:25:47Z",
+      "releaseNotes": "\n`fix`: **Ensure we only check valid guid/uuids in repo**.\n\n`fix`: **Correct empty primary ids on image xrefs**.\n"
+    },
+    {
       "version": "6.0.0.281",
       "tag": "v6.0.0-dev.281",
       "commit": "67aa7df8db18c6c587dadad96138e33abdd7542e",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.253/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-07T16:49:44Z",
       "releaseNotes": "\n`repo` (`docker`): **Enable crash dump generation via DOTNET env vars**:\n\nSet DOTNET_DbgMiniDumpType, DOTNET_DbgMiniDumpName, DOTNET_EnableCrashReport,\nand DOTNET_CrashReportPath in  so crash dumps land in\n. Also add  before the server loop.\nContainer still needs  at runtime for .NET to\nwrite the dump.\n"
-    },
-    {
-      "version": "6.0.0.252",
-      "tag": "v6.0.0-dev.252",
-      "commit": "4c52bfa6af73e82b1ec597c2881919bd98c7d4e0",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.252/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-07T16:44:16Z",
-      "releaseNotes": "\n`fix`: **Infer web ui channel from current web ui version before server version**.\n\n`fix`: **Use raw version as tag if no tag field**.\n"
     }
   ]
 }
