@@ -519,7 +519,7 @@ public class AnimeSeriesService
     /// <param name="includeSpecials">Include specials when searching.</param>
     /// <param name="includeOthers">Include other type episodes when searching.</param>
     /// <returns></returns>
-    public AnimeEpisode GetActiveEpisode(AnimeSeries series, int userID, bool includeSpecials = true, bool includeOthers = false)
+    public (AnimeEpisode? Episode, VideoLocal? Video, VideoLocal_User? VideoUserData) GetActiveEpisode(AnimeSeries series, int userID, bool includeSpecials = true, bool includeOthers = false)
     {
         // Filter the episodes to only normal or special episodes and order them in rising order.
         var order = includeOthers ? new List<EpisodeType> { EpisodeType.Episode, EpisodeType.Other, EpisodeType.Special } : null;
@@ -535,12 +535,13 @@ public class AnimeSeriesService
             .Select(tuple => tuple.episode)
             .ToList();
         // Look for active watch sessions and return the episode for the most recent session if found.
-        var (episode, _) = episodes
-            .SelectMany(episode => episode.VideoLocals.Select(file => (episode, vlUser: _vlUsers.GetByUserAndVideoLocalID(userID, file.VideoLocalID)!)))
+        var (episode, video, videoUserData) = episodes
+            .SelectMany(episode => episode.VideoLocals.Select(file => (episode, file, vlUser: _vlUsers.GetByUserAndVideoLocalID(userID, file.VideoLocalID)!)))
             .Where(tuple => tuple.vlUser is not null)
             .OrderByDescending(tuple => tuple.vlUser.LastUpdated)
             .FirstOrDefault(tuple => tuple.vlUser.ResumePosition > 0);
-        return episode;
+
+        return (episode, video, videoUserData);
     }
 
     #region Next-up Episode(s)
@@ -612,7 +613,7 @@ public class AnimeSeriesService
     /// <param name="userID">User ID</param>
     /// <param name="options">Next-up query options.</param>
     /// <returns></returns>
-    public AnimeEpisode? GetNextUpEpisode(AnimeSeries series, int userID, NextUpQuerySingleOptions options)
+    public (AnimeEpisode?, VideoLocal?) GetNextUpEpisode(AnimeSeries series, int userID, NextUpQuerySingleOptions options)
     {
         var episodeList = series.AnimeEpisodes
             .Select(shoko => (shoko, anidb: shoko.AniDB_Episode!))
@@ -629,20 +630,20 @@ public class AnimeSeriesService
         // recent session if found.
         if (options.IncludeCurrentlyWatching)
         {
-            var (currentlyWatchingEpisode, _) = episodeList
-                .SelectMany(tuple => tuple.shoko.VideoLocals.Select(file => (tuple.shoko, fileUR: _vlUsers.GetByUserAndVideoLocalID(userID, file.VideoLocalID))))
+            var (currentlyWatchingEpisode, video, _) = episodeList
+                .SelectMany(tuple => tuple.shoko.VideoLocals.Select(file => (tuple.shoko, file, fileUR: _vlUsers.GetByUserAndVideoLocalID(userID, file.VideoLocalID))))
                 .Where(tuple => tuple.fileUR is not null)
                 .OrderByDescending(tuple => tuple.fileUR!.LastUpdated)
                 .FirstOrDefault(tuple => tuple.fileUR!.ResumePosition > 0);
 
             if (currentlyWatchingEpisode is not null)
-                return currentlyWatchingEpisode;
+                return (currentlyWatchingEpisode, video);
         }
         // Skip check if there is an active watch session for the series, and we
         // don't allow active watch sessions.
         else if (episodeList.Any(tuple => tuple.shoko.VideoLocals.Any(file => (_vlUsers.GetByUserAndVideoLocalID(userID, file.VideoLocalID)?.ResumePosition ?? 0) > 0)))
         {
-            return null;
+            return (null, null);
         }
 
         // If we're listing out other type episodes, then they should be listed
@@ -671,12 +672,12 @@ public class AnimeSeriesService
                 // Return `null` if we're on the last episode in the list.
                 var nextIndex = episodeList.FindIndex(tuple => tuple.shoko.AnimeEpisodeID == lastWatchedEpisode.AnimeEpisodeID) + 1;
                 if (nextIndex == episodeList.Count)
-                    return null;
+                    return (null, null);
 
                 var (nextEpisode, _) = episodeList
                     .Skip(nextIndex)
                     .FirstOrDefault(options.IncludeUnaired ? _ => true : options.IncludeMissing ? tuple => tuple.anidb.HasAired || tuple.shoko.VideoLocals.Count > 0 : tuple => tuple.shoko.VideoLocals.Count > 0);
-                return nextEpisode;
+                return (nextEpisode, null);
             }
         }
 
@@ -694,14 +695,14 @@ public class AnimeSeriesService
 
         // Disable first episode from showing up in the search.
         if (options.DisableFirstEpisode && anidbEpisode is not null && anidbEpisode.EpisodeType is EpisodeType.Episode && anidbEpisode.EpisodeNumber == 1)
-            return null;
+            return (null, null);
 
-        return unwatchedEpisode;
+        return (unwatchedEpisode, null);
     }
 
     public IReadOnlyList<AnimeEpisode> GetNextUpEpisodes(AnimeSeries series, int userID, NextUpQueryOptions options)
     {
-        var firstEpisode = GetNextUpEpisode(series, userID, new(options));
+        var (firstEpisode, firstVideo) = GetNextUpEpisode(series, userID, new(options));
         if (firstEpisode is null)
             return [];
 

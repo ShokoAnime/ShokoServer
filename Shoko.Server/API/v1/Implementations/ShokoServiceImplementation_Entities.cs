@@ -86,7 +86,7 @@ public partial class ShokoServiceImplementation
             if (series is null)
                 return null;
 
-            var episode = seriesService.GetNextUpEpisode(series, userID, new());
+            var (episode, _) = seriesService.GetNextUpEpisode(series, userID, new());
             if (episode is null)
                 return null;
 

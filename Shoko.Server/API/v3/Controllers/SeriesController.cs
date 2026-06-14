@@ -102,7 +102,7 @@ public class SeriesController : BaseController
     private readonly TMDB_ShowRepository _tmdbShows;
     private readonly VideoLocal_PlaceRepository _videoLocalPlaces;
     private readonly VideoLocal_UserRepository _videoLocalUsers;
-    private readonly     IShokoGroupManager _groupManagementService;
+    private readonly IShokoGroupManager _groupManagementService;
 
     public SeriesController(
         ISettingsProvider settingsProvider,
@@ -2409,7 +2409,7 @@ public class SeriesController : BaseController
         if (!user.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        var episode = _seriesService.GetNextUpEpisode(series, user.JMMUserID, new()
+        var (episode, _) = _seriesService.GetNextUpEpisode(series, user.JMMUserID, new()
         {
             IncludeCurrentlyWatching = !onlyUnwatched,
             IncludeMissing = includeMissing,

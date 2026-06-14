@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Expressions.Info;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.QueueProcessor;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
@@ -26,22 +25,22 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class DashboardController : BaseController
+public class DashboardController(
+    ISettingsProvider settingsProvider,
+    AnimeSeriesService _seriesService,
+    AnimeSeries_UserRepository _seriesUser,
+    VideoLocal_UserRepository _vlUsers,
+    AniDB_AnimeRepository _anidbAnimes,
+    AniDB_Anime_TagRepository _anidbAnimeTags,
+    AniDB_EpisodeRepository _anidbEpisodes,
+    AniDB_TagRepository _anidbTags,
+    AnimeSeriesRepository _animeSeries,
+    CrossRef_AniDB_TMDB_MovieRepository _crossRefAnidbTmdbMovies,
+    CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows,
+    CrossRef_File_EpisodeRepository _crossRefFileEpisodes,
+    VideoLocalRepository _videoLocals
+) : BaseController(settingsProvider)
 {
-    private readonly QueueHandler _queueHandler;
-    private readonly AnimeSeriesService _seriesService;
-    private readonly AnimeSeries_UserRepository _seriesUser;
-    private readonly VideoLocal_UserRepository _vlUsers;
-    private readonly AniDB_AnimeRepository _anidbAnimes;
-    private readonly AniDB_Anime_TagRepository _anidbAnimeTags;
-    private readonly AniDB_EpisodeRepository _anidbEpisodes;
-    private readonly AniDB_TagRepository _anidbTags;
-    private readonly AnimeSeriesRepository _animeSeries;
-    private readonly CrossRef_AniDB_TMDB_MovieRepository _crossRefAnidbTmdbMovies;
-    private readonly CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows;
-    private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisodes;
-    private readonly VideoLocalRepository _videoLocals;
-
     /// <summary>
     /// Get the counters of various collection stats
     /// </summary>
@@ -324,8 +323,7 @@ public class DashboardController : BaseController
     {
         var user = HttpContext.GetUser();
         return _seriesUser.GetByUserID(user.JMMUserID)
-            .Where(record => record.LastEpisodeUpdate.HasValue)
-            .OrderByDescending(record => record.LastEpisodeUpdate)
+            .Where(record => record.LastVideoUpdate.HasValue)
             .Select(record => _animeSeries.GetByID(record.AnimeSeriesID))
             .Where(series =>
             {
@@ -342,9 +340,14 @@ public class DashboardController : BaseController
 
                 return true;
             })
-            .Select(series => (series, episode: _seriesService.GetActiveEpisode(series, user.JMMUserID, includeSpecials, includeOthers)))
-            .Where(tuple => tuple.episode != null)
-            .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series), page, pageSize);
+            .Select(series =>
+            {
+                var (episode, video, videoUserData) = _seriesService.GetActiveEpisode(series, user.JMMUserID, includeSpecials, includeOthers);
+                return (series, episode, video, videoUserData);
+            })
+            .Where(tuple => tuple.episode is not null && tuple.video is not null)
+            .OrderByDescending(tuple => tuple.videoUserData.LastUpdated)
+            .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series, file: tuple.video), page, pageSize);
     }
 
     /// <summary>
@@ -374,13 +377,11 @@ public class DashboardController : BaseController
     {
         var user = HttpContext.GetUser();
         return _seriesUser.GetByUserID(user.JMMUserID)
-            .Where(record =>
-                record.LastEpisodeUpdate.HasValue && (!onlyUnwatched || record.UnwatchedEpisodeCount > 0))
-            .OrderByDescending(record => record.LastEpisodeUpdate)
-            .Select(record => _animeSeries.GetByID(record.AnimeSeriesID))
-            .Where(series =>
+            .Where(record => record.LastVideoUpdate.HasValue) // Filter to only series where the user have interacted with a video.
+            .Select(record => (series: _animeSeries.GetByID(record.AnimeSeriesID), record))
+            .Where(tuple =>
             {
-                if (series?.AniDB_Anime is not { } anime || !user.AllowedAnime(anime))
+                if (tuple.series?.AniDB_Anime is not { } anime || !user.AllowedAnime(anime))
                     return false;
 
                 if (includeRestricted is not IncludeOnlyFilter.True)
@@ -393,26 +394,50 @@ public class DashboardController : BaseController
 
                 return true;
             })
-            .Select(series => (series, episode: _seriesService.GetNextUpEpisode(
-                series,
-                user.JMMUserID,
-                new()
-                {
-                    DisableFirstEpisode = true,
-                    IncludeCurrentlyWatching = !onlyUnwatched,
-                    IncludeMissing = includeMissing,
-                    IncludeRewatching = includeRewatching,
-                    IncludeSpecials = includeSpecials,
-                    IncludeOthers = includeOthers,
-                }
-            )))
+            .Select(tuple =>
+            {
+                var (series, seriesUserData) = tuple;
+                var (episode, video) = _seriesService.GetNextUpEpisode(
+                    series,
+                    user.JMMUserID,
+                    new()
+                    {
+                        DisableFirstEpisode = true,
+                        IncludeCurrentlyWatching = !onlyUnwatched,
+                        IncludeMissing = includeMissing,
+                        IncludeRewatching = includeRewatching,
+                        IncludeSpecials = includeSpecials,
+                        IncludeOthers = includeOthers,
+                    }
+                );
+                var videoUserData = video is not null
+                    ? _vlUsers.GetByUserAndVideoLocalID(user.JMMUserID, video.VideoLocalID)
+                    : null;
+                // Order the episodes either by the last time the user viewed the video or whichever is highest of
+                // the last episode added to collection date and the last episode user data update date.
+                var orderDate = videoUserData?.LastUpdated ?? (
+                    seriesUserData.LastEpisodeUpdate.HasValue && (
+                        !series.EpisodeAddedDate.HasValue ||
+                        seriesUserData.LastEpisodeUpdate > series.EpisodeAddedDate
+                    )
+                        ? seriesUserData.LastEpisodeUpdate.Value
+                        : series.EpisodeAddedDate ?? DateTime.MinValue
+                );
+                return (series, episode, video, orderDate);
+            })
             .Where(tuple => tuple.episode is not null)
-            .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series), page, pageSize);
+            .OrderByDescending(tuple => tuple.orderDate)
+            .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series, file: tuple.video), page, pageSize);
     }
 
     [NonAction]
-    public Dashboard.Episode GetEpisodeDetailsForSeriesAndEpisode(JMMUser user, AnimeEpisode episode,
-        AnimeSeries series, AniDB_Anime anime = null, VideoLocal file = null)
+    public Dashboard.Episode GetEpisodeDetailsForSeriesAndEpisode(
+        JMMUser user,
+        AnimeEpisode episode,
+        AnimeSeries series,
+        AniDB_Anime anime = null,
+        VideoLocal file = null
+        )
     {
         VideoLocal_User userRecord;
         var animeEpisode = episode.AniDB_Episode;
@@ -517,25 +542,5 @@ public class DashboardController : BaseController
                 return new Dashboard.Episode(episode, anime);
             })
             .ToList();
-    }
-
-    public DashboardController(ISettingsProvider settingsProvider, QueueHandler queueHandler, AnimeSeriesService seriesService, AnimeSeries_UserRepository seriesUser, VideoLocal_UserRepository vlUsers,
-        AniDB_AnimeRepository anidbAnimes, AniDB_Anime_TagRepository anidbAnimeTags, AniDB_EpisodeRepository anidbEpisodes, AniDB_TagRepository anidbTags,
-        AnimeSeriesRepository animeSeries, CrossRef_AniDB_TMDB_MovieRepository crossRefAnidbTmdbMovies, CrossRef_AniDB_TMDB_ShowRepository crossRefAnidbTmdbShows,
-        CrossRef_File_EpisodeRepository crossRefFileEpisodes, VideoLocalRepository videoLocals) : base(settingsProvider)
-    {
-        _queueHandler = queueHandler;
-        _seriesService = seriesService;
-        _seriesUser = seriesUser;
-        _vlUsers = vlUsers;
-        _anidbAnimes = anidbAnimes;
-        _anidbAnimeTags = anidbAnimeTags;
-        _anidbEpisodes = anidbEpisodes;
-        _anidbTags = anidbTags;
-        _animeSeries = animeSeries;
-        _crossRefAnidbTmdbMovies = crossRefAnidbTmdbMovies;
-        _crossRefAnidbTmdbShows = crossRefAnidbTmdbShows;
-        _crossRefFileEpisodes = crossRefFileEpisodes;
-        _videoLocals = videoLocals;
     }
 }
