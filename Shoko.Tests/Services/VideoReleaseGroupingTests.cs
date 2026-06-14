@@ -94,10 +94,22 @@ public class VideoReleaseGroupingTests
                 _ => EpisodeType.Episode,
             }, s[1..])
             : (EpisodeType.Episode, s);
+        var number = int.Parse(rest);
+        // Use offset per type so AnidbEpisodeIDs are unique across episode types
+        var typeOffset = type switch
+        {
+            EpisodeType.Special => 1000,
+            EpisodeType.Credits => 2000,
+            EpisodeType.Trailer => 3000,
+            EpisodeType.Parody  => 4000,
+            EpisodeType.Other   => 5000,
+            _                   => 0,
+        };
         return new EmbeddedCrossReference
         {
+            AnidbEpisodeID = typeOffset + number,
             EpisodeType = type,
-            EpisodeNumber = int.Parse(rest),
+            EpisodeNumber = number,
             PercentageStart = 0,
             PercentageEnd = 100,
         };
@@ -640,12 +652,13 @@ public class VideoReleaseGroupingTests
     }
 
     /// <summary>
-    /// When a v2 batch exists for most episodes but not all (one episode was
-    /// never re-encoded), the collision is only partial. The grouper conservatively
-    /// keeps everything in one candidate rather than splitting.
+    /// When a v2 batch exists for most episodes but not all (ep 3 was never
+    /// re-encoded), the grouper generates two version-strategy candidates:
+    /// BestAvailable (v2 for eps 1-2, v1 for ep 3) and Consistent v1
+    /// (v1 for all episodes). The non-colliding ep 3 v1 file appears in both.
     /// </summary>
     [Fact]
-    public void PartialV2Batch_StaysAsOneCandidateConservatively()
+    public void PartialV2Batch_GeneratesTwoVersionStrategyCandidates()
     {
         var media = MakeMedia(width: 1280, height: 720);
         var doki = (string hash, long size, string ep, int ver) =>
@@ -669,9 +682,20 @@ public class VideoReleaseGroupingTests
 
         var candidates = Group(resolved);
 
-        // ep 3 only has v1 → not every episode collides → keep together
-        Assert.Single(candidates);
-        Assert.Equal(5, candidates[0].Places.Count);
+        // Eps 1 and 2 collide (v1+v2); ep 3 is non-colliding → two version-strategy candidates
+        Assert.Equal(2, candidates.Count);
+
+        var bestAvail = candidates.Single(c => c.VersionStrategy == ReleaseVersionStrategy.BestAvailable);
+        var consistent = candidates.Single(c => c.VersionStrategy == ReleaseVersionStrategy.Consistent);
+
+        Assert.Equal(3, bestAvail.Places.Count);
+        Assert.Equal(2, bestAvail.Version);
+        Assert.Equal(3, consistent.Places.Count);
+        Assert.Equal(1, consistent.Version);
+
+        // The non-colliding ep3 v1 file (place 3) appears in both candidates
+        Assert.Contains(bestAvail.Places, p => p.ID == 3);
+        Assert.Contains(consistent.Places, p => p.ID == 3);
     }
 
     /// <summary>
@@ -709,11 +733,13 @@ public class VideoReleaseGroupingTests
 
     /// <summary>
     /// When every episode is covered by two files of the same version but one
-    /// copy is corrupt and the other clean, the grouper splits them into two
-    /// quality-tier candidates so the caller can prefer the non-corrupt set.
+    /// copy is corrupt and the other clean, all six files belong to the same
+    /// release family (same group, same version, no version collision). The grouper
+    /// produces one BestAvailable candidate; IsCorrupted is reported as true and
+    /// the comparison service will rank this below a non-corrupt alternative.
     /// </summary>
     [Fact]
-    public void EpisodeCollisionSameVersionQualityDiffers_SplitsByQualityTier()
+    public void EpisodeCollisionSameVersionQualityDiffers_OneCandidateWithCorruptFlag()
     {
         var media = MakeMedia(width: 1280, height: 720);
         var doki = (string hash, long size, string ep, bool corrupted) =>
@@ -729,7 +755,7 @@ public class VideoReleaseGroupingTests
                 MakeVideo(2, "A2c", 610_000_000, media), doki("A2c", 610_000_000, "2", false)),
             new ResolvedVideoPlace(MakePlace(3, 3, 1, "Air/[Doki] Air - 03.mkv"),
                 MakeVideo(3, "A3c", 605_000_000, media), doki("A3c", 605_000_000, "3", false)),
-            // Corrupt set — every episode has a counterpart, same version
+            // Corrupt set — every episode has a counterpart, same version (no version collision)
             new ResolvedVideoPlace(MakePlace(4, 4, 1, "Air/[Doki] Air - 01 [bad].mkv"),
                 MakeVideo(4, "A1x", 600_000_000, media), doki("A1x", 600_000_000, "1", true)),
             new ResolvedVideoPlace(MakePlace(5, 5, 1, "Air/[Doki] Air - 02 [bad].mkv"),
@@ -740,12 +766,12 @@ public class VideoReleaseGroupingTests
 
         var candidates = Group(resolved);
 
-        // Same version but different quality tiers → split so the better set can be preferred
-        Assert.Equal(2, candidates.Count);
-        var clean = candidates.Single(c => !c.IsCorrupted);
-        var corrupt = candidates.Single(c => c.IsCorrupted);
-        Assert.Equal(3, clean.Places.Count);
-        Assert.Equal(3, corrupt.Places.Count);
+        // Same version, no version collision → one BestAvailable candidate with all 6 files.
+        // IsCorrupted is true (any-true semantics). The comparison service ranks this below
+        // a non-corrupt alternative if one exists.
+        Assert.Single(candidates);
+        Assert.Equal(6, candidates[0].Places.Count);
+        Assert.True(candidates[0].IsCorrupted);
     }
 
     // ── unrecognized files (no StoredReleaseInfo) ────────────────────────────
@@ -905,5 +931,134 @@ public class VideoReleaseGroupingTests
         // Still two candidates (different directories), but same quality key
         Assert.Equal(2, candidates.Count);
         Assert.Equal(candidates[0].Key, candidates[1].Key);
+    }
+
+    // ── gap-fill candidates ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// When ToonsHub covers eps 1-8 and SubsPlease covers eps 1-12, the grouper
+    /// produces: TH 1-8 alone, SP 1-12 alone, and a gap-fill candidate TH 1-8 +
+    /// SP 9-12. SP 1-12 has no gaps so it does not become an anchor.
+    /// </summary>
+    [Fact]
+    public void GapFill_AnchorPlusFillerForMissingEpisodes()
+    {
+        var media = MakeMedia();
+        var th = (string hash, long size, string ep) =>
+            MakeSri(hash, size, "999", "AniDB", "ToonsHub", "TH", ReleaseSource.Web, episodes: [ep]);
+        var sp = (string hash, long size, string ep) =>
+            MakeSri(hash, size, "1337", "AniDB", "SubsPlease", "SubsPlease", ReleaseSource.Web, episodes: [ep]);
+
+        var resolved = new List<ResolvedVideoPlace>();
+        // ToonsHub eps 1-8 (folder A)
+        for (var i = 1; i <= 8; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(i, i, 1, $"Show/TH - {i:D2}.mkv"),
+                MakeVideo(i, $"TH{i}", 500_000_000, media),
+                th($"TH{i}", 500_000_000, i.ToString())));
+        // SubsPlease eps 1-12 (folder B — different folder so separate bucket)
+        for (var i = 1; i <= 12; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(100 + i, 100 + i, 1, $"Show2/SP - {i:D2}.mkv"),
+                MakeVideo(100 + i, $"SP{i}", 600_000_000, media),
+                sp($"SP{i}", 600_000_000, i.ToString())));
+
+        var candidates = Group(resolved.ToArray());
+
+        // Expected: TH 1-8 (single), SP 1-12 (single), TH 1-8 + SP 9-12 (gap-fill)
+        Assert.Equal(3, candidates.Count);
+
+        var thAlone = candidates.Single(c => c.GroupShortName == "TH" && !c.IsMixed);
+        var spAlone = candidates.Single(c => c.GroupShortName == "SubsPlease" && !c.IsMixed);
+        var gapFill = candidates.Single(c => c.IsMixed);
+
+        Assert.Equal(8, thAlone.Places.Count);
+        Assert.Equal(12, spAlone.Places.Count);
+
+        // Gap-fill: TH 1-8 (8 files) + SP 9-12 (4 files) = 12 files
+        Assert.Equal(12, gapFill.Places.Count);
+        Assert.Equal("TH", gapFill.GroupShortName);
+        Assert.Contains("SubsPlease", gapFill.SecondaryGroupNames);
+    }
+
+    /// <summary>
+    /// When ToonsHub covers eps 1-8, SubsPlease covers eps 1-12, and an
+    /// Unknown group covers eps 9-12, the grouper produces single-family
+    /// candidates for each group plus two gap-fill candidates (TH+SP and TH+Unk).
+    /// SP has no gaps so it generates no gap-fill as anchor.
+    /// </summary>
+    [Fact]
+    public void GapFill_MultipleFillerOptions_ProducesOneGapFillPerFiller()
+    {
+        var media = MakeMedia();
+        var th  = (string hash, long size, string ep) =>
+            MakeSri(hash, size, "999",  "AniDB", "ToonsHub",   "TH",  ReleaseSource.Web, episodes: [ep]);
+        var sp  = (string hash, long size, string ep) =>
+            MakeSri(hash, size, "1337", "AniDB", "SubsPlease", "SP",  ReleaseSource.Web, episodes: [ep]);
+        var unk = (string hash, long size, string ep) =>
+            MakeSri(hash, size, "0001", "AniDB", "Unknown",    "Unk", ReleaseSource.Web, episodes: [ep]);
+
+        var resolved = new List<ResolvedVideoPlace>();
+        for (var i = 1; i <= 8;  i++)
+            resolved.Add(new ResolvedVideoPlace(MakePlace(i, i, 1, $"A/TH - {i:D2}.mkv"),
+                MakeVideo(i, $"TH{i}", 500_000_000, media), th($"TH{i}", 500_000_000, i.ToString())));
+        for (var i = 1; i <= 12; i++)
+            resolved.Add(new ResolvedVideoPlace(MakePlace(100 + i, 100 + i, 1, $"B/SP - {i:D2}.mkv"),
+                MakeVideo(100 + i, $"SP{i}", 600_000_000, media), sp($"SP{i}", 600_000_000, i.ToString())));
+        for (var i = 9; i <= 12; i++)
+            resolved.Add(new ResolvedVideoPlace(MakePlace(200 + i, 200 + i, 1, $"C/Unk - {i:D2}.mkv"),
+                MakeVideo(200 + i, $"Unk{i}", 550_000_000, media), unk($"Unk{i}", 550_000_000, i.ToString())));
+
+        var candidates = Group(resolved.ToArray());
+
+        // Three single-family + three gap-fill:
+        //   TH+SP9-12, TH+Unk9-12 (dedup collapses Unk+TH1-8 into this), Unk+SP1-8
+        // SP has no gaps so it generates no gap-fill as anchor.
+        Assert.Equal(6, candidates.Count);
+
+        var singleFamily = candidates.Where(c => !c.IsMixed).ToList();
+        var gapFills     = candidates.Where(c => c.IsMixed).ToList();
+
+        Assert.Equal(3, singleFamily.Count);
+        Assert.Equal(3, gapFills.Count);
+
+        Assert.Contains(gapFills, c => c.GroupShortName == "TH" && c.SecondaryGroupNames.Contains("SP"));
+        Assert.Contains(gapFills, c => c.GroupShortName == "TH" && c.SecondaryGroupNames.Contains("Unk"));
+        Assert.Contains(gapFills, c => c.GroupShortName == "Unk" && c.SecondaryGroupNames.Contains("SP"));
+    }
+
+    /// <summary>
+    /// Mixed-signal: ToonsHub releases eps 1-10 chaptered and eps 11-12
+    /// unchaptered from the same group. All files are in the same bucket;
+    /// the candidate reports IsChaptered=true (majority) and IsChapteredMixed=true.
+    /// </summary>
+    [Fact]
+    public void MixedChapteredSignal_ReportedAsMajorityWithMixedFlag()
+    {
+        var media = MakeMedia();
+        var th = (string hash, long size, string ep, bool chaptered) =>
+            MakeSri(hash, size, "999", "AniDB", "ToonsHub", "TH", ReleaseSource.Web,
+                episodes: [ep], isChaptered: chaptered);
+
+        var resolved = new List<ResolvedVideoPlace>();
+        for (var i = 1; i <= 10; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(i, i, 1, $"Show/TH - {i:D2}.mkv"),
+                MakeVideo(i, $"TH{i}", 500_000_000, media),
+                th($"TH{i}", 500_000_000, i.ToString(), true)));   // chaptered
+        for (var i = 11; i <= 12; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(i, i, 1, $"Show/TH - {i:D2}.mkv"),
+                MakeVideo(i, $"TH{i}", 500_000_000, media),
+                th($"TH{i}", 500_000_000, i.ToString(), false)));  // not chaptered
+
+        var candidates = Group(resolved.ToArray());
+
+        // All 12 files are from TH, same folder, same quality → one BestAvailable candidate
+        Assert.Single(candidates);
+        var c = candidates[0];
+        Assert.Equal(12, c.Places.Count);
+        Assert.Equal(true, c.IsChaptered);     // majority (10/12 chaptered)
+        Assert.True(c.IsChapteredMixed);        // 2 unchaptered files disagree
     }
 }
