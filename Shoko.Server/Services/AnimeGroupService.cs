@@ -153,7 +153,7 @@ public class AnimeGroupService
     /// </summary>
     /// <param name="animeGroup">The <see cref="AnimeGroup"/> that is to have it's watched stats updated.</param>
     /// <param name="seriesList">The list of <see cref="AnimeSeries"/> that belong to <paramref name="animeGroup"/>.</param>
-    /// <param name="allUsers">A sequence of all JMM users.</param>
+    /// <param name="allUsers">A sequence of all users.</param>
     /// <param name="newAnimeGroupUsers">A method that will be called for each processed <see cref="AnimeGroup_User"/>
     /// and whether or not the <see cref="AnimeGroup_User"/> is new.</param>
     private void UpdateWatchedStats(AnimeGroup animeGroup,

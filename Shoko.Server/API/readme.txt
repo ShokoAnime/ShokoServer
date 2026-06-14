@@ -6,7 +6,7 @@ Model:
 
 Module:
 	- apiv1:
-		- Binnary.cs <- JMMServiceImplementation (aka BinaryBlob Service) attempt to move that out of binary blob sending between client and server
+		- Binnary.cs <- ShokoServiceImplementation (aka BinaryBlob Service) attempt to move that out of binary blob sending between client and server
 		- Legacy.cs <- Legacy readonly module for support not rewriten clients, until most of them ain't rewriten this module need to stay
 	- apiv2:
 		- Auth.cs <- /api/auth - apikey handler (create, delete)
@@ -17,7 +17,7 @@ Module:
 		- Unauth.cs <- any command that use can invoke without apikey should be placed here (ex. /api/version)
 		- Webui.cs <- /api/webui - everything related with webui except /api/dashboard (common) as it a agregate function
 		- Webui_redirect.cs <- Redirect / request to webui/index.html
-	- BaseDirectory.cs <- abstract class that most of Common models inherits 
+	- BaseDirectory.cs <- abstract class that most of Common models inherits
 
 Negotiation: <- custom negotiation types
 Response: <- custom responde types

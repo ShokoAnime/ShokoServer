@@ -67,7 +67,7 @@ public class Core : BaseController
     #region 01.Settings
 
     /// <summary>
-    /// Set JMMServer Port
+    /// Set Server Port
     /// </summary>
     /// <returns></returns>
     [HttpPost("config/port/set")]
@@ -78,7 +78,7 @@ public class Core : BaseController
     }
 
     /// <summary>
-    /// Get JMMServer Port
+    /// Get Server Port
     /// </summary>
     /// <returns>A dynamic object of x.port == port</returns>
     [HttpGet("config/port/get")]
@@ -547,7 +547,7 @@ public class Core : BaseController
     #region 8.OS-based operations
 
     /// <summary>
-    /// Return OSFolder object that is a folder from which jmmserver is running
+    /// Return OSFolder object that is a folder from which server is running
     /// </summary>
     /// <returns></returns>
     [HttpGet("os/folder/base")]

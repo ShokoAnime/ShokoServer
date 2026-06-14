@@ -8,9 +8,11 @@ using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using SharpCompress.Common;
 using SharpCompress.Readers;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Shoko;
@@ -18,6 +20,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Utilities;
 
@@ -394,8 +397,8 @@ public static partial class AVDumpHelper
             {
                 try
                 {
-                    using var client = new HttpClient();
-                    client.DefaultRequestHeaders.Add("User-Agent", "JMM");
+                    var httpClientFactory = ISystemService.StaticServices.GetRequiredService<IHttpClientFactory>();
+                    using var client = httpClientFactory.CreateClient("Default");
                     using var stream = client.GetStreamAsync(AVDumpURL).ConfigureAwait(false).GetAwaiter().GetResult();
                     if (stream == null)
                         return false;
