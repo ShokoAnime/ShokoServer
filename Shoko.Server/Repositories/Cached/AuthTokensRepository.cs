@@ -26,10 +26,10 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
     public AuthTokens? GetByToken(string? token)
     {
-        if (string.IsNullOrEmpty(token))
+        if (string.IsNullOrEmpty(token) || !Guid.TryParse(token, out var guid))
             return null;
 
-        var tokens = ReadLock(_tokens!.GetMultiple(token.ToLowerInvariant().Trim()).ToList);
+        var tokens = ReadLock(_tokens!.GetMultiple(guid.ToString("D").ToLowerInvariant().Trim()).ToList);
         var auth = tokens.FirstOrDefault();
         if (tokens.Count > 1)
         {

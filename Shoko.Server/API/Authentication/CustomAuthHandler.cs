@@ -60,22 +60,16 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
             .ToList();
 
         // SignalR auth handling.
-        if (authKeys.Count == 0 && Request.HttpContext.GetEndpoint()?.Metadata.GetMetadata<HubMetadata>() is not null)
+        if (authKeys.Count is 0 && Request.HttpContext.GetEndpoint()?.Metadata.GetMetadata<HubMetadata>() is not null)
             authKeys = Request.Query["access_token"].ToList();
 
-        if (authKeys.Count == 0)
-        {
-            return Task.FromResult(AuthenticateResult.Fail("Cannot read authorization header or query."));
-        }
+        if (authKeys.Count is 0)
+            return Task.FromResult(AuthenticateResult.NoResult());
 
         //Find authenticated user.
         var (user, token) = authKeys.Select(GetUserForKey).FirstOrDefault(s => s.user != null);
-
-        if (user == null)
-        {
+        if (user is null)
             return Task.FromResult(AuthenticateResult.Fail("Invalid Authentication key"));
-        }
-
 
         var claims = new List<Claim>
         {
@@ -84,33 +78,22 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
             new(ClaimTypes.AuthenticationMethod, "apikey"),
             new("apikey", token.Token),
         };
-        if (user.IsAdmin == 1)
-        {
+        if (user.IsAdmin is 1)
             claims.Add(new Claim(ClaimTypes.Role, "admin"));
-        }
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, Options.Scheme));
         principal.AddIdentity(new ClaimsIdentity(user));
 
         var ticket = new AuthenticationTicket(principal, Options.Scheme);
-
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
 
-    private (JMMUser user, AuthTokens apikey) GetUserForKey(string ctx)
+    private (JMMUser user, AuthTokens apikey) GetUserForKey(string token)
     {
         if (!_systemService.IsStarted)
-        {
             return (null, null);
-        }
 
-        var apikey = ctx?.Trim();
-        if (string.IsNullOrEmpty(apikey))
-        {
-            return (null, null);
-        }
-
-        var auth = _authTokens.GetByToken(apikey);
+        var auth = _authTokens.GetByToken(token);
         return (
             auth != null ? _users.GetByID(auth.UserID) : null,
             auth
