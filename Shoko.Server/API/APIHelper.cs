@@ -62,13 +62,12 @@ public static class APIHelper
         return ctx.User.GetUser();
     }
 
-    public static (string, string) GetToken(this HttpContext ctx)
+    public static string GetToken(this HttpContext ctx)
     {
         var token = ctx.User.Claims.FirstOrDefault(c => c.Type == "apikey")?.Value;
-        var device = ctx.User.Claims.FirstOrDefault(c => c.Type == "apikey.device")?.Value;
-        if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(device))
-            return (token, device);
+        if (!string.IsNullOrEmpty(token))
+            return token;
 
-        return (null, null);
+        return null;
     }
 }

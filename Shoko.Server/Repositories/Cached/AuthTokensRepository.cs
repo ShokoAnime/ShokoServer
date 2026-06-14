@@ -24,7 +24,7 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
         _userIDs = Cache.CreateIndex(a => a.UserID);
     }
 
-    public AuthTokens? GetByToken(string token)
+    public AuthTokens? GetByToken(string? token)
     {
         if (string.IsNullOrEmpty(token))
             return null;

@@ -1,12 +1,18 @@
 using System.ComponentModel.DataAnnotations;
 
 #nullable enable
-namespace Shoko.Server.API.v0.Models;
+namespace Shoko.Server.API.v3.Models.Auth;
 
-public class AuthApikeyRequest
+/// <summary>
+/// Request to generate a new API token.
+/// </summary>
+public class GenerateTokenRequest
 {
+    /// <summary>
+    /// The device name.
+    /// </summary>
     [Required(ErrorMessage = "Device is required")]
-    public string device { get; set; } = null!;
+    public string Device { get; set; } = null!;
 
     /// <summary>
     /// Optional token expiration. Accepted formats:
@@ -17,5 +23,5 @@ public class AuthApikeyRequest
     ///
     /// If omitted or null, the token will not expire.
     /// </summary>
-    public string? expires { get; set; }
+    public string? Expires { get; set; }
 }

@@ -281,8 +281,8 @@ public class UserService(
 
     public ApiToken? GetApiTokenFromHttpContext(HttpContext context)
     {
-        var (token, device) = context.GetToken();
-        if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(device))
+        var token = context.GetToken();
+        if (string.IsNullOrEmpty(token))
             return null;
 
         var authToken = _authTokensRepository.GetByToken(token);

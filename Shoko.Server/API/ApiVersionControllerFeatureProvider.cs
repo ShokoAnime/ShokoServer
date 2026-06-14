@@ -27,9 +27,12 @@ public class ApiVersionControllerFeatureProvider(WebSettings webSettings) : Cont
         if (typeInfo.Assembly != _serverAssembly)
             return true;
 
-        // Stream endpoint is used by legacy clients (e.g. Shokodi) and must remain
-        // available regardless of whether the rest of APIv1 is enabled.
+        // APIv1 Stream endpoints are used by both APIv1 and APIv2 clients, e.g. Shokodi, Nakamori, etc.
         if (typeInfo == typeof(ShokoServiceImplementationStream) && (webSettings.EnableAPIv1 || webSettings.EnableAPIv2))
+            return true;
+
+        // APIv0 Auth endpoints are used by both APIv1 and APIv2 clients.
+        if (typeInfo == typeof(AuthenticationController) && (webSettings.EnableAPIv1 || webSettings.EnableAPIv2))
             return true;
 
         var ns = typeInfo.Namespace;
@@ -42,8 +45,6 @@ public class ApiVersionControllerFeatureProvider(WebSettings webSettings) : Cont
         if (typeInfo == typeof(IndexRedirectController) && !webSettings.EnableIndexRedirect)
             return false;
         if (typeInfo == typeof(PlexWebhook) && !webSettings.EnableLegacyPlexAPI)
-            return false;
-        if (typeInfo == typeof(AuthenticationController) && !webSettings.EnableAuthAPI)
             return false;
         return true;
     }

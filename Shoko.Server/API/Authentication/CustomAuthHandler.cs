@@ -83,7 +83,6 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
             new(ClaimTypes.NameIdentifier, user.JMMUserID.ToString()),
             new(ClaimTypes.AuthenticationMethod, "apikey"),
             new("apikey", token.Token),
-            new("apikey.device", token.DeviceName),
         };
         if (user.IsAdmin == 1)
         {

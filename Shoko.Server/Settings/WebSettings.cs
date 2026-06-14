@@ -122,16 +122,6 @@ public class WebSettings
     public bool EnableSignalR { get; set; } = true;
 
     /// <summary>
-    ///   Enable the built-in authentication API available at <c>/api/auth</c>.
-    /// </summary>
-    [Visibility(Advanced = true)]
-    [Display(Name = "Enable Auth API")]
-    [RequiresRestart]
-    [EnvironmentVariable("SHOKO_API_AUTH_ENABLED")]
-    [DefaultValue(true)]
-    public bool EnableAuthAPI { get; set; } = true;
-
-    /// <summary>
     /// Enable the deprecated API v1 endpoints.
     /// </summary>
     [Badge("Deprecated", Theme = DisplayColorTheme.Warning)]
