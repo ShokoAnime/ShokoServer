@@ -2529,6 +2529,21 @@ public class DatabaseFixes
         systemService.StartupMessage = $"{str} - Completed moving {migratedCount} images to extension paths.";
     }
 
+    public static void FixEmptyXrefPrimaryImageIDs()
+    {
+        var empty = Guid.Empty;
+        var toSave = new List<ShokoImage_Entity>();
+        foreach (var xref in RepoFactory.ShokoImage_Entity.GetAll())
+        {
+            if (xref.PrimaryImageID != empty)
+                continue;
+
+            xref.PrimaryImageID = xref.ImageID;
+            toSave.Add(xref);
+        }
+        RepoFactory.ShokoImage_Entity.Save(toSave);
+    }
+
     private class DNF_UserAvatarMetadata
     {
         public string ContentType { get; set; }

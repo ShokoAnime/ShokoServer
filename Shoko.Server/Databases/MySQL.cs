@@ -1080,6 +1080,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(171,  3, "ALTER TABLE `AniDB_Anime` DROP COLUMN AirDate, DROP COLUMN EndDate"),
         new(171,  4, "ALTER TABLE `AniDB_Anime` CHANGE AirDate_new AirDate varchar(10) NULL, CHANGE EndDate_new EndDate varchar(10) NULL"),
         new(172,  1, "ALTER TABLE `AuthTokens` ADD COLUMN `ExpiresAt` DATETIME NULL"),
+        new(173,  1, DatabaseFixes.FixEmptyXrefPrimaryImageIDs),
     ];
 
     #endregion

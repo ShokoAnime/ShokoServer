@@ -103,6 +103,7 @@ public class ShokoImage_Entity : IImageCrossReference
             throw new ArgumentException(nameof(entity), "Invalid entity given to constructor");
 
         ImageID = image.ID;
+        PrimaryImageID = image.PrimaryID;
         ImageSource = image.Source;
 
         EntitySource = entitySource;
