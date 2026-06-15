@@ -301,7 +301,7 @@ public partial class TmdbController : BaseController
 
         return movie.Cast
             .Select(Role.FromTmdb)
-            .OfType<Role>()
+            .WhereNotNull()
             .ToList();
     }
 
@@ -318,7 +318,7 @@ public partial class TmdbController : BaseController
 
         return movie.Crew
             .Select(Role.FromTmdb)
-            .OfType<Role>()
+            .WhereNotNull()
             .ToList();
     }
 
@@ -1271,7 +1271,7 @@ public partial class TmdbController : BaseController
 
                 return alternateOrdering.Cast
                     .Select(Role.FromTmdb)
-                    .OfType<Role>()
+                    .WhereNotNull()
                     .ToList();
             }
 
@@ -1281,7 +1281,7 @@ public partial class TmdbController : BaseController
 
         return show.Cast
             .Select(Role.FromTmdb)
-            .OfType<Role>()
+            .WhereNotNull()
             .ToList();
     }
 
@@ -1313,7 +1313,7 @@ public partial class TmdbController : BaseController
 
                 return alternateOrdering.Crew
                     .Select(Role.FromTmdb)
-                    .OfType<Role>()
+                    .WhereNotNull()
                     .ToList();
             }
 
@@ -1323,7 +1323,7 @@ public partial class TmdbController : BaseController
 
         return show.Crew
             .Select(Role.FromTmdb)
-            .OfType<Role>()
+            .WhereNotNull()
             .ToList();
     }
 
@@ -2077,7 +2077,7 @@ public partial class TmdbController : BaseController
 
             return altOrderSeason.Cast
                 .Select(Role.FromTmdb)
-                .OfType<Role>()
+                .WhereNotNull()
                 .ToList();
         }
 
@@ -2090,7 +2090,7 @@ public partial class TmdbController : BaseController
 
         return season.Cast
             .Select(Role.FromTmdb)
-            .OfType<Role>()
+            .WhereNotNull()
             .ToList();
     }
 
@@ -2109,7 +2109,7 @@ public partial class TmdbController : BaseController
 
             return altOrderSeason.Crew
                 .Select(Role.FromTmdb)
-                .OfType<Role>()
+                .WhereNotNull()
                 .ToList();
         }
 
@@ -2122,7 +2122,7 @@ public partial class TmdbController : BaseController
 
         return season.Crew
             .Select(Role.FromTmdb)
-            .OfType<Role>()
+            .WhereNotNull()
             .ToList();
     }
 
@@ -2618,7 +2618,7 @@ public partial class TmdbController : BaseController
 
         return episode.Cast
             .Select(Role.FromTmdb)
-            .OfType<Role>()
+            .WhereNotNull()
             .ToList();
     }
 
@@ -2635,7 +2635,7 @@ public partial class TmdbController : BaseController
 
         return episode.Crew
             .Select(Role.FromTmdb)
-            .OfType<Role>()
+            .WhereNotNull()
             .ToList();
     }
 

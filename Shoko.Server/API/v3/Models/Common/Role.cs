@@ -124,14 +124,13 @@ public class Role
 
     private static Person CreateStaffFromTmdbPerson(TMDB_Person person)
     {
-        var images = person.GetImages();
         return new()
         {
             ID = person.Id,
             Name = person.EnglishName,
             AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
             Description = person.EnglishBiography,
-            Image = images.Count > 0 ? new Image(images[0]) : null,
+            Image = (person as ICreator).PrimaryImage is { } staffImage ? new Image(staffImage) : null,
         };
     }
 
