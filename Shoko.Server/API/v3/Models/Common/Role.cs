@@ -26,7 +26,7 @@ public class Role
     /// The person who plays a character, writes the music, etc.
     /// </summary>
     [Required]
-    public Person Staff { get; set; }
+    public Person Staff { get; set; } = null!;
 
     /// <summary>
     /// The role that the staff plays, cv, writer, director, etc
