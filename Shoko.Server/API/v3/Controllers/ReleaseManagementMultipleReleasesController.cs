@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Extensions;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
@@ -13,6 +14,7 @@ using Shoko.Server.API.v3.Models.Release;
 using Shoko.Server.API.v3.Models.Release.Input;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -30,6 +32,7 @@ public class ReleaseManagementMultipleReleasesController(
     AnimeSeriesRepository animeSeries,
     VideoLocalRepository videoLocals,
     VideoLocal_PlaceRepository videoLocalPlaces,
+    AniDB_EpisodeRepository anidbEpisodes,
     VideoReleaseGroupingService grouper,
     ReleaseComparisonService comparer,
     ReleaseAutoManagementService autoManagement,
@@ -59,11 +62,25 @@ public class ReleaseManagementMultipleReleasesController(
             .Where(s => !onlyFinishedSeries || (s.AniDB_Anime?.GetFinishedAiring() ?? false))
             .OrderBy(s => s.Title);
 
+        // Pre-filter using only cached SRI group keys before running the full
+        // grouper. MightHaveMultipleCandidates is a cheap check that skips the
+        // expensive grouper for series that clearly have only one release.
+        // The pre-fetched videoLookup is passed into BuildSeriesWithCandidates so
+        // GetByAniDBAnimeID is not called a second time for the same series.
         var withCandidates = allSeries
-            .Select(series => BuildSeriesWithCandidates(series))
+            .Select(series =>
+            {
+                var videoLookup = videoLocals.GetByAniDBAnimeID(series.AniDB_ID)
+                    .DistinctBy(v => (v.Hash, v.FileSize))
+                    .ToDictionary(v => v.VideoLocalID);
+                if (videoLookup.Count <= 1) return null;
+                if (!grouper.MightHaveMultipleCandidates(videoLookup.Values)) return null;
+                return BuildSeriesWithCandidates(series, videoLookup);
+            })
             .Where(result => result is not null && result.Candidates.Count > 1)
             .Select(result => result!)
-            .Where(result => !onlyWithRedundant || result.HasRedundantCandidates);
+            .Where(result => !onlyWithRedundant || result.HasRedundantCandidates)
+            .ToList();
 
         return withCandidates.ToListResult(r => r, page, pageSize);
     }
@@ -71,6 +88,8 @@ public class ReleaseManagementMultipleReleasesController(
     /// <summary>
     /// Get the ranked release candidates for a specific series. Returns 404
     /// when the series has fewer than two distinct candidates.
+    /// Also includes a <c>tracks</c> field with all release groups (including
+    /// partial-coverage groups excluded from candidates) for Mix &amp; Match.
     /// </summary>
     /// <param name="seriesID">Shoko series ID.</param>
     [HttpGet("Series/{seriesID}")]
@@ -84,11 +103,91 @@ public class ReleaseManagementMultipleReleasesController(
         if (!User.AllowedSeries(series))
             return Forbid();
 
-        var result = BuildSeriesWithCandidates(series);
+        var result = BuildSeriesWithCandidates(series, includeTracks: true);
         if (result is null)
             return NotFound();
 
         return result;
+    }
+
+    /// <summary>
+    /// Preview which files would be deleted when the user manually assigns one
+    /// file per episode (Mix &amp; Match release override). The selection must cover
+    /// every episode that has at least one file; unselected files are returned as
+    /// the deletion preview.
+    /// </summary>
+    /// <param name="seriesID">Shoko series ID.</param>
+    /// <param name="body">The set of PlaceIDs to keep.</param>
+    [HttpPost("Series/{seriesID}/Override")]
+    [Authorize("admin")]
+    public ActionResult<ReleaseDeletionPreview> GetReleaseOverridePreview(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromBody] ReleaseOverrideBody body)
+    {
+        var series = animeSeries.GetByID(seriesID);
+        if (series is null)
+            return NotFound();
+
+        if (!User.AllowedSeries(series))
+            return Forbid();
+
+        var videoLookup = videoLocals.GetByAniDBAnimeID(series.AniDB_ID)
+            .DistinctBy(v => v.VideoLocalID)
+            .ToDictionary(v => v.VideoLocalID);
+        if (videoLookup.Count == 0)
+            return NotFound("No files found for this series.");
+
+        var places = videoLookup.Values
+            .SelectMany(v => videoLocalPlaces.GetByVideoLocal(v.VideoLocalID))
+            .ToList();
+        if (places.Count == 0)
+            return NotFound("No file locations found for this series.");
+
+        var selectedPlaceIds = body.SelectedPlaceIDs.ToHashSet();
+
+        var allPlaceIds = places.Select(p => p.ID).ToHashSet();
+        var unknownIds = selectedPlaceIds.Where(id => !allPlaceIds.Contains(id)).ToList();
+        if (unknownIds.Count > 0)
+            return BadRequest($"Place IDs not found for this series: {string.Join(", ", unknownIds)}");
+
+        var placeEpisodeCoverage = places.ToDictionary(
+            p => p.ID,
+            p => autoManagement.GetFileEpisodeCoverage(p, videoLookup));
+
+        var allCoveredEpisodes = placeEpisodeCoverage.Values.SelectMany(x => x).ToHashSet();
+        var selectionCoveredEpisodes = selectedPlaceIds
+            .Where(id => allPlaceIds.Contains(id) && placeEpisodeCoverage.ContainsKey(id))
+            .SelectMany(id => placeEpisodeCoverage[id])
+            .ToHashSet();
+
+        if (!allCoveredEpisodes.IsSubsetOf(selectionCoveredEpisodes))
+            return BadRequest("The selection does not cover all episodes that have files. Some episodes would be left without a file.");
+
+        var placesToDelete = places.Where(p => !selectedPlaceIds.Contains(p.ID)).ToList();
+
+        var fileLocations = placesToDelete
+            .Select(place =>
+            {
+                videoLookup.TryGetValue(place.VideoID, out var video);
+                return new ReleaseDeletionPreview.FileLocation
+                {
+                    PlaceID = place.ID,
+                    VideoLocalID = place.VideoID,
+                    AbsolutePath = place.Path,
+                    FileSize = video?.FileSize ?? 0,
+                };
+            })
+            .ToList();
+
+        return new ReleaseDeletionPreview
+        {
+            SeriesID = series.AnimeSeriesID,
+            SeriesTitle = series.Title,
+            AnidbAnimeID = series.AniDB_ID,
+            TotalFilesToDelete = fileLocations.Count,
+            TotalSizeToDelete = fileLocations.Sum(p => p.FileSize),
+            Files = fileLocations,
+        };
     }
 
     // ── Preview & execute ────────────────────────────────────────────────────
@@ -159,13 +258,18 @@ public class ReleaseManagementMultipleReleasesController(
     // ── Private helpers ──────────────────────────────────────────────────────
 
     private SeriesWithCandidates? BuildSeriesWithCandidates(
-        Shoko.Server.Models.Shoko.AnimeSeries series)
+        Shoko.Server.Models.Shoko.AnimeSeries series,
+        Dictionary<int, Shoko.Server.Models.Shoko.VideoLocal>? prefetchedVideoLookup = null,
+        bool includeTracks = false)
     {
-        var videos = videoLocals.GetByAniDBAnimeID(series.AniDB_ID);
-        if (videos.Count == 0)
+        var videoLookup = prefetchedVideoLookup ?? videoLocals.GetByAniDBAnimeID(series.AniDB_ID)
+            .DistinctBy(v => (v.Hash, v.FileSize))
+            .ToDictionary(v => v.VideoLocalID);
+
+        if (videoLookup.Count <= 1)
             return null;
 
-        var places = videos
+        var places = videoLookup.Values
             .SelectMany(v => videoLocalPlaces.GetByVideoLocal(v.VideoLocalID))
             .ToList();
         if (places.Count == 0)
@@ -176,7 +280,6 @@ public class ReleaseManagementMultipleReleasesController(
             return null;
 
         var ranked = comparer.Rank(candidates);
-        var videoLookup = videos.ToDictionary(v => v.VideoLocalID);
 
         var redundantPlaces = autoManagement.ComputeRedundantPlaces(series, ranked, videoLookup)
             .Select(p => p.ID)
@@ -185,6 +288,27 @@ public class ReleaseManagementMultipleReleasesController(
         var placeEpisodeCoverage = places.ToDictionary(
             p => p.ID,
             p => autoManagement.GetFileEpisodeCoverage(p, videoLookup));
+
+        // When including tracks we need episode IDs for all places (including partial-coverage
+        // groups not represented in any full candidate). Otherwise the candidates alone suffice.
+        IEnumerable<int> episodeIdSource = includeTracks
+            ? placeEpisodeCoverage.Values.SelectMany(cov => cov.Select(e => e.Item2))
+            : ranked.SelectMany(c => c.EpisodeCoverage).Select(e => e.Number);
+
+        var episodeLookup = episodeIdSource
+            .Distinct()
+            .Select(id => anidbEpisodes.GetByEpisodeID(id))
+            .WhereNotNull()
+            .ToDictionary(e => e.EpisodeID, e => (e.EpisodeType, e.EpisodeNumber));
+
+        // Compute which signals actually vary across candidates so names only include
+        // the qualifiers that distinguish one candidate from another.
+        var candidateIncludeResolution = ranked.Select(c => c.Resolution).Where(r => r is not null).Distinct().Count() > 1;
+        var candidateIncludeSource = ranked.Select(c => c.Source).Where(s => s != Shoko.Abstractions.Video.Enums.ReleaseSource.Unknown).Distinct().Count() > 1;
+        var candidateIncludeVersion = ranked
+            .Where(c => !string.IsNullOrEmpty(c.GroupID) && !string.IsNullOrEmpty(c.GroupSource))
+            .GroupBy(c => $"{c.GroupID}|{c.GroupSource}")
+            .Any(g => g.Count() > 1);
 
         var candidateDTOs = new List<ReleaseCandidate>(ranked.Count);
         for (var i = 0; i < ranked.Count; i++)
@@ -197,7 +321,20 @@ public class ReleaseManagementMultipleReleasesController(
                 decision = comparer.CompareWithDecision(ranked[0], candidate);
 
             candidateDTOs.Add(ReleaseCandidate.FromCandidate(
-                candidate, rank: i + 1, isRedundant, videoLookup, redundantPlaces, decision, placeEpisodeCoverage));
+                candidate, rank: i + 1, isRedundant, videoLookup, redundantPlaces, decision,
+                placeEpisodeCoverage, episodeLookup,
+                candidateIncludeResolution, candidateIncludeSource, candidateIncludeVersion));
+        }
+
+        IReadOnlyList<ReleaseOverride> overrideDTOs = [];
+        if (includeTracks)
+        {
+            var releaseOverrides = grouper.GetOverrides(places);
+            var overrideIncludeResolution = releaseOverrides.Select(o => o.Resolution).Where(r => r is not null).Distinct().Count() > 1;
+            var overrideIncludeSource = releaseOverrides.Select(o => o.Source).Where(s => s != Shoko.Abstractions.Video.Enums.ReleaseSource.Unknown).Distinct().Count() > 1;
+            overrideDTOs = releaseOverrides
+                .Select(o => ReleaseOverride.FromOverride(o, videoLookup, episodeLookup, overrideIncludeResolution, overrideIncludeSource))
+                .ToList();
         }
 
         return new SeriesWithCandidates
@@ -208,6 +345,7 @@ public class ReleaseManagementMultipleReleasesController(
             IsAiring = autoManagement.IsSeriesAiring(series),
             HasRedundantCandidates = candidateDTOs.Any(c => c.IsRedundant),
             Candidates = candidateDTOs,
+            Overrides = overrideDTOs,
         };
     }
 
@@ -215,11 +353,13 @@ public class ReleaseManagementMultipleReleasesController(
         Shoko.Server.Models.Shoko.AnimeSeries series,
         Dictionary<int, string> overrides)
     {
-        var videos = videoLocals.GetByAniDBAnimeID(series.AniDB_ID);
-        if (videos.Count == 0)
+        var videoLookup = videoLocals.GetByAniDBAnimeID(series.AniDB_ID)
+            .DistinctBy(v => v.VideoLocalID)
+            .ToDictionary(v => v.VideoLocalID);
+        if (videoLookup.Count == 0)
             return null;
 
-        var places = videos
+        var places = videoLookup.Values
             .SelectMany(v => videoLocalPlaces.GetByVideoLocal(v.VideoLocalID))
             .ToList();
         if (places.Count == 0)
@@ -241,8 +381,6 @@ public class ReleaseManagementMultipleReleasesController(
                 ranked.Insert(0, preferred);
             }
         }
-
-        var videoLookup = videos.ToDictionary(v => v.VideoLocalID);
         var redundantPlaces = autoManagement.ComputeRedundantPlaces(series, ranked, videoLookup);
         if (redundantPlaces.Count == 0)
             return null;

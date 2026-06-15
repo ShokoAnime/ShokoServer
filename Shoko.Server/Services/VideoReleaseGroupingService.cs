@@ -27,22 +27,67 @@ public record ResolvedVideoPlace(VideoLocal_Place Place, VideoLocal Video, Store
 /// MediaInfo stream signals.
 /// </summary>
 /// <remarks>
-/// Grouping is a three-pass process:
+/// Grouping is a four-pass process:
 /// <list type="number">
 ///   <item><b>Fuzzy grouping</b> — files are placed into the first bucket where no
 ///     known signal conflicts with the bucket's existing files.</item>
-///   <item><b>Version-strategy candidates</b> — within each bucket, episodes covered
+///   <item><b>Same-group merge</b> — buckets sharing the same release-group key
+///     (GroupID + GroupSource) are merged. Quality variation within a group (e.g.
+///     chaptered episodes alongside unchaptered) is reported as a mixed signal on
+///     the combined candidate rather than producing separate candidates.</item>
+///   <item><b>Version-strategy candidates</b> — within each merged group, episodes covered
 ///     by multiple version numbers produce a BestAvailable candidate (highest version
 ///     per episode) and a Consistent(v) candidate for each older version.</item>
-///   <item><b>Gap-fill candidates</b> — when one single-family candidate lacks episodes
-///     covered by another, a combined candidate is generated using the first as the
-///     anchor and the second to fill the gap.</item>
+///   <item><b>Gap-fill candidates</b> — for each partial-coverage version-strategy spec,
+///     one gap-fill is generated per distinct filler group that can fully cover the gap.
+///     The filler always uses BestAvailable files for the missing episodes only.</item>
 /// </list>
 /// </remarks>
 public class VideoReleaseGroupingService(
     VideoLocalRepository videoLocalRepository,
     StoredReleaseInfoRepository releaseInfoRepository)
 {
+    /// <summary>
+    /// Fast heuristic that checks whether a series is likely to produce more than
+    /// one release candidate. Only inspects cached SRI group keys — no MediaInfo
+    /// access, no CrossReference deserialization.
+    /// <para>
+    /// Returns <c>false</c> only when every file has an identified SRI with the
+    /// same release-group key, meaning a single-candidate result is certain.
+    /// Returns <c>true</c> when in doubt, so false negatives are avoided.
+    /// </para>
+    /// </summary>
+    public bool MightHaveMultipleCandidates(IEnumerable<VideoLocal> videos)
+    {
+        var groupKey = (string?)null;
+        var episodeVersions = new Dictionary<int, int>();
+
+        foreach (var video in videos)
+        {
+            var sri = releaseInfoRepository.GetByEd2kAndFileSize(video.Hash, video.FileSize);
+            if (sri is null) return true;       // unidentified file
+            var key = GroupKey(sri);
+            if (key is null) return true;       // SRI has no group info
+            if (groupKey is null) groupKey = key;
+            else if (groupKey != key) return true;
+
+            // Version collision within the same group → GenerateVersionStrategyCandidates
+            // would produce BestAvailable + Consistent variants.
+            foreach (var xref in sri.CrossReferences)
+            {
+                if (episodeVersions.TryGetValue(xref.AnidbEpisodeID, out var existing))
+                {
+                    if (existing != sri.Version) return true;
+                }
+                else
+                {
+                    episodeVersions[xref.AnidbEpisodeID] = sri.Version;
+                }
+            }
+        }
+        return false;
+    }
+
     /// <summary>
     /// Groups the given places into release candidates, resolving the
     /// associated video and release info from the repositories.
@@ -58,24 +103,69 @@ public class VideoReleaseGroupingService(
         }).OfType<ResolvedVideoPlace>());
 
     /// <summary>
+    /// Returns one <see cref="VideoReleaseOverride"/> per merged release-group bucket —
+    /// the same FuzzyGroup + same-group-merge passes as <see cref="Group(IEnumerable{VideoLocal_Place})"/>
+    /// but without the coverage filter or version-strategy split. Used as the data
+    /// source for the release override (Mix &amp; Match) view.
+    /// </summary>
+    public IReadOnlyList<VideoReleaseOverride> GetOverrides(IEnumerable<VideoLocal_Place> places)
+        => GetOverrides(places.Select(p =>
+        {
+            var video = videoLocalRepository.GetByID(p.VideoID);
+            if (video is null)
+                return null;
+            var sri = releaseInfoRepository.GetByEd2kAndFileSize(video.Hash, video.FileSize);
+            return new ResolvedVideoPlace(p, video, sri);
+        }).OfType<ResolvedVideoPlace>());
+
+    /// <summary>
+    /// Returns one <see cref="VideoReleaseOverride"/> per merged release-group bucket
+    /// from pre-resolved place records.
+    /// </summary>
+    public IReadOnlyList<VideoReleaseOverride> GetOverrides(IEnumerable<ResolvedVideoPlace> resolved)
+    {
+        var sigs = resolved.Select(BuildSignature).ToList();
+        var allEpisodes = (IReadOnlySet<(EpisodeType, int)>)sigs.SelectMany(s => s.EpisodeIds).ToHashSet();
+        var buckets = FuzzyGroup(sigs);
+        var mergedBuckets = MergeSameGroupBuckets(buckets);
+        return mergedBuckets.Select(b => BuildOverride(b, allEpisodes)).ToList();
+    }
+
+    /// <summary>
     /// Groups pre-resolved place records into release candidates.
     /// </summary>
     public IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<ResolvedVideoPlace> resolved)
     {
         var sigs = resolved.Select(BuildSignature).ToList();
+
+        // Full episode set across all files — used to filter incomplete candidates
+        var allEpisodes = sigs.SelectMany(s => s.EpisodeIds).ToHashSet();
+
         var buckets = FuzzyGroup(sigs);
 
-        // Phase 2: version-strategy candidates per family
-        var singleFamilySpecs = buckets.SelectMany(GenerateVersionStrategyCandidates).ToList();
+        // Merge buckets that share the same release group — quality variation within a group
+        // (subtitle count, chaptered vs. unchaptered per episode) is expressed as mixed signals
+        // on the combined candidate rather than splitting into separate candidates.
+        var mergedBuckets = MergeSameGroupBuckets(buckets);
 
-        // Phase 3: gap-fill candidates across families
-        var gapFillSpecs = GenerateGapFillCandidates(singleFamilySpecs);
+        // Phase 2: version-strategy candidates per merged family
+        var specs = mergedBuckets.SelectMany(GenerateVersionStrategyCandidates).ToList();
 
-        // Build candidates, dedup by file set
+        // Phase 3: gap-fill candidates — one per (partial anchor, filler group) pair
+        var gapFillSpecs = GenerateGapFillCandidates(specs, allEpisodes).ToList();
+
+        // Build candidates, dedup by file set, and filter out any that don't cover
+        // every known episode — selecting such a candidate would leave gaps.
         var seenFileSets = new HashSet<string>();
         var result = new List<VideoReleaseCandidate>();
-        foreach (var spec in singleFamilySpecs.Concat(gapFillSpecs))
+        foreach (var spec in specs.Concat(gapFillSpecs))
         {
+            if (allEpisodes.Count > 0)
+            {
+                var specEpisodes = spec.Files.SelectMany(f => f.EpisodeIds).ToHashSet();
+                if (!specEpisodes.IsSupersetOf(allEpisodes)) continue;
+            }
+
             var fileSetKey = string.Join(",", spec.Files.Select(f => f.Place.ID).OrderBy(id => id));
             if (seenFileSets.Add(fileSetKey))
                 result.Add(BuildCandidate(spec));
@@ -140,12 +230,16 @@ public class VideoReleaseGroupingService(
             .Where(k => k.Item2 > 0)
             .ToHashSet() ?? new HashSet<(EpisodeType, int)>();
 
+        var parentDirectory = GetParentDirectory(place.RelativePath);
         return new FileSignature
         {
             Place = place,
+            ParentDirectory = parentDirectory,
             ReleaseInfo = sri,
             AudioLanguages = audioLangs,
+            AudioLanguageSet = audioLangs.ToHashSet(),
             SubtitleLanguages = subLangs,
+            SubtitleLanguageSet = subLangs.ToHashSet(),
             VideoCodec = videoCodec,
             BitDepth = bitDepth,
             Resolution = resolution,
@@ -188,7 +282,7 @@ public class VideoReleaseGroupingService(
     {
         // Hard separators — always split regardless of missing data
         if (a.Place.ManagedFolderID != b.Place.ManagedFolderID) return false;
-        if (GetParentDirectory(a.Place.RelativePath) != GetParentDirectory(b.Place.RelativePath)) return false;
+        if (a.ParentDirectory != b.ParentDirectory) return false;
 
         // Video encoding signals — only conflict when both are non-null/non-zero and differ
         if (!NullOrCompatible(a.VideoCodec, b.VideoCodec)) return false;
@@ -203,15 +297,65 @@ public class VideoReleaseGroupingService(
         var bSource = b.ReleaseInfo?.Source ?? ReleaseSource.Unknown;
         if (aSource != ReleaseSource.Unknown && bSource != ReleaseSource.Unknown && aSource != bSource) return false;
 
-        // Language sets — only conflict when both sides have at least one identified language and the sets differ
-        if (a.AudioLanguages.Count > 0 && b.AudioLanguages.Count > 0 && !LanguageSetsMatch(a.AudioLanguages, b.AudioLanguages)) return false;
-        if (a.SubtitleLanguages.Count > 0 && b.SubtitleLanguages.Count > 0 && !LanguageSetsMatch(a.SubtitleLanguages, b.SubtitleLanguages)) return false;
+        // Language sets — only conflict when both sides have at least one identified language and the sets differ.
+        if (a.AudioLanguageSet.Count > 0 && b.AudioLanguageSet.Count > 0 && !a.AudioLanguageSet.SetEquals(b.AudioLanguageSet)) return false;
+        if (a.SubtitleLanguageSet.Count > 0 && b.SubtitleLanguageSet.Count > 0 && !a.SubtitleLanguageSet.SetEquals(b.SubtitleLanguageSet)) return false;
 
         // Audio codec and container — soft separators
         if (!NullOrCompatible(a.AudioCodec, b.AudioCodec)) return false;
         if (!NullOrCompatible(a.Container, b.Container)) return false;
 
         return true;
+    }
+
+    /// <summary>
+    /// Merges FuzzyGroup buckets that share the same release-group key (GroupID + GroupSource)
+    /// and cover disjoint sets of episodes into a single combined bucket.
+    /// <para>
+    /// Episode overlap is the signal that two same-group buckets are genuinely different products
+    /// (e.g., a 1080p and a 720p encode both covering episode 1). Non-overlapping buckets are
+    /// incidental quality variation within one release (e.g., chaptered eps 1–10 alongside
+    /// unchaptered eps 11–12, or BD eps 1–12 alongside a DVD-only ep 13).
+    /// </para>
+    /// Buckets without a known group key, or without any episode data, are left as-is.
+    /// </summary>
+    private static List<List<FileSignature>> MergeSameGroupBuckets(List<List<FileSignature>> buckets)
+    {
+        var result = new List<List<FileSignature>>();
+
+        foreach (var bucket in buckets)
+        {
+            var groupKey = bucket.Select(s => GroupKey(s.ReleaseInfo)).FirstOrDefault(k => k is not null);
+            if (groupKey is null)
+            {
+                result.Add(bucket);
+                continue;
+            }
+
+            var bucketEps = bucket.SelectMany(s => s.EpisodeIds).ToHashSet();
+
+            // Without episode data we cannot verify that the episodes don't overlap — keep separate.
+            if (bucketEps.Count > 0)
+            {
+                var target = result.FirstOrDefault(r =>
+                {
+                    var rKey = r.Select(s => GroupKey(s.ReleaseInfo)).FirstOrDefault(k => k is not null);
+                    if (rKey != groupKey) return false;
+                    var rEps = r.SelectMany(s => s.EpisodeIds).ToHashSet();
+                    return rEps.Count > 0 && !rEps.Overlaps(bucketEps);
+                });
+
+                if (target is not null)
+                {
+                    target.AddRange(bucket);
+                    continue;
+                }
+            }
+
+            result.Add(new List<FileSignature>(bucket));
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -274,41 +418,52 @@ public class VideoReleaseGroupingService(
     }
 
     /// <summary>
-    /// For each single-family spec with partial episode coverage, generates gap-fill candidates
-    /// by pairing the anchor with another spec's files restricted to uncovered episodes.
-    /// Anchors with fewer than 2 episodes are skipped (degenerate case).
+    /// For each version-strategy spec with partial episode coverage, generates a single
+    /// gap-fill candidate per distinct filler group that can cover the gap completely.
+    /// The filler always uses BestAvailable files, restricted to the gap episodes.
     /// </summary>
-    private static IEnumerable<CandidateSpec> GenerateGapFillCandidates(List<CandidateSpec> singleFamilySpecs)
+    private static IEnumerable<CandidateSpec> GenerateGapFillCandidates(
+        IReadOnlyList<CandidateSpec> specs, IReadOnlySet<(EpisodeType, int)> allEpisodes)
     {
-        var allEpisodes = singleFamilySpecs
-            .SelectMany(s => s.Files.SelectMany(f => f.EpisodeIds))
-            .ToHashSet();
+        if (allEpisodes.Count == 0) yield break;
 
-        for (var i = 0; i < singleFamilySpecs.Count; i++)
+        // Pre-index the best spec per group to use as a filler source.
+        // BestAvailable is preferred; fall back to any strategy when absent.
+        var bestSpecByGroup = specs
+            .GroupBy(s => s.Files.Select(f => GroupKey(f.ReleaseInfo)).FirstOrDefault(k => k is not null))
+            .Where(g => g.Key is not null)
+            .ToDictionary(
+                g => g.Key!,
+                g => g.FirstOrDefault(s => s.Strategy == ReleaseVersionStrategy.BestAvailable) ?? g.First());
+
+        foreach (var anchor in specs)
         {
-            var anchor = singleFamilySpecs[i];
             var anchorEps = anchor.Files.SelectMany(f => f.EpisodeIds).ToHashSet();
-
-            // Require at least 2 covered episodes to be a meaningful anchor
-            if (anchorEps.Count < 2) continue;
-            if (anchorEps.SetEquals(allEpisodes)) continue;
+            if (anchorEps.Count == 0 || anchorEps.IsSupersetOf(allEpisodes)) continue;
 
             var gapEps = allEpisodes.Except(anchorEps).ToHashSet();
 
-            for (var j = 0; j < singleFamilySpecs.Count; j++)
-            {
-                if (i == j) continue;
-                var filler = singleFamilySpecs[j];
+            var anchorGroupKey = anchor.Files
+                .Select(f => GroupKey(f.ReleaseInfo))
+                .FirstOrDefault(k => k is not null);
 
-                // Only use filler files that cover at least one gap episode
-                var fillerFiles = filler.Files
+            foreach (var (fillerGroupKey, fillerSpec) in bestSpecByGroup)
+            {
+                if (fillerGroupKey == anchorGroupKey) continue;
+
+                var fillerFiles = fillerSpec.Files
                     .Where(f => f.EpisodeIds.Any(ep => gapEps.Contains(ep)))
                     .ToList();
                 if (fillerFiles.Count == 0) continue;
 
+                // Only generate the candidate when this filler can cover every gap episode.
+                var fillerEps = fillerFiles.SelectMany(f => f.EpisodeIds).ToHashSet();
+                if (!fillerEps.IsSupersetOf(gapEps)) continue;
+
                 var fillerGroupShortName = fillerFiles
                     .Select(f => f.ReleaseInfo?.GroupShortName)
                     .FirstOrDefault(n => n is not null);
+
                 IReadOnlyList<string> secondaryGroups = fillerGroupShortName is not null
                     ? [fillerGroupShortName]
                     : [];
@@ -371,6 +526,49 @@ public class VideoReleaseGroupingService(
         return selectedSigs;
     }
 
+    private static VideoReleaseOverride BuildOverride(
+        List<FileSignature> signatures, IReadOnlySet<(EpisodeType, int)> allEpisodes)
+    {
+        var rep = signatures.FirstOrDefault(s => s.ReleaseInfo is not null) ?? signatures[0];
+        var sri = rep.ReleaseInfo;
+
+        var source = Majority(signatures.Select(s =>
+            s.ReleaseInfo?.Source is { } src and not ReleaseSource.Unknown ? (ReleaseSource?)src : null))
+            ?? ReleaseSource.Unknown;
+
+        var bucketEps = signatures.SelectMany(s => s.EpisodeIds).ToHashSet();
+
+        var files = signatures
+            .Select(s => new VideoReleaseOverrideFile
+            {
+                Place = s.Place,
+                Version = s.ReleaseInfo?.Version ?? 0,
+                IsChaptered = s.IsChaptered,
+                SubtitleStreamCount = s.SubtitleStreamCount,
+                EpisodeIds = s.EpisodeIds,
+            })
+            .ToList();
+
+        return new VideoReleaseOverride
+        {
+            GroupID = sri?.GroupID,
+            GroupSource = sri?.GroupSource,
+            GroupName = sri?.GroupName,
+            GroupShortName = sri?.GroupShortName,
+            Source = source,
+            Resolution = MajorityRef(signatures.Select(s => s.Resolution)),
+            VideoCodec = MajorityRef(signatures.Select(s => s.VideoCodec)),
+            BitDepth = Majority(signatures.Select(s => s.BitDepth > 0 ? (int?)s.BitDepth : null)) ?? 0,
+            AudioCodec = MajorityRef(signatures.Select(s => s.AudioCodec)),
+            AudioStreamCount = Majority(signatures.Select(s => s.AudioStreamCount > 0 ? (int?)s.AudioStreamCount : null)) ?? 0,
+            SubtitleStreamCount = Majority(signatures.Select(s => s.SubtitleStreamCount > 0 ? (int?)s.SubtitleStreamCount : null)) ?? 0,
+            AudioLanguages = MajorityLanguageSet(signatures.Select(s => s.AudioLanguages)),
+            SubtitleLanguages = MajorityLanguageSet(signatures.Select(s => s.SubtitleLanguages)),
+            HasPartialCoverage = allEpisodes.Count > 0 && !bucketEps.IsSupersetOf(allEpisodes),
+            Files = files,
+        };
+    }
+
     private static VideoReleaseCandidate BuildCandidate(CandidateSpec spec)
     {
         var signatures = spec.Files;
@@ -396,6 +594,14 @@ public class VideoReleaseGroupingService(
 
         // Any-true for corruption — one corrupt file contaminates the whole candidate
         var isCorrupted = signatures.Any(s => s.ReleaseInfo?.IsCorrupted == true);
+
+        // Homogeneous when all files with a known group share the same group key
+        var distinctGroupKeys = signatures
+            .Select(s => GroupKey(s.ReleaseInfo))
+            .Where(k => k is not null)
+            .Distinct()
+            .Count();
+        var isHomogeneous = distinctGroupKeys <= 1;
 
         var episodeCoverage = signatures.SelectMany(s => s.EpisodeIds).ToHashSet();
 
@@ -441,6 +647,7 @@ public class VideoReleaseGroupingService(
             Version = spec.Version,
             VersionStrategy = spec.Strategy,
             IsMixed = spec.IsMixed,
+            IsHomogeneous = isHomogeneous,
             SecondaryGroupNames = spec.SecondaryGroupShortNames,
             Places = signatures.Select(s => s.Place).ToList(),
             EpisodeCoverage = episodeCoverage,
@@ -551,9 +758,12 @@ public class VideoReleaseGroupingService(
     private sealed class FileSignature
     {
         public required VideoLocal_Place Place { get; init; }
+        public required string ParentDirectory { get; init; }
         public StoredReleaseInfo? ReleaseInfo { get; init; }
         public required IReadOnlyList<TitleLanguage> AudioLanguages { get; init; }
+        public required IReadOnlySet<TitleLanguage> AudioLanguageSet { get; init; }
         public required IReadOnlyList<TitleLanguage> SubtitleLanguages { get; init; }
+        public required IReadOnlySet<TitleLanguage> SubtitleLanguageSet { get; init; }
         public string? VideoCodec { get; init; }
         public int BitDepth { get; init; }
         public string? Resolution { get; init; }
