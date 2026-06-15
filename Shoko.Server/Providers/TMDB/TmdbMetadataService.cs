@@ -725,32 +725,26 @@ public class TmdbMetadataService : ITmdbMetadataService
         {
             _logger.LogWarning(ex, "TMDB: Failed to update one or more people during movie cast/crew update (Movie={MovieId})", tmdbMovie.Id);
         }
-        // Schedule retries for transiently-failed people first; their cast/crew rows are preserved.
-        // Then clean up rows for people that permanently failed — the excluded set ensures
-        // transient failures are skipped in CleanupOrphanedCastCrew.
+        // Schedule retries for transiently-failed people; their cast/crew rows are preserved.
         var transientlyFailedMovieSet = transientlyFailedMoviePeople.ToHashSet();
-        try
-        {
+        if (transientlyFailedMovieSet.Count > 0)
             await Task.WhenAll(transientlyFailedMovieSet.Select(personId =>
                 _scheduler.Enqueue<UpdateTmdbPersonJob>(j => { j.TmdbPersonID = personId; j.DownloadImages = downloadImages; j.TmdbMovieID = tmdbMovie.Id; })));
-        }
-        finally
+        // Remove cast/crew for people that permanently failed — transient failures are excluded.
+        CleanupOrphanedCastCrew(peopleToKeep, transientlyFailedMovieSet, missingPersonIds =>
         {
-            CleanupOrphanedCastCrew(peopleToKeep, transientlyFailedMovieSet, missingPersonIds =>
+            var orphanedCast = _tmdbMovieCast.GetByTmdbMovieID(tmdbMovie.Id)
+                .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
+            var orphanedCrew = _tmdbMovieCrew.GetByTmdbMovieID(tmdbMovie.Id)
+                .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
+            if (orphanedCast.Count > 0 || orphanedCrew.Count > 0)
             {
-                var orphanedCast = _tmdbMovieCast.GetByTmdbMovieID(tmdbMovie.Id)
-                    .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
-                var orphanedCrew = _tmdbMovieCrew.GetByTmdbMovieID(tmdbMovie.Id)
-                    .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
-                if (orphanedCast.Count > 0 || orphanedCrew.Count > 0)
-                {
-                    _logger.LogWarning("TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Movie={MovieId})",
-                        orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, tmdbMovie.Id);
-                    _tmdbMovieCast.Delete(orphanedCast);
-                    _tmdbMovieCrew.Delete(orphanedCrew);
-                }
-            });
-        }
+                _logger.LogWarning("TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Movie={MovieId})",
+                    orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, tmdbMovie.Id);
+                _tmdbMovieCast.Delete(orphanedCast);
+                _tmdbMovieCrew.Delete(orphanedCrew);
+            }
+        });
         try
         {
             await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToPurge, async personId =>
@@ -1561,32 +1555,26 @@ public class TmdbMetadataService : ITmdbMetadataService
         {
             _logger.LogWarning(ex, "TMDB: Failed to update one or more people during show cast/crew update (Show={ShowId})", show.Id);
         }
-        // Schedule retries for transiently-failed people first; their cast/crew rows are preserved.
-        // Then clean up rows for people that permanently failed — the excluded set ensures
-        // transient failures are skipped in CleanupOrphanedCastCrew.
+        // Schedule retries for transiently-failed people; their cast/crew rows are preserved.
         var transientlyFailedShowSet = transientlyFailedShowPeople.ToHashSet();
-        try
-        {
+        if (transientlyFailedShowSet.Count > 0)
             await Task.WhenAll(transientlyFailedShowSet.Select(personId =>
                 _scheduler.Enqueue<UpdateTmdbPersonJob>(j => { j.TmdbPersonID = personId; j.DownloadImages = downloadImages; j.TmdbShowID = show.Id; })));
-        }
-        finally
+        // Remove cast/crew for people that permanently failed — transient failures are excluded.
+        CleanupOrphanedCastCrew(peopleToCheck, transientlyFailedShowSet, missingPersonIds =>
         {
-            CleanupOrphanedCastCrew(peopleToCheck, transientlyFailedShowSet, missingPersonIds =>
+            var orphanedCast = _tmdbEpisodeCast.GetByTmdbShowID(show.Id)
+                .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
+            var orphanedCrew = _tmdbEpisodeCrew.GetByTmdbShowID(show.Id)
+                .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
+            if (orphanedCast.Count > 0 || orphanedCrew.Count > 0)
             {
-                var orphanedCast = _tmdbEpisodeCast.GetByTmdbShowID(show.Id)
-                    .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
-                var orphanedCrew = _tmdbEpisodeCrew.GetByTmdbShowID(show.Id)
-                    .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
-                if (orphanedCast.Count > 0 || orphanedCrew.Count > 0)
-                {
-                    _logger.LogWarning("TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Show={ShowId})",
-                        orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, show.Id);
-                    _tmdbEpisodeCast.Delete(orphanedCast);
-                    _tmdbEpisodeCrew.Delete(orphanedCrew);
-                }
-            });
-        }
+                _logger.LogWarning("TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Show={ShowId})",
+                    orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, show.Id);
+                _tmdbEpisodeCast.Delete(orphanedCast);
+                _tmdbEpisodeCrew.Delete(orphanedCrew);
+            }
+        });
         try
         {
             await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToPurge, async personId =>
