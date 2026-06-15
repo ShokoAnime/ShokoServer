@@ -702,29 +702,27 @@ public class TmdbMetadataService : ITmdbMetadataService
             .Except(peopleToKeep)
             .ToHashSet();
         var transientlyFailedMoviePeople = new ConcurrentBag<int>();
-        try
+        await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToKeep, async personId =>
         {
-            await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToKeep, async personId =>
+            try
             {
-                try
-                {
-                    var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentMovieId: tmdbMovie.Id);
-                    if (added)
-                        Interlocked.Increment(ref peopleAdded);
-                    else if (updated)
-                        Interlocked.Increment(ref peopleUpdated);
-                }
-                catch (Exception ex) when (IsTmdbTransient(ex))
-                {
-                    // Transient failure — preserve cast/crew rows and retry later.
-                    transientlyFailedMoviePeople.Add(personId);
-                }
-            }, onDropped: transientlyFailedMoviePeople.Add);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "TMDB: Failed to update one or more people during movie cast/crew update (Movie={MovieId})", tmdbMovie.Id);
-        }
+                var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentMovieId: tmdbMovie.Id);
+                if (added)
+                    Interlocked.Increment(ref peopleAdded);
+                else if (updated)
+                    Interlocked.Increment(ref peopleUpdated);
+            }
+            catch (Exception ex) when (IsTmdbTransient(ex))
+            {
+                // Transient failure — preserve cast/crew rows and retry later.
+                transientlyFailedMoviePeople.Add(personId);
+            }
+            catch (Exception ex)
+            {
+                // Non-transient failure — log and let CleanupOrphanedCastCrew handle it.
+                _logger.LogWarning(ex, "TMDB: Unexpected error updating person {PersonId} for movie {MovieId}", personId, tmdbMovie.Id);
+            }
+        }, onDropped: transientlyFailedMoviePeople.Add);
         // Schedule retries for transiently-failed people; their cast/crew rows are preserved.
         var transientlyFailedMovieSet = transientlyFailedMoviePeople.ToHashSet();
         if (transientlyFailedMovieSet.Count > 0)
@@ -1532,29 +1530,27 @@ public class TmdbMetadataService : ITmdbMetadataService
         var peopleToCheck = allPeopleToAddOrKeep;
         var peopleToPurge = allPeopleToPotentiallyRemove.Except(peopleToCheck).ToList();
         var transientlyFailedShowPeople = new ConcurrentBag<int>();
-        try
+        await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToCheck, async personId =>
         {
-            await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToCheck, async personId =>
+            try
             {
-                try
-                {
-                    var (personAdded, personUpdated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentShowId: show.Id);
-                    if (personAdded)
-                        Interlocked.Increment(ref added);
-                    else if (personUpdated)
-                        Interlocked.Increment(ref updated);
-                }
-                catch (Exception ex) when (IsTmdbTransient(ex))
-                {
-                    // Transient failure — preserve cast/crew rows and retry later.
-                    transientlyFailedShowPeople.Add(personId);
-                }
-            }, onDropped: transientlyFailedShowPeople.Add);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "TMDB: Failed to update one or more people during show cast/crew update (Show={ShowId})", show.Id);
-        }
+                var (personAdded, personUpdated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentShowId: show.Id);
+                if (personAdded)
+                    Interlocked.Increment(ref added);
+                else if (personUpdated)
+                    Interlocked.Increment(ref updated);
+            }
+            catch (Exception ex) when (IsTmdbTransient(ex))
+            {
+                // Transient failure — preserve cast/crew rows and retry later.
+                transientlyFailedShowPeople.Add(personId);
+            }
+            catch (Exception ex)
+            {
+                // Non-transient failure — log and let CleanupOrphanedCastCrew handle it.
+                _logger.LogWarning(ex, "TMDB: Unexpected error updating person {PersonId} for show {ShowId}", personId, show.Id);
+            }
+        }, onDropped: transientlyFailedShowPeople.Add);
         // Schedule retries for transiently-failed people; their cast/crew rows are preserved.
         var transientlyFailedShowSet = transientlyFailedShowPeople.ToHashSet();
         if (transientlyFailedShowSet.Count > 0)
@@ -2875,13 +2871,12 @@ public class TmdbMetadataService : ITmdbMetadataService
                         await cts.CancelAsync();
                 }
             },
-            new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = maxConcurrent, CancellationToken = cts.Token }
+            new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = maxConcurrent }
         );
         foreach (var item in enumerable)
             block.Post(item);
         block.Complete();
-        try { await block.Completion.ConfigureAwait(false); }
-        catch (OperationCanceledException) { /* circuit breaker fired — block aborted cleanly */ }
+        await block.Completion.ConfigureAwait(false);
         if (!exceptions.IsEmpty)
             throw new AggregateException(exceptions);
     }
