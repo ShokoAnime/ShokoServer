@@ -40,14 +40,9 @@ public class Role
     [Required]
     public string RoleDetails { get; set; } = string.Empty;
 
-    /// <summary>
-    /// True when the person data was missing locally.
-    /// Callers should filter these out before returning to API consumers.
-    /// </summary>
-    [JsonIgnore]
-    public bool IsStub { get; private set; }
-
     private const string CharacterRole = "Character";
+
+    private Role() { }
 
     public Role(AniDB_Anime_Character xref, ICharacter character, ICreator? staff = null)
     {
@@ -99,120 +94,29 @@ public class Role
         RoleDetails = xref.Role;
     }
 
-    public Role(TMDB_Movie_Cast cast)
+    public static Role? FromTmdb(TMDB_Cast cast)
     {
         var person = cast.GetTmdbPerson();
-        if (person is null)
+        if (person is null) return null;
+        return new()
         {
-            Staff = new();
-            IsStub = true;
-            return;
-        }
-        Character = new() { Name = cast.CharacterName };
-        Staff = CreateStaffFromTmdbPerson(person);
-        RoleName = CreatorRoleType.Actor;
-        RoleDetails = CharacterRole;
+            Character = new() { Name = cast.CharacterName },
+            Staff = CreateStaffFromTmdbPerson(person),
+            RoleName = CreatorRoleType.Actor,
+            RoleDetails = CharacterRole,
+        };
     }
 
-    public Role(TMDB_Show_Cast cast)
-    {
-        var person = cast.GetTmdbPerson();
-        if (person is null)
-        {
-            Staff = new();
-            IsStub = true;
-            return;
-        }
-        Character = new() { Name = cast.CharacterName };
-        Staff = CreateStaffFromTmdbPerson(person);
-        RoleName = CreatorRoleType.Actor;
-        RoleDetails = CharacterRole;
-    }
-
-    public Role(TMDB_Season_Cast cast)
-    {
-        var person = cast.GetTmdbPerson();
-        if (person is null)
-        {
-            Staff = new();
-            IsStub = true;
-            return;
-        }
-        Character = new() { Name = cast.CharacterName };
-        Staff = CreateStaffFromTmdbPerson(person);
-        RoleName = CreatorRoleType.Actor;
-        RoleDetails = CharacterRole;
-    }
-
-    public Role(TMDB_Episode_Cast cast)
-    {
-        var person = cast.GetTmdbPerson();
-        if (person is null)
-        {
-            Staff = new();
-            IsStub = true;
-            return;
-        }
-        Character = new() { Name = cast.CharacterName };
-        Staff = CreateStaffFromTmdbPerson(person);
-        RoleName = CreatorRoleType.Actor;
-        RoleDetails = CharacterRole;
-    }
-
-    public Role(TMDB_Movie_Crew crew)
+    public static Role? FromTmdb(TMDB_Crew crew)
     {
         var person = crew.GetTmdbPerson();
-        if (person is null)
+        if (person is null) return null;
+        return new()
         {
-            Staff = new();
-            IsStub = true;
-            return;
-        }
-        Staff = CreateStaffFromTmdbPerson(person);
-        RoleName = crew.ToCreatorRole();
-        RoleDetails = $"{crew.Department}, {crew.Job}";
-    }
-
-    public Role(TMDB_Show_Crew crew)
-    {
-        var person = crew.GetTmdbPerson();
-        if (person is null)
-        {
-            Staff = new();
-            IsStub = true;
-            return;
-        }
-        Staff = CreateStaffFromTmdbPerson(person);
-        RoleName = crew.ToCreatorRole();
-        RoleDetails = $"{crew.Department}, {crew.Job}";
-    }
-
-    public Role(TMDB_Season_Crew crew)
-    {
-        var person = crew.GetTmdbPerson();
-        if (person is null)
-        {
-            Staff = new();
-            IsStub = true;
-            return;
-        }
-        Staff = CreateStaffFromTmdbPerson(person);
-        RoleName = crew.ToCreatorRole();
-        RoleDetails = $"{crew.Department}, {crew.Job}";
-    }
-
-    public Role(TMDB_Episode_Crew crew)
-    {
-        var person = crew.GetTmdbPerson();
-        if (person is null)
-        {
-            Staff = new();
-            IsStub = true;
-            return;
-        }
-        Staff = CreateStaffFromTmdbPerson(person);
-        RoleName = crew.ToCreatorRole();
-        RoleDetails = $"{crew.Department}, {crew.Job}";
+            Staff = CreateStaffFromTmdbPerson(person),
+            RoleName = crew.ToCreatorRole(),
+            RoleDetails = $"{crew.Department}, {crew.Job}",
+        };
     }
 
     private static Person CreateStaffFromTmdbPerson(TMDB_Person person)

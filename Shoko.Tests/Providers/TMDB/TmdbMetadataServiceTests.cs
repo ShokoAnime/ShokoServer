@@ -14,7 +14,9 @@ public class TmdbMetadataServiceTests
 {
     #region Helpers
 
-    private static Change EpisodeChange(params (int Season, int Episode)[] episodes)
+    private readonly record struct EpisodePair(int Season, int Episode);
+
+    private static Change EpisodeChange(params EpisodePair[] episodes)
     {
         var items = new List<ChangeItemBase>();
         foreach (var (season, episode) in episodes)
@@ -50,7 +52,7 @@ public class TmdbMetadataServiceTests
     [Fact]
     public void EpisodeChange_ExtractsSeasonAndEpisodePair()
     {
-        var changes = new List<Change> { EpisodeChange((2, 5)) };
+        var changes = new List<Change> { EpisodeChange(new EpisodePair(2, 5)) };
 
         var (seasons, episodes) = TmdbMetadataService.ParseShowChanges(changes);
 
@@ -61,7 +63,7 @@ public class TmdbMetadataServiceTests
     [Fact]
     public void EpisodeChange_AddsSeasonNumberToSeasonSet()
     {
-        var changes = new List<Change> { EpisodeChange((3, 1)) };
+        var changes = new List<Change> { EpisodeChange(new EpisodePair(3, 1)) };
 
         var (seasons, _) = TmdbMetadataService.ParseShowChanges(changes);
 
@@ -97,7 +99,7 @@ public class TmdbMetadataServiceTests
     [Fact]
     public void MultipleEpisodesAcrossSeasons_AllCaptured()
     {
-        var changes = new List<Change> { EpisodeChange((1, 3), (2, 7), (2, 8)) };
+        var changes = new List<Change> { EpisodeChange(new EpisodePair(1, 3), new EpisodePair(2, 7), new EpisodePair(2, 8)) };
 
         var (seasons, episodes) = TmdbMetadataService.ParseShowChanges(changes);
 
@@ -110,7 +112,7 @@ public class TmdbMetadataServiceTests
     {
         var changes = new List<Change>
         {
-            EpisodeChange((1, 5)),
+            EpisodeChange(new EpisodePair(1, 5)),
             SeasonChange(2),
         };
 
@@ -126,8 +128,8 @@ public class TmdbMetadataServiceTests
     {
         var changes = new List<Change>
         {
-            EpisodeChange((1, 4)),
-            EpisodeChange((1, 4)),
+            EpisodeChange(new EpisodePair(1, 4)),
+            EpisodeChange(new EpisodePair(1, 4)),
         };
 
         var (_, episodes) = TmdbMetadataService.ParseShowChanges(changes);
