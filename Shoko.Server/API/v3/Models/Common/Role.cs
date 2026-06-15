@@ -100,7 +100,10 @@ public class Role
         if (person is null) return null;
         return new()
         {
-            Character = new() { Name = cast.CharacterName },
+            Character = new()
+            {
+                Name = cast.CharacterName,
+            },
             Staff = CreateStaffFromTmdbPerson(person),
             RoleName = CreatorRoleType.Actor,
             RoleDetails = CharacterRole,
