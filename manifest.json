@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.284",
+      "tag": "v6.0.0-dev.284",
+      "commit": "130ae76ea2341b099acaa6c298c905b28df280b9",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.284/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-15T01:05:21Z",
+      "releaseNotes": "\n`fix`: **Correct tmdb movie link on shoko episode in abstraction**.\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.54**.\n\n`fix`: **Also correct the underlying impl. for the tmdb movies field**.\n"
+    },
+    {
       "version": "6.0.0.283",
       "tag": "v6.0.0-dev.283",
       "commit": "56ebac9c53dd0493e0ffd889d0718dd27b592b35",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.255/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-07T18:21:06Z",
       "releaseNotes": "\n`fix` (`db`): **Make queue migrations run on SQL Server and MySQL**:\n\nEF Core filters migrations by exact DbContext type via [DbContext] attribute.\nAll migration Designer files are tagged with [DbContext(typeof(SqliteQueueDbContext))],\nso SqlServerQueueDbContext and MySqlQueueDbContext found zero applicable migrations —\nMigrateAsync silently no-oped, Jobs table was never created, and WorkerPoolManager\ncrashed on LoadAllAsync.\n\nSecondary issue: migration files hard-coded SQLite affinity type strings (TEXT, INTEGER).\nSQL Server rejects TEXT as a PRIMARY KEY type, so even if migrations were discovered they\nwould have failed at CREATE TABLE.\n\n- Add QueueMigrationsAssembly: extends MigrationsAssembly, overrides Migrations to\n  find SqliteQueueDbContext-tagged migrations regardless of the current provider context\n- Register via ReplaceService in SqlServerQueueDbContext and MySqlQueueDbContext\n- Remove explicit type strings from InitialCreate and AddJobChainContext migrations;\n  EF Core now infers provider-appropriate DDL (uniqueidentifier/nvarchar/bigint on SQL\n  Server, char(36)/varchar/bigint on MySQL, TEXT/INTEGER on SQLite unchanged)\n\n`refactor` (`db`): **Implement `IMigrationsAssembly` directly in `QueueMigrationsAssembly`**:\n\nReplaced the `MigrationsAssembly` subclass (EF Core internal API, `EF1001`) with a\ndirect `IMigrationsAssembly` implementation. This removes the dependency on an unstable\ninternal constructor and makes the migration-discovery re-routing fully public-API-only.\n\n- Dropped inheritance from `MigrationsAssembly` and the `EF1001` pragma\n- Removed the DI constructor; EF Core resolves the class via its default constructor\n- Added `ModelSnapshot` (discovers `SqliteQueueDbContextModelSnapshot` by `[DbContext]` attribute)\n- Added `FindMigrationId` (exact-match or suffix-match, mirrors EF Core convention)\n- Added `CreateMigration` (sets `ActiveProvider` as EF Core`s own implementation does)\n- Switched `LazyInitializer` to `Lazy<T>` for cleaner nullability on `ModelSnapshot`\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\n"
-    },
-    {
-      "version": "6.0.0.254",
-      "tag": "v6.0.0-dev.254",
-      "commit": "1ab713d74c25e9f0eb0bec7982d19b403773afd5",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.254/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-07T17:52:52Z",
-      "releaseNotes": "\n`misc`: **Update CLAUDE.md with changes to the new Queue and Import Process**.\n"
     }
   ]
 }
