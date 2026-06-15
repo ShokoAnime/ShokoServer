@@ -53,7 +53,7 @@ public interface IShokoEpisode : IEpisode, IWithCreationDate, IWithUpdateDate
     /// <summary>
     /// A direct link to all tmdb movies linked to the shoko episode.
     /// </summary>
-    IReadOnlyList<IMovie> TmdbMovies { get; }
+    IReadOnlyList<ITmdbMovie> TmdbMovies { get; }
 
     /// <summary>
     /// All Shoko episode ↔ TMDB episode cross references linked to the Shoko episode.
