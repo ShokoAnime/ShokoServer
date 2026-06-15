@@ -1472,7 +1472,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         ShowSyncState state)
     {
         var newlyAdded = tmdbEpisode.CreatedAt == tmdbEpisode.LastUpdatedAt;
-        if (!state.ChangedItems.HasValue || newlyAdded || !state.ChangedItems.Value.Episodes.Contains((season.SeasonNumber, (int)reducedEpisode.EpisodeNumber)))
+        if (!state.ChangedItems.HasValue || newlyAdded || state.ChangedItems.Value.Episodes.Contains((season.SeasonNumber, (int)reducedEpisode.EpisodeNumber)))
             return false;
 
         state.EpisodesToSkip.Add(tmdbEpisode.Id);
