@@ -33,6 +33,14 @@ public class ReleaseCandidate
     public required string Key { get; init; }
 
     /// <summary>
+    /// Human-readable display name built from the candidate's distinguishing
+    /// signals: group, resolution, and version strategy. Mixed (gap-fill)
+    /// candidates use a "PrimaryGroup + FillerGroup" format.
+    /// </summary>
+    [Required]
+    public required string Name { get; init; }
+
+    /// <summary>
     /// True when every file in this candidate has a <c>StoredReleaseInfo</c>
     /// record. When false, quality signals are derived from MediaInfo only and
     /// may be less accurate.
@@ -105,6 +113,8 @@ public class ReleaseCandidate
 
     public bool IsMixed { get; init; }
 
+    public bool IsHomogeneous { get; init; }
+
     public IReadOnlyList<string> SecondaryGroupNames { get; init; } = [];
 
     public bool IsChapteredMixed { get; init; }
@@ -141,7 +151,10 @@ public class ReleaseCandidate
         HashSet<int>? redundantPlaceIDs = null,
         ReleaseComparisonService.CompareDecision? decision = null,
         Dictionary<int, IReadOnlySet<(EpisodeType, int)>>? placeEpisodeCoverage = null,
-        Dictionary<int, (EpisodeType Type, int Number)>? episodeLookup = null)
+        Dictionary<int, (EpisodeType Type, int Number)>? episodeLookup = null,
+        bool includeResolution = true,
+        bool includeSource = true,
+        bool includeVersion = true)
     {
         var files = candidate.Places
             .Select(place =>
@@ -162,6 +175,8 @@ public class ReleaseCandidate
                     Episodes = episodes,
                 };
             })
+            .OrderBy(f => f.Episodes.Count > 0 ? (int)f.Episodes[0].Type : int.MaxValue)
+            .ThenBy(f => f.Episodes.Count > 0 ? f.Episodes[0].Number : int.MaxValue)
             .ToList();
 
         var episodes = candidate.EpisodeCoverage
@@ -184,10 +199,16 @@ public class ReleaseCandidate
             _ => null,
         };
 
+        var name = BuildName(candidate.GroupName, candidate.GroupShortName, source, candidate.Resolution,
+            candidate.AudioStreamCount, candidate.Version, candidate.VersionStrategy,
+            candidate.IsMixed, candidate.SecondaryGroupNames,
+            includeResolution, includeSource, includeVersion);
+
         return new ReleaseCandidate
         {
             Rank = rank,
             Key = candidate.Key,
+            Name = name,
             HasReleaseInfo = candidate.HasReleaseInfo,
             IsRedundant = isRedundant,
             DecidingSignal = decision?.DecidingSignal,
@@ -210,6 +231,7 @@ public class ReleaseCandidate
             Version = candidate.Version,
             VersionStrategy = candidate.VersionStrategy,
             IsMixed = candidate.IsMixed,
+            IsHomogeneous = candidate.IsHomogeneous,
             SecondaryGroupNames = candidate.SecondaryGroupNames,
             IsChapteredMixed = candidate.IsChapteredMixed,
             IsCensoredMixed = candidate.IsCensoredMixed,
@@ -219,6 +241,51 @@ public class ReleaseCandidate
             Files = files,
             Episodes = episodes,
         };
+    }
+
+    private static string BuildName(
+        string? groupName, string? groupShortName, string? source, string? resolution,
+        int audioStreamCount, int version, ReleaseVersionStrategy strategy,
+        bool isMixed, IReadOnlyList<string> secondaryGroupNames,
+        bool includeResolution, bool includeSource, bool includeVersion)
+    {
+        if (isMixed)
+        {
+            var primary = groupName ?? groupShortName ?? "Unknown";
+            var all = new[] { primary }.Concat(secondaryGroupNames.Where(s => !string.IsNullOrEmpty(s)));
+            return string.Join(" + ", all);
+        }
+
+        var parts = new List<string>();
+        var groupLabel = groupName ?? groupShortName;
+
+        if (groupLabel is not null)
+        {
+            parts.Add(groupLabel);
+            if (includeResolution && resolution is not null) parts.Add(resolution);
+            if (includeSource && source is not null) parts.Add(source);
+        }
+        else if (source is not null)
+        {
+            parts.Add(source);
+            if (includeResolution && resolution is not null) parts.Add(resolution);
+        }
+        else if (resolution is not null)
+        {
+            parts.Add(resolution);
+        }
+        else
+        {
+            parts.Add("Unknown");
+        }
+
+        if (includeVersion && strategy == ReleaseVersionStrategy.Consistent)
+            parts.Add($"v{version}");
+
+        if (audioStreamCount > 1)
+            parts.Add("Multi-Audio");
+
+        return string.Join(" ", parts);
     }
 
     private static EpisodeCoverage ResolveEpisode(

@@ -40,4 +40,13 @@ public class SeriesWithCandidates
     /// </summary>
     [Required]
     public required IReadOnlyList<ReleaseCandidate> Candidates { get; init; }
+
+    /// <summary>
+    /// All release groups for the series, including groups with partial episode
+    /// coverage that are excluded from <see cref="Candidates"/>. Used as the data
+    /// source for the release override (Mix &amp; Match) view. Only populated on
+    /// the single-series detail endpoint; empty on the list endpoint.
+    /// </summary>
+    [Required]
+    public IReadOnlyList<ReleaseOverride> Overrides { get; init; } = [];
 }

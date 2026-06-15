@@ -131,6 +131,14 @@ public class VideoReleaseCandidate
     public bool IsMixed { get; init; }
 
     /// <summary>
+    /// True when all files with a known release group belong to the same group.
+    /// Single-family candidates are always homogeneous. A gap-fill candidate is
+    /// homogeneous when the anchor and filler share the same release group (e.g.,
+    /// two ToonsHub buckets that differ only in subtitle language registration).
+    /// </summary>
+    public bool IsHomogeneous { get; init; }
+
+    /// <summary>
     /// Short names of secondary contributing groups for gap-fill candidates.
     /// Empty for single-family candidates.
     /// </summary>

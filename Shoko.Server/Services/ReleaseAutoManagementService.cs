@@ -79,6 +79,10 @@ public class ReleaseAutoManagementService(
         if (ranked.Count <= 1)
             return [];
 
+        // Places belonging to the primary must never be deleted, even when the same
+        // physical file appears as a filler in a secondary gap-fill candidate.
+        var primaryPlaceIds = ranked[0].Places.Select(p => p.ID).ToHashSet();
+
         var prefs = settingsProvider.GetSettings().ReleaseComparisonPreferences;
         var usePerFile = (preferPerFile ?? prefs.PerFileDeletionForAiringSeries) && IsSeriesAiring(series);
 
@@ -88,19 +92,31 @@ public class ReleaseAutoManagementService(
             if (primary.EpisodeCoverage.Count == 0)
                 return [];
 
+            var seenIds = new HashSet<int>();
             var result = new List<VideoLocal_Place>();
             foreach (var candidate in ranked.Skip(1))
             {
                 var redundantPlaces = comparer.GetRedundantPlaces(
                     primary, candidate, p => GetFileEpisodeCoverage(p, videoLookup));
-                result.AddRange(redundantPlaces);
+                foreach (var place in redundantPlaces)
+                {
+                    if (!primaryPlaceIds.Contains(place.ID) && seenIds.Add(place.ID))
+                        result.Add(place);
+                }
             }
             return result;
         }
         else
         {
             var redundant = comparer.GetRedundantCandidates(ranked);
-            return redundant.SelectMany(c => c.Places).ToList();
+            var seenIds = new HashSet<int>();
+            var result = new List<VideoLocal_Place>();
+            foreach (var place in redundant.SelectMany(c => c.Places))
+            {
+                if (!primaryPlaceIds.Contains(place.ID) && seenIds.Add(place.ID))
+                    result.Add(place);
+            }
+            return result;
         }
     }
 
@@ -118,6 +134,10 @@ public class ReleaseAutoManagementService(
         var ranked = comparer.Rank(candidates);
         var prefs = settingsProvider.GetSettings().ReleaseComparisonPreferences;
 
+        // Places belonging to the primary must never be deleted, even when the same
+        // physical file appears as a filler in a secondary gap-fill candidate.
+        var primaryPlaceIds = ranked[0].Places.Select(p => p.ID).ToHashSet();
+
         if (prefs.PerFileDeletionForAiringSeries && IsSeriesAiring(series))
         {
             // Per-file redundancy for airing series: delete individual files from secondary
@@ -129,7 +149,7 @@ public class ReleaseAutoManagementService(
 
             var videoLookup = videos.ToDictionary(v => v.VideoLocalID);
             foreach (var candidate in ranked.Skip(1))
-                await ProcessCandidatePerFileAsync(primary, candidate, videoLookup, series, prefs);
+                await ProcessCandidatePerFileAsync(primary, candidate, videoLookup, series, prefs, primaryPlaceIds);
         }
         else
         {
@@ -145,7 +165,7 @@ public class ReleaseAutoManagementService(
             }
 
             foreach (var candidate in redundant)
-                await DeleteCandidateAsync(candidate);
+                await DeleteCandidateAsync(candidate, primaryPlaceIds);
         }
     }
 
@@ -154,10 +174,13 @@ public class ReleaseAutoManagementService(
         VideoReleaseCandidate secondary,
         Dictionary<int, VideoLocal> videoLookup,
         AnimeSeries series,
-        ReleaseComparisonPreferences prefs)
+        ReleaseComparisonPreferences prefs,
+        HashSet<int> primaryPlaceIds)
     {
         var redundantPlaces = comparer.GetRedundantPlaces(
-            primary, secondary, p => GetFileEpisodeCoverage(p, videoLookup));
+            primary, secondary, p => GetFileEpisodeCoverage(p, videoLookup))
+            .Where(p => !primaryPlaceIds.Contains(p.ID))
+            .ToList();
         var keptCount = secondary.Places.Count - redundantPlaces.Count;
 
         if (redundantPlaces.Count == 0)
@@ -209,9 +232,9 @@ public class ReleaseAutoManagementService(
         if (sri is null)
             return new HashSet<(EpisodeType, int)>();
         return sri.CrossReferences
-            .Select(x => x is EmbeddedCrossReference ecr
-                ? (ecr.EpisodeType, ecr.EpisodeNumber)
-                : (EpisodeType.Episode, x.AnidbEpisodeID))
+            .Select(x => (
+                x is EmbeddedCrossReference ecr ? ecr.EpisodeType : EpisodeType.Episode,
+                x.AnidbEpisodeID))
             .Where(k => k.Item2 > 0)
             .ToHashSet();
     }
@@ -232,13 +255,14 @@ public class ReleaseAutoManagementService(
                 string.Join(", ", c.EpisodeCoverage.Select(e => $"{e.Type}:{e.Number}")));
     }
 
-    private async Task DeleteCandidateAsync(VideoReleaseCandidate candidate)
+    private async Task DeleteCandidateAsync(VideoReleaseCandidate candidate, HashSet<int> primaryPlaceIds)
     {
+        var placesToDelete = candidate.Places.Where(p => !primaryPlaceIds.Contains(p.ID)).ToList();
         logger.LogInformation(
             "Auto-management: deleting redundant release candidate {Key} ({FileCount} file(s))",
-            candidate.Key, candidate.Places.Count);
+            candidate.Key, placesToDelete.Count);
 
-        foreach (var place in candidate.Places)
+        foreach (var place in placesToDelete)
             await videoService.DeleteVideoFile(place, removeFile: false, removeFolders: false);
     }
 }

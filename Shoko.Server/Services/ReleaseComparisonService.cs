@@ -38,6 +38,7 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider)
                 ReleaseSignalType.SubtitleStreamCount => CompareHigherInt(a.SubtitleStreamCount, b.SubtitleStreamCount),
                 ReleaseSignalType.AudioCodec      => CompareCodecList(a.AudioCodec, b.AudioCodec, prefs.AudioCodecOrder),
                 ReleaseSignalType.Chapters        => CompareChapters(a, b),
+                ReleaseSignalType.GroupHomogeneity => CompareHomogeneity(a, b),
                 ReleaseSignalType.SubGroup        => CompareSubGroup(a, b, prefs),
                 ReleaseSignalType.Version         => CompareHigherInt(a.Version, b.Version),
                 ReleaseSignalType.IsCorrupted     => CompareCorrupted(a, b),
@@ -75,17 +76,13 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider)
 
         var primary = ranked[0];
 
-        // Compute the union of all episodes that the primary covers.
-        // An empty primary coverage means we have no cross-reference data and cannot
-        // safely determine redundancy — treat as no redundant candidates.
-        if (primary.EpisodeCoverage.Count == 0)
-            return [];
-
         var redundant = new List<VideoReleaseCandidate>();
         foreach (var candidate in ranked.Skip(1))
         {
-            // A candidate with no episode data cannot be evaluated — keep it.
-            if (candidate.EpisodeCoverage.Count == 0)
+            // If either side has no episode data we cannot verify coverage overlap —
+            // keep the candidate rather than risk deleting files that may cover
+            // episodes the primary does not.
+            if (primary.EpisodeCoverage.Count == 0 || candidate.EpisodeCoverage.Count == 0)
                 continue;
 
             // Redundant if the primary covers every episode this candidate covers.
@@ -156,6 +153,7 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider)
                 ReleaseSignalType.SubtitleStreamCount => CompareHigherInt(a.SubtitleStreamCount, b.SubtitleStreamCount),
                 ReleaseSignalType.AudioCodec      => CompareCodecList(a.AudioCodec, b.AudioCodec, prefs.AudioCodecOrder),
                 ReleaseSignalType.Chapters        => CompareChapters(a, b),
+                ReleaseSignalType.GroupHomogeneity => CompareHomogeneity(a, b),
                 ReleaseSignalType.SubGroup        => CompareSubGroup(a, b, prefs),
                 ReleaseSignalType.Version         => CompareHigherInt(a.Version, b.Version),
                 ReleaseSignalType.IsCorrupted     => CompareCorrupted(a, b),
@@ -186,6 +184,7 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider)
             ReleaseSignalType.SubtitleStreamCount => (a.SubtitleStreamCount > 0 ? a.SubtitleStreamCount.ToString() : null, b.SubtitleStreamCount > 0 ? b.SubtitleStreamCount.ToString() : null),
             ReleaseSignalType.AudioCodec      => (a.AudioCodec, b.AudioCodec),
             ReleaseSignalType.Chapters        => (a.IsChaptered?.ToString(), b.IsChaptered?.ToString()),
+            ReleaseSignalType.GroupHomogeneity => (a.IsHomogeneous.ToString(), b.IsHomogeneous.ToString()),
             ReleaseSignalType.SubGroup        => (a.GroupShortName, b.GroupShortName),
             ReleaseSignalType.Version         => (a.Version > 0 ? a.Version.ToString() : null, b.Version > 0 ? b.Version.ToString() : null),
             ReleaseSignalType.IsCorrupted     => ((!a.IsCorrupted).ToString(), (!b.IsCorrupted).ToString()),
@@ -267,6 +266,12 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider)
         if (a.IsChaptered is null || b.IsChaptered is null) return 0;
         // true (chaptered) is better
         return (b.IsChaptered == true ? 1 : 0).CompareTo(a.IsChaptered == true ? 1 : 0);
+    }
+
+    private static int CompareHomogeneity(VideoReleaseCandidate a, VideoReleaseCandidate b)
+    {
+        if (a.IsHomogeneous == b.IsHomogeneous) return 0;
+        return a.IsHomogeneous ? -1 : 1;  // homogeneous (single-group) wins
     }
 
     private static int CompareSubGroup(VideoReleaseCandidate a, VideoReleaseCandidate b,

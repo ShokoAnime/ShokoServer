@@ -179,12 +179,14 @@ public class VideoReleaseGroupingTests
     }
 
     /// <summary>
-    /// The same group releasing BD and DVD episodes of the same show produces
-    /// two candidates — source is part of the first-pass key.
+    /// The same group releasing BD and DVD episodes of the same show: the two
+    /// files cover disjoint episodes (ep 1 on BD, ep 13 on DVD). Because they
+    /// share the same group key and don't overlap on episodes, the same-group
+    /// merge combines them into a single non-mixed candidate covering all episodes.
     /// This matches the real Air library where eps 1-12 are BD but ep 13 is DVD.
     /// </summary>
     [Fact]
-    public void SameGroupDifferentSource_ProducesTwoCandidates()
+    public void SameGroupDifferentSource_ProducesMergedCandidate()
     {
         var bdMedia = MakeMedia(width: 1280, height: 720);
         var dvdMedia = MakeMedia(width: 720, height: 480, audioFormat: "AC3", audioCodecId: "A_AC3");
@@ -203,9 +205,10 @@ public class VideoReleaseGroupingTests
 
         var candidates = Group(resolved);
 
-        Assert.Equal(2, candidates.Count);
-        Assert.Contains(candidates, c => c.Source == ReleaseSource.BluRay);
-        Assert.Contains(candidates, c => c.Source == ReleaseSource.DVD);
+        // Same group, disjoint episodes → merged into one candidate (not a cross-group gap-fill).
+        Assert.Single(candidates);
+        Assert.False(candidates[0].IsMixed);
+        Assert.Equal(2, candidates[0].Places.Count);
     }
 
     /// <summary>
@@ -445,12 +448,13 @@ public class VideoReleaseGroupingTests
     }
 
     /// <summary>
-    /// An unrecognized file whose codec differs from the SRI-backed group still
-    /// forms its own candidate, even though it has no group info itself.
-    /// A known codec conflict is a hard separator.
+    /// An unrecognized file whose codec differs from the SRI-backed group is placed
+    /// in a separate bucket by FuzzyGroup. However, without SRI the HEVC file has no
+    /// episode data, so its candidate covers none of the known episodes and is filtered
+    /// out. Only the H264 group (which covers all known episodes) remains.
     /// </summary>
     [Fact]
-    public void UnrecognizedFileConflictingCodec_StaysSeparate()
+    public void UnrecognizedFileConflictingCodec_FilteredDueToNoCoverage()
     {
         var h264Media = MakeMedia(videoFormat: "AVC", videoCodecId: "V_MPEG4/ISO/AVC");
         var hevcMedia = MakeMedia(videoFormat: "HEVC", videoCodecId: "V_MPEGH/ISO/HEVC");
@@ -473,9 +477,11 @@ public class VideoReleaseGroupingTests
 
         var candidates = Group(resolved);
 
-        Assert.Equal(2, candidates.Count);
-        Assert.Contains(candidates, c => c.VideoCodec == "H264" && c.Places.Count == 2);
-        Assert.Contains(candidates, c => c.VideoCodec == "HEVC" && c.Places.Count == 1);
+        // HEVC file has no episode data → its candidate covers {} ⊄ {ep1, ep2} → filtered.
+        // H264 covers {ep1, ep2} = allEpisodes → shown.
+        Assert.Single(candidates);
+        Assert.Equal("H264", candidates[0].VideoCodec);
+        Assert.Equal(2, candidates[0].Places.Count);
     }
 
     /// <summary>
@@ -965,14 +971,13 @@ public class VideoReleaseGroupingTests
 
         var candidates = Group(resolved.ToArray());
 
-        // Expected: TH 1-8 (single), SP 1-12 (single), TH 1-8 + SP 9-12 (gap-fill)
-        Assert.Equal(3, candidates.Count);
+        // Expected: SP 1-12 (single, full coverage), TH 1-8 + SP 9-12 (gap-fill, full coverage).
+        // TH 1-8 alone is filtered — it doesn't cover eps 9-12.
+        Assert.Equal(2, candidates.Count);
 
-        var thAlone = candidates.Single(c => c.GroupShortName == "TH" && !c.IsMixed);
         var spAlone = candidates.Single(c => c.GroupShortName == "SubsPlease" && !c.IsMixed);
         var gapFill = candidates.Single(c => c.IsMixed);
 
-        Assert.Equal(8, thAlone.Places.Count);
         Assert.Equal(12, spAlone.Places.Count);
 
         // Gap-fill: TH 1-8 (8 files) + SP 9-12 (4 files) = 12 files
@@ -1011,15 +1016,16 @@ public class VideoReleaseGroupingTests
 
         var candidates = Group(resolved.ToArray());
 
-        // Three single-family + three gap-fill:
-        //   TH+SP9-12, TH+Unk9-12 (dedup collapses Unk+TH1-8 into this), Unk+SP1-8
-        // SP has no gaps so it generates no gap-fill as anchor.
-        Assert.Equal(6, candidates.Count);
+        // SP alone covers all 12 episodes — the only full single-family candidate.
+        // TH alone (1-8) and Unk alone (9-12) are filtered — partial coverage.
+        // Gap-fills that reach full coverage: TH+SP9-12, TH+Unk9-12, Unk+SP1-8.
+        // Unk+TH1-8 has the same file set as TH+Unk9-12 and is deduped away.
+        Assert.Equal(4, candidates.Count);
 
         var singleFamily = candidates.Where(c => !c.IsMixed).ToList();
         var gapFills     = candidates.Where(c => c.IsMixed).ToList();
 
-        Assert.Equal(3, singleFamily.Count);
+        Assert.Single(singleFamily);
         Assert.Equal(3, gapFills.Count);
 
         Assert.Contains(gapFills, c => c.GroupShortName == "TH" && c.SecondaryGroupNames.Contains("SP"));

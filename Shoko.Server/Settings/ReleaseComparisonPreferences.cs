@@ -17,6 +17,7 @@ public class ReleaseComparisonPreferences
         ReleaseSignalType.BitDepth,
         ReleaseSignalType.VideoCodec,
         ReleaseSignalType.Chapters,
+        ReleaseSignalType.GroupHomogeneity,
         ReleaseSignalType.AudioStreamCount,
         ReleaseSignalType.SubtitleStreamCount,
         ReleaseSignalType.AudioCodec,
@@ -87,6 +88,11 @@ public enum ReleaseSignalType
     Version,
     IsCorrupted,
     IsCensored,
+    /// <summary>
+    /// Prefers candidates where all files are from the same release group over
+    /// gap-fill candidates that mix files from different release groups.
+    /// </summary>
+    GroupHomogeneity,
 }
 
 /// <summary>

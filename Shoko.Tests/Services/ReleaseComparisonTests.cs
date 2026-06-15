@@ -43,6 +43,7 @@ public class ReleaseComparisonTests
         int version = 0,
         bool isCorrupted = false,
         bool? isCensored = null,
+        bool isHomogeneous = true,
         IReadOnlySet<(EpisodeType, int)>? coverage = null,
         IReadOnlyList<VideoLocal_Place>? places = null)
         => new()
@@ -60,6 +61,7 @@ public class ReleaseComparisonTests
             Version = version,
             IsCorrupted = isCorrupted,
             IsCensored = isCensored,
+            IsHomogeneous = isHomogeneous,
             EpisodeCoverage = coverage ?? new HashSet<(EpisodeType, int)>(),
             Places = places ?? [],
         };
@@ -172,6 +174,21 @@ public class ReleaseComparisonTests
         var notChaptered = MakeCandidate(isChaptered: false);
 
         Assert.True(svc.Compare(chaptered, notChaptered) < 0, "Chaptered beats non-chaptered");
+    }
+
+    [Fact]
+    public void HomogeneousBeatsHeterogeneousGapFill()
+    {
+        var prefs = new ReleaseComparisonPreferences
+        {
+            SignalPriority = [ReleaseSignalType.GroupHomogeneity],
+        };
+        var svc = MakeService(prefs);
+
+        var sameGroup = MakeCandidate(isHomogeneous: true);
+        var mixedGroup = MakeCandidate(isHomogeneous: false);
+
+        Assert.True(svc.Compare(sameGroup, mixedGroup) < 0, "Same-group gap-fill should beat cross-group gap-fill");
     }
 
     [Fact]

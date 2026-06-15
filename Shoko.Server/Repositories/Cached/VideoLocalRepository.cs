@@ -454,7 +454,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
     /// <returns></returns>
     public IReadOnlyList<VideoLocal> GetByAniDBAnimeID(int animeID)
         => RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
-            .Select(xref => GetByEd2k(xref.Hash))
+            .Select(xref => GetByEd2kAndSize(xref.Hash, xref.FileSize))
             .WhereNotNull()
             .ToList();
 
