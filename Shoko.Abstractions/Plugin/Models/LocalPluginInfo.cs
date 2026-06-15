@@ -184,7 +184,6 @@ public sealed class LocalPluginInfo
             })
             .DistinctBy(x => x.Name)
             .DistinctBy(x => x.Url)
-            .OrderBy(x => x.Name)
             .ToList();
     }
 }
