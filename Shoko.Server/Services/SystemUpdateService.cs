@@ -225,6 +225,8 @@ public partial class SystemUpdateService(
         {
             Version = webVer.VersionAsVersion,
             Channel = webVer.Channel,
+            MinimumServerVersion = webVer.MinimumServerVersion,
+            MaximumServerVersion = webVer.MaximumServerVersion,
             Description = null,
             ReleasedAt = webVer.Date ?? DateTime.MinValue,
             ReleaseTag = webVer.Tag,
@@ -290,6 +292,7 @@ public partial class SystemUpdateService(
         {
             Version = webuiVersion?.VersionAsVersion ?? new(1, 0, 0),
             MinimumServerVersion = webuiVersion?.MinimumServerVersion,
+            MaximumServerVersion = webuiVersion?.MaximumServerVersion,
             SourceRevision = webuiVersion?.Commit ?? "",
             Channel = channel,
             ReleasedAt = webuiVersion?.Date ?? DateTime.MinValue,
@@ -399,6 +402,11 @@ public partial class SystemUpdateService(
             webuiVersion.MinimumServerVersion = version.MinimumServerVersion;
             changed = true;
         }
+        if (version.MaximumServerVersion is null ? webuiVersion.MaximumServerVersion is not null : (webuiVersion.MaximumServerVersion is not { } || webuiVersion.MaximumServerVersion != version.MaximumServerVersion))
+        {
+            webuiVersion.MaximumServerVersion = version.MaximumServerVersion;
+            changed = true;
+        }
         if (webuiVersion.Tag is not { Length: > 0 } || webuiVersion.Tag != version.ReleaseTag)
         {
             webuiVersion.Tag = version.ReleaseTag;
@@ -491,6 +499,32 @@ public partial class SystemUpdateService(
                     MinimumServerVersionAsString = $"{value.Major}.{value.Minor}.{value.Build}";
                 else
                     MinimumServerVersionAsString = $"{value.Major}.{value.Minor}.{value.Build}-dev.{value.Revision}";
+            }
+        }
+
+        /// <summary>
+        /// Maximum Shoko Server version compatible with the Web UI.
+        /// </summary>
+        [JsonProperty("maximumServerVersion", NullValueHandling = NullValueHandling.Ignore)]
+        public string? MaximumServerVersionAsString { get; set; }
+
+        /// <summary>
+        /// Maximum Shoko Server version compatible with the Web UI.
+        /// </summary>
+        [JsonIgnore]
+        public Version? MaximumServerVersion
+        {
+            get => MaximumServerVersionAsString is { Length: > 0 }
+                ? new(MaximumServerVersionAsString.Replace("-dev", ""))
+                : null;
+            set
+            {
+                if (value is null)
+                    MaximumServerVersionAsString = null;
+                else if (value is not { Revision: > 0 })
+                    MaximumServerVersionAsString = $"{value.Major}.{value.Minor}.{value.Build}";
+                else
+                    MaximumServerVersionAsString = $"{value.Major}.{value.Minor}.{value.Build}-dev.{value.Revision}";
             }
         }
 
