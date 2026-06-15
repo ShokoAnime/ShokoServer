@@ -505,7 +505,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
 
     IReadOnlyList<ITmdbEpisode> IShokoEpisode.TmdbEpisodes => TmdbEpisodes;
 
-    IReadOnlyList<IMovie> IShokoEpisode.TmdbMovies => TmdbMovies;
+    IReadOnlyList<ITmdbMovie> IShokoEpisode.TmdbMovies => TmdbMovies;
 
     IReadOnlyList<ITmdbEpisodeCrossReference> IShokoEpisode.TmdbEpisodeCrossReferences => TmdbEpisodeCrossReferences;
 
