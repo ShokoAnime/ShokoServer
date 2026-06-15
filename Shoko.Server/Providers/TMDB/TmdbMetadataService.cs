@@ -1253,7 +1253,15 @@ public class TmdbMetadataService : ITmdbMetadataService
 
         var existingSeasons = _tmdbSeasons.GetByTmdbShowID(show.Id).ToDictionary(season => season.Id);
         var existingEpisodes = _tmdbEpisodes.GetByTmdbShowID(show.Id).ToDictionary(episode => episode.Id);
-        var state = new ShowSyncState(downloadCrewAndCast, quickRefresh, shouldFireEvents, preferredTitleLanguages, preferredOverviewLanguages, changedItems);
+        var state = new ShowSyncState
+        {
+            DownloadCrewAndCast = downloadCrewAndCast,
+            QuickRefresh = quickRefresh,
+            ShouldFireEvents = shouldFireEvents,
+            PreferredTitleLanguages = preferredTitleLanguages,
+            PreferredOverviewLanguages = preferredOverviewLanguages,
+            ChangedItems = changedItems,
+        };
         var episodePeople = BuildEpisodePeopleLookup(show, state);
 
         foreach (var reducedSeason in show.Seasons!)
@@ -3007,22 +3015,12 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private sealed class ShowSyncState
     {
-        public readonly bool DownloadCrewAndCast;
-        public readonly bool QuickRefresh;
-        public readonly bool ShouldFireEvents;
-        public readonly HashSet<TitleLanguage>? PreferredTitleLanguages;
-        public readonly HashSet<TitleLanguage>? PreferredOverviewLanguages;
-        public readonly TmdbShowChangedItems? ChangedItems;
-
-        public ShowSyncState(bool downloadCrewAndCast, bool quickRefresh, bool shouldFireEvents, HashSet<TitleLanguage>? preferredTitleLanguages, HashSet<TitleLanguage>? preferredOverviewLanguages, TmdbShowChangedItems? changedItems)
-        {
-            DownloadCrewAndCast = downloadCrewAndCast;
-            QuickRefresh = quickRefresh;
-            ShouldFireEvents = shouldFireEvents;
-            PreferredTitleLanguages = preferredTitleLanguages;
-            PreferredOverviewLanguages = preferredOverviewLanguages;
-            ChangedItems = changedItems;
-        }
+        public required bool DownloadCrewAndCast { get; init; }
+        public required bool QuickRefresh { get; init; }
+        public required bool ShouldFireEvents { get; init; }
+        public required HashSet<TitleLanguage>? PreferredTitleLanguages { get; init; }
+        public required HashSet<TitleLanguage>? PreferredOverviewLanguages { get; init; }
+        public required TmdbShowChangedItems? ChangedItems { get; init; }
 
         public int SeasonsAdded;
         public int EpisodesAdded;
