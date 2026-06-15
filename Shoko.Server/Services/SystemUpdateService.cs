@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -267,8 +268,9 @@ public partial class SystemUpdateService(
             channel = GetCurrentWebUIReleaseChannel();
 
         var versions = await GetWebComponentHistory(channel, force);
+        var nextVersionIndex = -1;
         var currentServerVersion = Assembly.GetExecutingAssembly().GetName().Version!;
-        foreach (var version in versions)
+        foreach (var (version, index) in versions.Select((version, index) => (version, index)))
         {
             // Check minimum server version compatibility.
             if (!allowIncompatible && version.MinimumServerVersion is var minServerVersion && _versionComparer.Compare(minServerVersion, currentServerVersion) > 0)
@@ -278,16 +280,55 @@ public partial class SystemUpdateService(
             if (!allowIncompatible && version.MaximumServerVersion is { } maxServerVersion && _versionComparer.Compare(maxServerVersion, currentServerVersion) < 0)
                 continue;
 
-            return version;
+            nextVersionIndex = index;
+            break;
         }
 
-        // Dev channel fallback to stable.
-        if (channel is ReleaseChannel.Dev)
-            return await GetLatestWebComponentVersion(ReleaseChannel.Stable, force, allowIncompatible);
+        var webuiVersion = LoadWebUIVersionInfo();
+        if (nextVersionIndex >= 0)
+        {
+            var currentVersionIndex = webuiVersion is null ? -1 : versions.FindIndex(v =>
+                v.Version == webuiVersion.VersionAsVersion &&
+                v.Channel == webuiVersion.Channel
+            );
+            if (currentVersionIndex is -1)
+                return versions[nextVersionIndex];
+
+            var releaseNotes = new StringBuilder();
+            if (nextVersionIndex == currentVersionIndex)
+            {
+                releaseNotes.Append(versions[currentVersionIndex].Description ?? "N/A");
+            }
+            else
+            {
+                var endIndex = Math.Min(currentVersionIndex, nextVersionIndex + 19) - 1;
+                for (var i = nextVersionIndex; i <= endIndex; i++)
+                    releaseNotes
+                        .AppendLine()
+                        .AppendLine($"**{versions[i].Version}**:")
+                        .AppendLine()
+                        .AppendLine(versions[i].Description ?? "N/A");
+                if (endIndex < currentVersionIndex - 1)
+                    releaseNotes
+                        .AppendLine()
+                        .AppendLine("…");
+            }
+
+            return new WebReleaseVersionInformation
+            {
+                Version = versions[nextVersionIndex].Version,
+                MinimumServerVersion = versions[nextVersionIndex].MinimumServerVersion,
+                MaximumServerVersion = versions[nextVersionIndex].MaximumServerVersion,
+                SourceRevision = versions[nextVersionIndex].SourceRevision,
+                Channel = channel,
+                ReleasedAt = versions[nextVersionIndex].ReleasedAt,
+                ReleaseTag = versions[nextVersionIndex].ReleaseTag,
+                Description = releaseNotes.ToString().Trim(),
+            };
+        }
 
         // If on a non-Dev channel and no compatible release was found, fall back
         // to the currently installed version.
-        var webuiVersion = LoadWebUIVersionInfo();
         return new WebReleaseVersionInformation
         {
             Version = webuiVersion?.VersionAsVersion ?? new(1, 0, 0),
@@ -596,10 +637,39 @@ public partial class SystemUpdateService(
         if (channel is ReleaseChannel.Auto)
             channel = GetCurrentServerReleaseChannel();
 
-        return (await FetchManifestAsync(ServerManifestUrl, "server-manifest.json", force))
-            .Where(tuple => tuple.Channel == channel)
-            .Select(tuple => EntryToReleaseInfo(tuple.Entry, tuple.Channel))
-            .FirstOrDefault();
+        var versions = await GetServerHistory(channel, force);
+        if (versions.Count is 0)
+            return null;
+
+        // The latest version is at index 0 (sorted descending).
+        var latestVersion = versions[0];
+        var currentServerVersion = Assembly.GetExecutingAssembly().GetName().Version!;
+        var currentVersionIndex = versions.FindIndex(v => v.Version == currentServerVersion);
+        if (currentVersionIndex is <= 0)
+            return latestVersion;
+
+        var endIndex = Math.Min(currentVersionIndex, 19) - 1;
+        var releaseNotes = new StringBuilder();
+        for (var i = 0; i <= endIndex; i++)
+            releaseNotes
+                .AppendLine()
+                .AppendLine($"**{versions[i].Version}**:")
+                .AppendLine()
+                .AppendLine(versions[i].Description ?? "N/A");
+        if (endIndex < currentVersionIndex - 1)
+            releaseNotes
+                .AppendLine()
+                .AppendLine("…");
+
+        return new()
+        {
+            Version = latestVersion.Version,
+            Description = releaseNotes.ToString().Trim(),
+            SourceRevision = latestVersion.SourceRevision,
+            ReleaseTag = latestVersion.ReleaseTag,
+            Channel = latestVersion.Channel,
+            ReleasedAt = latestVersion.ReleasedAt,
+        };
     }
 
     /// <inheritdoc />
