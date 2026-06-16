@@ -301,7 +301,7 @@ public partial class SystemUpdateService(
             }
             else
             {
-                var endIndex = Math.Min(currentVersionIndex, nextVersionIndex + 19) - 1;
+                var endIndex = Math.Min(currentVersionIndex - 1, nextVersionIndex + 19);
                 for (var i = nextVersionIndex; i <= endIndex; i++)
                     releaseNotes
                         .AppendLine()
@@ -648,7 +648,7 @@ public partial class SystemUpdateService(
         if (currentVersionIndex is <= 0)
             return latestVersion;
 
-        var endIndex = Math.Min(currentVersionIndex, 19) - 1;
+        var endIndex = Math.Min(currentVersionIndex - 1, 19);
         var releaseNotes = new StringBuilder();
         for (var i = 0; i <= endIndex; i++)
             releaseNotes
