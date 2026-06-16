@@ -106,9 +106,9 @@ public readonly partial struct PartialDateOnly : IComparable<PartialDateOnly>, I
         Year = year;
         Month = month;
         Day = day;
-        if (IsComplete)
+        if (month.HasValue && day.HasValue)
         {
-            var dateOnly = new DateOnly(Year, Month.Value, Day.Value);
+            var dateOnly = new DateOnly(Year, month.Value, day.Value);
             DayOfWeek = dateOnly.DayOfWeek;
             DayOfYear = dateOnly.DayOfYear;
             DayNumber = dateOnly.DayNumber;
