@@ -1029,7 +1029,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             config.AddTarget(signalrTarget);
             config.AddTarget(voidTarget);
 
-            RebuildLoggingRules(config, GetDefaultLogLevelRules(), voidTarget, fileTarget, consoleTarget, signalrTarget);
+            RebuildLoggingRules(null, config, GetDefaultLogLevelRules(), voidTarget, fileTarget, consoleTarget, signalrTarget);
             ApplyMessageRedactionFilter(config, fileTarget, consoleTarget, signalrTarget);
 #if DEBUG
             // Enable debug logging
@@ -1055,8 +1055,6 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
                 updated = true;
             if (ApplyConsoleFormat(logging, config))
                 updated = true;
-            if (SetTraceLogging(logging.TraceLog))
-                updated = true;
             if (updated)
                 LogManager.ReconfigExistingLoggers();
 
@@ -1071,7 +1069,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
 
     private static bool ApplyLoggingLevelRules(LoggingSettings logging, LoggingConfiguration config)
     {
-        if (_logLevelRules.SequenceEqual(logging.LogLevelRules))
+        if (_logLevelRules.SequenceEqual(logging.LogLevelRules) && _traceLogging == logging.TraceLog)
             return false;
         if (config.FindTargetByName<FileTarget>("file") is not { } fileTarget)
             return false;
@@ -1082,11 +1080,12 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         if (config.FindTargetByName<Target>("void") is not { } voidTarget)
             return false;
 
+        _traceLogging = logging.TraceLog;
         _logLevelRules = logging.LogLevelRules
             .Select(a => new LogLevelRuleConfiguration() { LoggerNamePattern = a.LoggerNamePattern, MaxLevel = a.MaxLevel, Final = a.Final })
             .ToList();
         var mergedRules = MergeLogLevelRules(logging.LogLevelRules);
-        RebuildLoggingRules(config, mergedRules, voidTarget, fileTarget, consoleTarget, signalrTarget);
+        RebuildLoggingRules(logging, config, mergedRules, voidTarget, fileTarget, consoleTarget, signalrTarget);
         ApplyMessageRedactionFilter(config, fileTarget, consoleTarget, signalrTarget);
         return true;
     }
@@ -1099,28 +1098,6 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
 
         _consoleFormat = logging.ConsoleFormat;
         consoleTarget.Layout = GetConsoleLayout(logging.ConsoleFormat);
-        return true;
-    }
-
-    private static bool SetTraceLogging(bool enabled)
-    {
-        var config = LogManager.Configuration;
-        if (config == null || _traceLogging == enabled)
-            return false;
-
-        _traceLogging = enabled;
-        var fileRule = config.LoggingRules.FirstOrDefault(a => a.Targets.Any(b => b.Name == "file"));
-        var signalrRule = config.LoggingRules.FirstOrDefault(a => a.Targets.Any(b => b.Name == "signalr"));
-        if (enabled)
-        {
-            fileRule?.EnableLoggingForLevels(NLogLevel.Trace, NLogLevel.Debug);
-            signalrRule?.EnableLoggingForLevels(NLogLevel.Trace, NLogLevel.Debug);
-        }
-        else
-        {
-            fileRule?.DisableLoggingForLevels(NLogLevel.Trace, NLogLevel.Debug);
-            signalrRule?.DisableLoggingForLevels(NLogLevel.Trace, NLogLevel.Debug);
-        }
         return true;
     }
 
@@ -1168,6 +1145,7 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
     }
 
     private static void RebuildLoggingRules(
+        LoggingSettings? logging,
         LoggingConfiguration config,
         IReadOnlyList<LogLevelRuleConfiguration> levelRules,
         Target voidTarget,
@@ -1188,9 +1166,10 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             config.LoggingRules.Add(rule);
         }
 
-        config.LoggingRules.Add(new LoggingRule("*", NLogLevel.Info, fileTarget));
+        var defaultLevel = logging?.TraceLog ?? false ? NLogLevel.Trace : NLogLevel.Info;
+        config.LoggingRules.Add(new LoggingRule("*", defaultLevel, fileTarget));
         config.LoggingRules.Add(new LoggingRule("*", NLogLevel.Trace, consoleTarget));
-        config.LoggingRules.Add(new LoggingRule("*", NLogLevel.Trace, signalrTarget));
+        config.LoggingRules.Add(new LoggingRule("*", defaultLevel, signalrTarget));
     }
 
     private static void ApplyMessageRedactionFilter(
