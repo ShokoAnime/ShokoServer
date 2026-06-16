@@ -28,5 +28,6 @@ public class TmdbRateLimitSettings
     [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
     [Display(Name = "Window Duration (ms)")]
     [Range(100, 10000)]
+    [EnvironmentVariable("TMDB_RATE_LIMIT_WINDOW_DURATION_MS")]
     public int WindowDurationMs { get; set; } = 1000;
 }
