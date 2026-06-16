@@ -1167,10 +1167,13 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         }
 
         var defaultLevel = logging?.TraceLog ?? false ? NLogLevel.Trace : NLogLevel.Info;
-        config.LoggingRules.Add(new LoggingRule("*", defaultLevel, fileTarget));
-        config.LoggingRules.Add(new LoggingRule("*", NLogLevel.Trace, consoleTarget));
-        config.LoggingRules.Add(new LoggingRule("*", defaultLevel, signalrTarget));
+        config.LoggingRules.Add(new LoggingRule("*", ConvertLogLevel(logging?.DefaultFileLogLevel) ?? defaultLevel, fileTarget));
+        config.LoggingRules.Add(new LoggingRule("*", ConvertLogLevel(logging?.DefaultConsoleLogLevel) ?? NLogLevel.Trace, consoleTarget));
+        config.LoggingRules.Add(new LoggingRule("*", ConvertLogLevel(logging?.DefaultSignalRLogLevel) ?? defaultLevel, signalrTarget));
     }
+
+    private static NLogLevel? ConvertLogLevel(ELogLevel? logLevel)
+        => logLevel.HasValue ? NLogLevel.FromString(logLevel.Value.ToNLogString()) : null;
 
     private static void ApplyMessageRedactionFilter(
         LoggingConfiguration config,

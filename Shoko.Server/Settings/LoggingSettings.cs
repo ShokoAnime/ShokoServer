@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Logging.Models;
@@ -47,6 +49,30 @@ public class LoggingSettings
     [Display(Name = "Enable Trace Logging")]
     [EnvironmentVariable("SHOKO_TRACE_LOG")]
     public bool TraceLog { get; set; }
+
+    /// <summary>
+    /// Default log level for file output.
+    /// </summary>
+    [Display(Name = "Default File Log Level")]
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    [EnvironmentVariable("LOGGING_FILE_LOG_LEVEL", AllowOverride = true)]
+    public LogLevel? DefaultFileLogLevel { get; set; }
+
+    /// <summary>
+    /// Default log level for SignalR output.
+    /// </summary>
+    [Display(Name = "Default SignalR Log Level")]
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    [EnvironmentVariable("LOGGING_SIGNALR_LOG_LEVEL", AllowOverride = true)]
+    public LogLevel? DefaultSignalRLogLevel { get; set; } = null;
+
+    /// <summary>
+    /// Default log level for console output.
+    /// </summary>
+    [Display(Name = "Default Console Log Level")]
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    [EnvironmentVariable("LOGGING_CONSOLE_LOG_LEVEL", AllowOverride = true)]
+    public LogLevel? DefaultConsoleLogLevel { get; set; } = null;
 
     /// <summary>
     /// Console layout format for runtime logs.
