@@ -55,8 +55,6 @@ public class TmdbMetadataService : ITmdbMetadataService
 {
     private static readonly int _maxConcurrency = Math.Min(6, Environment.ProcessorCount);
 
-    private const int TmdbChangesWindowDays = 14;
-
     private static TmdbMetadataService? _instance = null;
 
     private static readonly object _instanceLockObj = new();
@@ -2976,10 +2974,14 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// </summary>
     private async Task<bool> HasMovieChangedSinceAsync(int movieId, DateTime since)
     {
+        var changesWindowDays = _settingsProvider.GetSettings().TMDB.IncrementalChangesWindowDays;
+        if (changesWindowDays is 0)
+            return true;
+
         // The TMDB Changes API covers at most the last 14 days. Treat anything older as changed
         // so the caller always falls through to a full refresh when history is unavailable.
         var sinceUtc = since.ToUniversalTime();
-        if (sinceUtc < DateTime.UtcNow.AddDays(-TmdbChangesWindowDays))
+        if (sinceUtc < DateTime.UtcNow.AddDays(-changesWindowDays))
             return true;
         var changes = await UseClient(c => c.GetMovieChangesAsync(movieId, 0, sinceUtc, null), $"Get changes for movie {movieId}").ConfigureAwait(false);
         return changes is null || changes.Count > 0;
@@ -3031,10 +3033,14 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// </returns>
     private async Task<TmdbShowChangedItems?> GetShowChangedItemsAsync(int showId, DateTime since)
     {
+        var changesWindowDays = _settingsProvider.GetSettings().TMDB.IncrementalChangesWindowDays;
+        if (changesWindowDays is 0)
+            return null;
+
         // The TMDB Changes API covers at most the last 14 days. Return null to signal the caller
         // to perform a full refresh rather than a selective one.
         var sinceUtc = since.ToUniversalTime();
-        if (sinceUtc < DateTime.UtcNow.AddDays(-TmdbChangesWindowDays))
+        if (sinceUtc < DateTime.UtcNow.AddDays(-changesWindowDays))
             return null;
         var changes = await UseClient(c => c.GetTvShowChangesAsync(showId, 0, sinceUtc, null), $"Get changes for show {showId}").ConfigureAwait(false);
         if (changes is null)
