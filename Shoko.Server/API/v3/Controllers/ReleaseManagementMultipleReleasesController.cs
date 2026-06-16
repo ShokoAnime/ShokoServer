@@ -48,12 +48,14 @@ public class ReleaseManagementMultipleReleasesController(
     /// </summary>
     /// <param name="onlyFinishedSeries">When true, only include series that have finished airing.</param>
     /// <param name="onlyWithRedundant">When true, only include series that have at least one fully redundant candidate.</param>
+    /// <param name="includeVariations">When true, include files marked as variations in the candidate grouping. Defaults to false.</param>
     /// <param name="pageSize">Results per page (0 = unlimited).</param>
     /// <param name="page">Page number (1-based).</param>
     [HttpGet("Series")]
     public ActionResult<ListResult<SeriesWithCandidates>> GetSeriesWithMultipleReleases(
         [FromQuery] bool onlyFinishedSeries = false,
         [FromQuery] bool onlyWithRedundant = false,
+        [FromQuery] bool includeVariations = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
@@ -71,6 +73,7 @@ public class ReleaseManagementMultipleReleasesController(
             .Select(series =>
             {
                 var videoLookup = videoLocals.GetByAniDBAnimeID(series.AniDB_ID)
+                    .Where(v => includeVariations || !v.IsVariation)
                     .DistinctBy(v => (v.Hash, v.FileSize))
                     .ToDictionary(v => v.VideoLocalID);
                 if (videoLookup.Count <= 1) return null;
@@ -92,9 +95,11 @@ public class ReleaseManagementMultipleReleasesController(
     /// partial-coverage groups excluded from candidates) for Mix &amp; Match.
     /// </summary>
     /// <param name="seriesID">Shoko series ID.</param>
+    /// <param name="includeVariations">When true, include files marked as variations in the candidate grouping. Defaults to false.</param>
     [HttpGet("Series/{seriesID}")]
     public ActionResult<SeriesWithCandidates> GetSeriesCandidates(
-        [FromRoute, Range(1, int.MaxValue)] int seriesID)
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] bool includeVariations = false)
     {
         var series = animeSeries.GetByID(seriesID);
         if (series is null)
@@ -103,7 +108,7 @@ public class ReleaseManagementMultipleReleasesController(
         if (!User.AllowedSeries(series))
             return Forbid();
 
-        var result = BuildSeriesWithCandidates(series, includeTracks: true);
+        var result = BuildSeriesWithCandidates(series, includeVariations: includeVariations, includeTracks: true);
         if (result is null)
             return NotFound();
 
@@ -118,11 +123,13 @@ public class ReleaseManagementMultipleReleasesController(
     /// </summary>
     /// <param name="seriesID">Shoko series ID.</param>
     /// <param name="body">The set of PlaceIDs to keep.</param>
+    /// <param name="includeVariations">When true, include files marked as variations. Defaults to false.</param>
     [HttpPost("Series/{seriesID}/Override")]
     [Authorize("admin")]
     public ActionResult<ReleaseDeletionPreview> GetReleaseOverridePreview(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromBody] ReleaseOverrideBody body)
+        [FromBody] ReleaseOverrideBody body,
+        [FromQuery] bool includeVariations = false)
     {
         var series = animeSeries.GetByID(seriesID);
         if (series is null)
@@ -132,6 +139,7 @@ public class ReleaseManagementMultipleReleasesController(
             return Forbid();
 
         var videoLookup = videoLocals.GetByAniDBAnimeID(series.AniDB_ID)
+            .Where(v => includeVariations || !v.IsVariation)
             .DistinctBy(v => v.VideoLocalID)
             .ToDictionary(v => v.VideoLocalID);
         if (videoLookup.Count == 0)
@@ -205,9 +213,12 @@ public class ReleaseManagementMultipleReleasesController(
     /// When <c>includedSeriesIDs</c> is provided it takes priority over
     /// <c>excludedSeriesIDs</c>.
     /// </remarks>
+    /// <param name="body">Preview options and series filters.</param>
+    /// <param name="includeVariations">When true, include files marked as variations in the candidate grouping. Defaults to false.</param>
     [HttpPost("Preview")]
     public ActionResult<IReadOnlyList<ReleaseDeletionPreview>> GetDeletionPreview(
-        [FromBody] ReleaseDeletionPreviewBody? body)
+        [FromBody] ReleaseDeletionPreviewBody? body,
+        [FromQuery] bool includeVariations = false)
     {
         var overrides = body?.Overrides?.ToDictionary(o => o.SeriesID, o => o.PreferredCandidateKey)
                         ?? new Dictionary<int, string>();
@@ -227,7 +238,7 @@ public class ReleaseManagementMultipleReleasesController(
         }
 
         var result = seriesSource
-            .Select(series => ComputeSeriesPreview(series, overrides))
+            .Select(series => ComputeSeriesPreview(series, overrides, includeVariations))
             .Where(preview => preview is not null && preview.TotalFilesToDelete > 0)
             .Select(preview => preview!)
             .ToList();
@@ -260,9 +271,11 @@ public class ReleaseManagementMultipleReleasesController(
     private SeriesWithCandidates? BuildSeriesWithCandidates(
         Shoko.Server.Models.Shoko.AnimeSeries series,
         Dictionary<int, Shoko.Server.Models.Shoko.VideoLocal>? prefetchedVideoLookup = null,
+        bool includeVariations = false,
         bool includeTracks = false)
     {
         var videoLookup = prefetchedVideoLookup ?? videoLocals.GetByAniDBAnimeID(series.AniDB_ID)
+            .Where(v => includeVariations || !v.IsVariation)
             .DistinctBy(v => (v.Hash, v.FileSize))
             .ToDictionary(v => v.VideoLocalID);
 
@@ -351,9 +364,11 @@ public class ReleaseManagementMultipleReleasesController(
 
     private ReleaseDeletionPreview? ComputeSeriesPreview(
         Shoko.Server.Models.Shoko.AnimeSeries series,
-        Dictionary<int, string> overrides)
+        Dictionary<int, string> overrides,
+        bool includeVariations = false)
     {
         var videoLookup = videoLocals.GetByAniDBAnimeID(series.AniDB_ID)
+            .Where(v => includeVariations || !v.IsVariation)
             .DistinctBy(v => v.VideoLocalID)
             .ToDictionary(v => v.VideoLocalID);
         if (videoLookup.Count == 0)

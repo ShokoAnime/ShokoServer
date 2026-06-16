@@ -122,7 +122,9 @@ public class ReleaseAutoManagementService(
 
     private async Task CheckSeriesAsync(AnimeSeries series)
     {
-        var videos = videoLocals.GetByAniDBAnimeID(series.AniDB_ID);
+        var videos = videoLocals.GetByAniDBAnimeID(series.AniDB_ID)
+            .Where(v => !v.IsVariation)
+            .ToList();
         var places = videos.SelectMany(v => videoLocalPlaces.GetByVideoLocal(v.VideoLocalID)).ToList();
         if (places.Count == 0)
             return;
