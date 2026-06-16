@@ -300,7 +300,8 @@ public partial class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         return movie.Cast
-            .Select(cast => new Role(cast))
+            .Select(Role.FromTmdb)
+            .WhereNotNull()
             .ToList();
     }
 
@@ -316,7 +317,8 @@ public partial class TmdbController : BaseController
             return NotFound(MovieNotFound);
 
         return movie.Crew
-            .Select(cast => new Role(cast))
+            .Select(Role.FromTmdb)
+            .WhereNotNull()
             .ToList();
     }
 
@@ -1268,7 +1270,8 @@ public partial class TmdbController : BaseController
                     return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
                 return alternateOrdering.Cast
-                    .Select(cast => new Role(cast))
+                    .Select(Role.FromTmdb)
+                    .WhereNotNull()
                     .ToList();
             }
 
@@ -1277,7 +1280,8 @@ public partial class TmdbController : BaseController
         }
 
         return show.Cast
-            .Select(cast => new Role(cast))
+            .Select(Role.FromTmdb)
+            .WhereNotNull()
             .ToList();
     }
 
@@ -1308,7 +1312,8 @@ public partial class TmdbController : BaseController
                     return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
                 return alternateOrdering.Crew
-                    .Select(cast => new Role(cast))
+                    .Select(Role.FromTmdb)
+                    .WhereNotNull()
                     .ToList();
             }
 
@@ -1317,7 +1322,8 @@ public partial class TmdbController : BaseController
         }
 
         return show.Crew
-            .Select(cast => new Role(cast))
+            .Select(Role.FromTmdb)
+            .WhereNotNull()
             .ToList();
     }
 
@@ -2070,7 +2076,8 @@ public partial class TmdbController : BaseController
                 return NotFound(SeasonNotFound);
 
             return altOrderSeason.Cast
-                .Select(cast => new Role(cast))
+                .Select(Role.FromTmdb)
+                .WhereNotNull()
                 .ToList();
         }
 
@@ -2082,7 +2089,8 @@ public partial class TmdbController : BaseController
             return NotFound(SeasonNotFound);
 
         return season.Cast
-            .Select(cast => new Role(cast))
+            .Select(Role.FromTmdb)
+            .WhereNotNull()
             .ToList();
     }
 
@@ -2100,7 +2108,8 @@ public partial class TmdbController : BaseController
                 return NotFound(SeasonNotFound);
 
             return altOrderSeason.Crew
-                .Select(crew => new Role(crew))
+                .Select(Role.FromTmdb)
+                .WhereNotNull()
                 .ToList();
         }
 
@@ -2112,7 +2121,8 @@ public partial class TmdbController : BaseController
             return NotFound(SeasonNotFound);
 
         return season.Crew
-            .Select(crew => new Role(crew))
+            .Select(Role.FromTmdb)
+            .WhereNotNull()
             .ToList();
     }
 
@@ -2607,7 +2617,8 @@ public partial class TmdbController : BaseController
             return NotFound(EpisodeNotFound);
 
         return episode.Cast
-            .Select(cast => new Role(cast))
+            .Select(Role.FromTmdb)
+            .WhereNotNull()
             .ToList();
     }
 
@@ -2623,7 +2634,8 @@ public partial class TmdbController : BaseController
             return NotFound(EpisodeNotFound);
 
         return episode.Crew
-            .Select(cast => new Role(cast))
+            .Select(Role.FromTmdb)
+            .WhereNotNull()
             .ToList();
     }
 

@@ -11,13 +11,14 @@ public class TmdbRateLimitSettings
 {
     /// <summary>
     /// Maximum number of requests allowed within the rate limit window.
-    /// TMDB enforces approximately 40 requests per second; this defaults to 10 to avoid overwhelming
+    /// TMDB enforces a maximum of 40 requests per second; this defaults to 10 to avoid overwhelming
     /// end-user hardware with API requests and the data processing that follows each one.
     ///</summary>
     [Badge("Debug", Theme = DisplayColorTheme.Warning)]
     [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
     [Display(Name = "Max Requests Per Window")]
     [Range(1, 40)]
+    [EnvironmentVariable("TMDB_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW")]
     public int MaxRequestsPerWindow { get; set; } = 10;
 
     /// <summary>
@@ -27,5 +28,6 @@ public class TmdbRateLimitSettings
     [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
     [Display(Name = "Window Duration (ms)")]
     [Range(100, 10000)]
+    [EnvironmentVariable("TMDB_RATE_LIMIT_WINDOW_DURATION_MS")]
     public int WindowDurationMs { get; set; } = 1000;
 }

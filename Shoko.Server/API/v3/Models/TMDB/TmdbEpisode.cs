@@ -210,11 +210,13 @@ public class TmdbEpisode
                 .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = episode.Cast
-                .Select(cast => new Role(cast))
+                .Select(Role.FromTmdb)
+                .OfType<Role>()
                 .ToList();
         if (include.HasFlag(IncludeDetails.Crew))
             Crew = episode.Crew
-                .Select(crew => new Role(crew))
+                .Select(Role.FromTmdb)
+                .OfType<Role>()
                 .ToList();
         if (include.HasFlag(IncludeDetails.Ordering))
         {

@@ -230,11 +230,13 @@ public class TmdbMovie
                 .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = movie.Cast
-                .Select(cast => new Role(cast))
+                .Select(Role.FromTmdb)
+                .OfType<Role>()
                 .ToList();
         if (include.HasFlag(IncludeDetails.Crew))
             Crew = movie.Crew
-                .Select(crew => new Role(crew))
+                .Select(Role.FromTmdb)
+                .OfType<Role>()
                 .ToList();
         if (include.HasFlag(IncludeDetails.YearlySeasons))
             YearlySeasons = movie.YearlySeasons.ToV3Dto();

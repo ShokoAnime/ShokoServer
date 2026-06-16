@@ -151,11 +151,13 @@ public class TmdbSeason
                 .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = season.Cast
-                .Select(cast => new Role(cast))
+                .Select(Role.FromTmdb)
+                .OfType<Role>()
                 .ToList();
         if (include.HasFlag(IncludeDetails.Crew))
             Crew = season.Crew
-                .Select(crew => new Role(crew))
+                .Select(Role.FromTmdb)
+                .OfType<Role>()
                 .ToList();
         if (include.HasFlag(IncludeDetails.YearlySeasons))
             YearlySeasons = season.YearlySeasons.ToV3Dto();

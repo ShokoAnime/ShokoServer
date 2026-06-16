@@ -76,7 +76,7 @@ public static class TmdbExtensions
         if (languages is null)
             return texts;
 
-        var countyCodes = languages
+        var countryCodes = languages
             .Select(c => c.GetLanguageAndCountryCode())
             .Where(c => c.countryCode is not null)
             .Select(c => c.countryCode)
@@ -86,7 +86,7 @@ public static class TmdbExtensions
             .Where(c => c.countryCode is null)
             .Select(c => c.languageCode)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return texts.Where(cr => languagesCodes.Contains(cr.LanguageCode) || countyCodes.Contains(cr.CountryCode));
+        return texts.Where(cr => languagesCodes.Contains(cr.LanguageCode) || countryCodes.Contains(cr.CountryCode));
     }
 
     public static IEnumerable<TMDB_ContentRating> WhereInLanguages(this IEnumerable<TMDB_ContentRating> contentRatings, IReadOnlySet<TitleLanguage>? languages)
@@ -94,7 +94,7 @@ public static class TmdbExtensions
         if (languages is null)
             return contentRatings;
 
-        var countyCodes = languages
+        var countryCodes = languages
             .Select(c => c.GetLanguageAndCountryCode())
             .Where(c => c.countryCode is not null)
             .Select(c => c.countryCode)
@@ -104,6 +104,6 @@ public static class TmdbExtensions
             .Where(c => c.countryCode is null)
             .Select(c => c.languageCode)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return contentRatings.Where(cr => languagesCodes.Contains(cr.LanguageCode) || countyCodes.Contains(cr.CountryCode));
+        return contentRatings.Where(cr => languagesCodes.Contains(cr.LanguageCode) || countryCodes.Contains(cr.CountryCode));
     }
 }

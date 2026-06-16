@@ -239,6 +239,20 @@ public class TMDBSettings
     public string? ImageCdnUrl { get; set; }
 
     /// <summary>
+    /// The number of days to check for incremental changes. Set to <c>0</c> to
+    /// disable incremental changes.
+    /// </summary>
+    /// <remarks>
+    /// The TMDB API covers at most the last 14 days. So we can only use
+    /// incremental changes detection for up-to the last 14 days.
+    /// </remarks>
+    [Visibility(Size = DisplayElementSize.Large)]
+    [EnvironmentVariable("TMDB_CHANGES_WINDOW_DAYS")]
+    [Range(0, 14)]
+    [DefaultValue(14)]
+    public int IncrementalChangesWindowDays { get; set; } = 14;
+
+    /// <summary>
     /// Rate limit settings for the TMDB API.
     /// </summary>
     public TmdbRateLimitSettings RateLimit { get; set; } = new();

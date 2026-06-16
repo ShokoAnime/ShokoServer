@@ -23,16 +23,7 @@ namespace Shoko.Server.API.v3.Helpers;
 
 public static class APIv3_Extensions
 {
-    public static CreatorRoleType ToCreatorRole(this TMDB_Movie_Crew crew)
-        => ToCreatorRole(crew.Department, crew.Job);
-
-    public static CreatorRoleType ToCreatorRole(this TMDB_Show_Crew crew)
-        => ToCreatorRole(crew.Department, crew.Job);
-
-    public static CreatorRoleType ToCreatorRole(this TMDB_Season_Crew crew)
-        => ToCreatorRole(crew.Department, crew.Job);
-
-    public static CreatorRoleType ToCreatorRole(this TMDB_Episode_Crew crew)
+    public static CreatorRoleType ToCreatorRole(this TMDB_Crew crew)
         => ToCreatorRole(crew.Department, crew.Job);
 
     private static CreatorRoleType ToCreatorRole(string department, string job)

@@ -254,11 +254,13 @@ public class TmdbShow
                 .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = (alternateOrdering is null ? show.Cast : alternateOrdering.Cast)
-                .Select(cast => new Role(cast))
+                .Select(Role.FromTmdb)
+                .OfType<Role>()
                 .ToList();
         if (include.HasFlag(IncludeDetails.Crew))
             Crew = (alternateOrdering is null ? show.Crew : alternateOrdering.Crew)
-                .Select(cast => new Role(cast))
+                .Select(Role.FromTmdb)
+                .OfType<Role>()
                 .ToList();
         if (include.HasFlag(IncludeDetails.YearlySeasons))
             YearlySeasons = show.YearlySeasons.ToV3Dto();
