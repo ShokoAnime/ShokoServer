@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using Newtonsoft.Json;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 
@@ -19,7 +18,7 @@ public class TmdbRateLimitSettings
     [Visibility(Size = DisplayElementSize.Small, Advanced = true)]
     [Display(Name = "Max Requests Per Window")]
     [Range(1, 40)]
-    [JsonProperty("TMDB_API_Limits")]
+    [EnvironmentVariable("TMDB_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW")]
     public int MaxRequestsPerWindow { get; set; } = 10;
 
     /// <summary>
