@@ -59,7 +59,7 @@ When a commit qualifies for more than one type, pick the most structural one. Do
 
 ### Scopes
 
-Scopes are optional and free-form, but reuse the established ones where they apply (non-exhaustive): `abstractions`, `api`, `db`, `plugin`, `images`, `relocation`, `trakt`, `search`, `scrobble`, `core`, `deps`, `workflows`, `scripts`, `docker`.
+Scopes are optional and free-form, but reuse the established ones where they apply (non-exhaustive): `abstractions`, `api`, `db`, `plugin`, `images`, `relocation`, `anidb`, `tmdb`, `search`, `scrobble`, `core`, `deps`, `workflows`, `scripts`, `docker`.
 
 ### Example
 
