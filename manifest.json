@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.289",
+      "tag": "v6.0.0-dev.289",
+      "commit": "f87ca6bf7a93a3f0a8084cace631188189588540",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.289/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-16T12:06:47Z",
+      "releaseNotes": "\n`fix`: **Properly control log level of signalr target**.\n\n`feat`: **Add per target log level configuration**:\n\nSupplementing the existing trace log option.\n"
+    },
+    {
       "version": "6.0.0.288",
       "tag": "v6.0.0-dev.288",
       "commit": "9b7b2de93b0c411937858a85e91fdf09e37a7d5c",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.260/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-08T13:02:56Z",
       "releaseNotes": "\n`fix`: **Fix Partial Dates in MySQL and SQL Server migrations**.\n"
-    },
-    {
-      "version": "6.0.0.259",
-      "tag": "v6.0.0-dev.259",
-      "commit": "348f7eea3cedff783a3475a00dada3f942e1fb2a",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.259/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-08T06:22:49Z",
-      "releaseNotes": "\n`fix`: **Skip max server version check when not set in webui update**.\n"
     }
   ]
 }
