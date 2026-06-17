@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.290",
+      "tag": "v6.0.0-dev.290",
+      "commit": "6f60e2e91ad5447204c86080bc1f18c95da1b171",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.290/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-17T16:56:55Z",
+      "releaseNotes": "\n`misc`: **Make the FixEmptyXrefPrimaryImageIDs Use Direct SQL**.\n"
+    },
+    {
       "version": "6.0.0.289",
       "tag": "v6.0.0-dev.289",
       "commit": "f87ca6bf7a93a3f0a8084cace631188189588540",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.261/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-08T13:13:04Z",
       "releaseNotes": "\n`fix`: **Fix a race condition in Queue persistence buffer handling**.\n"
-    },
-    {
-      "version": "6.0.0.260",
-      "tag": "v6.0.0-dev.260",
-      "commit": "2b1c0361755f875130744526b81106cbdfa85330",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.260/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-08T13:02:56Z",
-      "releaseNotes": "\n`fix`: **Fix Partial Dates in MySQL and SQL Server migrations**.\n"
     }
   ]
 }
