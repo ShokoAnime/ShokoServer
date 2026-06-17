@@ -10,6 +10,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
 
 #pragma warning disable CA1822
@@ -21,7 +22,8 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class ReleaseManagementDuplicateFilesController(ISettingsProvider settingsProvider,
     AnimeEpisodeRepository _animeEpisodes,
-    AnimeSeriesRepository _animeSeries
+    AnimeSeriesRepository _animeSeries,
+    AniDB_Anime_TitleRepository _anidbTitles
 ) : BaseController(settingsProvider)
 {
     /// <summary>
@@ -86,6 +88,7 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
     /// </summary>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <param name="onlyFinishedSeries">Only show finished series.</param>
+    /// <param name="search">Filter by series title. Matched case-insensitively against all main and official titles across all languages.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
     /// <returns></returns>
@@ -93,12 +96,18 @@ public class ReleaseManagementDuplicateFilesController(ISettingsProvider setting
     public ActionResult<ListResult<Series.WithEpisodeCount>> GetSeriesWithDuplicateFiles(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
         [FromQuery] bool onlyFinishedSeries = false,
+        [FromQuery] string search = null,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         var enumerable = _animeSeries.GetWithDuplicateFiles();
         if (onlyFinishedSeries)
             enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalizedSearch = AniDB_Anime_TitleRepository.NormalizeForSearch(search);
+            enumerable = enumerable.Where(s => _anidbTitles.AnimeMatchesSearch(s.AniDB_ID, normalizedSearch));
+        }
 
         return enumerable
             .OrderBy(series => series.Title)

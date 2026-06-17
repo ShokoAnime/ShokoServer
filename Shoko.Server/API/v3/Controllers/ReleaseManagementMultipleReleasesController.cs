@@ -33,6 +33,7 @@ public class ReleaseManagementMultipleReleasesController(
     VideoLocalRepository videoLocals,
     VideoLocal_PlaceRepository videoLocalPlaces,
     AniDB_EpisodeRepository anidbEpisodes,
+    AniDB_Anime_TitleRepository anidbTitles,
     VideoReleaseGroupingService grouper,
     ReleaseComparisonService comparer,
     ReleaseAutoManagementService autoManagement,
@@ -49,6 +50,7 @@ public class ReleaseManagementMultipleReleasesController(
     /// <param name="onlyFinishedSeries">When true, only include series that have finished airing.</param>
     /// <param name="onlyWithRedundant">When true, only include series that have at least one fully redundant candidate.</param>
     /// <param name="includeVariations">When true, include files marked as variations in the candidate grouping. Defaults to false.</param>
+    /// <param name="search">Filter by series title. Matched case-insensitively against all main and official titles across all languages.</param>
     /// <param name="pageSize">Results per page (0 = unlimited).</param>
     /// <param name="page">Page number (1-based).</param>
     [HttpGet("Series")]
@@ -56,12 +58,16 @@ public class ReleaseManagementMultipleReleasesController(
         [FromQuery] bool onlyFinishedSeries = false,
         [FromQuery] bool onlyWithRedundant = false,
         [FromQuery] bool includeVariations = false,
+        [FromQuery] string? search = null,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
+        var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : AniDB_Anime_TitleRepository.NormalizeForSearch(search);
+
         var allSeries = animeSeries.GetAll()
             .Where(s => User.AllowedSeries(s))
             .Where(s => !onlyFinishedSeries || (s.AniDB_Anime?.GetFinishedAiring() ?? false))
+            .Where(s => normalizedSearch == null || anidbTitles.AnimeMatchesSearch(s.AniDB_ID, normalizedSearch))
             .OrderBy(s => s.Title);
 
         // Pre-filter using only cached SRI group keys before running the full
@@ -241,6 +247,7 @@ public class ReleaseManagementMultipleReleasesController(
             .Select(series => ComputeSeriesPreview(series, overrides, includeVariations))
             .Where(preview => preview is not null && preview.TotalFilesToDelete > 0)
             .Select(preview => preview!)
+            .OrderBy(preview => preview.SeriesTitle)
             .ToList();
 
         return result;
