@@ -990,7 +990,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(167,  5, "EXEC sp_rename 'AniDB_Anime.AirDate_new', 'AirDate', 'COLUMN'"),
         new(167,  6, "EXEC sp_rename 'AniDB_Anime.EndDate_new', 'EndDate', 'COLUMN'"),
         new(168,  1, "ALTER TABLE AuthTokens ADD ExpiresAt datetime2 NULL"),
-        new(169,  1, DatabaseFixes.FixEmptyXrefPrimaryImageIDs),
+        new(169,  1, "FixEmptyXrefPrimaryImageIDs", "UPDATE ShokoImage_Entity SET PrimaryImageID = ImageID WHERE PrimaryImageID IS NULL OR PrimaryImageID = '00000000-0000-0000-0000-000000000000'"),
     ];
 
     #endregion

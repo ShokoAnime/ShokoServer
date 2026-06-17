@@ -878,7 +878,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(151,  2, "ALTER TABLE StoredReleaseInfo ADD COLUMN PreventRescan INTEGER NOT NULL DEFAULT 0"),
         new(151,  3, "UPDATE StoredReleaseInfo SET IsPublic = 1 WHERE ProviderName = 'AniDB' OR ProviderName LIKE 'AniDB+%' OR ProviderName LIKE '%+AniDB' OR ProviderName LIKE '%+AniDB+%'"),
         new(152,  1, "ALTER TABLE AuthTokens ADD COLUMN ExpiresAt DATETIME NULL"),
-        new(153,  1, DatabaseFixes.FixEmptyXrefPrimaryImageIDs),
+        new(153,  1, "FixEmptyXrefPrimaryImageIDs", "UPDATE ShokoImage_Entity SET PrimaryImageID = ImageID WHERE PrimaryImageID IS NULL OR PrimaryImageID = '00000000-0000-0000-0000-000000000000'"),
     ];
 
     #endregion

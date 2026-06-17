@@ -6,6 +6,7 @@ public class DatabaseCommand
 {
     public int Version { get; }
     public int Revision { get; }
+    public string _commandName;
     public string Command { get; }
     public Func<object, Tuple<bool, string>> UpdateCommand { get; }
     public Action DatabaseFix { get; }
@@ -32,6 +33,14 @@ public class DatabaseCommand
     {
         Version = version;
         Revision = revision;
+        Command = command;
+    }
+
+    public DatabaseCommand(int version, int revision, string name, string command)
+    {
+        Version = version;
+        Revision = revision;
+        CommandName = name;
         Command = command;
     }
 
@@ -63,6 +72,8 @@ public class DatabaseCommand
     {
         get
         {
+            if (_commandName != null) return _commandName;
+
             if (UpdateCommand != null)
             {
                 return "[" + UpdateCommand.Method.Name + "]";
@@ -75,6 +86,8 @@ public class DatabaseCommand
 
             return Command;
         }
+
+        set => _commandName = value;
     }
 }
 
