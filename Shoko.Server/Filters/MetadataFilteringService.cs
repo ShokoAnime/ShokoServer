@@ -170,10 +170,7 @@ public class MetadataFilteringService(
                     SeriesIDs = seriesIDs,
                 };
             });
-        if (filter.SortingExpression is null && !skipSorting)
-            items = items
-                .OrderBy(r => ((AnimeGroup)r.Group).SortName);
-        return items
+        return OrderGroupResults(filter, items, user, time, skipSorting)
             .ToArray();
     }
 
@@ -219,10 +216,7 @@ public class MetadataFilteringService(
                     SeriesIDs = seriesIDs,
                 };
             });
-        if (filter.SortingExpression is null && !skipSorting)
-            items = items
-                .OrderBy(r => ((AnimeGroup)r.Group).SortName);
-        return items
+        return OrderGroupResults(filter, items, user, time, skipSorting)
             .ToArray();
     }
 
@@ -254,6 +248,39 @@ public class MetadataFilteringService(
                 .OrderBy(a => a.AirDate ?? PartialDateOnly.MaxValue);
         return items
             .ToArray();
+    }
+
+    // Orders the top-level group results. The filter (and its sorting expression) may have been evaluated at the
+    // series level, in which case the result tuples — and therefore the implied group order — follow the series
+    // sort, not the group sort. That places a group at the rank of its first matching series rather than its own
+    // sort key, so e.g. a name-sorted list ends up out of order at the group level. Re-evaluate the sort at the
+    // group level here so the returned groups are ordered by the group's own sort key.
+    private static IEnumerable<FilteredGroupResult> OrderGroupResults(IFilter filter, IEnumerable<FilteredGroupResult> items, IUser? user, DateTime? time, bool skipSorting)
+    {
+        if (skipSorting)
+            return items;
+
+        var now = time?.ToLocalTime() ?? DateTime.Now;
+        var sort = filter.SortingExpression;
+        if (sort is null)
+            return items.OrderBy(r => ((AnimeGroup)r.Group).SortName);
+
+        var keyed = items.Select(r =>
+        {
+            var group = (AnimeGroup)r.Group;
+            return (result: r, filterable: group.ToFilterable(now), userInfo: user is null ? null : group.ToFilterableUserInfo(user.ID, now));
+        });
+        var ordered = sort.Descending
+            ? keyed.OrderByDescending(x => sort.Evaluate(x.filterable, x.userInfo, now))
+            : keyed.OrderBy(x => sort.Evaluate(x.filterable, x.userInfo, now));
+        for (var next = sort.Next; next is not null; next = next.Next)
+        {
+            var expr = next;
+            ordered = expr.Descending
+                ? ordered.ThenByDescending(x => expr.Evaluate(x.filterable, x.userInfo, now))
+                : ordered.ThenBy(x => expr.Evaluate(x.filterable, x.userInfo, now));
+        }
+        return ordered.Select(x => x.result);
     }
 
     private IReadOnlyList<IReadOnlyList<int>> BuildGroupIDChains(IEnumerable<(int GroupID, int SeriesID)> results)

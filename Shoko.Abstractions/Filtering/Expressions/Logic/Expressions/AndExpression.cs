@@ -38,14 +38,11 @@ public class AndExpression : FilterExpression<bool>, IWithExpressionParameter, I
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
         var left = Left?.Evaluate(filterable, userInfo, time);
-        if (left is null)
+        if (left is null or false)
             return false;
 
         var right = Right?.Evaluate(filterable, userInfo, time);
-        if (right is null)
-            return false;
-
-        return left.Value && right.Value;
+        return right ?? false;
     }
 
     /// <inheritdoc cref="Equals(object)"/>
