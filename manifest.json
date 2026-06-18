@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.291",
+      "tag": "v6.0.0-dev.291",
+      "commit": "9ec735045219ac252b87fbbf3dba60e41c1200f0",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.291/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-18T00:31:40Z",
+      "releaseNotes": "\n`misc`: **Don't hide raw sql in versions table when raw sql was ran**.\n"
+    },
+    {
       "version": "6.0.0.290",
       "tag": "v6.0.0-dev.290",
       "commit": "6f60e2e91ad5447204c86080bc1f18c95da1b171",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.262/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-08T15:49:21Z",
       "releaseNotes": "\n`misc`: **Add support for job upgrading**.\n"
-    },
-    {
-      "version": "6.0.0.261",
-      "tag": "v6.0.0-dev.261",
-      "commit": "e47b32663d6047ba16e299a2664b93e15ffa49ee",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.261/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-08T13:13:04Z",
-      "releaseNotes": "\n`fix`: **Fix a race condition in Queue persistence buffer handling**.\n"
     }
   ]
 }
