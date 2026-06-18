@@ -19,6 +19,7 @@ public class UserDataEventEmitter : BaseEventEmitter, IDisposable
         _userDataService.VideoUserDataSaved += OnVideoUserDataSaved;
         _userDataService.EpisodeUserDataSaved += OnEpisodeUserDataSaved;
         _userDataService.SeriesUserDataSaved += OnSeriesUserDataSaved;
+        _userDataService.GroupUserDataSaved += OnGroupUserDataSaved;
     }
 
     public void Dispose()
@@ -26,6 +27,7 @@ public class UserDataEventEmitter : BaseEventEmitter, IDisposable
         _userDataService.VideoUserDataSaved -= OnVideoUserDataSaved;
         _userDataService.EpisodeUserDataSaved -= OnEpisodeUserDataSaved;
         _userDataService.SeriesUserDataSaved -= OnSeriesUserDataSaved;
+        _userDataService.GroupUserDataSaved -= OnGroupUserDataSaved;
     }
 
     private async void OnVideoUserDataSaved(object? sender, VideoUserDataSavedEventArgs e)
@@ -41,5 +43,10 @@ public class UserDataEventEmitter : BaseEventEmitter, IDisposable
     private async void OnSeriesUserDataSaved(object? sender, SeriesUserDataSavedEventArgs e)
     {
         await SendAsync("series.saved", new SeriesUserDataSavedSignalRModel(e));
+    }
+
+    private async void OnGroupUserDataSaved(object? sender, GroupUserDataSavedEventArgs e)
+    {
+        await SendAsync("group.saved", new GroupUserDataSavedSignalRModel(e));
     }
 }

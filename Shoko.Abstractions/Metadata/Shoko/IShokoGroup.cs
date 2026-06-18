@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Metadata.Shoko;
 
@@ -121,4 +122,11 @@ public interface IShokoGroup : ICollection, IMetadata<int>, IWithCreationDate, I
     /// Provider names are split by '+' before counting.
     /// </summary>
     IReadOnlyDictionary<string, int> ReleaseProviderCounts { get; }
+
+    /// <summary>
+    /// Gets the user-specific data for the group and user.
+    /// </summary>
+    /// <param name="user">The user.</param>
+    /// <returns>The user group data.</returns>
+    IGroupUserData GetUserData(IUser user);
 }

@@ -835,4 +835,208 @@ public interface IUserDataService
     Task<ISeriesUserData> ImportSeriesUserData(IShokoSeries series, IUser user, SeriesUserDataUpdate userDataUpdate, string importSource, VideoUserDataSaveReason videoReason = VideoUserDataSaveReason.None);
 
     #endregion
+
+    #region Group User Data
+
+    /// <summary>
+    /// Dispatched when group user data is saved.
+    /// </summary>
+    event EventHandler<GroupUserDataSavedEventArgs>? GroupUserDataSaved;
+
+    /// <summary>
+    /// Gets user group data for the given user and group.
+    /// </summary>
+    /// <param name="group">
+    ///   The group.
+    /// </param>
+    /// <param name="user">
+    ///   The user.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the <paramref name="group"/> or <paramref name="user"/>
+    ///   is <c>null</c>.
+    /// </exception>
+    /// <returns>The user group data.</returns>
+    IGroupUserData GetGroupUserData(IShokoGroup group, IUser user);
+
+    /// <summary>
+    ///   Gets all user group data for the given user.
+    /// </summary>
+    /// <param name="user">
+    ///   The user.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the <paramref name="user"/> is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The user group data.
+    /// </returns>
+    IEnumerable<IGroupUserData> GetGroupUserDataForUser(IUser user);
+
+    /// <summary>
+    ///   Gets all user group data for the given group.
+    /// </summary>
+    /// <param name="group">
+    ///   The group.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the <paramref name="group"/> is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   A list of user group data.
+    /// </returns>
+    IReadOnlyList<IGroupUserData> GetGroupUserDataForGroup(IShokoGroup group);
+
+    /// <summary>
+    ///   Adds any new unique tags to the user's user data for the group.
+    /// </summary>
+    /// <param name="group">
+    ///   The group to add the tags for.
+    /// </param>
+    /// <param name="user">
+    ///   The user to add the tags for.
+    /// </param>
+    /// <param name="tags">
+    ///   The tags to add.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the <paramref name="group"/> or <paramref name="user"/>
+    ///   is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The user data for the group and user, with any new tags added.
+    /// </returns>
+    Task<IGroupUserData> AddUserTagsForGroup(IShokoGroup group, IUser user, params string[] tags);
+
+    /// <summary>
+    ///   Adds any new unique tags to the user's user data for the group.
+    /// </summary>
+    /// <param name="group">
+    ///   The group to add the tags for.
+    /// </param>
+    /// <param name="user">
+    ///   The user to add the tags for.
+    /// </param>
+    /// <param name="tags">
+    ///   The tags to add.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the <paramref name="group"/> or <paramref name="user"/>
+    ///   is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The user data for the group and user, with any new tags added.
+    /// </returns>
+    Task<IGroupUserData> AddUserTagsForGroup(IShokoGroup group, IUser user, IEnumerable<string>? tags);
+
+    /// <summary>
+    ///   Removes the selected tags from the user's user data for the group.
+    /// </summary>
+    /// <param name="group">
+    ///   The group to remove the tags for.
+    /// </param>
+    /// <param name="user">
+    ///   The user to remove the tags for.
+    /// </param>
+    /// <param name="tags">
+    ///   The tags to remove.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the <paramref name="group"/> or <paramref name="user"/>
+    ///   is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The user data for the group and user, with any removed tags removed.
+    /// </returns>
+    Task<IGroupUserData> RemoveUserTagsForGroup(IShokoGroup group, IUser user, params string[] tags);
+
+    /// <summary>
+    ///   Removes the selected tags from the user's user data for the group.
+    /// </summary>
+    /// <param name="group">
+    ///   The group to remove the tags for.
+    /// </param>
+    /// <param name="user">
+    ///   The user to remove the tags for.
+    /// </param>
+    /// <param name="tags">
+    ///   The tags to remove.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the <paramref name="group"/> or <paramref name="user"/>
+    ///   is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The user data for the group and user, with any removed tags removed.
+    /// </returns>
+    Task<IGroupUserData> RemoveUserTagsForGroup(IShokoGroup group, IUser user, IEnumerable<string>? tags);
+
+    /// <summary>
+    ///   Sets the tags for the user's user data for the group.
+    /// </summary>
+    /// <param name="group">
+    ///   The group to set the tags for.
+    /// </param>
+    /// <param name="user">
+    ///   The user to set the tags for.
+    /// </param>
+    /// <param name="tags">
+    ///   The tags to set. Duplicates will be ignored. Set to an empty
+    ///   collection to remove all user tags.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the <paramref name="group"/> or <paramref name="user"/>
+    ///   is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The user data for the group and user, with the user tags updated to
+    ///   an unique and sorted list of the provided tags.
+    /// </returns>
+    Task<IGroupUserData> SetUserTagsForGroup(IShokoGroup group, IUser user, IEnumerable<string>? tags);
+
+    /// <summary>
+    ///   Saves the user data for the group and user.
+    /// </summary>
+    /// <param name="user">
+    ///   The user to save group user data for.
+    /// </param>
+    /// <param name="group">
+    ///   The group to save group user data for.
+    /// </param>
+    /// <param name="userDataUpdate">
+    ///   The update containing the details to save.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="group"/> or <paramref name="user"/> is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The task containing the new or updated user data for the group and user.
+    /// </returns>
+    Task<IGroupUserData> SaveGroupUserData(IShokoGroup group, IUser user, GroupUserDataUpdate userDataUpdate);
+
+    /// <summary>
+    ///   Imports some user data for the group and user from the given import
+    ///   source.
+    /// </summary>
+    /// <param name="user">
+    ///   The user to save group user data for.
+    /// </param>
+    /// <param name="group">
+    ///   The group to save group user data for.
+    /// </param>
+    /// <param name="userDataUpdate">
+    ///   The update containing the details to save.
+    /// </param>
+    /// <param name="importSource">
+    ///   The import source.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="group"/> or <paramref name="user"/> is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The task containing the new or updated user data for the group and user.
+    /// </returns>
+    Task<IGroupUserData> ImportGroupUserData(IShokoGroup group, IUser user, GroupUserDataUpdate userDataUpdate, string importSource);
+
+    #endregion
 }

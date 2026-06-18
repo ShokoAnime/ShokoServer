@@ -991,6 +991,8 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(167,  6, "EXEC sp_rename 'AniDB_Anime.EndDate_new', 'EndDate', 'COLUMN'"),
         new(168,  1, "ALTER TABLE AuthTokens ADD ExpiresAt datetime2 NULL"),
         new(169,  1, "UPDATE ShokoImage_Entity SET PrimaryImageID = ImageID WHERE PrimaryImageID IS NULL OR PrimaryImageID = '00000000-0000-0000-0000-000000000000'"),
+        new(170,  1, "ALTER TABLE AnimeGroup_User ADD UserTags nvarchar(max) NULL"),
+        new(170,  2, "ALTER TABLE AnimeGroup_User ADD LastUpdated datetime2 NULL"),
     ];
 
     #endregion

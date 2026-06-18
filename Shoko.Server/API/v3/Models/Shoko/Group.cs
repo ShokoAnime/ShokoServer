@@ -11,6 +11,8 @@ using Shoko.Abstractions.Core.Update;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.User;
+using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko;
@@ -173,6 +175,51 @@ public class Group : BaseModel
         [Required]
         public int TopLevelGroup { get; set; }
     }
+
+    #region User Data
+
+    /// <summary>
+    ///   The user data for the group.
+    /// </summary>
+    public class GroupUserData
+    {
+        /// <summary>
+        ///   The unique tags assigned to the group by the user.
+        /// </summary>
+        [Required]
+        public IReadOnlyList<string> UserTags { get; set; }
+
+        /// <summary>
+        /// When the entry was last updated.
+        /// </summary>
+        [Newtonsoft.Json.JsonConverter(typeof(IsoDateTimeConverter))]
+        [Required]
+        public DateTime LastUpdatedAt { get; set; }
+
+        public GroupUserData()
+        {
+            UserTags = [];
+            LastUpdatedAt = DateTime.UtcNow;
+        }
+
+        public GroupUserData(IGroupUserData userData)
+        {
+            UserTags = userData.UserTags;
+            LastUpdatedAt = userData.LastUpdatedAt;
+        }
+
+        public GroupUserData MergeWithExisting(JMMUser user, AnimeGroup group)
+        {
+            var userDataService = ISystemService.StaticServices.GetRequiredService<IUserDataService>();
+            var userData = userDataService.SaveGroupUserData(group, user, new()
+            {
+                UserTags = UserTags,
+            }).GetAwaiter().GetResult();
+            return new(userData);
+        }
+    }
+
+    #endregion
 
     /// <summary>
     /// Input models.

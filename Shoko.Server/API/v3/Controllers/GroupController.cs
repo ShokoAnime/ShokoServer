@@ -10,6 +10,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
@@ -30,7 +31,8 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     AniDB_Anime_RelationRepository _anidbAnimeRelations,
     AnimeGroupRepository _animeGroups,
     AnimeSeriesRepository _animeSeries,
-    IShokoGroupManager _groupManagementService
+    IShokoGroupManager _groupManagementService,
+    IUserDataService _userDataService
 ) : BaseController(settingsProvider)
 {
     #region Return messages
@@ -459,6 +461,78 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         await _groupManagementService.DeleteGroup(group, deleteSeries, deleteFiles);
 
         return NoContent();
+    }
+
+    #endregion
+
+    #region User Data
+
+    /// <summary>
+    /// Get the <see cref="Group.GroupUserData"/> for the <see cref="Group"/>
+    /// with the given <paramref name="groupID"/>.
+    /// </summary>
+    /// <param name="groupID">Shoko Group ID</param>
+    /// <returns></returns>
+    [HttpGet("{groupID}/UserData")]
+    public ActionResult<Group.GroupUserData> GetGroupUserData([FromRoute, Range(1, int.MaxValue)] int groupID)
+    {
+        if (_animeGroups.GetByID(groupID) is not { } group)
+            return NotFound(GroupNotFound);
+
+        if (!User.AllowedGroup(group))
+            return Forbid(GroupForbiddenForUser);
+
+        var userData = _userDataService.GetGroupUserData(group, User);
+        return new Group.GroupUserData(userData);
+    }
+
+    /// <summary>
+    /// Put a <see cref="Group.GroupUserData"/> object down for the
+    /// <see cref="Group"/> with the given <paramref name="groupID"/>.
+    /// </summary>
+    /// <param name="groupID">Shoko Group ID</param>
+    /// <param name="groupUserStats">The user data to save.</param>
+    /// <returns></returns>
+    [HttpPut("{groupID}/UserData")]
+    public ActionResult<Group.GroupUserData> PutGroupUserData([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] Group.GroupUserData groupUserStats)
+    {
+        if (_animeGroups.GetByID(groupID) is not { } group)
+            return NotFound(GroupNotFound);
+
+        var user = User;
+        if (!user.AllowedGroup(group))
+            return Forbid(GroupForbiddenForUser);
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        return groupUserStats.MergeWithExisting(user, group);
+    }
+
+    /// <summary>
+    /// Patch a <see cref="Group.GroupUserData"/> object down for the
+    /// <see cref="Group"/> with the given <paramref name="groupID"/>.
+    /// </summary>
+    /// <param name="groupID">Shoko Group ID</param>
+    /// <param name="patchDocument">The JSON patch document to apply to the existing <see cref="Group.GroupUserData"/>.</param>
+    /// <returns></returns>
+    [HttpPatch("{groupID}/UserData")]
+    public ActionResult<Group.GroupUserData> PatchGroupUserData([FromRoute, Range(1, int.MaxValue)] int groupID, [FromBody] JsonPatchDocument<Group.GroupUserData> patchDocument)
+    {
+        if (_animeGroups.GetByID(groupID) is not { } group)
+            return NotFound(GroupNotFound);
+
+        var user = User;
+        if (!user.AllowedGroup(group))
+            return Forbid(GroupForbiddenForUser);
+
+        var userData = _userDataService.GetGroupUserData(group, user);
+        var body = new Group.GroupUserData(userData);
+        patchDocument.ApplyTo(body, ModelState);
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        return body.MergeWithExisting(user, group);
     }
 
     #endregion

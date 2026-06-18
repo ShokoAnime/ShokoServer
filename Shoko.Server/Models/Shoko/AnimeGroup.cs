@@ -13,6 +13,7 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Abstractions.User;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
@@ -831,6 +832,18 @@ public class AnimeGroup : IShokoGroup
     }
 
     IReadOnlyList<IShokoSeries> IShokoGroup.AllSeries => AllSeries;
+
+    IGroupUserData IShokoGroup.GetUserData(IUser user)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        if (user.ID is 0 || RepoFactory.JMMUser.GetByID(user.ID) is null)
+            throw new ArgumentException("User is not stored in the database!", nameof(user));
+        var userData = RepoFactory.AnimeGroup_User.GetByUserAndGroupID(user.ID, AnimeGroupID)
+            ?? new() { JMMUserID = user.ID, AnimeGroupID = AnimeGroupID };
+        if (userData.AnimeGroup_UserID is 0)
+            RepoFactory.AnimeGroup_User.Save(userData);
+        return userData;
+    }
 
     #endregion
 }

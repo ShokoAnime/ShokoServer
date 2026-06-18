@@ -1035,6 +1035,99 @@ public class UserDataService(
 
     #region Group User Data
 
+    public event EventHandler<GroupUserDataSavedEventArgs>? GroupUserDataSaved;
+
+    public IGroupUserData GetGroupUserData(IShokoGroup group, IUser user)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+        if (group.ID is <= 0)
+            throw new ArgumentException("group.ID must be greater than 0.", nameof(group));
+        ArgumentNullException.ThrowIfNull(user);
+        if (user.ID is <= 0)
+            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
+
+        var userData = groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)
+            ?? new() { JMMUserID = user.ID, AnimeGroupID = group.ID };
+        if (userData.AnimeGroup_UserID is 0)
+            groupUserDataRepository.Save(userData);
+        return userData;
+    }
+
+    public IEnumerable<IGroupUserData> GetGroupUserDataForUser(IUser user)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        if (user.ID is <= 0)
+            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
+        return groupUserDataRepository.GetByUserID(user.ID);
+    }
+
+    public IReadOnlyList<IGroupUserData> GetGroupUserDataForGroup(IShokoGroup group)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+        if (group.ID is <= 0)
+            throw new ArgumentException("group.ID must be greater than 0.", nameof(group));
+        return groupUserDataRepository.GetByGroupID(group.ID);
+    }
+
+    public Task<IGroupUserData> AddUserTagsForGroup(IShokoGroup group, IUser user, params string[] tags)
+        => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = (groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)?.UserTags ?? []).Union(tags) });
+
+    public Task<IGroupUserData> AddUserTagsForGroup(IShokoGroup group, IUser user, IEnumerable<string>? tags)
+        => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = (groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)?.UserTags ?? []).Union(tags ?? []) });
+
+    public Task<IGroupUserData> RemoveUserTagsForGroup(IShokoGroup group, IUser user, params string[] tags)
+        => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = (groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)?.UserTags ?? []).Except(tags) });
+
+    public Task<IGroupUserData> RemoveUserTagsForGroup(IShokoGroup group, IUser user, IEnumerable<string>? tags)
+        => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = (groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)?.UserTags ?? []).Except(tags ?? []) });
+
+    public Task<IGroupUserData> SetUserTagsForGroup(IShokoGroup group, IUser user, IEnumerable<string>? tags)
+        => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = tags });
+
+    public Task<IGroupUserData> SaveGroupUserData(IShokoGroup group, IUser user, GroupUserDataUpdate userDataUpdate)
+        => SaveGroupUserDataInternal(group, user, userDataUpdate);
+
+    public Task<IGroupUserData> ImportGroupUserData(IShokoGroup group, IUser user, GroupUserDataUpdate userDataUpdate, string importSource)
+        => SaveGroupUserDataInternal(group, user, userDataUpdate, importSource);
+
+    private async Task<IGroupUserData> SaveGroupUserDataInternal(IShokoGroup group, IUser user, GroupUserDataUpdate userDataUpdate, string? importSource = null)
+    {
+        var reason = string.IsNullOrEmpty(importSource)
+            ? GroupUserDataSaveReason.None
+            : GroupUserDataSaveReason.Import;
+        ArgumentNullException.ThrowIfNull(group);
+        if (group.ID is <= 0)
+            throw new ArgumentException("group.ID must be greater than 0.", nameof(group));
+        ArgumentNullException.ThrowIfNull(user);
+        if (user.ID is <= 0)
+            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
+
+        var userData = groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)
+            ?? new() { AnimeGroupID = group.ID, JMMUserID = user.ID };
+        var shouldSave = userData.AnimeGroup_UserID is 0;
+
+        if (userDataUpdate.UserTags is not null)
+        {
+            var list = userDataUpdate.UserTags.Distinct().Order().ToList();
+            if (!list.SequenceEqual(userData.UserTags))
+            {
+                userData.UserTags = list;
+                reason |= GroupUserDataSaveReason.UserTags;
+                shouldSave = true;
+            }
+        }
+
+        if (shouldSave)
+        {
+            userData.LastUpdated = DateTime.Now;
+            groupUserDataRepository.Save(userData);
+
+            SendEvent(group, user, userData, reason, importSource);
+        }
+
+        return userData;
+    }
+
     internal void UpdateWatchedStats(
         IShokoGroup group,
         IUser user,
@@ -1081,12 +1174,39 @@ public class UserDataService(
         if (newAnimeGroupUsers is null)
         {
             if (isUpdated)
+            {
+                userData.LastUpdated = DateTime.Now;
                 groupUserDataRepository.Save(userData);
+                SendEvent(group, user, userData, GroupUserDataSaveReason.GroupStats);
+            }
         }
         else
         {
             newAnimeGroupUsers(userData, isNew, isUpdated);
         }
+    }
+
+    private void SendEvent(IShokoGroup group, IUser user, IGroupUserData userData, GroupUserDataSaveReason reason, string? importSource = null)
+    {
+        Task.Run(() =>
+        {
+            var eventArgs = new GroupUserDataSavedEventArgs()
+            {
+                Reason = reason,
+                Group = group,
+                User = user,
+                UserData = userData,
+                ImportSource = importSource,
+            };
+            try
+            {
+                GroupUserDataSaved?.Invoke(this, eventArgs);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while trying to send the GroupUserDataSaved event; {Message}", ex.Message);
+            }
+        });
     }
 
     #endregion
