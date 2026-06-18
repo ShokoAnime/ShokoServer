@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -56,6 +57,95 @@ public static class SeriesSearch
             .ToLowerInvariant();
 
     private static readonly IStringDistance DiceSearch = new SorensenDice();
+
+    private static volatile FuzzySearchIndex<AnimeSeries> _seriesIndex;
+    private static volatile bool _isDirty = true;
+    private static readonly object _indexLock = new();
+
+    public static void MarkDirty() => _isDirty = true;
+
+    private static FuzzySearchIndex<AnimeSeries> EnsureSeriesIndex()
+    {
+        if (!_isDirty && _seriesIndex != null)
+            return _seriesIndex;
+        lock (_indexLock)
+        {
+            if (!_isDirty && _seriesIndex != null)
+                return _seriesIndex;
+            var idx = new FuzzySearchIndex<AnimeSeries>();
+            idx.Build(RepoFactory.AnimeSeries.GetAll(), CreateSeriesTitleDelegate());
+            _seriesIndex = idx;
+            _isDirty = false;
+            return idx;
+        }
+    }
+
+    internal static bool IsLatinScript(string input)
+    {
+        foreach (var c in input)
+            if (char.IsLetter(c) && c > 'ɏ')
+                return false;
+        return true;
+    }
+
+    internal static string NormalizeForIndex(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return string.Empty;
+
+        var decomposed = input.Normalize(NormalizationForm.FormKD);
+        var sb = new StringBuilder(decomposed.Length);
+        foreach (var c in decomposed)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+                continue;
+            sb.Append(c is '-' or '_' or '.' or ':' or ',' or '!' or ';' or '/' or '\\' or '(' or ')' or '[' or ']' ? ' ' : c);
+        }
+
+        return sb.ToString().Normalize(NormalizationForm.FormKC).ToLowerInvariant().CompactWhitespaces();
+    }
+
+    internal static int GetMaxErrors(int queryLength)
+        => Math.Min(queryLength / 4, 3);
+
+    /// <summary>
+    /// Wagner-Fischer distance comparison
+    /// </summary>
+    /// <param name="query"></param>
+    /// <param name="text"></param>
+    /// <returns></returns>
+    internal static int MinEditDistInText(string query, string text)
+    {
+        var m = query.Length;
+        var n = text.Length;
+        if (m == 0) return 0;
+        if (n == 0) return m;
+
+        // prevprev, prev, curr are the rolling DP rows (i-2, i-1, i).
+        // Row 0 stays all-zeros throughout (free text-prefix skip for semi-global matching).
+        var prevprev = new int[n + 1]; // row i-2; starts as the virtual row 0 (all zeros)
+        var prev = new int[n + 1];     // row i-1; starts as the virtual row 0 (all zeros)
+        var curr = new int[n + 1];
+
+        for (var i = 1; i <= m; i++)
+        {
+            curr[0] = i;
+            for (var j = 1; j <= n; j++)
+            {
+                var cost = query[i - 1] == text[j - 1] ? 0 : 1;
+                curr[j] = Math.Min(Math.Min(prev[j] + 1, curr[j - 1] + 1), prev[j - 1] + cost);
+                // OSA: adjacent transposition costs 1 instead of 2.
+                if (i > 1 && j > 1 && query[i - 1] == text[j - 2] && query[i - 2] == text[j - 1])
+                    curr[j] = Math.Min(curr[j], prevprev[j - 2] + 1);
+            }
+            (prevprev, prev, curr) = (prev, curr, prevprev);
+        }
+
+        var min = prev[0];
+        for (var j = 1; j <= n; j++)
+            if (prev[j] < min) min = prev[j];
+        return min;
+    }
 
     public static SearchResult<T> DiceFuzzySearch<T>(string text, string pattern, T value)
     {
@@ -146,27 +236,90 @@ public static class SeriesSearch
     public static ParallelQuery<SearchResult<T>> Search<T>(this ParallelQuery<T> enumerable, string query, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
         => SearchCollection(enumerable, query, selector, fuzzy, take, skip);
 
-    private static ParallelQuery<SearchResult<T>> SearchCollection<T>(ParallelQuery<T> query, string search, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
+    private static ParallelQuery<SearchResult<T>> SearchCollection<T>(ParallelQuery<T> items, string search, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
     {
-        // Don't do anything if we want to take zero or less entries.
         if (take.HasValue && take.Value <= 0)
             return new List<SearchResult<T>>().AsParallel();
 
-        ParallelQuery<SearchResult<T>> enumerable = query
-            .Select(t => selector(t)
-                .Aggregate<string, SearchResult<T>>(null, (current, title) =>
+        var normalizedSearch = NormalizeForIndex(search);
+        if (string.IsNullOrWhiteSpace(normalizedSearch))
+            return new List<SearchResult<T>>().AsParallel();
+
+        var isLatin = IsLatinScript(normalizedSearch);
+        var maxErrors = fuzzy && isLatin ? GetMaxErrors(normalizedSearch.Length) : 0;
+
+        ParallelQuery<SearchResult<T>> enumerable = items
+            .Select(t =>
+            {
+                SearchResult<T> best = null;
+                foreach (var title in selector(t))
                 {
                     if (string.IsNullOrWhiteSpace(title))
-                        return current;
+                        continue;
 
-                    var result = fuzzy ? DiceFuzzySearch(title, search, t) : IndexOfSearch(title, search, t);
-                    if (result.CompareTo(current) >= 0)
-                        return current;
+                    var normalizedTitle = NormalizeForIndex(title);
+                    if (string.IsNullOrWhiteSpace(normalizedTitle))
+                        continue;
 
-                    return result;
-                })
-            )
-            .Where(a => !string.IsNullOrEmpty(a?.Match))
+                    SearchResult<T> result;
+                    if (!isLatin)
+                    {
+                        var idx = normalizedTitle.IndexOf(normalizedSearch, StringComparison.Ordinal);
+                        if (idx < 0)
+                            continue;
+                        result = new SearchResult<T>
+                        {
+                            ExactMatch = true,
+                            Index = idx,
+                            Distance = 0,
+                            LengthDifference = Math.Abs(normalizedSearch.Length - normalizedTitle.Length),
+                            Match = title,
+                            Result = t,
+                        };
+                    }
+                    else
+                    {
+                        var containsIdx = normalizedTitle.IndexOf(normalizedSearch, StringComparison.Ordinal);
+                        if (containsIdx >= 0)
+                        {
+                            result = new SearchResult<T>
+                            {
+                                ExactMatch = true,
+                                Index = containsIdx,
+                                Distance = 0,
+                                LengthDifference = Math.Abs(normalizedSearch.Length - normalizedTitle.Length),
+                                Match = title,
+                                Result = t,
+                            };
+                        }
+                        else if (fuzzy && IsLatinScript(normalizedTitle) && normalizedTitle.Length >= normalizedSearch.Length - maxErrors)
+                        {
+                            var dist = MinEditDistInText(normalizedSearch, normalizedTitle);
+                            if (dist > maxErrors)
+                                continue;
+                            result = new SearchResult<T>
+                            {
+                                ExactMatch = false,
+                                Index = 0,
+                                Distance = normalizedSearch.Length > 0 ? (double)dist / normalizedSearch.Length : 0,
+                                LengthDifference = Math.Abs(normalizedSearch.Length - normalizedTitle.Length),
+                                Match = title,
+                                Result = t,
+                            };
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+
+                    if (result.CompareTo(best) < 0)
+                        best = result;
+                }
+
+                return best;
+            })
+            .Where(a => a != null && !string.IsNullOrEmpty(a.Match))
             .OrderBy(a => a);
 
         if (skip.HasValue && skip.Value > 0)
@@ -195,82 +348,65 @@ public static class SeriesSearch
             TagFilter.Filter tagFilter = TagFilter.Filter.None, bool searchById = false)
     {
         if (string.IsNullOrWhiteSpace(query) || user == null || limit <= 0)
-            return new List<SearchResult<AnimeSeries>>();
+            return [];
 
         query = query.ToLowerInvariant();
         var forbiddenTags = user.GetHideCategories();
 
-        //search by anime id
         if (searchById && int.TryParse(query, out var animeID))
         {
             var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
             var anime = series?.AniDB_Anime;
             var tags = anime?.GetAllTags();
             if (anime != null && !tags.FindInEnumerable(forbiddenTags))
-                return new List<SearchResult<AnimeSeries>>
-                {
+                return
+                [
                     new()
                     {
                         ExactMatch = true,
                         Match = series.AniDB_ID.ToString(),
                         Result = series,
                     },
-                };
+                ];
         }
 
-        var allSeries = !flags.HasFlag(SearchFlags.Titles) ? null : RepoFactory.AnimeSeries.GetAll()
-            .AsParallel()
-            .Where(series =>
-            {
-                var anime = series.AniDB_Anime;
-                var tags = anime?.GetAllTags();
-                return anime != null && (tags.Count == 0 || !tags.FindInEnumerable(forbiddenTags));
-            });
         var allTags = !flags.HasFlag(SearchFlags.Tags) ? null : RepoFactory.AniDB_Tag.GetAll()
             .AsParallel()
             .Where(tag => !forbiddenTags.Contains(tag.TagName) && !TagFilter.IsTagBlackListed(tag.TagName, tagFilter));
         return flags switch
         {
-            SearchFlags.Titles => SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), false, limit)
-                .ToList(),
-            SearchFlags.Fuzzy | SearchFlags.Titles => SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), true, limit)
-                .ToList(),
+            SearchFlags.Titles => SearchTitles(query, limit, forbiddenTags, fuzzy: false),
+            SearchFlags.Fuzzy | SearchFlags.Titles => SearchTitles(query, limit, forbiddenTags, fuzzy: true),
             SearchFlags.Tags => SearchTagsExact(query, limit, forbiddenTags, allTags),
             SearchFlags.Fuzzy | SearchFlags.Tags => SearchTagsFuzzy(query, limit, forbiddenTags, allTags),
-            SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTags(query, limit, forbiddenTags, allSeries, allTags),
-            SearchFlags.Fuzzy | SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTagsFuzzy(query, limit, forbiddenTags, allSeries, allTags),
-            _ => new List<SearchResult<AnimeSeries>>(),
+            SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTagsCombined(query, limit, forbiddenTags, allTags, fuzzy: false),
+            SearchFlags.Fuzzy | SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTagsCombined(query, limit, forbiddenTags, allTags, fuzzy: true),
+            _ => [],
         };
     }
 
-    private static List<SearchResult<AnimeSeries>> SearchTitleAndTags(
-        string query,
-        int limit,
-        HashSet<string> forbiddenTags,
-        ParallelQuery<AnimeSeries> allSeries,
-        ParallelQuery<AniDB_Tag> allTags)
-    {
-        var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), false, limit)
+    private static List<SearchResult<AnimeSeries>> SearchTitles(string query, int limit, HashSet<string> forbiddenTags, bool fuzzy)
+        => EnsureSeriesIndex()
+            .Search(query, fuzzy)
+            .Where(r =>
+            {
+                var anime = r.Result.AniDB_Anime;
+                var tags = anime?.GetAllTags();
+                return anime != null && (tags.Count == 0 || !tags.FindInEnumerable(forbiddenTags));
+            })
+            .Take(limit)
             .ToList();
-        var tagLimit = limit - titleResult.Count;
-        if (tagLimit > 0)
-            titleResult.AddRange(SearchTagsExact(query, tagLimit, forbiddenTags, allTags));
-        return titleResult;
-    }
 
-    private static List<SearchResult<AnimeSeries>> SearchTitleAndTagsFuzzy(
-        string query,
-        int limit,
-        HashSet<string> forbiddenTags,
-        ParallelQuery<AnimeSeries> allSeries,
-        ParallelQuery<AniDB_Tag> allTags)
+    private static List<SearchResult<AnimeSeries>> SearchTitleAndTagsCombined(
+        string query, int limit, HashSet<string> forbiddenTags, ParallelQuery<AniDB_Tag> allTags, bool fuzzy)
     {
-        var titleResult = SearchCollection(allSeries, query, CreateSeriesTitleDelegate(), true, limit)
-            .ToList();
-        var tagLimit = limit - titleResult.Count;
+        var titleResults = SearchTitles(query, limit, forbiddenTags, fuzzy);
+        var tagLimit = limit - titleResults.Count;
         if (tagLimit > 0)
-            titleResult.AddRange(SearchTagsFuzzy(query, tagLimit, forbiddenTags, allTags));
-        return titleResult;
+            titleResults.AddRange(fuzzy
+                ? SearchTagsFuzzy(query, tagLimit, forbiddenTags, allTags)
+                : SearchTagsExact(query, tagLimit, forbiddenTags, allTags));
+        return titleResults;
     }
 
     private static List<SearchResult<AnimeSeries>> SearchTagsExact(string query, int limit,

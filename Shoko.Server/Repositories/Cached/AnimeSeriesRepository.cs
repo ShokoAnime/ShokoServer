@@ -16,6 +16,7 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Tasks;
+using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
 #pragma warning disable CA1822
@@ -40,6 +41,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         };
         EndDeleteCallback = cr =>
         {
+            SeriesSearch.MarkDirty();
             if (cr.AnimeGroupID <= 0)
             {
                 return;
@@ -206,6 +208,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         if (updateGroups && !isMigrating) UpdateGroups(obj, animeID, sw, oldGroup!);
 
         Changes.AddOrUpdate(obj.AnimeSeriesID);
+        SeriesSearch.MarkDirty();
 
         if (alsoupdateepisodes) UpdateEpisodes(obj, sw, animeID);
 
@@ -286,6 +289,8 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
             UpdateCache(series);
             Changes.AddOrUpdate(series.AnimeSeriesID);
         }
+
+        SeriesSearch.MarkDirty();
     }
 
     public AnimeSeries? GetByAnimeID(int id)

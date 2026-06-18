@@ -389,6 +389,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IFilteringEngine, FilteringEngine>();
             services.AddSingleton<IMetadataFilteringService, MetadataFilteringService>();
             services.AddSingleton<IFilterPresetManager, FilterPresetManager>();
+            services.AddSingleton<IFuzzySearchService, Shoko.Server.Filters.FuzzySearchService>();
             services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();
             services.AddSingleton<AnimeSeriesService>();

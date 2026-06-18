@@ -30,6 +30,8 @@ public class AniDBTitleHelper(ISettingsProvider settingsProvider, IApplicationPa
 
     private ResponseAniDBTitles _cache;
 
+    private volatile FuzzySearchIndex<ResponseAniDBTitles.Anime> _titleIndex;
+
     public IEnumerable<ResponseAniDBTitles.Anime> GetAll()
     {
         try
@@ -88,19 +90,7 @@ public class AniDBTitleHelper(ISettingsProvider settingsProvider, IApplicationPa
             try
             {
                 _accessLock.EnterReadLock();
-                var languages = settingsProvider.GetSettings().Language.SeriesTitleLanguageOrder;
-                return _cache?.AnimeList
-                    .AsParallel()
-                    .Search(
-                        query,
-                        anime => anime.Titles
-                            .Where(a => a.TitleType == TitleType.Main || a.Language == TitleLanguage.English || a.Language == TitleLanguage.Romaji ||
-                                        languages.Contains(a.LanguageCode))
-                            .Select(a => a.Title)
-                            .ToList(),
-                        fuzzy
-                    )
-                    .ToList() ?? [];
+                return _titleIndex?.Search(query, fuzzy).ToList() ?? [];
             }
             finally
             {
@@ -113,6 +103,25 @@ public class AniDBTitleHelper(ISettingsProvider settingsProvider, IApplicationPa
         }
 
         return [];
+    }
+
+    private void RebuildTitleIndex()
+    {
+        if (_cache == null)
+            return;
+
+        var languages = new HashSet<string>(settingsProvider.GetSettings().Language.SeriesTitleLanguageOrder) { "en", "x-jat" };
+        var idx = new FuzzySearchIndex<ResponseAniDBTitles.Anime>();
+        idx.Build(
+            _cache.AnimeList,
+            anime => anime.Titles
+                .Where(t => t.TitleType == TitleType.Main
+                         || t.Language == TitleLanguage.English
+                         || t.Language == TitleLanguage.Romaji
+                         || languages.Contains(t.LanguageCode))
+                .Select(t => t.Title)
+        );
+        _titleIndex = idx;
     }
 
     private void CreateCache()
@@ -170,6 +179,8 @@ public class AniDBTitleHelper(ISettingsProvider settingsProvider, IApplicationPa
             _nextUpdate = File.GetLastWriteTime(CacheFilePath).AddHours(24);
             if (_nextUpdate.Value < DateTime.Now)
                 _nextUpdate = DateTime.Now.AddHours(4);
+
+            RebuildTitleIndex();
         }
     }
 
