@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
@@ -41,7 +40,7 @@ public class OrExpression : FilterExpression<bool>, IWithExpressionParameter, IW
         var left = Left?.Evaluate(filterable, userInfo, time);
         if (left is null)
             return false;
-        
+
         if (left.Value)
             return true;
 

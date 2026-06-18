@@ -5,7 +5,6 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.TMDB;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
 
 #nullable enable
