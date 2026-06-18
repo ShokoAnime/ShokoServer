@@ -174,6 +174,8 @@ public class AnimeSeries_User : ISeriesUserData
 
     DateTime? ISeriesUserData.LastEpisodePlayedAt => WatchedDate;
 
+    DateTime? ISeriesUserData.LastEpisodeUpdatedAt => LastEpisodeUpdate;
+
     // Skim it at runtime until we decide to cache it in the DB.
     DateTime? ISeriesUserData.LastVideoPlayedAt
         => (AnimeSeries?.VideoLocals ?? [])
@@ -182,7 +184,7 @@ public class AnimeSeries_User : ISeriesUserData
             .OrderDescending()
             .FirstOrDefault();
 
-    DateTime? ISeriesUserData.LastVideoUpdatedAt => LastEpisodeUpdate;
+    DateTime? ISeriesUserData.LastVideoUpdatedAt => LastVideoUpdate;
 
     IReadOnlyList<string> ISeriesUserData.UserTags => UserTags;
 

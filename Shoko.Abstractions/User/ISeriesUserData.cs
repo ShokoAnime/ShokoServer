@@ -50,6 +50,14 @@ public interface ISeriesUserData : IUserData
     DateTime? LastEpisodePlayedAt { get; }
 
     /// <summary>
+    ///   Gets the date and time when the user data for a episode linked to the
+    ///   series was last updated, regardless of if it was watched to completion
+    ///   or not. Can be used to determine continue watching and next-up order
+    ///   for the series, etc..
+    /// </summary>
+    DateTime? LastEpisodeUpdatedAt { get; }
+
+    /// <summary>
     ///   The number of normal episodes or specials that have not been watched
     ///   to completion, and are not hidden.
     /// </summary>
