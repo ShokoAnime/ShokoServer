@@ -28,10 +28,11 @@ public class MetadataFilteringService(
             return [];
 
         var tuples = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
-        return tuples
+        var groups = tuples
             .DistinctBy(t => t.GroupID)
             .Select(t => groupRepository.GetByID(t.GroupID))
-            .WhereNotNull()
+            .WhereNotNull();
+        return OrderByGroup(filter, groups, g => g, user, time, skipSorting)
             .Cast<IShokoGroup>()
             .ToArray();
     }
@@ -82,10 +83,14 @@ public class MetadataFilteringService(
                 filter => filter is IFilterPreset { IsDirectory: true }
                     ? new Lazy<IReadOnlyList<IShokoGroup>>(() => [])
                     : new Lazy<IReadOnlyList<IShokoGroup>>(() =>
-                        engine.EvaluateFilterWithTuples(filter, user, time, skipSorting)
-                            .DistinctBy(t => t.GroupID)
-                            .Select(t => groupRepository.GetByID(t.GroupID))
-                            .WhereNotNull()
+                        OrderByGroup(
+                            filter,
+                            engine.EvaluateFilterWithTuples(filter, user, time, skipSorting)
+                                .DistinctBy(t => t.GroupID)
+                                .Select(t => groupRepository.GetByID(t.GroupID))
+                                .WhereNotNull(),
+                            g => g, user, time, skipSorting
+                        )
                             .Cast<IShokoGroup>()
                             .ToArray()
                     )
@@ -170,7 +175,7 @@ public class MetadataFilteringService(
                     SeriesIDs = seriesIDs,
                 };
             });
-        return OrderGroupResults(filter, items, user, time, skipSorting)
+        return OrderByGroup(filter, items, r => (AnimeGroup)r.Group, user, time, skipSorting)
             .ToArray();
     }
 
@@ -216,7 +221,7 @@ public class MetadataFilteringService(
                     SeriesIDs = seriesIDs,
                 };
             });
-        return OrderGroupResults(filter, items, user, time, skipSorting)
+        return OrderByGroup(filter, items, r => (AnimeGroup)r.Group, user, time, skipSorting)
             .ToArray();
     }
 
@@ -250,12 +255,12 @@ public class MetadataFilteringService(
             .ToArray();
     }
 
-    // Orders the top-level group results. The filter (and its sorting expression) may have been evaluated at the
-    // series level, in which case the result tuples — and therefore the implied group order — follow the series
-    // sort, not the group sort. That places a group at the rank of its first matching series rather than its own
-    // sort key, so e.g. a name-sorted list ends up out of order at the group level. Re-evaluate the sort at the
-    // group level here so the returned groups are ordered by the group's own sort key.
-    private static IEnumerable<FilteredGroupResult> OrderGroupResults(IFilter filter, IEnumerable<FilteredGroupResult> items, IUser? user, DateTime? time, bool skipSorting)
+    // Orders a sequence of group-bearing items at the group level. The filter (and its sorting expression) may have
+    // been evaluated at the series level, in which case the result tuples — and therefore the implied group order —
+    // follow the series sort, not the group sort. That places a group at the rank of its first matching series rather
+    // than its own sort key, so e.g. a name-sorted list ends up out of order at the group level. Re-evaluate the sort
+    // against each item's group here so the returned groups are ordered by the group's own sort key.
+    private static IEnumerable<T> OrderByGroup<T>(IFilter filter, IEnumerable<T> items, Func<T, AnimeGroup> groupSelector, IUser? user, DateTime? time, bool skipSorting)
     {
         if (skipSorting)
             return items;
@@ -263,12 +268,12 @@ public class MetadataFilteringService(
         var now = time?.ToLocalTime() ?? DateTime.Now;
         var sort = filter.SortingExpression;
         if (sort is null)
-            return items.OrderBy(r => ((AnimeGroup)r.Group).SortName);
+            return items.OrderBy(item => groupSelector(item).SortName);
 
-        var keyed = items.Select(r =>
+        var keyed = items.Select(item =>
         {
-            var group = (AnimeGroup)r.Group;
-            return (result: r, filterable: group.ToFilterable(now), userInfo: user is null ? null : group.ToFilterableUserInfo(user.ID, now));
+            var group = groupSelector(item);
+            return (item, filterable: group.ToFilterable(now), userInfo: user is null ? null : group.ToFilterableUserInfo(user.ID, now));
         });
         var ordered = sort.Descending
             ? keyed.OrderByDescending(x => sort.Evaluate(x.filterable, x.userInfo, now))
@@ -280,7 +285,7 @@ public class MetadataFilteringService(
                 ? ordered.ThenByDescending(x => expr.Evaluate(x.filterable, x.userInfo, now))
                 : ordered.ThenBy(x => expr.Evaluate(x.filterable, x.userInfo, now));
         }
-        return ordered.Select(x => x.result);
+        return ordered.Select(x => x.item);
     }
 
     private IReadOnlyList<IReadOnlyList<int>> BuildGroupIDChains(IEnumerable<(int GroupID, int SeriesID)> results)
