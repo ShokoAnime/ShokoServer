@@ -49,6 +49,13 @@ public interface IGroupUserData : IUserData
     #region Ordering / Filtering
 
     /// <summary>
+    ///   The latest date and time when user data for a series linked to the
+    ///   group was last updated, regardless of if it was watched to completion.
+    ///   Computed at runtime from the series user data.
+    /// </summary>
+    DateTime? LastSeriesUpdatedAt { get; }
+
+    /// <summary>
     ///   The latest date and time when user data for an episode linked to the
     ///   group was last updated, regardless of if it was watched to completion.
     ///   Computed at runtime from the series user data.

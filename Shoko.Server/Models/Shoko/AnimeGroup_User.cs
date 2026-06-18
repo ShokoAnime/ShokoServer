@@ -67,6 +67,13 @@ public class AnimeGroup_User : IGroupUserData
 
     int IGroupUserData.PlaybackCount => WatchedCount;
 
+    DateTime? IGroupUserData.LastSeriesUpdatedAt
+        => (AnimeGroup?.AllSeries ?? [])
+            .Select(ser => RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(JMMUserID, ser.AnimeSeriesID)?.LastUpdated)
+            .WhereNotNull()
+            .OrderDescending()
+            .FirstOrDefault();
+
     DateTime? IGroupUserData.LastEpisodeUpdatedAt
         => (AnimeGroup?.AllSeries ?? [])
             .Select(ser => RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(JMMUserID, ser.AnimeSeriesID)?.LastEpisodeUpdate)
