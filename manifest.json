@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.298",
+      "tag": "v6.0.0-dev.298",
+      "commit": "bd0e2247418be320a5e26aec46a10671e569a59a",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.298/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-18T19:01:06Z",
+      "releaseNotes": "\n`feat`: **Also expose last series (data) updated at on group user data**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.58**.\n"
+    },
+    {
       "version": "6.0.0.297",
       "tag": "v6.0.0-dev.297",
       "commit": "04399c5bab8af25953e721ed71e35d1077bb2aeb",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.269/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-09T21:55:44Z",
       "releaseNotes": "\n`fix`: **Nothing to see here, move along**:\n\n…totally didn't forget to remove them from the constructor in the last commit.\n"
-    },
-    {
-      "version": "6.0.0.268",
-      "tag": "v6.0.0-dev.268",
-      "commit": "5e848aac567adb9bec01e60f5f3aee03cbb96f8c",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.268/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-09T21:50:51Z",
-      "releaseNotes": "\n`fix`: **Revert faulty `Lazy<TService>` usage as ASP.NET did not like that**.\n"
     }
   ]
 }
