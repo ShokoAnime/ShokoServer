@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.292",
+      "tag": "v6.0.0-dev.292",
+      "commit": "fcd7d44a8fe5c1d560ee361090cdbf2e0da34206",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.292/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-18T02:14:30Z",
+      "releaseNotes": "\n`fix`: **Add missing `ISeriesUserData.LastEpisodeUpdatedAt` in abstraction**.\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.56**.\n"
+    },
+    {
       "version": "6.0.0.291",
       "tag": "v6.0.0-dev.291",
       "commit": "9ec735045219ac252b87fbbf3dba60e41c1200f0",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.263/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-08T18:05:18Z",
       "releaseNotes": "\n`repo` (`workflows`): **Update deprecated GitHub Actions to current versions - Review - this is purely to bring all actions up to date - feedback requested** ([#1350](https://github.com/ShokoAnime/ShokoServer/pull/1350)):\n\nUpdated all four workflow files to remove deprecated or removed action\nversions and fix one breaking input rename introduced by the v3 upgrade.\n\n**Version bumps:**\n- `actions/checkout`: `@master` → `@v4` (build-release, docker-manual, tray-standalone-manual)\n- `actions/setup-dotnet`: `v3` → `v4` (all workflows)\n- `actions/upload-artifact`: `v3` → `v4` (tray-standalone-manual; v3 was removed by GitHub Nov 2024)\n- `actions/github-script`: `v6` → `v7` (build-release)\n- `docker/setup-qemu-action`: `v2` → `v3` (build-daily, build-release, docker-manual)\n- `docker/setup-buildx-action`: `v2` → `v3` (build-daily, build-release, docker-manual)\n- `docker/login-action`: `v2` → `v3` (build-daily, build-release, docker-manual)\n- `docker/build-push-action`: `v4` → `v6` (build-release, docker-manual)\n- `getsentry/action-release`: `v1.2.1` → `v3` (build-daily, build-release)\n- `revam/gh-action-get-tag-and-version`: `v1` → `v3` (tray-standalone-manual)\n\n**Breaking input fix (revam v1 → v3):**\n`revam/gh-action-get-tag-and-version@v3` renamed all inputs; unrecognised\nnames are silently ignored, which would have produced a blank version string:\n- `tag:` → `use_tag_ref:` — the git ref/tag to resolve\n- `prefixRegex:` → `prefix_regex:` — pattern used to strip the leading `v`\n\n`build-daily.yml` and `build-release.yml` already used v3 input names\nfor this action and were not affected.\n"
-    },
-    {
-      "version": "6.0.0.262",
-      "tag": "v6.0.0-dev.262",
-      "commit": "54fd7e6a1edbdbca054acdb626d49aadebee493a",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.262/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-08T15:49:21Z",
-      "releaseNotes": "\n`misc`: **Add support for job upgrading**.\n"
     }
   ]
 }
