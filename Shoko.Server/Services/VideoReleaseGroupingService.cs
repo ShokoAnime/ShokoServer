@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,18 +7,18 @@ using System.Text;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
+using Shoko.Abstractions.Video.Media;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 /// <summary>
 /// A <see cref="VideoLocal_Place"/> with its associated video and optional
 /// release info already loaded, ready to pass to
-/// <see cref="VideoReleaseGroupingService.Group(IEnumerable{ResolvedVideoPlace})"/>.
+/// <see cref="VideoReleaseGroupingService.Group(System.Collections.Generic.IEnumerable{Shoko.Server.Services.ResolvedVideoPlace})"/>.
 /// </summary>
 public record ResolvedVideoPlace(VideoLocal_Place Place, VideoLocal Video, StoredReleaseInfo? ReleaseInfo);
 
@@ -220,7 +221,7 @@ public class VideoReleaseGroupingService(
         }
 
         bool? isChaptered = sri?.IsChaptered;
-        if (isChaptered is null && (media as Shoko.Abstractions.Video.Media.IMediaInfo)?.Chapters.Count > 0)
+        if (isChaptered is null && (media as IMediaInfo)?.Chapters.Count > 0)
             isChaptered = true;
 
         var episodeIds = sri?.CrossReferences
@@ -619,6 +620,14 @@ public class VideoReleaseGroupingService(
             isCorrupted, spec.Version,
             spec.Strategy, spec.IsMixed, sortedSecondaryGroups);
 
+        var placeSignals = signatures.ToDictionary(
+            s => s.Place.ID,
+            s => new PlaceQualitySignals(
+                s.IsChaptered,
+                s.ReleaseInfo?.IsCensored,
+                s.ReleaseInfo?.IsCreditless,
+                s.ReleaseInfo?.IsCorrupted ?? false));
+
         return new VideoReleaseCandidate
         {
             Key = key,
@@ -650,6 +659,7 @@ public class VideoReleaseGroupingService(
             IsHomogeneous = isHomogeneous,
             SecondaryGroupNames = spec.SecondaryGroupShortNames,
             Places = signatures.Select(s => s.Place).ToList(),
+            PlaceSignals = placeSignals,
             EpisodeCoverage = episodeCoverage,
         };
     }

@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -10,7 +11,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Release;
 
 /// <summary>
@@ -165,6 +165,7 @@ public class ReleaseCandidate
                           .OrderBy(e => e.Type).ThenBy(e => e.Number)
                           .ToList()
                     : (IReadOnlyList<EpisodeCoverage>)[];
+                candidate.PlaceSignals.TryGetValue(place.ID, out var signals);
                 return new File
                 {
                     PlaceID = place.ID,
@@ -172,6 +173,10 @@ public class ReleaseCandidate
                     AbsolutePath = place.Path,
                     FileSize = video?.FileSize ?? 0,
                     IsRedundant = redundantPlaceIDs?.Contains(place.ID) ?? isRedundant,
+                    IsChaptered = signals?.IsChaptered,
+                    IsCensored = signals?.IsCensored,
+                    IsCreditless = signals?.IsCreditless,
+                    IsCorrupted = signals?.IsCorrupted ?? false,
                     Episodes = episodes,
                 };
             })
@@ -325,6 +330,21 @@ public class ReleaseCandidate
         /// </summary>
         [Required]
         public required bool IsRedundant { get; init; }
+
+        /// <summary>
+        /// True if this file has chapter markers; false if chapter data is present
+        /// but no chapters; null if chapter data is absent.
+        /// </summary>
+        public bool? IsChaptered { get; init; }
+
+        /// <summary>True if this file is marked as censored by the release provider.</summary>
+        public bool? IsCensored { get; init; }
+
+        /// <summary>True if this file is marked as creditless by the release provider.</summary>
+        public bool? IsCreditless { get; init; }
+
+        /// <summary>True if this file is marked as corrupted by the release provider.</summary>
+        public bool IsCorrupted { get; init; }
 
         /// <summary>
         /// Episodes this specific file covers. Empty when the file has no
