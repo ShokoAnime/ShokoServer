@@ -1,9 +1,9 @@
+#nullable enable
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Models.Release;
 
 /// <summary>
@@ -161,9 +161,19 @@ public class VideoReleaseCandidate
     public IReadOnlyList<VideoLocal_Place> Places { get; init; } = [];
 
     /// <summary>
+    /// Per-file quality signals keyed by <see cref="VideoLocal_Place.ID"/>.
+    /// Populated for every place in <see cref="Places"/>.
+    /// </summary>
+    public IReadOnlyDictionary<int, PlaceQualitySignals> PlaceSignals { get; init; }
+        = new Dictionary<int, PlaceQualitySignals>();
+
+    /// <summary>
     /// All (EpisodeType, EpisodeNumber) pairs covered by any file in this candidate.
     /// Empty when no file has cross-reference data.
     /// </summary>
     public IReadOnlySet<(EpisodeType Type, int Number)> EpisodeCoverage { get; init; }
         = new HashSet<(EpisodeType, int)>();
 }
+
+/// <summary>Per-file quality signals for a single <see cref="VideoLocal_Place"/>.</summary>
+public record PlaceQualitySignals(bool? IsChaptered, bool? IsCensored, bool? IsCreditless, bool IsCorrupted);
