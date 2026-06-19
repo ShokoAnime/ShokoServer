@@ -23,6 +23,5 @@ scripts/
 docs/
 *.md
 .github/
-.editorconfig
 .gitignore
 *.sln
