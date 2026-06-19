@@ -10,6 +10,7 @@ internal static class JTokenExtensions
         {
             JTokenType.Boolean => token.Value<bool>().ToString().ToLowerInvariant(),
             JTokenType.String => JsonConvert.SerializeObject(token.Value<string>()),
+            JTokenType.Null => "null",
             _ => token.ToString(),
         };
 }
