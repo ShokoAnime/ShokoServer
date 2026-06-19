@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.299",
+      "tag": "v6.0.0-dev.299",
+      "commit": "4d1cddf13a241dfa4bd66d2ab42b16d612ee8877",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.299/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-19T18:33:11Z",
+      "releaseNotes": "\n`misc`: **Release Management Rewrite. Untested, Still WIP. Builds at least**.\n\n`misc`: **Updated logic for currently airing series with setting. Update docs**.\n\n`misc`: **Changes for Airing Series**.\n\n`misc`: **API work in preparation for UI and testing**.\n\n`misc`: **Update API for revised plans**.\n\n`refactor` (`release`): **Redesign release candidates with version strategies and gap-fill**:\n\nReplaced the quality-tier split in `SplitOnEpisodeCollisions` with a\nthree-phase candidate generation pipeline:\n\n**Phase 1 (FuzzyGroup)**: Removed the same-group short-circuit that was\ncausing different-resolution/source files from the same group to be\nincorrectly bucketed together.\n\n**Phase 2 (GenerateVersionStrategyCandidates)**: When the same episode is\ncovered by files at different version numbers, generates a `BestAvailable`\ncandidate (highest version per episode, non-corrupted tiebreaker) and a\n`Consistent(v)` candidate for each older version. Non-colliding files\nappear in every strategy candidate. Replaces the old \"all-or-nothing\"\ncollision check that either split everything or kept everything.\n\n**Phase 3 (GenerateGapFillCandidates)**: For each single-family candidate\nthat lacks episodes covered by another family, generates a combined\ncandidate using the first as anchor and the second to fill gaps.\nAnchors with fewer than 2 covered episodes are skipped. File-set\ndeduplication removes symmetric duplicates.\n\n**Mixed signals**: `IsChaptered`, `IsCensored`, and `IsCreditless` now use\nmajority-vote semantics with `Is*Mixed` flags instead of \"any-true\".\n`IsCorrupted` retains any-true semantics.\n\nNew fields on `VideoReleaseCandidate` and `ReleaseCandidate` DTO:\n- `VersionStrategy` (`BestAvailable` | `Consistent`)\n- `Version` (max version for BestAvailable, target version for Consistent)\n- `IsMixed` (true for gap-fill candidates spanning multiple families)\n- `SecondaryGroupNames` (filler group names in gap-fill candidates)\n- `IsChapteredMixed`, `IsCensoredMixed`, `IsCreditlessMixed`\n\n`ParseEpisode` in tests now sets `AnidbEpisodeID` so `BuildSignature`'s\nepisode-ID lookup (which filters zero values) works correctly in tests.\nUpdated two tests whose behavior changed and added three new tests\ncovering gap-fill, multiple-filler, and mixed-signal scenarios.\n\n`misc`: **More Work on Release Management**.\n\n`misc`: **Support Variations in Release Managemnt**.\n\n`misc`: **Updates for server side searching**.\n\n`misc`: **A lot of cleanup and rework to handle release providers. Add settings to Release Management**.\n\n`misc`: **Provide info in Release Candidates to Include Differences**.\n"
+    },
+    {
       "version": "6.0.0.298",
       "tag": "v6.0.0-dev.298",
       "commit": "bd0e2247418be320a5e26aec46a10671e569a59a",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.270/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-10T13:38:18Z",
       "releaseNotes": "\n`fix` (`tmdb`): **Lower default rate limit from 30 to 10 requests per second**:\n\nConservative default to avoid overwhelming end-user hardware with API\nrequests and the data processing each response triggers.\n\n`fix` (`tmdb`): **Correct episodesToSave inversion and fix purge method issues**:\n\n- Fix inverted `episodesToSave.IsEmpty` check — was returning `changed=true`\n  when no episodes changed, causing spurious DB saves and `OnSeriesUpdated`\n  events on every quick-refresh pass\n- `PurgeAllUnusedMovies` / `PurgeAllUnusedShows`: replace chained `Concat`\n  iterators with `HashSet.UnionWith`; eliminates duplicate `GetAll()` on the\n  AniDB xref table\n- `PurgeUnlinkedShowNetworks`: precompute linked network ID set; add re-check\n  under lock to prevent purging a network re-linked by a concurrent show update;\n  fix log message copy-paste (\"staff members\" → \"networks\")\n- `PurgeUnlinkedPeople`: extract `GetLinkedPersonIds()` as single source of\n  truth for the four cast/crew tables; eliminates N+1 queries\n\n`chore` (`tmdb`): **Fix log placeholder casing in PurgeUnlinkedShowNetworks**. (_Skip CI_)\n\n`chore` (`tmdb`): **Fix `contentRanting` typo in local variable names**.\n"
-    },
-    {
-      "version": "6.0.0.269",
-      "tag": "v6.0.0-dev.269",
-      "commit": "70356b0839af38c9f020c9e1acdce47f02e133f3",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.269/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-09T21:55:44Z",
-      "releaseNotes": "\n`fix`: **Nothing to see here, move along**:\n\n…totally didn't forget to remove them from the constructor in the last commit.\n"
     }
   ]
 }
