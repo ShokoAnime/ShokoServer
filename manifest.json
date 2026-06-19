@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.300",
+      "tag": "v6.0.0-dev.300",
+      "commit": "a268bb2bfdb78f4ce5a834661ce82c23240bf645",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.300/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-19T22:40:06Z",
+      "releaseNotes": "\n`fix` (`config`): **Handle null JToken in ToJson extension**:\n\n`JValue(null).ToString()` returns an empty string, not `\"null\"`.\nWhen a setting backed by an `[EnvironmentVariable]` is stored as an\nexplicit JSON null in `settings-server.json`, `ToJson()` fell through\nto `_ => token.ToString()` and stored `\"\"` as the original value.\nOn the next save, `JToken.Parse(\"\")` threw a `JsonReaderException`,\nproducing a 500 on any PATCH to `/api/v3/Settings`.\n"
+    },
+    {
       "version": "6.0.0.299",
       "tag": "v6.0.0-dev.299",
       "commit": "4d1cddf13a241dfa4bd66d2ab42b16d612ee8877",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.271/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-11T01:40:55Z",
       "releaseNotes": "\n`feat` (`filtering`): **Add `AbsoluteFilePaths`, `ContainingFolderPaths`, and generic expression types**:\n\n- Added `AbsoluteFilePaths` and `ContainingFolderPaths` to `IFilterableInfo`\n  with implementations in `Filterable`, `FilterExtensions`, and `TestFilterable`\n- Created `AbsoluteFilePathsSelector` and `ContainingFolderPathsSelector`\n- Moved `GenericFilter` into the `Generic` sub-namespace\n- Added `GenericFilterExpression` and `GenericSortingExpression` for plugins\n  with overloaded constructors accepting `Handler` delegates\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.49**.\n"
-    },
-    {
-      "version": "6.0.0.270",
-      "tag": "v6.0.0-dev.270",
-      "commit": "f93ab22a6ed5b8e525e67b7608159f87866ca214",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.270/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-10T13:38:18Z",
-      "releaseNotes": "\n`fix` (`tmdb`): **Lower default rate limit from 30 to 10 requests per second**:\n\nConservative default to avoid overwhelming end-user hardware with API\nrequests and the data processing each response triggers.\n\n`fix` (`tmdb`): **Correct episodesToSave inversion and fix purge method issues**:\n\n- Fix inverted `episodesToSave.IsEmpty` check — was returning `changed=true`\n  when no episodes changed, causing spurious DB saves and `OnSeriesUpdated`\n  events on every quick-refresh pass\n- `PurgeAllUnusedMovies` / `PurgeAllUnusedShows`: replace chained `Concat`\n  iterators with `HashSet.UnionWith`; eliminates duplicate `GetAll()` on the\n  AniDB xref table\n- `PurgeUnlinkedShowNetworks`: precompute linked network ID set; add re-check\n  under lock to prevent purging a network re-linked by a concurrent show update;\n  fix log message copy-paste (\"staff members\" → \"networks\")\n- `PurgeUnlinkedPeople`: extract `GetLinkedPersonIds()` as single source of\n  truth for the four cast/crew tables; eliminates N+1 queries\n\n`chore` (`tmdb`): **Fix log placeholder casing in PurgeUnlinkedShowNetworks**. (_Skip CI_)\n\n`chore` (`tmdb`): **Fix `contentRanting` typo in local variable names**.\n"
     }
   ]
 }
