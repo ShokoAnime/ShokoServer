@@ -1,9 +1,28 @@
+# IDE / editor
 .vscode
 .vs
 .git
 .devcontainer
 .idea
-scripts
-Installer
+
+# Build outputs (in source tree)
 Shoko.*/bin/**/*
 Shoko.*/obj/**/*
+
+# Projects not needed for the CLI Docker build
+Shoko.Tests/
+Shoko.IntegrationTests/
+Shoko.TestData/
+Shoko.QueueProcessor.Tests/
+Shoko.Benchmarks/
+Shoko.TrayService/
+Installer/
+scripts/
+
+# Repo tooling and docs
+docs/
+*.md
+.github/
+.editorconfig
+.gitignore
+*.sln
