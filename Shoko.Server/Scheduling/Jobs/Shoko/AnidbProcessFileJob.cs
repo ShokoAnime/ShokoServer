@@ -45,7 +45,7 @@ public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleas
 
     public int VideoLocalID { get; set; }
 
-    public bool SkipMyList { get; set; }
+    public bool SkipEvents { get; set; }
 
     public int MatchAttemptID { get; set; }
 
@@ -70,7 +70,7 @@ public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleas
                 result["Video"] = VideoLocalID;
             else
                 result["File Path"] = _fileName;
-            if (!SkipMyList) result["Add to MyList"] = true;
+            if (!SkipEvents) result["Add to MyList"] = true;
             return result;
         }
     }
@@ -133,9 +133,7 @@ public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleas
             _matchAttempt.ProviderName = providerInfo.Name;
             if (!isRescan)
                 _matchAttempt.AttemptCount = 1;
-            await _videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, addToMylist: !SkipMyList);
-
-            _videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, releaseInfo);
+            await _videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, skipEvents: SkipEvents);
         }
         catch (Exception ex)
         {

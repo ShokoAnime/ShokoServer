@@ -75,8 +75,6 @@ public static class ModelClients
             AutoGroupSeries = settings.AutoGroupSeries,
             AutoGroupSeriesUseScoreAlgorithm = settings.AutoGroupSeriesUseScoreAlgorithm,
             AutoGroupSeriesRelationExclusions = string.Join("|", settings.AutoGroupSeriesRelationExclusions).Replace("alternative", "alternate", StringComparison.InvariantCultureIgnoreCase),
-            FileQualityFilterEnabled = settings.FileQualityFilterEnabled,
-            FileQualityFilterPreferences = SettingsProvider.Serialize(settings.FileQualityPreferences),
             Import_MoveOnImport = settings.Plugins.Renamer.MoveOnImport,
             Import_RenameOnImport = settings.Plugins.Renamer.RenameOnImport,
             Import_UseExistingFileWatchedStatus = settings.Import.UseExistingFileWatchedStatus,

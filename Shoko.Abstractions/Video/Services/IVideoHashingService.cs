@@ -148,9 +148,9 @@ public interface IVideoHashingService
     ///   <c>true</c>, the find release process will not be scheduled at all
     ///   after the hashing is completed. 
     /// </param>
-    /// <param name="skipMylist">
+    /// <param name="skipEvents">
     ///   When set to <c>true</c>, then the file will not be added to the
-    ///   user's MyList if a release is found and saved.
+    ///   provider-specific post-save state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <exception cref="InvalidOperationException">
     ///   Thrown if the file is not a video or video container.
@@ -158,7 +158,7 @@ public interface IVideoHashingService
     /// <returns>
     ///   The hashes for the file.
     /// </returns>
-    Task<HashingResult> GetHashesForPath(string path, bool useExistingHashes = true, bool skipFindRelease = false, bool skipMylist = false, CancellationToken cancellationToken = default);
+    Task<HashingResult> GetHashesForPath(string path, bool useExistingHashes = true, bool skipFindRelease = false, bool skipEvents = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Schedules the hashing of a video file in the queue.
@@ -180,9 +180,9 @@ public interface IVideoHashingService
     ///   <c>true</c>, the find release process will not be scheduled at all
     ///   after the hashing is completed. 
     /// </param>
-    /// <param name="skipMylist">
+    /// <param name="skipEvents">
     ///   When set to <c>true</c>, then the file will not be added to the
-    ///   user's MyList if a release is found and saved.
+    ///   provider-specific post-save state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <param name="prioritize">
     ///   If set to <c>true</c>, then the job will be given higher than
@@ -195,7 +195,7 @@ public interface IVideoHashingService
     ///   A task that represents the asynchronous operation of adding the file
     ///   to the queue.
     /// </returns>
-    Task ScheduleGetHashesForPath(string path, bool useExistingHashes = true, bool skipFindRelease = false, bool skipMylist = false, bool prioritize = false);
+    Task ScheduleGetHashesForPath(string path, bool useExistingHashes = true, bool skipFindRelease = false, bool skipEvents = false, bool prioritize = false);
 
     /// <summary>
     ///   Gets the hashes for a given video file.
@@ -211,9 +211,9 @@ public interface IVideoHashingService
     ///   <c>true</c>, the find release process will not be scheduled at all
     ///   after the hashing is completed. 
     /// </param>
-    /// <param name="skipMylist">
+    /// <param name="skipEvents">
     ///   When set to <c>true</c>, then the file will not be added to the
-    ///   user's MyList if a release is found and saved.
+    ///   provider-specific post-save state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <param name="cancellationToken">
     ///   The cancellation token.
@@ -221,7 +221,7 @@ public interface IVideoHashingService
     /// <returns>
     ///   The hashes for the file.
     /// </returns>
-    Task<HashingResult> GetHashesForFile(IVideoFile file, bool useExistingHashes = true, bool skipFindRelease = false, bool skipMylist = false, CancellationToken cancellationToken = default);
+    Task<HashingResult> GetHashesForFile(IVideoFile file, bool useExistingHashes = true, bool skipFindRelease = false, bool skipEvents = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Schedules the hashing of a video file in the queue.
@@ -241,9 +241,9 @@ public interface IVideoHashingService
     ///   <c>true</c>, the find release process will not be scheduled at all
     ///   after the hashing is completed. 
     /// </param>
-    /// <param name="skipMylist">
+    /// <param name="skipEvents">
     ///   When set to <c>true</c>, then the file will not be added to the
-    ///   user's MyList if a release is found and saved.
+    ///   provider-specific post-save state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <param name="prioritize">
     ///   If true, the hashing of the file will be prioritized in the queue.
@@ -252,5 +252,5 @@ public interface IVideoHashingService
     ///   A task that represents the asynchronous operation of adding the file
     ///   to the queue.
     /// </returns>
-    Task ScheduleGetHashesForFile(IVideoFile file, bool useExistingHashes = true, bool skipFindRelease = false, bool skipMylist = false, bool prioritize = false);
+    Task ScheduleGetHashesForFile(IVideoFile file, bool useExistingHashes = true, bool skipFindRelease = false, bool skipEvents = false, bool prioritize = false);
 }

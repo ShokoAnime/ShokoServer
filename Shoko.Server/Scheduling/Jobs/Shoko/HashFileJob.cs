@@ -24,7 +24,7 @@ public class HashFileJob : BaseJob
 
     public bool ForceHash { get; set; }
 
-    public bool SkipMyList { get; set; }
+    public bool SkipEvents { get; set; }
 
     public bool SkipFindRelease { get; set; }
 
@@ -38,7 +38,7 @@ public class HashFileJob : BaseJob
         {
             var result = new Dictionary<string, object> { { "File Path", VideoService.GetDistinctPath(FilePath) } };
             if (ForceHash) result["Force"] = true;
-            if (!SkipMyList) result["Add to MyList"] = true;
+            if (!SkipEvents) result["Add to MyList"] = true;
             if (!SkipFindRelease) result["Find Release"] = true;
             return result;
         }
@@ -56,7 +56,7 @@ public class HashFileJob : BaseJob
         try
         {
             _logger.LogInformation("Processing {Job}: {FileName}", nameof(HashFileJob), VideoService.GetDistinctPath(FilePath));
-            await _videoHashingService.GetHashesForPath(FilePath, useExistingHashes: !ForceHash, skipFindRelease: SkipFindRelease, skipMylist: SkipMyList);
+            await _videoHashingService.GetHashesForPath(FilePath, useExistingHashes: !ForceHash, skipFindRelease: SkipFindRelease, skipEvents: SkipEvents);
         }
         catch (Exception ex)
         {

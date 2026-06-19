@@ -225,17 +225,17 @@ public class ManagedFolderController(
     /// </summary>
     /// <param name="folderID">Managed Folder ID</param>
     /// <param name="removeRecords">If this is false, then VideoLocals, DuplicateFiles, and several other things will be left intact. This is for migration of files to new locations.</param>
-    /// <param name="updateMyList">Pretty self explanatory. If this is true, and <paramref name="removeRecords"/> is true, then it will update the list status</param>
+    /// <param name="skipEvents">If this is true, and <paramref name="removeRecords"/> is true, then providers will sync state for the removed files</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{folderID}")]
     public async Task<ActionResult> DeleteManagedFolderByFolderID([FromRoute, Range(1, int.MaxValue)] int folderID, [FromQuery] bool removeRecords = true,
-        [FromQuery] bool updateMyList = true)
+        [FromQuery] bool skipEvents = false)
     {
         if (managedFolderRepository.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found.");
 
-        await videoService.RemoveManagedFolder(folder, !removeRecords, updateMyList);
+        await videoService.RemoveManagedFolder(folder, !removeRecords, skipEvents);
 
         return Ok();
     }
@@ -248,7 +248,7 @@ public class ManagedFolderController(
     /// <param name="folderID">Managed Folder ID</param>
     /// <param name="relativePath">Relative path to scan.</param>
     /// <param name="onlyNewFiles">Only scan new files</param>
-    /// <param name="skipMylist">Skip updating the MyList for this folder</param>
+    /// <param name="skipEvents">Skip provider-specific state sync for this folder's files</param>
     /// <param name="priority">Prioritize this job in the queue.</param>
     /// <returns></returns>
     [Authorize("admin")]
@@ -257,13 +257,13 @@ public class ManagedFolderController(
         [FromRoute, Range(1, int.MaxValue)] int folderID,
         [FromQuery] string relativePath = "",
         [FromQuery] bool onlyNewFiles = false,
-        [FromQuery] bool skipMylist = false,
+        [FromQuery] bool skipEvents = false,
         [FromQuery] bool priority = false
     )
     {
         if (managedFolderRepository.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found");
-        await scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipMyList) = (folderID, relativePath, onlyNewFiles, skipMylist), prioritize: priority);
+        await scheduler.StartJob<ScanFolderJob>(j => (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipEvents) = (folderID, relativePath, onlyNewFiles, skipEvents), prioritize: priority);
         return Ok();
     }
 

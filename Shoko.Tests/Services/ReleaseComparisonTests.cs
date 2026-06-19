@@ -26,7 +26,7 @@ public class ReleaseComparisonTests
         var settings = new ServerSettings { ReleaseComparisonPreferences = prefs };
         var mock = new Mock<ISettingsProvider>();
         mock.Setup(p => p.GetSettings()).Returns(settings);
-        return new ReleaseComparisonService(mock.Object);
+        return new ReleaseComparisonService(mock.Object, null!);
     }
 
     private static VideoReleaseCandidate MakeCandidate(

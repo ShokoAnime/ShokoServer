@@ -44,7 +44,7 @@ public class ProcessReleaseProviderJob : BaseJob
 
     public int VideoLocalID { get; set; }
 
-    public bool SkipMyList { get; set; }
+    public bool SkipEvents { get; set; }
 
     public int MatchAttemptID { get; set; }
 
@@ -74,7 +74,7 @@ public class ProcessReleaseProviderJob : BaseJob
                 result["Video"] = VideoLocalID;
             else
                 result["File Path"] = _fileName;
-            if (!SkipMyList) result["Add to MyList"] = true;
+            if (!SkipEvents) result["Add to MyList"] = true;
             return result;
         }
     }
@@ -126,9 +126,7 @@ public class ProcessReleaseProviderJob : BaseJob
             var releaseInfo = new ReleaseInfoWithProvider(release, _providerInfo.Name);
             _matchAttempt.ProviderID = _providerInfo.ID;
             _matchAttempt.ProviderName = _providerInfo.Name;
-            await _videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, addToMylist: !SkipMyList);
-
-            _videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, releaseInfo);
+            await _videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, skipEvents: SkipEvents);
         }
         catch (Exception ex)
         {

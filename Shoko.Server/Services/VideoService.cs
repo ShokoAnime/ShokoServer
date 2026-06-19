@@ -294,7 +294,7 @@ public class VideoService : IVideoService
              : Path.Join(managedFolder.Path, relativePath);
         if (string.IsNullOrEmpty(relativePath) || Directory.Exists(absolutePath))
         {
-            await ScanManagedFolder(managedFolder, relativePath: relativePath, onlyNewFiles: false, skipMylist: !updateMylist, cleanUpStructure: false);
+            await ScanManagedFolder(managedFolder, relativePath: relativePath, onlyNewFiles: false, skipEvents: !updateMylist, cleanUpStructure: false);
             return;
         }
 
@@ -360,7 +360,7 @@ public class VideoService : IVideoService
             _logger.LogTrace("Scheduling video hashing for: {Path}", absolutePath);
             try
             {
-                await _videoHashingService.ScheduleGetHashesForPath(absolutePath, skipMylist: !updateMylist);
+                await _videoHashingService.ScheduleGetHashesForPath(absolutePath, skipEvents: !updateMylist);
             }
             catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundException)
             {
@@ -406,7 +406,7 @@ public class VideoService : IVideoService
         }
 
         _logger.LogTrace("Found existing video file with hashes but without release info: {Path} (ED2K={Hash})", absolutePath, video.Hash);
-        await _videoReleaseService.ScheduleFindReleaseForVideo(video, addToMylist: updateMylist);
+        await _videoReleaseService.ScheduleFindReleaseForVideo(video, skipEvents: !updateMylist);
     }
 
     private bool TryGetVideoAndLocation(IManagedFolder managedFolder, string relativePath, [NotNullWhen(true)] out VideoLocal? video, [NotNullWhen(true)] out VideoLocal_Place? videoLocation)
@@ -573,14 +573,14 @@ public class VideoService : IVideoService
 
     #region Video File | Delete
 
-    public async Task RemoveRecordAndDeletePhysicalFile(VideoLocal_Place place, bool deleteFolder = true, bool updateMyList = true)
+    public async Task RemoveRecordAndDeletePhysicalFile(VideoLocal_Place place, bool deleteFolder = true, bool skipEvents = false)
     {
         _logger.LogInformation("Deleting video local place record and file: {Place}", place.Path ?? place.ID.ToString());
 
         if (!File.Exists(place.Path))
         {
             _logger.LogInformation("Unable to find file. Removing Record: {Place}", place.Path ?? place.RelativePath);
-            await RemoveRecord(place, updateMyList);
+            await RemoveRecord(place, skipEvents);
             return;
         }
 
@@ -602,10 +602,10 @@ public class VideoService : IVideoService
         if (deleteFolder)
             RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.Path), place.ManagedFolder!.Path);
 
-        await RemoveRecord(place, updateMyList);
+        await RemoveRecord(place, skipEvents);
     }
 
-    public async Task RemoveAndDeleteFileWithOpenTransaction(ISession session, VideoLocal_Place place, HashSet<AnimeSeries> seriesToUpdate, bool deleteFolders = true, bool updateMyList = true)
+    public async Task RemoveAndDeleteFileWithOpenTransaction(ISession session, VideoLocal_Place place, HashSet<AnimeSeries> seriesToUpdate, bool deleteFolders = true, bool skipEvents = false)
     {
         try
         {
@@ -614,7 +614,7 @@ public class VideoService : IVideoService
             if (!File.Exists(place.Path))
             {
                 _logger.LogInformation("Unable to find file. Removing Record: {FullServerPath}", place.Path);
-                await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
+                await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, skipEvents);
                 return;
             }
 
@@ -636,7 +636,7 @@ public class VideoService : IVideoService
             if (deleteFolders)
                 RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.Path), place.ManagedFolder!.Path);
 
-            await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, updateMyList);
+            await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, skipEvents);
         }
         catch (Exception ex)
         {
@@ -677,7 +677,7 @@ public class VideoService : IVideoService
         }
     }
 
-    public async Task RemoveRecord(VideoLocal_Place place, bool updateMyListStatus = true)
+    public async Task RemoveRecord(VideoLocal_Place place, bool skipEvents = false)
     {
         _logger.LogInformation("Removing VideoLocal_Place record for: {Place}", place.Path ?? place.ID.ToString());
         var seriesToUpdate = new List<AnimeSeries>();
@@ -687,7 +687,7 @@ public class VideoService : IVideoService
         {
             if (v?.Places?.Count <= 1)
             {
-                if (updateMyListStatus)
+                if (!skipEvents)
                     await ScheduleRemovalFromMyList(v);
 
                 try
@@ -742,14 +742,14 @@ public class VideoService : IVideoService
     }
 
     public async Task RemoveRecordWithOpenTransaction(ISession session, VideoLocal_Place place, ICollection<AnimeSeries> seriesToUpdate,
-        bool updateMyListStatus = true)
+        bool skipEvents = false)
     {
         _logger.LogInformation("Removing VideoLocal_Place record for: {Place}", place.Path ?? place.ID.ToString());
         var v = place.VideoLocal;
 
         if (v?.Places?.Count <= 1)
         {
-            if (updateMyListStatus)
+            if (!skipEvents)
                 await ScheduleRemovalFromMyList(v);
 
             var eps = v.AnimeEpisodes?.WhereNotNull().ToList();
@@ -919,7 +919,7 @@ public class VideoService : IVideoService
         return _managedFolderRepository.SaveFolder(managedFolder);
     }
 
-    public async Task RemoveManagedFolder(IManagedFolder folder, bool keepRecords = false, bool removeMyList = true)
+    public async Task RemoveManagedFolder(IManagedFolder folder, bool keepRecords = false, bool skipEvents = false)
     {
         if (keepRecords)
         {
@@ -933,16 +933,16 @@ public class VideoService : IVideoService
         var affectedSeries = new HashSet<AnimeSeries>();
         using var session = _databaseFactory.SessionFactory.OpenSession();
         foreach (var vid in videos)
-            await RemoveRecordWithOpenTransaction(session, vid, affectedSeries, removeMyList);
+            await RemoveRecordWithOpenTransaction(session, vid, affectedSeries, skipEvents);
 
         _managedFolderRepository.Delete(folder.ID);
         await Task.WhenAll(affectedSeries.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
     }
 
-    public async Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false)
-        => await ScanManagedFolder((ShokoManagedFolder)folder, relativePath, onlyNewFiles, skipMylist, cleanUpStructure, checkFileSize, forceScan);
+    public async Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false)
+        => await ScanManagedFolder((ShokoManagedFolder)folder, relativePath, onlyNewFiles, skipEvents, cleanUpStructure, checkFileSize, forceScan);
 
-    private async Task ScanManagedFolder(ShokoManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false)
+    private async Task ScanManagedFolder(ShokoManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false)
     {
         cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
         checkFileSize ??= _settingsProvider.GetSettings().Import.CheckFileSize;
@@ -977,21 +977,21 @@ public class VideoService : IVideoService
                 if (location.Path is not { Length: > 0 } path)
                 {
                     _logger.LogInformation("Removing invalid full path for VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
-                    await RemoveRecord(location, updateMyListStatus: !skipMylist);
+                    await RemoveRecord(location, skipEvents: skipEvents);
                     continue;
                 }
 
                 if (!location.IsAvailable)
                 {
                     _logger.LogInformation("Removing missing path for VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
-                    await RemoveRecord(location, updateMyListStatus: !skipMylist);
+                    await RemoveRecord(location, skipEvents: skipEvents);
                     continue;
                 }
 
                 if (location.VideoLocal is not { } video)
                 {
                     _logger.LogInformation("Removing orphaned VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
-                    await RemoveRecord(location, updateMyListStatus: false);
+                    await RemoveRecord(location, skipEvents: true);
                     continue;
                 }
 
@@ -1040,7 +1040,7 @@ public class VideoService : IVideoService
 
                 videosFound++;
 
-                await NotifyVideoFileChangeDetected(folder, relativePath, updateMylist: !skipMylist, forceScan: forceScan);
+                await NotifyVideoFileChangeDetected(folder, relativePath, updateMylist: !skipEvents, forceScan: forceScan);
             },
             new ExecutionDataflowBlockOptions
             {
@@ -1079,18 +1079,18 @@ public class VideoService : IVideoService
         return FileSystemHelpers.GetFilePaths(folder.Path, recursive: true, filter: IsMatch);
     }
 
-    public async Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false, bool prioritize = true)
+    public async Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false, bool prioritize = true)
     {
         cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
         checkFileSize ??= _settingsProvider.GetSettings().Import.CheckFileSize;
         await _scheduler.StartJob<ScanFolderJob>(j =>
-            (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipMyList, j.CleanUpStructure, j.CheckFileSize, j.ForceScan) =
-            (folder.ID, relativePath, onlyNewFiles, skipMylist, cleanUpStructure.Value, checkFileSize.Value, forceScan),
+            (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipEvents, j.CleanUpStructure, j.CheckFileSize, j.ForceScan) =
+            (folder.ID, relativePath, onlyNewFiles, skipEvents, cleanUpStructure.Value, checkFileSize.Value, forceScan),
             prioritize
         );
     }
 
-    public async Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipMylist = false, bool? cleanUpStructure = null, bool forceScan = false, bool prioritize = true)
+    public async Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipEvents = false, bool? cleanUpStructure = null, bool forceScan = false, bool prioritize = true)
     {
         cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
 
@@ -1100,16 +1100,16 @@ public class VideoService : IVideoService
         if (!onlyNewFiles.HasValue)
         {
             foreach (var source in sources)
-                await ScheduleScanForManagedFolder(source, skipMylist: skipMylist, cleanUpStructure: cleanUpStructure, prioritize: prioritize);
+                await ScheduleScanForManagedFolder(source, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, prioritize: prioritize);
             foreach (var folder in rest)
-                await ScheduleScanForManagedFolder(folder, onlyNewFiles: true, skipMylist: skipMylist, cleanUpStructure: cleanUpStructure, prioritize: prioritize);
+                await ScheduleScanForManagedFolder(folder, onlyNewFiles: true, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, prioritize: prioritize);
             return;
         }
 
         foreach (var source in sources)
-            await ScheduleScanForManagedFolder(source, skipMylist: skipMylist, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
+            await ScheduleScanForManagedFolder(source, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
         foreach (var folder in rest)
-            await ScheduleScanForManagedFolder(folder, onlyNewFiles: onlyNewFiles.Value, skipMylist: skipMylist, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
+            await ScheduleScanForManagedFolder(folder, onlyNewFiles: onlyNewFiles.Value, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
     }
 
     #endregion Managed Folder

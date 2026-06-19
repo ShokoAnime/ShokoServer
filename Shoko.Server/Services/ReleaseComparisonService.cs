@@ -14,7 +14,7 @@ namespace Shoko.Server.Services;
 /// tie-breaker comparison: the first signal in <see cref="ReleaseComparisonPreferences.SignalPriority"/>
 /// where the two candidates differ declares the winner.
 /// </summary>
-public class ReleaseComparisonService(ISettingsProvider settingsProvider)
+public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoReleaseGroupingService groupingService)
 {
     private ReleaseComparisonPreferences Prefs => settingsProvider.GetSettings().ReleaseComparisonPreferences;
 
@@ -60,6 +60,28 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider)
         // Stable sort: preserve input order for ties
         list.Sort((a, b) => Compare(a, b));
         return list;
+    }
+
+    /// <summary>
+    /// Sorts <paramref name="videos"/> by release rank (rank 1 first). Videos not
+    /// captured by any candidate are appended at the end in their original order.
+    /// </summary>
+    public List<VideoLocal> SortByRank(IEnumerable<VideoLocal> videos)
+    {
+        var list = videos.ToList();
+        var byId = list.ToDictionary(v => v.VideoLocalID);
+        var places = list.Select(v => v.Places.FirstOrDefault()).OfType<VideoLocal_Place>().ToList();
+        var ranked = Rank(groupingService.Group(places));
+        var seen = new HashSet<int>();
+        var sorted = new List<VideoLocal>(list.Count);
+        foreach (var candidate in ranked)
+            foreach (var place in candidate.Places)
+                if (byId.TryGetValue(place.VideoID, out var video) && seen.Add(video.VideoLocalID))
+                    sorted.Add(video);
+        foreach (var video in list)
+            if (seen.Add(video.VideoLocalID))
+                sorted.Add(video);
+        return sorted;
     }
 
     /// <summary>

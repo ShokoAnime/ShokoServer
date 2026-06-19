@@ -48,8 +48,17 @@ public class ReleaseComparisonPreferences
     public bool PreferHigherBitDepth { get; set; } = true;
 
     /// <summary>
+    /// When true, the auto-management check runs at the end of every import.
+    /// When false, no redundancy check is triggered on import; the check can
+    /// still be invoked manually via the API.
+    /// </summary>
+    public bool AutoDeleteOnImport { get; set; } = false;
+
+    /// <summary>
     /// When true, redundant release candidates are automatically deleted.
-    /// Must be explicitly set; defaults to false (preview/display mode only).
+    /// When false, the check still runs but only logs what would be removed
+    /// (preview/display mode). Requires <see cref="AutoDeleteOnImport"/> to
+    /// be true for the deletion to trigger automatically on import.
     /// </summary>
     public bool AllowDeletion { get; set; } = false;
 

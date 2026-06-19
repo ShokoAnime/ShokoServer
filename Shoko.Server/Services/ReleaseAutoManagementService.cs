@@ -36,9 +36,17 @@ public class ReleaseAutoManagementService(
     /// Entry point called at the end of <c>FinalizeReleaseSearchJob</c>.
     /// Groups all files for each series the video belongs to, ranks the
     /// candidates, and removes redundant files according to configured preferences.
+    /// No-ops when <see cref="ReleaseComparisonPreferences.AutoDeleteOnImport"/> is false.
     /// </summary>
-    public async Task CheckAndAutoManage(VideoLocal video)
+    /// <returns>
+    /// <see langword="true"/> if the incoming <paramref name="video"/> was itself deleted
+    /// (i.e. it was the redundant candidate); <see langword="false"/> otherwise.
+    /// </returns>
+    public async Task<bool> CheckAndAutoManage(VideoLocal video)
     {
+        if (!settingsProvider.GetSettings().ReleaseComparisonPreferences.AutoDeleteOnImport)
+            return false;
+
         var animeIDs = crossRefs.GetByEd2k(video.Hash)
             .Select(x => x.AnimeID)
             .Where(id => id > 0)
@@ -46,7 +54,7 @@ public class ReleaseAutoManagementService(
             .ToList();
 
         if (animeIDs.Count == 0)
-            return;
+            return false;
 
         foreach (var animeID in animeIDs)
         {
@@ -56,6 +64,9 @@ public class ReleaseAutoManagementService(
 
             await CheckSeriesAsync(series);
         }
+
+        // If the VideoLocal record is gone, auto-management deleted the incoming file.
+        return videoLocals.GetByID(video.VideoLocalID) is null;
     }
 
     /// <summary>

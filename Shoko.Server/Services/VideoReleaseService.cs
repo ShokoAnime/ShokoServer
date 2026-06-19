@@ -8,8 +8,6 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Metadata.Anidb.Enums;
-using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.User.Services;
@@ -20,22 +18,12 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plugin;
-using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.AniDB.Release;
-using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.AniDB;
-using Shoko.Server.Repositories.Direct;
-using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
-using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Settings;
 
 #nullable enable
@@ -44,12 +32,10 @@ namespace Shoko.Server.Services;
 public class VideoReleaseService(
     ILogger<VideoReleaseService> logger,
     IConfigurationService configurationService,
-    IUDPConnectionHandler udpConnection,
     ISettingsProvider settingsProvider,
     ConfigurationProvider<VideoReleaseServiceSettings> configurationProvider,
     IQueueScheduler schedulerFactory,
     QueueJobTypeRegistry jobTypeRegistry,
-    IRequestFactory requestFactory,
     IUserService userService,
     IServiceProvider serviceProvider,
     IPluginManager pluginManager,
@@ -57,11 +43,6 @@ public class VideoReleaseService(
     VideoLocalRepository videoRepository,
     StoredReleaseInfoRepository releaseInfoRepository,
     StoredReleaseInfo_MatchAttemptRepository releaseInfoMatchAttemptRepository,
-    AniDB_EpisodeRepository anidbEpisodeRepository,
-    AniDB_AnimeRepository anidbAnimeRepository,
-    AniDB_AnimeUpdateRepository anidbAnimeUpdateRepository,
-    AnimeSeriesRepository shokoSeriesRepository,
-    CrossRef_AniDB_TMDB_ShowRepository crossRefAnidbTmdbRepository,
     CrossRef_File_EpisodeRepository xrefRepository
 ) : IVideoReleaseService
 {
@@ -71,17 +52,12 @@ public class VideoReleaseService(
     // lazy init the user data service to break the circle.
     private IUserDataService? _userDataService;
 
-    // Lazy init. to prevent circular dependency.
-    private IAnidbService? _anidbService;
-
     private IServerSettings _settings => settingsProvider.GetSettings();
 
     private Dictionary<Guid, ReleaseProviderInfo> _releaseProviderInfos = [];
 
     // Maps IReleaseInfoProvider concrete type → job type (from IVideoReleaseProviderJob<T> implementations)
     private Dictionary<Type, Type> _providerJobTypes = [];
-
-    private readonly HashSet<int> _unknownEpisodeIDs = [];
 
     private readonly Lock _lock = new();
 
@@ -370,7 +346,7 @@ public class VideoReleaseService(
 
     #region Find Release
 
-    public async Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool addToMylist = true, bool relocateFiles = true, bool prioritize = false)
+    public async Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool skipEvents = false, bool relocateFiles = true, bool prioritize = false)
     {
         if (!AutoMatchEnabled)
         {
@@ -420,6 +396,7 @@ public class VideoReleaseService(
                     Exception = null,
                     AttemptedProviders = providerList,
                     SelectedProvider = null,
+                    IsCancelled = false,
                 });
             }
             catch (Exception ex)
@@ -449,14 +426,14 @@ public class VideoReleaseService(
                     j,
                     video.ID,
                     matchAttempt.StoredReleaseInfo_MatchAttemptID,
-                    addToMylist
+                    skipEvents
                 ));
             else
                 chain.Then<ProcessReleaseProviderJob>(c =>
                 {
                     c.VideoLocalID = video.ID;
                     c.MatchAttemptID = matchAttempt.StoredReleaseInfo_MatchAttemptID;
-                    c.SkipMyList = !addToMylist;
+                    c.SkipEvents = skipEvents;
                     c.ProviderID = p.ID;
                 });
         }
@@ -471,49 +448,51 @@ public class VideoReleaseService(
         await chain.EnqueueAfterCurrent();
     }
 
-    public void FireSearchCompleted(IVideo video, IReleaseMatchAttempt attempt, IReleaseInfo? releaseInfo = null, Exception? exception = null)
+    public VideoReleaseSearchCompletedEventArgs FireSearchCompleted(IVideo video, IReleaseMatchAttempt attempt, IReleaseInfo? releaseInfo = null, Exception? exception = null, bool isCancelled = false)
     {
+        var allProviders = GetAvailableProviders()
+            .DistinctBy(p => p.Name)
+            .ToDictionary(p => p.Name);
+        var providerList = attempt.AttemptedProviderNames
+            .Where(allProviders.ContainsKey)
+            .Select(p => allProviders[p])
+            .Select((provider, index) => new ReleaseProviderInfo()
+            {
+                ID = provider.ID,
+                Version = provider.Version,
+                Name = provider.Name,
+                Description = provider.Description,
+                Provider = provider.Provider,
+                ConfigurationInfo = provider.ConfigurationInfo,
+                PluginInfo = provider.PluginInfo,
+                Enabled = true,
+                Priority = index,
+            })
+            .ToList();
+        var selectedProvider = providerList
+            .FirstOrDefault(p => p.ID == attempt.ProviderID);
+        var eventArgs = new VideoReleaseSearchCompletedEventArgs()
+        {
+            Video = video,
+            ReleaseInfo = releaseInfo,
+            IsSaved = true,
+            IsAutomatic = true,
+            StartedAt = attempt.AttemptStartedAt,
+            CompletedAt = attempt.AttemptEndedAt,
+            Exception = exception,
+            AttemptedProviders = providerList,
+            SelectedProvider = selectedProvider,
+            IsCancelled = isCancelled,
+        };
         try
         {
-            var allProviders = GetAvailableProviders()
-                .DistinctBy(p => p.Name)
-                .ToDictionary(p => p.Name);
-            var providerList = attempt.AttemptedProviderNames
-                .Where(allProviders.ContainsKey)
-                .Select(p => allProviders[p])
-                .Select((provider, index) => new ReleaseProviderInfo()
-                {
-                    ID = provider.ID,
-                    Version = provider.Version,
-                    Name = provider.Name,
-                    Description = provider.Description,
-                    Provider = provider.Provider,
-                    ConfigurationInfo = provider.ConfigurationInfo,
-                    PluginInfo = provider.PluginInfo,
-                    Enabled = true,
-                    Priority = index,
-                })
-                .ToList();
-            var selectedProvider = providerList
-                .FirstOrDefault(p => p.ID == attempt.ProviderID);
-            var eventArgs = new VideoReleaseSearchCompletedEventArgs()
-            {
-                Video = video,
-                ReleaseInfo = releaseInfo,
-                IsSaved = true,
-                IsAutomatic = true,
-                StartedAt = attempt.AttemptStartedAt,
-                CompletedAt = attempt.AttemptEndedAt,
-                Exception = exception,
-                AttemptedProviders = providerList,
-                SelectedProvider = selectedProvider,
-            };
             SearchCompleted?.Invoke(this, eventArgs);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Got an error in a SearchCompleted event.");
         }
+        return eventArgs;
     }
 
     private bool IsProviderCurrentlyUsable(ReleaseProviderInfo provider)
@@ -522,12 +501,12 @@ public class VideoReleaseService(
         return !schedulerFactory.IsJobTypeBlocked(jobType);
     }
 
-    private static void SetProviderJobProps(IQueueJob job, int videoLocalID, int MatchAttemptID, bool addToMylist)
+    private static void SetProviderJobProps(IQueueJob job, int videoLocalID, int MatchAttemptID, bool skipEvents)
     {
         var type = job.GetType();
         type.GetProperty(nameof(ProcessReleaseProviderJob.VideoLocalID))?.SetValue(job, videoLocalID);
         type.GetProperty(nameof(ProcessReleaseProviderJob.MatchAttemptID))?.SetValue(job, MatchAttemptID);
-        type.GetProperty(nameof(ProcessReleaseProviderJob.SkipMyList))?.SetValue(job, !addToMylist);
+        type.GetProperty(nameof(ProcessReleaseProviderJob.SkipEvents))?.SetValue(job, skipEvents);
     }
 
     public async Task<bool> TryScheduleRescanForVideo(IVideo video, IReleaseInfo existingRelease, IReleaseMatchAttempt lastAttempt)
@@ -559,10 +538,10 @@ public class VideoReleaseService(
         return false;
     }
 
-    public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool addToMylist = true, bool isAutomatic = true, CancellationToken cancellationToken = default)
-         => await FindReleaseForVideo(video, GetAvailableProviders(onlyEnabled: true), saveRelease, addToMylist, isAutomatic, cancellationToken);
+    public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool skipEvents = false, bool isAutomatic = true, CancellationToken cancellationToken = default)
+         => await FindReleaseForVideo(video, GetAvailableProviders(onlyEnabled: true), saveRelease, skipEvents, isAutomatic, cancellationToken);
 
-    public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, IEnumerable<ReleaseProviderInfo> providers, bool saveRelease = true, bool addToMylist = true, bool isAutomatic = true, CancellationToken cancellationToken = default)
+    public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, IEnumerable<ReleaseProviderInfo> providers, bool saveRelease = true, bool skipEvents = false, bool isAutomatic = true, CancellationToken cancellationToken = default)
     {
         var startedAt = DateTime.Now;
         var completedAt = startedAt;
@@ -626,7 +605,7 @@ public class VideoReleaseService(
             if (!saveRelease || releaseInfo is null)
                 return releaseInfo;
 
-            releaseInfo = await SaveReleaseForVideo(video, releaseInfo, matchAttempt, addToMylist);
+            releaseInfo = await SaveReleaseForVideo(video, releaseInfo, matchAttempt, skipEvents);
             completedAt = matchAttempt.AttemptEndedAt;
             return releaseInfo;
         }
@@ -644,25 +623,38 @@ public class VideoReleaseService(
         }
         finally
         {
+            var completedArgs = new VideoReleaseSearchCompletedEventArgs()
+            {
+                Video = video,
+                ReleaseInfo = releaseInfo,
+                IsSaved = saveRelease,
+                IsAutomatic = isAutomatic,
+                StartedAt = startedAt,
+                CompletedAt = completedAt,
+                Exception = exception,
+                AttemptedProviders = providerList,
+                SelectedProvider = selectedProvider,
+                IsCancelled = false,
+            };
             // We don't want the search started/completed events to interrupt the search, so wrap them both in a try…catch block.
             try
             {
-                SearchCompleted?.Invoke(this, new()
-                {
-                    Video = video,
-                    ReleaseInfo = releaseInfo,
-                    IsSaved = saveRelease,
-                    IsAutomatic = isAutomatic,
-                    StartedAt = startedAt,
-                    CompletedAt = completedAt,
-                    Exception = exception,
-                    AttemptedProviders = providerList,
-                    SelectedProvider = selectedProvider,
-                });
+                SearchCompleted?.Invoke(this, completedArgs);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Got an error in a SearchCompleted event.");
+            }
+            if (completedArgs.IsSuccessful && exception is null && saveRelease)
+            {
+                try
+                {
+                    await completedArgs.SelectedProvider.Provider.OnSearchCompleted(completedArgs);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Got an error in a provider OnSearchCompleted.");
+                }
             }
         }
     }
@@ -689,22 +681,40 @@ public class VideoReleaseService(
 
     #region Save Release
 
-    public Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, ReleaseInfo release, string providerName = "User", bool addToMylist = true)
-        => SaveReleaseForVideo(video, new ReleaseInfoWithProvider(release, providerName), addToMylist);
+    public Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, ReleaseInfo release, string providerName = "User", bool skipEvents = false)
+        => SaveReleaseForVideo(video, new ReleaseInfoWithProvider(release, providerName), skipEvents);
 
-    public async Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, bool addToMylist = true)
-        => await SaveReleaseForVideo(video, release, new() { ProviderName = release.ProviderName, EmbeddedAttemptProviderNames = release.ProviderName, AttemptStartedAt = DateTime.UtcNow, AttemptEndedAt = DateTime.UtcNow, ED2K = video.ED2K, FileSize = video.Size }, addToMylist);
+    public Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, bool skipEvents = false)
+        => SaveReleaseForVideo(video, release, new StoredReleaseInfo_MatchAttempt()
+        {
+            ProviderName = release.ProviderName,
+            EmbeddedAttemptProviderNames = release.ProviderName,
+            AttemptStartedAt = DateTime.UtcNow,
+            AttemptEndedAt = DateTime.UtcNow,
+            ED2K = video.ED2K,
+            FileSize = video.Size,
+        }, skipEvents);
 
-    internal async Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, StoredReleaseInfo_MatchAttempt matchAttempt, bool addToMylist = true)
+    internal async Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, StoredReleaseInfo_MatchAttempt matchAttempt, bool skipEvents = false)
     {
         if (release.CrossReferences.Count < 1)
             throw new InvalidOperationException("Release must have at least one valid cross reference.");
 
-        var releaseInfo = new StoredReleaseInfo(video, release);
-        if (!CheckCrossReferences(video, releaseInfo, out var legacyXrefs))
-            throw new InvalidOperationException($"Release have {release.CrossReferences.Count - legacyXrefs.Count} invalid cross reference(s).");
+        // Let the matched provider fill in any missing data before we convert to the stored model.
+        // ReleaseInfo is the mutable DTO; ReleaseInfoWithProvider is the IReleaseInfo-implementing subclass.
+        var mutableRelease = release as ReleaseInfo ?? new ReleaseInfo(release);
+        var saveProvider = GetAvailableProviders().FirstOrDefault(p => p.Name == (mutableRelease.ProviderName ?? release.ProviderName));
+        if (saveProvider is not null)
+        {
+            try { await saveProvider.Provider.PrepareForSave(video, mutableRelease); }
+            catch (Exception ex) { logger.LogError(ex, "Got an error in PrepareForSave from provider {Provider}.", saveProvider.Name); }
+        }
 
-        var missingGroupId = CheckReleaseGroup(releaseInfo);
+        // Convert back to IReleaseInfo so StoredReleaseInfo can consume it.
+        var preparedRelease = mutableRelease as IReleaseInfo ?? new ReleaseInfoWithProvider(mutableRelease, release.ProviderName);
+        var releaseInfo = new StoredReleaseInfo(video, preparedRelease);
+        if (!CheckCrossReferences(video, releaseInfo, out var legacyXrefs))
+            throw new InvalidOperationException($"Release have {mutableRelease.CrossReferences.Count - legacyXrefs.Count} invalid cross reference(s).");
 
         // Ensure we don't have an empty list of hashes.
         if (releaseInfo.Hashes is { } hashes)
@@ -733,7 +743,7 @@ public class VideoReleaseService(
                 lastImportedAt = vl0.DateTimeImported;
 
             releaseInfo.PreventRescan = releaseInfo.PreventRescan || existingRelease.PreventRescan;
-            await ClearReleaseForVideo(video, existingRelease, removeFromMylist: addToMylist && !releaseUriMatches);
+            await ClearReleaseForVideo(video, existingRelease, skipEvents: skipEvents, replacingRelease: preparedRelease);
         }
 
         // Make sure the revision is valid.
@@ -753,21 +763,14 @@ public class VideoReleaseService(
             videoRepository.Save(videoLocal);
         }
 
-        // Schedule the release group to be fetched if needed.
-        if (missingGroupId is not null)
-            await schedulerFactory.RunAfterCurrent<GetAniDBReleaseGroupJob>(c => c.GroupID = missingGroupId.Value);
-
-        await ScheduleAnimeForRelease(legacyXrefs);
+        if (saveProvider is not null)
+        {
+            try { await saveProvider.Provider.OnReleaseSaved(video, releaseInfo, legacyXrefs); }
+            catch (Exception ex) { logger.LogError(ex, "Got an error in OnReleaseSaved from provider {Provider}.", saveProvider.Name); }
+        }
 
         SetWatchedStateIfNeeded(video, releaseInfo);
 
-        // Sync to mylist if needed.
-        if (addToMylist && !releaseUriMatches && _settings.AniDb.MyList_AddFiles)
-            await schedulerFactory.StartJob<AddFileToMyListJob>(c =>
-            {
-                c.Hash = video.ED2K;
-                c.ReadStates = true;
-            }).ConfigureAwait(false);
         // Rename and/or move the physical file(s) if needed.
         await relocationService.ChainAutoRelocationForVideo(video).ConfigureAwait(false);
 
@@ -804,52 +807,15 @@ public class VideoReleaseService(
                 continue;
             }
 
-            if (_unknownEpisodeIDs.Contains(firstXref.AnidbEpisodeID))
-            {
-                logger.LogError("Unknown episode id: {EpisodeID}!", firstXref.AnidbEpisodeID);
-                continue;
-            }
-
-            // If the provider doesn't know which anime the episode belongs to, then try to look it up.
+            // Provider's PrepareForSave should have resolved AnidbAnimeID for any cross-references
+            // where it was missing. Use the most common non-zero value from the group.
             var animeID = xrefGroup
                 .Select(xref => xref.AnidbAnimeID ?? 0)
-                .Where(animeID => animeID > 0)
-                .GroupBy(animeID => animeID)
-                .OrderByDescending(groupBy => groupBy.Count())
+                .Where(id => id > 0)
+                .GroupBy(id => id)
+                .OrderByDescending(g => g.Count())
                 .FirstOrDefault()?
                 .Key;
-            if (animeID is null)
-            {
-                if (anidbEpisodeRepository.GetByEpisodeID(firstXref.AnidbEpisodeID) is { } episode)
-                {
-                    animeID = episode.AnimeID;
-                }
-                else if (udpConnection.IsBanned)
-                {
-                    logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, but we're UDP banned, so deferring fetch to later!", firstXref.AnidbEpisodeID);
-                }
-                else
-                {
-                    logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, downloading more info…", firstXref.AnidbEpisodeID);
-                    try
-                    {
-                        var episodeResponse = requestFactory
-                            .Create<RequestGetEpisode>(r => r.EpisodeID = firstXref.AnidbEpisodeID)
-                            .Send();
-                        animeID = episodeResponse.Response?.AnimeID;
-                        if (episodeResponse.Code is UDPReturnCode.NO_SUCH_EPISODE)
-                        {
-                            logger.LogError("Unknown episode with id {EpisodeID}!", firstXref.AnidbEpisodeID);
-                            _unknownEpisodeIDs.Add(firstXref.AnidbEpisodeID);
-                            continue;
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        logger.LogError(e, "Could not get Episode Info for {EpisodeID}!", firstXref.AnidbEpisodeID);
-                    }
-                }
-            }
 
             var xrefList = new List<EmbeddedCrossReference>();
             foreach (var xref in xrefGroup)
@@ -913,151 +879,6 @@ public class VideoReleaseService(
         return true;
     }
 
-    private int? CheckReleaseGroup(StoredReleaseInfo releaseInfo)
-    {
-        if (string.IsNullOrEmpty(releaseInfo.GroupID) || string.IsNullOrEmpty(releaseInfo.GroupSource))
-        {
-            releaseInfo.GroupID = null;
-            releaseInfo.GroupSource = null;
-            releaseInfo.GroupName = null;
-            releaseInfo.GroupShortName = null;
-            return null;
-        }
-
-        if (
-            !GetAniDBReleaseGroupJob.InvalidReleaseGroupNames.Contains(releaseInfo.GroupName) &&
-            !GetAniDBReleaseGroupJob.InvalidReleaseGroupNames.Contains(releaseInfo.GroupShortName) &&
-            !string.IsNullOrEmpty(releaseInfo.GroupName) &&
-            !string.IsNullOrEmpty(releaseInfo.GroupShortName)
-        )
-            return null;
-
-        // If we have an existing release from the group with valid names, use that.
-        var existingReleasesForGroup = releaseInfoRepository.GetByGroupAndProviderIDs(releaseInfo.GroupID, releaseInfo.GroupSource)
-            .Where(rI => !string.IsNullOrEmpty(rI.GroupName) && !string.IsNullOrEmpty(rI.GroupShortName))
-            .OrderByDescending(rI => rI.LastUpdatedAt)
-            .ToList();
-        if (existingReleasesForGroup.Count > 0)
-        {
-            releaseInfo.GroupName = existingReleasesForGroup[0].GroupName;
-            releaseInfo.GroupShortName = existingReleasesForGroup[0].GroupShortName;
-            return null;
-        }
-
-        // Remove the group info if it's not from AniDB and doesn't have a valid name/short name.
-        if (releaseInfo.GroupSource is not "AniDB" || !int.TryParse(releaseInfo.GroupID, out var groupID) || groupID <= 0)
-        {
-            releaseInfo.GroupID = null;
-            releaseInfo.GroupSource = null;
-            releaseInfo.GroupName = null;
-            releaseInfo.GroupShortName = null;
-            return null;
-        }
-
-        // Otherwise try to fetch group info from AniDB.
-        try
-        {
-            var response = requestFactory
-                .Create<RequestReleaseGroup>(r => r.ReleaseGroupID = groupID)
-                .Send();
-            if (response.Response is not null)
-            {
-                if (
-                    !string.IsNullOrEmpty(response.Response.Name) &&
-                    !string.IsNullOrEmpty(response.Response.ShortName) &&
-                    !GetAniDBReleaseGroupJob.InvalidReleaseGroupNames.Contains(response.Response.Name) &&
-                    !GetAniDBReleaseGroupJob.InvalidReleaseGroupNames.Contains(response.Response.ShortName)
-                )
-                {
-                    releaseInfo.GroupName = response.Response.Name;
-                    releaseInfo.GroupShortName = response.Response.ShortName;
-                    return null;
-                }
-                else
-                {
-                    releaseInfo.GroupID = null;
-                    releaseInfo.GroupSource = null;
-                    releaseInfo.GroupName = null;
-                    releaseInfo.GroupShortName = null;
-                }
-            }
-            else
-            {
-                releaseInfo.GroupID = null;
-                releaseInfo.GroupSource = null;
-                releaseInfo.GroupName = null;
-                releaseInfo.GroupShortName = null;
-            }
-            return null;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Could not get IReleaseGroup info from AniDB for {GroupID}!", groupID);
-
-            releaseInfo.GroupName = null;
-            releaseInfo.GroupShortName = null;
-
-            return groupID;
-        }
-    }
-
-    private async Task ScheduleAnimeForRelease(IReadOnlyList<IVideoCrossReference> xrefs)
-    {
-        var animeIDs = xrefs
-            .GroupBy(xref => xref.AnidbAnimeID)
-            .ExceptBy([0], groupBy => groupBy.Key)
-            .ToDictionary(
-                groupBy => groupBy.Key,
-                groupBy =>
-                    anidbAnimeRepository.GetByAnimeID(groupBy.Key) is null ||
-                    shokoSeriesRepository.GetByAnimeID(groupBy.Key) is null ||
-                    anidbAnimeUpdateRepository.GetByAnimeID(groupBy.Key) is null ||
-                    groupBy.Any(xref => xref.AnidbEpisode is null || xref.ShokoEpisode is null)
-            );
-        if (animeIDs.Count == 0)
-            return;
-        var refreshMethod = AnidbRefreshMethod.Default | AnidbRefreshMethod.CreateShokoSeries;
-        if (_settings.AutoGroupSeries || _settings.AniDb.DownloadRelatedAnime)
-            refreshMethod |= AnidbRefreshMethod.DownloadRelations;
-        foreach (var (animeID, missingEpisodes) in animeIDs)
-        {
-            var animeRecentlyUpdated = false;
-            var update = anidbAnimeUpdateRepository.GetByAnimeID(animeID)!;
-            if (!missingEpisodes && (DateTime.Now - update.UpdatedAt).TotalHours < _settings.AniDb.MinimumHoursToRedownloadAnimeInfo)
-                animeRecentlyUpdated = true;
-
-            // even if we are missing episode info, don't get data  more than once every `x` hours
-            // this is to prevent banning
-            if (missingEpisodes)
-            {
-                logger.LogInformation("Queuing immediate GET for AniDB_Anime: {AnimeID}", animeID);
-                _anidbService ??= serviceProvider.GetRequiredService<IAnidbService>();
-                await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod, prioritize: true);
-                // Stats after this provider job (cross-refs visible); GetAniDBAnimeJob will schedule a second refresh after episodes are created.
-                await schedulerFactory.RunAfterCurrent<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
-            }
-            else if (!animeRecentlyUpdated)
-            {
-                logger.LogInformation("Queuing GET for AniDB_Anime: {AnimeID}", animeID);
-                _anidbService ??= serviceProvider.GetRequiredService<IAnidbService>();
-                await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod);
-                // Stats after this provider job (cross-refs visible); GetAniDBAnimeJob will schedule a second refresh after episodes are created.
-                await schedulerFactory.RunAfterCurrent<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
-            }
-            else
-            {
-                await schedulerFactory.RunAfterCurrent<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
-            }
-
-            var tmdbShowXrefs = crossRefAnidbTmdbRepository.GetByAnidbAnimeID(animeID);
-            foreach (var xref in tmdbShowXrefs)
-                await schedulerFactory.RunAfterCurrent<UpdateTmdbShowJob>(job =>
-                {
-                    job.TmdbShowID = xref.TmdbShowID;
-                    job.DownloadImages = true;
-                }).ConfigureAwait(false);
-        }
-    }
 
     private void SetWatchedStateIfNeeded(IVideo video, IReleaseInfo releaseInfo)
     {
@@ -1092,13 +913,13 @@ public class VideoReleaseService(
 
     #region Clear Release
 
-    public async Task ClearReleaseForVideo(IVideo video, bool removeFromMylist = true)
+    public async Task ClearReleaseForVideo(IVideo video, bool skipEvents = false)
     {
         if (releaseInfoRepository.GetByEd2kAndFileSize(video.ED2K, video.Size) is { } existingRelease)
-            await ClearReleaseForVideo(video, existingRelease, removeFromMylist);
+            await ClearReleaseForVideo(video, existingRelease, skipEvents);
     }
 
-    public async Task PurgeUsedReleases(IEnumerable<string>? providerNames = null, bool removeFromMylist = true)
+    public async Task PurgeUsedReleases(IEnumerable<string>? providerNames = null, bool skipEvents = false)
     {
         var providerNameSet = providerNames?.ToHashSet();
         var releases = releaseInfoRepository.GetAll()
@@ -1106,10 +927,10 @@ public class VideoReleaseService(
             .Where(v => v.video is not null && (providerNameSet is null || providerNameSet.Contains(v.release.ProviderName)))
             .ToList();
         foreach (var (video, release) in releases)
-            await ClearReleaseForVideo(video, release, removeFromMylist);
+            await ClearReleaseForVideo(video, release, skipEvents);
     }
 
-    public async Task PurgeUnusedReleases(IEnumerable<string>? providerNames = null, bool removeFromMylist = true)
+    public async Task PurgeUnusedReleases(IEnumerable<string>? providerNames = null, bool skipEvents = false)
     {
         var providerNameSet = providerNames?.ToHashSet();
         var releases = releaseInfoRepository.GetAll()
@@ -1117,19 +938,19 @@ public class VideoReleaseService(
             .Where(release => providerNameSet is null || providerNameSet.Contains(release.ProviderName))
             .ToList();
         foreach (var release in releases)
-            await ClearReleaseForVideo(null, release, removeFromMylist);
+            await ClearReleaseForVideo(null, release, skipEvents);
     }
 
-    public async Task RemoveRelease(IReleaseInfo releaseInfo, bool removeFromMylist = true)
+    public async Task RemoveRelease(IReleaseInfo releaseInfo, bool skipEvents = false)
     {
         if (releaseInfo is not StoredReleaseInfo storedReleaseInfo)
             return;
 
         var video = videoRepository.GetByEd2kAndSize(storedReleaseInfo.ED2K, storedReleaseInfo.FileSize);
-        await ClearReleaseForVideo(video, storedReleaseInfo, removeFromMylist);
+        await ClearReleaseForVideo(video, storedReleaseInfo, skipEvents);
     }
 
-    private async Task ClearReleaseForVideo(IVideo? video, StoredReleaseInfo releaseInfo, bool removeFromMylist = true)
+    private async Task ClearReleaseForVideo(IVideo? video, StoredReleaseInfo releaseInfo, bool skipEvents = false, IReleaseInfo? replacingRelease = null)
     {
         // Mark the video as not imported if the video hasn't been deleted from the database,
         // because the clear method can still be called after the video has been deleted.
@@ -1144,10 +965,18 @@ public class VideoReleaseService(
 
         releaseInfoRepository.Delete(releaseInfo);
 
-        if (removeFromMylist)
-            await RemoveFromMyList(releaseInfo);
+        var clearProvider = GetAvailableProviders().FirstOrDefault(p => p.Name == releaseInfo.ProviderName);
+        if (clearProvider is not null)
+        {
+            if (!skipEvents)
+            {
+                try { await clearProvider.Provider.OnReleaseCleared(video, releaseInfo, replacingRelease); }
+                catch (Exception ex) { logger.LogError(ex, "Got an error in OnReleaseCleared from provider {Provider}.", clearProvider.Name); }
+            }
 
-        await ScheduleAnimeForRelease(xrefs);
+            try { await clearProvider.Provider.OnReleaseSaved(video, releaseInfo, xrefs); }
+            catch (Exception ex) { logger.LogError(ex, "Got an error in OnReleaseSaved (clear) from provider {Provider}.", clearProvider.Name); }
+        }
 
         try
         {
@@ -1158,48 +987,6 @@ public class VideoReleaseService(
             logger.LogError(ex, "Got an error in a ReleaseDeleted event.");
         }
     }
-
-    #region Clear Release | Internals
-
-    private async Task RemoveFromMyList(StoredReleaseInfo releaseInfo)
-    {
-        if (_settings.AniDb.MyList_DeleteType is AniDBFileDeleteType.DeleteLocalOnly)
-        {
-            logger.LogInformation("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", releaseInfo.ED2K);
-            return;
-        }
-        if (releaseInfo is { ReleaseURI: not null } && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
-        {
-            await schedulerFactory.StartJob<DeleteFileFromMyListJob>(c =>
-                {
-                    c.Hash = releaseInfo.ED2K;
-                    c.FileSize = releaseInfo.FileSize;
-                }
-            );
-        }
-        else
-        {
-            foreach (var xref in releaseInfo.CrossReferences)
-            {
-                if (xref.AnidbAnimeID is null or 0)
-                    continue;
-
-                var anidbEpisode = anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID);
-                if (anidbEpisode is null)
-                    continue;
-
-                await schedulerFactory.StartJob<DeleteFileFromMyListJob>(c =>
-                    {
-                        c.AnimeID = xref.AnidbAnimeID.Value;
-                        c.EpisodeType = anidbEpisode.EpisodeType;
-                        c.EpisodeNumber = anidbEpisode.EpisodeNumber;
-                    }
-                );
-            }
-        }
-    }
-
-    #endregion Clear Release | Internals
 
     #endregion Clear Release
 

@@ -44,6 +44,12 @@ public class VideoReleaseSearchCompletedSignalRModel(VideoReleaseSearchCompleted
     public ReleaseInfoSignalRModel? ReleaseInfo { get; } = args.ReleaseInfo is not null ? new(args.ReleaseInfo) : null;
 
     /// <summary>
+    /// Indicates the incoming file was identified as redundant by auto-management
+    /// and deleted. Post-import actions were skipped.
+    /// </summary>
+    public bool IsCancelled { get; } = args.IsCancelled;
+
+    /// <summary>
     /// The exception that occurred during the search, if any.
     /// </summary>
     public string? ExceptionMessage { get; } = args.Exception?.Message;

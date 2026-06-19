@@ -94,16 +94,6 @@ public interface IServerSettings
     PluginSettings Plugins { get; set; }
 
     /// <summary>
-    /// Filter out video files based on quality.
-    /// </summary>
-    bool FileQualityFilterEnabled { get; set; }
-
-    /// <summary>
-    /// The file quality preferences.
-    /// </summary>
-    FileQualityPreferences FileQualityPreferences { get; set; }
-
-    /// <summary>
     /// Release-level comparison preferences used by the release management system.
     /// </summary>
     ReleaseComparisonPreferences ReleaseComparisonPreferences { get; set; }

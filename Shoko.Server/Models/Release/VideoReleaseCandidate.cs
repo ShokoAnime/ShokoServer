@@ -74,13 +74,11 @@ public class VideoReleaseCandidate
 
     /// <summary>
     /// Number of audio tracks in the representative file.
-    /// Corresponds to <c>FileQualityFilterType.AUDIOSTREAMCOUNT</c>.
     /// </summary>
     public int AudioStreamCount { get; init; }
 
     /// <summary>
     /// Number of subtitle/text tracks in the representative file.
-    /// Corresponds to <c>FileQualityFilterType.SUBSTREAMCOUNT</c>.
     /// </summary>
     public int SubtitleStreamCount { get; init; }
 
@@ -89,7 +87,6 @@ public class VideoReleaseCandidate
     /// data is present but no file has chapters; null if chapter data is absent
     /// for all files.
     /// Aggregated across all files — individual files within a release can differ.
-    /// Corresponds to <c>FileQualityFilterType.CHAPTER</c>.
     /// </summary>
     public bool? IsChaptered { get; init; }
 
@@ -107,7 +104,6 @@ public class VideoReleaseCandidate
     /// <summary>
     /// True if any file in this candidate is marked as corrupted.
     /// Aggregated across all files — individual files within a release can differ.
-    /// Corresponds to <c>FileQualityFilterType.VERSION</c> (deprecated-file check).
     /// </summary>
     public bool IsCorrupted { get; init; }
 
