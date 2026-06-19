@@ -62,4 +62,10 @@ public class VideoReleaseSearchCompletedEventArgs : EventArgs
     /// The time the search completed.
     /// </summary>
     public required DateTime CompletedAt { get; init; }
+
+    /// <summary>
+    /// When true, the incoming video was identified as redundant by auto-management
+    /// and deleted. Post-import actions (e.g. adding to MyList) should be skipped.
+    /// </summary>
+    public required bool IsCancelled { get; init; }
 }

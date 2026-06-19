@@ -186,9 +186,9 @@ public interface IVideoReleaseService
     ///   If set to <c>false</c>, then it will only schedule the job if the
     ///   video doesn't already have a release associated with it.
     /// </param>
-    /// <param name="addToMylist">
-    ///   Optional. Set to <c>false</c> to not add the release to the user's
-    ///   MyList if a release is found and saved.
+    /// <param name="skipEvents">
+    ///   Optional. Set to <c>false</c> to skip provider-specific post-save
+    ///   state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <param name="relocateFiles">
     ///   If set to <c>true</c>, then the video will be relocated afterwards,
@@ -202,7 +202,7 @@ public interface IVideoReleaseService
     ///   A <see cref="Task"/> representing the asynchronous operation of
     ///   scheduling the job in the queue.
     /// </returns>
-    Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool addToMylist = true, bool relocateFiles = true, bool prioritize = false);
+    Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool skipEvents = false, bool relocateFiles = true, bool prioritize = false);
 
     /// <summary>
     ///   If parallel mode is disabled, then it will run all enabled
@@ -225,9 +225,9 @@ public interface IVideoReleaseService
     ///   <see cref="SaveReleaseForVideo(IVideo, IReleaseInfo, bool)"/>, or
     ///   discarding it.
     /// </param>
-    /// <param name="addToMylist">
-    ///   Optional. Set to <c>false</c> to not add the release to the user's
-    ///   MyList if a release is found and saved.
+    /// <param name="skipEvents">
+    ///   Optional. Set to <c>false</c> to skip provider-specific post-save
+    ///   state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <param name="isAutomatic">
     ///   Optional. Set to <c>false</c> to indicate that this is a manual search
@@ -239,7 +239,7 @@ public interface IVideoReleaseService
     /// <returns>
     ///   The found release, or <c>null</c> if none could be found.
     /// </returns>
-    Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool addToMylist = true, bool isAutomatic = true, CancellationToken cancellationToken = default);
+    Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool skipEvents = false, bool isAutomatic = true, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Checks all enabled providers for a rescan opportunity for the given
@@ -277,9 +277,9 @@ public interface IVideoReleaseService
     ///   <see cref="SaveReleaseForVideo(IVideo, IReleaseInfo, bool)"/>, or
     ///   discarding it.
     /// </param>
-    /// <param name="addToMylist">
-    ///   Optional. Set to <c>false</c> to not add the release to the user's
-    ///   MyList if a release is found and saved.
+    /// <param name="skipEvents">
+    ///   Optional. Set to <c>false</c> to skip provider-specific post-save
+    ///   state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <param name="isAutomatic">
     ///   Optional. Set to <c>false</c> to indicate that this is a manual search
@@ -291,7 +291,7 @@ public interface IVideoReleaseService
     /// <returns>
     ///   The found release, or <c>null</c> if none could be found.
     /// </returns>
-    Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, IEnumerable<ReleaseProviderInfo> providers, bool saveRelease = false, bool addToMylist = true, bool isAutomatic = true, CancellationToken cancellationToken = default);
+    Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, IEnumerable<ReleaseProviderInfo> providers, bool saveRelease = false, bool skipEvents = false, bool isAutomatic = true, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Saves the release info for the specified video in the database, and
@@ -304,9 +304,9 @@ public interface IVideoReleaseService
     /// <param name="release">
     ///   The release details to save.
     /// </param>
-    /// <param name="addToMylist">
-    ///   Optional. Set to <c>false</c> to not add the release to the user's
-    ///   MyList.
+    /// <param name="skipEvents">
+    ///   Optional. Set to <c>false</c> to skip provider-specific post-save
+    ///   state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <exception cref="InvalidOperationException">
     ///   Release does not have at least one cross reference or have invalid
@@ -315,7 +315,7 @@ public interface IVideoReleaseService
     /// <returns>
     ///   The saved release.
     /// </returns>
-    Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, bool addToMylist = true);
+    Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, IReleaseInfo release, bool skipEvents = false);
 
     /// <summary>
     ///   Saves the release info for the specified video in the database, and
@@ -331,8 +331,9 @@ public interface IVideoReleaseService
     /// <param name="providerName">
     ///   Optional. Set the name of the provider.
     /// </param>
-    /// <param name="addToMylist">
-    ///   Optional. Set to <c>false</c> to not add the release to the user's MyList.
+    /// <param name="skipEvents">
+    ///   Optional. Set to <c>false</c> to skip provider-specific post-save
+    ///   state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <exception cref="InvalidOperationException">
     ///   Release does not have at least one cross reference or have invalid cross references.
@@ -340,7 +341,7 @@ public interface IVideoReleaseService
     /// <returns>
     ///   The saved release.
     /// </returns>
-    Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, ReleaseInfo release, string providerName = "User", bool addToMylist = true);
+    Task<IReleaseInfo> SaveReleaseForVideo(IVideo video, ReleaseInfo release, string providerName = "User", bool skipEvents = false);
 
     /// <summary>
     /// Clears the current release for the specified video.
@@ -348,14 +349,14 @@ public interface IVideoReleaseService
     /// <param name="video">
     ///   The video to clear the current release for.
     /// </param>
-    /// <param name="removeFromMylist">
-    ///   Optional. Set to <c>false</c> to not remove the release from the
-    ///   user's MyList.
+    /// <param name="skipEvents">
+    ///   Optional. Set to <c>false</c> to skip provider-specific post-clear
+    ///   state sync (e.g. removing the release from a tracking list).
     /// </param>
     /// <returns>
     ///   A task that represents the asynchronous operation.
     /// </returns>
-    Task ClearReleaseForVideo(IVideo video, bool removeFromMylist = true);
+    Task ClearReleaseForVideo(IVideo video, bool skipEvents = false);
 
     /// <summary>
     ///   Purges all releases linked to a video from the database.
@@ -365,14 +366,14 @@ public interface IVideoReleaseService
     ///   not set then all used releases will be removed regardless of the
     ///   provider.
     /// </param>
-    /// <param name="removeFromMylist">
-    ///   Optional. Set to <c>false</c> to not remove the release from the
-    ///   user's MyList.
+    /// <param name="skipEvents">
+    ///   Optional. Set to <c>false</c> to skip provider-specific post-clear
+    ///   state sync (e.g. removing the release from a tracking list).
     /// </param>
     /// <returns>
     ///   A task that represents the asynchronous operation.
     /// </returns>
-    Task PurgeUsedReleases(IEnumerable<string>? providerNames = null, bool removeFromMylist = true);
+    Task PurgeUsedReleases(IEnumerable<string>? providerNames = null, bool skipEvents = false);
 
     /// <summary>
     ///   Purges all releases not linked to any videos from the database.
@@ -382,14 +383,14 @@ public interface IVideoReleaseService
     ///   not set then all unused releases will be removed regardless of the
     ///   provider.
     /// </param>
-    /// <param name="removeFromMylist">
-    ///   Optional. Set to <c>false</c> to not remove the release from the
-    ///   user's MyList.
+    /// <param name="skipEvents">
+    ///   Optional. Set to <c>false</c> to skip provider-specific post-clear
+    ///   state sync (e.g. removing the release from a tracking list).
     /// </param>
     /// <returns>
     ///   A task that represents the asynchronous operation.
     /// </returns>
-    Task PurgeUnusedReleases(IEnumerable<string>? providerNames = null, bool removeFromMylist = true);
+    Task PurgeUnusedReleases(IEnumerable<string>? providerNames = null, bool skipEvents = false);
 
     /// <summary>
     ///   Removes the specified release from the database.
@@ -397,14 +398,14 @@ public interface IVideoReleaseService
     /// <param name="release">
     ///   The release to remove.
     /// </param>
-    /// <param name="removeFromMylist">
-    ///   Optional. Set to <c>false</c> to not remove the release from the
-    ///   user's MyList.
+    /// <param name="skipEvents">
+    ///   Optional. Set to <c>false</c> to skip provider-specific post-clear
+    ///   state sync (e.g. removing the release from a tracking list).
     /// </param>
     /// <returns>
     ///   A task that represents the asynchronous operation.
     /// </returns>
-    Task RemoveRelease(IReleaseInfo release, bool removeFromMylist = true);
+    Task RemoveRelease(IReleaseInfo release, bool skipEvents = false);
 
     /// <summary>
     ///   Gets the release match attempts for the specified video.

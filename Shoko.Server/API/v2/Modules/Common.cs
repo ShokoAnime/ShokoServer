@@ -39,7 +39,6 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-
 using APIFilters = Shoko.Server.API.v2.Models.common.Filters;
 
 #pragma warning disable IDE1006
@@ -61,6 +60,7 @@ public class Common : BaseController
     private readonly VideoLocal_UserRepository _vlUsers;
     private readonly IVideoService _videoService;
     private readonly IVideoReleaseService _videoReleaseService;
+    private readonly ReleaseComparisonService _releaseComparisonService;
 
     public Common(
         IQueueScheduler scheduler,
@@ -72,7 +72,8 @@ public class Common : BaseController
         IUserDataService userDataService,
         VideoLocal_UserRepository vlUsers,
         IVideoService videoService,
-        IVideoReleaseService videoReleaseService) : base(settingsProvider)
+        IVideoReleaseService videoReleaseService,
+        ReleaseComparisonService releaseComparisonService) : base(settingsProvider)
     {
         _scheduler = scheduler;
         _actionService = actionService;
@@ -83,7 +84,9 @@ public class Common : BaseController
         _vlUsers = vlUsers;
         _videoService = videoService;
         _videoReleaseService = videoReleaseService;
+        _releaseComparisonService = releaseComparisonService;
     }
+
     //class will be found automagically thanks to inherits also class need to be public (or it will 404)
 
     #region 01. Import Folders
@@ -889,9 +892,9 @@ public class Common : BaseController
                 }
 
                 episode.files = new List<RawFile>();
-                vls.Sort(FileQualityFilter.CompareTo);
+                var sorted = _releaseComparisonService.SortByRank(vls);
                 var first = true;
-                episode.files.AddRange(vls.Select(vl =>
+                episode.files.AddRange(sorted.Select(vl =>
                 {
                     var file = new RawFile(HttpContext, vl, 0, userID, ep) { is_preferred = first ? 1 : 0 };
                     first = false;

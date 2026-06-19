@@ -24,7 +24,7 @@ internal class ScanFolderJob : BaseJob
 
     public bool OnlyNewFiles { get; set; }
 
-    public bool SkipMyList { get; set; }
+    public bool SkipEvents { get; set; }
 
     public bool CleanUpStructure { get; set; }
 
@@ -49,7 +49,7 @@ internal class ScanFolderJob : BaseJob
                 details["Relative Path"] = RelativePath;
             if (OnlyNewFiles)
                 details["Only New Files"] = true;
-            if (!SkipMyList)
+            if (!SkipEvents)
                 details["Add to MyList"] = true;
             if (CleanUpStructure)
                 details["Clean Up"] = true;
@@ -76,7 +76,7 @@ internal class ScanFolderJob : BaseJob
             managedFolder,
             relativePath: RelativePath,
             onlyNewFiles: OnlyNewFiles,
-            skipMylist: SkipMyList,
+            skipEvents: SkipEvents,
             cleanUpStructure: CleanUpStructure,
             checkFileSize: CheckFileSize,
             forceScan: ForceScan

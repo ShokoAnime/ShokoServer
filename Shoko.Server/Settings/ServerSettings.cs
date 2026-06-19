@@ -146,12 +146,6 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     /// <inheritdoc />
     public PluginSettings Plugins { get; set; } = new();
 
-    /// <inheritdoc />
-    public bool FileQualityFilterEnabled { get; set; }
-
-    /// <inheritdoc />
-    public FileQualityPreferences FileQualityPreferences { get; set; } = new();
-
     /// <summary>Release-level comparison preferences used by the release management system.</summary>
     public ReleaseComparisonPreferences ReleaseComparisonPreferences { get; set; } = new();
 

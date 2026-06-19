@@ -724,11 +724,9 @@ public partial class ShokoServiceImplementation
         try
         {
             // Try sorted first, then try unsorted if failed
-            var list = RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
+            var list = _releaseComparisonService.SortByRank(RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
                     a?.Places?.FirstOrDefault(b => !string.IsNullOrEmpty(b.Path))?.Path != null)
-                .DistinctBy(a => a?.Places?.FirstOrDefault()?.Path)
-                .ToList();
-            list.Sort(FileQualityFilter.CompareTo);
+                .DistinctBy(a => a?.Places?.FirstOrDefault()?.Path));
             return list.Select(a => _legacyV1Service.GetV1Contract(a, userID)).ToList();
         }
         catch (Exception ex)
@@ -908,8 +906,7 @@ public partial class ShokoServiceImplementation
             var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
             if (ep != null)
             {
-                var files = ep.VideoLocals.ToList();
-                files.Sort(FileQualityFilter.CompareTo);
+                var files = _releaseComparisonService.SortByRank(ep.VideoLocals);
                 return files.Select(a => _legacyV1Service.GetV1DetailedContract(a, userID)).ToList();
             }
 

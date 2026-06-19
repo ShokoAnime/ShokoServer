@@ -16,9 +16,9 @@ using Shoko.Server.Services;
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 /// <summary>
-/// Fires the <see cref="IVideoReleaseService.SearchCompleted"/> event at the end of a provider
-/// job chain. Always appended as the last entry in every chain built by
-/// <see cref="VideoReleaseService"/>.
+/// Runs auto-management, fires <see cref="IVideoReleaseService.SearchCompleted"/>, and
+/// schedules post-import actions (relocation) at the end of every provider job chain.
+/// Always appended as the last entry in every chain built by <see cref="VideoReleaseService"/>.
 /// </summary>
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Import)]
@@ -88,18 +88,30 @@ public class FinalizeReleaseSearchJob : BaseJob
         if (_vlocal is null) return;
         if (_matchAttempts.GetByID(MatchAttemptID) is not { } matchAttempt) return;
 
-        // Finalize release search if necessary.
-        if (matchAttempt.AttemptStartedAt == matchAttempt.AttemptEndedAt)
+        // Mark the attempt as complete if no provider saved a release.
+        var releaseFound = matchAttempt.IsSuccessful;
+        if (!releaseFound)
         {
             matchAttempt.AttemptEndedAt = DateTime.Now;
             _matchAttempts.Save(matchAttempt);
-            _videoReleaseService.FireSearchCompleted(_vlocal, matchAttempt);
         }
 
-        // Check for redundant releases and potentially auto-delete them.
-        await _releaseAutoManagement.CheckAndAutoManage(_vlocal);
+        // Run auto-management before any post-import actions so we know whether the
+        // incoming file itself was identified as redundant and deleted.
+        var incomingDeleted = await _releaseAutoManagement.CheckAndAutoManage(_vlocal);
 
-        // Trigger the relocation if necessary.
+        // Fire SearchCompleted now that auto-management has run. IsCancelled lets subscribers
+        // (plugins, internal handlers) skip provider-specific post-import work.
+        var completedArgs = _videoReleaseService.FireSearchCompleted(_vlocal, matchAttempt, isCancelled: incomingDeleted);
+
+        if (incomingDeleted)
+            return;
+
+        // Call the winning provider's post-import hook (e.g. AniDB MyList sync).
+        if (releaseFound && completedArgs.SelectedProvider is { } selectedProvider)
+            await selectedProvider.Provider.OnSearchCompleted(completedArgs);
+
+        // Trigger relocation if requested.
         if (ShouldRelocate)
             await _relocationService.ScheduleAutoRelocationForVideo(_vlocal);
     }

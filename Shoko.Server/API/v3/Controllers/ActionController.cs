@@ -293,8 +293,8 @@ public class ActionController : BaseController
     /// <summary>
     /// Clears the current release for all known videos.
     /// </summary>
-    /// <param name="removeFromMylist">
-    ///   Set to <c>false</c> to not remove the release from the user's MyList.
+    /// <param name="skipEvents">
+    ///   Set to <c>false</c> to skip provider-specific post-clear state sync (e.g. removing the release from a tracking list).
     /// </param>
     /// <param name="providerNames">
     ///   The names of the providers to clear. If null, all providers will be cleared.
@@ -303,19 +303,19 @@ public class ActionController : BaseController
     [Authorize("admin")]
     [HttpGet("PurgeAllUsedReleases")]
     public ActionResult PurgeAllUsedReleases(
-        [FromQuery] bool removeFromMylist = true,
+        [FromQuery] bool skipEvents = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<string>? providerNames = null
     )
     {
-        Task.Run(() => _videoReleaseService.PurgeUsedReleases(providerNames, removeFromMylist));
+        Task.Run(() => _videoReleaseService.PurgeUsedReleases(providerNames, skipEvents));
         return Ok();
     }
 
     /// <summary>
     /// Purges all unused releases not linked to any videos from the database.
     /// </summary>
-    /// <param name="removeFromMylist">
-    ///   Set to <c>false</c> to not remove the release from the user's MyList.
+    /// <param name="skipEvents">
+    ///   Set to <c>false</c> to skip provider-specific post-clear state sync (e.g. removing the release from a tracking list).
     /// </param>
     /// <param name="providerNames">
     ///   The names of the providers to clear. If null, all providers will be cleared.
@@ -324,11 +324,11 @@ public class ActionController : BaseController
     [Authorize("admin")]
     [HttpGet("PurgeAllUnusedReleases")]
     public ActionResult PurgeAllUnusedReleases(
-        [FromQuery] bool removeFromMylist = true,
+        [FromQuery] bool skipEvents = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<string>? providerNames = null
     )
     {
-        Task.Run(() => _videoReleaseService.PurgeUnusedReleases(providerNames, removeFromMylist));
+        Task.Run(() => _videoReleaseService.PurgeUnusedReleases(providerNames, skipEvents));
         return Ok();
     }
 

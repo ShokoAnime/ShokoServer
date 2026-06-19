@@ -54,9 +54,9 @@ public partial class ShokoServiceImplementation : Controller
     private readonly ActionService _actionService;
     private readonly ShokoServiceImplementationService _legacyV1Service;
     private readonly UserDataService _userDataService;
-    private readonly IImageManager _imageManager;
     private readonly IVideoService _videoService;
     private readonly IVideoReleaseService _videoReleaseService;
+    private readonly ReleaseComparisonService _releaseComparisonService;
 
     public ShokoServiceImplementation(
         TmdbLinkingService tmdbLinkingService,
@@ -70,9 +70,9 @@ public partial class ShokoServiceImplementation : Controller
         AnimeGroupCreator groupCreator,
         ShokoServiceImplementationService legacyV1Service,
         IUserDataService userDataService,
-        IImageManager imageManager,
         IVideoService videoService,
-        IVideoReleaseService videoReleaseService
+        IVideoReleaseService videoReleaseService,
+        ReleaseComparisonService releaseComparisonService
     )
     {
         _tmdbLinkingService = tmdbLinkingService;
@@ -86,10 +86,10 @@ public partial class ShokoServiceImplementation : Controller
         _groupCreator = groupCreator;
         _legacyV1Service = legacyV1Service;
         _userDataService = (UserDataService)userDataService;
-        _imageManager = imageManager;
         _legacyV1Service = legacyV1Service;
         _videoService = videoService;
         _videoReleaseService = videoReleaseService;
+        _releaseComparisonService = releaseComparisonService;
     }
 
     #region Bookmarks
@@ -420,12 +420,6 @@ public partial class ShokoServiceImplementation : Controller
             settings.AutoGroupSeries = contractIn.AutoGroupSeries;
             settings.AutoGroupSeriesUseScoreAlgorithm = contractIn.AutoGroupSeriesUseScoreAlgorithm;
             settings.AutoGroupSeriesRelationExclusions = contractIn.AutoGroupSeriesRelationExclusions.Replace("alternate", "alternative", StringComparison.InvariantCultureIgnoreCase).Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-            settings.FileQualityFilterEnabled = contractIn.FileQualityFilterEnabled;
-            if (!string.IsNullOrEmpty(contractIn.FileQualityFilterPreferences))
-            {
-                settings.FileQualityPreferences = JsonConvert.DeserializeObject<FileQualityPreferences>(contractIn.FileQualityFilterPreferences);
-            }
-
             settings.Import.RunOnStart = contractIn.RunImportOnStart;
             settings.Import.ScanDropFoldersOnStart = contractIn.ScanDropFoldersOnStart;
             settings.Plugins.Renamer.RenameOnImport = contractIn.Import_RenameOnImport;

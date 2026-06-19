@@ -467,9 +467,8 @@ public interface IVideoService
     /// <param name="onlyNewFiles">
     ///   Whether to only scan for new files.
     /// </param>
-    /// <param name="skipMylist">
-    ///   Whether to skip adding the discovered files to the user's AniDB
-    ///   MyList.
+    /// <param name="skipEvents">
+    ///   Whether to skip adding the discovered files to the provider-specific post-save state sync.
     /// </param>
     /// <param name="cleanUpStructure">
     ///   Whether to clean up the managed folder, removing any empty folders
@@ -490,7 +489,7 @@ public interface IVideoService
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
-    Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false);
+    Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false);
 
     /// <summary>
     ///   Schedules a scan of a managed folder, scheduling pre-processing jobs
@@ -505,9 +504,8 @@ public interface IVideoService
     /// <param name="onlyNewFiles">
     ///   Whether to only scan for new files.
     /// </param>
-    /// <param name="skipMylist">
-    ///   Whether to skip mylist adding the discovered files to the user's AniDB
-    ///   MyList.
+    /// <param name="skipEvents">
+    ///   Whether to skip provider-specific post-save state sync.
     /// </param>
     /// <param name="cleanUpStructure">
     ///   Whether to clean up the managed folder, removing any empty folders
@@ -531,7 +529,7 @@ public interface IVideoService
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
-    Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipMylist = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false, bool prioritize = true);
+    Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false, bool prioritize = true);
 
     /// <summary>
     ///   Scans all managed folders, scheduling pre-processing jobs for new or
@@ -544,9 +542,8 @@ public interface IVideoService
     /// <param name="onlyNewFiles">
     ///   Whether to only scan for new video files.
     /// </param>
-    /// <param name="skipMylist">
-    ///   Whether to skip mylist adding the discovered files to the user's AniDB
-    ///   MyList.
+    /// <param name="skipEvents">
+    ///   Whether to skip provider-specific post-save state sync.
     /// </param>
     /// <param name="cleanUpStructure">
     ///   Whether to clean up the managed folder, removing any empty folders
@@ -560,7 +557,7 @@ public interface IVideoService
     /// <param name="prioritize">
     ///   Whether to prioritize this job in the queue.
     /// </param>
-    Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipMylist = false, bool? cleanUpStructure = null, bool forceScan = false, bool prioritize = true);
+    Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipEvents = false, bool? cleanUpStructure = null, bool forceScan = false, bool prioritize = true);
 
     #endregion
 }

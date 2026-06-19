@@ -129,109 +129,13 @@ public partial class ShokoServiceImplementation
     }
 
     [HttpGet("File/DeleteMultipleFilesWithPreferences/{userID}")]
-    public bool DeleteMultipleFilesWithPreferences(int userID)
-    {
-        try
-        {
-            var epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
-            var eps =
-                epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
-                    .WhereNotNull()
-                    .ToList();
-
-            var videosToDelete = new List<VideoLocal>();
-
-            foreach (var ep in eps)
-            {
-                var videoLocals = ep.VideoLocals.ToList();
-                videoLocals.Sort(FileQualityFilter.CompareTo);
-                var keep = videoLocals
-                    .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
-                    .ToList();
-                foreach (var vl2 in keep) videoLocals.Remove(vl2);
-                videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
-
-                videosToDelete.AddRange(videoLocals);
-            }
-
-            var result = true;
-            foreach (var toDelete in videosToDelete)
-            {
-                result &= toDelete.Places.All(a =>
-                {
-                    try
-                    {
-                        _videoService.DeleteVideoFile(a, true).GetAwaiter().GetResult();
-                        return true;
-                    }
-                    catch
-                    {
-                        return false;
-                    }
-                });
-            }
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error Deleting Files");
-            return false;
-        }
-    }
+    public bool DeleteMultipleFilesWithPreferences(int userID) => false;
 
     [HttpGet("File/PreviewDeleteMultipleFilesWithPreferences/{userID}")]
-    public List<CL_VideoLocal> PreviewDeleteMultipleFilesWithPreferences(int userID)
-    {
-        var epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
-        var eps =
-            epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
-                .WhereNotNull()
-                .ToList();
-
-        var videosToDelete = new List<VideoLocal>();
-
-        foreach (var ep in eps)
-        {
-            var videoLocals = ep.VideoLocals.ToList();
-            videoLocals.Sort(FileQualityFilter.CompareTo);
-            var keep = videoLocals
-                .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
-                .ToList();
-            foreach (var vl2 in keep) videoLocals.Remove(vl2);
-            videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
-
-            videosToDelete.AddRange(videoLocals);
-        }
-        return videosToDelete.Select(a => _legacyV1Service.GetV1Contract(a, userID)).ToList();
-    }
+    public List<CL_VideoLocal> PreviewDeleteMultipleFilesWithPreferences(int userID) => [];
 
     [HttpGet("File/GetMultipleFilesForDeletionByPreferences/{userID}")]
-    public List<CL_VideoDetailed> GetMultipleFilesForDeletionByPreferences(int userID)
-    {
-        var epContracts = GetAllEpisodesWithMultipleFiles(userID, false, true);
-        var eps =
-            epContracts.Select(a => RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(a.AniDB_EpisodeID))
-                .WhereNotNull()
-                .ToList();
-
-        var videosToDelete = new List<VideoLocal>();
-
-        foreach (var ep in eps)
-        {
-            var videoLocals = ep.VideoLocals.ToList();
-            videoLocals.Sort(FileQualityFilter.CompareTo);
-            var keep = videoLocals
-                .Take(FileQualityFilter.Settings.MaxNumberOfFilesToKeep)
-                .ToList();
-            foreach (var vl2 in keep) videoLocals.Remove(vl2);
-            videoLocals = videoLocals.Where(a => !FileQualityFilter.CheckFileKeep(a)).ToList();
-
-            videosToDelete.AddRange(videoLocals);
-        }
-        return videosToDelete.Select(a => _legacyV1Service.GetV1DetailedContract(a, userID))
-            .OrderByNatural(a => a.VideoLocal_FileName)
-            .ToList();
-    }
+    public List<CL_VideoDetailed> GetMultipleFilesForDeletionByPreferences(int userID) => [];
 
     [HttpGet("FFDShowPreset/{videoLocalID}")]
     public object GetFFDPreset(int videoLocalID)
@@ -1024,8 +928,7 @@ public partial class ShokoServiceImplementation
     {
         var vidQuals = new List<CL_GroupVideoQuality>();
 
-        var files = RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).ToList();
-        files.Sort(FileQualityFilter.CompareTo);
+        var files = _releaseComparisonService.SortByRank(RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID));
         var lookup = files.ToLookup(a =>
         {
             // Fallback on groupID, this will make it easier to distinguish for deletion and grouping
