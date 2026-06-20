@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.302",
+      "tag": "v6.0.0-dev.302",
+      "commit": "0c17560724b97e52256c456c1ca25ef49f202fd8",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.302/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-20T21:28:16Z",
+      "releaseNotes": "\n`misc`: **Remove Cast from APIv2. It was very broken anyway**.\n\n`misc`: **Add onlyFinishedSeries query parameter to GetDeletionPreview**.\n"
+    },
+    {
       "version": "6.0.0.301",
       "tag": "v6.0.0-dev.301",
       "commit": "5a5d3a8de8187cde19c1f7270401b170210ff416",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.273/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-11T03:09:39Z",
       "releaseNotes": "\n`fix`: **Silently return if web component version is not in the list of available versions to install**.\n\n`fix`: **Don't change import date when finding the existing release**.\n"
-    },
-    {
-      "version": "6.0.0.272",
-      "tag": "v6.0.0-dev.272",
-      "commit": "2cc4805a654eccecceff49511a046c40fb6ac515",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.272/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-11T02:30:13Z",
-      "releaseNotes": "\n`feat` (`filtering`): **Add `All`/`Any` `StartsWith` and `EndsWith` string set expressions**:\n\n- Added `AllStartsWithExpression`, `AllEndsWithExpression`,\n  `AnyStartsWithExpression`, and `AnyEndsWithExpression`\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.50**.\n\n`chore`: **Remove unused imports**.\n"
     }
   ]
 }
