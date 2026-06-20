@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.301",
+      "tag": "v6.0.0-dev.301",
+      "commit": "5a5d3a8de8187cde19c1f7270401b170210ff416",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.301/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-20T03:00:01Z",
+      "releaseNotes": "\n`misc`: **Improve Fuzzy Filters. Allow Sorting by Relevance**.\n"
+    },
+    {
       "version": "6.0.0.300",
       "tag": "v6.0.0-dev.300",
       "commit": "a268bb2bfdb78f4ce5a834661ce82c23240bf645",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.272/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-11T02:30:13Z",
       "releaseNotes": "\n`feat` (`filtering`): **Add `All`/`Any` `StartsWith` and `EndsWith` string set expressions**:\n\n- Added `AllStartsWithExpression`, `AllEndsWithExpression`,\n  `AnyStartsWithExpression`, and `AnyEndsWithExpression`\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.50**.\n\n`chore`: **Remove unused imports**.\n"
-    },
-    {
-      "version": "6.0.0.271",
-      "tag": "v6.0.0-dev.271",
-      "commit": "23a45cff182214d674397fd199f18949a0290ef1",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.271/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-11T01:40:55Z",
-      "releaseNotes": "\n`feat` (`filtering`): **Add `AbsoluteFilePaths`, `ContainingFolderPaths`, and generic expression types**:\n\n- Added `AbsoluteFilePaths` and `ContainingFolderPaths` to `IFilterableInfo`\n  with implementations in `Filterable`, `FilterExtensions`, and `TestFilterable`\n- Created `AbsoluteFilePathsSelector` and `ContainingFolderPathsSelector`\n- Moved `GenericFilter` into the `Generic` sub-namespace\n- Added `GenericFilterExpression` and `GenericSortingExpression` for plugins\n  with overloaded constructors accepting `Handler` delegates\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.49**.\n"
     }
   ]
 }
