@@ -16,4 +16,20 @@ public interface IFuzzySearchService
     /// (CJK, Arabic, Cyrillic, etc.) input.
     /// </summary>
     bool FuzzyMatchesAnyName(string query, IReadOnlySet<string> names);
+
+    /// <summary>
+    /// Returns the best relevance score for <paramref name="query"/> against
+    /// <paramref name="names"/>, or <c>null</c> if no name matches. Lower tuple
+    /// values compare first, so ascending sort puts best matches at the top.
+    /// Elements: <c>isNotExact</c> (false = exact substring match), <c>index</c>
+    /// (match position; lower = better), <c>distance</c> (normalised edit
+    /// distance; 0.0 = exact), <c>lengthDiff</c> (absolute length difference).
+    /// </summary>
+    (bool isNotExact, int index, double distance, int lengthDiff)? FuzzyScoreAnyName(string query, IReadOnlySet<string> names);
+
+    /// <summary>
+    /// Clears any internal score cache. Call when the preferred-language
+    /// order changes so stale scores are recomputed on next evaluation.
+    /// </summary>
+    void InvalidateCache();
 }

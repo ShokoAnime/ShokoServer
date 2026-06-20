@@ -38,6 +38,13 @@ public interface IFilterableInfo
     IReadOnlySet<string> Names { get; }
 
     /// <summary>
+    /// Names filtered to commonly-used languages (English, Japanese, Romaji,
+    /// Chinese, Korean, Unknown) plus the server's preferred language order.
+    /// Use for fuzzy matching to avoid false positives from obscure-language synonyms.
+    /// </summary>
+    IReadOnlySet<string> PreferredNames { get; }
+
+    /// <summary>
     /// Description of the filterable.
     /// </summary>
     string Description { get; }

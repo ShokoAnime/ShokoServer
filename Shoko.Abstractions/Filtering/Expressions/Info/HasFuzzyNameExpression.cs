@@ -38,7 +38,7 @@ public class HasFuzzyNameExpression : FilterExpression<bool>, IWithStringParamet
     {
         if (string.IsNullOrWhiteSpace(Parameter))
             return false;
-        return Service.FuzzyMatchesAnyName(Parameter, filterable.Names);
+        return Service.FuzzyMatchesAnyName(Parameter, filterable.PreferredNames);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

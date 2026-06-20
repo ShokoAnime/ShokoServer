@@ -47,6 +47,7 @@ public class Filterable : IFilterableInfo
     private readonly Lazy<string> _originalName;
     private readonly Lazy<string> _sortName;
     private readonly Lazy<IReadOnlySet<string>> _names;
+    private readonly Lazy<IReadOnlySet<string>> _preferredNames;
     private readonly Lazy<string> _description;
     private readonly Lazy<IReadOnlySet<string>> _descriptions;
     private readonly Lazy<IReadOnlySet<string>> _anidbAnimeIds;
@@ -115,6 +116,13 @@ public class Filterable : IFilterableInfo
     public required Func<IReadOnlySet<string>> NamesDelegate
     {
         init => _names = new Lazy<IReadOnlySet<string>>(value);
+    }
+
+    public IReadOnlySet<string> PreferredNames => _preferredNames.Value;
+
+    public required Func<IReadOnlySet<string>> PreferredNamesDelegate
+    {
+        init => _preferredNames = new Lazy<IReadOnlySet<string>>(value);
     }
 
     public string Description => _description.Value;

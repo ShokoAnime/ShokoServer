@@ -13,6 +13,7 @@ public class TestFilterable : IFilterableInfo
     public string OriginalName { get; init; }
     public string SortName { get; init; }
     public IReadOnlySet<string> Names { get; init; }
+    public IReadOnlySet<string> PreferredNames { get; init; }
     public string Description { get; init; }
     public IReadOnlySet<string> Descriptions { get; init; }
     public IReadOnlySet<string> SeriesIDs { get; init; }

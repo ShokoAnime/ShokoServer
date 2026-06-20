@@ -263,6 +263,12 @@ public class Filter : BaseModel
         /// </summary>
         [Required]
         public bool IsInverted { get; set; }
+
+        /// <summary>
+        /// Optional parameter for sorting types that require one, such as FuzzyNameRelevance (query string).
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? Parameter { get; set; }
     }
 
     public class Input

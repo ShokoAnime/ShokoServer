@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
@@ -79,6 +80,7 @@ public class SettingsProvider : ISettingsProvider, IDisposable
         {
             _seriesTitleLanguageOrder = eventArgs.Configuration.Language.SeriesTitleLanguageOrder.ToArray();
             Languages.PreferredNamingLanguages = [];
+            ISystemService.StaticServices.GetRequiredService<IFuzzySearchService>().InvalidateCache();
 
             // Reset all preferred titles when the language setting has been updated.
             var animeSeriesRepository = ISystemService.StaticServices.GetRequiredService<AnimeSeriesRepository>();

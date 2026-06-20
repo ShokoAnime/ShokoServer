@@ -1,5 +1,7 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
@@ -10,12 +12,27 @@ using Shoko.Server.Extensions;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Filters;
 
 public static class FilterExtensions
 {
+    private static readonly HashSet<TitleLanguage> s_basePreferredLanguages =
+    [
+        TitleLanguage.Unknown, TitleLanguage.English, TitleLanguage.Japanese,
+        TitleLanguage.Romaji, TitleLanguage.Korean, TitleLanguage.Chinese,
+        TitleLanguage.ChineseSimplified, TitleLanguage.ChineseTraditional, TitleLanguage.Pinyin,
+    ];
+
+    private static HashSet<TitleLanguage> BuildPreferredLanguageSet()
+    {
+        var result = new HashSet<TitleLanguage>(s_basePreferredLanguages);
+        foreach (var langCode in ISettingsProvider.Instance.GetSettings().Language.SeriesTitleLanguageOrder)
+            result.Add(langCode.GetTitleLanguage());
+        return result;
+    }
+
     #region Series
 
     public static Filterable ToFilterable(this AnimeSeries series, DateTime now)
@@ -36,6 +53,17 @@ public static class FilterExtensions
                 foreach (var group in series.AllGroupsAbove)
                     titles.Add(group.GroupName);
 
+                return titles;
+            },
+            PreferredNamesDelegate = () =>
+            {
+                var langs = BuildPreferredLanguageSet();
+                var titles = series.Titles
+                    .Where(t => langs.Contains(t.Language) && (t.Source != DataSource.TMDB || t.Language != TitleLanguage.Unknown))
+                    .Select(t => t.Value)
+                    .ToHashSet();
+                foreach (var group in series.AllGroupsAbove)
+                    titles.Add(group.GroupName);
                 return titles;
             },
             DescriptionDelegate = () =>
@@ -194,9 +222,9 @@ public static class FilterExtensions
             FilePathsDelegate = () =>
                 series.VideoLocals.SelectMany(a => a.Places.Select(b => b.RelativePath)).ToHashSet(),
             AbsoluteFilePathsDelegate = () =>
-                series.VideoLocals.SelectMany(a => a.Places).Select(b => System.IO.Path.Join(b.ManagedFolder!.Path, b.RelativePath)).ToHashSet(),
+                series.VideoLocals.SelectMany(a => a.Places).Select(b => Path.Join(b.ManagedFolder!.Path, b.RelativePath)).ToHashSet(),
             ContainingFolderPathsDelegate = () =>
-                series.VideoLocals.SelectMany(a => a.Places).Select(b => System.IO.Path.GetDirectoryName(System.IO.Path.Join(b.ManagedFolder!.Path, b.RelativePath))!).ToHashSet(),
+                series.VideoLocals.SelectMany(a => a.Places).Select(b => Path.GetDirectoryName(Path.Join(b.ManagedFolder!.Path, b.RelativePath))!).ToHashSet(),
             ReleaseGroupNamesDelegate = () =>
                 series.VideoLocals.Select(a => a.ReleaseGroup?.Name).WhereNotNull().ToHashSet(),
             ReleaseProviderNamesDelegate = () =>
@@ -282,6 +310,18 @@ public static class FilterExtensions
                 foreach (var grp in group.AllGroupsAbove)
                     result.Add(grp.GroupName);
                 result.UnionWith(series.SelectMany(a => a.Titles.Select(t => t.Value)));
+                return result;
+            },
+            PreferredNamesDelegate = () =>
+            {
+                var langs = BuildPreferredLanguageSet();
+                var result = new HashSet<string> { group.GroupName };
+                foreach (var grp in group.AllGroupsAbove)
+                    result.Add(grp.GroupName);
+                result.UnionWith(series.SelectMany(a =>
+                    a.Titles
+                    .Where(t => langs.Contains(t.Language) && (t.Source != DataSource.TMDB || t.Language != TitleLanguage.Unknown))
+                    .Select(t => t.Value)));
                 return result;
             },
             DescriptionDelegate = () =>
@@ -450,9 +490,9 @@ public static class FilterExtensions
             FilePathsDelegate = () =>
                 series.SelectMany(s => s.VideoLocals.SelectMany(a => a.Places.Select(b => b.RelativePath))).ToHashSet(),
             AbsoluteFilePathsDelegate = () =>
-                series.SelectMany(s => s.VideoLocals.SelectMany(a => a.Places).Select(b => System.IO.Path.Join(b.ManagedFolder!.Path, b.RelativePath))).ToHashSet(),
+                series.SelectMany(s => s.VideoLocals.SelectMany(a => a.Places).Select(b => Path.Join(b.ManagedFolder!.Path, b.RelativePath))).ToHashSet(),
             ContainingFolderPathsDelegate = () =>
-                series.SelectMany(s => s.VideoLocals.SelectMany(a => a.Places).Select(b => System.IO.Path.GetDirectoryName(System.IO.Path.Join(b.ManagedFolder!.Path, b.RelativePath))!)).ToHashSet(),
+                series.SelectMany(s => s.VideoLocals.SelectMany(a => a.Places).Select(b => Path.GetDirectoryName(Path.Join(b.ManagedFolder!.Path, b.RelativePath))!)).ToHashSet(),
             ReleaseGroupNamesDelegate = () =>
                 series.SelectMany(s => s.VideoLocals.Select(a => a.ReleaseGroup?.Name)).WhereNotNull().ToHashSet(),
             ReleaseProviderNamesDelegate = () =>

@@ -276,7 +276,8 @@ public class FilterFactory
         var result = new Filter.SortingCriteria
         {
             Type = expression.GetType().Name.TrimEnd("SortingSelector"),
-            IsInverted = expression.Descending
+            IsInverted = expression.Descending,
+            Parameter = (expression as IWithStringParameter)?.Parameter
         };
 
         var currentCriteria = result;
@@ -286,7 +287,8 @@ public class FilterFactory
             currentCriteria.Next = new Filter.SortingCriteria
             {
                 Type = currentExpression.GetType().Name.TrimEnd("SortingSelector"),
-                IsInverted = currentExpression.Descending
+                IsInverted = currentExpression.Descending,
+                Parameter = (currentExpression as IWithStringParameter)?.Parameter
             };
             currentCriteria = currentCriteria.Next;
             currentExpression = currentExpression.Next;
@@ -301,6 +303,8 @@ public class FilterFactory
             throw new ArgumentException($"SortingExpression type {criteria.Type}Selector was not found");
         var result = (SortingExpression)Activator.CreateInstance(type)!;
         result.Descending = criteria.IsInverted;
+        if (result is IWithStringParameter parameterized && criteria.Parameter is not null)
+            parameterized.Parameter = criteria.Parameter;
 
         if (criteria.Next != null) result.Next = GetSortingCriteria(criteria.Next);
 
