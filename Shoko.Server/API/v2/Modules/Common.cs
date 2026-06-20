@@ -14,7 +14,6 @@ using Microsoft.Extensions.DependencyInjection;
 using NLog;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
-using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
@@ -27,7 +26,6 @@ using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
@@ -2865,119 +2863,15 @@ public class Common : BaseController
     [HttpGet("cast/byseries")]
     public object GetCastFromSeries(int id)
     {
-        var ctx = HttpContext;
-        var series = RepoFactory.AnimeSeries.GetByID(id);
-        if (series == null)
-        {
-            return BadRequest($"No Series with ID {id}");
-        }
-
-        var roles = new List<Role>();
-        var xref_animestaff = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(series.AniDB_ID);
-        foreach (var xref in xref_animestaff)
-        {
-            var character = RepoFactory.AniDB_Character.GetByID(xref.CharacterID);
-            if (character == null)
-                continue;
-
-            var staff = RepoFactory.AniDB_Creator.GetByID(xref.CreatorID);
-            if (staff == null)
-                continue;
-
-            var xref2 = xref.CharacterCrossReference;
-            if (xref2 == null)
-                continue;
-
-            var cdescription = character.Description;
-            if (string.IsNullOrEmpty(cdescription))
-            {
-                cdescription = null;
-            }
-
-            var role = new Role
-            {
-                character = character.Name,
-                character_image = ((ICharacter)character).PrimaryImage is { } characterImage
-                    ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, characterImage)
-                    : null,
-                character_description = cdescription,
-                staff = staff.Name,
-                staff_image = ((ICreator)staff).PrimaryImage is { } staffImage
-                    ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, staffImage)
-                    : null,
-                staff_description = string.Empty,
-                role = xref2.AppearanceType.ToString().Replace("_", " "),
-                type = "Seiyuu",
-            };
-            roles.Add(role);
-        }
-
-        roles.Sort(CompareRoleByImportance);
-        return roles;
-    }
-
-    private static int CompareRoleByImportance(Role role1, Role role2)
-    {
-        var succeeded1 = Enum.TryParse(role1.role?.Replace(" ", "_"), out CharacterAppearanceType type1);
-        var succeeded2 = Enum.TryParse(role2.role?.Replace(" ", "_"), out CharacterAppearanceType type2);
-        if (!succeeded1 && !succeeded2)
-        {
-            return 0;
-        }
-
-        if (!succeeded1)
-        {
-            return 1;
-        }
-
-        if (!succeeded2)
-        {
-            return -1;
-        }
-
-        var result = ((int)type1).CompareTo((int)type2);
-        if (result != 0)
-        {
-            return result;
-        }
-
-        return string.Compare(role1.character, role2.character, StringComparison.Ordinal);
-    }
-
-    private static int CompareXRef_Anime_StaffByImportance(
-        KeyValuePair<AnimeSeries, AniDB_Anime_Staff> staff1,
-        KeyValuePair<AnimeSeries, AniDB_Anime_Staff> staff2)
-    {
-        var result = ((int)staff1.Value.RoleType).CompareTo((int)staff2.Value.RoleType);
-        if (result != 0)
-        {
-            return result;
-        }
-
-        return string.Compare(staff1.Key.Title, staff2.Key.Title, StringComparison.InvariantCultureIgnoreCase);
+        return Array.Empty<string>();
     }
 
     [HttpGet("cast/search")]
     public ActionResult<Filter> SearchByStaff([FromQuery] API_Call_Parameters para)
     {
-        var results = new List<Serie>();
-        var user = HttpContext.GetUser();
-
-        var search_filter = new Filter { name = "Search By Staff", groups = [] };
-        var search_group = new Group { name = para.query, series = [] };
-
-        var seriesDict = _seriesService.SearchSeriesByStaff(para.query, para.fuzzy == 1).ToList();
-
-        seriesDict.Sort(CompareXRef_Anime_StaffByImportance);
-        results.AddRange(seriesDict.Select(a => Serie.GenerateFromAnimeSeries(HttpContext, a.Key, user.JMMUserID,
-            para.nocast == 1, para.notag == 1, para.level, para.all == 1, para.allpics == 1, para.pic,
-            para.tagfilter)));
-
-        search_group.series = results;
-        search_group.size = search_group.series.Count;
-        search_filter.groups.Add(search_group);
-        search_filter.size = search_filter.groups.Count;
-        return search_filter;
+        return new Filter { name = "Search By Staff", groups = [],
+            size = 0
+        };
     }
 
     #endregion

@@ -109,39 +109,6 @@ public class Group : BaseDirectory
             g.tags = TagFilter.String.ProcessTags(tagFilter, tags);
         }
 
-        if (!noCast)
-        {
-            var xrefAnimeStaff = RepoFactory.AniDB_Anime_Character_Creator.GetByAnimeID(anime.AnimeID);
-            foreach (var xref in xrefAnimeStaff)
-            {
-                var character = RepoFactory.AniDB_Character.GetByID(xref.CharacterID);
-                if (character == null) continue;
-
-                var staff = RepoFactory.AniDB_Creator.GetByID(xref.CreatorID);
-                if (staff == null) continue;
-
-                var xref2 = xref.CharacterCrossReference;
-                if (xref2 == null) continue;
-
-                var role = new Role
-                {
-                    character = character.Name,
-                    character_image = ((ICharacter)character).PrimaryImage is { } characterImage
-                        ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, characterImage)
-                        : null,
-                    staff = staff.Name,
-                    staff_image = ((ICreator)staff).PrimaryImage is { } staffImage
-                        ? APIHelper.ConstructImageLinkFromTypeAndId(ctx, staffImage)
-                        : null,
-                    role = xref2.AppearanceType.ToString().Replace("_", " "),
-                    type = "Seiyuu",
-                };
-                g.roles ??= [];
-
-                g.roles.Add(role);
-            }
-        }
-
         if (level > 0)
         {
             // we already sorted allAnime, so no need to sort

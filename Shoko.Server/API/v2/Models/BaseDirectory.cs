@@ -60,7 +60,7 @@ public abstract class BaseDirectory
     public string userrating { get; set; }
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public List<Role> roles { get; set; }
+    public List<string> roles { get; set; }
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
     public List<string> tags { get; set; }
