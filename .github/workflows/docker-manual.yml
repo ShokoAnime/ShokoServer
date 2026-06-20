@@ -60,12 +60,9 @@ jobs:
 
     strategy:
       matrix:
-        include:
-          - arch: 'amd64'
-            dockerfile: 'Dockerfile'
-
-          - arch: 'arm64'
-            dockerfile: 'Dockerfile.aarch64'
+        arch:
+          - amd64
+          - arm64
     runs-on: ubuntu-latest
 
     steps:
@@ -74,6 +71,10 @@ jobs:
           ref: "${{ github.event.inputs.ref }}"
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
+
+      - name: Get version tag
+        id: git_tag
+        run: echo "tag=$(git describe --tags --abbrev=0 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
 
       - name: Download Web UI
         uses: actions/download-artifact@v4
@@ -115,14 +116,13 @@ jobs:
         run: |
           echo "COMMIT_DATE=$(git log -1 --format="%aI")" >> $GITHUB_OUTPUT
 
-      # Disabled provenance for now, until it works with docker manifest create.
-      # The manifest list produced by the new feature is incompatible with the
-      # expected format used in the docker manifest create command.
+      # provenance disabled: docker buildx imagetools create (used in the
+      # docker-manual-push_manifest job) does not yet support attestation merging.
       - uses: docker/build-push-action@v6
         name: Build and Push the Docker image
         with:
           context: .
-          file: ${{ matrix.dockerfile }}
+          file: Dockerfile
           push: true
           tags: |
             ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-${{ matrix.arch }}
@@ -133,13 +133,20 @@ jobs:
             channel=${{ github.event.inputs.release }}
             commit=${{ github.sha }}
             date=${{ steps.version.outputs.COMMIT_DATE }}
+            tag=${{ steps.git_tag.outputs.tag }}
           provenance: false
+          cache-from: type=gha,scope=docker-manual-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=docker-manual-${{ matrix.arch }}
 
   docker-manual-push_manifest:
     needs: docker-manual-build
     name: Push combined tag for both images
     runs-on: ubuntu-latest
+
     steps:
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f  # v3
+        name: Set up Docker Buildx
+
       - uses: docker/login-action@v3
         name: Log into GitHub Container Registry
         with:
@@ -153,12 +160,15 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Create manifest
+      - name: Create and push multi-arch manifest
+        env:
+          REPO: ${{ secrets.DOCKER_REPO }}
         run: |
-          docker manifest create ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }} --amend ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-amd64 --amend ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-arm64
-          docker manifest create ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }} --amend ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-amd64 --amend ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}-arm64
-
-      - name: Push manifest
-        run: |
-          docker manifest push ghcr.io/${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}
-          docker manifest push ${{ secrets.DOCKER_REPO }}:${{ github.event.inputs.tag }}
+          docker buildx imagetools create \
+            -t ghcr.io/${REPO}:${{ github.event.inputs.tag }} \
+            ghcr.io/${REPO}:${{ github.event.inputs.tag }}-amd64 \
+            ghcr.io/${REPO}:${{ github.event.inputs.tag }}-arm64
+          docker buildx imagetools create \
+            -t ${REPO}:${{ github.event.inputs.tag }} \
+            ${REPO}:${{ github.event.inputs.tag }}-amd64 \
+            ${REPO}:${{ github.event.inputs.tag }}-arm64

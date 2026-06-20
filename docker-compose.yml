@@ -1,0 +1,24 @@
+# Shoko Server — SQLite (default)
+#
+# Usage:
+#   docker compose up -d          # start
+#   docker compose logs -f shoko  # follow logs
+#   docker compose down           # stop
+#
+# Web interface: http://localhost:8111
+
+services:
+  shoko_server:
+    shm_size: 256m
+    container_name: shoko_server
+    image: ghcr.io/shokoanime/server:daily
+    restart: always
+    environment:
+      - "PUID=1000"
+      - "PGID=100"
+      - "TZ=Etc/UTC"
+    ports:
+      - "8111:8111"
+    volumes:
+      - "./shoko-config:/home/shoko/.shoko"
+      - "<edit path before use>:/mnt/anime"

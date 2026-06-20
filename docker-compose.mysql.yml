@@ -1,0 +1,46 @@
+# Shoko Server — MySQL / MariaDB override
+# Extends docker-compose.yml (swap mysql:8 → mariadb:lts for MariaDB):
+#   docker compose -f docker-compose.yml -f docker-compose.mysql.yml up -d
+#
+# Credentials: put passwords in a .env file next to this file — never commit them.
+#   MYSQL_PASSWORD=YourStrong!Passw0rd   # min 8 chars, upper+lower+digit+symbol
+#   MYSQL_ROOT_PASSWORD=YourRootPassw0rd
+#   docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/
+#
+# Setup:
+# 1. Start SQLite once to generate settings-server.json, then stop.
+# 2. Edit settings-server.json in the shoko-config volume:
+#      "DatabaseType": "MySQL",
+#      "MySQL_SchemaName": "shoko",
+#      "MySQL_Username": "shoko",
+#      "MySQL_Password": "<your MYSQL_PASSWORD>",
+#      "MySQL_Host": "mysql"
+# 3. Start the full stack with both compose files.
+
+services:
+  shoko_server:
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8
+    container_name: shoko_mysql
+    environment:
+      MYSQL_DATABASE: shoko
+      MYSQL_USER: shoko
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:-YourStrong!Passw0rd}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-YourRootPassw0rd}"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h localhost -u shoko --password="$$MYSQL_PASSWORD"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  mysql-data:

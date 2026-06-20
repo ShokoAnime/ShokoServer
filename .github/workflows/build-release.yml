@@ -471,12 +471,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: 'amd64'
-            dockerfile: 'Dockerfile'
-
-          - arch: 'arm64'
-            dockerfile: 'Dockerfile.aarch64'
+        arch:
+          - amd64
+          - arm64
 
     name: Build Docker Image - ${{ matrix.arch }} (Release)
 
@@ -498,11 +495,22 @@ jobs:
           name: offline-importer
           path: Shoko.Server/plugins
 
-      - name: Replace Sentry DSN and other keys
+      - name: Replace Sentry DSN
+        if: ${{ secrets.SENTRY_DSN != '' }}
         shell: pwsh
         run: |
           ./.github/workflows/ReplaceSentryDSN.ps1 -dsn ${{ secrets.SENTRY_DSN }}
+
+      - name: Replace TMDB API Key
+        if: ${{ secrets.TMDB_API != '' }}
+        shell: pwsh
+        run: |
           ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
+
+      - name: Replace AVD3 URL
+        if: ${{ secrets.AVD3_URL != '' }}
+        shell: pwsh
+        run: |
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - uses: docker/setup-qemu-action@v3
@@ -511,7 +519,7 @@ jobs:
           platforms: arm64
         if: ${{ matrix.arch == 'arm64' }}
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f  # v3
         name: Set up Docker Buildx
 
       - uses: docker/login-action@v3
@@ -527,14 +535,13 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Disabled provenance for now, until it works with docker manifest create.
-      # The manifest list produced by the new feature is incompatible with the
-      # expected format used in the docker manifest create command.
+      # provenance disabled: docker buildx imagetools create (used in the
+      # docker-release-push_manifest job) does not yet support attestation merging.
       - uses: docker/build-push-action@v6
         name: Build and Push the Docker image
         with:
           context: .
-          file: ${{ matrix.dockerfile }}
+          file: Dockerfile
           push: true
           tags: |
             ghcr.io/${{ secrets.DOCKER_REPO }}:latest-${{ matrix.arch }}
@@ -553,26 +560,22 @@ jobs:
             date=${{ needs.current_info.outputs.date }}
             tag=${{ needs.current_info.outputs.tag }}
           provenance: false
+          cache-from: type=gha,scope=docker-release-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=docker-release-${{ matrix.arch }}
 
   docker-release-push_manifest:
     runs-on: ubuntu-latest
+
+    name: Push multi-arch manifests for all release tags
 
     needs:
       - current_info
       - docker-release-build
 
-    name: Push combined tag "${{ matrix.tag }}" for both images
-
-    strategy:
-      fail-fast: false
-      matrix:
-        tag:
-          - latest
-          - ${{ needs.current_info.outputs.tag }}
-          - ${{ needs.current_info.outputs.tag_major }}
-          - ${{ needs.current_info.outputs.tag_minor }}
-
     steps:
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f  # v3
+        name: Set up Docker Buildx
+
       - uses: docker/login-action@v3
         name: Log into GitHub Container Registry
         with:
@@ -586,15 +589,22 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Create manifest
+      - name: Create and push multi-arch manifests
+        env:
+          REPO: ${{ secrets.DOCKER_REPO }}
+          TAG: ${{ needs.current_info.outputs.tag }}
+          TAG_MAJOR: ${{ needs.current_info.outputs.tag_major }}
+          TAG_MINOR: ${{ needs.current_info.outputs.tag_minor }}
         run: |
-          docker manifest create ghcr.io/${{ secrets.DOCKER_REPO }}:${{ matrix.tag }} --amend ghcr.io/${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}-amd64 --amend ghcr.io/${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}-arm64
-          docker manifest create ${{ secrets.DOCKER_REPO }}:${{ matrix.tag }} --amend ${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}-amd64 --amend ${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}-arm64
-
-      - name: Push manifest
-        run: |
-          docker manifest push ghcr.io/${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}
-          docker manifest push ${{ secrets.DOCKER_REPO }}:${{ matrix.tag }}
+          for t in latest "$TAG" "$TAG_MAJOR" "$TAG_MINOR"; do
+            [[ -z "$t" ]] && continue
+            docker buildx imagetools create -t "ghcr.io/${REPO}:${t}" \
+              "ghcr.io/${REPO}:${t}-amd64" \
+              "ghcr.io/${REPO}:${t}-arm64"
+            docker buildx imagetools create -t "${REPO}:${t}" \
+              "${REPO}:${t}-amd64" \
+              "${REPO}:${t}-arm64"
+          done
 
   update-manifest:
     runs-on: ubuntu-latest
