@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -461,12 +462,15 @@ public partial class TmdbSearchService : ITmdbSearchService
         }
 
         // Brute force attempt #2: Same as above, but after stripping the title of common "sequel endings"
+        // Require an exact title match for the same reason as attempts #3/#5/#6: we stripped a suffix to
+        // derive the root-series name, so a TMDB result whose own title contains further content (e.g. a
+        // spinoff that has the root title as a prefix) is the wrong show.
         var strippedTitle = SequelSuffixRemovalRegex().Match(originalTitle) is { Success: true } regexResult
             ? originalTitle[..^regexResult.Length].TrimEnd() : null;
         if (!string.IsNullOrEmpty(strippedTitle))
         {
             (results, totalFound) = await SearchShowsRaw(strippedTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
-            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()) && IsTitleMatch(strippedTitle, result.OriginalName, result.Name));
             if (firstViableResult is not null)
             {
                 _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, firstViableResult.OriginalName, firstViableResult.Id);
@@ -476,13 +480,17 @@ public partial class TmdbSearchService : ITmdbSearchService
         }
 
         // Brute force attempt #3: Same as above, but with stripped of any sub-titles.
+        // We require the TMDB result's original name to match the stripped query exactly: the whole
+        // point of stripping the subtitle is to find the *root* show. A result whose original name
+        // has its own subtitle beyond the query indicates a spinoff/side-story was ranked first by
+        // TMDB (e.g. searching 転生したらスライムだった件 and getting 転生したらスライムだった件 転スラ日記).
         var titleWithoutSubTitle = strippedTitle ?? originalTitle;
         var columIndex = titleWithoutSubTitle.IndexOf(isJapanese ? ' ' : ':');
         if (columIndex > 0)
         {
             titleWithoutSubTitle = titleWithoutSubTitle[..columIndex];
             (results, totalFound) = await SearchShowsRaw(titleWithoutSubTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
-            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()) && IsTitleMatch(titleWithoutSubTitle, result.OriginalName, result.Name));
             if (firstViableResult is not null)
             {
                 _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, titleWithoutSubTitle, firstViableResult.OriginalName, firstViableResult.Id);
@@ -505,7 +513,7 @@ public partial class TmdbSearchService : ITmdbSearchService
         if (!string.IsNullOrEmpty(strippedTitle))
         {
             (results, totalFound) = await SearchShowsRaw(strippedTitle, includeRestricted: restricted).ConfigureAwait(false);
-            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()) && IsTitleMatch(strippedTitle, result.OriginalName, result.Name));
             if (firstViableResult is not null)
             {
                 _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, strippedTitle, firstViableResult.OriginalName, firstViableResult.Id);
@@ -521,7 +529,7 @@ public partial class TmdbSearchService : ITmdbSearchService
         {
             titleWithoutSubTitle = titleWithoutSubTitle[..columIndex];
             (results, totalFound) = await SearchShowsRaw(titleWithoutSubTitle, includeRestricted: restricted).ConfigureAwait(false);
-            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()));
+            firstViableResult = results.FirstOrDefault(result => IsAnimation(result.GetGenres()) && IsTitleMatch(titleWithoutSubTitle, result.OriginalName, result.Name));
             if (firstViableResult is not null)
             {
                 _logger.LogTrace("Found {Count} show results for search on {Query}, best match; {ShowName} ({ID})", totalFound, titleWithoutSubTitle, firstViableResult.OriginalName, firstViableResult.Id);
@@ -538,6 +546,62 @@ public partial class TmdbSearchService : ITmdbSearchService
     #region Helpers
 
     private bool IsAnimation(IReadOnlyList<string> genres) => genres.Contains("animation", StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Returns true when at least one of the TMDB result titles is a normalized match for
+    /// <paramref name="query"/>. Used for subtitle-stripped searches where we specifically want the root
+    /// show — a result whose own title contains a subtitle beyond the query is a spinoff, not the root.
+    /// <para>
+    /// Normalization converts full-width punctuation to half-width (NFKC), folds the wave dash 〜 to a
+    /// space, and collapses whitespace, so minor encoding differences between AniDB and TMDB don't
+    /// prevent a valid match.
+    /// </para>
+    /// <para>
+    /// For mixed-script titles (e.g. <c>ONE PUNCH MAN ワンパンマン</c>) each space-delimited segment is
+    /// classified as CJK or Latin, and the CJK and Latin portions are each tried independently against
+    /// the result titles so that a TMDB entry whose original name is purely Japanese (or purely Latin)
+    /// can still be matched.
+    /// </para>
+    /// </summary>
+    private static bool IsTitleMatch(string query, string? originalName, string? localName)
+    {
+        var normalizedQuery = NormalizeTitle(query);
+        if (IsNormalizedMatch(normalizedQuery, originalName) || IsNormalizedMatch(normalizedQuery, localName))
+            return true;
+
+        // Mixed-script fallback: try matching the CJK and Latin portions separately.
+        var words = normalizedQuery.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var cjkPart = string.Join(' ', words.Where(ContainsCjk));
+        var latinPart = string.Join(' ', words.Where(w => !ContainsCjk(w)));
+        if (string.IsNullOrEmpty(cjkPart) || string.IsNullOrEmpty(latinPart))
+            return false; // not a mixed-script title; regular match already failed above
+
+        return IsNormalizedMatch(cjkPart, originalName) || IsNormalizedMatch(cjkPart, localName) ||
+               IsNormalizedMatch(latinPart, originalName) || IsNormalizedMatch(latinPart, localName);
+    }
+
+    private static bool IsNormalizedMatch(string normalizedQuery, string? title)
+        => title is not null && string.Equals(normalizedQuery, NormalizeTitle(title), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Normalizes a title for comparison by applying NFKC (converts full-width ASCII punctuation and
+    /// letters to half-width), replacing the wave dash 〜 (U+301C) with a space, and collapsing runs
+    /// of whitespace.
+    /// </summary>
+    private static string NormalizeTitle(string title)
+    {
+        var normalized = title
+            .Normalize(NormalizationForm.FormKC)
+            .Replace('〜', ' ')   // wave dash 〜 → space (not converted by NFKC)
+            .Replace('　', ' ');  // ideographic space → regular space (belt-and-suspenders)
+        return string.Join(' ', normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    /// <summary>Returns true if <paramref name="word"/> contains any CJK, hiragana, or katakana character.</summary>
+    private static bool ContainsCjk(string word) => word.Any(c =>
+        c is >= '぀' and <= 'ヿ' or  // hiragana + katakana
+        >= '㐀' and <= '鿿' or        // CJK extension A + unified ideographs
+        >= '豈' and <= '﫿');          // CJK compatibility ideographs
 
     #endregion
 }
