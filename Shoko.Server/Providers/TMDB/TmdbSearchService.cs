@@ -563,7 +563,7 @@ public partial class TmdbSearchService : ITmdbSearchService
     /// can still be matched.
     /// </para>
     /// </summary>
-    private static bool IsTitleMatch(string query, string? originalName, string? localName)
+    internal static bool IsTitleMatch(string query, string? originalName, string? localName)
     {
         var normalizedQuery = NormalizeTitle(query);
         if (IsNormalizedMatch(normalizedQuery, originalName) || IsNormalizedMatch(normalizedQuery, localName))
@@ -580,7 +580,7 @@ public partial class TmdbSearchService : ITmdbSearchService
                IsNormalizedMatch(latinPart, originalName) || IsNormalizedMatch(latinPart, localName);
     }
 
-    private static bool IsNormalizedMatch(string normalizedQuery, string? title)
+    internal static bool IsNormalizedMatch(string normalizedQuery, string? title)
         => title is not null && string.Equals(normalizedQuery, NormalizeTitle(title), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
@@ -588,7 +588,7 @@ public partial class TmdbSearchService : ITmdbSearchService
     /// letters to half-width), replacing the wave dash 〜 (U+301C) with a space, and collapsing runs
     /// of whitespace.
     /// </summary>
-    private static string NormalizeTitle(string title)
+    internal static string NormalizeTitle(string title)
     {
         var normalized = title
             .Normalize(NormalizationForm.FormKC)
@@ -598,7 +598,7 @@ public partial class TmdbSearchService : ITmdbSearchService
     }
 
     /// <summary>Returns true if <paramref name="word"/> contains any CJK, hiragana, or katakana character.</summary>
-    private static bool ContainsCjk(string word) => word.Any(c =>
+    internal static bool ContainsCjk(string word) => word.Any(c =>
         c is >= '぀' and <= 'ヿ' or  // hiragana + katakana
         >= '㐀' and <= '鿿' or        // CJK extension A + unified ideographs
         >= '豈' and <= '﫿');          // CJK compatibility ideographs
