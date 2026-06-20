@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Video.Enums;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
@@ -13,6 +14,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Release;
 using Shoko.Server.API.v3.Models.Release.Input;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Scheduling.Jobs.Actions;
@@ -220,16 +222,18 @@ public class ReleaseManagementMultipleReleasesController(
     /// <c>excludedSeriesIDs</c>.
     /// </remarks>
     /// <param name="body">Preview options and series filters.</param>
+    /// <param name="onlyFinishedSeries">When true, don't process currently airing series.</param>
     /// <param name="includeVariations">When true, include files marked as variations in the candidate grouping. Defaults to false.</param>
     [HttpPost("Preview")]
     public ActionResult<IReadOnlyList<ReleaseDeletionPreview>> GetDeletionPreview(
         [FromBody] ReleaseDeletionPreviewBody? body,
+        [FromQuery] bool onlyFinishedSeries = false,
         [FromQuery] bool includeVariations = false)
     {
         var overrides = body?.Overrides?.ToDictionary(o => o.SeriesID, o => o.PreferredCandidateKey)
                         ?? new Dictionary<int, string>();
 
-        IEnumerable<Shoko.Server.Models.Shoko.AnimeSeries> seriesSource;
+        IEnumerable<AnimeSeries> seriesSource;
         if (body?.IncludedSeriesIDs is { Count: > 0 } included)
         {
             var includedSet = included.ToHashSet();
@@ -240,7 +244,7 @@ public class ReleaseManagementMultipleReleasesController(
         {
             var excludedSet = body?.ExcludedSeriesIDs?.ToHashSet() ?? [];
             seriesSource = animeSeries.GetAll()
-                .Where(s => User.AllowedSeries(s) && !excludedSet.Contains(s.AnimeSeriesID));
+                .Where(s => User.AllowedSeries(s) && s.AniDB_Anime?.GetFinishedAiring() != onlyFinishedSeries && !excludedSet.Contains(s.AnimeSeriesID));
         }
 
         var result = seriesSource
@@ -276,8 +280,8 @@ public class ReleaseManagementMultipleReleasesController(
     // ── Private helpers ──────────────────────────────────────────────────────
 
     private SeriesWithCandidates? BuildSeriesWithCandidates(
-        Shoko.Server.Models.Shoko.AnimeSeries series,
-        Dictionary<int, Shoko.Server.Models.Shoko.VideoLocal>? prefetchedVideoLookup = null,
+        AnimeSeries series,
+        Dictionary<int, VideoLocal>? prefetchedVideoLookup = null,
         bool includeVariations = false,
         bool includeTracks = false)
     {
@@ -324,7 +328,7 @@ public class ReleaseManagementMultipleReleasesController(
         // Compute which signals actually vary across candidates so names only include
         // the qualifiers that distinguish one candidate from another.
         var candidateIncludeResolution = ranked.Select(c => c.Resolution).Where(r => r is not null).Distinct().Count() > 1;
-        var candidateIncludeSource = ranked.Select(c => c.Source).Where(s => s != Shoko.Abstractions.Video.Enums.ReleaseSource.Unknown).Distinct().Count() > 1;
+        var candidateIncludeSource = ranked.Select(c => c.Source).Where(s => s != ReleaseSource.Unknown).Distinct().Count() > 1;
         var candidateIncludeVersion = ranked
             .Where(c => !string.IsNullOrEmpty(c.GroupID) && !string.IsNullOrEmpty(c.GroupSource))
             .GroupBy(c => $"{c.GroupID}|{c.GroupSource}")
@@ -351,7 +355,7 @@ public class ReleaseManagementMultipleReleasesController(
         {
             var releaseOverrides = grouper.GetOverrides(places);
             var overrideIncludeResolution = releaseOverrides.Select(o => o.Resolution).Where(r => r is not null).Distinct().Count() > 1;
-            var overrideIncludeSource = releaseOverrides.Select(o => o.Source).Where(s => s != Shoko.Abstractions.Video.Enums.ReleaseSource.Unknown).Distinct().Count() > 1;
+            var overrideIncludeSource = releaseOverrides.Select(o => o.Source).Where(s => s != ReleaseSource.Unknown).Distinct().Count() > 1;
             overrideDTOs = releaseOverrides
                 .Select(o => ReleaseOverride.FromOverride(o, videoLookup, episodeLookup, overrideIncludeResolution, overrideIncludeSource))
                 .ToList();
@@ -370,7 +374,7 @@ public class ReleaseManagementMultipleReleasesController(
     }
 
     private ReleaseDeletionPreview? ComputeSeriesPreview(
-        Shoko.Server.Models.Shoko.AnimeSeries series,
+        AnimeSeries series,
         Dictionary<int, string> overrides,
         bool includeVariations = false)
     {
