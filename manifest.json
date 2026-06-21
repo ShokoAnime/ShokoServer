@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.304",
+      "tag": "v6.0.0-dev.304",
+      "commit": "9e98e4d7ef5ae6516085f2a9716cd8d58fa35cee",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.304/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-21T02:35:52Z",
+      "releaseNotes": "\n`fix`: **The AniDB anime XML uses '1970-01-01' for unknown dates, not an empty string**.\n"
+    },
+    {
       "version": "6.0.0.303",
       "tag": "v6.0.0-dev.303",
       "commit": "d8d28c3c6407dbf884ee2ef477a19f8b05b17fc2",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.275/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-11T05:26:29Z",
       "releaseNotes": "\n`feat` (`abstractions`): **Add IImageCrossReferenceResolver for plugin xref routes**:\n\nAdded IImageCrossReferenceResolver interface in the abstractions layer\nfor plugins to register custom entity resolution in the image\ncross-reference system. Implemented resolver fallback in\nGetEntityForImage and TryGetMetadataForEntity when the built-in switch\ndoes not match the (DataSource, DataEntityType) combination.\n\n- Added Plugin = 0xFB to DataSource enum for plugin-provided data\n- Added Franchise = Collection alias and Library = 12 to DataEntityType\n- Added AddParts and ImageCrossReferenceResolvers to IImageManager\n- Registered resolvers in PluginManager.InitPlugins\n\n`chore` (`abstractions`): **Bump version to 6.0.0-alpha.51**.\n"
-    },
-    {
-      "version": "6.0.0.274",
-      "tag": "v6.0.0-dev.274",
-      "commit": "6d5e43768821a5f34da741c47bd4336f5411545c",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.274/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-11T03:13:55Z",
-      "releaseNotes": "\n`fix`: **Re-use the last imported at date if the release URI matches between the old and new release**.\n"
     }
   ]
 }
