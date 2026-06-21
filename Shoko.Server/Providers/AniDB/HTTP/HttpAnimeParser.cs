@@ -130,11 +130,15 @@ public class HttpAnimeParser
     private static void ParseDates(XmlNode docAnime, ResponseAnime anime)
     {
         var dateString = TryGetProperty(docAnime, "anime", "startdate");
+        if (dateString is "1970-01-01")
+            dateString = null;
         anime.AirDate = null;
         if (PartialDateOnly.TryParse(dateString, out var date))
             anime.AirDate = date;
 
         dateString = TryGetProperty(docAnime, "anime", "enddate");
+        if (dateString is "1970-01-01")
+            dateString = null;
         anime.EndDate = null;
         if (PartialDateOnly.TryParse(dateString, out date))
             anime.EndDate = date;
