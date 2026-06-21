@@ -626,7 +626,9 @@ public class VideoReleaseGroupingService(
                 s.IsChaptered,
                 s.ReleaseInfo?.IsCensored,
                 s.ReleaseInfo?.IsCreditless,
-                s.ReleaseInfo?.IsCorrupted ?? false));
+                s.ReleaseInfo?.IsCorrupted ?? false,
+                s.AudioLanguages,
+                s.SubtitleLanguages));
 
         return new VideoReleaseCandidate
         {

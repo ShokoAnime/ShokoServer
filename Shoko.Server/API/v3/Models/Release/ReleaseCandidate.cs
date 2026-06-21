@@ -177,6 +177,8 @@ public class ReleaseCandidate
                     IsCensored = signals?.IsCensored,
                     IsCreditless = signals?.IsCreditless,
                     IsCorrupted = signals?.IsCorrupted ?? false,
+                    AudioLanguages = signals?.AudioLanguages.Select(l => l.ToString()).ToList() ?? [],
+                    SubtitleLanguages = signals?.SubtitleLanguages.Select(l => l.ToString()).ToList() ?? [],
                     Episodes = episodes,
                 };
             })
@@ -345,6 +347,12 @@ public class ReleaseCandidate
 
         /// <summary>True if this file is marked as corrupted by the release provider.</summary>
         public bool IsCorrupted { get; init; }
+
+        /// <summary>Audio languages embedded in this file, from the release provider or MediaInfo.</summary>
+        public IReadOnlyList<string> AudioLanguages { get; init; } = [];
+
+        /// <summary>Subtitle languages embedded in this file, from the release provider or MediaInfo.</summary>
+        public IReadOnlyList<string> SubtitleLanguages { get; init; } = [];
 
         /// <summary>
         /// Episodes this specific file covers. Empty when the file has no

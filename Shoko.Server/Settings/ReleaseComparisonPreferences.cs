@@ -1,6 +1,6 @@
+#nullable enable
 using System.Collections.Generic;
 
-#nullable enable
 namespace Shoko.Server.Settings;
 
 public class ReleaseComparisonPreferences
@@ -20,6 +20,8 @@ public class ReleaseComparisonPreferences
         ReleaseSignalType.GroupHomogeneity,
         ReleaseSignalType.AudioStreamCount,
         ReleaseSignalType.SubtitleStreamCount,
+        ReleaseSignalType.AudioLanguage,
+        ReleaseSignalType.SubtitleLanguage,
         ReleaseSignalType.AudioCodec,
         ReleaseSignalType.SubGroup,
         ReleaseSignalType.Version,
@@ -37,6 +39,22 @@ public class ReleaseComparisonPreferences
 
     /// <summary>Ordered audio codec preference: first entry is most preferred.</summary>
     public List<string> AudioCodecOrder { get; set; } = ["FLAC", "DCA", "AAC", "AC3", "MP3"];
+
+    /// <summary>
+    /// Ordered audio language preference: first entry is most preferred.
+    /// Candidates are compared against this list in order — the first preferred
+    /// language present in one candidate but not the other decides the winner.
+    /// Empty list means no language preference — audio language comparison is always a tie.
+    /// </summary>
+    public List<string> AudioLanguageOrder { get; set; } = [];
+
+    /// <summary>
+    /// Ordered subtitle language preference: first entry is most preferred.
+    /// Candidates are compared against this list in order — the first preferred
+    /// language present in one candidate but not the other decides the winner.
+    /// Empty list means no language preference — subtitle language comparison is always a tie.
+    /// </summary>
+    public List<string> SubtitleLanguageOrder { get; set; } = [];
 
     /// <summary>
     /// Ordered release-group preference: first entry is most preferred.
@@ -102,6 +120,20 @@ public enum ReleaseSignalType
     /// gap-fill candidates that mix files from different release groups.
     /// </summary>
     GroupHomogeneity,
+    /// <summary>
+    /// Prefers candidates that include audio tracks in the configured preferred
+    /// languages. Languages are evaluated in <see cref="ReleaseComparisonPreferences.AudioLanguageOrder"/>
+    /// priority; the first preferred language present in one candidate but absent
+    /// from the other decides the winner.
+    /// </summary>
+    AudioLanguage,
+    /// <summary>
+    /// Prefers candidates that include subtitle tracks in the configured preferred
+    /// languages. Languages are evaluated in <see cref="ReleaseComparisonPreferences.SubtitleLanguageOrder"/>
+    /// priority; the first preferred language present in one candidate but absent
+    /// from the other decides the winner.
+    /// </summary>
+    SubtitleLanguage,
 }
 
 /// <summary>

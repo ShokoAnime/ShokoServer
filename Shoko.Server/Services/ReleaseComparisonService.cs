@@ -1,12 +1,13 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 /// <summary>
@@ -37,6 +38,8 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
                 ReleaseSignalType.AudioStreamCount    => CompareHigherInt(a.AudioStreamCount, b.AudioStreamCount),
                 ReleaseSignalType.SubtitleStreamCount => CompareHigherInt(a.SubtitleStreamCount, b.SubtitleStreamCount),
                 ReleaseSignalType.AudioCodec      => CompareCodecList(a.AudioCodec, b.AudioCodec, prefs.AudioCodecOrder),
+                ReleaseSignalType.AudioLanguage   => CompareLanguageList(a.AudioLanguages, b.AudioLanguages, prefs.AudioLanguageOrder),
+                ReleaseSignalType.SubtitleLanguage => CompareLanguageList(a.SubtitleLanguages, b.SubtitleLanguages, prefs.SubtitleLanguageOrder),
                 ReleaseSignalType.Chapters        => CompareChapters(a, b),
                 ReleaseSignalType.GroupHomogeneity => CompareHomogeneity(a, b),
                 ReleaseSignalType.SubGroup        => CompareSubGroup(a, b, prefs),
@@ -174,6 +177,8 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
                 ReleaseSignalType.AudioStreamCount    => CompareHigherInt(a.AudioStreamCount, b.AudioStreamCount),
                 ReleaseSignalType.SubtitleStreamCount => CompareHigherInt(a.SubtitleStreamCount, b.SubtitleStreamCount),
                 ReleaseSignalType.AudioCodec      => CompareCodecList(a.AudioCodec, b.AudioCodec, prefs.AudioCodecOrder),
+                ReleaseSignalType.AudioLanguage   => CompareLanguageList(a.AudioLanguages, b.AudioLanguages, prefs.AudioLanguageOrder),
+                ReleaseSignalType.SubtitleLanguage => CompareLanguageList(a.SubtitleLanguages, b.SubtitleLanguages, prefs.SubtitleLanguageOrder),
                 ReleaseSignalType.Chapters        => CompareChapters(a, b),
                 ReleaseSignalType.GroupHomogeneity => CompareHomogeneity(a, b),
                 ReleaseSignalType.SubGroup        => CompareSubGroup(a, b, prefs),
@@ -205,14 +210,27 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
             ReleaseSignalType.AudioStreamCount    => (a.AudioStreamCount > 0 ? a.AudioStreamCount.ToString() : null, b.AudioStreamCount > 0 ? b.AudioStreamCount.ToString() : null),
             ReleaseSignalType.SubtitleStreamCount => (a.SubtitleStreamCount > 0 ? a.SubtitleStreamCount.ToString() : null, b.SubtitleStreamCount > 0 ? b.SubtitleStreamCount.ToString() : null),
             ReleaseSignalType.AudioCodec      => (a.AudioCodec, b.AudioCodec),
+            ReleaseSignalType.AudioLanguage   => (LanguageListDisplay(a.AudioLanguages), LanguageListDisplay(b.AudioLanguages)),
+            ReleaseSignalType.SubtitleLanguage => (LanguageListDisplay(a.SubtitleLanguages), LanguageListDisplay(b.SubtitleLanguages)),
             ReleaseSignalType.Chapters        => (a.IsChaptered?.ToString(), b.IsChaptered?.ToString()),
             ReleaseSignalType.GroupHomogeneity => (a.IsHomogeneous.ToString(), b.IsHomogeneous.ToString()),
-            ReleaseSignalType.SubGroup        => (a.GroupShortName, b.GroupShortName),
+            ReleaseSignalType.SubGroup        => (GroupDisplay(a), GroupDisplay(b)),
             ReleaseSignalType.Version         => (a.Version > 0 ? a.Version.ToString() : null, b.Version > 0 ? b.Version.ToString() : null),
             ReleaseSignalType.IsCorrupted     => ((!a.IsCorrupted).ToString(), (!b.IsCorrupted).ToString()),
             ReleaseSignalType.IsCensored      => (a.IsCensored is null ? null : (!a.IsCensored.Value).ToString(), b.IsCensored is null ? null : (!b.IsCensored.Value).ToString()),
             _ => (null, null),
         };
+
+    private static string? LanguageListDisplay(IReadOnlyList<TitleLanguage> langs)
+        => langs.Count > 0 ? string.Join(", ", langs.Select(l => l.ToString())) : null;
+
+    private static string? GroupDisplay(VideoReleaseCandidate c)
+    {
+        if (string.IsNullOrEmpty(c.GroupName) && string.IsNullOrEmpty(c.GroupShortName)) return null;
+        if (string.IsNullOrEmpty(c.GroupShortName) || c.GroupName == c.GroupShortName) return c.GroupName;
+        if (string.IsNullOrEmpty(c.GroupName)) return c.GroupShortName;
+        return $"{c.GroupName} ({c.GroupShortName})";
+    }
 
     // ── per-signal comparison helpers ───────────────────────────────────────
 
@@ -224,18 +242,18 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
         return CompareCodecList(aStr, bStr, prefs.SourceOrder);
     }
 
-    private static string? ReleaseSourceToString(Shoko.Abstractions.Video.Enums.ReleaseSource src) =>
+    private static string? ReleaseSourceToString(ReleaseSource src) =>
         src switch
         {
-            Shoko.Abstractions.Video.Enums.ReleaseSource.BluRay    => "BluRay",
-            Shoko.Abstractions.Video.Enums.ReleaseSource.DVD       => "DVD",
-            Shoko.Abstractions.Video.Enums.ReleaseSource.TV        => "TV",
-            Shoko.Abstractions.Video.Enums.ReleaseSource.Web       => "Web",
-            Shoko.Abstractions.Video.Enums.ReleaseSource.VHS       => "VHS",
-            Shoko.Abstractions.Video.Enums.ReleaseSource.VCD       => "VCD",
-            Shoko.Abstractions.Video.Enums.ReleaseSource.LaserDisc => "LaserDisc",
-            Shoko.Abstractions.Video.Enums.ReleaseSource.Camera    => "Camera",
-            Shoko.Abstractions.Video.Enums.ReleaseSource.Film      => "Film",
+            ReleaseSource.BluRay    => "BluRay",
+            ReleaseSource.DVD       => "DVD",
+            ReleaseSource.TV        => "TV",
+            ReleaseSource.Web       => "Web",
+            ReleaseSource.VHS       => "VHS",
+            ReleaseSource.VCD       => "VCD",
+            ReleaseSource.LaserDisc => "LaserDisc",
+            ReleaseSource.Camera    => "Camera",
+            ReleaseSource.Film      => "Film",
             _ => null,  // Unknown/Other → treat as unknown, skip
         };
 
@@ -283,6 +301,28 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
         return b.CompareTo(a);  // higher a → a wins → negative
     }
 
+    /// <summary>
+    /// Evaluates language preferences in order. For each preferred language, if
+    /// one candidate has it and the other does not, the candidate with the language
+    /// wins. Both or neither having a language is a tie on that entry; evaluation
+    /// continues to the next. Empty preference list → always tied.
+    /// </summary>
+    private static int CompareLanguageList(
+        IReadOnlyList<TitleLanguage> a, IReadOnlyList<TitleLanguage> b, List<string> order)
+    {
+        if (order.Count == 0) return 0;
+        var aSet = new HashSet<string>(a.Select(l => l.ToString()), StringComparer.OrdinalIgnoreCase);
+        var bSet = new HashSet<string>(b.Select(l => l.ToString()), StringComparer.OrdinalIgnoreCase);
+        foreach (var lang in order)
+        {
+            var inA = aSet.Contains(lang);
+            var inB = bSet.Contains(lang);
+            if (inA && !inB) return -1;
+            if (inB && !inA) return 1;
+        }
+        return 0;
+    }
+
     private static int CompareChapters(VideoReleaseCandidate a, VideoReleaseCandidate b)
     {
         if (a.IsChaptered is null || b.IsChaptered is null) return 0;
@@ -300,7 +340,34 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
         ReleaseComparisonPreferences prefs)
     {
         if (prefs.SubGroupOrder.Count == 0) return 0;
-        return CompareCodecList(a.GroupShortName, b.GroupShortName, prefs.SubGroupOrder);
+        var aIdx = GroupOrderIndex(a, prefs.SubGroupOrder);
+        var bIdx = GroupOrderIndex(b, prefs.SubGroupOrder);
+        if (aIdx < 0 && bIdx < 0) return 0;
+        if (aIdx < 0) return 1;
+        if (bIdx < 0) return -1;
+        return aIdx.CompareTo(bIdx);
+    }
+
+    /// <summary>
+    /// Returns the best (lowest) index in <paramref name="order"/> for a candidate's
+    /// group, checking both <see cref="VideoReleaseCandidate.GroupName"/> and
+    /// <see cref="VideoReleaseCandidate.GroupShortName"/>. Returns -1 if neither matches.
+    /// </summary>
+    private static int GroupOrderIndex(VideoReleaseCandidate c, List<string> order)
+    {
+        var nameIdx = string.IsNullOrEmpty(c.GroupName)
+            ? -1
+            : order.FindIndex(s => string.Equals(s, c.GroupName, StringComparison.OrdinalIgnoreCase));
+        var shortIdx = string.IsNullOrEmpty(c.GroupShortName)
+            ? -1
+            : order.FindIndex(s => string.Equals(s, c.GroupShortName, StringComparison.OrdinalIgnoreCase));
+        return (nameIdx, shortIdx) switch
+        {
+            (< 0, < 0) => -1,
+            (< 0, _)   => shortIdx,
+            (_, < 0)   => nameIdx,
+            _          => Math.Min(nameIdx, shortIdx),
+        };
     }
 
     private static int CompareCorrupted(VideoReleaseCandidate a, VideoReleaseCandidate b)

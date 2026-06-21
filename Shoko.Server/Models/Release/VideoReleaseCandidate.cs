@@ -176,4 +176,10 @@ public class VideoReleaseCandidate
 }
 
 /// <summary>Per-file quality signals for a single <see cref="VideoLocal_Place"/>.</summary>
-public record PlaceQualitySignals(bool? IsChaptered, bool? IsCensored, bool? IsCreditless, bool IsCorrupted);
+public record PlaceQualitySignals(
+    bool? IsChaptered,
+    bool? IsCensored,
+    bool? IsCreditless,
+    bool IsCorrupted,
+    IReadOnlyList<TitleLanguage> AudioLanguages,
+    IReadOnlyList<TitleLanguage> SubtitleLanguages);
