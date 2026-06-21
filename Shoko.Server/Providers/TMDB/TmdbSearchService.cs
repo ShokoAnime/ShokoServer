@@ -282,8 +282,8 @@ public partial class TmdbSearchService : ITmdbSearchService
             if (full is null) continue;
 
             var allTitles = new HashSet<string>(
-                new[] { (string?)full.Title, full.OriginalTitle }
-                    .Concat(full.Translations?.Translations?.Select(t => (string?)t.Data?.Name).WhereNotNull() ?? [])
+                new[] { full.Title, full.OriginalTitle }
+                    .Concat(full.Translations?.Translations?.Select(t => t.Data?.Name).WhereNotNull() ?? [])
                     .WhereNotNull()
                     .Where(s => !string.IsNullOrWhiteSpace(s))
             );
@@ -608,7 +608,7 @@ public partial class TmdbSearchService : ITmdbSearchService
 
             var allTitles = new HashSet<string>(
                 new[] { full.Name, full.OriginalName }
-                    .Concat(full.Translations?.Translations?.Select(t => (string?)t.Data?.Name).WhereNotNull() ?? [])
+                    .Concat(full.Translations?.Translations?.Select(t => t.Data?.Name).WhereNotNull() ?? [])
                     .WhereNotNull()
                     .Where(s => !string.IsNullOrWhiteSpace(s))
             );
