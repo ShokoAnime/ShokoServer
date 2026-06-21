@@ -1,5 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Shoko.Server.Settings;
 
@@ -101,6 +103,7 @@ public class ReleaseComparisonPreferences
 }
 
 /// <summary>Signals available for sequential release comparison.</summary>
+[JsonConverter(typeof(StringEnumConverter))]
 public enum ReleaseSignalType
 {
     Source,
@@ -140,6 +143,7 @@ public enum ReleaseSignalType
 /// Controls whether releases covering mixed episode types (regular + specials)
 /// are treated as a single unit or ranked independently per type.
 /// </summary>
+[JsonConverter(typeof(StringEnumConverter))]
 public enum EpisodeTypeScope
 {
     /// <summary>

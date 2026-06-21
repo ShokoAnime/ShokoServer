@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Shoko.Abstractions.Metadata.Enums;
 
@@ -9,6 +10,15 @@ namespace Shoko.Abstractions.Extensions;
 /// </summary>
 public static class LanguageExtensions
 {
+    /// <summary>
+    /// Invoked the first time per session that a language string is encountered
+    /// that cannot be mapped to any <see cref="TitleLanguage"/> value. Use this
+    /// to surface missing mappings (e.g. log an error so the string can be added).
+    /// </summary>
+    public static Action<string>? OnUnknownLanguage;
+
+    private static readonly HashSet<string> _reportedUnknowns = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// Convert a language code and country code to a <see cref="TitleLanguage"/>.
     /// </summary>
@@ -181,7 +191,8 @@ public static class LanguageExtensions
             "BD" => TitleLanguage.Bengali,
             "X-THA" => TitleLanguage.ThaiTranscription,
             "GREEK (ANCIENT)" => TitleLanguage.Greek,
-            "JAVANESE" or "MALAY" or "INDONESIAN" => TitleLanguage.Malaysian,
+            "JAVANESE" or "MALAY" => TitleLanguage.Malaysian,
+            "INDONESIAN" => TitleLanguage.Indonesian,
             "PORTUGUESE (BRAZILIAN)" => TitleLanguage.BrazilianPortuguese,
             "THAI (TRANSCRIPTION)" => TitleLanguage.ThaiTranscription,
             "CHINESE (SIMPLIFIED)" => TitleLanguage.ChineseSimplified,
@@ -198,8 +209,17 @@ public static class LanguageExtensions
 
             "X-MAIN" => TitleLanguage.Main,
             null or "" => TitleLanguage.None,
-            _ => Enum.TryParse<TitleLanguage>(lang.ToLowerInvariant(), true, out var titleLanguage) ? titleLanguage : TitleLanguage.Unknown,
+            _ => Enum.TryParse<TitleLanguage>(lang.ToLowerInvariant(), true, out var titleLanguage)
+                ? titleLanguage
+                : ReportAndReturnUnknown(lang),
         };
+    }
+
+    private static TitleLanguage ReportAndReturnUnknown(string lang)
+    {
+        if (!string.IsNullOrWhiteSpace(lang) && !lang.Equals("unk", StringComparison.OrdinalIgnoreCase) && _reportedUnknowns.Add(lang))
+            OnUnknownLanguage?.Invoke(lang);
+        return TitleLanguage.Unknown;
     }
 
     /// <summary>

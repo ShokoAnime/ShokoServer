@@ -198,26 +198,27 @@ public class VideoReleaseGroupingService(
         var audioStreamCount = media?.AudioStreams.Count ?? 0;
         var subtitleStreamCount = media?.TextStreams.Count ?? 0;
 
+        var mediaAudioLangs = media?.AudioStreams
+            .Select(a => a.Language?.GetTitleLanguage() ?? TitleLanguage.Unknown)
+            .ToList() ?? [];
+        var mediaSubLangs = media?.TextStreams
+            .Where(t => !t.External)
+            .Select(t => t.Language?.GetTitleLanguage() ?? TitleLanguage.Unknown)
+            .ToList() ?? [];
+
         IReadOnlyList<TitleLanguage> audioLangs;
         IReadOnlyList<TitleLanguage> subLangs;
         if (sri is not null)
         {
-            audioLangs = sri.AudioLanguages?.Where(l => l != TitleLanguage.None).ToList() ?? [];
-            subLangs = sri.SubtitleLanguages?.Where(l => l != TitleLanguage.None).ToList() ?? [];
+            var sriAudioLangs = sri.AudioLanguages?.ToList() ?? [];
+            var sriSubLangs = sri.SubtitleLanguages?.ToList() ?? [];
+            audioLangs = MergeLanguages(sriAudioLangs, mediaAudioLangs);
+            subLangs = MergeLanguages(sriSubLangs, mediaSubLangs);
         }
         else
         {
-            audioLangs = media?.AudioStreams
-                .Select(a => a.Language?.GetTitleLanguage() ?? TitleLanguage.None)
-                .Where(l => l != TitleLanguage.None)
-                .Distinct()
-                .ToList() ?? [];
-            subLangs = media?.TextStreams
-                .Where(t => !t.External)
-                .Select(t => t.Language?.GetTitleLanguage() ?? TitleLanguage.None)
-                .Where(l => l != TitleLanguage.None)
-                .Distinct()
-                .ToList() ?? [];
+            audioLangs = mediaAudioLangs.Distinct().ToList();
+            subLangs = mediaSubLangs.Distinct().ToList();
         }
 
         bool? isChaptered = sri?.IsChaptered;
@@ -737,6 +738,21 @@ public class VideoReleaseGroupingService(
         );
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(signal));
         return Convert.ToHexStringLower(hash);
+    }
+
+    /// <summary>
+    /// Merges SRI languages with MediaInfo stream languages.
+    /// SRI languages occupy the first <paramref name="sriLangs"/>.Count positions;
+    /// MediaInfo stream languages fill remaining positions beyond that count.
+    /// </summary>
+    private static IReadOnlyList<TitleLanguage> MergeLanguages(
+        IReadOnlyList<TitleLanguage> sriLangs,
+        IReadOnlyList<TitleLanguage> mediaLangs)
+    {
+        var result = new List<TitleLanguage>(sriLangs);
+        for (var i = sriLangs.Count; i < mediaLangs.Count; i++)
+            result.Add(mediaLangs[i]);
+        return result;
     }
 
     private static string? GroupKey(StoredReleaseInfo? sri) =>

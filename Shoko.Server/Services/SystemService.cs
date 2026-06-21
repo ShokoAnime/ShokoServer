@@ -61,7 +61,6 @@ using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Trinet.Core.IO.Ntfs;
-
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 #nullable enable
@@ -90,6 +89,10 @@ public class SystemService : ISystemService
 
         LogService.InitLogger(ApplicationPaths.Instance);
         var loggerFactory = LoggerFactory.Create(o => o.AddNLog());
+
+        var unknownLangLogger = loggerFactory.CreateLogger("LanguageExtensions");
+        LanguageExtensions.OnUnknownLanguage += lang =>
+            unknownLangLogger.LogError("Unrecognized language string '{Language}' — add a mapping to LanguageExtensions.GetTitleLanguage().", lang);
 
         Version = PluginManager.GetVersionInformation();
 
@@ -389,7 +392,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IFilteringEngine, FilteringEngine>();
             services.AddSingleton<IMetadataFilteringService, MetadataFilteringService>();
             services.AddSingleton<IFilterPresetManager, FilterPresetManager>();
-            services.AddSingleton<IFuzzySearchService, Shoko.Server.Filters.FuzzySearchService>();
+            services.AddSingleton<IFuzzySearchService, FuzzySearchService>();
             services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();
             services.AddSingleton<AnimeSeriesService>();

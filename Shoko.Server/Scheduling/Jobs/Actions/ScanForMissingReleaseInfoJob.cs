@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
@@ -39,9 +41,45 @@ public class ScanForMissingReleaseInfoJob : BaseJob
 
     public override async Task Execute()
     {
-        var incompleteReleases = _releaseInfoRepository.GetAll()
-            .Where(r => !r.PreventRescan && (r.Source == ReleaseSource.Unknown || r.AudioLanguages is null || r.SubtitleLanguages is null))
+        var allReleases = _releaseInfoRepository.GetAll()
+            .Where(r => !r.PreventRescan)
             .ToList();
+
+        _logger.LogInformation("Evaluating {Count} releases for possible rescan.", allReleases.Count);
+
+        var incompleteReleases = new List<StoredReleaseInfo>();
+
+        foreach (var release in allReleases)
+        {
+            var audioLangs = release.AudioLanguages;
+            var subLangs = release.SubtitleLanguages;
+
+            if (release.Source == ReleaseSource.Unknown || audioLangs is null || subLangs is null)
+            {
+                incompleteReleases.Add(release);
+                continue;
+            }
+
+            if (audioLangs.Contains(TitleLanguage.Unknown) || subLangs.Contains(TitleLanguage.Unknown))
+            {
+                incompleteReleases.Add(release);
+                continue;
+            }
+
+            // Flag for rescan if the file has more than 10 embedded streams of a type
+            // but SRI recorded fewer than 10 languages for it — indicates truncated/stale data.
+            if (audioLangs.Count >= 10 && subLangs.Count >= 10) continue;
+
+            var video = _videoLocals.GetByEd2kAndSize(release.ED2K, release.FileSize);
+            var media = video?.MediaInfo;
+            if (media is null) continue;
+
+            if ((audioLangs.Count < 10 && media.AudioStreams.Count > 10) ||
+                (subLangs.Count < 10 && media.TextStreams.Count(t => !t.External) > 10))
+            {
+                incompleteReleases.Add(release);
+            }
+        }
 
         _logger.LogInformation("Found {Count} releases with missing info to evaluate for rescan.", incompleteReleases.Count);
 
