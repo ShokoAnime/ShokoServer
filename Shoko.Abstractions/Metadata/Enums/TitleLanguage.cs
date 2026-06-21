@@ -239,6 +239,11 @@ public enum TitleLanguage : int
     Pinyin,
 
     /// <summary>
+    /// Chinese (Min Nan / Hokkien).
+    /// </summary>
+    MinNanChinese,
+
+    /// <summary>
     /// Latin.
     /// </summary>
     Latin,

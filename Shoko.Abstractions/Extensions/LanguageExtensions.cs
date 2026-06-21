@@ -55,6 +55,7 @@ public static class LanguageExtensions
 
                     "ZH-HANS" => TitleLanguage.ChineseSimplified,
                     "ZH-HANT" => TitleLanguage.ChineseTraditional,
+                    "ZH-NAN" or "NAN" => TitleLanguage.MinNanChinese,
                     _ => TitleLanguage.None,
                 };
                 if (ietfResult is not TitleLanguage.None)
@@ -105,6 +106,7 @@ public static class LanguageExtensions
             "UK" or "UKR" => TitleLanguage.Ukrainian,
             "VI" or "VIE" => TitleLanguage.Vietnamese,
             "ZH" or "ZHO" or "CHI" => TitleLanguage.Chinese,
+            "ZH-NAN" or "NAN" or "X-NAN" => TitleLanguage.MinNanChinese,
             "AF" or "AFR" => TitleLanguage.Afrikaans,
             "SQ" or "ALB" or "SQI" => TitleLanguage.Albanian,
             "AM" or "AMH" => TitleLanguage.Amharic,
@@ -191,6 +193,7 @@ public static class LanguageExtensions
             "BD" => TitleLanguage.Bengali,
             "X-THA" => TitleLanguage.ThaiTranscription,
             "GREEK (ANCIENT)" => TitleLanguage.Greek,
+            "AL" => TitleLanguage.Albanian,
             "JAVANESE" or "MALAY" => TitleLanguage.Malaysian,
             "INDONESIAN" => TitleLanguage.Indonesian,
             "PORTUGUESE (BRAZILIAN)" => TitleLanguage.BrazilianPortuguese,
@@ -208,6 +211,7 @@ public static class LanguageExtensions
             #endregion
 
             "X-MAIN" => TitleLanguage.Main,
+            "X-UNK" or "X-OTHER" => TitleLanguage.Unknown,
             null or "" => TitleLanguage.None,
             _ => Enum.TryParse<TitleLanguage>(lang.ToLowerInvariant(), true, out var titleLanguage)
                 ? titleLanguage
@@ -245,6 +249,7 @@ public static class LanguageExtensions
             TitleLanguage.ChineseSimplified => "Chinese (Simplified)",
             TitleLanguage.ChineseTraditional => "Chinese (Traditional)",
             TitleLanguage.Pinyin => "Chinese (Pinyin / Transcription)",
+            TitleLanguage.MinNanChinese => "Chinese (Min Nan / Hokkien)",
             TitleLanguage.KoreanTranscription => "Korean (Transcription)",
             TitleLanguage.ThaiTranscription => "Thai (Transcription)",
             _ => lang.ToString(),
@@ -305,6 +310,7 @@ public static class LanguageExtensions
             TitleLanguage.Pinyin => "x-zht",
             TitleLanguage.ChineseSimplified => "zh-hans",
             TitleLanguage.ChineseTraditional => "zh-hant",
+            TitleLanguage.MinNanChinese => "nan",
             TitleLanguage.Afrikaans => "af",
             TitleLanguage.Albanian => "sq",
             TitleLanguage.Amharic => "am",
