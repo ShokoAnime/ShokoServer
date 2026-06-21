@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.303",
+      "tag": "v6.0.0-dev.303",
+      "commit": "d8d28c3c6407dbf884ee2ef477a19f8b05b17fc2",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.303/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-21T00:33:04Z",
+      "releaseNotes": "\n`misc`: **More data for Release Candidates**.\n"
+    },
+    {
       "version": "6.0.0.302",
       "tag": "v6.0.0-dev.302",
       "commit": "0c17560724b97e52256c456c1ca25ef49f202fd8",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.274/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-11T03:13:55Z",
       "releaseNotes": "\n`fix`: **Re-use the last imported at date if the release URI matches between the old and new release**.\n"
-    },
-    {
-      "version": "6.0.0.273",
-      "tag": "v6.0.0-dev.273",
-      "commit": "7db2d091146b7a3f19b5d2ca130581e3d788c577",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.273/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-11T03:09:39Z",
-      "releaseNotes": "\n`fix`: **Silently return if web component version is not in the list of available versions to install**.\n\n`fix`: **Don't change import date when finding the existing release**.\n"
     }
   ]
 }
