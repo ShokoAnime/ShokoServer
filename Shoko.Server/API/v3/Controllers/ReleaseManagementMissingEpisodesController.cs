@@ -49,7 +49,7 @@ public class ReleaseManagementMissingEpisodesController(ISettingsProvider settin
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = _animeEpisodes.GetMissing(collecting);
+        var enumerable = _animeEpisodes.GetMissing(collecting).Where(a => a.AnimeSeries is { } series && User.AllowedSeries(series));
 
         return enumerable
             .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
@@ -74,9 +74,10 @@ public class ReleaseManagementMissingEpisodesController(ISettingsProvider settin
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = _animeSeries.GetWithMissingEpisodes(collecting);
+        var enumerable = _animeSeries.GetWithMissingEpisodes(collecting).Where(a => User.AllowedSeries(a));
         if (onlyFinishedSeries)
-            enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
+            enumerable = enumerable.Where(a => a.AniDB_Anime is { } anime && anime.GetFinishedAiring());
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             var normalizedSearch = AniDB_Anime_TitleRepository.NormalizeForSearch(search);
