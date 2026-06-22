@@ -595,6 +595,15 @@ public partial class TmdbSearchService : ITmdbSearchService
         if (candidates.Count == 0)
             return null;
 
+        // AniDB episode 1's specific air date, used only for the episode-level date check below.
+        // Nullable — when absent, the episode-level check is skipped entirely rather than falling
+        // back to anime.AirDate, which is a series-level date and not the right point of truth
+        // for an episode-to-episode comparison.
+        var anidbEp1Date = anime.AniDBEpisodes
+            .Where(e => e.EpisodeType is EpisodeType.Episode && e.EpisodeNumber == 1)
+            .Select(e => e.GetAirDateAsDate())
+            .FirstOrDefault();
+
         // Fetch each candidate in full to get translated titles and per-season data, then score.
         // show.Seasons is included in the base GetTvShowAsync response (no extra per-season fetches needed).
         var scored = new List<(SearchTv raw, MatchRating rating, int bestSeasonEpisodeDiff)>();
@@ -639,6 +648,29 @@ public partial class TmdbSearchService : ITmdbSearchService
 
             // Date match: prefer season-level year alignment, fall back to show first-air year.
             var dateMatch = seasonYearMatch || full.FirstAirDate?.Year == airDate.Year;
+
+            // Episode-level date check: if year-level matching failed and AniDB episode 1 has a
+            // known air date, compare TMDB season episode 1's air date against it. A close match
+            // (±3 days) is a strong signal that this is the correct season — catches cases where
+            // the season year check fails (split-cour, year-boundary premieres) but actual dates align.
+            if (!dateMatch && bestSeason is not null && anidbEp1Date.HasValue)
+            {
+                var tmdbSeason = await _tmdbService.UseClient(
+                    c => c.GetTvSeasonAsync(candidate.Id, bestSeason.SeasonNumber),
+                    $"Fetch season {bestSeason.SeasonNumber} of show {candidate.Id} \"{candidate.OriginalName}\" for episode-date check"
+                ).ConfigureAwait(false);
+                var tmdbEp1Date = tmdbSeason?.Episodes?
+                    .OrderBy(e => e.EpisodeNumber)
+                    .FirstOrDefault()?.AirDate;
+                if (tmdbEp1Date.HasValue)
+                {
+                    dateMatch = Math.Abs((tmdbEp1Date.Value - anidbEp1Date.Value).TotalDays) <= 3;
+                    _logger.LogTrace(
+                        "Episode-date check for show {ShowName} ({ID}) S{Season}E1: tmdb={TmdbDate}, anidb={AnidbDate}, match={Match}",
+                        full.Name, full.Id, bestSeason.SeasonNumber, tmdbEp1Date.Value.ToString("yyyy-MM-dd"), anidbEp1Date.Value.ToString("yyyy-MM-dd"), dateMatch
+                    );
+                }
+            }
 
             var rating = (exactTitle, fuzzyTitle, dateMatch) switch
             {
@@ -711,8 +743,6 @@ public partial class TmdbSearchService : ITmdbSearchService
             candidates.Add(result);
         }
     }
-
-    private bool IsAnimation(IReadOnlyList<string> genres) => genres.Contains("animation", StringComparer.OrdinalIgnoreCase);
 
     private static bool ExactMatchesAnyName(string query, IReadOnlySet<string> names)
     {

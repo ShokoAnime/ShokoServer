@@ -171,8 +171,8 @@ public class TmdbSearchServiceTests
 
     // ── NormalizeForIndex: exclamation collision in movie context ─────────────
     // Movies lack an episode-count tiebreaker, so when two candidates collide on
-    // normalized title the scorer falls through to vote count descending.
-    // The correct movie should have significantly more votes than an OVA/extra
+    // normalized title the scorer falls back to the first result in rating order.
+    // The correct movie should score DateAndTitleMatches over the OVA/extra
     // carrying the same base title, but this test documents the collision so any
     // future change to punctuation handling is intentional.
 
@@ -182,8 +182,8 @@ public class TmdbSearchServiceTests
         // e.g. "Precure All Stars Movie: Haru no Carnival♪" and a variant with
         // different punctuation would both normalize the same way.
         // More concretely: a main movie and a bonus short sharing a base title
-        // that differs only in trailing punctuation score identically — vote count
-        // is the only lever to break the tie.
+        // that differs only in trailing punctuation score identically — the date
+        // match is the lever to break the tie.
         var mainMovie = SeriesSearch.NormalizeForIndex("Fairy Tail: Phoenix Priestess");
         var bonusShort = SeriesSearch.NormalizeForIndex("Fairy Tail: Phoenix Priestess!");
         Assert.Equal(mainMovie, bonusShort);
