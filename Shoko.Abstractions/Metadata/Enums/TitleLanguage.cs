@@ -239,11 +239,6 @@ public enum TitleLanguage : int
     Pinyin,
 
     /// <summary>
-    /// Chinese (Min Nan / Hokkien).
-    /// </summary>
-    MinNanChinese,
-
-    /// <summary>
     /// Latin.
     /// </summary>
     Latin,
@@ -627,4 +622,9 @@ public enum TitleLanguage : int
     /// English (New Zealand).
     /// </summary>
     EnglishNewZealand,
+
+    /// <summary>
+    /// Chinese (Min Nan / Hokkien).
+    /// </summary>
+    MinNanChinese,
 }
