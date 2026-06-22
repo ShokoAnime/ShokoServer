@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.sha }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: "${{ github.sha }}"
           fetch-depth: 0 # This is set to download the full git history for the repo
@@ -46,7 +46,7 @@ jobs:
 
       - id: commit_info
         name: Shorten Commit Hash
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const sha = context.sha.substring(0, 7);
@@ -63,12 +63,12 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: "${{ github.sha }}"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -93,12 +93,12 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: "${{ github.sha }}"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -133,7 +133,7 @@ jobs:
           rm latest.zip
 
       - name: Upload Web UI Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: webui
           path: webui/
@@ -160,7 +160,7 @@ jobs:
           rm latest.zip
 
       - name: Upload Offline Importer Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: offline-importer
           path: plugins/
@@ -196,18 +196,18 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: "${{ github.sha }}"
 
       - name: Download Web UI
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: webui
           path: Shoko.Server/webui
 
       - name: Download Offline Importer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: offline-importer
           path: Shoko.Server/plugins
@@ -220,13 +220,13 @@ jobs:
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
         if: ${{ matrix.rid == 'linux-arm64' }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -262,18 +262,18 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: "${{ github.sha }}"
 
       - name: Download Web UI
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: webui
           path: Shoko.Server/webui
 
       - name: Download Offline Importer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: offline-importer
           path: Shoko.Server/plugins
@@ -286,13 +286,13 @@ jobs:
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: arm64
         if: ${{ matrix.rid == 'linux-arm64' }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -327,18 +327,18 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: "${{ github.sha }}"
 
       - name: Download Web UI
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: webui
           path: Shoko.Server/webui
 
       - name: Download Offline Importer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: offline-importer
           path: Shoko.Server/plugins
@@ -351,7 +351,7 @@ jobs:
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -386,18 +386,18 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: "${{ github.ref }}"
 
       - name: Download Web UI
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: webui
           path: Shoko.Server/webui
 
       - name: Download Offline Importer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: offline-importer
           path: Shoko.Server/plugins
@@ -410,7 +410,7 @@ jobs:
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -440,7 +440,7 @@ jobs:
           file_glob: true
 
       - name: Install SSH key
-        uses: shimataro/ssh-key-action@d4fffb50872869abe2d9a9098a6d9c5aa7d16be4
+        uses: shimataro/ssh-key-action@v2.8.1
         if: ${{ env.SSH_USERNAME != '' && env.SSH_SERVER != '' }}
         env:
           SSH_USERNAME: ${{ secrets.FILES_USERNAME }}
@@ -482,18 +482,18 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: "${{ github.ref }}"
 
       - name: Download Web UI
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: webui
           path: Shoko.Server/webui
 
       - name: Download Offline Importer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: offline-importer
           path: Shoko.Server/plugins
@@ -505,23 +505,23 @@ jobs:
           ./.github/workflows/ReplaceTmdbApiKey.ps1 -apiKey ${{ secrets.TMDB_API }}
           ./.github/workflows/ReplaceAVD3URL.ps1 -url ${{ secrets.AVD3_URL }}
 
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4
         name: Set up QEMU
         with:
           platforms: arm64
         if: ${{ matrix.arch == 'arm64' }}
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
         name: Set up Docker Buildx
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         name: Log into GitHub Container Registry
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         name: Log into Docker Hub
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -530,7 +530,7 @@ jobs:
       # Disabled provenance for now, until it works with docker manifest create.
       # The manifest list produced by the new feature is incompatible with the
       # expected format used in the docker manifest create command.
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         name: Build and Push the Docker image
         with:
           context: .
@@ -573,14 +573,14 @@ jobs:
           - ${{ needs.current_info.outputs.tag_minor }}
 
     steps:
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         name: Log into GitHub Container Registry
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         name: Log into Docker Hub
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -611,10 +611,10 @@ jobs:
     name: Update Stable Manifest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: master-branch
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: metadata
           path: metadata-branch
@@ -637,7 +637,7 @@ jobs:
             "$(pwd)/metadata-branch/manifest.json" \
             "$(cat /tmp/entry.json)" \
             Stable
-      - uses: stefanzweifel/git-auto-commit-action@v5
+      - uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "repo(manifest): update stable manifest [skip ci]"
           branch: metadata
@@ -655,7 +655,7 @@ jobs:
 
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: "${{ github.ref }}"
 
@@ -680,11 +680,11 @@ jobs:
 
     steps:
       - name: Remove Web UI Artifact
-        uses: geekyeggo/delete-artifact@v5
+        uses: geekyeggo/delete-artifact@v6
         with:
           name: webui
 
       - name: Remove Offline Importer Artifact
-        uses: geekyeggo/delete-artifact@v5
+        uses: geekyeggo/delete-artifact@v6
         with:
           name: offline-importer
