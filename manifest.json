@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.308",
+      "tag": "v6.0.0-dev.308",
+      "commit": "32fdb8ef1c3fcd18920bfe144dc14aaa619e951e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.308/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-22T02:18:43Z",
+      "releaseNotes": "\n`fix`: **Move new language code**.\n"
+    },
+    {
       "version": "6.0.0.307",
       "tag": "v6.0.0-dev.307",
       "commit": "7f394ed015cc2d5ba0415d43c9ca5525e86b9405",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.279/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-12T18:08:21Z",
       "releaseNotes": "\n`misc`: **Hopefully fix stats refresh**.\n"
-    },
-    {
-      "version": "6.0.0.278",
-      "tag": "v6.0.0-dev.278",
-      "commit": "c513e0ca666247a8062870902f12e19182eae0e2",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.278/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-12T16:12:45Z",
-      "releaseNotes": "\n`fix`: **Fix episode aired flag when series end date is wrong**.\n"
     }
   ]
 }
