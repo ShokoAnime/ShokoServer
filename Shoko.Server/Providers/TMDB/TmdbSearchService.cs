@@ -291,10 +291,7 @@ public partial class TmdbSearchService : ITmdbSearchService
             var titleMatch = ScoreQueryVariants([query, strippedTitle], allTitles);
             var exactTitle = titleMatch is MatchRating.TitleMatches;
             var fuzzyTitle = titleMatch is MatchRating.TitleKindaMatches;
-            var dateMatch = year > 0 && (
-                full.ReleaseDate?.Year == year ||
-                (full.ReleaseDates?.Results?.Any(r => r.ReleaseDates?.Any(rd => rd.ReleaseDate.Year == year) ?? false) ?? false)
-            );
+            var dateMatch = MovieMatchesYear(full, year);
 
             var rating = (exactTitle, fuzzyTitle, dateMatch) switch
             {
@@ -720,6 +717,9 @@ public partial class TmdbSearchService : ITmdbSearchService
     #endregion
 
     #region Helpers
+
+    private static bool MovieMatchesYear(TMDbLib.Objects.Movies.Movie movie, int year) =>
+        year > 0 && (movie.ReleaseDate?.Year == year || (movie.ReleaseDates?.Results?.Any(r => r.ReleaseDates?.Any(rd => rd.ReleaseDate.Year == year) ?? false) ?? false));
 
     private static int ShowMatchPriority(MatchRating r) => r switch
     {

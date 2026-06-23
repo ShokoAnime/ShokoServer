@@ -159,9 +159,11 @@ public class TmdbSearchServiceTests
         // The stripped form normalizes the same as the parent show title, confirming
         // PrefixMatchesAnyName would fire — but since it's fuzzy-only it cannot
         // produce ExactMatch and the parent scores at most TitleKindaMatches.
-        var stripped = SeriesSearch.NormalizeForIndex("Fairy Tail");
+        const string fullTitle = "Fairy Tail: 100 Years Quest";
+        var colonIndex = fullTitle.IndexOf(':');
+        var strippedFromFull = SeriesSearch.NormalizeForIndex(fullTitle[..colonIndex].TrimEnd());
         var parentTitle = SeriesSearch.NormalizeForIndex("Fairy Tail");
-        Assert.Equal(stripped, parentTitle);
+        Assert.Equal(parentTitle, strippedFromFull);
 
         // The full title normalizes differently, so the specific TMDB entry that
         // exact-matches the full title can score TitleMatches and win.
