@@ -362,6 +362,8 @@ public class UserDataService(
 
     #region Episode User Data
 
+    private readonly Lock _episodeUserDataLock = new();
+
     public event EventHandler<EpisodeUserDataSavedEventArgs>? EpisodeUserDataSaved;
 
     public IEpisodeUserData GetEpisodeUserData(IShokoEpisode episode, IUser user)
@@ -373,10 +375,20 @@ public class UserDataService(
         if (user.ID is <= 0)
             throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
 
-        var userData = episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID)
-            ?? new() { JMMUserID = user.ID, AnimeEpisodeID = episode.ID };
-        if (userData.AnimeEpisode_UserID is 0)
+        if (episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID) is { } userData)
+            return userData;
+
+        // Only allow creating one user data at a time through the service method.
+        lock (_episodeUserDataLock)
+        {
+            userData = episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID);
+            if (userData is not null)
+                return userData;
+
+            userData = new() { JMMUserID = user.ID, AnimeEpisodeID = episode.ID };
             episodeUserDataRepository.Save(userData);
+        }
+
         return userData;
     }
 
@@ -692,6 +704,8 @@ public class UserDataService(
 
     #region Series User Data
 
+    private readonly Lock _seriesUserDataLock = new();
+
     public event EventHandler<SeriesUserDataSavedEventArgs>? SeriesUserDataSaved;
 
     public ISeriesUserData GetSeriesUserData(IShokoSeries series, IUser user)
@@ -703,10 +717,20 @@ public class UserDataService(
         if (user.ID is <= 0)
             throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
 
-        var userData = seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)
-            ?? new() { JMMUserID = user.ID, AnimeSeriesID = series.ID };
-        if (userData.AnimeSeries_UserID is 0)
+        if (seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID) is { } userData)
+            return userData;
+
+        // Only allow creating one user data at a time through the service method.
+        lock (_seriesUserDataLock)
+        {
+            userData = seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID);
+            if (userData is not null)
+                return userData;
+
+            userData = new() { JMMUserID = user.ID, AnimeSeriesID = series.ID };
             seriesUserDataRepository.Save(userData);
+        }
+
         return userData;
     }
 
@@ -1035,6 +1059,8 @@ public class UserDataService(
 
     #region Group User Data
 
+    private readonly Lock _groupUserDataLock = new();
+
     public event EventHandler<GroupUserDataSavedEventArgs>? GroupUserDataSaved;
 
     public IGroupUserData GetGroupUserData(IShokoGroup group, IUser user)
@@ -1046,10 +1072,20 @@ public class UserDataService(
         if (user.ID is <= 0)
             throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
 
-        var userData = groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)
-            ?? new() { JMMUserID = user.ID, AnimeGroupID = group.ID };
-        if (userData.AnimeGroup_UserID is 0)
+        if (groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID) is { } userData)
+            return userData;
+
+        // Only allow creating one user data at a time through the service method.
+        lock (_groupUserDataLock)
+        {
+            userData = groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID);
+            if (userData is not null)
+                return userData;
+
+            userData = new() { JMMUserID = user.ID, AnimeGroupID = group.ID };
             groupUserDataRepository.Save(userData);
+        }
+
         return userData;
     }
 
