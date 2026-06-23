@@ -260,6 +260,11 @@ public class TMDBSettings
     /// API calls. All calls are paced by <c>TmdbRateLimiter</c> (sliding-window,
     /// ~40 req/sec) with automatic 429 backoff, so increasing this value slows
     /// searches but will not trigger rate-limit errors.
+    /// <para>
+    /// The year-free candidate pool cap is <c>2 × this value</c>. At the minimum
+    /// of 1, year-free searches collect at most 2 candidates total — sufficient for
+    /// most titles, but edge cases may benefit from a higher value.
+    /// </para>
     /// </summary>
     [Range(1, 10)]
     public int AutoSearchShowCandidateCount { get; set; } = 5;
@@ -272,6 +277,11 @@ public class TMDBSettings
     /// API calls. All calls are paced by <c>TmdbRateLimiter</c> (sliding-window,
     /// ~40 req/sec) with automatic 429 backoff, so increasing this value slows
     /// searches but will not trigger rate-limit errors.
+    /// <para>
+    /// The year-free candidate pool cap is <c>2 × this value</c>. At the minimum
+    /// of 1, year-free searches collect at most 2 candidates total — sufficient for
+    /// most titles, but edge cases may benefit from a higher value.
+    /// </para>
     /// </summary>
     [Range(1, 10)]
     public int AutoSearchMovieCandidateCount { get; set; } = 5;

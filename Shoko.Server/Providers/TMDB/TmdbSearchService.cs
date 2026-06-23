@@ -301,6 +301,7 @@ public partial class TmdbSearchService : ITmdbSearchService
                 (true, _, true)  => MatchRating.DateAndTitleMatches,
                 (true, _, false) => MatchRating.TitleMatches,
                 (_, true, true)  => MatchRating.DateAndTitleKindaMatches,
+                (_, _, true)     => MatchRating.DateMatches,
                 (_, true, false) => MatchRating.TitleKindaMatches,
                 _                => MatchRating.FirstAvailable,
             };
@@ -310,6 +311,10 @@ public partial class TmdbSearchService : ITmdbSearchService
                 "Candidate movie {MovieName} ({ID}): rating={Rating}, releaseYear={ReleaseYear}",
                 full.Title, full.Id, rating, full.ReleaseDate?.Year
             );
+
+            // Maximum confidence — no other candidate can outscore this, so skip remaining fetches.
+            if (rating is MatchRating.DateAndTitleMatches)
+                break;
         }
 
         // If all GetMovieAsync calls returned null (transient outage), fall back to the first candidate
@@ -677,6 +682,7 @@ public partial class TmdbSearchService : ITmdbSearchService
                 (true, _, true)  => MatchRating.DateAndTitleMatches,
                 (true, _, false) => MatchRating.TitleMatches,
                 (_, true, true)  => MatchRating.DateAndTitleKindaMatches,
+                (_, _, true)     => MatchRating.DateMatches,
                 (_, true, false) => MatchRating.TitleKindaMatches,
                 _                => MatchRating.FirstAvailable,
             };
@@ -686,6 +692,10 @@ public partial class TmdbSearchService : ITmdbSearchService
                 "Candidate show {ShowName} ({ID}): rating={Rating}, bestSeasonEpisodeDiff={EpisodeDiff}, seasonYearMatch={SeasonYearMatch}",
                 full.Name, full.Id, rating, bestSeasonEpisodeDiff, seasonYearMatch
             );
+
+            // Maximum confidence — no other candidate can outscore this, so skip remaining fetches.
+            if (rating is MatchRating.DateAndTitleMatches)
+                break;
         }
 
         // If all GetTvShowAsync calls returned null (transient outage), fall back to the first candidate
