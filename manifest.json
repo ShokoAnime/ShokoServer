@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.310",
+      "tag": "v6.0.0-dev.310",
+      "commit": "07bff95339e296ffbcd0c8e57f5ccee557e5bda2",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.310/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-23T03:32:22Z",
+      "releaseNotes": "\n`fix`: **Fix SQLite Queue Error**.\n"
+    },
+    {
       "version": "6.0.0.309",
       "tag": "v6.0.0-dev.309",
       "commit": "933e6bf60ae787c3a9070bf0367a2db3b6d617c7",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.281/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-14T17:50:25Z",
       "releaseNotes": "\n`refactor`: **Move APIv3 auth endpoint to APIv3, fix missing token from APIv3 response**.\n"
-    },
-    {
-      "version": "6.0.0.280",
-      "tag": "v6.0.0-dev.280",
-      "commit": "fa05c0aeeae660473327fa176c9d56718b5eed4e",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.280/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-12T23:27:50Z",
-      "releaseNotes": "\n`feat` (`filtering`): **Add missing and unaired episode counts, selectors, and is restricted expression**:\n\nAdded `MissingEpisodeCounts` and `UnairedEpisodeCounts` as `EpisodeCounts`\nproperties on `IFilterableInfo`, `IShokoSeries`, and `IShokoGroup`. Both\nare computed on-the-fly from `AniDB_Episode.HasAired` and local file\navailability — missing = aired without local files, unaired = not yet\naired without local files.\n\nAdded 26 expression/selector/sorting files for per-type filtering and\nsorting on missing and unaired counts, plus an `IsRestrictedExpression`\ninfo expression that wraps the new `IFilterableInfo.IsRestricted`.\n\n`chore` (`abstractions`): **Bump version to 6.0.0-alpha.53**.\n"
     }
   ]
 }
