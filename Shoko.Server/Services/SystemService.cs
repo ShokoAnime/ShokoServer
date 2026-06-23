@@ -336,7 +336,7 @@ public class SystemService : ISystemService
             if (!FileSystem.AlternateDataStreamExists(dllFile, "Zone.Identifier"))
                 continue;
 
-            _logger.LogError("Found blocked DLL file: " + dllFile);
+            _logger.LogError("Found blocked DLL file: {DllFile}", dllFile);
             result = false;
         }
 
@@ -487,6 +487,7 @@ public class SystemService : ISystemService
             registry.Register<ScanForMissingReleaseInfoJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<PeriodicImageMaintenanceJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<CleanupExpiredTokensJob>(TimeSpan.FromHours(24), runImmediately: false);
+            registry.Register<PurgeOrphanedTmdbDataJob>(TimeSpan.FromHours(24), runImmediately: false);
 
             // Register settings-driven recurring jobs. Jobs whose frequency is Never are skipped
             // entirely at startup; they are registered on-demand when settings change.
