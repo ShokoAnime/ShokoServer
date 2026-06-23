@@ -683,9 +683,14 @@ public class VideoService : IVideoService
         var seriesToUpdate = new List<AnimeSeries>();
         var v = place.VideoLocal;
 
+        // Decide based on whether any *other* persisted place remains, not on the raw place count.
+        // A transient duplicate location (ID 0) handed in by de-duplication is not a member of
+        // `v.Places`, so the old `v.Places.Count <= 1` guard mistook the surviving real place for the
+        // "last" one and deleted the entire VideoLocal — orphaning the kept copy and emptying the series.
+        var isLastPlace = v is not null && !v.Places.Any(p => p.ID != place.ID);
         using (var session = _databaseFactory.SessionFactory.OpenSession())
         {
-            if (v?.Places?.Count <= 1)
+            if (v is not null && isLastPlace)
             {
                 if (!skipEvents)
                     await ScheduleRemovalFromMyList(v);
@@ -729,12 +734,16 @@ public class VideoService : IVideoService
                     }
                 }
 
-                BaseRepository.Lock(session, s =>
-                {
-                    using var transaction = s.BeginTransaction();
-                    _videoLocalPlaceRepository.DeleteWithOpenTransaction(s, place);
-                    transaction.Commit();
-                });
+                // Only delete a persisted place record. A transient stub (ID 0, e.g. an incoming
+                // duplicate being de-duplicated) is not in the database and must not be deleted —
+                // doing so previously cascaded into removing the whole VideoLocal.
+                if (place.ID != 0)
+                    BaseRepository.Lock(session, s =>
+                    {
+                        using var transaction = s.BeginTransaction();
+                        _videoLocalPlaceRepository.DeleteWithOpenTransaction(s, place);
+                        transaction.Commit();
+                    });
             }
         }
 

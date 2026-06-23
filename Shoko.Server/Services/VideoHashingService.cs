@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -35,7 +36,6 @@ using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class VideoHashingService(
@@ -786,15 +786,16 @@ public class VideoHashingService(
         logger.LogWarning("---------------------------------------------");
         logger.LogWarning("Found Duplicate File");
         logger.LogWarning("---------------------------------------------");
-        logger.LogWarning("New File: {FullServerPath}", videoLocation.Path);
-        logger.LogWarning("Existing File: {FullServerPath}", dupPlace.Path);
+        logger.LogWarning("New File (to delete): {FullServerPath}", videoLocation.Path);
+        logger.LogWarning("Existing File (to keep): {FullServerPath}", dupPlace.Path);
         logger.LogWarning("---------------------------------------------");
 
         var settings = settingsProvider.GetSettings();
         if (!settings.Import.AutomaticallyDeleteDuplicatesOnImport)
             return false;
 
-        logger.LogInformation("Auto De-Duplicating Is Enabled. Deleting Duplicate File: {FullServerPath}", dupPlace.Path);
+        // NOTE: we delete videoLocation (the newly-discovered duplicate) and keep dupPlace (the existing copy).
+        logger.LogInformation("Auto De-Duplicating Is Enabled. Deleting Duplicate File: {FullServerPath}", videoLocation.Path);
         logger.LogWarning("---------------------------------------------");
         await _videoService.RemoveRecordAndDeletePhysicalFile(videoLocation, skipEvents: skipEvents);
         return true;

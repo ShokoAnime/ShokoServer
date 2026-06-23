@@ -587,7 +587,7 @@ public class ActionService
         foreach (var animeID in missingAnimeSet)
         {
             if (++index % 10 == 1 || index == missingAnimeSet.Count)
-                _logger.LogInformation("Queueing anime that needs an update — {CurrentCount}/{MissingAnimeCount}", index + 1, missingAnimeSet.Count);
+                _logger.LogInformation("Queueing anime that needs an update — {CurrentCount}/{MissingAnimeCount}", index, missingAnimeSet.Count);
 
             await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod);
         }
