@@ -385,7 +385,7 @@ public class UserDataService(
             if (userData is not null)
                 return userData;
 
-            userData = new() { JMMUserID = user.ID, AnimeSeriesID = episode.SeriesID, AnimeEpisodeID = episode.ID };
+            userData = new() { JMMUserID = user.ID, AnimeEpisodeID = episode.ID, AnimeSeriesID = episode.SeriesID };
             episodeUserDataRepository.Save(userData);
         }
 
@@ -622,7 +622,7 @@ public class UserDataService(
             return;
 
         var episodeUserData = episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID)
-            ?? new() { AnimeEpisodeID = episode.ID, AnimeSeriesID = episode.SeriesID, JMMUserID = user.ID };
+            ?? new() { JMMUserID = user.ID, AnimeEpisodeID = episode.ID, AnimeSeriesID = episode.SeriesID };
         var shouldSave = false;
         switch (statCountType)
         {
@@ -641,7 +641,7 @@ public class UserDataService(
         }
 
         var seriesUserData = seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)
-            ?? new() { AnimeSeriesID = series.ID, JMMUserID = user.ID };
+            ?? new() { JMMUserID = user.ID, AnimeSeriesID = series.ID };
         switch (statCountType)
         {
             case 2 /* playback started */:
