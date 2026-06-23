@@ -290,4 +290,15 @@ public class TMDBSettings
     /// Rate limit settings for the TMDB API.
     /// </summary>
     public TmdbRateLimitSettings RateLimit { get; set; } = new();
+
+    /// <summary>
+    /// Number of days a TMDB show or movie can remain in the local database
+    /// without any AniDB cross-reference before it is automatically purged.
+    /// Set to <c>0</c> to disable automatic purging.
+    /// </summary>
+    [Visibility(Size = DisplayElementSize.Large)]
+    [EnvironmentVariable("TMDB_AUTO_PURGE_UNLINKED_AFTER_DAYS")]
+    [Range(0, 365)]
+    [DefaultValue(14)]
+    public int AutoPurgeUnlinkedAfterDays { get; set; } = 14;
 }
