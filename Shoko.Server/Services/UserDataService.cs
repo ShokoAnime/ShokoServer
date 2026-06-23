@@ -385,7 +385,7 @@ public class UserDataService(
             if (userData is not null)
                 return userData;
 
-            userData = new() { JMMUserID = user.ID, AnimeEpisodeID = episode.ID };
+            userData = new() { JMMUserID = user.ID, AnimeSeriesID = episode.SeriesID, AnimeEpisodeID = episode.ID };
             episodeUserDataRepository.Save(userData);
         }
 
