@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
+using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Storage;
@@ -257,9 +258,9 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     private string? ComputeMergedJson(Type type, string? existingJson, string? incomingJson)
     {
         var existing = (IQueueJob)RuntimeHelpers.GetUninitializedObject(type);
-        Builder.JobDataSerializer.Apply(existing, existingJson);
+        JobDataSerializer.Apply(existing, existingJson);
         var incoming = (IQueueJob)RuntimeHelpers.GetUninitializedObject(type);
-        Builder.JobDataSerializer.Apply(incoming, incomingJson);
+        JobDataSerializer.Apply(incoming, incomingJson);
 
         bool changed;
         if (_mergeHandlers.TryGetValue(type, out var handler))
@@ -269,7 +270,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         else
             return null;
 
-        return changed ? Builder.JobDataSerializer.Serialize(existing) : null;
+        return changed ? JobDataSerializer.Serialize(existing) : null;
     }
 
     /// <summary>
@@ -896,10 +897,23 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 "Job {JobKey} ({JobType}) failed — retry {N}/{Max} in {Delay:g}",
                 entry.JobKey, entry.JobType.Name, newRetryCount, policy.MaxRetries, delay);
 
-            // Write immediately so crash-restart preserves the backoff position
-            using (var scope = _scopeFactory.CreateScope())
+            // Write immediately so crash-restart preserves the backoff position. A transient
+            // persistence failure here (e.g. a contended SQLite write) must never escape: the
+            // in-memory re-queue below is what actually keeps the job alive, and an unhandled
+            // exception on the worker thread would abort the whole process. Worst case we lose the
+            // persisted backoff position for one job across a crash-restart.
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
                 await scope.ServiceProvider.GetRequiredService<IJobRepository>()
                     .UpdateRetryAsync(id, newRetryCount, nextRun, ct);
+            }
+            catch (Exception persistEx)
+            {
+                _logger.LogWarning(persistEx,
+                    "Failed to persist retry backoff for job {JobKey} ({JobType}); continuing with in-memory re-queue",
+                    entry.JobKey, entry.JobType.Name);
+            }
 
             // Re-queue in-memory with updated ScheduledAt and incremented RetryCount
             var retryJob = new QueuedJob

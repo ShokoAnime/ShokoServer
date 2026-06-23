@@ -33,6 +33,8 @@ public class SqliteQueueDbContext : QueueDbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
-            optionsBuilder.UseSqlite(_connectionString);
+            optionsBuilder
+                .UseSqlite(_connectionString)
+                .AddInterceptors(new SqlitePragmaConnectionInterceptor());
     }
 }
