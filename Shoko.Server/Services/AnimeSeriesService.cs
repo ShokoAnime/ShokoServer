@@ -19,11 +19,12 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Utilities;
-
 using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
@@ -45,8 +46,11 @@ public class AnimeSeriesService
     private readonly StoredReleaseInfoRepository _storedReleaseInfos;
     private readonly AniDB_GroupStatusRepository _anidbGroupStatuses;
     private readonly AniDB_Anime_StaffRepository _anidbAnimeStaff;
+    private readonly CrossRef_AniDB_TMDB_ShowRepository _xrefAnidbTmdbShows;
+    private readonly CrossRef_AniDB_TMDB_MovieRepository _xrefAnidbTmdbMovies;
     private IAnidbService? _anidbService;
     private IShokoGroupManager? _groupManager;
+    private TmdbLinkingService? _tmdbLinkingService;
 
     public AnimeSeriesService(
         ILogger<AnimeSeriesService> logger,
@@ -60,7 +64,9 @@ public class AnimeSeriesService
         AnimeSeriesRepository animeSeries,
         StoredReleaseInfoRepository storedReleaseInfos,
         AniDB_GroupStatusRepository anidbGroupStatuses,
-        AniDB_Anime_StaffRepository anidbAnimeStaff)
+        AniDB_Anime_StaffRepository anidbAnimeStaff,
+        CrossRef_AniDB_TMDB_ShowRepository xrefAnidbTmdbShows,
+        CrossRef_AniDB_TMDB_MovieRepository xrefAnidbTmdbMovies)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -74,6 +80,8 @@ public class AnimeSeriesService
         _storedReleaseInfos = storedReleaseInfos;
         _anidbGroupStatuses = anidbGroupStatuses;
         _anidbAnimeStaff = anidbAnimeStaff;
+        _xrefAnidbTmdbShows = xrefAnidbTmdbShows;
+        _xrefAnidbTmdbMovies = xrefAnidbTmdbMovies;
     }
 
     public async Task<(bool, Dictionary<AnimeEpisode, UpdateReason>)> CreateAnimeEpisodes(AnimeSeries series)
@@ -474,6 +482,22 @@ public class AnimeSeriesService
             _animeEpisodes.Delete(ep.AnimeEpisodeID);
         }
         _animeSeries.Delete(series);
+
+        // Capture linked TMDB IDs before removing xrefs so we can purge orphans afterward.
+        var linkedShowIds = _xrefAnidbTmdbShows.GetByAnidbAnimeID(series.AniDB_ID).Select(x => x.TmdbShowID).Distinct().ToList();
+        var linkedMovieIds = _xrefAnidbTmdbMovies.GetByAnidbAnimeID(series.AniDB_ID).Select(x => x.TmdbMovieID).Distinct().ToList();
+
+        _tmdbLinkingService ??= _serviceProvider.GetRequiredService<TmdbLinkingService>();
+        await _tmdbLinkingService.RemoveAllShowLinksForAnime(series.AniDB_ID);
+        await _tmdbLinkingService.RemoveAllMovieLinksForAnime(series.AniDB_ID);
+
+        foreach (var showId in linkedShowIds)
+            if (_xrefAnidbTmdbShows.GetByTmdbShowID(showId).Count == 0)
+                await _scheduler.StartJob<PurgeTmdbShowJob>(c => c.TmdbShowID = showId);
+
+        foreach (var movieId in linkedMovieIds)
+            if (_xrefAnidbTmdbMovies.GetByTmdbMovieID(movieId).Count == 0)
+                await _scheduler.StartJob<PurgeTmdbMovieJob>(c => c.TmdbMovieID = movieId);
 
         if (!updateGroups)
         {
