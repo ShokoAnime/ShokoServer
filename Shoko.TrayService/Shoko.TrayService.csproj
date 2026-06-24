@@ -37,6 +37,8 @@
         <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
         <!-- Needed for the windows' native tray system menu to function properly. -->
         <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
+        <!-- Pin Tmds.DBus.Protocol to a non-vulnerable patch (0.21.3) to address GHSA-xrw6-gwf8-vvr9 -->
+        <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
     </ItemGroup>
     <ItemGroup>
         <AvaloniaResource Include="..\Shoko.Server\db.ico">

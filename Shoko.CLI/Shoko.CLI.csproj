@@ -28,6 +28,12 @@
   <ItemGroup>
     <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
   </ItemGroup>
+  <!-- Pin fixed SQLitePCLRaw packages to avoid transitive vulnerability GHSA-2m69-gcr7-jv3q -->
+  <ItemGroup>
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
+    <PackageReference Include="SQLitePCLRaw.core" Version="3.0.3" />
+    <PackageReference Include="SQLitePCLRaw.provider.e_sqlite3" Version="3.0.3" />
+  </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Connected Services\" />
   </ItemGroup>
