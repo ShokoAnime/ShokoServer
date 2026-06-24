@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.314",
+      "tag": "v6.0.0-dev.314",
+      "commit": "21193e61310703f62a98b8a0fcc2a48249696a09",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.314/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-24T23:30:25Z",
+      "releaseNotes": "\n`feat` (`tmdb`): **Collect top-N auto-match candidates and score by title, date, and season** ([#1363](https://github.com/ShokoAnime/ShokoServer/pull/1363)).\n"
+    },
+    {
       "version": "6.0.0.313",
       "tag": "v6.0.0-dev.313",
       "commit": "683b11fc533ce3214279f0656a1f1635e7bc2cc9",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.285/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-15T23:14:57Z",
       "releaseNotes": "\n`chore`: **Don't sort plugin pages alphabetically**.\n\n`fix`: **Save and restore min/max server version in local version cache**:\n\nThe locally-cached WebReleaseVersionInformation was not saving\nMinimumServerVersion and MaximumServerVersion when created from\nthe server version endpoint, and was not restoring\nMaximumServerVersion when loading from the cached info.\n\n`refactor`: **Add release notes aggregation for webui and server version lookups**:\n\nAggregate release notes between the currently-installed version and the\nlatest compatible version for both `GetLatestWebComponentVersion` and\n`GetLatestServerVersion`, instead of returning the raw manifest entry's\nrelease notes.\n\nCap the aggregated notes at 20 entries and append \"...\" when truncated\nto avoid excessively long descriptions.\n\nSwitches `GetLatestServerVersion` from direct `FetchManifestAsync` access\nto `GetServerHistory` so it works entirely through\n`ReleaseVersionInformation` objects without touching `ManifestEntry`.\n\nAlso removes the dev. to stable channel fallback in\n`GetLatestWebComponentVersion` as moving between channels can be\ncatastrophic at times, so it should not be done automatically.\n"
-    },
-    {
-      "version": "6.0.0.284",
-      "tag": "v6.0.0-dev.284",
-      "commit": "130ae76ea2341b099acaa6c298c905b28df280b9",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.284/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-15T01:05:21Z",
-      "releaseNotes": "\n`fix`: **Correct tmdb movie link on shoko episode in abstraction**.\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.54**.\n\n`fix`: **Also correct the underlying impl. for the tmdb movies field**.\n"
     }
   ]
 }
