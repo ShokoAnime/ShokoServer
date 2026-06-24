@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.313",
+      "tag": "v6.0.0-dev.313",
+      "commit": "683b11fc533ce3214279f0656a1f1635e7bc2cc9",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.313/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-24T23:05:35Z",
+      "releaseNotes": "\n`fix`: **Make AnidbEpisodeID extension backwards compatible with ol' property**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.61**.\n\n`fix`: **Fix abstract metadata service provider id lookups**.\n"
+    },
+    {
       "version": "6.0.0.312",
       "tag": "v6.0.0-dev.312",
       "commit": "8fe0d2dea42ffcfa075fa28b9f276d04fe36cfc4",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.284/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-15T01:05:21Z",
       "releaseNotes": "\n`fix`: **Correct tmdb movie link on shoko episode in abstraction**.\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.54**.\n\n`fix`: **Also correct the underlying impl. for the tmdb movies field**.\n"
-    },
-    {
-      "version": "6.0.0.283",
-      "tag": "v6.0.0-dev.283",
-      "commit": "56ebac9c53dd0493e0ffd889d0718dd27b592b35",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.283/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-14T21:28:33Z",
-      "releaseNotes": "\n`fix`: **Correct next up & continue watching episode logic**.\n\n`misc`: **Remove mentions of JMM in code**.\n"
     }
   ]
 }
