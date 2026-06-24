@@ -66,20 +66,20 @@ public class ReleaseVideoCrossReferenceTests
     }
 
     [Fact]
-    public void GetAnidbEpisodeID_MissingKey_ReturnsNull()
+    public void GetAnidbEpisodeID_MissingKey_ReturnsZero()
     {
         var xref = new ReleaseVideoCrossReference();
 
-        Assert.Null(xref.AnidbEpisodeID);
+        Assert.Equal(0, xref.AnidbEpisodeID);
     }
 
     [Fact]
-    public void GetAnidbEpisodeID_NonNumericValue_ReturnsNull()
+    public void GetAnidbEpisodeID_NonNumericValue_ReturnsZero()
     {
         var xref = new ReleaseVideoCrossReference();
         xref.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = "not-a-number";
 
-        Assert.Null(xref.AnidbEpisodeID);
+        Assert.Equal(0, xref.AnidbEpisodeID);
     }
 
     // ── GetAnidbAnimeID extension ─────────────────────────────────────────────

@@ -17,8 +17,8 @@ public static class ReleaseVideoCrossReferenceExtensions
         ///   <see cref="IReleaseVideoCrossReference.ProviderIDs"/>,
         ///   or <c>null</c> if not present or not a valid integer.
         /// </summary>
-        public int? AnidbEpisodeID
-            => xref.ProviderIDs.TryGetValue(CrossReferenceIDs.AniDB_Episode, out var v) && int.TryParse(v, out var id) && id > 0 ? id : null;
+        public int AnidbEpisodeID
+            => xref.ProviderIDs.TryGetValue(CrossReferenceIDs.AniDB_Episode, out var v) && int.TryParse(v, out var id) && id > 0 ? id : 0;
 
         /// <summary>
         ///   Returns the AniDB anime ID from
@@ -36,9 +36,9 @@ public static class ReleaseVideoCrossReferenceExtensions
         ///   <see cref="ReleaseVideoCrossReference.ProviderIDs"/>,
         ///   or <c>null</c> if not present or not a valid integer.
         /// </summary>
-        public int? AnidbEpisodeID
+        public int AnidbEpisodeID
         {
-            get => xref.ProviderIDs.TryGetValue(CrossReferenceIDs.AniDB_Episode, out var v) && int.TryParse(v, out var id) && id > 0 ? id : null;
+            get => xref.ProviderIDs.TryGetValue(CrossReferenceIDs.AniDB_Episode, out var v) && int.TryParse(v, out var id) && id > 0 ? id : 0;
             set
             {
                 if (value is { } and > 0)

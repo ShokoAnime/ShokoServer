@@ -434,13 +434,13 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
     /// <returns></returns>
     /// 
     public IReadOnlyList<VideoLocal> GetByAniDBEpisodeID(int episodeID)
-        => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episodeID)
+        => episodeID is not > 0 ? [] : RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episodeID)
             .Select(a => GetByEd2k(a.Hash))
             .WhereNotNull()
             .ToList();
 
     public IReadOnlyList<VideoLocal> GetMostRecentlyAddedForAnime(int maxResults, int animeID)
-        => RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
+        => animeID is not > 0 ? [] : RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
                 .Select(a => GetByEd2k(a.Hash))
                 .WhereNotNull()
                 .OrderByDescending(a => a.DateTimeCreated)
@@ -453,7 +453,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
     /// <param name="animeID">AniDB Anime ID</param>
     /// <returns></returns>
     public IReadOnlyList<VideoLocal> GetByAniDBAnimeID(int animeID)
-        => RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
+        => animeID is not > 0 ? [] : RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
             .Select(xref => GetByEd2kAndSize(xref.Hash, xref.FileSize))
             .WhereNotNull()
             .ToList();

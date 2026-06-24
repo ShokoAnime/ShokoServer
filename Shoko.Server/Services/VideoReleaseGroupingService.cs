@@ -76,13 +76,13 @@ public class VideoReleaseGroupingService(
             // would produce BestAvailable + Consistent variants.
             foreach (var xref in sri.CrossReferences)
             {
-                if (episodeVersions.TryGetValue(xref.AnidbEpisodeID ?? 0, out var existing))
+                if (episodeVersions.TryGetValue(xref.AnidbEpisodeID, out var existing))
                 {
                     if (existing != sri.Version) return true;
                 }
                 else
                 {
-                    episodeVersions[xref.AnidbEpisodeID ?? 0] = sri.Version;
+                    episodeVersions[xref.AnidbEpisodeID] = sri.Version;
                 }
             }
         }
@@ -228,7 +228,7 @@ public class VideoReleaseGroupingService(
         var episodeIds = sri?.CrossReferences
             .Select(x => (
                 x is EmbeddedCrossReference ecr ? ecr.EpisodeType : EpisodeType.Episode,
-                x.AnidbEpisodeID ?? 0))
+                x.AnidbEpisodeID))
             .Where(k => k.Item2 > 0)
             .ToHashSet() ?? new HashSet<(EpisodeType, int)>();
 

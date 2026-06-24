@@ -261,7 +261,7 @@ public partial class AnidbReleaseProvider(
         var toRemove = new List<ReleaseVideoCrossReference>();
         foreach (var xref in releaseInfo.CrossReferences.Where(x => x.AnidbAnimeID is null))
         {
-            var episodeID = xref.AnidbEpisodeID ?? 0;
+            var episodeID = xref.AnidbEpisodeID;
             if (episodeID is 0 || _unknownEpisodeIDs.Contains(episodeID))
             {
                 logger.LogError("Unknown episode id: {EpisodeID}!", episodeID);
@@ -406,7 +406,7 @@ public partial class AnidbReleaseProvider(
                 if (xref.AnidbAnimeID is not { } animeID)
                     continue;
 
-                if (anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID ?? 0) is not { } anidbEpisode)
+                if (anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID) is not { } anidbEpisode)
                     continue;
 
                 await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
