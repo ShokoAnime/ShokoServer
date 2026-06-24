@@ -12,7 +12,7 @@ public interface IReleaseVideoCrossReference
     /// Provider-scoped IDs that identify what content this file segment maps to.
     /// Well-known keys are defined in <see cref="CrossReferenceIDs"/>.
     /// Custom providers may add their own keys; consumers ignore keys they
-    /// do not recognise.
+    /// do not recognize.
     /// </summary>
     IReadOnlyDictionary<string, string> ProviderIDs { get; }
 
