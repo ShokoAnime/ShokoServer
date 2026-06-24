@@ -1,8 +1,8 @@
-#nullable enable
 using System.Linq;
 using Shoko.Server.Models.Release;
 using Xunit;
 
+#nullable enable
 namespace Shoko.Tests.Video.Release;
 
 /// <summary>
@@ -60,7 +60,7 @@ public class MatchAttemptTests
     /// </summary>
     [Theory]
     [InlineData(false, true)]   // not deferred → chain is done
-    [InlineData(true,  false)]  // deferred → chain should continue
+    [InlineData(true, false)]  // deferred → chain should continue
     public void SaveRelease_SetsIsCompleted_AccordingToDeferToNext(bool deferToNext, bool expectedIsCompleted)
     {
         var attempt = new StoredReleaseInfo_MatchAttempt();

@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -36,6 +35,7 @@ using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 
+#nullable enable
 namespace Shoko.Server.Services;
 
 public class VideoHashingService(

@@ -1,8 +1,8 @@
-#nullable enable
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Release;
 
+#nullable enable
 namespace Shoko.Server.Models.Release;
 
 public class EmbeddedCrossReference : IReleaseVideoCrossReference

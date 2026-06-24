@@ -1,4 +1,3 @@
-#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
@@ -7,6 +6,7 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Release;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class StoredReleaseInfoRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<StoredReleaseInfo, int>(databaseFactory)

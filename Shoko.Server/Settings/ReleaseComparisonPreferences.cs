@@ -1,8 +1,8 @@
-#nullable enable
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
+#nullable enable
 namespace Shoko.Server.Settings;
 
 public class ReleaseComparisonPreferences

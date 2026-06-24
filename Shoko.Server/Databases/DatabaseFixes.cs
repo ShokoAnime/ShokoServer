@@ -50,6 +50,7 @@ using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #pragma warning disable CS0618

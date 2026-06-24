@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -9,6 +8,7 @@ using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Release;
 
+#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 public class ReleaseInfoSignalRModel : IReleaseInfo

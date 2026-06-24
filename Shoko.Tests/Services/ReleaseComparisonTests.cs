@@ -1,6 +1,4 @@
-#nullable enable
 using System.Collections.Generic;
-using System.Linq;
 using Moq;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
@@ -10,6 +8,7 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Xunit;
 
+#nullable enable
 namespace Shoko.Tests.Services;
 
 /// <summary>

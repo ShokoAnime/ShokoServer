@@ -28,7 +28,6 @@ using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
-using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.API.v1.Implementations;

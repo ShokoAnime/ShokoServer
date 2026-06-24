@@ -1,10 +1,10 @@
-#nullable enable
 using System.Collections.Generic;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.Models.Release;
 using Xunit;
 
+#nullable enable
 namespace Shoko.Tests.Video.Release;
 
 /// <summary>

@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,6 +13,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
+#nullable enable
 namespace Shoko.Server.Filters;
 
 public static class FilterExtensions

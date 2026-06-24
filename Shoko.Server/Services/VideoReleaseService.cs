@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,6 +26,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 
+#nullable enable
 namespace Shoko.Server.Services;
 
 public class VideoReleaseService(

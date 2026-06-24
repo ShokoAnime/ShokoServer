@@ -1,4 +1,3 @@
-#nullable enable
 using System.Threading.Tasks;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Abstractions;
@@ -6,6 +5,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Settings;
 
+#nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
 /// <summary>

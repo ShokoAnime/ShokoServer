@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -27,6 +26,7 @@ using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Settings;
 
+#nullable enable
 namespace Shoko.Server.Providers.AniDB.Release;
 
 /// <summary>
