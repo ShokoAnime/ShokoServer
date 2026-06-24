@@ -183,8 +183,8 @@ public partial class AbstractMetadataService : IMetadataService
         => providerID <= 0 ? null : providerName switch
         {
             IMetadataService.ProviderName.Shoko => _episodeRepository.GetByID(providerID),
-            IMetadataService.ProviderName.AniDB => _anidbEpisodeRepository.GetByID(providerID),
-            IMetadataService.ProviderName.TMDB => _tmdbEpisodeRepository.GetByID(providerID),
+            IMetadataService.ProviderName.AniDB => _anidbEpisodeRepository.GetByEpisodeID(providerID),
+            IMetadataService.ProviderName.TMDB => _tmdbEpisodeRepository.GetByTmdbEpisodeID(providerID),
             _ => throw new ArgumentOutOfRangeException(nameof(providerName), providerName, null),
         };
 
@@ -304,8 +304,8 @@ public partial class AbstractMetadataService : IMetadataService
         => providerID <= 0 ? null : providerName switch
         {
             IMetadataService.ProviderName.Shoko => _seriesRepository.GetByID(providerID),
-            IMetadataService.ProviderName.AniDB => _anidbSeriesRepository.GetByID(providerID),
-            IMetadataService.ProviderName.TMDB => _tmdbSeriesRepository.GetByID(providerID),
+            IMetadataService.ProviderName.AniDB => _anidbSeriesRepository.GetByAnimeID(providerID),
+            IMetadataService.ProviderName.TMDB => _tmdbSeriesRepository.GetByTmdbShowID(providerID),
             _ => throw new ArgumentOutOfRangeException(nameof(providerName), providerName, null),
         };
 
