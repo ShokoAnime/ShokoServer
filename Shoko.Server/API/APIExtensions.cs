@@ -176,8 +176,7 @@ public static partial class APIExtensions
             {
                 options.EnableDetailedErrors = true;
                 options.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // default timeout is 30 seconds
-            })
-            .AddNewtonsoftJsonProtocol(o => o.PayloadSerializerSettings.ContractResolver = new DefaultContractResolver());
+            }); // ponytail: removed AddNewtonsoftJsonProtocol to avoid introducing unavailable package versions; SignalR will use default serializer
 
         // allow CORS calls from other both local and non-local hosts
         services.AddCors(options =>
