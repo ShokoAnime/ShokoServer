@@ -10,7 +10,7 @@ public class DeleteReleasesBody
 {
     /// <summary>
     /// VideoLocal_Place IDs of the files to delete. Typically populated from
-    /// <see cref="ReleaseDeletionPreview.PlaceToDelete.PlaceID"/> after reviewing
+    /// <see cref="ReleaseDeletionPreview.FileLocation.PlaceID"/> after reviewing
     /// the preview.
     /// </summary>
     [Required]

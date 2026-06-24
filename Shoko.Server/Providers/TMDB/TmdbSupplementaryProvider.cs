@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Settings;
 
@@ -18,7 +17,6 @@ public class TmdbSupplementaryProvider(
     IQueueScheduler scheduler,
     ISettingsProvider settingsProvider,
     AnimeSeriesRepository seriesRepository,
-    AniDB_AnimeRepository anidbAnimeRepository,
     CrossRef_AniDB_TMDB_ShowRepository crossRefRepository
 ) : ISupplementaryMetadataProvider
 {
