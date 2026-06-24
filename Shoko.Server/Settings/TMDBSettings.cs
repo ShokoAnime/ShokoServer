@@ -253,6 +253,40 @@ public class TMDBSettings
     public int IncrementalChangesWindowDays { get; set; } = 14;
 
     /// <summary>
+    /// The maximum number of TMDB search candidates to evaluate per auto-search
+    /// attempt for shows. Each candidate that passes the animation filter is fetched
+    /// in full (title translations + episode count) and scored; the highest-scoring
+    /// result is used. Higher values improve accuracy at the cost of more TMDB
+    /// API calls. All calls are paced by <c>TmdbRateLimiter</c> (sliding-window,
+    /// ~40 req/sec) with automatic 429 backoff, so increasing this value slows
+    /// searches but will not trigger rate-limit errors.
+    /// <para>
+    /// The year-free candidate pool cap is <c>2 × this value</c>. At the minimum
+    /// of 1, year-free searches collect at most 2 candidates total — sufficient for
+    /// most titles, but edge cases may benefit from a higher value.
+    /// </para>
+    /// </summary>
+    [Range(1, 10)]
+    public int AutoSearchShowCandidateCount { get; set; } = 5;
+
+    /// <summary>
+    /// The maximum number of TMDB search candidates to evaluate per auto-search
+    /// attempt for movies. Each candidate that passes the animation filter is fetched
+    /// in full (title translations + release dates) and scored; the highest-scoring
+    /// result is used. Higher values improve accuracy at the cost of more TMDB
+    /// API calls. All calls are paced by <c>TmdbRateLimiter</c> (sliding-window,
+    /// ~40 req/sec) with automatic 429 backoff, so increasing this value slows
+    /// searches but will not trigger rate-limit errors.
+    /// <para>
+    /// The year-free candidate pool cap is <c>2 × this value</c>. At the minimum
+    /// of 1, year-free searches collect at most 2 candidates total — sufficient for
+    /// most titles, but edge cases may benefit from a higher value.
+    /// </para>
+    /// </summary>
+    [Range(1, 10)]
+    public int AutoSearchMovieCandidateCount { get; set; } = 5;
+
+    /// <summary>
     /// Rate limit settings for the TMDB API.
     /// </summary>
     public TmdbRateLimitSettings RateLimit { get; set; } = new();
