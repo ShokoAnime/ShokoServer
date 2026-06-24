@@ -227,19 +227,24 @@ public partial class AnidbReleaseProvider(
         var offset = 0;
         foreach (var xref in anidbFile.EpisodeIDs)
         {
-            releaseInfo.CrossReferences.Add(new ReleaseVideoCrossReference().ForAniDB(
-                xref.EpisodeID, anidbFile.AnimeID,
-                percentStart: xref.Percentage < 100 ? offset : 0,
-                percentEnd: xref.Percentage < 100 ? offset + xref.Percentage : 100));
+            releaseInfo.CrossReferences.Add(new()
+            {
+                AnidbAnimeID = anidbFile.AnimeID,
+                AnidbEpisodeID = xref.EpisodeID,
+                PercentageStart = xref.Percentage < 100 ? offset : 0,
+                PercentageEnd = xref.Percentage < 100 ? offset + xref.Percentage : 100,
+            });
             if (xref.Percentage < 100)
                 offset += xref.Percentage;
         }
         foreach (var xref in anidbFile.OtherEpisodes)
         {
-            releaseInfo.CrossReferences.Add(new ReleaseVideoCrossReference().ForAniDB(
-                xref.EpisodeID, null,
-                percentStart: xref.Percentage < 100 ? offset : 0,
-                percentEnd: xref.Percentage < 100 ? offset + xref.Percentage : 100));
+            releaseInfo.CrossReferences.Add(new()
+            {
+                AnidbEpisodeID = xref.EpisodeID,
+                PercentageStart = xref.Percentage < 100 ? offset : 0,
+                PercentageEnd = xref.Percentage < 100 ? offset + xref.Percentage : 100,
+            });
             if (xref.Percentage < 100)
                 offset += xref.Percentage;
         }
@@ -254,9 +259,9 @@ public partial class AnidbReleaseProvider(
     {
         // Fill in missing AniDB_Anime IDs for any cross-references where the provider didn't supply them.
         var toRemove = new List<ReleaseVideoCrossReference>();
-        foreach (var xref in releaseInfo.CrossReferences.Where(x => x.GetAnidbAnimeID() is null or 0))
+        foreach (var xref in releaseInfo.CrossReferences.Where(x => x.AnidbAnimeID is null))
         {
-            var episodeID = xref.GetAnidbEpisodeID() ?? 0;
+            var episodeID = xref.AnidbEpisodeID ?? 0;
             if (episodeID is 0 || _unknownEpisodeIDs.Contains(episodeID))
             {
                 logger.LogError("Unknown episode id: {EpisodeID}!", episodeID);
@@ -398,13 +403,10 @@ public partial class AnidbReleaseProvider(
         {
             foreach (var xref in clearedRelease.CrossReferences)
             {
-                var animeID = xref.GetAnidbAnimeID() ?? 0;
-                if (animeID is 0)
+                if (xref.AnidbAnimeID is not { } animeID)
                     continue;
 
-                var episodeID = xref.GetAnidbEpisodeID() ?? 0;
-                var anidbEpisode = episodeID > 0 ? anidbEpisodeRepository.GetByEpisodeID(episodeID) : null;
-                if (anidbEpisode is null)
+                if (anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID ?? 0) is not { } anidbEpisode)
                     continue;
 
                 await scheduler.StartJob<DeleteFileFromMyListJob>(c =>

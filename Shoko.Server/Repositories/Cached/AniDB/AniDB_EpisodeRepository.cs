@@ -25,10 +25,10 @@ public class AniDB_EpisodeRepository(DatabaseFactory databaseFactory) : BaseCach
     }
 
     public AniDB_Episode? GetByEpisodeID(int episodeID)
-        => ReadLock(() => _episodesIDs!.GetOne(episodeID));
+        => episodeID is not > 0 ? null : ReadLock(() => _episodesIDs!.GetOne(episodeID));
 
     public IReadOnlyList<AniDB_Episode> GetByAnimeID(int animeID)
-        => ReadLock(() => _animeIDs!.GetMultiple(animeID));
+        => animeID is not > 0 ? [] : ReadLock(() => _animeIDs!.GetMultiple(animeID));
 
     public IReadOnlyList<AniDB_Episode> GetForDate(DateTime startDate, DateTime endDate)
         => ReadLock(() => Cache.Values.Where(a => a.GetAirDateAsDate() is { } date && date >= startDate && date <= endDate).ToList());

@@ -1465,7 +1465,7 @@ public class FileController(
         await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
         {
             CrossReferences = episodeList
-                .Select(episode => new AbstractReleaseVideoCrossReference().ForAniDB(episode.EpisodeID, episode.AnimeID))
+                .Select(episode => AbstractReleaseVideoCrossReference.ForAniDB(episode.EpisodeID, episode.AnimeID))
                 .ToList(),
         });
 
@@ -1549,7 +1549,7 @@ public class FileController(
         await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
         {
             CrossReferences = episodeList
-                .Select(episode => new AbstractReleaseVideoCrossReference().ForAniDB(episode.EpisodeID, episode.AnimeID))
+                .Select(episode => AbstractReleaseVideoCrossReference.ForAniDB(episode.EpisodeID, episode.AnimeID))
                 .ToList(),
         });
 
@@ -1672,7 +1672,7 @@ public class FileController(
                 await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
                 {
                     CrossReferences = [
-                        new AbstractReleaseVideoCrossReference().ForAniDB(episode.EpisodeID, episode.AnimeID, percentageStart, percentageEnd),
+                        AbstractReleaseVideoCrossReference.ForAniDB(episode.EpisodeID, episode.AnimeID, percentageStart, percentageEnd),
                     ],
                 });
             }
@@ -1686,7 +1686,7 @@ public class FileController(
             await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
             {
                 CrossReferences = [
-                    new AbstractReleaseVideoCrossReference().ForAniDB(episode.EpisodeID, episode.AnimeID),
+                    AbstractReleaseVideoCrossReference.ForAniDB(episode.EpisodeID, episode.AnimeID),
                 ],
             });
         }
@@ -1742,7 +1742,7 @@ public class FileController(
             await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
             {
                 CrossReferences = [
-                    new AbstractReleaseVideoCrossReference().ForAniDB(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, percentageStart, percentageEnd),
+                    AbstractReleaseVideoCrossReference.ForAniDB(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, percentageStart, percentageEnd),
                 ],
             });
         }

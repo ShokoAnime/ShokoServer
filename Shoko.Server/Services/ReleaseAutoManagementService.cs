@@ -248,7 +248,7 @@ public class ReleaseAutoManagementService(
         return sri.CrossReferences
             .Select(x => (
                 x is EmbeddedCrossReference ecr ? ecr.EpisodeType : EpisodeType.Episode,
-                x.GetAnidbEpisodeID() ?? 0))
+                x.AnidbEpisodeID ?? 0))
             .Where(k => k.Item2 > 0)
             .ToHashSet();
     }

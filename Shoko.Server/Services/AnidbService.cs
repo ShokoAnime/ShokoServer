@@ -913,7 +913,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             .Concat(_anidbAnimeTagRepository.GetAll().Select(xref => xref.AnimeID))
             .Concat(_anidbAnimeTitleRepository.GetAll().Select(title => title.AnimeID))
             .Concat(_anidbAnimeUpdateRepository.GetAll().Select(update => update.AnimeID))
-            .Concat(_storedReleaseInfoRepository.GetAll().SelectMany(release => release.CrossReferences.Select(xref => xref.GetAnidbAnimeID()).WhereNotNull()))
+            .Concat(_storedReleaseInfoRepository.GetAll().SelectMany(release => release.CrossReferences.Select(xref => xref.AnidbAnimeID).WhereNotNull()))
             .Where(id => id > 0)
             .ToHashSet();
         var toKeep = _seriesRepository.GetAll().Select(series => series.AniDB_ID).Where(id => id > 0).ToHashSet();

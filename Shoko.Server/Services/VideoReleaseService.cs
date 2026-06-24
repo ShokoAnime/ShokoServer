@@ -807,7 +807,7 @@ public class VideoReleaseService(
         var fileName = (video.Files.FirstOrDefault(loc => loc.IsAvailable) ?? video.Files.FirstOrDefault())?.FileName ?? string.Empty;
         var checkedIDs = new HashSet<int>();
         var embeddedXrefs = new List<EmbeddedCrossReference>();
-        foreach (var xrefGroup in releaseInfo.CrossReferences.OfType<EmbeddedCrossReference>().GroupBy(xref => xref.GetAnidbEpisodeID() ?? 0))
+        foreach (var xrefGroup in releaseInfo.CrossReferences.OfType<EmbeddedCrossReference>().GroupBy(xref => xref.AnidbEpisodeID ?? 0))
         {
             var firstXref = xrefGroup.First();
             var episodeID = xrefGroup.Key;
@@ -820,7 +820,7 @@ public class VideoReleaseService(
             // Provider's PrepareForSave should have resolved AniDB_Anime for any cross-references
             // where it was missing. Use the most common non-zero value from the group.
             var animeID = xrefGroup
-                .Select(xref => xref.GetAnidbAnimeID() ?? 0)
+                .Select(xref => xref.AnidbAnimeID ?? 0)
                 .Where(id => id > 0)
                 .GroupBy(id => id)
                 .OrderByDescending(g => g.Count())
@@ -895,7 +895,7 @@ public class VideoReleaseService(
         if (!_settings.Import.UseExistingFileWatchedStatus) return;
 
         var otherVideos = releaseInfo.CrossReferences
-            .SelectMany(xref => xref.GetAnidbEpisodeID() is { } epId ? videoRepository.GetByAniDBEpisodeID(epId) : [])
+            .SelectMany(xref => xref is { AnidbEpisodeID: { } epId } ? videoRepository.GetByAniDBEpisodeID(epId) : [])
             .WhereNotNull()
             .ExceptBy([video.ED2K], v => v.Hash)
             .Cast<IVideo>()

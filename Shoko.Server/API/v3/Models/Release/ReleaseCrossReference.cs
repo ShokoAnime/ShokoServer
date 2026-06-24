@@ -31,8 +31,8 @@ public class ReleaseCrossReference : IReleaseVideoCrossReference
 
     public ReleaseCrossReference(IReleaseVideoCrossReference crossReference)
     {
-        AnidbEpisodeID = crossReference.GetAnidbEpisodeID() ?? 0;
-        AnidbAnimeID = crossReference.GetAnidbAnimeID();
+        AnidbEpisodeID = crossReference.AnidbEpisodeID ?? 0;
+        AnidbAnimeID = crossReference.AnidbAnimeID;
         PercentageStart = crossReference.PercentageStart;
         PercentageEnd = crossReference.PercentageEnd;
     }

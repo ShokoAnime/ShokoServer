@@ -72,7 +72,7 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
             var storedReleaseInfo = ReleaseInfo;
             var releaseInfo = (IReleaseInfo?)storedReleaseInfo;
-            if (releaseInfo is not null && !storedReleaseInfo!.HasProviderName("AniDB") && releaseInfo.CrossReferences.FirstOrDefault(xref => xref.GetAnidbEpisodeID() == EpisodeID) is { } xref)
+            if (releaseInfo is not null && !storedReleaseInfo!.HasProviderName("AniDB") && releaseInfo.CrossReferences.FirstOrDefault(xref => xref.AnidbEpisodeID == EpisodeID) is { } xref)
             {
                 _percentageRangeCalculated = (Percentage, (xref.PercentageStart, xref.PercentageEnd));
                 return _percentageRangeCalculated.Range;
