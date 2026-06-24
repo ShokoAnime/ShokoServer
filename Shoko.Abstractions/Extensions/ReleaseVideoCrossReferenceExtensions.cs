@@ -33,7 +33,7 @@ public static class ReleaseVideoCrossReferenceExtensions
     {
         /// <summary>
         ///   Returns the AniDB episode ID from
-        ///   <see cref="IReleaseVideoCrossReference.ProviderIDs"/>,
+        ///   <see cref="ReleaseVideoCrossReference.ProviderIDs"/>,
         ///   or <c>null</c> if not present or not a valid integer.
         /// </summary>
         public int? AnidbEpisodeID
@@ -50,7 +50,7 @@ public static class ReleaseVideoCrossReferenceExtensions
 
         /// <summary>
         ///   Returns the AniDB anime ID from
-        ///   <see cref="IReleaseVideoCrossReference.ProviderIDs"/>,
+        ///   <see cref="ReleaseVideoCrossReference.ProviderIDs"/>,
         ///   or <c>null</c> if not present or not a valid integer.
         /// </summary>
         public int? AnidbAnimeID
