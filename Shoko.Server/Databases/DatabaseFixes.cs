@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using ImageMagick;
 using MessagePack;
 using Microsoft.Extensions.DependencyInjection;
-using MimeMapping;
+using Shoko.Server.Utilities;
 using Newtonsoft.Json;
 using NHibernate;
 using NHibernate.Exceptions;
@@ -1855,7 +1855,7 @@ public class DatabaseFixes
             }
 
             // Try eager detection from ResourceID as preferred source
-            var contentType = MimeUtility.UnknownMimeType;
+            var contentType = "application/octet-stream";
             try
             {
                 if (imageManager.GetContentTypeFromResourceID(DataSource.TMDB, resourceID) is { Length: > 0 } eager)
@@ -1866,10 +1866,10 @@ public class DatabaseFixes
                 _logger.Warn(ex, "Unsupported image type for {ResourceID}, falling back.", resourceID);
             }
             // Fallback to MimeUtility if eager detection didn't yield a result
-            if (contentType is MimeUtility.UnknownMimeType)
+            if (contentType == "application/octet-stream")
             {
-                var mapped = MimeUtility.GetMimeMapping(resourceID);
-                if (!string.IsNullOrEmpty(mapped) && mapped != MimeUtility.UnknownMimeType)
+                var mapped = ContentTypeHelper.GetMimeMapping(resourceID);
+                if (!string.IsNullOrEmpty(mapped) && mapped != "application/octet-stream")
                     contentType = mapped;
             }
 
@@ -2380,7 +2380,7 @@ public class DatabaseFixes
         var newPathExists = File.Exists(newPath);
 
         // Try eager detection from ResourceID as preferred source
-        var contentType = MimeUtility.UnknownMimeType;
+        var contentType = "application/octet-stream";
         try
         {
             if (imageManager.GetContentTypeFromResourceID(DataSource.TMDB, resourceID) is { Length: > 0 } eager)
@@ -2391,11 +2391,11 @@ public class DatabaseFixes
             _logger.Warn(ex, "Unsupported image type for {ResourceID}, falling back.", resourceID);
             return;
         }
-        // Fallback to MimeUtility if eager detection didn't yield a result
-        if (contentType is MimeUtility.UnknownMimeType)
+        // Fallback to ContentTypeHelper if eager detection didn't yield a result
+        if (contentType == "application/octet-stream")
         {
-            var mapped = MimeUtility.GetMimeMapping(resourceID);
-            if (!string.IsNullOrEmpty(mapped) && mapped != MimeUtility.UnknownMimeType)
+            var mapped = ContentTypeHelper.GetMimeMapping(resourceID);
+            if (!string.IsNullOrEmpty(mapped) && mapped != "application/octet-stream")
                 contentType = mapped;
         }
 
@@ -2481,7 +2481,7 @@ public class DatabaseFixes
         var correctedCount = 0;
         foreach (var image in images)
         {
-            if (image.ContentType is not MimeUtility.UnknownMimeType)
+            if (image.ContentType is not "application/octet-stream")
                 continue;
 
             try

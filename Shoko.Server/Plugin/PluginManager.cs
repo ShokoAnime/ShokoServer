@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MimeMapping;
+using Shoko.Server.Utilities;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core;
@@ -1177,7 +1177,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         {
             foreach (var fileName in Directory.EnumerateFiles(containingDirectory, "thumbnail.*", new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
             {
-                var mime = MimeUtility.GetMimeMapping(Path.GetExtension(fileName));
+                var mime = ContentTypeHelper.GetMimeMapping(Path.GetExtension(fileName));
                 if (mime is not null and not "application/octet-stream")
                 {
                     var imageInfo = new MagickImageInfo(fileName);
@@ -1202,7 +1202,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             var thumbnailFile = Path.ChangeExtension(Path.GetFileName(dll), ".thumbnail.*");
             foreach (var fileName in Directory.EnumerateFiles(Path.GetDirectoryName(dll)!, thumbnailFile, new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
             {
-                var mime = MimeUtility.GetMimeMapping(Path.GetExtension(fileName));
+                var mime = ContentTypeHelper.GetMimeMapping(Path.GetExtension(fileName));
                 if (mime is not null and not "application/octet-stream")
                 {
                     var imageInfo = new MagickImageInfo(fileName);
@@ -1230,13 +1230,14 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             if (mime is null)
                 return null;
 
-            var extName = MimeUtility.GetExtensions(mime)?.FirstOrDefault();
+            var extName = ContentTypeHelper.GetExtensionForMimeType(mime);
             if (extName is null)
                 return null;
 
+            var extNoDot = extName.StartsWith('.') ? extName[1..] : extName;
             var fileName = !string.IsNullOrEmpty(containingDirectory)
-                ? Path.Combine(containingDirectory, "thumbnail." + extName)
-                : Path.ChangeExtension(dll, ".thumbnail." + extName);
+                ? Path.Combine(containingDirectory, "thumbnail." + extNoDot)
+                : Path.ChangeExtension(dll, ".thumbnail." + extNoDot);
             File.WriteAllBytes(fileName, thumbnailBytes);
 
             return new()

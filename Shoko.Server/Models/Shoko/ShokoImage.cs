@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
-using MimeMapping;
+using Shoko.Server.Utilities;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
@@ -63,7 +63,7 @@ public class ShokoImage : IImage
     public int? Height { get; set; }
 
     /// <inheritdoc/>
-    public string ContentType { get; set; } = MimeUtility.UnknownMimeType;
+    public string ContentType { get; set; } = "application/octet-stream";
 
     /// <summary>
     /// When the Image record was created.
@@ -284,9 +284,9 @@ public class ShokoImage : IImage
         if (ext is not null)
             return ext;
 
-        var mimeExt = MimeUtility.GetExtensions(contentType)?.FirstOrDefault();
+        var mimeExt = ContentTypeHelper.GetExtensionForMimeType(contentType);
         if (mimeExt is not null)
-            return "." + mimeExt;
+            return mimeExt;
 
         return ".bin";
     }

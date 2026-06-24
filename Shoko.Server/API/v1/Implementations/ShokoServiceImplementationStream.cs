@@ -16,7 +16,8 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
-using Mime = MimeMapping.MimeUtility;
+// mime mapping replaced by ContentTypeHelper
+using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.API.v1.Implementations;
@@ -258,7 +259,7 @@ public class ShokoServiceImplementationStream : Controller, IHttpContextAccessor
             }
         }
 
-        r.Mime = Mime.GetMimeMapping(r.File.FullName);
+        r.Mime = ContentTypeHelper.GetMimeMapping(r.File.FullName);
         r.Status = HttpStatusCode.OK;
         return r;
     }

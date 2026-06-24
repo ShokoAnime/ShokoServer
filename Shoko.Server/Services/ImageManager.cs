@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MimeMapping;
+using Shoko.Server.Utilities;
 using Polly;
 using Polly.Retry;
 using Shoko.Abstractions.Config;
@@ -443,7 +443,7 @@ public partial class ImageManager(
                 ImageResourceID = imageData.ResourceID,
             };
 
-        var contentType = GetContentTypeFromResourceID(imageData.Source, imageData.ResourceID) ?? MimeUtility.UnknownMimeType;
+        var contentType = GetContentTypeFromResourceID(imageData.Source, imageData.ResourceID) ?? "application/octet-stream";
         var image = new ShokoImage()
         {
             ID = id,
@@ -600,8 +600,8 @@ public partial class ImageManager(
             return null;
 
         // Look up MIME from extension
-        var mime = MimeUtility.GetMimeMapping(ext);
-        if (string.IsNullOrEmpty(mime) || mime == MimeUtility.UnknownMimeType)
+        var mime = ContentTypeHelper.GetMimeMapping(ext);
+        if (string.IsNullOrEmpty(mime) || mime == "application/octet-stream")
             return null;
 
         // Validate against allowed image MIME types
