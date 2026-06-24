@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.311",
+      "tag": "v6.0.0-dev.311",
+      "commit": "58d1593f5fa84406dc4a8118410df57bb3b3a0b1",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.311/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-24T05:17:23Z",
+      "releaseNotes": "\n`misc`: **Release Pipeline Overhaul. Entirely Untested**.\n\n`misc`: **Purge TMDB Data and Images when Deleting Series**.\n"
+    },
+    {
       "version": "6.0.0.310",
       "tag": "v6.0.0-dev.310",
       "commit": "07bff95339e296ffbcd0c8e57f5ccee557e5bda2",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.282/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-14T18:25:47Z",
       "releaseNotes": "\n`fix`: **Ensure we only check valid guid/uuids in repo**.\n\n`fix`: **Correct empty primary ids on image xrefs**.\n"
-    },
-    {
-      "version": "6.0.0.281",
-      "tag": "v6.0.0-dev.281",
-      "commit": "67aa7df8db18c6c587dadad96138e33abdd7542e",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.281/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-14T17:50:25Z",
-      "releaseNotes": "\n`refactor`: **Move APIv3 auth endpoint to APIv3, fix missing token from APIv3 response**.\n"
     }
   ]
 }
