@@ -8,6 +8,7 @@ using Shoko.Server.Plex.Models.Connections;
 using Shoko.Server.Plex.Models.Libraries;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
+using Asp.Versioning;
 
 namespace Shoko.Server.API.v1.Implementations;
 

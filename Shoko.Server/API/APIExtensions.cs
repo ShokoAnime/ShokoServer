@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -229,20 +231,24 @@ public static partial class APIExtensions
             .AddPluginControllers(pluginManager)
             .AddControllersAsServices();
 
-        services.AddApiVersioning(o =>
-        {
-            var webSettings = ISettingsProvider.Instance.GetSettings().Web;
+        services
+            .AddApiVersioning(options =>
+            {
+                var webSettings = ISettingsProvider.Instance.GetSettings().Web;
 
-            o.ReportApiVersions = true;
-            o.AssumeDefaultVersionWhenUnspecified = true;
-            o.DefaultApiVersion = new ApiVersion(1, 0);
-            o.ApiVersionReader = new ShokoApiReader(webSettings.EnableAPIv1, webSettings.EnableAPIv2);
-        });
-        services.AddVersionedApiExplorer(options =>
-        {
-            options.GroupNameFormat = "'v'VVV";
-            options.SubstituteApiVersionInUrl = true;
-        });
+                options.ReportApiVersions = true;
+                options.AssumeDefaultVersionWhenUnspecified = true;
+                options.DefaultApiVersion = new ApiVersion(1, 0);
+                options.ApiVersionReader = new ShokoApiReader(
+                    webSettings.EnableAPIv1,
+                    webSettings.EnableAPIv2);
+            })
+            .AddMvc()
+            .AddApiExplorer(options =>
+            {
+                options.GroupNameFormat = "'v'VVV";
+                options.SubstituteApiVersionInUrl = true;
+            });
         services.AddResponseCaching();
 
         services.Configure<KestrelServerOptions>(options =>

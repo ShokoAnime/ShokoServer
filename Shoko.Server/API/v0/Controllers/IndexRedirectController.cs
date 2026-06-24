@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Asp.Versioning;
+using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.ActionConstraints;
 using Shoko.Server.Settings;

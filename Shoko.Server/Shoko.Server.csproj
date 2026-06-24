@@ -51,6 +51,7 @@
     <ProjectReference Include="..\Shoko.QueueProcessor\Shoko.QueueProcessor.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.0.0" />
     <PackageReference Include="AsyncKeyedLock" Version="8.0.2" />
     <PackageReference Include="DeepCloner" Version="0.10.4" />
     <PackageReference Include="F23.StringSimilarity" Version="7.0.1" />
@@ -61,7 +62,6 @@
     <PackageReference Include="MessagePack" Version="3.1.7" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="3.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.8" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning.ApiExplorer" Version="5.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.ResponseCaching" Version="2.3.10" />
     <!-- SignalR and StaticFiles packages removed/held to avoid unavailable 10.x artifacts on nuget.org; keep existing SignalR usage unchanged for now -->
 

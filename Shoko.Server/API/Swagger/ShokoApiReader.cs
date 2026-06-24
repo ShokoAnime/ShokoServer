@@ -1,6 +1,7 @@
 using System.Linq;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.Versioning;
+using Asp.Versioning;
+using System.Collections.Generic;
 
 namespace Shoko.Server.API.Swagger;
 
@@ -32,4 +33,7 @@ public class ShokoApiReader(bool enableV1, bool enableV2) : IApiVersionReader
 
         return null; // defer to controller attribute or configured default
     }
+
+    IReadOnlyList<string> IApiVersionReader.Read(HttpRequest request)
+        => Read(request) is { } version ? [version] : [];
 }

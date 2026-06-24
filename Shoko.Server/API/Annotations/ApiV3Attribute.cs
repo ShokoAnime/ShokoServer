@@ -1,5 +1,5 @@
-﻿using System;
-using Microsoft.AspNetCore.Mvc;
+using System;
+using Asp.Versioning;
 
 namespace Shoko.Server.API.Annotations;
 

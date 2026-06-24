@@ -15,6 +15,7 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Settings;
+using Asp.Versioning;
 
 //using Microsoft.SqlServer.Management.Smo;
 

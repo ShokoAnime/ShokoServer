@@ -21,6 +21,8 @@ using Shoko.Server.Plex.Models.Libraries;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.Plex;
 using Shoko.Server.Settings;
+using Asp.Versioning;
+
 
 #if DEBUG
 using Shoko.Server.Plex.Models.Collection;
