@@ -42,7 +42,7 @@ jobs:
           rm latest.zip
 
       - name: Upload Web UI Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: webui
           path: webui/
@@ -62,14 +62,14 @@ jobs:
 
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: "${{ github.event.inputs.ref }}"
           submodules: recursive
           fetch-depth: 0 # This is set to download the full git history for the repo
 
       - name: Download Web UI
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: webui
           path: Shoko.Server/webui
@@ -90,13 +90,13 @@ jobs:
           prefix_regex: "[vV]?"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
       - run: dotnet publish -c Release -r win-x64 --self-contained true Shoko.TrayService /p:Version="${{ steps.release_info.outputs.version }}" /p:InformationalVersion="channel=${{ github.event.inputs.release }}%2ccommit=${{ github.sha }}%2cdate=${{ steps.release_info.outputs.date }}%2c" # %2c is comma, blame windows/pwsh
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Shoko.TrayService
           path: Shoko.Server/bin/Release/net10.0/win-x64/publish/
@@ -106,7 +106,7 @@ jobs:
         run: Compress-Archive .\\Shoko.Server\\bin\\Release\\net10.0\\win-x64\\publish .\\ShokoServer.zip
 
       - name: Install SSH key
-        uses: shimataro/ssh-key-action@d4fffb50872869abe2d9a9098a6d9c5aa7d16be4
+        uses: shimataro/ssh-key-action@v2.8.1
         with:
           key: ${{ secrets.FILES_SSH_KEY }}
           name: files_id_rsa
