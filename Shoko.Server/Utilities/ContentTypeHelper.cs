@@ -6,6 +6,9 @@ namespace Shoko.Server.Utilities
 {
     internal static class ContentTypeHelper
     {
+        // ponytail: central unknown mime constant to avoid repeated literals across the codebase.
+        public const string UnknownMimeType = "application/octet-stream";
+
         // Minimal, explicit mapping to avoid an external dependency. Ponytail: keeps behavior predictable for common types.
         private static readonly System.Collections.Generic.Dictionary<string, string> _map =
             new(System.StringComparer.OrdinalIgnoreCase)
@@ -27,19 +30,19 @@ namespace Shoko.Server.Utilities
         public static string GetMimeMapping(string? fileOrExtension)
         {
             if (string.IsNullOrWhiteSpace(fileOrExtension))
-                return "application/octet-stream";
+                return UnknownMimeType;
 
             var input = fileOrExtension.Trim();
             if (input.Contains("/") || input.Contains("\\"))
                 input = Path.GetExtension(input);
 
             if (string.IsNullOrEmpty(input))
-                return "application/octet-stream";
+                return UnknownMimeType;
 
             if (!input.StartsWith('.'))
                 input = "." + input;
 
-            return _map.TryGetValue(input, out var ct) ? ct : "application/octet-stream";
+            return _map.TryGetValue(input, out var ct) ? ct : UnknownMimeType;
         }
 
         public static string? GetExtensionForMimeType(string? contentType)

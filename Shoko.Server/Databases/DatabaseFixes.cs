@@ -1855,7 +1855,7 @@ public class DatabaseFixes
             }
 
             // Try eager detection from ResourceID as preferred source
-            var contentType = "application/octet-stream";
+            var contentType = ContentTypeHelper.UnknownMimeType;
             try
             {
                 if (imageManager.GetContentTypeFromResourceID(DataSource.TMDB, resourceID) is { Length: > 0 } eager)
@@ -1866,10 +1866,10 @@ public class DatabaseFixes
                 _logger.Warn(ex, "Unsupported image type for {ResourceID}, falling back.", resourceID);
             }
             // Fallback to MimeUtility if eager detection didn't yield a result
-            if (contentType == "application/octet-stream")
+            if (contentType == ContentTypeHelper.UnknownMimeType)
             {
                 var mapped = ContentTypeHelper.GetMimeMapping(resourceID);
-                if (!string.IsNullOrEmpty(mapped) && mapped != "application/octet-stream")
+                if (!string.IsNullOrEmpty(mapped) && mapped != ContentTypeHelper.UnknownMimeType)
                     contentType = mapped;
             }
 
@@ -2380,7 +2380,7 @@ public class DatabaseFixes
         var newPathExists = File.Exists(newPath);
 
         // Try eager detection from ResourceID as preferred source
-        var contentType = "application/octet-stream";
+        var contentType = ContentTypeHelper.UnknownMimeType;
         try
         {
             if (imageManager.GetContentTypeFromResourceID(DataSource.TMDB, resourceID) is { Length: > 0 } eager)
@@ -2392,10 +2392,10 @@ public class DatabaseFixes
             return;
         }
         // Fallback to ContentTypeHelper if eager detection didn't yield a result
-        if (contentType == "application/octet-stream")
+        if (contentType == ContentTypeHelper.UnknownMimeType)
         {
             var mapped = ContentTypeHelper.GetMimeMapping(resourceID);
-            if (!string.IsNullOrEmpty(mapped) && mapped != "application/octet-stream")
+            if (!string.IsNullOrEmpty(mapped) && mapped != ContentTypeHelper.UnknownMimeType)
                 contentType = mapped;
         }
 
@@ -2481,7 +2481,7 @@ public class DatabaseFixes
         var correctedCount = 0;
         foreach (var image in images)
         {
-            if (image.ContentType is not "application/octet-stream")
+            if (image.ContentType is not ContentTypeHelper.UnknownMimeType)
                 continue;
 
             try

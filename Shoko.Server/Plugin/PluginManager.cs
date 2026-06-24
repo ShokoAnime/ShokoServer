@@ -1178,7 +1178,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             foreach (var fileName in Directory.EnumerateFiles(containingDirectory, "thumbnail.*", new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
             {
                 var mime = ContentTypeHelper.GetMimeMapping(Path.GetExtension(fileName));
-                if (mime is not null and not "application/octet-stream")
+                if (mime is not null && mime != ContentTypeHelper.UnknownMimeType)
                 {
                     var imageInfo = new MagickImageInfo(fileName);
                     mime = GetMimeFromFormat(imageInfo);
@@ -1203,7 +1203,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             foreach (var fileName in Directory.EnumerateFiles(Path.GetDirectoryName(dll)!, thumbnailFile, new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
             {
                 var mime = ContentTypeHelper.GetMimeMapping(Path.GetExtension(fileName));
-                if (mime is not null and not "application/octet-stream")
+                if (mime is not null && mime != ContentTypeHelper.UnknownMimeType)
                 {
                     var imageInfo = new MagickImageInfo(fileName);
                     mime = GetMimeFromFormat(imageInfo);

@@ -57,7 +57,6 @@
     <PackageReference Include="FluentNHibernate" Version="3.4.1" />
     <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
     <PackageReference Include="JsonDiffPatch.Net" Version="2.5.0" />
-    <PackageReference Include="Libuv" Version="1.10.0" />
     <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.13.1" />
     <PackageReference Include="MessagePack" Version="3.1.4" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="3.1.1" />

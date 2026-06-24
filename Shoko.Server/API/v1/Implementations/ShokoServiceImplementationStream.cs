@@ -16,9 +16,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
-// mime mapping replaced by ContentTypeHelper
-using Shoko.Server.Utilities;
-
 #pragma warning disable CS0618
 namespace Shoko.Server.API.v1.Implementations;
 
