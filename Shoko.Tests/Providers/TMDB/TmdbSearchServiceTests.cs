@@ -167,8 +167,8 @@ public class TmdbSearchServiceTests
 
         // The full title normalizes differently, so the specific TMDB entry that
         // exact-matches the full title can score TitleMatches and win.
-        var fullTitle = SeriesSearch.NormalizeForIndex("Fairy Tail: 100 Years Quest");
-        Assert.NotEqual(stripped, fullTitle);
+        var normalizedFullTitle = SeriesSearch.NormalizeForIndex("Fairy Tail: 100 Years Quest");
+        Assert.NotEqual(strippedFromFull, normalizedFullTitle);
     }
 
     // ── NormalizeForIndex: exclamation collision in movie context ─────────────
