@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -21,8 +22,6 @@ using Shoko.Server.Plex.Models.Libraries;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.Plex;
 using Shoko.Server.Settings;
-using Asp.Versioning;
-
 
 #if DEBUG
 using Shoko.Server.Plex.Models.Collection;

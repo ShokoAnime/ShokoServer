@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using ImageMagick;
 using MessagePack;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Server.Utilities;
 using Newtonsoft.Json;
 using NHibernate;
 using NHibernate.Exceptions;
@@ -50,6 +49,7 @@ using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+using Shoko.Server.Utilities;
 
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 

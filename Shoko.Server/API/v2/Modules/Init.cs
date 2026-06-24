@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +16,6 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Settings;
-using Asp.Versioning;
 
 //using Microsoft.SqlServer.Management.Smo;
 

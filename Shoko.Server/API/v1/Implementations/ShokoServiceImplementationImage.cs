@@ -1,11 +1,11 @@
 using System;
 using System.IO;
+using Asp.Versioning;
 using ImageMagick;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Properties;
-using Asp.Versioning;
 
 namespace Shoko.Server.API.v1.Implementations;
 

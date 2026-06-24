@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using Asp.Versioning;
 using ImageMagick;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Metadata.Enums;
@@ -10,7 +11,6 @@ using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Properties;
 using Shoko.Server.Settings;
-using Asp.Versioning;
 
 #pragma warning disable CS0618 // Type or member is obsolete
 #nullable enable

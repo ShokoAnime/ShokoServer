@@ -12,7 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Utilities;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Extensions;
@@ -29,6 +28,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Plugin;

@@ -1,7 +1,7 @@
-using System.Linq;
-using Microsoft.AspNetCore.Http;
-using Asp.Versioning;
 using System.Collections.Generic;
+using System.Linq;
+using Asp.Versioning;
+using Microsoft.AspNetCore.Http;
 
 namespace Shoko.Server.API.Swagger;
 

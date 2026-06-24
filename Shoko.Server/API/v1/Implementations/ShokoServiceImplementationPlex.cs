@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.v1.Models;
@@ -8,7 +9,6 @@ using Shoko.Server.Plex.Models.Connections;
 using Shoko.Server.Plex.Models.Libraries;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
-using Asp.Versioning;
 
 namespace Shoko.Server.API.v1.Implementations;
 

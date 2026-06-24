@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Utilities;
 using Polly;
 using Polly.Retry;
 using Shoko.Abstractions.Config;
@@ -49,6 +48,7 @@ using Shoko.Server.Repositories.Direct.TMDB.Optional;
 using Shoko.Server.Scheduling.Jobs.Image;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Services;
