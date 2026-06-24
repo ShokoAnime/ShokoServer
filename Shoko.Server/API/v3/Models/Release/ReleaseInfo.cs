@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -9,7 +10,6 @@ using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.API.v3.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Release;
 
 public class ReleaseInfo : IReleaseInfo
@@ -148,6 +148,13 @@ public class ReleaseInfo : IReleaseInfo
     [Required]
     public bool PreventRescan { get; init; }
 
+    /// <summary>
+    /// When <c>true</c>, the release provider chain continues to the next
+    /// provider even though this provider found a result.
+    /// </summary>
+    [Required]
+    public bool DeferToNext { get; init; }
+
     public ReleaseInfo()
     {
         ProviderName = "User";
@@ -178,6 +185,7 @@ public class ReleaseInfo : IReleaseInfo
         Created = releaseInfo.CreatedAt;
         IsPublic = releaseInfo.IsPublic;
         PreventRescan = releaseInfo.PreventRescan;
+        DeferToNext = releaseInfo.DeferToNext;
     }
 
     #region IReleaseInfo implementation

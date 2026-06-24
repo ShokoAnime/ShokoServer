@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +27,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class VideoReleaseService(
@@ -43,7 +43,8 @@ public class VideoReleaseService(
     VideoLocalRepository videoRepository,
     StoredReleaseInfoRepository releaseInfoRepository,
     StoredReleaseInfo_MatchAttemptRepository releaseInfoMatchAttemptRepository,
-    CrossRef_File_EpisodeRepository xrefRepository
+    CrossRef_File_EpisodeRepository xrefRepository,
+    AnimeMetadataOrchestrator animeMetadataOrchestrator
 ) : IVideoReleaseService
 {
     // We need to lazy init. the user data service since otherwise there will be
@@ -731,6 +732,7 @@ public class VideoReleaseService(
             if (existingRelease == releaseInfo)
             {
                 matchAttempt.AttemptEndedAt = DateTime.Now;
+                matchAttempt.IsCompleted = !release.DeferToNext;
                 releaseInfoRepository.Save(existingRelease);
                 releaseInfoMatchAttemptRepository.Save(matchAttempt);
                 return existingRelease;
@@ -751,7 +753,9 @@ public class VideoReleaseService(
             releaseInfo.Version = 1;
 
         releaseInfo.LastUpdatedAt = DateTime.Now;
-        matchAttempt.AttemptEndedAt = release.LastUpdatedAt;
+        releaseInfo.DeferToNext = release.DeferToNext;
+        matchAttempt.AttemptEndedAt = releaseInfo.LastUpdatedAt;
+        matchAttempt.IsCompleted = !releaseInfo.DeferToNext;
         releaseInfoRepository.Save(releaseInfo);
         releaseInfoMatchAttemptRepository.Save(matchAttempt);
         xrefRepository.Save(legacyXrefs);
@@ -762,6 +766,11 @@ public class VideoReleaseService(
             videoLocal.DateTimeImported = lastImportedAt ?? DateTime.Now;
             videoRepository.Save(videoLocal);
         }
+
+        // Schedule AniDB refresh and supplementary metadata for all referenced anime.
+        // This runs for every provider, not just AniDB.
+        try { await animeMetadataOrchestrator.ScheduleForXrefs(legacyXrefs); }
+        catch (Exception ex) { logger.LogError(ex, "Got an error scheduling metadata after release saved."); }
 
         if (saveProvider is not null)
         {
@@ -798,19 +807,20 @@ public class VideoReleaseService(
         var fileName = (video.Files.FirstOrDefault(loc => loc.IsAvailable) ?? video.Files.FirstOrDefault())?.FileName ?? string.Empty;
         var checkedIDs = new HashSet<int>();
         var embeddedXrefs = new List<EmbeddedCrossReference>();
-        foreach (var xrefGroup in releaseInfo.CrossReferences.OfType<EmbeddedCrossReference>().GroupBy(xref => xref.AnidbEpisodeID))
+        foreach (var xrefGroup in releaseInfo.CrossReferences.OfType<EmbeddedCrossReference>().GroupBy(xref => xref.GetAnidbEpisodeID() ?? 0))
         {
             var firstXref = xrefGroup.First();
-            if (firstXref.AnidbEpisodeID is <= 0)
+            var episodeID = xrefGroup.Key;
+            if (episodeID is <= 0)
             {
-                logger.LogError("Negative or zero episode id: {EpisodeID}!", firstXref.AnidbEpisodeID);
+                logger.LogError("Negative or zero episode id: {EpisodeID}!", episodeID);
                 continue;
             }
 
-            // Provider's PrepareForSave should have resolved AnidbAnimeID for any cross-references
+            // Provider's PrepareForSave should have resolved AniDB_Anime for any cross-references
             // where it was missing. Use the most common non-zero value from the group.
             var animeID = xrefGroup
-                .Select(xref => xref.AnidbAnimeID ?? 0)
+                .Select(xref => xref.GetAnidbAnimeID() ?? 0)
                 .Where(id => id > 0)
                 .GroupBy(id => id)
                 .OrderByDescending(g => g.Count())
@@ -856,14 +866,14 @@ public class VideoReleaseService(
             {
                 // If we got this far and the anime ID is set, then apply it now.
                 if (animeID is not null)
-                    xref.AnidbAnimeID = animeID;
+                    xref.ProviderIDs[CrossReferenceIDs.AniDB_Anime] = animeID.Value.ToString();
 
                 embeddedXrefs.Add(xref);
                 legacyXrefs.Add(new()
                 {
                     Hash = video.ED2K,
                     AnimeID = animeID ?? 0,
-                    EpisodeID = xref.AnidbEpisodeID,
+                    EpisodeID = episodeID,
                     Percentage = xref.PercentageEnd - xref.PercentageStart,
                     EpisodeOrder = legacyOrder++,
                     FileName = fileName,
@@ -885,7 +895,7 @@ public class VideoReleaseService(
         if (!_settings.Import.UseExistingFileWatchedStatus) return;
 
         var otherVideos = releaseInfo.CrossReferences
-            .SelectMany(xref => videoRepository.GetByAniDBEpisodeID(xref.AnidbEpisodeID))
+            .SelectMany(xref => xref.GetAnidbEpisodeID() is { } epId ? videoRepository.GetByAniDBEpisodeID(epId) : [])
             .WhereNotNull()
             .ExceptBy([video.ED2K], v => v.Hash)
             .Cast<IVideo>()

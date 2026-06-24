@@ -28,6 +28,7 @@ using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Hashing;
+using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
@@ -49,6 +50,7 @@ using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #pragma warning disable CS0618
 #pragma warning disable CA2012
@@ -173,7 +175,7 @@ public class DatabaseFixes
             i++;
             try
             {
-                anidbService.RefreshAnimeByID(animeID, AnidbRefreshMethod.Cache | AnidbRefreshMethod.SkipTmdbUpdate).GetAwaiter().GetResult();
+                anidbService.RefreshAnimeByID(animeID, AnidbRefreshMethod.Cache | AnidbRefreshMethod.SkipSupplementaryUpdate).GetAwaiter().GetResult();
             }
             catch (Exception e)
             {
@@ -723,7 +725,7 @@ public class DatabaseFixes
             if (string.IsNullOrEmpty(xml))
             {
                 _logger.Warn($"Unable to load cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
-                anidbService.ScheduleRefreshOfAnime(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate)
+                anidbService.ScheduleRefreshOfAnime(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipSupplementaryUpdate)
                     .GetAwaiter()
                     .GetResult();
                 continue;
@@ -738,7 +740,7 @@ public class DatabaseFixes
             catch (Exception e)
             {
                 _logger.Error(e, $"Unable to parse cached Anime_HTTP xml dump for anime: {anime.AnimeID}/{anime.MainTitle}");
-                anidbService.ScheduleRefreshOfAnime(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate)
+                anidbService.ScheduleRefreshOfAnime(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipSupplementaryUpdate)
                     .GetAwaiter()
                     .GetResult();
                 continue;
@@ -1134,12 +1136,16 @@ public class DatabaseFixes
                 ProviderName = "User",
                 CrossReferences = groupBy
                     .OrderBy(x => x.CrossRef_File_EpisodeID)
-                    .Select(xref => new EmbeddedCrossReference
+                    .Select(xref =>
                     {
-                        AnidbAnimeID = xref.AnimeID,
-                        AnidbEpisodeID = xref.EpisodeID,
-                        PercentageStart = xref.PercentageRange.Start,
-                        PercentageEnd = xref.PercentageRange.End,
+                        var embedded = new EmbeddedCrossReference
+                        {
+                            PercentageStart = xref.PercentageRange.Start,
+                            PercentageEnd = xref.PercentageRange.End,
+                        };
+                        embedded.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = xref.EpisodeID.ToString();
+                        embedded.ProviderIDs[CrossReferenceIDs.AniDB_Anime] = xref.AnimeID.ToString();
+                        return embedded;
                     })
                     .ToList(),
                 CreatedAt = importedAt,
@@ -2645,5 +2651,64 @@ public class DatabaseFixes
         public int JMMUserID { get; set; }
         public byte[] AvatarImageBlob { get; set; }
         public string AvatarImageMetadata { get; set; }
+    }
+
+    /// <summary>
+    /// Converts <c>CrossReferences</c> JSON in <c>StoredReleaseInfo</c> rows from the old
+    /// integer-property format (<c>AnidbEpisodeID</c>/<c>AnidbAnimeID</c>) to the new
+    /// open-ended <c>ProviderIDs</c> dictionary format.
+    /// </summary>
+    private class OldEmbeddedCrossReference
+    {
+        public int AnidbEpisodeID { get; set; }
+        public int? AnidbAnimeID { get; set; }
+        public int PercentageStart { get; set; }
+        public int PercentageEnd { get; set; }
+        public int EpisodeType { get; set; }
+        public int EpisodeNumber { get; set; }
+    }
+
+    public static void MigrateEmbeddedCrossReferences()
+    {
+        var toSave = new List<StoredReleaseInfo>();
+        foreach (var releaseInfo in RepoFactory.StoredReleaseInfo.GetAll())
+        {
+            var json = releaseInfo.EmbeddedCrossReferences;
+            if (string.IsNullOrEmpty(json) || json is "[]" || !json.Contains("AnidbEpisodeID"))
+                continue;
+
+            try
+            {
+                var oldXrefs = JsonConvert.DeserializeObject<List<OldEmbeddedCrossReference>>(json);
+                if (oldXrefs is null or { Count: 0 })
+                    continue;
+
+                var newXrefs = oldXrefs.Select(x =>
+                {
+                    var xref = new EmbeddedCrossReference
+                    {
+                        PercentageStart = x.PercentageStart,
+                        PercentageEnd = x.PercentageEnd,
+                        EpisodeType = (EpisodeType)x.EpisodeType,
+                        EpisodeNumber = x.EpisodeNumber,
+                    };
+                    xref.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = x.AnidbEpisodeID.ToString();
+                    if (x.AnidbAnimeID is { } animeID and > 0)
+                        xref.ProviderIDs[CrossReferenceIDs.AniDB_Anime] = animeID.ToString();
+                    return xref;
+                }).ToList<IReleaseVideoCrossReference>();
+
+                releaseInfo.CrossReferences = newXrefs;
+                toSave.Add(releaseInfo);
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn(ex, "Failed to migrate EmbeddedCrossReferences for StoredReleaseInfo {ID}", releaseInfo.StoredReleaseInfoID);
+            }
+        }
+
+        if (toSave.Count > 0)
+            RepoFactory.StoredReleaseInfo.Save(toSave);
+        _logger.Info("Migrated EmbeddedCrossReferences for {Count} StoredReleaseInfo rows.", toSave.Count);
     }
 }

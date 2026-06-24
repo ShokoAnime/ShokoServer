@@ -35,6 +35,12 @@ public interface IReleaseMatchAttempt
     bool IsSuccessful { get; }
 
     /// <summary>
+    /// <c>true</c> once the provider chain has run to completion for this
+    /// file — set by a non-deferred save or by <c>FinalizeReleaseSearchJob</c>.
+    /// </summary>
+    bool IsCompleted { get; }
+
+    /// <summary>
     /// The time that the attempt was started.
     /// </summary>
     public DateTime AttemptStartedAt { get; set; }

@@ -198,7 +198,7 @@ public class ActionService
 
     public async Task RunImport_UpdateAllAniDB()
     {
-        var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate;
+        var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipSupplementaryUpdate;
         foreach (var anime in _anidbAnimes.GetAll())
             await _anidbService.ScheduleRefreshOfAnime(anime, refreshMethod).ConfigureAwait(false);
     }
@@ -481,13 +481,13 @@ public class ActionService
                 continue;
 
             _logger.LogDebug("Found anime {AnimeID} with missing XML", animeID);
-            await QueueAniDBRefresh(animeID, true, false, false, skipTmdbUpdate: true);
+            await QueueAniDBRefresh(animeID, true, false, false, SkipSupplementaryUpdate: true);
             queuedAnimeSet.Add(animeID);
         }
     }
 
     public async Task<bool> QueueAniDBRefresh(int animeID, bool force, bool downloadRelations, bool createSeriesEntry, bool immediate = false,
-        bool cacheOnly = false, bool skipTmdbUpdate = false)
+        bool cacheOnly = false, bool SkipSupplementaryUpdate = false)
     {
         if (animeID == 0)
             return false;
@@ -503,8 +503,8 @@ public class ActionService
             refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
         if (force || !cacheOnly)
             refreshMethod |= AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
-        if (skipTmdbUpdate)
-            refreshMethod |= AnidbRefreshMethod.SkipTmdbUpdate;
+        if (SkipSupplementaryUpdate)
+            refreshMethod |= AnidbRefreshMethod.SkipSupplementaryUpdate;
         if (immediate)
         {
             try
@@ -581,7 +581,7 @@ public class ActionService
             .ToHashSet();
         var settings = _settingsProvider.GetSettings();
         _logger.LogInformation("Queueing {MissingAnimeCount} anime that needs an update…", missingAnimeSet.Count);
-        var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipTmdbUpdate | AnidbRefreshMethod.CreateShokoSeries;
+        var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipSupplementaryUpdate | AnidbRefreshMethod.CreateShokoSeries;
         if (settings.AutoGroupSeries || settings.AniDb.DownloadRelatedAnime)
             refreshMethod |= AnidbRefreshMethod.DownloadRelations;
         foreach (var animeID in missingAnimeSet)

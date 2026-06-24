@@ -7,7 +7,8 @@ using Shoko.Abstractions.Video.Hashing;
 namespace Shoko.Abstractions.Video.Release;
 
 /// <summary>
-/// Release info.
+/// Mutable DTO returned by <see cref="IReleaseInfoProvider.GetReleaseInfoForVideo"/>
+/// and persisted by the server as a stored release match.
 /// </summary>
 public class ReleaseInfo
 {
@@ -127,6 +128,12 @@ public class ReleaseInfo
     public bool PreventRescan { get; set; }
 
     /// <summary>
+    /// When <c>true</c>, the provider chain continues to the next provider
+    /// even after this result is saved.
+    /// </summary>
+    public bool DeferToNext { get; set; }
+
+    /// <summary>
     /// Constructs a new <see cref="ReleaseInfo"/> instance.
     /// </summary>
     public ReleaseInfo()
@@ -163,6 +170,7 @@ public class ReleaseInfo
         CreatedAt = info.CreatedAt;
         IsPublic = info.IsPublic;
         PreventRescan = info.PreventRescan;
+        DeferToNext = info.DeferToNext;
     }
 
     /// <summary>
@@ -193,5 +201,6 @@ public class ReleaseInfo
         CreatedAt = info.CreatedAt;
         IsPublic = info.IsPublic;
         PreventRescan = info.PreventRescan;
+        DeferToNext = info.DeferToNext;
     }
 }

@@ -1,8 +1,10 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Models.Release;
@@ -11,7 +13,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 /// <summary>
@@ -247,7 +248,7 @@ public class ReleaseAutoManagementService(
         return sri.CrossReferences
             .Select(x => (
                 x is EmbeddedCrossReference ecr ? ecr.EpisodeType : EpisodeType.Episode,
-                x.AnidbEpisodeID))
+                x.GetAnidbEpisodeID() ?? 0))
             .Where(k => k.Item2 > 0)
             .ToHashSet();
     }

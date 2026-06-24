@@ -28,6 +28,7 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Relocation;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 #pragma warning disable CS0618
@@ -435,6 +436,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
         var relocationService = ISystemService.StaticServices.GetRequiredService<IVideoRelocationService>();
         relocationService.AddParts(GetExports<IRelocationProvider>());
+
+        var supplementaryMetadataService = ISystemService.StaticServices.GetRequiredService<SupplementaryMetadataService>();
+        supplementaryMetadataService.AddParts(GetExports<ISupplementaryMetadataProvider>());
     }
 
     private IEnumerable<(string?, string[], bool)> GetPluginDirectories()

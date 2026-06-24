@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -7,12 +8,9 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Metadata.Anidb.Enums;
-using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Events;
@@ -23,16 +21,12 @@ using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Info;
-using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
-using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Providers.AniDB.Release;
 
 /// <summary>
@@ -46,14 +40,9 @@ namespace Shoko.Server.Providers.AniDB.Release;
 /// <param name="fileNameHashRepository">The file name hash repository.</param>
 /// <param name="videoRepository">The video repository.</param>
 /// <param name="anidbEpisodeRepository">The AniDB episode repository.</param>
-/// <param name="anidbAnimeRepository">The AniDB anime repository.</param>
-/// <param name="anidbAnimeUpdateRepository">The AniDB anime update repository.</param>
-/// <param name="shokoSeriesRepository">The Shoko series repository.</param>
-/// <param name="crossRefAnidbTmdbRepository">The AniDB↔TMDB show cross-reference repository.</param>
 /// <param name="releaseInfoRepository">The stored release info repository.</param>
 /// <param name="scheduler">The job scheduler.</param>
 /// <param name="settingsProvider">The settings provider.</param>
-/// <param name="serviceProvider">The service provider for lazy service resolution.</param>
 public partial class AnidbReleaseProvider(
     ILogger<AnidbReleaseProvider> logger,
     ConfigurationProvider<AnidbReleaseProvider.AnidbReleaseProviderSettings> configurationProvider,
@@ -62,14 +51,9 @@ public partial class AnidbReleaseProvider(
     FileNameHashRepository fileNameHashRepository,
     VideoLocalRepository videoRepository,
     AniDB_EpisodeRepository anidbEpisodeRepository,
-    AniDB_AnimeRepository anidbAnimeRepository,
-    AniDB_AnimeUpdateRepository anidbAnimeUpdateRepository,
-    AnimeSeriesRepository shokoSeriesRepository,
-    CrossRef_AniDB_TMDB_ShowRepository crossRefAnidbTmdbRepository,
     StoredReleaseInfoRepository releaseInfoRepository,
     IQueueScheduler scheduler,
-    ISettingsProvider settingsProvider,
-    IServiceProvider serviceProvider
+    ISettingsProvider settingsProvider
 ) : IReleaseInfoProvider<AnidbReleaseProvider.AnidbReleaseProviderSettings>
 {
     /// <summary>
@@ -81,9 +65,6 @@ public partial class AnidbReleaseProvider(
     });
 
     private readonly HashSet<int> _unknownEpisodeIDs = [];
-
-    // Lazy to prevent circular DI: VideoReleaseService → AnidbReleaseProvider → IAnidbService → VideoReleaseService
-    private IAnidbService? _anidbService;
 
     private IServerSettings Settings => settingsProvider.GetSettings();
 
@@ -246,24 +227,19 @@ public partial class AnidbReleaseProvider(
         var offset = 0;
         foreach (var xref in anidbFile.EpisodeIDs)
         {
-            releaseInfo.CrossReferences.Add(new()
-            {
-                AnidbAnimeID = anidbFile.AnimeID,
-                AnidbEpisodeID = xref.EpisodeID,
-                PercentageStart = xref.Percentage < 100 ? offset : 0,
-                PercentageEnd = xref.Percentage < 100 ? offset + xref.Percentage : 100,
-            });
+            releaseInfo.CrossReferences.Add(new ReleaseVideoCrossReference().ForAniDB(
+                xref.EpisodeID, anidbFile.AnimeID,
+                percentStart: xref.Percentage < 100 ? offset : 0,
+                percentEnd: xref.Percentage < 100 ? offset + xref.Percentage : 100));
             if (xref.Percentage < 100)
                 offset += xref.Percentage;
         }
         foreach (var xref in anidbFile.OtherEpisodes)
         {
-            releaseInfo.CrossReferences.Add(new()
-            {
-                AnidbEpisodeID = xref.EpisodeID,
-                PercentageStart = xref.Percentage < 100 ? offset : 0,
-                PercentageEnd = xref.Percentage < 100 ? offset + xref.Percentage : 100,
-            });
+            releaseInfo.CrossReferences.Add(new ReleaseVideoCrossReference().ForAniDB(
+                xref.EpisodeID, null,
+                percentStart: xref.Percentage < 100 ? offset : 0,
+                percentEnd: xref.Percentage < 100 ? offset + xref.Percentage : 100));
             if (xref.Percentage < 100)
                 offset += xref.Percentage;
         }
@@ -276,43 +252,45 @@ public partial class AnidbReleaseProvider(
     /// <inheritdoc/>
     public async Task PrepareForSave(IVideo video, ReleaseInfo releaseInfo)
     {
-        // Fill in missing AnidbAnimeIDs for any cross-references where the provider didn't supply them.
+        // Fill in missing AniDB_Anime IDs for any cross-references where the provider didn't supply them.
         var toRemove = new List<ReleaseVideoCrossReference>();
-        foreach (var xref in releaseInfo.CrossReferences.Where(x => x.AnidbAnimeID is null or 0))
+        foreach (var xref in releaseInfo.CrossReferences.Where(x => x.GetAnidbAnimeID() is null or 0))
         {
-            if (_unknownEpisodeIDs.Contains(xref.AnidbEpisodeID))
+            var episodeID = xref.GetAnidbEpisodeID() ?? 0;
+            if (episodeID is 0 || _unknownEpisodeIDs.Contains(episodeID))
             {
-                logger.LogError("Unknown episode id: {EpisodeID}!", xref.AnidbEpisodeID);
+                logger.LogError("Unknown episode id: {EpisodeID}!", episodeID);
                 toRemove.Add(xref);
                 continue;
             }
 
-            if (anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID) is { } episode)
+            if (anidbEpisodeRepository.GetByEpisodeID(episodeID) is { } episode)
             {
-                xref.AnidbAnimeID = episode.AnimeID;
+                xref.ProviderIDs[CrossReferenceIDs.AniDB_Anime] = episode.AnimeID.ToString();
             }
             else if (connectionHandler.IsBanned)
             {
-                logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, but we're UDP banned, so deferring fetch to later!", xref.AnidbEpisodeID);
+                logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, but we're UDP banned, so deferring fetch to later!", episodeID);
             }
             else
             {
-                logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, downloading more info…", xref.AnidbEpisodeID);
+                logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, downloading more info…", episodeID);
                 try
                 {
-                    var episodeResponse = requestFactory.Create<RequestGetEpisode>(r => r.EpisodeID = xref.AnidbEpisodeID).Send();
+                    var episodeResponse = requestFactory.Create<RequestGetEpisode>(r => r.EpisodeID = episodeID).Send();
                     if (episodeResponse.Code is UDPReturnCode.NO_SUCH_EPISODE)
                     {
-                        logger.LogError("Unknown episode with id {EpisodeID}!", xref.AnidbEpisodeID);
-                        _unknownEpisodeIDs.Add(xref.AnidbEpisodeID);
+                        logger.LogError("Unknown episode with id {EpisodeID}!", episodeID);
+                        _unknownEpisodeIDs.Add(episodeID);
                         toRemove.Add(xref);
                         continue;
                     }
-                    xref.AnidbAnimeID = episodeResponse.Response?.AnimeID;
+                    if (episodeResponse.Response?.AnimeID is { } animeID)
+                        xref.ProviderIDs[CrossReferenceIDs.AniDB_Anime] = animeID.ToString();
                 }
                 catch (Exception e)
                 {
-                    logger.LogError(e, "Could not get Episode Info for {EpisodeID}!", xref.AnidbEpisodeID);
+                    logger.LogError(e, "Could not get Episode Info for {EpisodeID}!", episodeID);
                 }
             }
         }
@@ -390,61 +368,8 @@ public partial class AnidbReleaseProvider(
     }
 
     /// <inheritdoc/>
-    public async Task OnReleaseSaved(IVideo? video, IReleaseInfo savedRelease, IReadOnlyList<IVideoCrossReference> xrefs)
-    {
-        var animeIDs = xrefs
-            .GroupBy(xref => xref.AnidbAnimeID)
-            .ExceptBy([0], groupBy => groupBy.Key)
-            .ToDictionary(
-                groupBy => groupBy.Key,
-                groupBy =>
-                    anidbAnimeRepository.GetByAnimeID(groupBy.Key) is null ||
-                    shokoSeriesRepository.GetByAnimeID(groupBy.Key) is null ||
-                    anidbAnimeUpdateRepository.GetByAnimeID(groupBy.Key) is null ||
-                    groupBy.Any(xref => xref.AnidbEpisode is null || xref.ShokoEpisode is null)
-            );
-        if (animeIDs.Count == 0)
-            return;
-
-        var refreshMethod = AnidbRefreshMethod.Default | AnidbRefreshMethod.CreateShokoSeries;
-        if (Settings.AutoGroupSeries || Settings.AniDb.DownloadRelatedAnime)
-            refreshMethod |= AnidbRefreshMethod.DownloadRelations;
-
-        foreach (var (animeID, missingEpisodes) in animeIDs)
-        {
-            var animeRecentlyUpdated = false;
-            var update = anidbAnimeUpdateRepository.GetByAnimeID(animeID)!;
-            if (!missingEpisodes && (DateTime.Now - update.UpdatedAt).TotalHours < Settings.AniDb.MinimumHoursToRedownloadAnimeInfo)
-                animeRecentlyUpdated = true;
-
-            if (missingEpisodes)
-            {
-                logger.LogInformation("Queuing immediate GET for AniDB_Anime: {AnimeID}", animeID);
-                _anidbService ??= serviceProvider.GetRequiredService<IAnidbService>();
-                await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod, prioritize: true);
-                await scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
-            }
-            else if (!animeRecentlyUpdated)
-            {
-                logger.LogInformation("Queuing GET for AniDB_Anime: {AnimeID}", animeID);
-                _anidbService ??= serviceProvider.GetRequiredService<IAnidbService>();
-                await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod);
-                await scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
-            }
-            else
-            {
-                await scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
-            }
-
-            var tmdbShowXrefs = crossRefAnidbTmdbRepository.GetByAnidbAnimeID(animeID);
-            foreach (var xref in tmdbShowXrefs)
-                await scheduler.RunAfterCurrent<UpdateTmdbShowJob>(job =>
-                {
-                    job.TmdbShowID = xref.TmdbShowID;
-                    job.DownloadImages = true;
-                });
-        }
-    }
+    public Task OnReleaseSaved(IVideo? video, IReleaseInfo savedRelease, IReadOnlyList<IVideoCrossReference> xrefs)
+        => Task.CompletedTask; // Primary metadata scheduling is handled by AnimeMetadataOrchestrator.
 
     /// <inheritdoc/>
     public async Task OnReleaseCleared(IVideo? video, IReleaseInfo clearedRelease, IReleaseInfo? replacingRelease)
@@ -473,16 +398,18 @@ public partial class AnidbReleaseProvider(
         {
             foreach (var xref in clearedRelease.CrossReferences)
             {
-                if (xref.AnidbAnimeID is null or 0)
+                var animeID = xref.GetAnidbAnimeID() ?? 0;
+                if (animeID is 0)
                     continue;
 
-                var anidbEpisode = anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID);
+                var episodeID = xref.GetAnidbEpisodeID() ?? 0;
+                var anidbEpisode = episodeID > 0 ? anidbEpisodeRepository.GetByEpisodeID(episodeID) : null;
                 if (anidbEpisode is null)
                     continue;
 
                 await scheduler.StartJob<DeleteFileFromMyListJob>(c =>
                 {
-                    c.AnimeID = xref.AnidbAnimeID!.Value;
+                    c.AnimeID = animeID;
                     c.EpisodeType = anidbEpisode.EpisodeType;
                     c.EpisodeNumber = anidbEpisode.EpisodeNumber;
                 });

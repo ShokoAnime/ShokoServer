@@ -35,7 +35,6 @@ using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-
 using AbstractReleaseInfo = Shoko.Abstractions.Video.Release.ReleaseInfo;
 using AbstractReleaseVideoCrossReference = Shoko.Abstractions.Video.Release.ReleaseVideoCrossReference;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
@@ -1466,11 +1465,7 @@ public class FileController(
         await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
         {
             CrossReferences = episodeList
-                .Select(episode => new AbstractReleaseVideoCrossReference()
-                {
-                    AnidbAnimeID = episode.AnimeID,
-                    AnidbEpisodeID = episode.EpisodeID,
-                })
+                .Select(episode => new AbstractReleaseVideoCrossReference().ForAniDB(episode.EpisodeID, episode.AnimeID))
                 .ToList(),
         });
 
@@ -1554,11 +1549,7 @@ public class FileController(
         await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
         {
             CrossReferences = episodeList
-                .Select(episode => new AbstractReleaseVideoCrossReference()
-                {
-                    AnidbAnimeID = episode.AnimeID,
-                    AnidbEpisodeID = episode.EpisodeID,
-                })
+                .Select(episode => new AbstractReleaseVideoCrossReference().ForAniDB(episode.EpisodeID, episode.AnimeID))
                 .ToList(),
         });
 
@@ -1681,13 +1672,7 @@ public class FileController(
                 await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
                 {
                     CrossReferences = [
-                        new()
-                        {
-                            AnidbAnimeID = episode.AnimeID,
-                            AnidbEpisodeID = episode.EpisodeID,
-                            PercentageStart = percentageStart,
-                            PercentageEnd = percentageEnd,
-                        },
+                        new AbstractReleaseVideoCrossReference().ForAniDB(episode.EpisodeID, episode.AnimeID, percentageStart, percentageEnd),
                     ],
                 });
             }
@@ -1701,11 +1686,7 @@ public class FileController(
             await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
             {
                 CrossReferences = [
-                    new()
-                    {
-                        AnidbAnimeID = episode.AnimeID,
-                        AnidbEpisodeID = episode.EpisodeID,
-                    },
+                    new AbstractReleaseVideoCrossReference().ForAniDB(episode.EpisodeID, episode.AnimeID),
                 ],
             });
         }
@@ -1761,13 +1742,7 @@ public class FileController(
             await _videoReleaseService.SaveReleaseForVideo(video, new AbstractReleaseInfo
             {
                 CrossReferences = [
-                    new()
-                    {
-                        AnidbAnimeID = anidbEpisode.AnimeID,
-                        AnidbEpisodeID = anidbEpisode.EpisodeID,
-                        PercentageStart = percentageStart,
-                        PercentageEnd = percentageEnd,
-                    },
+                    new AbstractReleaseVideoCrossReference().ForAniDB(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, percentageStart, percentageEnd),
                 ],
             });
         }

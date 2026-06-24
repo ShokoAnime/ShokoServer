@@ -1083,6 +1083,10 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(173,  1, "UPDATE ShokoImage_Entity SET PrimaryImageID = ImageID WHERE PrimaryImageID IS NULL OR PrimaryImageID = '00000000-0000-0000-0000-000000000000'"),
         new(174,  1, "ALTER TABLE `AnimeGroup_User` ADD COLUMN `UserTags` TEXT NULL"),
         new(174,  2, "ALTER TABLE `AnimeGroup_User` ADD COLUMN `LastUpdated` DATETIME NULL"),
+        new(175,  1, "ALTER TABLE `StoredReleaseInfo_MatchAttempt` ADD COLUMN `IsCompleted` TINYINT(1) NOT NULL DEFAULT 0"),
+        new(175,  2, "UPDATE `StoredReleaseInfo_MatchAttempt` SET `IsCompleted` = 1 WHERE `ProviderID` IS NOT NULL OR `AttemptStartedAt` != `AttemptEndedAt`"),
+        new(175,  3, "ALTER TABLE `StoredReleaseInfo` ADD COLUMN `DeferToNext` TINYINT(1) NOT NULL DEFAULT 0"),
+        new(176,  1, DatabaseFixes.MigrateEmbeddedCrossReferences),
     ];
 
     #endregion

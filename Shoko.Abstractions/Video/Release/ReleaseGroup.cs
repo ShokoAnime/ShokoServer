@@ -2,7 +2,8 @@
 namespace Shoko.Abstractions.Video.Release;
 
 /// <summary>
-/// Release group.
+/// Mutable DTO representing the fansub or encoding group responsible for
+/// a release, as reported by an <see cref="IReleaseInfoProvider"/>.
 /// </summary>
 public class ReleaseGroup : IReleaseGroup
 {

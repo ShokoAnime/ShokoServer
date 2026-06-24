@@ -6,7 +6,8 @@ using Shoko.Abstractions.Video.Hashing;
 namespace Shoko.Abstractions.Video.Release;
 
 /// <summary>
-/// Release info interface.
+/// Read-only view of a stored release match returned by an
+/// <see cref="IReleaseInfoProvider"/> and persisted by the server.
 /// </summary>
 public interface IReleaseInfo
 {
@@ -134,4 +135,12 @@ public interface IReleaseInfo
     /// API.
     /// </summary>
     bool PreventRescan { get; }
+
+    /// <summary>
+    /// When <c>true</c>, the provider chain continues to the next provider
+    /// even after this result is saved. A later provider may replace this
+    /// result with a more authoritative one. When no subsequent provider
+    /// saves a result, this one stands.
+    /// </summary>
+    bool DeferToNext { get; }
 }

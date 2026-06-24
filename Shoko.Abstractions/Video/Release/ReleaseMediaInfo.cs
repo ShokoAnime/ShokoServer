@@ -4,8 +4,9 @@ using Shoko.Abstractions.Metadata.Enums;
 namespace Shoko.Abstractions.Video.Release;
 
 /// <summary>
-/// Represents the audio and subtitle languages associated with an <see cref="IReleaseInfo"/>.
-/// /// </summary>
+/// Mutable DTO representing the audio and subtitle track languages reported
+/// by an <see cref="IReleaseInfoProvider"/> for a given release.
+/// </summary>
 public class ReleaseMediaInfo : IReleaseMediaInfo
 {
     /// <summary>

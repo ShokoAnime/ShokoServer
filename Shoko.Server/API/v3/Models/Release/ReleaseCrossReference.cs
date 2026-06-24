@@ -1,37 +1,28 @@
+#nullable enable
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Release;
 
 public class ReleaseCrossReference : IReleaseVideoCrossReference
 {
-    /// <summary>
-    /// AniDB episode ID.
-    /// </summary>
+    /// <summary>AniDB episode ID.</summary>
     [Required]
     [Range(1, int.MaxValue)]
     public int AnidbEpisodeID { get; init; }
 
-    /// <summary>
-    /// AniDB anime ID, if known by the provider. Otherwise we'll fetch it
-    /// later using the <see cref="AnidbEpisodeID"/>.
-    /// </summary>
+    /// <summary>AniDB anime ID, if known.</summary>
     [Range(1, int.MaxValue)]
     public int? AnidbAnimeID { get; init; }
 
-    /// <summary>
-    /// Where in the <see cref="AnidbEpisodeID"/> the video starts covering in 
-    /// the range [0, 99], but must be less than <see cref="PercentageEnd"/>.
-    /// </summary>
+    /// <summary>Where the video starts covering, in [0, 99].</summary>
     [Required]
     [Range(0, 99)]
     public int PercentageStart { get; init; }
 
-    /// <summary>
-    /// Where in the <see cref="AnidbEpisodeID"/> the video stops covering in
-    /// the range [1, 100], but must be greater than <see cref="PercentageStart"/>.
-    /// </summary>
+    /// <summary>Where the video stops covering, in [1, 100].</summary>
     [Required]
     [Range(1, 100)]
     public int PercentageEnd { get; init; }
@@ -40,9 +31,27 @@ public class ReleaseCrossReference : IReleaseVideoCrossReference
 
     public ReleaseCrossReference(IReleaseVideoCrossReference crossReference)
     {
-        AnidbEpisodeID = crossReference.AnidbEpisodeID;
-        AnidbAnimeID = crossReference.AnidbAnimeID;
+        AnidbEpisodeID = crossReference.GetAnidbEpisodeID() ?? 0;
+        AnidbAnimeID = crossReference.GetAnidbAnimeID();
         PercentageStart = crossReference.PercentageStart;
         PercentageEnd = crossReference.PercentageEnd;
     }
+
+    #region IReleaseVideoCrossReference Implementation
+
+    IReadOnlyDictionary<string, string> IReleaseVideoCrossReference.ProviderIDs
+    {
+        get
+        {
+            var dict = new Dictionary<string, string>
+            {
+                [CrossReferenceIDs.AniDB_Episode] = AnidbEpisodeID.ToString(),
+            };
+            if (AnidbAnimeID.HasValue)
+                dict[CrossReferenceIDs.AniDB_Anime] = AnidbAnimeID.Value.ToString();
+            return dict;
+        }
+    }
+
+    #endregion
 }

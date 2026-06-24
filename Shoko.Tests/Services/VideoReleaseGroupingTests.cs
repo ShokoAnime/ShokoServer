@@ -105,14 +105,15 @@ public class VideoReleaseGroupingTests
             EpisodeType.Other   => 5000,
             _                   => 0,
         };
-        return new EmbeddedCrossReference
+        var ecr = new EmbeddedCrossReference
         {
-            AnidbEpisodeID = typeOffset + number,
             EpisodeType = type,
             EpisodeNumber = number,
             PercentageStart = 0,
             PercentageEnd = 100,
         };
+        ecr.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = (typeOffset + number).ToString();
+        return ecr;
     }
 
     /// <summary>

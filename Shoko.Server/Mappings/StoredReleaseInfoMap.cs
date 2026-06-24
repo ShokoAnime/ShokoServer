@@ -41,5 +41,6 @@ public class StoredReleaseInfoMap : ClassMap<StoredReleaseInfo>
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.IsPublic).Nullable();
         Map(x => x.PreventRescan).Not.Nullable();
+        Map(x => x.DeferToNext).Not.Nullable();
     }
 }

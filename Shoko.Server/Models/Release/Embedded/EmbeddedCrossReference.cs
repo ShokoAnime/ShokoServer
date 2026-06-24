@@ -1,23 +1,26 @@
+#nullable enable
+using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Release;
 
-#nullable enable
 namespace Shoko.Server.Models.Release;
 
 public class EmbeddedCrossReference : IReleaseVideoCrossReference
 {
-    public int AnidbEpisodeID { get; set; }
-    public int? AnidbAnimeID { get; set; }
+    public Dictionary<string, string> ProviderIDs { get; set; } = new();
+
     public int PercentageStart { get; set; }
+
     public int PercentageEnd { get; set; }
 
     /// <summary>
-    /// Episode type (Episode, Special, Credits, etc.).
+    /// Episode type (Episode, Special, Credits, etc.). Cached from AniDB at
+    /// save time; not a provider-supplied ID.
     /// </summary>
     public EpisodeType EpisodeType { get; set; } = EpisodeType.Episode;
 
     /// <summary>
-    /// Episode number within its type (e.g. 1 for episode 1, 2 for special 2).
+    /// Episode number within its type. Cached from AniDB at save time.
     /// </summary>
     public int EpisodeNumber { get; set; }
 
@@ -25,8 +28,7 @@ public class EmbeddedCrossReference : IReleaseVideoCrossReference
 
     public EmbeddedCrossReference(IReleaseVideoCrossReference crossReference)
     {
-        AnidbEpisodeID = crossReference.AnidbEpisodeID;
-        AnidbAnimeID = crossReference.AnidbAnimeID;
+        ProviderIDs = new Dictionary<string, string>(crossReference.ProviderIDs);
         PercentageStart = crossReference.PercentageStart;
         PercentageEnd = crossReference.PercentageEnd;
         if (crossReference is EmbeddedCrossReference embedded)
@@ -35,6 +37,8 @@ public class EmbeddedCrossReference : IReleaseVideoCrossReference
             EpisodeNumber = embedded.EpisodeNumber;
         }
     }
+
+    IReadOnlyDictionary<string, string> IReleaseVideoCrossReference.ProviderIDs => ProviderIDs;
 
     /// <summary>
     /// Returns the episode identifier in the standard Shoko format, e.g.

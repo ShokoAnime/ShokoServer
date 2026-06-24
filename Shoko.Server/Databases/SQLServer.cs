@@ -993,6 +993,10 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(169,  1, "UPDATE ShokoImage_Entity SET PrimaryImageID = ImageID WHERE PrimaryImageID IS NULL OR PrimaryImageID = '00000000-0000-0000-0000-000000000000'"),
         new(170,  1, "ALTER TABLE AnimeGroup_User ADD UserTags nvarchar(max) NULL"),
         new(170,  2, "ALTER TABLE AnimeGroup_User ADD LastUpdated datetime2 NULL"),
+        new(171,  1, "ALTER TABLE StoredReleaseInfo_MatchAttempt ADD IsCompleted BIT NOT NULL DEFAULT 0"),
+        new(171,  2, "UPDATE StoredReleaseInfo_MatchAttempt SET IsCompleted = 1 WHERE ProviderID IS NOT NULL OR AttemptStartedAt != AttemptEndedAt"),
+        new(171,  3, "ALTER TABLE StoredReleaseInfo ADD DeferToNext BIT NOT NULL DEFAULT 0"),
+        new(172,  1, DatabaseFixes.MigrateEmbeddedCrossReferences),
     ];
 
     #endregion

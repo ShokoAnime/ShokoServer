@@ -94,9 +94,9 @@ public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleas
         if (_vlocal is null || _matchAttempt is null) return;
 
         var isRescan = false;
-        if (_matchAttempt.AttemptStartedAt != _matchAttempt.AttemptEndedAt)
+        if (_matchAttempt.IsCompleted)
         {
-            // Attempt already completed; only continue if a matched provider wants to rescan for missing info
+            // Chain is done; only continue if the matched provider wants to rescan for missing info.
             if (!_matchAttempt.ProviderID.HasValue) return;
 
             var existingRelease = _videoReleaseService.GetCurrentReleaseForVideo(_vlocal);

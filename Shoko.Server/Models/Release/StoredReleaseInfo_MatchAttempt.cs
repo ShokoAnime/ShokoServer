@@ -1,10 +1,10 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
 
-#nullable enable
 namespace Shoko.Server.Models.Release;
 
 /// <summary>
@@ -67,6 +67,12 @@ public class StoredReleaseInfo_MatchAttempt : IReleaseMatchAttempt
     /// before each rescan is queued.
     /// </summary>
     public int AttemptCount { get; set; }
+
+    /// <summary>
+    /// <c>true</c> once the provider chain has run to completion for this
+    /// file — set by a non-deferred save or by <c>FinalizeReleaseSearchJob</c>.
+    /// </summary>
+    public bool IsCompleted { get; set; }
 
     #endregion
 

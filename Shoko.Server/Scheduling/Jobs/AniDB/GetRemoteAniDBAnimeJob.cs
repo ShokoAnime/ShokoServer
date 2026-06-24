@@ -69,7 +69,7 @@ public class GetRemoteAniDBAnimeJob : BaseJob<AniDB_Anime>
     /// <summary>
     /// Skip updating related TMDB entities after update.
     /// </summary>
-    public bool SkipTmdbUpdate { get; set; }
+    public bool SkipSupplementaryUpdate { get; set; }
 
     /// <summary>
     /// Current depth of recursion.
@@ -93,8 +93,8 @@ public class GetRemoteAniDBAnimeJob : BaseJob<AniDB_Anime>
                 refreshMethod |= AnidbRefreshMethod.DownloadRelations;
             if (CreateSeriesEntry)
                 refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
-            if (SkipTmdbUpdate)
-                refreshMethod |= AnidbRefreshMethod.SkipTmdbUpdate;
+            if (SkipSupplementaryUpdate)
+                refreshMethod |= AnidbRefreshMethod.SkipSupplementaryUpdate;
             return refreshMethod;
         }
         set
@@ -118,7 +118,7 @@ public class GetRemoteAniDBAnimeJob : BaseJob<AniDB_Anime>
                 IgnoreHttpBans = value.HasFlag(AnidbRefreshMethod.IgnoreHttpBans);
                 DownloadRelations = value.HasFlag(AnidbRefreshMethod.DownloadRelations);
                 CreateSeriesEntry = value.HasFlag(AnidbRefreshMethod.CreateShokoSeries);
-                SkipTmdbUpdate = value.HasFlag(AnidbRefreshMethod.SkipTmdbUpdate);
+                SkipSupplementaryUpdate = value.HasFlag(AnidbRefreshMethod.SkipSupplementaryUpdate);
             }
         }
     }

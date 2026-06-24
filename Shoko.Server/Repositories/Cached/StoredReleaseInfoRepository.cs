@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
@@ -6,7 +7,6 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Release;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class StoredReleaseInfoRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<StoredReleaseInfo, int>(databaseFactory)
@@ -25,8 +25,8 @@ public class StoredReleaseInfoRepository(DatabaseFactory databaseFactory) : Base
         _ed2k = Cache.CreateIndex(a => a.ED2K);
         _groupIDs = Cache.CreateIndex(a => (a.GroupID ?? string.Empty, a.GroupSource ?? string.Empty));
         _releaseURIs = Cache.CreateIndex(a => a.ReleaseURI);
-        _anidbEpisodeIDs = Cache.CreateIndex(a => a.CrossReferences.Select(b => b.AnidbEpisodeID));
-        _anidbAnimeIDs = Cache.CreateIndex(a => a.CrossReferences.Select(b => b.AnidbAnimeID).Distinct().WhereNotNullOrDefault());
+        _anidbEpisodeIDs = Cache.CreateIndex(a => a.CrossReferences.Select(b => b.GetAnidbEpisodeID()).WhereNotNull());
+        _anidbAnimeIDs = Cache.CreateIndex(a => a.CrossReferences.Select(b => b.GetAnidbAnimeID()).WhereNotNull().Distinct());
     }
 
     public IReadOnlyList<StoredReleaseInfo> GetByEd2k(string ed2k)

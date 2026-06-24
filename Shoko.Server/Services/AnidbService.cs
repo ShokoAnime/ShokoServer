@@ -36,12 +36,10 @@ using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
-
 using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
@@ -118,6 +116,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     private readonly KeyedEntityLockHelper _entityLock;
 
+    private readonly ISupplementaryMetadataService _supplementaryMetadataService;
+
     public AnidbService(
         ILogger<AnidbService> logger,
         IServiceProvider serviceProvider,
@@ -147,7 +147,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         CrossRef_File_EpisodeRepository crossReferenceRepository,
         StoredReleaseInfoRepository storedReleaseInfoRepository,
         ShokoImage_EntityRepository shokoImageXrefRepository,
-        IImageManager imageManager
+        IImageManager imageManager,
+        ISupplementaryMetadataService supplementaryMetadataService
     )
     {
         _logger = logger;
@@ -180,6 +181,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         _storedReleaseInfoRepository = storedReleaseInfoRepository;
         _shokoImageXrefRepository = shokoImageXrefRepository;
         _imageManager = imageManager;
+        _supplementaryMetadataService = supplementaryMetadataService;
         _entityLock = new(logger);
         _bulkheadPolicy = Policy.BulkheadAsync<AniDB_Anime?>(1, int.MaxValue);
 
@@ -440,7 +442,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             job.IgnoreHttpBans = refreshMethod.HasFlag(AnidbRefreshMethod.IgnoreHttpBans);
             job.DownloadRelations = refreshMethod.HasFlag(AnidbRefreshMethod.DownloadRelations);
             job.CreateSeriesEntry = refreshMethod.HasFlag(AnidbRefreshMethod.CreateShokoSeries);
-            job.SkipTmdbUpdate = refreshMethod.HasFlag(AnidbRefreshMethod.SkipTmdbUpdate);
+            job.SkipSupplementaryUpdate = refreshMethod.HasFlag(AnidbRefreshMethod.SkipSupplementaryUpdate);
         }
 
         return job;
@@ -548,7 +550,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                             c.DownloadRelations = job.DownloadRelations;
                             c.RelDepth = job.RelDepth;
                             c.CreateSeriesEntry = job.CreateSeriesEntry;
-                            c.SkipTmdbUpdate = job.SkipTmdbUpdate;
+                            c.SkipSupplementaryUpdate = job.SkipSupplementaryUpdate;
                         },
                         // Only prioritize if we don't have an anime record.
                         prioritize: anime is null && animeRecentlyUpdated is null,
@@ -665,13 +667,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                     await _relocationService.ChainAutoRelocationForVideo(video, cancellationToken).ConfigureAwait(false);
             }
 
-            if (!job.SkipTmdbUpdate)
-                foreach (var xref in anime.TmdbShowCrossReferences)
-                    await _scheduler.RunAfterCurrent<UpdateTmdbShowJob>(job =>
-                    {
-                        job.TmdbShowID = xref.TmdbShowID;
-                        job.DownloadImages = true;
-                    }, cancellationToken).ConfigureAwait(false);
+            if (!job.SkipSupplementaryUpdate)
+                await _supplementaryMetadataService.ScheduleForAnime(anime.AnimeID, isNew: false).ConfigureAwait(false);
 
             await ProcessRelations(response, job, settings).ConfigureAwait(false);
 
@@ -723,8 +720,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         series.AnimeGroupID = grp.AnimeGroupID;
         // Populate before making a group to ensure IDs and stats are set for group filters.
         _seriesRepository.Save(series, false);
-        if (settings.TMDB.AutoLink && !series.IsTmdbAutoMatchingDisabled)
-            await _scheduler.RunAfterCurrent<SearchTmdbJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
+        if (!job.SkipSupplementaryUpdate)
+            await _supplementaryMetadataService.ScheduleForAnime(anime.AnimeID, isNew: true).ConfigureAwait(false);
 
         return series;
     }
@@ -768,7 +765,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                     c.IgnoreTimeCheck = job.IgnoreTimeCheck;
                     c.IgnoreHttpBans = job.IgnoreHttpBans;
                     c.CreateSeriesEntry = job.CreateSeriesEntry && settings.AniDb.AutomaticallyImportSeries;
-                    c.SkipTmdbUpdate = job.SkipTmdbUpdate;
+                    c.SkipSupplementaryUpdate = job.SkipSupplementaryUpdate;
                 }, prioritize: true).ConfigureAwait(false);
             else
                 await _scheduler.StartJob<GetAniDBAnimeJob>(c =>
@@ -781,7 +778,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                     c.IgnoreTimeCheck = job.IgnoreTimeCheck;
                     c.IgnoreHttpBans = job.IgnoreHttpBans;
                     c.CreateSeriesEntry = job.CreateSeriesEntry && settings.AniDb.AutomaticallyImportSeries;
-                    c.SkipTmdbUpdate = job.SkipTmdbUpdate;
+                    c.SkipSupplementaryUpdate = job.SkipSupplementaryUpdate;
                 }, prioritize: true).ConfigureAwait(false);
         }
     }
@@ -916,7 +913,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             .Concat(_anidbAnimeTagRepository.GetAll().Select(xref => xref.AnimeID))
             .Concat(_anidbAnimeTitleRepository.GetAll().Select(title => title.AnimeID))
             .Concat(_anidbAnimeUpdateRepository.GetAll().Select(update => update.AnimeID))
-            .Concat(_storedReleaseInfoRepository.GetAll().SelectMany(release => release.CrossReferences.Select(xref => xref.AnidbAnimeID).WhereNotNull()))
+            .Concat(_storedReleaseInfoRepository.GetAll().SelectMany(release => release.CrossReferences.Select(xref => xref.GetAnidbAnimeID()).WhereNotNull()))
             .Where(id => id > 0)
             .ToHashSet();
         var toKeep = _seriesRepository.GetAll().Select(series => series.AniDB_ID).Where(id => id > 0).ToHashSet();
@@ -1236,7 +1233,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         /// <summary>
         /// Skip updating related TMDB entities after update.
         /// </summary>
-        public bool SkipTmdbUpdate { get; set; }
+        public bool SkipSupplementaryUpdate { get; set; }
 
         /// <summary>
         /// Current depth of recursion.

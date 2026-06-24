@@ -881,6 +881,10 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(153,  1, "UPDATE ShokoImage_Entity SET PrimaryImageID = ImageID WHERE PrimaryImageID IS NULL OR PrimaryImageID = '00000000-0000-0000-0000-000000000000'"),
         new(154,  1, "ALTER TABLE AnimeGroup_User ADD COLUMN UserTags TEXT NULL"),
         new(154,  2, "ALTER TABLE AnimeGroup_User ADD COLUMN LastUpdated DATETIME NULL"),
+        new(155,  1, "ALTER TABLE StoredReleaseInfo_MatchAttempt ADD COLUMN IsCompleted INTEGER NOT NULL DEFAULT 0"),
+        new(155,  2, "UPDATE StoredReleaseInfo_MatchAttempt SET IsCompleted = 1 WHERE ProviderID IS NOT NULL OR AttemptStartedAt != AttemptEndedAt"),
+        new(155,  3, "ALTER TABLE StoredReleaseInfo ADD COLUMN DeferToNext INTEGER NOT NULL DEFAULT 0"),
+        new(156,  1, DatabaseFixes.MigrateEmbeddedCrossReferences),
     ];
 
     #endregion

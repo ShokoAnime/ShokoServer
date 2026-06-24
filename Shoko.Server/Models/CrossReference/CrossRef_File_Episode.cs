@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,6 @@ using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Models.CrossReference;
 
 /// <summary>
@@ -72,7 +72,7 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
             var storedReleaseInfo = ReleaseInfo;
             var releaseInfo = (IReleaseInfo?)storedReleaseInfo;
-            if (releaseInfo is not null && !storedReleaseInfo!.HasProviderName("AniDB") && releaseInfo.CrossReferences.FirstOrDefault(xref => xref.AnidbEpisodeID == EpisodeID) is { } xref)
+            if (releaseInfo is not null && !storedReleaseInfo!.HasProviderName("AniDB") && releaseInfo.CrossReferences.FirstOrDefault(xref => xref.GetAnidbEpisodeID() == EpisodeID) is { } xref)
             {
                 _percentageRangeCalculated = (Percentage, (xref.PercentageStart, xref.PercentageEnd));
                 return _percentageRangeCalculated.Range;
@@ -150,9 +150,12 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
     #region IReleaseVideoCrossReference implementation
 
-    int IReleaseVideoCrossReference.AnidbEpisodeID => EpisodeID;
-
-    int? IReleaseVideoCrossReference.AnidbAnimeID => AnimeID is 0 ? AniDBEpisode?.AnimeID : AnimeID;
+    IReadOnlyDictionary<string, string> IReleaseVideoCrossReference.ProviderIDs =>
+        new Dictionary<string, string>
+        {
+            [CrossReferenceIDs.AniDB_Episode] = EpisodeID.ToString(),
+            [CrossReferenceIDs.AniDB_Anime] = (AnimeID is 0 ? AniDBEpisode?.AnimeID ?? 0 : AnimeID).ToString(),
+        };
 
     int IReleaseVideoCrossReference.PercentageStart => PercentageRange.Start;
 

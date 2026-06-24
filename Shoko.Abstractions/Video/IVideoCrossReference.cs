@@ -25,13 +25,13 @@ public interface IVideoCrossReference : IReleaseVideoCrossReference
     /// AniDB episode ID. Will be available even if <see cref="AnidbEpisode"/>
     /// is not available yet.
     /// </summary>
-    new int AnidbEpisodeID { get; }
+    int AnidbEpisodeID { get; }
 
     /// <summary>
     /// AniDB anime ID. Will be available even if <see cref="AnidbAnime"/> is
     /// not available yet.
     /// </summary>
-    new int AnidbAnimeID { get; }
+    int AnidbAnimeID { get; }
 
     /// <summary>
     /// Cross-reference percentage range, if the video covers less than 100%

@@ -460,6 +460,10 @@ public class SystemService : ISystemService
             services.AddSingleton<AnidbService>();
             services.AddSingleton<IAnidbService>(sp => sp.GetRequiredService<AnidbService>());
             services.AddSingleton<IAnidbAvdumpService>(sp => sp.GetRequiredService<AnidbService>());
+            services.AddSingleton<SupplementaryMetadataService>();
+            services.AddSingleton<ISupplementaryMetadataService>(sp => sp.GetRequiredService<SupplementaryMetadataService>());
+            services.AddSingleton<AnimeMetadataOrchestrator>();
+            services.AddSingleton<TmdbSupplementaryProvider>();
 
             pluginManager.RegisterPlugins(services);
 

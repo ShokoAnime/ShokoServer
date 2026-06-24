@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -8,7 +9,6 @@ using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Release;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 public class ReleaseInfoSignalRModel : IReleaseInfo
@@ -82,6 +82,9 @@ public class ReleaseInfoSignalRModel : IReleaseInfo
     /// <inheritdoc />
     public bool PreventRescan { get; init; }
 
+    /// <inheritdoc />
+    public bool DeferToNext { get; init; }
+
     public ReleaseInfoSignalRModel(IReleaseInfo releaseInfo)
     {
         ID = releaseInfo.ID;
@@ -106,6 +109,7 @@ public class ReleaseInfoSignalRModel : IReleaseInfo
         Created = releaseInfo.CreatedAt;
         IsPublic = releaseInfo.IsPublic;
         PreventRescan = releaseInfo.PreventRescan;
+        DeferToNext = releaseInfo.DeferToNext;
     }
 
     #region IReleaseInfo implementation

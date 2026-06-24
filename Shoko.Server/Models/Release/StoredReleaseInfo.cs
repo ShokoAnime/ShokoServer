@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,6 @@ using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Release;
 
-#nullable enable
 namespace Shoko.Server.Models.Release;
 
 public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo, IEquatable<StoredReleaseInfo>
@@ -129,6 +129,13 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
     public bool? IsPublic { get; set; }
 
     public bool PreventRescan { get; set; }
+
+    /// <summary>
+    /// When <c>true</c>, a subsequent provider in the chain may replace this
+    /// result. Set from <see cref="IReleaseInfo.DeferToNext"/>. Cleared once
+    /// a definitive result is saved or the chain finalizes.
+    /// </summary>
+    public bool DeferToNext { get; set; }
 
     private IReadOnlyList<EmbeddedCrossReference>? _embeddedCrossReferences;
 

@@ -81,7 +81,7 @@ public class GetAniDBAnimeJob : BaseJob<AniDB_Anime?>, IJobMerge
     /// <summary>
     /// Skip updating related TMDB entities after update.
     /// </summary>
-    public bool SkipTmdbUpdate { get; set; }
+    public bool SkipSupplementaryUpdate { get; set; }
 
     /// <summary>
     /// Current depth of recursion.
@@ -109,8 +109,8 @@ public class GetAniDBAnimeJob : BaseJob<AniDB_Anime?>, IJobMerge
                 refreshMethod |= AnidbRefreshMethod.DownloadRelations;
             if (CreateSeriesEntry)
                 refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
-            if (SkipTmdbUpdate)
-                refreshMethod |= AnidbRefreshMethod.SkipTmdbUpdate;
+            if (SkipSupplementaryUpdate)
+                refreshMethod |= AnidbRefreshMethod.SkipSupplementaryUpdate;
             return refreshMethod;
         }
         set
@@ -136,7 +136,7 @@ public class GetAniDBAnimeJob : BaseJob<AniDB_Anime?>, IJobMerge
                 IgnoreHttpBans = value.HasFlag(AnidbRefreshMethod.IgnoreHttpBans);
                 DownloadRelations = value.HasFlag(AnidbRefreshMethod.DownloadRelations);
                 CreateSeriesEntry = value.HasFlag(AnidbRefreshMethod.CreateShokoSeries);
-                SkipTmdbUpdate = value.HasFlag(AnidbRefreshMethod.SkipTmdbUpdate);
+                SkipSupplementaryUpdate = value.HasFlag(AnidbRefreshMethod.SkipSupplementaryUpdate);
             }
         }
     }
@@ -187,8 +187,8 @@ public class GetAniDBAnimeJob : BaseJob<AniDB_Anime?>, IJobMerge
         if (!CreateSeriesEntry  && other.CreateSeriesEntry)  { CreateSeriesEntry  = true; changed = true; }
         if (!UseRemote          && other.UseRemote)          { UseRemote          = true; changed = true; }
         if (!UseCache           && other.UseCache)           { UseCache           = true; changed = true; }
-        // AND-semantics: SkipTmdbUpdate=false means "do update TMDB" — false wins
-        if (SkipTmdbUpdate      && !other.SkipTmdbUpdate)    { SkipTmdbUpdate     = false; changed = true; }
+        // AND-semantics: SkipSupplementaryUpdate=false means "do update TMDB" — false wins
+        if (SkipSupplementaryUpdate      && !other.SkipSupplementaryUpdate)    { SkipSupplementaryUpdate     = false; changed = true; }
         // MIN-semantics: lower RelDepth = can recurse deeper
         if (other.RelDepth < RelDepth)                       { RelDepth = other.RelDepth; changed = true; }
         return changed;

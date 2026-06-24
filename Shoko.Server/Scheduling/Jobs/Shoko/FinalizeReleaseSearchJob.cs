@@ -88,13 +88,13 @@ public class FinalizeReleaseSearchJob : BaseJob
         if (_vlocal is null) return;
         if (_matchAttempts.GetByID(MatchAttemptID) is not { } matchAttempt) return;
 
-        // Mark the attempt as complete if no provider saved a release.
+        // Mark the chain as completed. AttemptEndedAt may already be set if a
+        // non-deferred save occurred; set it here for the no-match case.
         var releaseFound = matchAttempt.IsSuccessful;
         if (!releaseFound)
-        {
             matchAttempt.AttemptEndedAt = DateTime.Now;
-            _matchAttempts.Save(matchAttempt);
-        }
+        matchAttempt.IsCompleted = true;
+        _matchAttempts.Save(matchAttempt);
 
         // Run auto-management before any post-import actions so we know whether the
         // incoming file itself was identified as redundant and deleted.

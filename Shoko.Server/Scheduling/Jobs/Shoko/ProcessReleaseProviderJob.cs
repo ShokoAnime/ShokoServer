@@ -105,8 +105,8 @@ public class ProcessReleaseProviderJob : BaseJob
             return;
         }
 
-        // Skip if a higher-priority provider already found a release for this file
-        if (_matchAttempt.AttemptStartedAt != _matchAttempt.AttemptEndedAt)
+        // Skip if the chain already has a definitive (non-deferred) result.
+        if (_matchAttempt.IsCompleted)
         {
             if (_matchAttempt.ProviderID.HasValue)
                 _logger.LogTrace("Release already found for {FileName}, skipping provider {ProviderName}.", _fileName, _providerInfo.Name);
