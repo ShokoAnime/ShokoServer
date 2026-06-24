@@ -403,7 +403,7 @@ public partial class SystemUpdateService(
 
         // Extract the zip contents into the folder.
         using var stream = new MemoryStream(zipContent);
-        using var reader = ReaderFactory.Open(stream);
+        using var reader = ReaderFactory.OpenReader(stream);
         while (reader.MoveToNextEntry())
         {
             if (!reader.Entry.IsDirectory)
