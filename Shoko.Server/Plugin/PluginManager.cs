@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MimeMapping;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core;
@@ -30,6 +29,7 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
 #nullable enable
@@ -188,6 +188,16 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         /// </summary>
         public byte[]? Thumbnail { get; set; }
     }
+
+    private static string GetPinnedFile(string? directory, string dll)
+        => string.IsNullOrEmpty(directory)
+            ? Path.ChangeExtension(dll, Pinned)
+            : Path.Join(directory, Pinned);
+
+    private static string GetRemovalFile(string? directory, string dll)
+        => string.IsNullOrEmpty(directory)
+            ? Path.ChangeExtension(dll, Remove)
+            : Path.Join(directory, Remove);
 
     private class IsolatedLoadContext : AssemblyLoadContext
     {
@@ -1177,12 +1187,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         {
             foreach (var fileName in Directory.EnumerateFiles(containingDirectory, "thumbnail.*", new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
             {
-                var mime = MimeUtility.GetMimeMapping(Path.GetExtension(fileName));
-                if (mime is not null and not "application/octet-stream")
+                if (!ContentTypeHelper.TryGetContentType(fileName, out _))
                 {
                     var imageInfo = new MagickImageInfo(fileName);
-                    mime = GetMimeFromFormat(imageInfo);
-                    if (mime is null)
+                    if (GetMimeFromFormat(imageInfo) is not { } mime)
                         continue;
 
                     return new()
@@ -1202,12 +1210,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             var thumbnailFile = Path.ChangeExtension(Path.GetFileName(dll), ".thumbnail.*");
             foreach (var fileName in Directory.EnumerateFiles(Path.GetDirectoryName(dll)!, thumbnailFile, new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
             {
-                var mime = MimeUtility.GetMimeMapping(Path.GetExtension(fileName));
-                if (mime is not null and not "application/octet-stream")
+                if (ContentTypeHelper.TryGetContentType(fileName, out _))
                 {
                     var imageInfo = new MagickImageInfo(fileName);
-                    mime = GetMimeFromFormat(imageInfo);
-                    if (mime is null)
+                    if (GetMimeFromFormat(imageInfo) is not { } mime)
                         continue;
 
                     return new()
@@ -1230,13 +1236,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             if (mime is null)
                 return null;
 
-            var extName = MimeUtility.GetExtensions(mime)?.FirstOrDefault();
-            if (extName is null)
+            if (!ContentTypeHelper.TryGetExtensionForMimeType(mime, out var extName))
                 return null;
 
             var fileName = !string.IsNullOrEmpty(containingDirectory)
-                ? Path.Combine(containingDirectory, "thumbnail." + extName)
-                : Path.ChangeExtension(dll, ".thumbnail." + extName);
+                ? Path.Combine(containingDirectory, "thumbnail" + extName)
+                : Path.ChangeExtension(dll, ".thumbnail" + extName);
             File.WriteAllBytes(fileName, thumbnailBytes);
 
             return new()
@@ -1310,9 +1315,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         if (pinned && pluginInfo.IsEnabled)
         {
             pluginInfo.IsPinned = true;
-            var pinnedFile = string.IsNullOrEmpty(pluginInfo.ContainingDirectory)
-                ? Path.ChangeExtension(pluginInfo.DLLs[0], Pinned)
-                : Path.Join(pluginInfo.ContainingDirectory, Pinned);
+            var pinnedFile = GetPinnedFile(pluginInfo.ContainingDirectory, pluginInfo.DLLs[0]);
             if (!File.Exists(pinnedFile))
                 File.WriteAllText(pinnedFile, string.Empty);
         }
@@ -1323,9 +1326,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 continue;
 
             plugin.IsPinned = false;
-            var pinnedFile = string.IsNullOrEmpty(plugin.ContainingDirectory)
-                ? Path.ChangeExtension(plugin.DLLs[0], Pinned)
-                : Path.Join(plugin.ContainingDirectory, Pinned);
+            var pinnedFile = GetPinnedFile(plugin.ContainingDirectory, plugin.DLLs[0]);
             if (File.Exists(pinnedFile))
                 File.Delete(pinnedFile);
         }

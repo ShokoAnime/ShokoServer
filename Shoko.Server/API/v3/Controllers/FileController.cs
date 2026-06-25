@@ -706,10 +706,7 @@ public class FileController(
         if (fileInfo == null)
             return InternalError("Unable to find physical file for reading the stream data.");
 
-        var provider = new FileExtensionContentTypeProvider();
-        if (!provider.TryGetContentType(fileInfo.FullName, out var contentType))
-            contentType = "application/octet-stream";
-
+        var contentType = ContentTypeHelper.GetContentType(fileInfo.FullName);
         if (streamPositionScrobbling)
         {
             var scrobbleFile = new ScrobblingFileResult(file, User, fileInfo.FullName, contentType)
@@ -770,7 +767,7 @@ public class FileController(
             var subFile = new FileInfo(path);
             if (!subFile.Exists) continue;
 
-            return PhysicalFile(subFile.FullName, "application/octet-stream");
+            return PhysicalFile(subFile.FullName, ContentTypeHelper.UnknownMimeType);
         }
 
         return NotFound();

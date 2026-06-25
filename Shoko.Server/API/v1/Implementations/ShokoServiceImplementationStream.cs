@@ -5,6 +5,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,8 +16,6 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
-
-using Mime = MimeMapping.MimeUtility;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.API.v1.Implementations;
@@ -258,7 +257,7 @@ public class ShokoServiceImplementationStream : Controller, IHttpContextAccessor
             }
         }
 
-        r.Mime = Mime.GetMimeMapping(r.File.FullName);
+        r.Mime = ContentTypeHelper.GetContentType(r.File.FullName);
         r.Status = HttpStatusCode.OK;
         return r;
     }

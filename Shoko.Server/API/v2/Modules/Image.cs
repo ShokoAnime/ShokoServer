@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.IO;
+using Asp.Versioning;
 using ImageMagick;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Metadata.Enums;

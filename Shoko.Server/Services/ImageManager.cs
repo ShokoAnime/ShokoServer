@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MimeMapping;
 using Polly;
 using Polly.Retry;
 using Shoko.Abstractions.Config;
@@ -49,6 +48,7 @@ using Shoko.Server.Repositories.Direct.TMDB.Optional;
 using Shoko.Server.Scheduling.Jobs.Image;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Services;
@@ -443,7 +443,7 @@ public partial class ImageManager(
                 ImageResourceID = imageData.ResourceID,
             };
 
-        var contentType = GetContentTypeFromResourceID(imageData.Source, imageData.ResourceID) ?? MimeUtility.UnknownMimeType;
+        var contentType = GetContentTypeFromResourceID(imageData.Source, imageData.ResourceID) ?? ContentTypeHelper.UnknownMimeType;
         var image = new ShokoImage()
         {
             ID = id,
@@ -600,8 +600,7 @@ public partial class ImageManager(
             return null;
 
         // Look up MIME from extension
-        var mime = MimeUtility.GetMimeMapping(ext);
-        if (string.IsNullOrEmpty(mime) || mime == MimeUtility.UnknownMimeType)
+        if (!ContentTypeHelper.TryGetContentType(resourceID, out var mime))
             return null;
 
         // Validate against allowed image MIME types

@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.IO;
+using Asp.Versioning;
 using ImageMagick;
 using Microsoft.AspNetCore.Mvc;
 using NLog;

@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using ImageMagick;
 using MessagePack;
 using Microsoft.Extensions.DependencyInjection;
-using MimeMapping;
 using Newtonsoft.Json;
 using NHibernate;
 using NHibernate.Exceptions;
@@ -50,6 +49,7 @@ using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+using Shoko.Server.Utilities;
 
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
@@ -1855,7 +1855,7 @@ public class DatabaseFixes
             }
 
             // Try eager detection from ResourceID as preferred source
-            var contentType = MimeUtility.UnknownMimeType;
+            var contentType = ContentTypeHelper.UnknownMimeType;
             try
             {
                 if (imageManager.GetContentTypeFromResourceID(DataSource.TMDB, resourceID) is { Length: > 0 } eager)
@@ -1865,13 +1865,10 @@ public class DatabaseFixes
             {
                 _logger.Warn(ex, "Unsupported image type for {ResourceID}, falling back.", resourceID);
             }
-            // Fallback to MimeUtility if eager detection didn't yield a result
-            if (contentType is MimeUtility.UnknownMimeType)
-            {
-                var mapped = MimeUtility.GetMimeMapping(resourceID);
-                if (!string.IsNullOrEmpty(mapped) && mapped != MimeUtility.UnknownMimeType)
-                    contentType = mapped;
-            }
+
+            // Fallback to ContentTypeHelper if eager detection didn't yield a result
+            if (contentType is ContentTypeHelper.UnknownMimeType && ContentTypeHelper.TryGetContentType(resourceID, out var mapped))
+                contentType = mapped;
 
             var guidStr = guid.ToString("N");
             var ext = ShokoImage.GetExtensionForMimeType(contentType);
@@ -2380,7 +2377,7 @@ public class DatabaseFixes
         var newPathExists = File.Exists(newPath);
 
         // Try eager detection from ResourceID as preferred source
-        var contentType = MimeUtility.UnknownMimeType;
+        var contentType = ContentTypeHelper.UnknownMimeType;
         try
         {
             if (imageManager.GetContentTypeFromResourceID(DataSource.TMDB, resourceID) is { Length: > 0 } eager)
@@ -2391,13 +2388,10 @@ public class DatabaseFixes
             _logger.Warn(ex, "Unsupported image type for {ResourceID}, falling back.", resourceID);
             return;
         }
-        // Fallback to MimeUtility if eager detection didn't yield a result
-        if (contentType is MimeUtility.UnknownMimeType)
-        {
-            var mapped = MimeUtility.GetMimeMapping(resourceID);
-            if (!string.IsNullOrEmpty(mapped) && mapped != MimeUtility.UnknownMimeType)
-                contentType = mapped;
-        }
+
+        // Fallback to ContentTypeHelper if eager detection didn't yield a result
+        if (contentType is ContentTypeHelper.UnknownMimeType && ContentTypeHelper.TryGetContentType(resourceID, out var mapped))
+            contentType = mapped;
 
         var ext = ShokoImage.GetExtensionForMimeType(contentType);
         newPath += ext;
@@ -2481,7 +2475,7 @@ public class DatabaseFixes
         var correctedCount = 0;
         foreach (var image in images)
         {
-            if (image.ContentType is not MimeUtility.UnknownMimeType)
+            if (image.ContentType is not ContentTypeHelper.UnknownMimeType)
                 continue;
 
             try

@@ -12,7 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.Logging;
-using MimeMapping;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Extensions;
@@ -29,6 +28,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Plugin;
@@ -1037,11 +1037,10 @@ public partial class PluginPackageManager(
             response.EnsureSuccessStatusCode();
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
-            var extension = contentType is not null ? MimeUtility.GetExtensions(contentType)?.FirstOrDefault() : null;
-            if (extension is not null)
+            if (ContentTypeHelper.TryGetExtensionForMimeType(contentType, out var extension))
             {
                 Directory.CreateDirectory(imagesDir);
-                var imagePath = Path.Join(imagesDir, $"{imageId}.{extension}");
+                var imagePath = Path.Join(imagesDir, $"{imageId}{extension}");
                 await using var fileStream = File.Create(imagePath);
                 await response.Content.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
 
