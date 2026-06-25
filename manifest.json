@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.320",
+      "tag": "v6.0.0-dev.320",
+      "commit": "592447e50e47f4bce3a1a82b5fddcae9d41a61a2",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.320/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-25T18:06:00Z",
+      "releaseNotes": "\n`fix`: **Reverse release notes versions order**.\n"
+    },
+    {
       "version": "6.0.0.319",
       "tag": "v6.0.0-dev.319",
       "commit": "2577b0ab86e4cca88f73eae0571bd1cb5c4b8ca3",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.291/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-18T00:31:40Z",
       "releaseNotes": "\n`misc`: **Don't hide raw sql in versions table when raw sql was ran**.\n"
-    },
-    {
-      "version": "6.0.0.290",
-      "tag": "v6.0.0-dev.290",
-      "commit": "6f60e2e91ad5447204c86080bc1f18c95da1b171",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.290/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-17T16:56:55Z",
-      "releaseNotes": "\n`misc`: **Make the FixEmptyXrefPrimaryImageIDs Use Direct SQL**.\n"
     }
   ]
 }
