@@ -78,7 +78,7 @@ public class MetadataFilteringService(
             .ToArray();
     }
 
-    public IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoGroup>> BatchFilterGroups<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoGroup>> BatchFilterGroups<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default)
         where TFilter : IFilter
     {
         ArgumentNullException.ThrowIfNull(filters);
@@ -104,13 +104,16 @@ public class MetadataFilteringService(
         if (needsUser)
             ArgumentNullException.ThrowIfNull(user);
 
+        var capturedToken = cancellationToken;
         return new LazyDictionary<TFilter, IReadOnlyList<IShokoGroup>>(
             filters.ToDictionary(
                 filter => filter,
                 filter => filter is IFilterPreset { IsDirectory: true }
                     ? new Lazy<IReadOnlyList<IShokoGroup>>(() => [])
                     : new Lazy<IReadOnlyList<IShokoGroup>>(() =>
-                        OrderByGroup(
+                    {
+                        capturedToken.ThrowIfCancellationRequested();
+                        return OrderByGroup(
                             filter,
                             engine.EvaluateFilterWithTuples(filter, user, time, skipSorting)
                                 .DistinctBy(t => t.GroupID)
@@ -120,16 +123,16 @@ public class MetadataFilteringService(
                             user,
                             time,
                             skipSorting,
-                            CancellationToken.None
+                            capturedToken
                         )
                             .Cast<IShokoGroup>()
-                            .ToArray()
-                    )
+                            .ToArray();
+                    })
             )
         );
     }
 
-    public IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoSeries>> BatchFilterSeries<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoSeries>> BatchFilterSeries<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default)
         where TFilter : IFilter
     {
         ArgumentNullException.ThrowIfNull(filters);
@@ -155,19 +158,22 @@ public class MetadataFilteringService(
         if (needsUser)
             ArgumentNullException.ThrowIfNull(user);
 
+        var capturedToken = cancellationToken;
         return new LazyDictionary<TFilter, IReadOnlyList<IShokoSeries>>(
             filters.ToDictionary(
                 filter => filter,
                 filter => filter is IFilterPreset { IsDirectory: true }
                     ? new Lazy<IReadOnlyList<IShokoSeries>>(() => [])
                     : new Lazy<IReadOnlyList<IShokoSeries>>(() =>
-                        engine.EvaluateFilterWithTuples(filter, user, time, skipSorting)
+                    {
+                        capturedToken.ThrowIfCancellationRequested();
+                        return engine.EvaluateFilterWithTuples(filter, user, time, skipSorting)
                             .Select(t => t.SeriesID)
                             .Select(seriesRepository.GetByID)
                             .WhereNotNull()
                             .Cast<IShokoSeries>()
-                            .ToArray()
-                    )
+                            .ToArray();
+                    })
             )
         );
     }

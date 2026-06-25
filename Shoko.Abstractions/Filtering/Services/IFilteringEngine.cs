@@ -114,6 +114,9 @@ public interface IFilteringEngine
     ///   By default the results are sorted using the filter's sort criteria,
     ///   setting this to true will skip sorting the results.
     /// </param>
+    /// <param name="cancellationToken">
+    ///   Cancellation token.
+    /// </param>
     /// <exception cref="ArgumentNullException">
     ///   Thrown when <paramref name="filters"/> is <c>null</c>, or if
     ///   <paramref name="user"/> is <c>null</c> when the filter is user
@@ -121,10 +124,19 @@ public interface IFilteringEngine
     ///   <paramref name="time"/> is <c>null</c> when the filter is time
     ///   dependent.
     /// </exception>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown when <paramref name="cancellationToken"/> is cancelled.
+    /// </exception>
     /// <returns>
     ///   A lazy dictionary of seriesIDs, grouped by the direct parent GroupID per filter.
     /// </returns>
-    IReadOnlyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>> BatchPrepareFiltersWithGrouping<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilter;
+    IReadOnlyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>> BatchPrepareFiltersWithGrouping<TFilter>(
+        IReadOnlyList<TFilter> filters,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    ) where TFilter : IFilter;
 
     /// <summary>
     ///   Prepare the input filters, returning a dictionary which lazily
@@ -143,6 +155,9 @@ public interface IFilteringEngine
     ///   By default the results are sorted using the filter's sort criteria,
     ///   setting this to true will skip sorting the results.
     /// </param>
+    /// <param name="cancellationToken">
+    ///   Cancellation token.
+    /// </param>
     /// <exception cref="ArgumentNullException">
     ///   Thrown when <paramref name="filters"/> is <c>null</c>, or if
     ///   <paramref name="user"/> is <c>null</c> when the filter is user
@@ -150,8 +165,17 @@ public interface IFilteringEngine
     ///   <paramref name="time"/> is <c>null</c> when the filter is time
     ///   dependent.
     /// </exception>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown when <paramref name="cancellationToken"/> is cancelled.
+    /// </exception>
     /// <returns>
     ///   A lazy dictionary of tuples of (GroupID, SeriesID) per filter.
     /// </returns>
-    IReadOnlyDictionary<TFilter, IReadOnlyList<(int GroupID, int SeriesID)>> BatchPrepareFiltersWithTuples<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilter;
+    IReadOnlyDictionary<TFilter, IReadOnlyList<(int GroupID, int SeriesID)>> BatchPrepareFiltersWithTuples<TFilter>(
+        IReadOnlyList<TFilter> filters,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    ) where TFilter : IFilter;
 }

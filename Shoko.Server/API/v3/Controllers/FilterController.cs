@@ -60,7 +60,7 @@ public class FilterController(
     {
         var user = User;
 
-        return filteringService.Engine.BatchPrepareFiltersWithGrouping(filterPresetRepository.GetTopLevel(), user, skipSorting: true)
+        return filteringService.Engine.BatchPrepareFiltersWithGrouping(filterPresetRepository.GetTopLevel(), user, skipSorting: true, cancellationToken: HttpContext.RequestAborted)
             .Where(kv =>
             {
                 var filter = kv.Key;

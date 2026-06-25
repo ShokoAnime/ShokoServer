@@ -76,7 +76,7 @@ public class FilterFactory
     {
         var user = _context.GetUser();
         var evaluate = groupFilters.Any(a => !a.IsDirectory);
-        var results = evaluate ? _evaluator.BatchPrepareFiltersWithGrouping(groupFilters, user, skipSorting: true) : null;
+        var results = evaluate ? _evaluator.BatchPrepareFiltersWithGrouping(groupFilters, user, skipSorting: true, cancellationToken: _context.RequestAborted) : null;
         var filters = groupFilters.Select(groupFilter =>
         {
             var filter = new Filter

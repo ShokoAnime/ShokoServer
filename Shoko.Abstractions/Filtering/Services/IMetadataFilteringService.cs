@@ -94,8 +94,18 @@ public interface IMetadataFilteringService
     /// <param name="user">The user. Needed if the filters are user-specific.</param>
     /// <param name="time">The time. Needed if the filters are time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown when <paramref name="cancellationToken"/> is cancelled.
+    /// </exception>
     /// <returns>A dictionary mapping each filter to its matching groups.</returns>
-    IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoGroup>> BatchFilterGroups<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilter;
+    IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoGroup>> BatchFilterGroups<TFilter>(
+        IReadOnlyList<TFilter> filters,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    ) where TFilter : IFilter;
 
     #endregion
 
@@ -154,8 +164,18 @@ public interface IMetadataFilteringService
     /// <param name="user">The user. Needed if the filters are user-specific.</param>
     /// <param name="time">The time. Needed if the filters are time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown when <paramref name="cancellationToken"/> is cancelled.
+    /// </exception>
     /// <returns>A dictionary mapping each filter to its matching series.</returns>
-    IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoSeries>> BatchFilterSeries<TFilter>(IReadOnlyList<TFilter> filters, IUser? user = null, DateTime? time = null, bool skipSorting = false) where TFilter : IFilter;
+    IReadOnlyDictionary<TFilter, IReadOnlyList<IShokoSeries>> BatchFilterSeries<TFilter>(
+        IReadOnlyList<TFilter> filters,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    ) where TFilter : IFilter;
 
     #endregion
 }

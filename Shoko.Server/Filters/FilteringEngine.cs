@@ -98,18 +98,19 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
         }
     }
 
-    public IReadOnlyDictionary<TFilter, IReadOnlyList<(int GroupID, int SeriesID)>> BatchPrepareFiltersWithTuples<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false) where TFilter : IFilter
-        => InternalBatchPrepareFilters(filters, a => a, user, time, skipSorting);
+    public IReadOnlyDictionary<TFilter, IReadOnlyList<(int GroupID, int SeriesID)>> BatchPrepareFiltersWithTuples<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default) where TFilter : IFilter
+        => InternalBatchPrepareFilters(filters, a => a, user, time, skipSorting, cancellationToken);
 
-    public IReadOnlyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>> BatchPrepareFiltersWithGrouping<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false) where TFilter : IFilter
-        => InternalBatchPrepareFilters(filters, a => a.GroupBy(a => a.GroupID, a => a.SeriesID), user, time, skipSorting);
+    public IReadOnlyDictionary<TFilter, IReadOnlyList<IGrouping<int, int>>> BatchPrepareFiltersWithGrouping<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default) where TFilter : IFilter
+        => InternalBatchPrepareFilters(filters, a => a.GroupBy(a => a.GroupID, a => a.SeriesID), user, time, skipSorting, cancellationToken);
 
     private IReadOnlyDictionary<TFilter, IReadOnlyList<TValue>> InternalBatchPrepareFilters<TFilter, TValue>(
         IReadOnlyList<TFilter> filters,
         Func<IEnumerable<(int GroupID, int SeriesID)>, IEnumerable<TValue>> convert,
         IUser? user,
         DateTime? time = null,
-        bool skipSorting = false
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
     ) where TFilter : IFilter
     {
         ArgumentNullException.ThrowIfNull(filters);
@@ -185,9 +186,11 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
             var result = filter.ApplyAtSeriesLevel
                 ? sorted.Select(a => (a.GroupID, a.SeriesID))
                 : sorted.SelectMany(a => seriesRepository.GetByGroupID(a.GroupID).Select(ser => (a.GroupID, ser.AnimeSeriesID)));
+            var capturedToken = cancellationToken;
             results[filter] = new(() =>
             {
-                _filterSemaphore.Wait();
+                capturedToken.ThrowIfCancellationRequested();
+                _filterSemaphore.Wait(capturedToken);
                 try
                 {
                     return convert(result).ToArray();
