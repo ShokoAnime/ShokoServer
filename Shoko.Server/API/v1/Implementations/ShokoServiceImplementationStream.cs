@@ -257,7 +257,7 @@ public class ShokoServiceImplementationStream : Controller, IHttpContextAccessor
             }
         }
 
-        r.Mime = ContentTypeHelper.GetMimeMapping(r.File.FullName);
+        r.Mime = ContentTypeHelper.GetContentType(r.File.FullName);
         r.Status = HttpStatusCode.OK;
         return r;
     }

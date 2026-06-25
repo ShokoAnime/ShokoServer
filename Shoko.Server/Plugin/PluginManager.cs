@@ -1187,12 +1187,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         {
             foreach (var fileName in Directory.EnumerateFiles(containingDirectory, "thumbnail.*", new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
             {
-                var mime = ContentTypeHelper.GetMimeMapping(Path.GetExtension(fileName));
-                if (mime is not null and not ContentTypeHelper.UnknownMimeType)
+                if (!ContentTypeHelper.TryGetContentType(fileName, out _))
                 {
                     var imageInfo = new MagickImageInfo(fileName);
-                    mime = GetMimeFromFormat(imageInfo);
-                    if (mime is null)
+                    if (GetMimeFromFormat(imageInfo) is not { } mime)
                         continue;
 
                     return new()
@@ -1212,12 +1210,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             var thumbnailFile = Path.ChangeExtension(Path.GetFileName(dll), ".thumbnail.*");
             foreach (var fileName in Directory.EnumerateFiles(Path.GetDirectoryName(dll)!, thumbnailFile, new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
             {
-                var mime = ContentTypeHelper.GetMimeMapping(Path.GetExtension(fileName));
-                if (mime is not null and not ContentTypeHelper.UnknownMimeType)
+                if (ContentTypeHelper.TryGetContentType(fileName, out _))
                 {
                     var imageInfo = new MagickImageInfo(fileName);
-                    mime = GetMimeFromFormat(imageInfo);
-                    if (mime is null)
+                    if (GetMimeFromFormat(imageInfo) is not { } mime)
                         continue;
 
                     return new()
@@ -1240,8 +1236,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             if (mime is null)
                 return null;
 
-            var extName = ContentTypeHelper.GetExtensionForMimeType(mime);
-            if (extName is null)
+            if (!ContentTypeHelper.TryGetExtensionForMimeType(mime, out var extName))
                 return null;
 
             var fileName = !string.IsNullOrEmpty(containingDirectory)

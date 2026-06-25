@@ -1865,13 +1865,10 @@ public class DatabaseFixes
             {
                 _logger.Warn(ex, "Unsupported image type for {ResourceID}, falling back.", resourceID);
             }
-            // Fallback to MimeUtility if eager detection didn't yield a result
-            if (contentType is ContentTypeHelper.UnknownMimeType)
-            {
-                var mapped = ContentTypeHelper.GetMimeMapping(resourceID);
-                if (!string.IsNullOrEmpty(mapped) && mapped is not ContentTypeHelper.UnknownMimeType)
-                    contentType = mapped;
-            }
+
+            // Fallback to ContentTypeHelper if eager detection didn't yield a result
+            if (contentType is ContentTypeHelper.UnknownMimeType && ContentTypeHelper.TryGetContentType(resourceID, out var mapped))
+                contentType = mapped;
 
             var guidStr = guid.ToString("N");
             var ext = ShokoImage.GetExtensionForMimeType(contentType);
@@ -2391,13 +2388,10 @@ public class DatabaseFixes
             _logger.Warn(ex, "Unsupported image type for {ResourceID}, falling back.", resourceID);
             return;
         }
+
         // Fallback to ContentTypeHelper if eager detection didn't yield a result
-        if (contentType is ContentTypeHelper.UnknownMimeType)
-        {
-            var mapped = ContentTypeHelper.GetMimeMapping(resourceID);
-            if (!string.IsNullOrEmpty(mapped) && mapped is not ContentTypeHelper.UnknownMimeType)
-                contentType = mapped;
-        }
+        if (contentType is ContentTypeHelper.UnknownMimeType && ContentTypeHelper.TryGetContentType(resourceID, out var mapped))
+            contentType = mapped;
 
         var ext = ShokoImage.GetExtensionForMimeType(contentType);
         newPath += ext;

@@ -600,8 +600,7 @@ public partial class ImageManager(
             return null;
 
         // Look up MIME from extension
-        var mime = ContentTypeHelper.GetMimeMapping(ext);
-        if (string.IsNullOrEmpty(mime) || mime is ContentTypeHelper.UnknownMimeType)
+        if (!ContentTypeHelper.TryGetContentType(resourceID, out var mime))
             return null;
 
         // Validate against allowed image MIME types

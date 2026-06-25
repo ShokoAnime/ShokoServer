@@ -1037,7 +1037,7 @@ public partial class PluginPackageManager(
             response.EnsureSuccessStatusCode();
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
-            if (ContentTypeHelper.GetExtensionForMimeType(contentType) is { Length: > 0 } extension)
+            if (ContentTypeHelper.TryGetExtensionForMimeType(contentType, out var extension))
             {
                 Directory.CreateDirectory(imagesDir);
                 var imagePath = Path.Join(imagesDir, $"{imageId}{extension}");

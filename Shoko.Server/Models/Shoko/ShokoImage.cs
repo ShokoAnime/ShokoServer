@@ -284,8 +284,7 @@ public class ShokoImage : IImage
         if (ext is not null)
             return ext;
 
-        var mimeExt = ContentTypeHelper.GetExtensionForMimeType(contentType);
-        if (mimeExt is not null)
+        if (ContentTypeHelper.TryGetExtensionForMimeType(contentType, out var mimeExt))
             return mimeExt;
 
         return ".bin";

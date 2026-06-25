@@ -706,10 +706,7 @@ public class FileController(
         if (fileInfo == null)
             return InternalError("Unable to find physical file for reading the stream data.");
 
-        var provider = new FileExtensionContentTypeProvider();
-        if (!provider.TryGetContentType(fileInfo.FullName, out var contentType))
-            contentType = ContentTypeHelper.UnknownMimeType;
-
+        var contentType = ContentTypeHelper.GetContentType(fileInfo.FullName);
         if (streamPositionScrobbling)
         {
             var scrobbleFile = new ScrobblingFileResult(file, User, fileInfo.FullName, contentType)
