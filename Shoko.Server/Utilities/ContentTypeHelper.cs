@@ -3,7 +3,7 @@ using System.IO;
 #nullable enable
 namespace Shoko.Server.Utilities;
 
-internal static class ContentTypeHelper
+public static class ContentTypeHelper
 {
     // ponytail: central unknown mime constant to avoid repeated literals across the codebase.
     public const string UnknownMimeType = "application/octet-stream";
