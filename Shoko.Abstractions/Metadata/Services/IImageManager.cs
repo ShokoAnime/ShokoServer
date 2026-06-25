@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Http;
@@ -762,6 +763,13 @@ public interface IImageManager
     ///   Optional. Set to <c>true</c> to retrieve the primary image if the
     ///   image is part of a linked image list.
     /// </param>
+    /// <param name="difficultyClass">
+    ///   Optional. The difficulty class (DC) - the minimum d20 roll required to
+    ///   return the cross-reference. Must be between 1 and 20. Defaults to 20.
+    /// </param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///   <paramref name="difficultyClass"/> is less than 1 or greater than 20.
+    /// </exception>
     /// <returns>
     ///   A random matching cross-reference, or <c>null</c> if none found.
     /// </returns>
@@ -773,7 +781,8 @@ public interface IImageManager
         DataEntityType? entityType = null,
         bool? isEnabled = null,
         bool? isDesired = null,
-        bool primaryImage = false
+        bool primaryImage = false,
+        [Range(1, 20)] int difficultyClass = 20
     );
 
     /// <summary>

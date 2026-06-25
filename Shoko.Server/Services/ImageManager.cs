@@ -1110,9 +1110,14 @@ public partial class ImageManager(
         DataEntityType? entityType = null,
         bool? isEnabled = null,
         bool? isDesired = null,
-        bool primaryImage = false
+        bool primaryImage = false,
+        int difficultyClass = 20
     )
     {
+        if (difficultyClass is not (>= 1 and <= 20))
+            throw new ArgumentOutOfRangeException(nameof(difficultyClass), "difficultyClass must be between 1 and 20");
+
+        var threshold = difficultyClass + 1;
         var rng = Random.Shared;
         using var enumerator = GetAllImageCrossReferences(
             imageSource: imageSource,
@@ -1128,7 +1133,7 @@ public partial class ImageManager(
         {
             var current = enumerator.Current;
             var roll = rng.Next(1, 21); // d20
-            if (roll == 20)
+            if (roll >= threshold) // hit critical
                 return current;
             var skip = roll;
             while (skip-- > 0)
