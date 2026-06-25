@@ -1866,10 +1866,10 @@ public class DatabaseFixes
                 _logger.Warn(ex, "Unsupported image type for {ResourceID}, falling back.", resourceID);
             }
             // Fallback to MimeUtility if eager detection didn't yield a result
-            if (contentType == ContentTypeHelper.UnknownMimeType)
+            if (contentType is ContentTypeHelper.UnknownMimeType)
             {
                 var mapped = ContentTypeHelper.GetMimeMapping(resourceID);
-                if (!string.IsNullOrEmpty(mapped) && mapped != ContentTypeHelper.UnknownMimeType)
+                if (!string.IsNullOrEmpty(mapped) && mapped is not ContentTypeHelper.UnknownMimeType)
                     contentType = mapped;
             }
 
@@ -2392,10 +2392,10 @@ public class DatabaseFixes
             return;
         }
         // Fallback to ContentTypeHelper if eager detection didn't yield a result
-        if (contentType == ContentTypeHelper.UnknownMimeType)
+        if (contentType is ContentTypeHelper.UnknownMimeType)
         {
             var mapped = ContentTypeHelper.GetMimeMapping(resourceID);
-            if (!string.IsNullOrEmpty(mapped) && mapped != ContentTypeHelper.UnknownMimeType)
+            if (!string.IsNullOrEmpty(mapped) && mapped is not ContentTypeHelper.UnknownMimeType)
                 contentType = mapped;
         }
 
