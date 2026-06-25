@@ -1187,7 +1187,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         {
             foreach (var fileName in Directory.EnumerateFiles(containingDirectory, "thumbnail.*", new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
             {
-                if (!ContentTypeHelper.TryGetContentType(fileName, out _))
+                if (ContentTypeHelper.TryGetContentType(fileName, out _))
                 {
                     var imageInfo = new MagickImageInfo(fileName);
                     if (GetMimeFromFormat(imageInfo) is not { } mime)
@@ -1271,6 +1271,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             MagickFormat.Jpg => "image/jpeg",
             MagickFormat.Jpeg => "image/jpeg",
             MagickFormat.WebP => "image/webp",
+            MagickFormat.Svg => "image/svg+xml",
+            MagickFormat.Svgz => "image/svg+xml",
             _ => null,
         };
 
