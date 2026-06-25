@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.321",
+      "tag": "v6.0.0-dev.321",
+      "commit": "3af7db0c9e7a5fba21dc1042fbf6ad04c959e7e0",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.321/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-25T19:35:15Z",
+      "releaseNotes": "\n`refactor` (`filters`): **Add cancellation support and improve thread safety**:\n\nAdded CancellationToken parameter propagation through the filter\nevaluation pipeline, from the API controller down through\n`IFilteringEngine` and `IMetadataFilteringService` methods. The\ncontroller passes `HttpContext.RequestAborted` to respect client\ndisconnects.\n\nIntroduced a `Lock` in `FilteringEngine` to serialize filter\nevaluation, preventing race conditions from concurrent access.\n\nRemoved the unused `IFilteringEngine` dependency from\n`FilterController`, accessing it via `IMetadataFilteringService.Engine`\ninstead. Also dropped underscore prefixes from repository field\nnames to match project conventions.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.62**.\n\n`refactor` (`filters`): **Replace Lock with SemaphoreSlim and allow 2 concurrent filter evaluations**.\n\n`refactor` (`filters`): **Add cancellation token support to batch operations**:\n\nExtended CancellationToken propagation to the batch filter methods\nin both IFilteringEngine (BatchPrepareFiltersWithTuples,\nBatchPrepareFiltersWithGrouping) and IMetadataFilteringService\n(BatchFilterGroups, BatchFilterSeries).\n\nThe token is captured in lazy evaluation closures and checked\nbefore materialization. In InternalBatchPrepareFilters it is also\npassed to _filterSemaphore.Wait() so semaphore acquisition respects\ncancellation.\n\nWired HttpContext.RequestAborted from the v3 FilterController\n(GetAllFilters) and FilterFactory (GetFilters) down to the engine.\n"
+    },
+    {
       "version": "6.0.0.320",
       "tag": "v6.0.0-dev.320",
       "commit": "592447e50e47f4bce3a1a82b5fddcae9d41a61a2",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.292/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-18T02:14:30Z",
       "releaseNotes": "\n`fix`: **Add missing `ISeriesUserData.LastEpisodeUpdatedAt` in abstraction**.\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.56**.\n"
-    },
-    {
-      "version": "6.0.0.291",
-      "tag": "v6.0.0-dev.291",
-      "commit": "9ec735045219ac252b87fbbf3dba60e41c1200f0",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.291/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-18T00:31:40Z",
-      "releaseNotes": "\n`misc`: **Don't hide raw sql in versions table when raw sql was ran**.\n"
     }
   ]
 }
