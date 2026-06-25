@@ -884,7 +884,38 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(155,  1, "ALTER TABLE StoredReleaseInfo_MatchAttempt ADD COLUMN IsCompleted INTEGER NOT NULL DEFAULT 0"),
         new(155,  2, "UPDATE StoredReleaseInfo_MatchAttempt SET IsCompleted = 1 WHERE ProviderID IS NOT NULL OR AttemptStartedAt != AttemptEndedAt"),
         new(155,  3, "ALTER TABLE StoredReleaseInfo ADD COLUMN DeferToNext INTEGER NOT NULL DEFAULT 0"),
-        new(156,  1, DatabaseFixes.MigrateEmbeddedCrossReferences),
+        new(156,  1, """
+                     UPDATE StoredReleaseInfo
+                     SET CrossReferences = (
+                         SELECT json_group_array(
+                             json_object(
+                                 'ProviderIDs', CASE
+                                     WHEN json_extract(x.value, '$.AnidbAnimeID') IS NOT NULL
+                                          AND json_extract(x.value, '$.AnidbAnimeID') > 0
+                                     THEN json_object(
+                                         'AniDB_Episode', CAST(json_extract(x.value, '$.AnidbEpisodeID') AS TEXT),
+                                         'AniDB_Anime', CAST(json_extract(x.value, '$.AnidbAnimeID') AS TEXT))
+                                     ELSE json_object(
+                                         'AniDB_Episode', CAST(json_extract(x.value, '$.AnidbEpisodeID') AS TEXT))
+                                 END,
+                                 'PercentageStart', CAST(json_extract(x.value, '$.PercentageStart') AS INTEGER),
+                                 'PercentageEnd', CAST(json_extract(x.value, '$.PercentageEnd') AS INTEGER),
+                                 'EpisodeType', CASE json_extract(x.value, '$.EpisodeType')
+                                     WHEN 1 THEN 'Episode'
+                                     WHEN 2 THEN 'Credits'
+                                     WHEN 3 THEN 'Special'
+                                     WHEN 4 THEN 'Trailer'
+                                     WHEN 5 THEN 'Parody'
+                                     WHEN 6 THEN 'Other'
+                                     ELSE json_extract(x.value, '$.EpisodeType')
+                                 END,
+                                 'EpisodeNumber', CAST(json_extract(x.value, '$.EpisodeNumber') AS INTEGER)
+                             )
+                         )
+                         FROM json_each(CrossReferences) AS x
+                     )
+                     WHERE CrossReferences LIKE '%AnidbEpisodeID%'
+                     """),
     ];
 
     #endregion

@@ -396,28 +396,6 @@ GROUP BY
             .WhereNotNull();
     }
 
-    public const string MissingEpisodesCollectingQuery = @"SELECT ser.AniDB_ID FROM AnimeSeries AS ser WHERE ser.MissingEpisodeCountGroups > 0";
-
-    public const string MissingEpisodesQuery = @"SELECT ser.AniDB_ID FROM AnimeSeries AS ser WHERE ser.MissingEpisodeCount > 0";
-
-    public IEnumerable<AnimeSeries> GetWithMissingEpisodes(bool collecting)
-    {
-        var ids = Lock(() =>
-        {
-            using var session = _databaseFactory.SessionFactory.OpenSession();
-
-            var query = collecting ? MissingEpisodesCollectingQuery : MissingEpisodesQuery;
-            return session.CreateSQLQuery(query)
-                .AddScalar("AniDB_ID", NHibernateUtil.Int32)
-                .List<int>();
-        });
-
-        return ids
-            .Distinct()
-            .Select(GetByAnimeID)
-            .WhereNotNull();
-    }
-
     public ImageEntityType[] GetAllImageTypes()
         => [ImageEntityType.Backdrop, ImageEntityType.Banner, ImageEntityType.Logo, ImageEntityType.Primary];
 

@@ -10,7 +10,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Services;
-
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #nullable enable
@@ -222,15 +221,27 @@ GROUP BY
     public IEnumerable<AnimeEpisode> GetMissing(bool collecting, int? animeID = null)
     {
         // NOTE: For comments about this code, see the AnimeSeriesService.
-        var allSeries = animeID.HasValue
+        var series = animeID.HasValue
             ? new List<AnimeSeries?>([RepoFactory.AnimeSeries.GetByAnimeID(animeID.Value)]).WhereNotNull()
-            : RepoFactory.AnimeSeries.GetWithMissingEpisodes(collecting);
+            : RepoFactory.AnimeSeries.GetAll();
+        return GetMissingForSeries(collecting, series);
+    }
+
+    public IEnumerable<AnimeEpisode> GetMissingForSeries(bool collecting, IEnumerable<AnimeSeries> seriesList)
+    {
+        var allSeries = seriesList as IReadOnlyList<AnimeSeries> ?? seriesList.ToList();
+        if (allSeries.Count == 0)
+            yield break;
+
+        var animeIDs = allSeries.Select(s => s.AniDB_ID).ToList();
+        var groupStatusLookup = RepoFactory.AniDB_GroupStatus.GetByAnimeIDs(animeIDs);
+
         foreach (var series in allSeries)
         {
             var animeType = series.AniDB_Anime!.AnimeType;
             var episodeReleasedList = new AnimeSeriesService.EpisodeList(animeType);
             var episodeReleasedGroupList = new AnimeSeriesService.EpisodeList(animeType);
-            var animeGroupStatuses = RepoFactory.AniDB_GroupStatus.GetByAnimeID(series.AniDB_ID);
+            var animeGroupStatuses = groupStatusLookup[series.AniDB_ID].ToList();
             var allEpisodes = series.AllAnimeEpisodes
                 .Select(episode => (episode, anidbEpisode: episode.AniDB_Episode!, videos: episode.VideoLocals))
                 .Where(tuple => tuple.anidbEpisode is not null)

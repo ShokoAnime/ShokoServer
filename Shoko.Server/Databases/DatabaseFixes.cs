@@ -51,8 +51,6 @@ using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Shoko.Server.Utilities;
 
-using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
-
 #pragma warning disable CS0618
 #pragma warning disable CA2012
 namespace Shoko.Server.Databases;
@@ -2648,62 +2646,4 @@ public class DatabaseFixes
         public string AvatarImageMetadata { get; set; }
     }
 
-    /// <summary>
-    /// Converts <c>CrossReferences</c> JSON in <c>StoredReleaseInfo</c> rows from the old
-    /// integer-property format (<c>AnidbEpisodeID</c>/<c>AnidbAnimeID</c>) to the new
-    /// open-ended <c>ProviderIDs</c> dictionary format.
-    /// </summary>
-    private class OldEmbeddedCrossReference
-    {
-        public int AnidbEpisodeID { get; set; }
-        public int? AnidbAnimeID { get; set; }
-        public int PercentageStart { get; set; }
-        public int PercentageEnd { get; set; }
-        public int EpisodeType { get; set; }
-        public int EpisodeNumber { get; set; }
-    }
-
-    public static void MigrateEmbeddedCrossReferences()
-    {
-        var toSave = new List<StoredReleaseInfo>();
-        foreach (var releaseInfo in RepoFactory.StoredReleaseInfo.GetAll())
-        {
-            var json = releaseInfo.EmbeddedCrossReferences;
-            if (string.IsNullOrEmpty(json) || json is "[]" || !json.Contains("AnidbEpisodeID"))
-                continue;
-
-            try
-            {
-                var oldXrefs = JsonConvert.DeserializeObject<List<OldEmbeddedCrossReference>>(json);
-                if (oldXrefs is null or { Count: 0 })
-                    continue;
-
-                var newXrefs = oldXrefs.Select(x =>
-                {
-                    var xref = new EmbeddedCrossReference
-                    {
-                        PercentageStart = x.PercentageStart,
-                        PercentageEnd = x.PercentageEnd,
-                        EpisodeType = (EpisodeType)x.EpisodeType,
-                        EpisodeNumber = x.EpisodeNumber,
-                    };
-                    xref.ProviderIDs[CrossReferenceIDs.AniDB_Episode] = x.AnidbEpisodeID.ToString();
-                    if (x.AnidbAnimeID is { } animeID and > 0)
-                        xref.ProviderIDs[CrossReferenceIDs.AniDB_Anime] = animeID.ToString();
-                    return xref;
-                }).ToList<IReleaseVideoCrossReference>();
-
-                releaseInfo.CrossReferences = newXrefs;
-                toSave.Add(releaseInfo);
-            }
-            catch (Exception ex)
-            {
-                _logger.Warn(ex, "Failed to migrate EmbeddedCrossReferences for StoredReleaseInfo {ID}", releaseInfo.StoredReleaseInfoID);
-            }
-        }
-
-        if (toSave.Count > 0)
-            RepoFactory.StoredReleaseInfo.Save(toSave);
-        _logger.Info("Migrated EmbeddedCrossReferences for {Count} StoredReleaseInfo rows.", toSave.Count);
-    }
 }

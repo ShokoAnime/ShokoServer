@@ -996,7 +996,37 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(171,  1, "ALTER TABLE StoredReleaseInfo_MatchAttempt ADD IsCompleted BIT NOT NULL DEFAULT 0"),
         new(171,  2, "UPDATE StoredReleaseInfo_MatchAttempt SET IsCompleted = 1 WHERE ProviderID IS NOT NULL OR AttemptStartedAt != AttemptEndedAt"),
         new(171,  3, "ALTER TABLE StoredReleaseInfo ADD DeferToNext BIT NOT NULL DEFAULT 0"),
-        new(172,  1, DatabaseFixes.MigrateEmbeddedCrossReferences),
+        new(172,  1, "IF (SELECT compatibility_level FROM sys.databases WHERE name = DB_NAME()) < 130 BEGIN DECLARE @db NVARCHAR(128) = QUOTENAME(DB_NAME()); EXEC('ALTER DATABASE ' + @db + ' SET COMPATIBILITY_LEVEL = 130') END"),
+        new(172,  2, """
+                     UPDATE sri
+                     SET CrossReferences = (
+                         SELECT
+                             JSON_QUERY(
+                                 '{"AniDB_Episode":"' + JSON_VALUE(x.value, '$.AnidbEpisodeID') + '"' +
+                                 CASE
+                                     WHEN ISNULL(TRY_CAST(JSON_VALUE(x.value, '$.AnidbAnimeID') AS int), 0) > 0
+                                     THEN ',"AniDB_Anime":"' + JSON_VALUE(x.value, '$.AnidbAnimeID') + '"'
+                                     ELSE ''
+                                 END + '}'
+                             ) AS ProviderIDs,
+                             CAST(JSON_VALUE(x.value, '$.PercentageStart') AS int) AS PercentageStart,
+                             CAST(JSON_VALUE(x.value, '$.PercentageEnd') AS int) AS PercentageEnd,
+                             CASE JSON_VALUE(x.value, '$.EpisodeType')
+                                 WHEN '1' THEN 'Episode'
+                                 WHEN '2' THEN 'Credits'
+                                 WHEN '3' THEN 'Special'
+                                 WHEN '4' THEN 'Trailer'
+                                 WHEN '5' THEN 'Parody'
+                                 WHEN '6' THEN 'Other'
+                                 ELSE JSON_VALUE(x.value, '$.EpisodeType')
+                             END AS EpisodeType,
+                             CAST(JSON_VALUE(x.value, '$.EpisodeNumber') AS int) AS EpisodeNumber
+                         FROM OPENJSON(sri.CrossReferences) AS x
+                         FOR JSON PATH
+                     )
+                     FROM StoredReleaseInfo sri
+                     WHERE sri.CrossReferences LIKE '%AnidbEpisodeID%'
+                     """),
     ];
 
     #endregion

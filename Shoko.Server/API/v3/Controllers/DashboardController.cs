@@ -35,6 +35,7 @@ public class DashboardController(
     AniDB_EpisodeRepository _anidbEpisodes,
     AniDB_TagRepository _anidbTags,
     AnimeSeriesRepository _animeSeries,
+    AnimeEpisodeRepository _animeEpisodes,
     CrossRef_AniDB_TMDB_MovieRepository _crossRefAnidbTmdbMovies,
     CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows,
     CrossRef_File_EpisodeRepository _crossRefFileEpisodes,
@@ -115,8 +116,8 @@ public class DashboardController(
         var percentDuplicates = places.Count == 0
             ? 0
             : Math.Round((decimal)duplicates * 100 / places.Count, 2, MidpointRounding.AwayFromZero);
-        var missingEpisodes = allSeries.Sum(a => a.MissingEpisodeCount);
-        var missingEpisodesCollecting = allSeries.Sum(a => a.MissingEpisodeCountGroups);
+        var missingEpisodes = _animeEpisodes.GetMissingForSeries(false, allSeries).Count();
+        var missingEpisodesCollecting = _animeEpisodes.GetMissingForSeries(true, allSeries).Count();
         var multipleEpisodes = episodes.Count(a => a.VideoLocals.Count(b => !b.IsVariation) > 1);
         var unrecognizedFiles = _videoLocals.GetVideosWithoutEpisodeUnsorted().Count;
         var duplicateFiles = places.GroupBy(a => a.VideoLocalID).Count(a => a.Count() > 1);

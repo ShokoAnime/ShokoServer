@@ -1086,7 +1086,37 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(175,  1, "ALTER TABLE `StoredReleaseInfo_MatchAttempt` ADD COLUMN `IsCompleted` TINYINT(1) NOT NULL DEFAULT 0"),
         new(175,  2, "UPDATE `StoredReleaseInfo_MatchAttempt` SET `IsCompleted` = 1 WHERE `ProviderID` IS NOT NULL OR `AttemptStartedAt` != `AttemptEndedAt`"),
         new(175,  3, "ALTER TABLE `StoredReleaseInfo` ADD COLUMN `DeferToNext` TINYINT(1) NOT NULL DEFAULT 0"),
-        new(176,  1, DatabaseFixes.MigrateEmbeddedCrossReferences),
+        new(176,  1, """
+                     UPDATE `StoredReleaseInfo` sri
+                     SET sri.`CrossReferences` = (
+                         SELECT JSON_ARRAYAGG(
+                             JSON_OBJECT(
+                                 'ProviderIDs', CASE
+                                     WHEN CAST(JSON_UNQUOTE(JSON_EXTRACT(x.val, '$.AnidbAnimeID')) AS UNSIGNED) > 0
+                                     THEN JSON_OBJECT(
+                                         'AniDB_Episode', CAST(JSON_UNQUOTE(JSON_EXTRACT(x.val, '$.AnidbEpisodeID')) AS CHAR),
+                                         'AniDB_Anime', CAST(JSON_UNQUOTE(JSON_EXTRACT(x.val, '$.AnidbAnimeID')) AS CHAR))
+                                     ELSE JSON_OBJECT(
+                                         'AniDB_Episode', CAST(JSON_UNQUOTE(JSON_EXTRACT(x.val, '$.AnidbEpisodeID')) AS CHAR))
+                                 END,
+                                 'PercentageStart', JSON_EXTRACT(x.val, '$.PercentageStart') + 0,
+                                 'PercentageEnd', JSON_EXTRACT(x.val, '$.PercentageEnd') + 0,
+                                 'EpisodeType', CASE CAST(JSON_UNQUOTE(JSON_EXTRACT(x.val, '$.EpisodeType')) AS CHAR)
+                                     WHEN '1' THEN 'Episode'
+                                     WHEN '2' THEN 'Credits'
+                                     WHEN '3' THEN 'Special'
+                                     WHEN '4' THEN 'Trailer'
+                                     WHEN '5' THEN 'Parody'
+                                     WHEN '6' THEN 'Other'
+                                     ELSE JSON_UNQUOTE(JSON_EXTRACT(x.val, '$.EpisodeType'))
+                                 END,
+                                 'EpisodeNumber', JSON_EXTRACT(x.val, '$.EpisodeNumber') + 0
+                             )
+                         )
+                         FROM JSON_TABLE(sri.`CrossReferences`, '$[*]' COLUMNS (val JSON PATH '$')) AS x
+                     )
+                     WHERE sri.`CrossReferences` LIKE '%AnidbEpisodeID%'
+                     """),
     ];
 
     #endregion

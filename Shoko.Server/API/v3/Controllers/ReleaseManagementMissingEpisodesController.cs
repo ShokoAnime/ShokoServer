@@ -74,20 +74,25 @@ public class ReleaseManagementMissingEpisodesController(ISettingsProvider settin
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = _animeSeries.GetWithMissingEpisodes(collecting).Where(a => User.AllowedSeries(a));
+        var missingBySeries = _animeEpisodes.GetMissing(collecting)
+            .Where(e => e.AnimeSeries is { } series && User.AllowedSeries(series))
+            .GroupBy(e => e.AnimeSeriesID)
+            .Select(g => (Series: g.First().AnimeSeries!, Count: g.Count()))
+            .AsEnumerable();
+
         if (onlyFinishedSeries)
-            enumerable = enumerable.Where(a => a.AniDB_Anime is { } anime && anime.GetFinishedAiring());
+            missingBySeries = missingBySeries.Where(t => t.Series.AniDB_Anime is { } anime && anime.GetFinishedAiring());
 
         if (!string.IsNullOrWhiteSpace(search))
         {
             var normalizedSearch = AniDB_Anime_TitleRepository.NormalizeForSearch(search);
-            enumerable = enumerable.Where(s => _anidbTitles.AnimeMatchesSearch(s.AniDB_ID, normalizedSearch));
+            missingBySeries = missingBySeries.Where(t => _anidbTitles.AnimeMatchesSearch(t.Series.AniDB_ID, normalizedSearch));
         }
 
-        return enumerable
-            .OrderBy(series => series.Title)
-            .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => new Series.WithEpisodeCount(collecting ? series.MissingEpisodeCountGroups : series.MissingEpisodeCount, series, User.JMMUserID, includeDataFrom), page, pageSize);
+        return missingBySeries
+            .OrderBy(t => t.Series.Title)
+            .ThenBy(t => t.Series.AniDB_ID)
+            .ToListResult(t => new Series.WithEpisodeCount(t.Count, t.Series, User.JMMUserID, includeDataFrom), page, pageSize);
     }
 
     /// <summary>
