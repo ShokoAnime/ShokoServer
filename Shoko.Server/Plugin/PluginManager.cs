@@ -189,7 +189,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         public byte[]? Thumbnail { get; set; }
     }
 
-
     private static string GetPinnedFile(string? directory, string dll)
         => string.IsNullOrEmpty(directory)
             ? Path.ChangeExtension(dll, Pinned)
