@@ -855,7 +855,7 @@ jobs:
 
     steps:
       - name: Notify Discord Users
-        uses: tsickert/discord-webhook@v7
+        uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           embed-color: 5809492
