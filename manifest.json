@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.322",
+      "tag": "v6.0.0-dev.322",
+      "commit": "c4a07099488b46dbe1354c4fe85e06a131fbeda7",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.322/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-25T21:24:22Z",
+      "releaseNotes": "\n`feat` (`plugin`): **Add svg support for plugin and package thumbnails**:\n\nAdded MagickFormat.Svg and MagickFormat.Svgz mappings to\nGetMimeFromFormat so that MagickImageInfo can return the correct MIME\ntype for SVG files. This enables SVG thumbnails in both PluginManager\nand PluginPackageManager, where the MIME-from-format lookup is used\nafter reading thumbnail dimensions.\n\n`feat` (`api`): **Add `difficultyClass` param to random image cross-reference lookup**:\n\nAdded a `difficultyClass` parameter (1-20, D&D-style DC) to\n`GetRandomImageCrossReference`, replacing the hardcoded `roll == 20`\nwith a configurable threshold.\n\n- `IImageManager`: added `[Range(1, 20)] int difficultyClass = 20`\n- `ImageManager`: added validation and `threshold = difficultyClass + 1`\n- `ImageManagementController` (APIv3): exposed as query param (default 10)\n- `Image` (APIv2): hardcoded `difficultyClass: 10` without exposing\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.63**.\n"
+    },
+    {
       "version": "6.0.0.321",
       "tag": "v6.0.0-dev.321",
       "commit": "3af7db0c9e7a5fba21dc1042fbf6ad04c959e7e0",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.293/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-18T02:39:45Z",
       "releaseNotes": "\n`fix`: **Fix filters**.\n"
-    },
-    {
-      "version": "6.0.0.292",
-      "tag": "v6.0.0-dev.292",
-      "commit": "fcd7d44a8fe5c1d560ee361090cdbf2e0da34206",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.292/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-18T02:14:30Z",
-      "releaseNotes": "\n`fix`: **Add missing `ISeriesUserData.LastEpisodeUpdatedAt` in abstraction**.\n\n`chore` (`abstractions`): **Bump abstractions version to 6.0.0-alpha.56**.\n"
     }
   ]
 }
