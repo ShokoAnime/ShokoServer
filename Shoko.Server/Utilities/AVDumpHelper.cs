@@ -424,7 +424,7 @@ public static partial class AVDumpHelper
                 // Then add the new version.
                 Directory.CreateDirectory(WorkingDirectory);
                 using Stream stream = File.OpenRead(ArchivePath);
-                using var reader = ReaderFactory.OpenReader(stream);
+                using var reader = ReaderFactory.Open(stream);
                 while (reader.MoveToNextEntry())
                 {
                     if (!reader.Entry.IsDirectory)
