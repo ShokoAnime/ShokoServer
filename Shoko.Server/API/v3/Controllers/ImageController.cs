@@ -147,11 +147,8 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
         var tries = 0;
         do
         {
-            var metadata = imageManager.GetRandomImageCrossReference(dataSource, imageEntityType)?.GetImage();
+            var metadata = imageManager.GetRandomImageCrossReference(dataSource, imageEntityType, isAvailable: true)?.GetImage();
             if (metadata is null)
-                break;
-
-            if (!metadata.IsAvailable)
                 continue;
 
             var series = imageManager.GetFirstSeriesForImage(metadata);
@@ -198,11 +195,8 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
         var tries = 0;
         do
         {
-            var metadata = imageManager.GetRandomImageCrossReference(dataSource, imageEntityType)?.GetImage();
+            var metadata = imageManager.GetRandomImageCrossReference(dataSource, imageEntityType, isAvailable: true)?.GetImage();
             if (metadata is null)
-                break;
-
-            if (!metadata.IsAvailable)
                 continue;
 
             var image = new Image(metadata);

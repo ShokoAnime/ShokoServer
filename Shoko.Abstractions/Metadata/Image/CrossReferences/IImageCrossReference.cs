@@ -100,6 +100,12 @@ public interface IImageCrossReference : IWithCreationDate, IWithUpdateDate
     bool IsPreferred { get; }
 
     /// <summary>
+    ///   Indicates that the image is readily available from the local file
+    ///   system.
+    /// </summary>
+    bool IsAvailable { get; }
+
+    /// <summary>
     ///   Indicates that the image cross-reference has a rating and number of
     ///   votes.
     /// </summary>

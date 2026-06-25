@@ -561,12 +561,9 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <param name="entityType">Filter by entity type.</param>
     /// <param name="isEnabled">Filter by enabled state.</param>
     /// <param name="isDesired">Filter by desired state.</param>
+    /// <param name="isAvailable">Filter by available state.</param>
     /// <param name="primaryImage">Filter to only primary images (default false).</param>
     /// <param name="includeImage">Include the associated image in the response (default false).</param>
-    /// <param name="difficultyClass">
-    ///   The difficulty class (DC) - the minimum d20 roll required to return
-    ///   the cross-reference. Must be between 1 and 20. Defaults to 10.
-    /// </param>
     /// <returns>A random cross-reference if found, otherwise 404.</returns>
     [HttpGet("CrossReference/Random")]
     public ActionResult<ImageCrossReference> GetRandomImageCrossReference(
@@ -577,12 +574,12 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         [FromQuery] DataEntityType? entityType = null,
         [FromQuery] bool? isEnabled = null,
         [FromQuery] bool? isDesired = null,
+        [FromQuery] bool? isAvailable = null,
         [FromQuery] bool primaryImage = false,
-        [FromQuery] bool includeImage = false,
-        [FromQuery, Range(1, 20)] int difficultyClass = 10
+        [FromQuery] bool includeImage = false
     )
     {
-        var xref = imageManager.GetRandomImageCrossReference(imageSource, imageType, xrefSource, entitySource, entityType, isEnabled, isDesired, primaryImage, difficultyClass: difficultyClass);
+        var xref = imageManager.GetRandomImageCrossReference(imageSource, imageType, xrefSource, entitySource, entityType, isEnabled, isDesired, isAvailable, primaryImage);
         if (xref is null)
             return NotFound("No cross-reference found matching the criteria.");
         return new ImageCrossReference(xref, includeImage);

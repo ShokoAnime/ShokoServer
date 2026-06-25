@@ -698,6 +698,11 @@ public interface IImageManager
     ///   desired, <c>false</c> to get only undesired, or <c>null</c> to get
     ///   both. Defaults to <c>null</c>.
     /// </param>
+    /// <param name="isAvailable">
+    ///   Optional. Filter by available state. Pass <c>true</c> to get only
+    ///   available, <c>false</c> to get only unavailable, or <c>null</c> to
+    ///   get both. Defaults to <c>null</c>.
+    /// </param>
     /// <param name="primaryImage">
     ///   Optional. Set to <c>true</c> to retrieve the primary image if the
     ///   image is part of a linked image list.
@@ -713,6 +718,7 @@ public interface IImageManager
         DataEntityType? entityType = null,
         bool? isEnabled = null,
         bool? isDesired = null,
+        bool? isAvailable = null,
         bool? primaryImage = null
     );
 
@@ -759,17 +765,15 @@ public interface IImageManager
     ///   desired, <c>false</c> to get only undesired, or <c>null</c> to get
     ///   both. Defaults to <c>null</c>.
     /// </param>
+    /// <param name="isAvailable">
+    ///   Optional. Filter by available state. Pass <c>true</c> to get only
+    ///   available, <c>false</c> to get only unavailable, or <c>null</c> to
+    ///   get both. Defaults to <c>null</c>.
+    /// </param>
     /// <param name="primaryImage">
     ///   Optional. Set to <c>true</c> to retrieve the primary image if the
     ///   image is part of a linked image list.
     /// </param>
-    /// <param name="difficultyClass">
-    ///   Optional. The difficulty class (DC) - the minimum d20 roll required to
-    ///   return the cross-reference. Must be between 1 and 20. Defaults to 20.
-    /// </param>
-    /// <exception cref="ArgumentOutOfRangeException">
-    ///   <paramref name="difficultyClass"/> is less than 1 or greater than 20.
-    /// </exception>
     /// <returns>
     ///   A random matching cross-reference, or <c>null</c> if none found.
     /// </returns>
@@ -781,8 +785,8 @@ public interface IImageManager
         DataEntityType? entityType = null,
         bool? isEnabled = null,
         bool? isDesired = null,
-        bool primaryImage = false,
-        [Range(1, 20)] int difficultyClass = 20
+        bool? isAvailable = null,
+        bool? primaryImage = null
     );
 
     /// <summary>
@@ -813,6 +817,11 @@ public interface IImageManager
     ///   desired, <c>false</c> to get only undesired, or <c>null</c> to get
     ///   both. Defaults to <c>null</c>.
     /// </param>
+    /// <param name="isAvailable">
+    ///   Optional. Filter by available state. Pass <c>true</c> to get only
+    ///   available, <c>false</c> to get only unavailable, or <c>null</c> to
+    ///   get both. Defaults to <c>null</c>.
+    /// </param>
     /// <param name="primaryImage">
     ///   Optional. Set to <c>true</c> to retrieve the primary image if the
     ///   image is part of a linked image list.
@@ -834,6 +843,7 @@ public interface IImageManager
         DataSource? xrefSource = null,
         bool? isEnabled = null,
         bool? isDesired = null,
+        bool? isAvailable = null,
         bool? primaryImage = null,
         bool? linkedEntityImages = null
     );

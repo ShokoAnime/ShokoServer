@@ -1074,11 +1074,12 @@ public partial class ImageManager(
         DataEntityType? entityType = null,
         bool? isEnabled = null,
         bool? isDesired = null,
+        bool? isAvailable = null,
         bool? primaryImage = null
     )
     {
         IEnumerable<IImageCrossReference> xrefs = xrefRepository.GetAll();
-        if (imageSource is not null || imageType is not null || xrefSource is not null || entitySource is not null || entityType is not null || isEnabled is not null || isDesired is not null || primaryImage is not null)
+        if (imageSource is not null || imageType is not null || xrefSource is not null || entitySource is not null || entityType is not null || isEnabled is not null || isDesired is not null || isAvailable is not null || primaryImage is not null)
         {
             xrefs = xrefs
                 .Where(xref =>
@@ -1089,6 +1090,7 @@ public partial class ImageManager(
                     (entityType is null || xref.EntityType == entityType) &&
                     (isEnabled is null || xref.IsEnabled == isEnabled) &&
                     (isDesired is null || xref.IsDesired == isDesired) &&
+                    (isAvailable is null || xref.IsAvailable == isAvailable) &&
                     (primaryImage is null || xref.PrimaryImageID == xref.ImageID == primaryImage)
                 );
         }
@@ -1110,40 +1112,23 @@ public partial class ImageManager(
         DataEntityType? entityType = null,
         bool? isEnabled = null,
         bool? isDesired = null,
-        bool primaryImage = false,
-        int difficultyClass = 20
+        bool? isAvailable = null,
+        bool? primaryImage = null
     )
-    {
-        if (difficultyClass is not (>= 1 and <= 20))
-            throw new ArgumentOutOfRangeException(nameof(difficultyClass), "difficultyClass must be between 1 and 20");
-
-        var threshold = difficultyClass + 1;
-        var rng = Random.Shared;
-        using var enumerator = GetAllImageCrossReferences(
-            imageSource: imageSource,
-            imageType: imageType,
-            xrefSource: xrefSource,
-            entitySource: entitySource,
-            entityType: entityType,
-            isEnabled: isEnabled,
-            isDesired: isDesired,
-            primaryImage: primaryImage
-        ).GetEnumerator();
-        while (enumerator.MoveNext())
-        {
-            var current = enumerator.Current;
-            var roll = rng.Next(1, 21); // d20
-            if (roll >= threshold) // hit critical
-                return current;
-            var skip = roll;
-            while (skip-- > 0)
-            {
-                if (!enumerator.MoveNext())
-                    return null; // gamble failed, exhausted list
-            }
-        }
-        return null;
-    }
+        => xrefRepository.GetAll()
+            .Where(xref =>
+                (xref.ImageSource == imageSource) &&
+                (xref.ImageType == imageType) &&
+                (xrefSource is null || xref.Source == xrefSource) &&
+                (entitySource is null || xref.EntitySource == entitySource) &&
+                (entityType is null || xref.EntityType == entityType) &&
+                (isEnabled is null || xref.IsEnabled == isEnabled) &&
+                (isDesired is null || xref.IsDesired == isDesired) &&
+                (isAvailable is null || xref.IsAvailable == isAvailable) &&
+                (primaryImage is null || xref.PrimaryImageID == xref.ImageID == primaryImage)
+            )
+            .OrderByDescending(xref => xref.LastUpdatedAt)
+            .GetRandomElement(Random.Shared);
 
     /// <inheritdoc/>
     public IReadOnlyList<IImageCrossReference> GetImageCrossReferencesForEntity(
@@ -1153,6 +1138,7 @@ public partial class ImageManager(
         DataSource? xrefSource = null,
         bool? isEnabled = null,
         bool? isDesired = null,
+        bool? isAvailable = null,
         bool? primaryImage = null,
         bool? linkedEntityImages = null
     )
@@ -1161,7 +1147,7 @@ public partial class ImageManager(
             throw new ArgumentException("Invalid entity given to GetImagesForEntity", nameof(entity));
 
         Func<IEnumerable<IImageCrossReference>, IEnumerable<IImageCrossReference>> filter =
-            imageSource is not null || imageType is not null || xrefSource is not null || isEnabled is not null || isDesired is not null || primaryImage is not null
+            imageSource is not null || imageType is not null || xrefSource is not null || isEnabled is not null || isDesired is not null || isAvailable is not null || primaryImage is not null
                 ? xrefs => xrefs
                     .Where(xref =>
                         (imageSource is null || xref.ImageSource == imageSource) &&
@@ -1169,6 +1155,7 @@ public partial class ImageManager(
                         (xrefSource is null || xref.Source == xrefSource) &&
                         (isEnabled is null || xref.IsEnabled == isEnabled) &&
                         (isDesired is null || xref.IsDesired == isDesired) &&
+                        (isAvailable is null || xref.IsAvailable == isAvailable) &&
                         (primaryImage is null || xref.PrimaryImageID == xref.ImageID == primaryImage)
                     )
                 : xrefs => xrefs;
