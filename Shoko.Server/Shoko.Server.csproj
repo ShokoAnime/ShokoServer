@@ -89,7 +89,7 @@
     <PackageReference Include="Sentry.AspNetCore" Version="6.6.0" />
     <PackageReference Include="Sentry.Extensions.Logging" Version="6.6.0" />
     <PackageReference Include="Sentry.NLog" Version="6.6.0" />
-    <PackageReference Include="SharpCompress" Version="1.0.0" />
+    <PackageReference Include="SharpCompress" Version="0.49.1" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
     <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="10.2.3" />
