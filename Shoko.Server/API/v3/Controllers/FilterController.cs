@@ -33,7 +33,8 @@ public class FilterController(
     IMetadataFilteringService filteringService,
     AnimeGroupRepository _animeGroups,
     AnimeSeriesRepository _animeSeries,
-    FilterPresetRepository _filterPresets
+    FilterPresetRepository _filterPresets,
+    CrossRef_File_EpisodeRepository _crossRefFileEpisode
 ) : BaseController(settingsProvider)
 {
     internal const string FilterNotFound = "No Filter entry for the given filterID";
@@ -281,11 +282,56 @@ public class FilterController(
     private ListResult<Group> GetFilteredGroups(FilterPreset filterPreset, int pageSize, int page, bool includeEmpty, bool randomImages)
     {
         var user = User;
-        return filteringService.GetTopLevelFilteredGroups(filterPreset, user)
+        var results = filteringService.GetTopLevelFilteredGroups(filterPreset, user);
+
+        if (results.Count is 0)
+            return new ListResult<Group>();
+
+        // If includeEmpty is false, pre-build a set of animeIDs that have at least one file
+        // by scanning the in-memory CrossRef_File_Episode cache once. This replaces the
+        // O(groups * series * VideoLocals) N+1 scan that accesses `s.VideoLocals.Count > 0`
+        // for every series in every group before pagination.
+        HashSet<int>? animeWithFiles = includeEmpty ? null : new HashSet<int>(_crossRefFileEpisode.Cache.Values
+            .Select(x => x.AnimeID)
+            .Where(a => a > 0));
+
+        // Pre-build group → series mapping using cached AnimeSeriesRepository (in-memory index).
+        // This replaces `t.group.AllSeries` which recursively walks all child groups and calls
+        // `Series` (a DB query) for each group, plus `s.VideoLocals.Count > 0` (another DB query)
+        // for every series in every group — all BEFORE pagination.
+        var groupHasFiles = new Dictionary<int, bool>();
+        foreach (var r in results)
+        {
+            var group = (AnimeGroup)r.Group;
+            if (includeEmpty || animeWithFiles is null)
+            {
+                groupHasFiles[group.AnimeGroupID] = true;
+            }
+            else
+            {
+                // Use cached AnimeSeriesRepository.GetByGroupID + recursive children to check
+                // if any series in this group (including all sub-groups) has files.
+                bool HasFiles(int groupId)
+                {
+                    var seriesList = _animeSeries.GetByGroupID(groupId);
+                    if (seriesList.Any(s => animeWithFiles.Contains(s.AniDB_ID)))
+                        return true;
+                    var children = _animeGroups.GetByParentID(groupId);
+                    return children.Any(c => HasFiles(c.AnimeGroupID));
+                }
+                groupHasFiles[group.AnimeGroupID] = HasFiles(group.AnimeGroupID);
+            }
+        }
+
+        // Filter groups (cheap in-memory checks), THEN paginate, THEN construct Group objects
+        // (which access AllSeries/AllAnimeEpisodes/VideoLocals/GetImages — the expensive part).
+        var filtered = results
             .Select(r => (r, group: (AnimeGroup)r.Group))
-            .Where(t => includeEmpty || t.group.AllSeries.Any(s => s.VideoLocals.Count > 0))
+            .Where(t => groupHasFiles[t.group.AnimeGroupID])
             .Select(t => new Group(t.group, user.JMMUserID, randomImages, t.r.GroupIDChains, t.r.SeriesIDs))
             .ToListResult(page, pageSize);
+
+        return filtered;
     }
 
     /// <summary>
