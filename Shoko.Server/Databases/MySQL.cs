@@ -1100,17 +1100,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
                                          'AniDB_Episode', CAST(JSON_UNQUOTE(JSON_EXTRACT(x.val, '$.AnidbEpisodeID')) AS CHAR))
                                  END,
                                  'PercentageStart', JSON_EXTRACT(x.val, '$.PercentageStart') + 0,
-                                 'PercentageEnd', JSON_EXTRACT(x.val, '$.PercentageEnd') + 0,
-                                 'EpisodeType', CASE CAST(JSON_UNQUOTE(JSON_EXTRACT(x.val, '$.EpisodeType')) AS CHAR)
-                                     WHEN '1' THEN 'Episode'
-                                     WHEN '2' THEN 'Credits'
-                                     WHEN '3' THEN 'Special'
-                                     WHEN '4' THEN 'Trailer'
-                                     WHEN '5' THEN 'Parody'
-                                     WHEN '6' THEN 'Other'
-                                     ELSE JSON_UNQUOTE(JSON_EXTRACT(x.val, '$.EpisodeType'))
-                                 END,
-                                 'EpisodeNumber', JSON_EXTRACT(x.val, '$.EpisodeNumber') + 0
+                                 'PercentageEnd', JSON_EXTRACT(x.val, '$.PercentageEnd') + 0
                              )
                          )
                          FROM JSON_TABLE(sri.`CrossReferences`, '$[*]' COLUMNS (val JSON PATH '$')) AS x

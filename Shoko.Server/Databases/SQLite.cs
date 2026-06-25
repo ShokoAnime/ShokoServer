@@ -899,17 +899,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                                          'AniDB_Episode', CAST(json_extract(x.value, '$.AnidbEpisodeID') AS TEXT))
                                  END,
                                  'PercentageStart', CAST(json_extract(x.value, '$.PercentageStart') AS INTEGER),
-                                 'PercentageEnd', CAST(json_extract(x.value, '$.PercentageEnd') AS INTEGER),
-                                 'EpisodeType', CASE json_extract(x.value, '$.EpisodeType')
-                                     WHEN 1 THEN 'Episode'
-                                     WHEN 2 THEN 'Credits'
-                                     WHEN 3 THEN 'Special'
-                                     WHEN 4 THEN 'Trailer'
-                                     WHEN 5 THEN 'Parody'
-                                     WHEN 6 THEN 'Other'
-                                     ELSE json_extract(x.value, '$.EpisodeType')
-                                 END,
-                                 'EpisodeNumber', CAST(json_extract(x.value, '$.EpisodeNumber') AS INTEGER)
+                                 'PercentageEnd', CAST(json_extract(x.value, '$.PercentageEnd') AS INTEGER)
                              )
                          )
                          FROM json_each(CrossReferences) AS x

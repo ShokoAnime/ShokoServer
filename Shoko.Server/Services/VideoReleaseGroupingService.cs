@@ -11,6 +11,7 @@ using Shoko.Server.MediaInfo;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
 
 #nullable enable
 namespace Shoko.Server.Services;
@@ -46,6 +47,7 @@ public record ResolvedVideoPlace(VideoLocal_Place Place, VideoLocal Video, Store
 /// </remarks>
 public class VideoReleaseGroupingService(
     VideoLocalRepository videoLocalRepository,
+    AniDB_EpisodeRepository anidbEpisodeRepository,
     StoredReleaseInfoRepository releaseInfoRepository)
 {
     /// <summary>
@@ -174,7 +176,7 @@ public class VideoReleaseGroupingService(
         return result;
     }
 
-    private static FileSignature BuildSignature(ResolvedVideoPlace r)
+    private FileSignature BuildSignature(ResolvedVideoPlace r)
     {
         var (place, video, sri) = r;
         var media = video.MediaInfo;
@@ -227,7 +229,9 @@ public class VideoReleaseGroupingService(
 
         var episodeIds = sri?.CrossReferences
             .Select(x => (
-                x is EmbeddedCrossReference ecr ? ecr.EpisodeType : EpisodeType.Episode,
+                anidbEpisodeRepository.GetByEpisodeID(x.AnidbEpisodeID) is { } episode
+                    ? episode.EpisodeType
+                    : EpisodeType.Episode,
                 x.AnidbEpisodeID))
             .Where(k => k.Item2 > 0)
             .ToHashSet() ?? new HashSet<(EpisodeType, int)>();

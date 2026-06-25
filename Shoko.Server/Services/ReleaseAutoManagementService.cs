@@ -29,6 +29,7 @@ public class ReleaseAutoManagementService(
     CrossRef_File_EpisodeRepository crossRefs,
     AnimeSeriesRepository animeSeries,
     AniDB_AnimeRepository anidbAnime,
+    AniDB_EpisodeRepository anidbEpisodes,
     StoredReleaseInfoRepository releaseInfoRepository,
     IVideoService videoService,
     ILogger<ReleaseAutoManagementService> logger)
@@ -247,7 +248,9 @@ public class ReleaseAutoManagementService(
             return new HashSet<(EpisodeType, int)>();
         return sri.CrossReferences
             .Select(x => (
-                x is EmbeddedCrossReference ecr ? ecr.EpisodeType : EpisodeType.Episode,
+                anidbEpisodes.GetByEpisodeID(x.AnidbEpisodeID) is { } episode
+                    ? episode.EpisodeType
+                    : EpisodeType.Episode,
                 x.AnidbEpisodeID))
             .Where(k => k.Item2 > 0)
             .ToHashSet();

@@ -1010,17 +1010,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
                                  END + '}'
                              ) AS ProviderIDs,
                              CAST(JSON_VALUE(x.value, '$.PercentageStart') AS int) AS PercentageStart,
-                             CAST(JSON_VALUE(x.value, '$.PercentageEnd') AS int) AS PercentageEnd,
-                             CASE JSON_VALUE(x.value, '$.EpisodeType')
-                                 WHEN '1' THEN 'Episode'
-                                 WHEN '2' THEN 'Credits'
-                                 WHEN '3' THEN 'Special'
-                                 WHEN '4' THEN 'Trailer'
-                                 WHEN '5' THEN 'Parody'
-                                 WHEN '6' THEN 'Other'
-                                 ELSE JSON_VALUE(x.value, '$.EpisodeType')
-                             END AS EpisodeType,
-                             CAST(JSON_VALUE(x.value, '$.EpisodeNumber') AS int) AS EpisodeNumber
+                             CAST(JSON_VALUE(x.value, '$.PercentageEnd') AS int) AS PercentageEnd
                          FROM OPENJSON(sri.CrossReferences) AS x
                          FOR JSON PATH
                      )
