@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.319",
+      "tag": "v6.0.0-dev.319",
+      "commit": "2577b0ab86e4cca88f73eae0571bd1cb5c4b8ca3",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.319/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-25T17:16:30Z",
+      "releaseNotes": "\n`misc`: **Null handling for EmbeddedCrossReference**.\n\n`fix`: **Remove embedded episode type/number from embedded xref model**.\n"
+    },
+    {
       "version": "6.0.0.318",
       "tag": "v6.0.0-dev.318",
       "commit": "62c28610bab4a2f0daa6f78352f347529d1ff743",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.290/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-17T16:56:55Z",
       "releaseNotes": "\n`misc`: **Make the FixEmptyXrefPrimaryImageIDs Use Direct SQL**.\n"
-    },
-    {
-      "version": "6.0.0.289",
-      "tag": "v6.0.0-dev.289",
-      "commit": "f87ca6bf7a93a3f0a8084cace631188189588540",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.289/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-16T12:06:47Z",
-      "releaseNotes": "\n`fix`: **Properly control log level of signalr target**.\n\n`feat`: **Add per target log level configuration**:\n\nSupplementing the existing trace log option.\n"
     }
   ]
 }
