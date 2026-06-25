@@ -75,10 +75,6 @@
     <PackageReference Include="MySqlBackup.NET.MySqlConnector" Version="2.7.1" />
     <PackageReference Include="MySqlConnector" Version="2.6.0" />
     <PackageReference Include="SharpCompress" Version="0.49.1" />
-    <!-- Pin fixed SQLitePCLRaw packages to avoid transitive vulnerability GHSA-2m69-gcr7-jv3q -->
-    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
-    <PackageReference Include="SQLitePCLRaw.core" Version="3.0.3" />
-    <PackageReference Include="SQLitePCLRaw.provider.e_sqlite3" Version="3.0.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="NHibernate" Version="5.6.1" />
     <PackageReference Include="NHibernate.Driver.MySqlConnector" Version="2.0.5" />

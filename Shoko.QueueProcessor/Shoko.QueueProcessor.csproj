@@ -26,6 +26,12 @@
     </AssemblyAttribute>
   </ItemGroup>
   <ItemGroup>
+    <!-- Pin fixed SQLitePCLRaw packages to avoid transitive vulnerability GHSA-2m69-gcr7-jv3q -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
+    <PackageReference Include="SQLitePCLRaw.core" Version="3.0.3" />
+    <PackageReference Include="SQLitePCLRaw.provider.e_sqlite3" Version="3.0.3" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.9" />
@@ -35,10 +41,6 @@
     </PackageReference>
     <PackageReference Include="Microting.EntityFrameworkCore.MySql" Version="10.0.9" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <!-- Pin fixed SQLitePCLRaw packages to avoid transitive vulnerability GHSA-2m69-gcr7-jv3q -->
-    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
-    <PackageReference Include="SQLitePCLRaw.core" Version="3.0.3" />
-    <PackageReference Include="SQLitePCLRaw.provider.e_sqlite3" Version="3.0.3" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
