@@ -708,7 +708,7 @@ public class FileController(
 
         var provider = new FileExtensionContentTypeProvider();
         if (!provider.TryGetContentType(fileInfo.FullName, out var contentType))
-            contentType = "application/octet-stream";
+            contentType = ContentTypeHelper.UnknownMimeType;
 
         if (streamPositionScrobbling)
         {
@@ -770,7 +770,7 @@ public class FileController(
             var subFile = new FileInfo(path);
             if (!subFile.Exists) continue;
 
-            return PhysicalFile(subFile.FullName, "application/octet-stream");
+            return PhysicalFile(subFile.FullName, ContentTypeHelper.UnknownMimeType);
         }
 
         return NotFound();

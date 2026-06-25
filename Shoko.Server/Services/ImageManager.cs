@@ -443,7 +443,7 @@ public partial class ImageManager(
                 ImageResourceID = imageData.ResourceID,
             };
 
-        var contentType = GetContentTypeFromResourceID(imageData.Source, imageData.ResourceID) ?? "application/octet-stream";
+        var contentType = GetContentTypeFromResourceID(imageData.Source, imageData.ResourceID) ?? ContentTypeHelper.UnknownMimeType;
         var image = new ShokoImage()
         {
             ID = id,
@@ -601,7 +601,7 @@ public partial class ImageManager(
 
         // Look up MIME from extension
         var mime = ContentTypeHelper.GetMimeMapping(ext);
-        if (string.IsNullOrEmpty(mime) || mime == "application/octet-stream")
+        if (string.IsNullOrEmpty(mime) || mime is ContentTypeHelper.UnknownMimeType)
             return null;
 
         // Validate against allowed image MIME types

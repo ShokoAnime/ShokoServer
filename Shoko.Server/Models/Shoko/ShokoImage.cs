@@ -63,7 +63,7 @@ public class ShokoImage : IImage
     public int? Height { get; set; }
 
     /// <inheritdoc/>
-    public string ContentType { get; set; } = "application/octet-stream";
+    public string ContentType { get; set; } = ContentTypeHelper.UnknownMimeType;
 
     /// <summary>
     /// When the Image record was created.

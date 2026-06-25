@@ -17,6 +17,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.ImageManagement;
 using Shoko.Server.API.v3.Models.ImageManagement.Input;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Controllers;
@@ -253,7 +254,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <returns>The created image.</returns>
     [Authorize("admin")]
     [HttpPost("Upload/Raw")]
-    [Consumes("application/octet-stream", "image/jpeg", "image/png", "image/bmp", "image/gif", "image/tiff", "image/webp")]
+    [Consumes(ContentTypeHelper.UnknownMimeType, "image/jpeg", "image/png", "image/bmp", "image/gif", "image/tiff", "image/webp")]
     public async Task<ActionResult<ImageSlim>> UploadImageRaw(
         [FromQuery] string? contentType = null,
         [FromQuery] bool userSubmitted = true
