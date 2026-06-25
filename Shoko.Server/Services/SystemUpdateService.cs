@@ -650,7 +650,7 @@ public partial class SystemUpdateService(
 
         var endIndex = Math.Min(currentVersionIndex - 1, 19);
         var releaseNotes = new StringBuilder();
-        for (var i = endIndex; i <= 0; i--)
+        for (var i = endIndex; i >= 0; i--)
             releaseNotes
                 .AppendLine()
                 .AppendLine($"**{versions[i].Version}**:")
