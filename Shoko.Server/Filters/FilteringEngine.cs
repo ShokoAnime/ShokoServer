@@ -16,7 +16,7 @@ namespace Shoko.Server.Filters;
 
 public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupRepository groupRepository, AnimeSeriesRepository seriesRepository) : IFilteringEngine
 {
-    private readonly Lock _filterLock = new();
+    private readonly SemaphoreSlim _filterSemaphore = new(2, 2);
 
     public IReadOnlyList<IGrouping<int, int>> EvaluateFilterWithGrouping(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default)
         => EvaluateFilterWithTuples(filter, user, time, skipSorting, cancellationToken).GroupBy(a => a.GroupID, a => a.SeriesID).ToArray();
@@ -86,10 +86,15 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Only allow executing one filter at a time.
-        lock (_filterLock)
+        // Only allow executing up to two filters concurrently.
+        _filterSemaphore.Wait(cancellationToken);
+        try
         {
             return result.ToArray();
+        }
+        finally
+        {
+            _filterSemaphore.Release();
         }
     }
 
@@ -182,10 +187,14 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
                 : sorted.SelectMany(a => seriesRepository.GetByGroupID(a.GroupID).Select(ser => (a.GroupID, ser.AnimeSeriesID)));
             results[filter] = new(() =>
             {
-                // Only allow executing one filter at a time.
-                lock (_filterLock)
+                _filterSemaphore.Wait();
+                try
                 {
                     return convert(result).ToArray();
+                }
+                finally
+                {
+                    _filterSemaphore.Release();
                 }
             });
         }
