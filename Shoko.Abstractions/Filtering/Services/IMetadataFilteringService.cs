@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 
@@ -26,8 +27,18 @@ public interface IMetadataFilteringService
     /// <param name="user">The user. Needed if the filter is user-specific.</param>
     /// <param name="time">The time. Needed if the filter is time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown when <paramref name="cancellationToken"/> is cancelled.
+    /// </exception>
     /// <returns>A list of matching groups.</returns>
-    IReadOnlyList<IShokoGroup> GetAllFilteredGroups(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
+    IReadOnlyList<IShokoGroup> GetAllFilteredGroups(
+        IFilter filter,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     ///   Evaluate the filter and return groups resolved to their top-level
@@ -39,8 +50,18 @@ public interface IMetadataFilteringService
     /// <param name="user">The user. Needed if the filter is user-specific.</param>
     /// <param name="time">The time. Needed if the filter is time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown when <paramref name="cancellationToken"/> is cancelled.
+    /// </exception>
     /// <returns>A list of filtered group results resolved to top-level.</returns>
-    IReadOnlyList<FilteredGroupResult> GetTopLevelFilteredGroups(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
+    IReadOnlyList<FilteredGroupResult> GetTopLevelFilteredGroups(
+        IFilter filter,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     ///   Evaluate the filter and return only groups that are direct children of
@@ -51,8 +72,19 @@ public interface IMetadataFilteringService
     /// <param name="user">The user. Needed if the filter is user-specific.</param>
     /// <param name="time">The time. Needed if the filter is time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown when <paramref name="cancellationToken"/> is cancelled.
+    /// </exception>
     /// <returns>A list of filtered group results within the parent group.</returns>
-    IReadOnlyList<FilteredGroupResult> GetFilteredSubGroups(IFilter filter, IShokoGroup parentGroup, IUser? user = null, DateTime? time = null, bool skipSorting = false);
+    IReadOnlyList<FilteredGroupResult> GetFilteredSubGroups(
+        IFilter filter,
+        IShokoGroup parentGroup,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     ///   Batch evaluate multiple filters and return matching groups per filter.
@@ -76,8 +108,18 @@ public interface IMetadataFilteringService
     /// <param name="user">The user. Needed if the filter is user-specific.</param>
     /// <param name="time">The time. Needed if the filter is time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown when <paramref name="cancellationToken"/> is cancelled.
+    /// </exception>
     /// <returns>A list of matching series.</returns>
-    IReadOnlyList<IShokoSeries> GetAllFilteredSeries(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
+    IReadOnlyList<IShokoSeries> GetAllFilteredSeries(
+        IFilter filter,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     ///   Evaluate the filter and return series IDs that belong to the specified
@@ -89,8 +131,20 @@ public interface IMetadataFilteringService
     /// <param name="user">The user. Needed if the filter is user-specific.</param>
     /// <param name="time">The time. Needed if the filter is time-specific.</param>
     /// <param name="skipSorting">Skip sorting the results.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown when <paramref name="cancellationToken"/> is cancelled.
+    /// </exception>
     /// <returns>A list of series IDs matching the filter within the group scope.</returns>
-    IReadOnlyList<IShokoSeries> GetFilteredSeriesInGroup(IFilter filter, IShokoGroup group, bool recursive = false, IUser? user = null, DateTime? time = null, bool skipSorting = false);
+    IReadOnlyList<IShokoSeries> GetFilteredSeriesInGroup(
+        IFilter filter,
+        IShokoGroup group,
+        bool recursive = false,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     ///   Batch evaluate multiple filters and return matching series per filter.

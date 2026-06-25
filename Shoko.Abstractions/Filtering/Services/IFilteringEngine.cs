@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Filtering.Services;
@@ -30,6 +31,9 @@ public interface IFilteringEngine
     ///   By default the results are sorted using the filter's sort criteria,
     ///   setting this to true will skip sorting the results.
     /// </param>
+    /// <param name="cancellationToken">
+    ///   Cancellation token.
+    /// </param>
     /// <exception cref="ArgumentNullException">
     ///   Thrown when <paramref name="filter"/> is <c>null</c>, or if
     ///   <paramref name="user"/> is <c>null</c> when the filter is user
@@ -37,8 +41,17 @@ public interface IFilteringEngine
     ///   <paramref name="time"/> is <c>null</c> when the filter is time
     ///   dependent.
     /// </exception>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown when <paramref name="cancellationToken"/> is cancelled.
+    /// </exception>
     /// <returns>SeriesIDs, grouped by the direct parent GroupID</returns>
-    IReadOnlyList<IGrouping<int, int>> EvaluateFilterWithGrouping(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
+    IReadOnlyList<IGrouping<int, int>> EvaluateFilterWithGrouping(
+        IFilter filter,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     ///   Evaluate the given filter, applying the necessary logic to each series
@@ -59,6 +72,9 @@ public interface IFilteringEngine
     ///   By default the results are sorted using the filter's sort criteria,
     ///   setting this to true will skip sorting the results.
     /// </param>
+    /// <param name="cancellationToken">
+    ///   Cancellation token.
+    /// </param>
     /// <exception cref="ArgumentNullException">
     ///   Thrown when <paramref name="filter"/> is <c>null</c>, or if
     ///   <paramref name="user"/> is <c>null</c> when the filter is user
@@ -66,8 +82,17 @@ public interface IFilteringEngine
     ///   <paramref name="time"/> is <c>null</c> when the filter is time
     ///   dependent.
     /// </exception>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown when <paramref name="cancellationToken"/> is cancelled.
+    /// </exception>
     /// <returns>A list of tuples of (GroupID, SeriesID).</returns>
-    IReadOnlyList<(int GroupID, int SeriesID)> EvaluateFilterWithTuples(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false);
+    IReadOnlyList<(int GroupID, int SeriesID)> EvaluateFilterWithTuples(
+        IFilter filter,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     ///   Prepare the input filters, returning a dictionary which lazily

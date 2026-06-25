@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Filtering;
@@ -15,10 +16,12 @@ namespace Shoko.Server.Filters;
 
 public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupRepository groupRepository, AnimeSeriesRepository seriesRepository) : IFilteringEngine
 {
-    public IReadOnlyList<IGrouping<int, int>> EvaluateFilterWithGrouping(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
-        => EvaluateFilterWithTuples(filter, user, time, skipSorting).GroupBy(a => a.GroupID, a => a.SeriesID).ToArray();
+    private readonly Lock _filterLock = new();
 
-    public IReadOnlyList<(int GroupID, int SeriesID)> EvaluateFilterWithTuples(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyList<IGrouping<int, int>> EvaluateFilterWithGrouping(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default)
+        => EvaluateFilterWithTuples(filter, user, time, skipSorting, cancellationToken).GroupBy(a => a.GroupID, a => a.SeriesID).ToArray();
+
+    public IReadOnlyList<(int GroupID, int SeriesID)> EvaluateFilterWithTuples(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(filter);
         var needsUser = (filter.Expression?.UserDependent ?? false) || (filter.SortingExpression?.UserDependent ?? false);
@@ -26,6 +29,8 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
             ArgumentNullException.ThrowIfNull(user);
         if (filter is IFilterPreset { IsDirectory: true })
             return [];
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         var now = time?.ToLocalTime() ?? DateTime.Now;
         var filterable = filter.ApplyAtSeriesLevel switch
@@ -50,9 +55,15 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
         };
         var filtered = filterable.Where(a =>
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
                 return filter.Expression?.Evaluate(a.Filterable, a.UserInfo, now) ?? true;
+            }
+            // Don't log and rethrow OperationCanceledExceptions for the caller to handle.
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception e)
             {
@@ -72,7 +83,14 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
         var result = filter.ApplyAtSeriesLevel
             ? sorted.Select(a => (a.GroupID, a.SeriesID))
             : sorted.SelectMany(a => seriesRepository.GetByGroupID(a.GroupID).Select(ser => (a.GroupID, ser.AnimeSeriesID)));
-        return result.ToArray();
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Only allow executing one filter at a time.
+        lock (_filterLock)
+        {
+            return result.ToArray();
+        }
     }
 
     public IReadOnlyDictionary<TFilter, IReadOnlyList<(int GroupID, int SeriesID)>> BatchPrepareFiltersWithTuples<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false) where TFilter : IFilter
@@ -162,7 +180,14 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
             var result = filter.ApplyAtSeriesLevel
                 ? sorted.Select(a => (a.GroupID, a.SeriesID))
                 : sorted.SelectMany(a => seriesRepository.GetByGroupID(a.GroupID).Select(ser => (a.GroupID, ser.AnimeSeriesID)));
-            results[filter] = new(() => convert(result).ToArray());
+            results[filter] = new(() =>
+            {
+                // Only allow executing one filter at a time.
+                lock (_filterLock)
+                {
+                    return convert(result).ToArray();
+                }
+            });
         }
 
         // Add Directory Filters

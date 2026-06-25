@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Services;
@@ -21,29 +22,55 @@ public class MetadataFilteringService(
 {
     public IFilteringEngine Engine => engine;
 
-    public IReadOnlyList<IShokoGroup> GetAllFilteredGroups(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyList<IShokoGroup> GetAllFilteredGroups(
+        IFilter filter,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    )
     {
         EnsureValidFilter(filter, user);
         if (filter is IFilterPreset { IsDirectory: true })
             return [];
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         var tuples = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
+        if (tuples.Count is 0)
+            return [];
+
+        cancellationToken.ThrowIfCancellationRequested();
+
         var groups = tuples
             .DistinctBy(t => t.GroupID)
             .Select(t => groupRepository.GetByID(t.GroupID))
             .WhereNotNull();
-        return OrderByGroup(filter, groups, g => g, user, time, skipSorting)
+        return OrderByGroup(filter, groups, g => g, user, time, skipSorting, cancellationToken)
             .Cast<IShokoGroup>()
             .ToArray();
     }
 
-    public IReadOnlyList<IShokoSeries> GetAllFilteredSeries(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyList<IShokoSeries> GetAllFilteredSeries(
+        IFilter filter,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    )
     {
         EnsureValidFilter(filter, user);
         if (filter is IFilterPreset { IsDirectory: true })
             return [];
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         var tuples = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
+        if (tuples.Count is 0)
+            return [];
+
+        cancellationToken.ThrowIfCancellationRequested();
+
         return tuples
             .Select(t => seriesRepository.GetByID(t.SeriesID))
             .WhereNotNull()
@@ -89,7 +116,11 @@ public class MetadataFilteringService(
                                 .DistinctBy(t => t.GroupID)
                                 .Select(t => groupRepository.GetByID(t.GroupID))
                                 .WhereNotNull(),
-                            g => g, user, time, skipSorting
+                            g => g,
+                            user,
+                            time,
+                            skipSorting,
+                            CancellationToken.None
                         )
                             .Cast<IShokoGroup>()
                             .ToArray()
@@ -141,15 +172,19 @@ public class MetadataFilteringService(
         );
     }
 
-    public IReadOnlyList<FilteredGroupResult> GetTopLevelFilteredGroups(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyList<FilteredGroupResult> GetTopLevelFilteredGroups(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default)
     {
         EnsureValidFilter(filter, user);
         if (filter is IFilterPreset { IsDirectory: true })
             return [];
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         var results = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
         if (results.Count is 0)
             return [];
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         var allGroupIDChains = BuildGroupIDChains(results);
         var items = allGroupIDChains
@@ -175,19 +210,23 @@ public class MetadataFilteringService(
                     SeriesIDs = seriesIDs,
                 };
             });
-        return OrderByGroup(filter, items, r => (AnimeGroup)r.Group, user, time, skipSorting)
+        return OrderByGroup(filter, items, r => (AnimeGroup)r.Group, user, time, skipSorting, cancellationToken)
             .ToArray();
     }
 
-    public IReadOnlyList<FilteredGroupResult> GetFilteredSubGroups(IFilter filter, IShokoGroup parentGroup, IUser? user = null, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyList<FilteredGroupResult> GetFilteredSubGroups(IFilter filter, IShokoGroup parentGroup, IUser? user = null, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default)
     {
         EnsureValidFilter(filter, user);
         if (filter is IFilterPreset { IsDirectory: true })
             return [];
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         var results = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
         if (results.Count is 0)
             return [];
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         var validGroupIDs = parentGroup.Groups.Select(a => a.ID).ToHashSet();
         var scopedGroupIDChains = BuildGroupIDChains(results)
@@ -221,15 +260,17 @@ public class MetadataFilteringService(
                     SeriesIDs = seriesIDs,
                 };
             });
-        return OrderByGroup(filter, items, r => (AnimeGroup)r.Group, user, time, skipSorting)
+        return OrderByGroup(filter, items, r => (AnimeGroup)r.Group, user, time, skipSorting, cancellationToken)
             .ToArray();
     }
 
-    public IReadOnlyList<IShokoSeries> GetFilteredSeriesInGroup(IFilter filter, IShokoGroup group, bool recursive, IUser? user = null, DateTime? time = null, bool skipSorting = false)
+    public IReadOnlyList<IShokoSeries> GetFilteredSeriesInGroup(IFilter filter, IShokoGroup group, bool recursive, IUser? user = null, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default)
     {
         EnsureValidFilter(filter, user);
         if (filter is IFilterPreset { IsDirectory: true })
             return [];
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!filter.ApplyAtSeriesLevel)
             return (recursive ? group.AllSeries : group.Series)
@@ -240,6 +281,8 @@ public class MetadataFilteringService(
         var results = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
         if (results.Count is 0)
             return [];
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         var validGroupIDs = recursive
             ? group.AllGroups.Prepend(group).Select(a => a.ID).ToHashSet()
@@ -260,7 +303,7 @@ public class MetadataFilteringService(
     // follow the series sort, not the group sort. That places a group at the rank of its first matching series rather
     // than its own sort key, so e.g. a name-sorted list ends up out of order at the group level. Re-evaluate the sort
     // against each item's group here so the returned groups are ordered by the group's own sort key.
-    private static IEnumerable<T> OrderByGroup<T>(IFilter filter, IEnumerable<T> items, Func<T, AnimeGroup> groupSelector, IUser? user, DateTime? time, bool skipSorting)
+    private static IEnumerable<T> OrderByGroup<T>(IFilter filter, IEnumerable<T> items, Func<T, AnimeGroup> groupSelector, IUser? user, DateTime? time, bool skipSorting, CancellationToken cancellationToken)
     {
         if (skipSorting)
             return items;
@@ -276,7 +319,11 @@ public class MetadataFilteringService(
             return (item, filterable: group.ToFilterable(now), userInfo: user is null ? null : group.ToFilterableUserInfo(user.ID, now));
         });
         var ordered = sort.Descending
-            ? keyed.OrderByDescending(x => sort.Evaluate(x.filterable, x.userInfo, now))
+            ? keyed.OrderByDescending(x =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return sort.Evaluate(x.filterable, x.userInfo, now);
+            })
             : keyed.OrderBy(x => sort.Evaluate(x.filterable, x.userInfo, now));
         for (var next = sort.Next; next is not null; next = next.Next)
         {
