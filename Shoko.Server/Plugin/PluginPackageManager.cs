@@ -1037,12 +1037,10 @@ public partial class PluginPackageManager(
             response.EnsureSuccessStatusCode();
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
-            var extension = contentType is not null ? ContentTypeHelper.GetExtensionForMimeType(contentType) : null;
-            if (extension is not null)
+            if (ContentTypeHelper.GetExtensionForMimeType(contentType) is { Length: > 0 } extension)
             {
-                var extNoDot = extension.StartsWith('.') ? extension[1..] : extension;
                 Directory.CreateDirectory(imagesDir);
-                var imagePath = Path.Join(imagesDir, $"{imageId}.{extNoDot}");
+                var imagePath = Path.Join(imagesDir, $"{imageId}{extension}");
                 await using var fileStream = File.Create(imagePath);
                 await response.Content.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
 
