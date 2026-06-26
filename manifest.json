@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.327",
+      "tag": "v6.0.0-dev.327",
+      "commit": "da1acab5fd58e0aca0085ea8d3842e4fb10dd2cb",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.327/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-26T05:00:38Z",
+      "releaseNotes": "\n`fix`: **Add back semaphore to restrict the number of concurrent filtering runs**.\n\n`chore`: **Sort and remove unnecessary imports**.\n"
+    },
+    {
       "version": "6.0.0.326",
       "tag": "v6.0.0-dev.326",
       "commit": "68903c652b32bb314af388c92e54ae243be116be",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.298/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-18T19:01:06Z",
       "releaseNotes": "\n`feat`: **Also expose last series (data) updated at on group user data**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.58**.\n"
-    },
-    {
-      "version": "6.0.0.297",
-      "tag": "v6.0.0-dev.297",
-      "commit": "04399c5bab8af25953e721ed71e35d1077bb2aeb",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.297/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-18T07:50:14Z",
-      "releaseNotes": "\n`feat` (`api`): **Expose group user data on the user data service**:\n\nExposed `IGroupUserData` abstraction with watch stats (aggregated from\nseries), runtime-shimmed `LastEpisodeUpdatedAt`/`LastVideoUpdatedAt`\nfor ordering, and editable `UserTags`. Added service methods on\n`IUserDataService`, `GET/PUT/PATCH /api/v3/Group/{id}/UserData`\nendpoints, `GetUserData` on `IShokoGroup`, and SignalR events\n(`group.saved`). DB migrations add `UserTags` and `LastUpdated`\ncolumns to `AnimeGroup_User`.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.57**.\n"
     }
   ]
 }
