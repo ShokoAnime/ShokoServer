@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.328",
+      "tag": "v6.0.0-dev.328",
+      "commit": "c21936ebe7f834b97d773a81814f63e747224470",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.328/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-26T05:24:56Z",
+      "releaseNotes": "\n`misc`: **Improve Performance and Simplify Filtering a bit**.\n"
+    },
+    {
       "version": "6.0.0.327",
       "tag": "v6.0.0-dev.327",
       "commit": "da1acab5fd58e0aca0085ea8d3842e4fb10dd2cb",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.299/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-19T18:33:11Z",
       "releaseNotes": "\n`misc`: **Release Management Rewrite. Untested, Still WIP. Builds at least**.\n\n`misc`: **Updated logic for currently airing series with setting. Update docs**.\n\n`misc`: **Changes for Airing Series**.\n\n`misc`: **API work in preparation for UI and testing**.\n\n`misc`: **Update API for revised plans**.\n\n`refactor` (`release`): **Redesign release candidates with version strategies and gap-fill**:\n\nReplaced the quality-tier split in `SplitOnEpisodeCollisions` with a\nthree-phase candidate generation pipeline:\n\n**Phase 1 (FuzzyGroup)**: Removed the same-group short-circuit that was\ncausing different-resolution/source files from the same group to be\nincorrectly bucketed together.\n\n**Phase 2 (GenerateVersionStrategyCandidates)**: When the same episode is\ncovered by files at different version numbers, generates a `BestAvailable`\ncandidate (highest version per episode, non-corrupted tiebreaker) and a\n`Consistent(v)` candidate for each older version. Non-colliding files\nappear in every strategy candidate. Replaces the old \"all-or-nothing\"\ncollision check that either split everything or kept everything.\n\n**Phase 3 (GenerateGapFillCandidates)**: For each single-family candidate\nthat lacks episodes covered by another family, generates a combined\ncandidate using the first as anchor and the second to fill gaps.\nAnchors with fewer than 2 covered episodes are skipped. File-set\ndeduplication removes symmetric duplicates.\n\n**Mixed signals**: `IsChaptered`, `IsCensored`, and `IsCreditless` now use\nmajority-vote semantics with `Is*Mixed` flags instead of \"any-true\".\n`IsCorrupted` retains any-true semantics.\n\nNew fields on `VideoReleaseCandidate` and `ReleaseCandidate` DTO:\n- `VersionStrategy` (`BestAvailable` | `Consistent`)\n- `Version` (max version for BestAvailable, target version for Consistent)\n- `IsMixed` (true for gap-fill candidates spanning multiple families)\n- `SecondaryGroupNames` (filler group names in gap-fill candidates)\n- `IsChapteredMixed`, `IsCensoredMixed`, `IsCreditlessMixed`\n\n`ParseEpisode` in tests now sets `AnidbEpisodeID` so `BuildSignature`'s\nepisode-ID lookup (which filters zero values) works correctly in tests.\nUpdated two tests whose behavior changed and added three new tests\ncovering gap-fill, multiple-filler, and mixed-signal scenarios.\n\n`misc`: **More Work on Release Management**.\n\n`misc`: **Support Variations in Release Managemnt**.\n\n`misc`: **Updates for server side searching**.\n\n`misc`: **A lot of cleanup and rework to handle release providers. Add settings to Release Management**.\n\n`misc`: **Provide info in Release Candidates to Include Differences**.\n"
-    },
-    {
-      "version": "6.0.0.298",
-      "tag": "v6.0.0-dev.298",
-      "commit": "bd0e2247418be320a5e26aec46a10671e569a59a",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.298/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-18T19:01:06Z",
-      "releaseNotes": "\n`feat`: **Also expose last series (data) updated at on group user data**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.58**.\n"
     }
   ]
 }
