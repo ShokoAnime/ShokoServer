@@ -18,23 +18,27 @@ namespace Shoko.Server.API.v3.Helpers;
 
 public class FilterFactory
 {
-    private readonly Dictionary<string, Type> _expressionTypes;
-    private readonly Dictionary<string, Type> _sortingTypes;
+    private static readonly Dictionary<string, Type> s_expressionTypes;
+    private static readonly Dictionary<string, Type> s_sortingTypes;
     private readonly HttpContext _context;
     private readonly IFilteringEngine _evaluator;
+
+    static FilterFactory()
+    {
+        var allTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).ToList();
+        s_expressionTypes = allTypes
+            .Where(a => a != typeof(FilterExpression) && !a.IsGenericType && typeof(FilterExpression).IsAssignableFrom(a) &&
+                        !typeof(SortingExpression).IsAssignableFrom(a))
+            .ToDictionary(a => a.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector"));
+        s_sortingTypes = allTypes
+            .Where(a => a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType && typeof(SortingExpression).IsAssignableFrom(a))
+            .ToDictionary(a => a.Name.TrimEnd("SortingSelector"));
+    }
 
     public FilterFactory(IHttpContextAccessor context, IFilteringEngine evaluator)
     {
         _context = context.HttpContext;
         _evaluator = evaluator;
-
-        _expressionTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
-            .Where(a => a != typeof(FilterExpression) && !a.IsGenericType && typeof(FilterExpression).IsAssignableFrom(a) &&
-                        !typeof(SortingExpression).IsAssignableFrom(a)).ToDictionary(a => a.Name.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector"));
-
-        _sortingTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes())
-            .Where(a => a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType && typeof(SortingExpression).IsAssignableFrom(a))
-            .ToDictionary(a => a.Name.TrimEnd("SortingSelector"));
     }
 
     public Filter GetFilter(FilterPreset groupFilter, bool fullModel = false, bool includeEmpty = false)
@@ -188,7 +192,7 @@ public class FilterFactory
     public FilterExpression<T> GetExpressionTree<T>(Filter.FilterCondition condition)
     {
         if (condition is null) return null;
-        if (!_expressionTypes.TryGetValue(condition.Type.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim(), out var type))
+        if (!s_expressionTypes.TryGetValue(condition.Type.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim(), out var type))
             throw new ArgumentException($"FilterCondition type {condition.Type} was not found");
         var result = (FilterExpression<T>)Activator.CreateInstance(type);
 
@@ -299,7 +303,7 @@ public class FilterFactory
 
     public SortingExpression GetSortingCriteria(Filter.SortingCriteria criteria)
     {
-        if (!_sortingTypes.TryGetValue(criteria.Type, out var type))
+        if (!s_sortingTypes.TryGetValue(criteria.Type, out var type))
             throw new ArgumentException($"SortingExpression type {criteria.Type}Selector was not found");
         var result = (SortingExpression)Activator.CreateInstance(type)!;
         result.Descending = criteria.IsInverted;

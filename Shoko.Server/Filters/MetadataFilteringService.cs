@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +12,6 @@ using Shoko.Abstractions.User;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 
-#nullable enable
 namespace Shoko.Server.Filters;
 
 public class MetadataFilteringService(
@@ -322,7 +322,7 @@ public class MetadataFilteringService(
         var keyed = items.Select(item =>
         {
             var group = groupSelector(item);
-            return (item, filterable: group.ToFilterable(now), userInfo: user is null ? null : group.ToFilterableUserInfo(user.ID, now));
+            return (item, filterable: (IFilterableInfo)new FilterableAnimeGroup(group, now), userInfo: user is null ? null : (IFilterableUserInfo)new FilterableGroupUserInfo(group, user.ID, now));
         });
         var ordered = sort.Descending
             ? keyed.OrderByDescending(x =>

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,7 +12,6 @@ using Shoko.Abstractions.Filtering.Sorting.Selectors;
 using Shoko.Abstractions.User;
 using Shoko.Server.Repositories.Cached;
 
-#nullable enable
 namespace Shoko.Server.Filters;
 
 public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupRepository groupRepository, AnimeSeriesRepository seriesRepository) : IFilteringEngine
@@ -38,43 +38,47 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
             true when needsUser => seriesRepository.GetAll()
                 .AsParallel()
                 .Where(a => user!.IsAllowedToSee(a))
-                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now))),
+                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, new FilterableAnimeSeries(a, now), new FilterableSeriesUserInfo(a, user!.ID, now))),
             true => seriesRepository.GetAll()
                 .AsParallel()
                 .Where(a => user?.IsAllowedToSee(a) ?? true)
-                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now))),
+                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, new FilterableAnimeSeries(a, now))),
             false when needsUser =>
                 groupRepository.GetAll()
                     .AsParallel()
                     .Where(a => user!.IsAllowedToSee(a))
-                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now))),
+                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, new FilterableAnimeGroup(a, now), new FilterableGroupUserInfo(a, user!.ID, now))),
             false => groupRepository.GetAll()
                 .AsParallel()
                 .Where(a => user?.IsAllowedToSee(a) ?? true)
-                .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now))),
+                .Select(a => new FilterableWithID(0, a.AnimeGroupID, new FilterableAnimeGroup(a, now))),
         };
-        var filtered = filterable
-            .Where(a =>
+        var filtered = filterable.Where(a =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
             {
-                try
-                {
-                    return filter.Expression?.Evaluate(a.Filterable, a.UserInfo, now) ?? true;
-                }
-                catch (Exception e)
-                {
-                    logger.LogError(
-                        e,
-                        "There was an error while evaluating filter expression: {Expression} (GroupID={GroupID}, SeriesID={SeriesID})",
-                        filter.Expression,
-                        a.GroupID,
-                        a.SeriesID is 0 ? null : a.SeriesID
-                    );
-                    return false;
-                }
-            })
-            // This will give cancellation, and speed things up by not enforcing order
-            .AsUnordered()
-            .WithCancellation(cancellationToken);
+                return filter.Expression?.Evaluate(a.Filterable, a.UserInfo, now) ?? true;
+            }
+            // Don't log and rethrow OperationCanceledExceptions for the caller to handle.
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(
+                    e,
+                    "There was an error while evaluating filter expression: {Expression} (GroupID={GroupID}, SeriesID={SeriesID})",
+                    filter.Expression,
+                    a.GroupID,
+                    a.SeriesID is 0 ? null : a.SeriesID
+                );
+                return false;
+            }
+        }).AsUnordered().WithCancellation(cancellationToken);
+
+        cancellationToken.ThrowIfCancellationRequested();
         var sorted = skipSorting
             ? (IEnumerable<FilterableWithID>)filtered
             : OrderFilterable(filter, filtered, now);
@@ -137,20 +141,20 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
         var series = !hasSeries ? [] : seriesNeedsUser
             ? seriesRepository.GetAll()
                 .Where(a => user!.IsAllowedToSee(a))
-                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now)))
+                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, new FilterableAnimeSeries(a, now), new FilterableSeriesUserInfo(a, user!.ID, now)))
                 .ToArray()
             : seriesRepository.GetAll()
                 .Where(a => user?.IsAllowedToSee(a) ?? true)
-                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, a.ToFilterable(now)))
+                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, new FilterableAnimeSeries(a, now)))
                 .ToArray();
         var groups = !hasGroups ? [] : groupsNeedUser
             ? groupRepository.GetAll()
                 .Where(a => user!.IsAllowedToSee(a))
-                .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now), a.ToFilterableUserInfo(user!.ID, now)))
+                .Select(a => new FilterableWithID(0, a.AnimeGroupID, new FilterableAnimeGroup(a, now), new FilterableGroupUserInfo(a, user!.ID, now)))
                 .ToArray()
             : groupRepository.GetAll()
                 .Where(a => user?.IsAllowedToSee(a) ?? true)
-                .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now)))
+                .Select(a => new FilterableWithID(0, a.AnimeGroupID, new FilterableAnimeGroup(a, now)))
                 .ToArray();
         var results = new Dictionary<TFilter, Lazy<IReadOnlyList<TValue>>>();
         foreach (var filter in filters.Where(a => a is not IFilterPreset { IsDirectory: true }))
@@ -177,10 +181,8 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
                         );
                         return false;
                     }
-                })
-                // This will give cancellation, and speed things up by not enforcing order
-                .AsUnordered()
-                .WithCancellation(cancellationToken);
+                }).AsUnordered().WithCancellation(cancellationToken);
+
             var sorted = skipSorting
                 ? (IEnumerable<FilterableWithID>)filtered
                 : OrderFilterable(filter, filtered, now);
@@ -191,8 +193,6 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
             results[filter] = new(() =>
             {
                 capturedToken.ThrowIfCancellationRequested();
-
-                // Only allow executing up to two filters concurrently.
                 _filterSemaphore.Wait(capturedToken);
                 try
                 {
