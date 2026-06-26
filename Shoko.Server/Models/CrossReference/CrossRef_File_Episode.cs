@@ -126,12 +126,17 @@ public class CrossRef_File_Episode : IVideoCrossReference
     internal static int PercentageToFileCount(int percentage)
         => percentage switch
         {
-            100 => 1,
-            50 => 2,
-            34 => 3,
-            33 => 3,
-            25 => 4,
-            20 => 5,
+            // 100%
+            <= 100 and >= 90 => 1,
+            // 50%
+            <= 55 and >= 45 => 2,
+            // 33%
+            <= 36 and >= 30 => 3,
+            // 25%
+            <= 27 and >= 23 => 4,
+            // 20%
+            <= 22 and >= 18 => 5,
+            // below 20%
             17 => 6,
             16 => 6,
             15 => 7,
