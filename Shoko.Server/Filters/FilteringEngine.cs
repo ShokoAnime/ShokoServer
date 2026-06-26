@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,10 +11,13 @@ using Shoko.Abstractions.Filtering.Sorting.Selectors;
 using Shoko.Abstractions.User;
 using Shoko.Server.Repositories.Cached;
 
+#nullable enable
 namespace Shoko.Server.Filters;
 
 public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupRepository groupRepository, AnimeSeriesRepository seriesRepository) : IFilteringEngine
 {
+    private readonly SemaphoreSlim _filterSemaphore = new(2, 2);
+
     public IReadOnlyList<IGrouping<int, int>> EvaluateFilterWithGrouping(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default)
         => EvaluateFilterWithTuples(filter, user, time, skipSorting, cancellationToken).GroupBy(a => a.GroupID, a => a.SeriesID).ToArray();
 
@@ -51,34 +53,28 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
                 .Where(a => user?.IsAllowedToSee(a) ?? true)
                 .Select(a => new FilterableWithID(0, a.AnimeGroupID, a.ToFilterable(now))),
         };
-        var filtered = filterable.Where(a =>
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
+        var filtered = filterable
+            .Where(a =>
             {
-                return filter.Expression?.Evaluate(a.Filterable, a.UserInfo, now) ?? true;
-            }
-            // Don't log and rethrow OperationCanceledExceptions for the caller to handle.
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception e)
-            {
-                logger.LogError(
-                    e,
-                    "There was an error while evaluating filter expression: {Expression} (GroupID={GroupID}, SeriesID={SeriesID})",
-                    filter.Expression,
-                    a.GroupID,
-                    a.SeriesID is 0 ? null : a.SeriesID
-                );
-                return false;
-            }
-        })
-            // This will limit concurrency, give cancellation, and speed things up by not enforcing order
-            .WithDegreeOfParallelism(4).AsUnordered().WithCancellation(cancellationToken);
-
-        cancellationToken.ThrowIfCancellationRequested();
+                try
+                {
+                    return filter.Expression?.Evaluate(a.Filterable, a.UserInfo, now) ?? true;
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(
+                        e,
+                        "There was an error while evaluating filter expression: {Expression} (GroupID={GroupID}, SeriesID={SeriesID})",
+                        filter.Expression,
+                        a.GroupID,
+                        a.SeriesID is 0 ? null : a.SeriesID
+                    );
+                    return false;
+                }
+            })
+            // This will give cancellation, and speed things up by not enforcing order
+            .AsUnordered()
+            .WithCancellation(cancellationToken);
         var sorted = skipSorting
             ? (IEnumerable<FilterableWithID>)filtered
             : OrderFilterable(filter, filtered, now);
@@ -87,7 +83,17 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
             : sorted.SelectMany(a => seriesRepository.GetByGroupID(a.GroupID).Select(ser => (a.GroupID, ser.AnimeSeriesID)));
 
         cancellationToken.ThrowIfCancellationRequested();
-        return result.ToArray();
+
+        // Only allow executing up to two filters concurrently.
+        _filterSemaphore.Wait(cancellationToken);
+        try
+        {
+            return result.ToArray();
+        }
+        finally
+        {
+            _filterSemaphore.Release();
+        }
     }
 
     public IReadOnlyDictionary<TFilter, IReadOnlyList<(int GroupID, int SeriesID)>> BatchPrepareFiltersWithTuples<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default) where TFilter : IFilter
@@ -172,9 +178,9 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
                         return false;
                     }
                 })
-                    // This will limit concurrency, give cancellation, and speed things up by not enforcing order
-                    .WithDegreeOfParallelism(4).AsUnordered().WithCancellation(cancellationToken);
-
+                // This will give cancellation, and speed things up by not enforcing order
+                .AsUnordered()
+                .WithCancellation(cancellationToken);
             var sorted = skipSorting
                 ? (IEnumerable<FilterableWithID>)filtered
                 : OrderFilterable(filter, filtered, now);
@@ -185,7 +191,17 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
             results[filter] = new(() =>
             {
                 capturedToken.ThrowIfCancellationRequested();
-                return convert(result).ToArray();
+
+                // Only allow executing up to two filters concurrently.
+                _filterSemaphore.Wait(capturedToken);
+                try
+                {
+                    return convert(result).ToArray();
+                }
+                finally
+                {
+                    _filterSemaphore.Release();
+                }
             });
         }
 
