@@ -22,7 +22,7 @@ public class VideoReleaseGroupingTests
 {
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private static readonly VideoReleaseGroupingService _grouper = new(null!, null!);
+    private static readonly VideoReleaseGroupingService _grouper = new(null!, null!, null!);
 
     private static IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<ResolvedVideoPlace> places)
         => _grouper.Group(places);
@@ -107,8 +107,6 @@ public class VideoReleaseGroupingTests
         };
         var ecr = new EmbeddedCrossReference
         {
-            EpisodeType = type,
-            EpisodeNumber = number,
             PercentageStart = 0,
             PercentageEnd = 100,
         };

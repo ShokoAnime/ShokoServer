@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
@@ -26,7 +27,6 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-
 using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
 
 #pragma warning disable CS0618
@@ -61,7 +61,17 @@ public class AniDB_Anime : IAnidbAnime
 
     public string AllTitles { get; set; } = string.Empty;
 
-    public string AllTags { get; set; } = string.Empty;
+    private static int _tagGeneration;
+
+    internal static int TagGeneration => Volatile.Read(ref _tagGeneration);
+
+    private string _allTags = string.Empty;
+
+    public string AllTags
+    {
+        get => _allTags;
+        set { _allTags = value; _allTagsCache = null; Interlocked.Increment(ref _tagGeneration); }
+    }
 
     public string Description { get; set; } = string.Empty;
 
@@ -211,6 +221,17 @@ public class AniDB_Anime : IAnidbAnime
 
     public List<AniDB_Anime_Tag> AnimeTags
         => RepoFactory.AniDB_Anime_Tag.GetByAnimeID(AnimeID);
+
+    private HashSet<string>? _allTagsCache;
+
+    public HashSet<string> GetAllTagsSet()
+    {
+        if (_allTagsCache is { } cached) return cached;
+        var tags = string.IsNullOrEmpty(AllTags)
+            ? new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
+            : new HashSet<string>(AllTags.Split('|', StringSplitOptions.RemoveEmptyEntries), StringComparer.InvariantCultureIgnoreCase);
+        return Interlocked.CompareExchange(ref _allTagsCache, tags, null) ?? tags;
+    }
 
     public List<AniDB_Tag> Tags
         => GetAniDBTags();

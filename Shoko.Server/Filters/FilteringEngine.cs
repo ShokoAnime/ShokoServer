@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,13 +12,10 @@ using Shoko.Abstractions.Filtering.Sorting.Selectors;
 using Shoko.Abstractions.User;
 using Shoko.Server.Repositories.Cached;
 
-#nullable enable
 namespace Shoko.Server.Filters;
 
 public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupRepository groupRepository, AnimeSeriesRepository seriesRepository) : IFilteringEngine
 {
-    private readonly SemaphoreSlim _filterSemaphore = new(2, 2);
-
     public IReadOnlyList<IGrouping<int, int>> EvaluateFilterWithGrouping(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default)
         => EvaluateFilterWithTuples(filter, user, time, skipSorting, cancellationToken).GroupBy(a => a.GroupID, a => a.SeriesID).ToArray();
 
@@ -76,7 +74,11 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
                 );
                 return false;
             }
-        });
+        })
+            // This will limit concurrency, give cancellation, and speed things up by not enforcing order
+            .WithDegreeOfParallelism(4).AsUnordered().WithCancellation(cancellationToken);
+
+        cancellationToken.ThrowIfCancellationRequested();
         var sorted = skipSorting
             ? (IEnumerable<FilterableWithID>)filtered
             : OrderFilterable(filter, filtered, now);
@@ -85,17 +87,7 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
             : sorted.SelectMany(a => seriesRepository.GetByGroupID(a.GroupID).Select(ser => (a.GroupID, ser.AnimeSeriesID)));
 
         cancellationToken.ThrowIfCancellationRequested();
-
-        // Only allow executing up to two filters concurrently.
-        _filterSemaphore.Wait(cancellationToken);
-        try
-        {
-            return result.ToArray();
-        }
-        finally
-        {
-            _filterSemaphore.Release();
-        }
+        return result.ToArray();
     }
 
     public IReadOnlyDictionary<TFilter, IReadOnlyList<(int GroupID, int SeriesID)>> BatchPrepareFiltersWithTuples<TFilter>(IReadOnlyList<TFilter> filters, IUser? user, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default) where TFilter : IFilter
@@ -179,7 +171,10 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
                         );
                         return false;
                     }
-                });
+                })
+                    // This will limit concurrency, give cancellation, and speed things up by not enforcing order
+                    .WithDegreeOfParallelism(4).AsUnordered().WithCancellation(cancellationToken);
+
             var sorted = skipSorting
                 ? (IEnumerable<FilterableWithID>)filtered
                 : OrderFilterable(filter, filtered, now);
@@ -190,15 +185,7 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
             results[filter] = new(() =>
             {
                 capturedToken.ThrowIfCancellationRequested();
-                _filterSemaphore.Wait(capturedToken);
-                try
-                {
-                    return convert(result).ToArray();
-                }
-                finally
-                {
-                    _filterSemaphore.Release();
-                }
+                return convert(result).ToArray();
             });
         }
 

@@ -23,21 +23,6 @@ public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatu
         });
     }
 
-    public ILookup<int, AniDB_GroupStatus> GetByAnimeIDs(IReadOnlyCollection<int> animeIDs)
-    {
-        if (animeIDs.Count == 0)
-            return Enumerable.Empty<AniDB_GroupStatus>().ToLookup(a => a.AnimeID);
-
-        var results = Lock(() =>
-        {
-            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
-            return session.Query<AniDB_GroupStatus>()
-                .Where(a => animeIDs.Contains(a.AnimeID))
-                .ToList();
-        });
-        return results.ToLookup(a => a.AnimeID);
-    }
-
     public void DeleteForAnime(int animeid)
     {
         Lock(() =>

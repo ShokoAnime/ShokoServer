@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Security.Principal;
+using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
@@ -37,7 +38,13 @@ public class JMMUser : IIdentity, IUser
 
     public int IsAniDBUser { get; set; }
 
-    public string? HideCategories { get; set; }
+    private string? _hideCategories;
+
+    public string? HideCategories
+    {
+        get => _hideCategories;
+        set { _hideCategories = value; _hideCategoriesCache = null; _forbiddenAnimeCache = null; }
+    }
 
     public int? CanEditServerSettings { get; set; }
 
@@ -75,7 +82,7 @@ public class JMMUser : IIdentity, IUser
         if (GetHideCategories().Count == 0) return true;
         var anime = shokoSeries.AniDB_Anime;
         if (anime == null) return false;
-        return !GetHideCategories().FindInEnumerable(anime.Tags.Select(a => a.TagName));
+        return !GetForbiddenAnimeIds().Contains(anime.AnimeID);
     }
 
     /// <inheritdoc/>
@@ -84,7 +91,7 @@ public class JMMUser : IIdentity, IUser
         if (anime is not AniDB_Anime anidbAnime)
             throw new ArgumentException("Expected AniDB_Anime", nameof(anime));
         if (GetHideCategories().Count == 0) return true;
-        return !GetHideCategories().FindInEnumerable(anidbAnime.Tags.Select(a => a.TagName));
+        return !GetForbiddenAnimeIds().Contains(anidbAnime.AnimeID);
     }
 
     /// <inheritdoc/>
@@ -93,7 +100,8 @@ public class JMMUser : IIdentity, IUser
         if (grp is not AnimeGroup shokoGroup)
             throw new ArgumentException("Expected AnimeGroup", nameof(grp));
         if (GetHideCategories().Count == 0) return true;
-        return !GetHideCategories().FindInEnumerable(shokoGroup.Tags.Select(a => a.TagName));
+        var forbidden = GetForbiddenAnimeIds();
+        return !shokoGroup.AllSeries.Any(s => forbidden.Contains(s.AniDB_ID));
     }
 
     /// <summary>
@@ -104,7 +112,7 @@ public class JMMUser : IIdentity, IUser
         if (GetHideCategories().Count == 0) return true;
         var anime = ser?.AniDB_Anime;
         if (anime == null) return false;
-        return !GetHideCategories().FindInEnumerable(anime.Tags.Select(a => a.TagName));
+        return !GetForbiddenAnimeIds().Contains(anime.AnimeID);
     }
 
     /// <summary>
@@ -113,13 +121,14 @@ public class JMMUser : IIdentity, IUser
     public bool AllowedAnime(AniDB_Anime anime)
     {
         if (GetHideCategories().Count == 0) return true;
-        return !GetHideCategories().FindInEnumerable(anime.Tags.Select(a => a.TagName));
+        return !GetForbiddenAnimeIds().Contains(anime.AnimeID);
     }
 
     public bool AllowedGroup(AnimeGroup grp)
     {
         if (GetHideCategories().Count == 0) return true;
-        return !GetHideCategories().FindInEnumerable(grp.Tags.Select(a => a.TagName));
+        var forbidden = GetForbiddenAnimeIds();
+        return !grp.AllSeries.Any(s => forbidden.Contains(s.AniDB_ID));
     }
 
     public bool AllowedTag(AniDB_Tag tag)
@@ -127,11 +136,44 @@ public class JMMUser : IIdentity, IUser
         return !GetHideCategories().Contains(tag.TagName);
     }
 
+    [NotMapped]
+    private HashSet<string>? _hideCategoriesCache;
+
+    private sealed class ForbiddenAnimeCache(int generation, HashSet<int> ids)
+    {
+        public int Generation { get; } = generation;
+        public HashSet<int> Ids { get; } = ids;
+    }
+
+    [NotMapped]
+    private volatile ForbiddenAnimeCache? _forbiddenAnimeCache;
+
     public HashSet<string> GetHideCategories()
     {
-        if (string.IsNullOrEmpty(HideCategories)) return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-        return new HashSet<string>(HideCategories.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-            StringComparer.InvariantCultureIgnoreCase);
+        if (_hideCategoriesCache is { } cached) return cached;
+        var categories = string.IsNullOrEmpty(HideCategories)
+            ? new HashSet<string>(StringComparer.InvariantCultureIgnoreCase)
+            : new HashSet<string>(HideCategories.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                StringComparer.InvariantCultureIgnoreCase);
+        return Interlocked.CompareExchange(ref _hideCategoriesCache, categories, null) ?? categories;
+    }
+
+    private HashSet<int> GetForbiddenAnimeIds()
+    {
+        var currentGeneration = AniDB_Anime.TagGeneration;
+        var cached = _forbiddenAnimeCache;
+        if (cached?.Generation == currentGeneration)
+            return cached.Ids;
+
+        var hidden = GetHideCategories();
+        var forbidden = hidden.Count == 0
+            ? []
+            : RepoFactory.AniDB_Anime.GetAll()
+                .Where(a => hidden.Overlaps(a.GetAllTagsSet()))
+                .Select(a => a.AnimeID)
+                .ToHashSet();
+        _forbiddenAnimeCache = new ForbiddenAnimeCache(currentGeneration, forbidden);
+        return forbidden;
     }
 
     public List<AniDB_Tag> GetHideTags()

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +7,6 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Extensions;
 
 public static class Models
@@ -152,10 +152,7 @@ public static class Models
     }
 
     public static HashSet<string> GetAllTags(this AniDB_Anime anime)
-    {
-        if (string.IsNullOrEmpty(anime.AllTags)) return new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
-        return new HashSet<string>(anime.AllTags.Split('|', StringSplitOptions.RemoveEmptyEntries), StringComparer.InvariantCultureIgnoreCase);
-    }
+        => anime.GetAllTagsSet();
 
     public static HashSet<string> GetAllTitles(this AniDB_Anime anime)
     {
