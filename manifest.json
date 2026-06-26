@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.325",
+      "tag": "v6.0.0-dev.325",
+      "commit": "41ebb2f9a38a0cac9cd7212d34e1fc327e86722f",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.325/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-26T03:53:14Z",
+      "releaseNotes": "\n`chore`: **Remove legacy `FileName` field from file↔episode cross-reference**.\n\n`fix`: **More forgiving xref percentage groupings**.\n"
+    },
+    {
       "version": "6.0.0.324",
       "tag": "v6.0.0-dev.324",
       "commit": "f9e0aea5fe53ad00c66fe09c2556fded090f18de",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.296/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-18T06:50:20Z",
       "releaseNotes": "\n`fix` (`abstractions`): **Restore lost fuzzy match filter expressions**:\n\nRecreated `StringFuzzyMatchesExpression` and `AnyFuzzyMatchesExpression`\nin `Shoko.Abstractions` following the same pattern as the existing\n`HasFuzzyNameExpression` - using `IFuzzySearchService` via static\nresolution from `ISystemService.StaticServices`. These were accidentally\ndropped during the refactor move to abstractions in 0f9d9df.\n"
-    },
-    {
-      "version": "6.0.0.295",
-      "tag": "v6.0.0-dev.295",
-      "commit": "dc486893c178c3120410bc76df18c545a0489cf8",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.295/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-18T05:48:11Z",
-      "releaseNotes": "\n`chore`: **Sort imports & remove unnecessary imports**. (_Skip CI_)\n\n`misc`: **Better Fuzzy Search**.\n"
     }
   ]
 }
