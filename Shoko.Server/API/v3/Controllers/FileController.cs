@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.AspNetCore.StaticFiles;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.User.Enums;
