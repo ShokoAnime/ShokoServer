@@ -16,7 +16,6 @@ public class CrossRef_File_EpisodeMap : ClassMap<CrossRef_File_Episode>
         Map(x => x.EpisodeOrder).Not.Nullable();
         Map(x => x.Hash).Not.Nullable();
         Map(x => x.Percentage).Not.Nullable();
-        Map(x => x.FileName).Not.Nullable();
         Map(x => x.FileSize).Not.Nullable();
         Map(x => x.AnimeID).Not.Nullable();
     }

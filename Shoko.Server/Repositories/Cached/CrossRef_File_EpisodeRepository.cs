@@ -22,8 +22,6 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
 
     private PocoIndex<int, CrossRef_File_Episode, int>? _anidbEpisodeIDs;
 
-    private PocoIndex<int, CrossRef_File_Episode, (string FileName, long FileSize)>? _fileNames;
-
     public CrossRef_File_EpisodeRepository(ILogger<CrossRef_File_EpisodeRepository> logger, IServiceProvider serviceProvider, DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         EndSaveCallback = obj =>
@@ -49,7 +47,6 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
         _ed2k = Cache.CreateIndex(a => a.Hash);
         _anidbAnimeIDs = Cache.CreateIndex(a => a.AnimeID);
         _anidbEpisodeIDs = Cache.CreateIndex(a => a.EpisodeID);
-        _fileNames = Cache.CreateIndex(a => (a.FileName, a.FileSize));
     }
 
     public IReadOnlyList<CrossRef_File_Episode> GetByEd2k(string ed2k)
@@ -57,9 +54,6 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
 
     public IReadOnlyList<CrossRef_File_Episode> GetByAnimeID(int animeID)
         => ReadLock(() => _anidbAnimeIDs!.GetMultiple(animeID));
-
-    public IReadOnlyList<CrossRef_File_Episode> GetByFileNameAndSize(string fileName, long fileSize)
-        => ReadLock(() => _fileNames!.GetMultiple((fileName, fileSize)));
 
     public IReadOnlyList<CrossRef_File_Episode> GetByEpisodeID(int episodeID)
         => ReadLock(() => _anidbEpisodeIDs!.GetMultiple(episodeID));

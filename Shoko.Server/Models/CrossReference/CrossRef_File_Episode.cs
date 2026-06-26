@@ -35,8 +35,6 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
     public string Hash { get; set; } = string.Empty;
 
-    public string FileName { get; set; } = string.Empty;
-
     public long FileSize { get; set; }
 
     public int AnimeID { get; set; }

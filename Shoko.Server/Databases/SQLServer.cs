@@ -1017,6 +1017,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
                      FROM StoredReleaseInfo sri
                      WHERE sri.CrossReferences LIKE '%AnidbEpisodeID%'
                      """),
+        new(173,  1, "ALTER TABLE CrossRef_File_Episode DROP COLUMN FileName;"),
     ];
 
     #endregion

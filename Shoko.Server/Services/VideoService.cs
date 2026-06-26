@@ -493,12 +493,7 @@ public class VideoService : IVideoService
                     }
 
                     var fileName = Path.GetFileName(resolvedPath);
-                    if (TryGetVideoFromCrossReferenceTable(fileName, fileSize, out var otherVideo))
-                    {
-                        _logger.LogTrace("Found video for file name and size through CrossRef_File_Episode table: {ResolvedPath} (Hash={Hash},Size={Size})", resolvedPath, otherVideo.Hash, fileSize);
-                        video = otherVideo;
-                    }
-                    else if (TryGetVideoFromFileNameHashTable(fileName, fileSize, out otherVideo))
+                    if (TryGetVideoFromFileNameHashTable(fileName, fileSize, out var otherVideo))
                     {
                         _logger.LogTrace("Found video for file name and size through FileNameHash table: {ResolvedPath} (Hash={Hash},Size={Size})", resolvedPath, otherVideo.Hash, fileSize);
                         video = otherVideo;
@@ -516,19 +511,6 @@ public class VideoService : IVideoService
         }
 
         return true;
-    }
-
-    private bool TryGetVideoFromCrossReferenceTable(string filename, long fileSize, [NotNullWhen(true)] out VideoLocal? video)
-    {
-        var xrefs = _crossRefRepository.GetByFileNameAndSize(filename, fileSize);
-        if (xrefs.Count == 0)
-        {
-            video = null;
-            return false;
-        }
-
-        video = _videoLocalRepository.GetByEd2kAndSize(xrefs[0].Hash, fileSize);
-        return video is not null;
     }
 
     private bool TryGetVideoFromFileNameHashTable(string filename, long fileSize, [NotNullWhen(true)] out VideoLocal? video)

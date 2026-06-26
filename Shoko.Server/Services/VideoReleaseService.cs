@@ -876,7 +876,6 @@ public class VideoReleaseService(
                     EpisodeID = episodeID,
                     Percentage = xref.PercentageEnd - xref.PercentageStart,
                     EpisodeOrder = legacyOrder++,
-                    FileName = fileName,
                     FileSize = video.Size,
                 });
             }
