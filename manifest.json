@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.326",
+      "tag": "v6.0.0-dev.326",
+      "commit": "68903c652b32bb314af388c92e54ae243be116be",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.326/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-26T04:43:54Z",
+      "releaseNotes": "\n`misc`: **Missing Files and Performance Improvements**.\n"
+    },
+    {
       "version": "6.0.0.325",
       "tag": "v6.0.0-dev.325",
       "commit": "41ebb2f9a38a0cac9cd7212d34e1fc327e86722f",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.297/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-18T07:50:14Z",
       "releaseNotes": "\n`feat` (`api`): **Expose group user data on the user data service**:\n\nExposed `IGroupUserData` abstraction with watch stats (aggregated from\nseries), runtime-shimmed `LastEpisodeUpdatedAt`/`LastVideoUpdatedAt`\nfor ordering, and editable `UserTags`. Added service methods on\n`IUserDataService`, `GET/PUT/PATCH /api/v3/Group/{id}/UserData`\nendpoints, `GetUserData` on `IShokoGroup`, and SignalR events\n(`group.saved`). DB migrations add `UserTags` and `LastUpdated`\ncolumns to `AnimeGroup_User`.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.57**.\n"
-    },
-    {
-      "version": "6.0.0.296",
-      "tag": "v6.0.0-dev.296",
-      "commit": "1261444a78cd7e8969b6d8049561cb4adea1bb81",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.296/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-18T06:50:20Z",
-      "releaseNotes": "\n`fix` (`abstractions`): **Restore lost fuzzy match filter expressions**:\n\nRecreated `StringFuzzyMatchesExpression` and `AnyFuzzyMatchesExpression`\nin `Shoko.Abstractions` following the same pattern as the existing\n`HasFuzzyNameExpression` - using `IFuzzySearchService` via static\nresolution from `ISystemService.StaticServices`. These were accidentally\ndropped during the refactor move to abstractions in 0f9d9df.\n"
     }
   ]
 }
