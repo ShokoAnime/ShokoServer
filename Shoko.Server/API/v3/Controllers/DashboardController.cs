@@ -168,8 +168,8 @@ public class DashboardController(
             return watchedNormalCount >= totalWatchableNormalEpisodes;
         });
 
-        var missingEpisodes = _animeEpisodes.GetMissingForSeries(false, allSeries).Count();
-        var missingEpisodesCollecting = _animeEpisodes.GetMissingForSeries(true, allSeries).Count();
+        var missingEpisodes = allSeries.Sum(s => s.MissingEpisodeCount);
+        var missingEpisodesCollecting = allSeries.Sum(s => s.MissingEpisodeCountGroups);
         var duplicateFiles = places.GroupBy(p => p.VideoID).Count(g => g.Count() > 1);
         var seriesWithMissingLinks = allSeries.Count(series =>
         {

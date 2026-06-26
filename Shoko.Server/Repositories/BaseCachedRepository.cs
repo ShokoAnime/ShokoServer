@@ -22,14 +22,10 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 {
     private readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.SupportsRecursion);
 
-    private readonly SemaphoreSlim _asyncLock = new(1, 1);
-
     protected readonly DatabaseFactory _databaseFactory;
 
-    private SystemService _systemService;
-
     // A hack to not have to pass the system service to every cached repository.
-    protected SystemService SystemService => _systemService ??= ISystemService.StaticServices.GetRequiredService<SystemService>();
+    protected SystemService SystemService => field ??= ISystemService.StaticServices.GetRequiredService<SystemService>();
 
     public PocoCache<S, T> Cache;
 
@@ -243,11 +239,9 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             using var session = _databaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
             session.SaveOrUpdate(obj);
+            SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
             transaction.Commit();
         });
-
-        using var session = _databaseFactory.SessionFactory.OpenSession();
-        SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
 
         WriteLock(() => UpdateCacheUnsafe(obj));
 
@@ -270,20 +264,14 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         {
             using var session = _databaseFactory.SessionFactory.OpenSession();
             using var transaction = session.BeginTransaction();
+            var wrapper = session.Wrap();
             foreach (var obj in objs)
             {
                 session.SaveOrUpdate(obj);
+                SaveWithOpenTransactionCallback?.Invoke(wrapper, obj);
             }
             transaction.Commit();
         });
-
-        using (var session = _databaseFactory.SessionFactory.OpenSession())
-        {
-            foreach (var obj in objs)
-            {
-                SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
-            }
-        }
 
         WriteLock(
             () =>
@@ -419,31 +407,9 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         }
     }
 
-    protected async Task Lock(Func<Task> action)
-    {
-        await _asyncLock.WaitAsync();
-        try
-        {
-            await action();
-        }
-        finally
-        {
-            _asyncLock.Release();
-        }
-    }
+    protected static async Task Lock(Func<Task> action) => await action();
 
-    protected async Task<T5> Lock<T5>(Func<Task<T5>> action)
-    {
-        await _asyncLock.WaitAsync();
-        try
-        {
-            return await action();
-        }
-        finally
-        {
-            _asyncLock.Release();
-        }
-    }
+    protected static async Task<T5> Lock<T5>(Func<Task<T5>> action) => await action();
 
     #region Unsafe
 

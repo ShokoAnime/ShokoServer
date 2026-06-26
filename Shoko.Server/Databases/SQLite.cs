@@ -174,6 +174,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         ConnectionWrapper(GetConnectionString(), myConn =>
         {
             Execute(myConn, "PRAGMA encoding = \"UTF-16\"");
+            Execute(myConn, "PRAGMA journal_mode=WAL");
             var create =
                 ExecuteScalar(myConn, "SELECT count(*) as NumTables FROM sqlite_master WHERE name='Versions'") == 0;
             if (create)

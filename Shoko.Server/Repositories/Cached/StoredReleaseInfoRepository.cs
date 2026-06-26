@@ -1,16 +1,37 @@
+#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using NutzCode.InMemoryIndex;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Release;
+using Shoko.Server.Scheduling.Jobs.Actions;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
-public class StoredReleaseInfoRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<StoredReleaseInfo, int>(databaseFactory)
+public class StoredReleaseInfoRepository : BaseCachedRepository<StoredReleaseInfo, int>
 {
+    private IQueueScheduler? _scheduler;
+
+    public StoredReleaseInfoRepository(DatabaseFactory databaseFactory, IServiceProvider serviceProvider) : base(databaseFactory)
+    {
+        EndSaveCallback = obj =>
+        {
+            _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
+            foreach (var animeID in obj.CrossReferences.Select(x => x.AnidbAnimeID).WhereNotNull().Distinct())
+                _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = animeID).GetAwaiter().GetResult();
+        };
+        EndDeleteCallback = obj =>
+        {
+            _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
+            foreach (var animeID in obj.CrossReferences.Select(x => x.AnidbAnimeID).WhereNotNull().Distinct())
+                _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = animeID).GetAwaiter().GetResult();
+        };
+    }
     private PocoIndex<int, StoredReleaseInfo, string>? _ed2k;
     private PocoIndex<int, StoredReleaseInfo, (string groupId, string source)>? _groupIDs;
     private PocoIndex<int, StoredReleaseInfo, string?>? _releaseURIs;

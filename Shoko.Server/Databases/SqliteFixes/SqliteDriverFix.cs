@@ -25,8 +25,7 @@ public class SqliteDriverFix : MsSQLiteDriver
 
         var connection = (DbConnection)sender;
         using var command = connection.CreateCommand();
-        // Activated foreign keys if supported by SQLite.  Unknown pragmas are ignored.
-        command.CommandText = "PRAGMA journal_mode=WAL;";
+        command.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000;";
         command.ExecuteNonQuery();
     }
 }

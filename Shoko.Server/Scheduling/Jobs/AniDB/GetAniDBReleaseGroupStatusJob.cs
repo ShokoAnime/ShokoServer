@@ -9,7 +9,6 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
@@ -32,7 +31,6 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
 {
     private readonly AniDBTitleHelper _titleHelper;
     private readonly IRequestFactory _requestFactory;
-    private readonly IQueueScheduler _scheduler;
     private readonly IAnidbService _anidbService;
     private readonly ISettingsProvider _settingsProvider;
     private AniDB_Anime _anime;
@@ -104,6 +102,7 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
             }
         ).ToArray();
         _anidbGroupStatuses.Save(toSave);
+        await _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(a => a.AnimeID = AnimeID).ConfigureAwait(false);
 
         var settings = _settingsProvider.GetSettings();
         if (maxEpisode > 0)
@@ -122,9 +121,6 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
                     refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
                 await _anidbService.ScheduleRefreshOfAnimeByID(AnimeID, refreshMethod).ConfigureAwait(false);
             }
-
-            // update the missing episode stats on groups and children
-            await _scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = series.AniDB_ID);
         }
     }
 
@@ -156,11 +152,13 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
         return grpStatuses is { Count: > 0 };
     }
 
+    private readonly IQueueScheduler _scheduler;
     private readonly AniDB_AnimeRepository _anidbAnimes;
     private readonly AniDB_EpisodeRepository _anidbEpisodes;
     private readonly AniDB_GroupStatusRepository _anidbGroupStatuses;
     private readonly AnimeSeriesRepository _animeSeries;
-    public GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper,
+    public GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper,
+        IQueueScheduler scheduler,
         AniDB_AnimeRepository anidbAnimes,
         AniDB_EpisodeRepository anidbEpisodes,
         AniDB_GroupStatusRepository anidbGroupStatuses,
@@ -168,10 +166,10 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
     )
     {
         _requestFactory = requestFactory;
-        _scheduler = schedulerFactory;
         _anidbService = anidbService;
         _settingsProvider = settingsProvider;
         _titleHelper = titleHelper;
+        _scheduler = scheduler;
         _anidbAnimes = anidbAnimes;
         _anidbEpisodes = anidbEpisodes;
         _anidbGroupStatuses = anidbGroupStatuses;
