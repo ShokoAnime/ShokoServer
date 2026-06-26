@@ -29,6 +29,7 @@ public class DashboardController(
     ISettingsProvider settingsProvider,
     AnimeSeriesService _seriesService,
     AnimeSeries_UserRepository _seriesUser,
+    AnimeEpisode_UserRepository _animeEpisodeUser,
     VideoLocal_UserRepository _vlUsers,
     AniDB_AnimeRepository _anidbAnimes,
     AniDB_Anime_TagRepository _anidbAnimeTags,
@@ -39,7 +40,8 @@ public class DashboardController(
     CrossRef_AniDB_TMDB_MovieRepository _crossRefAnidbTmdbMovies,
     CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows,
     CrossRef_File_EpisodeRepository _crossRefFileEpisodes,
-    VideoLocalRepository _videoLocals
+    VideoLocalRepository _videoLocals,
+    VideoLocal_PlaceRepository _videoLocalPlaces
 ) : BaseController(settingsProvider)
 {
     /// <summary>
@@ -49,87 +51,144 @@ public class DashboardController(
     [HttpGet("Stats")]
     public Dashboard.CollectionStats GetStats()
     {
+        var userId = User.JMMUserID;
+
+        // Allowed series and their identifiers.
         var allSeries = _animeSeries.GetAll()
-            .Where(a => User.AllowedSeries(a))
+            .Where(User.AllowedSeries)
             .ToList();
-        var groupCount = allSeries
-            .DistinctBy(a => a.AnimeGroupID)
-            .Count();
-        var episodeDict = allSeries
-            .ToDictionary(s => s, s => s.AllAnimeEpisodes);
-        var episodes = episodeDict.Values
-            .SelectMany(episodeList => episodeList)
+        var allowedAnimeIDs = allSeries.Select(s => s.AniDB_ID).ToHashSet();
+        var allowedSeriesIDs = allSeries.Select(s => s.AnimeSeriesID).ToHashSet();
+        var groupCount = allSeries.DistinctBy(a => a.AnimeGroupID).Count();
+
+        // All cross-refs once — split into per-series subset and full hash set for unrecognized detection.
+        var allCrossRefs = _crossRefFileEpisodes.GetAll();
+        var allCrossRefHashes = allCrossRefs.Select(x => x.Hash).ToHashSet();
+        var crossRefs = allCrossRefs.Where(xref => allowedAnimeIDs.Contains(xref.AnimeID)).ToList();
+
+        // Build hash → VideoLocal from a single GetAll() instead of one ReadLock per distinct hash.
+        var allowedHashes = crossRefs.Select(x => x.Hash).ToHashSet();
+        var allVideoLocals = _videoLocals.GetAll();
+        var fileByHash = allVideoLocals
+            .Where(f => !string.IsNullOrEmpty(f.Hash) && allowedHashes.Contains(f.Hash))
+            .GroupBy(f => f.Hash)
+            .ToDictionary(g => g.Key, g => g.First());
+        var totalFileSize = fileByHash.Values.Sum(f => f.FileSize);
+
+        // Unrecognized files — computed from already-loaded data, avoiding GetVideosWithoutEpisodeUnsorted()
+        // which would call CrossRef_File_Episode.GetByEd2k() (ReadLock) for every video local.
+        var unrecognizedFiles = allVideoLocals.Count(f => !f.IsIgnored && !string.IsNullOrEmpty(f.Hash) && !allCrossRefHashes.Contains(f.Hash));
+
+        // Places — one GetAll() + filter instead of one ReadLock per file via VideoLocal.Places.
+        var collectionFileIds = fileByHash.Values.Select(f => f.VideoLocalID).ToHashSet();
+        var places = _videoLocalPlaces.GetAll()
+            .Where(p => collectionFileIds.Contains(p.VideoID))
             .ToList();
-        var files = episodes
-            .SelectMany(a => a.VideoLocals)
-            .DistinctBy(a => a.VideoLocalID)
+
+        // Episodes with >1 distinct non-variation file, and the duplicate-files percentage denominator.
+        var episodeFileCounts = crossRefs
+            .Where(xref => fileByHash.TryGetValue(xref.Hash, out var f) && !f.IsVariation)
+            .GroupBy(xref => xref.EpisodeID)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Hash).Distinct().Count());
+        var multipleEpisodes = episodeFileCounts.Values.Count(c => c > 1);
+        var duplicates = multipleEpisodes;
+        var percentDuplicates = places.Count == 0
+            ? 0
+            : Math.Round((decimal)duplicates * 100 / places.Count, 2, MidpointRounding.AwayFromZero);
+
+        // All episodes in allowed series.
+        var allEpisodes = _animeEpisodes.GetAll()
+            .Where(e => allowedSeriesIDs.Contains(e.AnimeSeriesID))
             .ToList();
-        var totalFileSize = files
-            .Sum(a => a.FileSize);
-        var watchedEpisodes = episodes
-            .Where(a => a.GetUserRecord(User.JMMUserID)?.WatchedDate != null)
+
+        // AniDB episode data in one GetAll() — avoids per-episode GetByEpisodeID ReadLock calls when
+        // building episodeTypeById and the hours-watched fallback length lookup.
+        var anidbEpById = _anidbEpisodes.GetAll()
+            .Where(e => allowedAnimeIDs.Contains(e.AnimeID))
+            .ToDictionary(e => e.EpisodeID);
+        var anidbEpIdByAnimeEpId = allEpisodes.ToDictionary(e => e.AnimeEpisodeID, e => e.AniDB_EpisodeID);
+        var episodeTypeById = allEpisodes.ToDictionary(
+            e => e.AnimeEpisodeID,
+            e => anidbEpById.TryGetValue(e.AniDB_EpisodeID, out var ae) ? ae.EpisodeType : EpisodeType.Other);
+        var episodeLengthByAnimeEpId = allEpisodes.ToDictionary(
+            e => e.AnimeEpisodeID,
+            e => anidbEpById.TryGetValue(e.AniDB_EpisodeID, out var ae) ? ae.LengthSeconds : 0);
+
+        // Episode user records for the user.
+        var watchedEpisodeRecords = _animeEpisodeUser.GetByUserID(userId)
+            .Where(r => r.WatchedDate.HasValue && allowedSeriesIDs.Contains(r.AnimeSeriesID))
             .ToList();
-        // Count local watched series in the user's collection.
+
+        // First file per AniDB episode ID for watched hours (keyed by AniDB episode ID).
+        var firstFileByAnidbEpId = crossRefs
+            .GroupBy(x => x.EpisodeID)
+            .ToDictionary(g => g.Key, g => fileByHash.TryGetValue(g.MinBy(x => x.EpisodeOrder)!.Hash, out var vl) ? vl : null);
+
+        var hoursWatched = Math.Round(
+            (decimal)watchedEpisodeRecords.Sum(r =>
+            {
+                if (anidbEpIdByAnimeEpId.TryGetValue(r.AnimeEpisodeID, out var anidbEpId) &&
+                    firstFileByAnidbEpId.TryGetValue(anidbEpId, out var file) && file != null)
+                    return file.DurationTimeSpan.TotalHours;
+                return new TimeSpan(0, 0, episodeLengthByAnimeEpId.GetValueOrDefault(r.AnimeEpisodeID)).TotalHours;
+            }),
+            1, MidpointRounding.AwayFromZero);
+
+        // Pre-load AniDB anime and TMDB cross-ref sets to avoid per-series ReadLock calls in
+        // watchedSeries and seriesWithMissingLinks loops.
+        var anidbAnimeById = _anidbAnimes.GetAll()
+            .Where(a => allowedAnimeIDs.Contains(a.AnimeID))
+            .ToDictionary(a => a.AnimeID);
+        var tmdbMovieAnimeIDs = _crossRefAnidbTmdbMovies.GetAll().Select(x => x.AnidbAnimeID).ToHashSet();
+        var tmdbShowAnimeIDs = _crossRefAnidbTmdbShows.GetAll().Select(x => x.AnidbAnimeID).ToHashSet();
+
+        var userSeriesIDs = _seriesUser.GetByUserID(userId).Select(r => r.AnimeSeriesID).ToHashSet();
+        var watchedNormalCountBySeries = watchedEpisodeRecords
+            .GroupBy(r => r.AnimeSeriesID)
+            .ToDictionary(g => g.Key,
+                g => g.Count(r => episodeTypeById.TryGetValue(r.AnimeEpisodeID, out var et) && et == EpisodeType.Episode));
+
         var watchedSeries = allSeries.Count(series =>
         {
-            // If we don't have an anime entry then something is very wrong, but
-            // we don't care about that right now, so just skip it.
-            var anime = series.AniDB_Anime;
-            if (anime == null)
+            if (!anidbAnimeById.TryGetValue(series.AniDB_ID, out var anime))
                 return false;
 
-            // If the series doesn't have any episodes, then skip it.
             if (anime.EpisodeCountNormal == 0)
                 return false;
 
-            // If all the normal episodes are still missing, then skip it.
             var missingNormalEpisodesTotal = series.MissingEpisodeCount + series.HiddenMissingEpisodeCount;
             if (anime.EpisodeCountNormal == missingNormalEpisodesTotal)
                 return false;
 
-            // If we don't have a user record for the series, then skip it.
-            var record = _seriesUser.GetByUserAndSeriesID(User.JMMUserID, series.AnimeSeriesID);
-            if (record == null)
+            if (!userSeriesIDs.Contains(series.AnimeSeriesID))
                 return false;
 
-            // Check if we've watched more or equal to the number of watchable
-            // normal episodes.
             var totalWatchableNormalEpisodes = anime.EpisodeCountNormal - missingNormalEpisodesTotal;
-            var count = episodeDict[series]
-                .Count(episode => episode.AniDB_Episode.EpisodeType == EpisodeType.Episode &&
-                                  episode.GetUserRecord(User.JMMUserID)?.WatchedDate != null);
-            return count >= totalWatchableNormalEpisodes;
+            var watchedNormalCount = watchedNormalCountBySeries.GetValueOrDefault(series.AnimeSeriesID);
+            return watchedNormalCount >= totalWatchableNormalEpisodes;
         });
-        // Calculate watched hours for both local episodes and non-local episodes.
-        var hoursWatched = Math.Round(
-            (decimal)watchedEpisodes.Sum(a => a.VideoLocals.FirstOrDefault()?.DurationTimeSpan.TotalHours ?? new TimeSpan(0, 0, a.AniDB_Episode?.LengthSeconds ?? 0).TotalHours),
-            1, MidpointRounding.AwayFromZero);
-        // We cache the video local here since it may be gone later if the files are actively being removed.
-        var places = files
-            .SelectMany(a => a.Places.Select(b => new { a.VideoLocalID, VideoLocal = a, Place = b }))
-            .ToList();
-        var duplicates = places
-            .Where(a => !a.VideoLocal.IsVariation)
-            .SelectMany(a => _crossRefFileEpisodes.GetByEd2k(a.VideoLocal.Hash))
-            .GroupBy(a => a.EpisodeID)
-            .Count(a => a.Count() > 1);
-        var percentDuplicates = places.Count == 0
-            ? 0
-            : Math.Round((decimal)duplicates * 100 / places.Count, 2, MidpointRounding.AwayFromZero);
+
         var missingEpisodes = _animeEpisodes.GetMissingForSeries(false, allSeries).Count();
         var missingEpisodesCollecting = _animeEpisodes.GetMissingForSeries(true, allSeries).Count();
-        var multipleEpisodes = episodes.Count(a => a.VideoLocals.Count(b => !b.IsVariation) > 1);
-        var unrecognizedFiles = _videoLocals.GetVideosWithoutEpisodeUnsorted().Count;
-        var duplicateFiles = places.GroupBy(a => a.VideoLocalID).Count(a => a.Count() > 1);
-        var seriesWithMissingLinks = allSeries.Count(MissingTMDBLink);
+        var duplicateFiles = places.GroupBy(p => p.VideoID).Count(g => g.Count() > 1);
+        var seriesWithMissingLinks = allSeries.Count(series =>
+        {
+            if (series.IsTmdbAutoMatchingDisabled)
+                return false;
+            var animeType = anidbAnimeById.TryGetValue(series.AniDB_ID, out var a) ? a.AnimeType : AnimeType.Unknown;
+            if (MissingTmdbLinkExpression.AnimeTypes.Contains(animeType))
+                return false;
+            return !tmdbMovieAnimeIDs.Contains(series.AniDB_ID) && !tmdbShowAnimeIDs.Contains(series.AniDB_ID);
+        });
+
         return new()
         {
-            FileCount = files.Count,
+            FileCount = fileByHash.Count,
             FileSize = totalFileSize,
             SeriesCount = allSeries.Count,
             GroupCount = groupCount,
             FinishedSeries = watchedSeries,
-            WatchedEpisodes = watchedEpisodes.Count,
+            WatchedEpisodes = watchedEpisodeRecords.Count,
             WatchedHours = hoursWatched,
             PercentDuplicate = percentDuplicates,
             MissingEpisodes = missingEpisodes,
@@ -139,19 +198,6 @@ public class DashboardController(
             EpisodesWithMultipleFiles = multipleEpisodes,
             FilesWithDuplicateLocations = duplicateFiles
         };
-    }
-
-    private bool MissingTMDBLink(AnimeSeries ser)
-    {
-        if (MissingTmdbLinkExpression.AnimeTypes.Contains(ser.AniDB_Anime?.AnimeType ?? AnimeType.Unknown))
-            return false;
-
-        if (ser.IsTmdbAutoMatchingDisabled)
-            return false;
-
-        var tmdbMovieLinkMissing = _crossRefAnidbTmdbMovies.GetByAnidbAnimeID(ser.AniDB_ID).Count == 0;
-        var tmdbShowLinkMissing = _crossRefAnidbTmdbShows.GetByAnidbAnimeID(ser.AniDB_ID).Count == 0;
-        return tmdbMovieLinkMissing && tmdbShowLinkMissing;
     }
 
     /// <summary>

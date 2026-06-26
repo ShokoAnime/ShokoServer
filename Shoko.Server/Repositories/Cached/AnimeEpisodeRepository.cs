@@ -7,7 +7,6 @@ using NutzCode.InMemoryIndex;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
-
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #nullable enable
@@ -315,7 +314,7 @@ WHERE AE.IsHidden = 0
     public IEnumerable<AnimeEpisode> GetMissing(bool collecting, int? animeID = null)
     {
         var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var ids = Lock(() =>
+        var ids = ReadLock(() =>
         {
             using var session = _databaseFactory.SessionFactory.OpenSession();
             if (collecting)

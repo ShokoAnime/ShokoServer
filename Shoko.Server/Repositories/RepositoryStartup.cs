@@ -20,7 +20,6 @@ public static class RepositoryStartup
         services.AddDirectRepository<AniDB_AnimeUpdateRepository>();
 
         services.AddDirectRepository<AniDB_Anime_RelationRepository>();
-        services.AddDirectRepository<AniDB_Anime_SimilarRepository>();
         services.AddDirectRepository<AniDB_Anime_StaffRepository>();
         services.AddDirectRepository<AniDB_GroupStatusRepository>();
         services.AddDirectRepository<FileNameHashRepository>();
@@ -51,6 +50,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<AniDB_AnimeRepository>();
         services.AddCachedRepository<AniDB_Anime_CharacterRepository>();
         services.AddCachedRepository<AniDB_Anime_Character_CreatorRepository>();
+        services.AddCachedRepository<AniDB_Anime_SimilarRepository>();
         services.AddCachedRepository<AniDB_Anime_TagRepository>();
         services.AddCachedRepository<AniDB_Anime_TitleRepository>();
         services.AddCachedRepository<AniDB_CharacterRepository>();
