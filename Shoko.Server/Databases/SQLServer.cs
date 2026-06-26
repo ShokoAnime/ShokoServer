@@ -1018,6 +1018,11 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
                      WHERE sri.CrossReferences LIKE '%AnidbEpisodeID%'
                      """),
         new(173,  1, "ALTER TABLE CrossRef_File_Episode DROP COLUMN FileName;"),
+        new(174,  1, "CREATE INDEX IX_CrossRef_File_Episode_EpisodeID ON CrossRef_File_Episode(EpisodeID);"),
+        new(174,  2, "CREATE INDEX IX_AniDB_Episode_EpisodeType_AirDate ON AniDB_Episode(EpisodeType, AirDate);"),
+        new(174,  3, "CREATE INDEX IX_AnimeEpisode_IsHidden_AniDB_EpisodeID ON AnimeEpisode(IsHidden, AniDB_EpisodeID);"),
+        new(174,  4, "CREATE INDEX IX_StoredReleaseInfo_ED2K ON StoredReleaseInfo(ED2K);"),
+        new(174,  5, "CREATE INDEX IX_AniDB_Episode_AnimeID_EpisodeType ON AniDB_Episode(AnimeID, EpisodeType);"),
     ];
 
     #endregion

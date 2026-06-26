@@ -908,6 +908,11 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                      WHERE CrossReferences LIKE '%AnidbEpisodeID%'
                      """),
         new(157,  1, "ALTER TABLE CrossRef_File_Episode DROP COLUMN FileName;"),
+        new(158,  1, "CREATE INDEX IX_CrossRef_File_Episode_EpisodeID ON CrossRef_File_Episode(EpisodeID);"),
+        new(158,  2, "CREATE INDEX IX_AniDB_Episode_EpisodeType_AirDate ON AniDB_Episode(EpisodeType, AirDate);"),
+        new(158,  3, "CREATE INDEX IX_AnimeEpisode_IsHidden_AniDB_EpisodeID ON AnimeEpisode(IsHidden, AniDB_EpisodeID);"),
+        new(158,  4, "CREATE INDEX IX_StoredReleaseInfo_ED2K ON StoredReleaseInfo(ED2K);"),
+        new(158,  5, "CREATE INDEX IX_AniDB_Episode_AnimeID_EpisodeType ON AniDB_Episode(AnimeID, EpisodeType);"),
     ];
 
     #endregion

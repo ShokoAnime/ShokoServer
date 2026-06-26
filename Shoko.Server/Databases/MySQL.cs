@@ -1108,6 +1108,10 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
                      WHERE sri.`CrossReferences` LIKE '%AnidbEpisodeID%'
                      """),
         new(177,  1, "ALTER TABLE `CrossRef_File_Episode` DROP COLUMN `FileName`"),
+        new(178,  1, "CREATE INDEX `IX_AniDB_Episode_EpisodeType_AirDate` ON `AniDB_Episode`(`EpisodeType`, `AirDate`);"),
+        new(178,  2, "CREATE INDEX `IX_AnimeEpisode_IsHidden_AniDB_EpisodeID` ON `AnimeEpisode`(`IsHidden`, `AniDB_EpisodeID`);"),
+        new(178,  3, "CREATE INDEX `IX_StoredReleaseInfo_ED2K` ON `StoredReleaseInfo`(`ED2K`);"),
+        new(178,  4, "CREATE INDEX `IX_AniDB_Episode_AnimeID_EpisodeType` ON `AniDB_Episode`(`AnimeID`, `EpisodeType`);"),
     ];
 
     #endregion
