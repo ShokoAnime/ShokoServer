@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.332",
+      "tag": "v6.0.0-dev.332",
+      "commit": "881a071b5e57ff6e02ee0001f73142fdb2a5e7f8",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.332/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-27T03:10:52Z",
+      "releaseNotes": "\n`misc`: **Remove Database Locking and Make PocoCache Thread Safe**.\n"
+    },
+    {
       "version": "6.0.0.331",
       "tag": "v6.0.0-dev.331",
       "commit": "5c807160fd08dfd2d6ccaf22277ada8d067fa783",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.303/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-21T00:33:04Z",
       "releaseNotes": "\n`misc`: **More data for Release Candidates**.\n"
-    },
-    {
-      "version": "6.0.0.302",
-      "tag": "v6.0.0-dev.302",
-      "commit": "0c17560724b97e52256c456c1ca25ef49f202fd8",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.302/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-20T21:28:16Z",
-      "releaseNotes": "\n`misc`: **Remove Cast from APIv2. It was very broken anyway**.\n\n`misc`: **Add onlyFinishedSeries query parameter to GetDeletionPreview**.\n"
     }
   ]
 }
