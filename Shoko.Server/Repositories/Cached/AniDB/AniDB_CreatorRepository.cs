@@ -1,9 +1,9 @@
+#nullable enable
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_CreatorRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Creator, int>(databaseFactory)
@@ -20,21 +20,18 @@ public class AniDB_CreatorRepository(DatabaseFactory databaseFactory) : BaseCach
 
     public AniDB_Creator? GetByCreatorID(int creatorID)
     {
-        return ReadLock(() => _creatorIDs!.GetOne(creatorID));
+        return _creatorIDs!.GetOne(creatorID);
     }
 
     public AniDB_Creator? GetByName(string creatorName)
     {
-        return Lock(() =>
-        {
-            using var session = _databaseFactory.SessionFactory.OpenSession();
-            var id = session.Query<AniDB_Creator>()
-                .Where(a => a.Name == creatorName)
-                .Take(1)
-                .SingleOrDefault()?.AniDB_CreatorID;
-            if (id.HasValue)
-                return Cache.Get(id.Value);
-            return null;
-        });
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        var id = session.Query<AniDB_Creator>()
+            .Where(a => a.Name == creatorName)
+            .Take(1)
+            .SingleOrDefault()?.AniDB_CreatorID;
+        if (id.HasValue)
+            return Cache.Get(id.Value);
+        return null;
     }
 }

@@ -37,10 +37,10 @@ public class AnimeEpisodeRepository : BaseCachedRepository<AnimeEpisode, int>
     }
 
     public List<AnimeEpisode> GetBySeriesID(int seriesID)
-        => ReadLock(() => _seriesIDs!.GetMultiple(seriesID));
+        => _seriesIDs!.GetMultiple(seriesID);
 
     public AnimeEpisode? GetByAniDBEpisodeID(int episodeID)
-        => ReadLock(() => _anidbEpisodeIDs!.GetOne(episodeID));
+        => _anidbEpisodeIDs!.GetOne(episodeID);
 
     /// <summary>
     /// Get the AnimeEpisode
@@ -94,23 +94,23 @@ public class AnimeEpisodeRepository : BaseCachedRepository<AnimeEpisode, int>
 
     public IEnumerable<AnimeEpisode> GetWithMultipleReleases(bool ignoreVariations, int? animeID = null)
     {
-        var ids = Lock(() =>
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        IList<int> ids;
+        if (animeID.HasValue && animeID.Value > 0)
         {
-            using var session = _databaseFactory.SessionFactory.OpenSession();
-            if (animeID.HasValue && animeID.Value > 0)
-            {
-                var animeQuery = ignoreVariations ? MultipleReleasesIgnoreVariationsWithAnimeQuery : MultipleReleasesCountVariationsWithAnimeQuery;
-                return session.CreateSQLQuery(animeQuery)
-                    .AddScalar("EpisodeID", NHibernateUtil.Int32)
-                    .SetParameter("animeID", animeID.Value)
-                    .List<int>();
-            }
-
+            var animeQuery = ignoreVariations ? MultipleReleasesIgnoreVariationsWithAnimeQuery : MultipleReleasesCountVariationsWithAnimeQuery;
+            ids = session.CreateSQLQuery(animeQuery)
+                .AddScalar("EpisodeID", NHibernateUtil.Int32)
+                .SetParameter("animeID", animeID.Value)
+                .List<int>();
+        }
+        else
+        {
             var query = ignoreVariations ? MultipleReleasesIgnoreVariationsQuery : MultipleReleasesCountVariationsQuery;
-            return session.CreateSQLQuery(query)
+            ids = session.CreateSQLQuery(query)
                 .AddScalar("EpisodeID", NHibernateUtil.Int32)
                 .List<int>();
-        });
+        }
 
         return ids
             .Select(GetByAniDBEpisodeID)
@@ -189,21 +189,21 @@ GROUP BY
 
     public IEnumerable<AnimeEpisode> GetWithDuplicateFiles(int? animeID = null)
     {
-        var ids = Lock(() =>
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        IList<int> ids;
+        if (animeID.HasValue && animeID.Value > 0)
         {
-            using var session = _databaseFactory.SessionFactory.OpenSession();
-            if (animeID.HasValue && animeID.Value > 0)
-            {
-                return session.CreateSQLQuery(DuplicateFilesWithAnimeQuery)
-                    .AddScalar("EpisodeID", NHibernateUtil.Int32)
-                    .SetParameter("animeID", animeID.Value)
-                    .List<int>();
-            }
-
-            return session.CreateSQLQuery(DuplicateFilesQuery)
+            ids = session.CreateSQLQuery(DuplicateFilesWithAnimeQuery)
+                .AddScalar("EpisodeID", NHibernateUtil.Int32)
+                .SetParameter("animeID", animeID.Value)
+                .List<int>();
+        }
+        else
+        {
+            ids = session.CreateSQLQuery(DuplicateFilesQuery)
                 .AddScalar("EpisodeID", NHibernateUtil.Int32)
                 .List<int>();
-        });
+        }
 
         return ids
             .Select(GetByAniDBEpisodeID)
@@ -314,34 +314,33 @@ WHERE AE.IsHidden = 0
     public IEnumerable<AnimeEpisode> GetMissing(bool collecting, int? animeID = null)
     {
         var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var ids = ReadLock(() =>
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        IList<int> ids;
+        if (collecting)
         {
-            using var session = _databaseFactory.SessionFactory.OpenSession();
-            if (collecting)
-            {
-                if (animeID.HasValue)
-                    return session.CreateSQLQuery(MissingCollectingEpisodesWithAnimeQuery)
-                        .AddScalar("AnimeEpisodeID", NHibernateUtil.Int32)
-                        .SetParameter("currentTime", currentTime)
-                        .SetParameter("animeID", animeID.Value)
-                        .List<int>();
-                return session.CreateSQLQuery(MissingCollectingEpisodesQuery)
-                    .AddScalar("AnimeEpisodeID", NHibernateUtil.Int32)
-                    .SetParameter("currentTime", currentTime)
-                    .List<int>();
-            }
-
             if (animeID.HasValue)
-                return session.CreateSQLQuery(MissingEpisodesWithAnimeQuery)
+                ids = session.CreateSQLQuery(MissingCollectingEpisodesWithAnimeQuery)
                     .AddScalar("AnimeEpisodeID", NHibernateUtil.Int32)
                     .SetParameter("currentTime", currentTime)
                     .SetParameter("animeID", animeID.Value)
                     .List<int>();
-            return session.CreateSQLQuery(MissingEpisodesQuery)
+            else
+                ids = session.CreateSQLQuery(MissingCollectingEpisodesQuery)
+                    .AddScalar("AnimeEpisodeID", NHibernateUtil.Int32)
+                    .SetParameter("currentTime", currentTime)
+                    .List<int>();
+        }
+        else if (animeID.HasValue)
+            ids = session.CreateSQLQuery(MissingEpisodesWithAnimeQuery)
+                .AddScalar("AnimeEpisodeID", NHibernateUtil.Int32)
+                .SetParameter("currentTime", currentTime)
+                .SetParameter("animeID", animeID.Value)
+                .List<int>();
+        else
+            ids = session.CreateSQLQuery(MissingEpisodesQuery)
                 .AddScalar("AnimeEpisodeID", NHibernateUtil.Int32)
                 .SetParameter("currentTime", currentTime)
                 .List<int>();
-        });
 
         return ids
             .Select(GetByID)
@@ -349,14 +348,6 @@ WHERE AE.IsHidden = 0
             .OrderBy(e => e.AniDB_Episode?.AnimeID)
             .ThenBy(e => e.AniDB_Episode?.EpisodeType)
             .ThenBy(e => e.AniDB_Episode?.EpisodeNumber);
-    }
-
-    public IEnumerable<AnimeEpisode> GetMissingForSeries(bool collecting, IEnumerable<AnimeSeries> seriesList)
-    {
-        var seriesIDs = seriesList.Select(s => s.AnimeSeriesID).ToHashSet();
-        if (seriesIDs.Count == 0)
-            return [];
-        return GetMissing(collecting).Where(e => seriesIDs.Contains(e.AnimeSeriesID));
     }
 
     public IReadOnlyList<AnimeEpisode> GetAllWatchedEpisodes(int userid, DateTime? after_date)

@@ -1,10 +1,10 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AnimeSeries_UserRepository : BaseCachedRepository<AnimeSeries_User, int>
@@ -22,7 +22,6 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<AnimeSeries_User,
         EndDeleteCallback = cr =>
         {
             _changes.TryAdd(cr.JMMUserID, new ChangeTracker<int>());
-
             _changes[cr.JMMUserID].Remove(cr.AnimeSeriesID);
         };
     }
@@ -45,13 +44,13 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<AnimeSeries_User,
     }
 
     public AnimeSeries_User? GetByUserAndSeriesID(int userID, int seriesID)
-        => ReadLock(() => _userSeriesIDs!.GetOne((userID, seriesID)));
+        => _userSeriesIDs!.GetOne((userID, seriesID));
 
     public List<AnimeSeries_User> GetByUserID(int userID)
-        => ReadLock(() => _userIDs!.GetMultiple(userID));
+        => _userIDs!.GetMultiple(userID);
 
     public List<AnimeSeries_User> GetBySeriesID(int seriesID)
-        => ReadLock(() => _seriesIDs!.GetMultiple(seriesID));
+        => _seriesIDs!.GetMultiple(seriesID);
 
     public List<AnimeSeries_User> GetMostRecentlyWatched(int userID)
         => GetByUserID(userID)

@@ -1,4 +1,5 @@
-﻿using System;
+#nullable enable
+using System;
 using System.Collections.Generic;
 using NHibernate;
 using Shoko.Server.Repositories.NHibernate;
@@ -21,10 +22,10 @@ public interface IRepository<T, in S>
     void Save(T obj);
     void Save(IReadOnlyCollection<T> objs);
 
-    Action<T> BeginDeleteCallback { get; set; }
-    Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
-    Action<T> EndDeleteCallback { get; set; }
-    Action<T> BeginSaveCallback { get; set; }
-    Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
-    Action<T> EndSaveCallback { get; set; }
+    Action<T>? BeginDeleteCallback { get; set; }
+    Action<ISession, T>? DeleteWithOpenTransactionCallback { get; set; }
+    Action<T>? EndDeleteCallback { get; set; }
+    Action<T>? BeginSaveCallback { get; set; }
+    Action<ISessionWrapper, T>? SaveWithOpenTransactionCallback { get; set; }
+    Action<T>? EndSaveCallback { get; set; }
 }

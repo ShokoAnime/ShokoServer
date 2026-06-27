@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
@@ -5,7 +6,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_TagRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Tag, int>(databaseFactory)
@@ -31,7 +31,7 @@ public class AniDB_TagRepository(DatabaseFactory databaseFactory) : BaseCachedRe
 
     public override void RegenerateDb()
     {
-        var tags = Cache.Values
+        var tags = Cache.GetAll()
             .Where(tag => (tag.TagDescription?.Contains('`') ?? false) || tag.TagName.Contains('`'))
             .ToList();
         foreach (var tag in tags)
@@ -44,16 +44,16 @@ public class AniDB_TagRepository(DatabaseFactory databaseFactory) : BaseCachedRe
     }
 
     public AniDB_Tag? GetByTagID(int tagID)
-        => ReadLock(() => _tagIDs!.GetOne(tagID));
+        => _tagIDs!.GetOne(tagID);
 
     public IReadOnlyList<AniDB_Tag> GetByParentTagID(int parentTagID)
-        => ReadLock(() => _parentTagIDs!.GetMultiple(parentTagID) ?? []).OrderBy(a => a.TagID).ToList();
+        => (_parentTagIDs!.GetMultiple(parentTagID) ?? []).OrderBy(a => a.TagID).ToList();
 
     public IReadOnlyList<AniDB_Tag> GetByName(string name)
-        => ReadLock(() => _names!.GetMultiple(name));
+        => _names!.GetMultiple(name);
 
     public IReadOnlyList<AniDB_Tag> GetBySourceName(string sourceName)
-        => ReadLock(() => _sourceNames!.GetMultiple(sourceName));
+        => _sourceNames!.GetMultiple(sourceName);
 
     /// <summary>
     /// Gets all the tags, but only if we have the anime locally

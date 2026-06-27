@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_File_Episode, int>
@@ -50,11 +50,11 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
     }
 
     public IReadOnlyList<CrossRef_File_Episode> GetByEd2k(string ed2k)
-        => ReadLock(() => _ed2k!.GetMultiple(ed2k).OrderBy(a => a.EpisodeOrder).ToList());
+        => _ed2k!.GetMultiple(ed2k).OrderBy(a => a.EpisodeOrder).ToList();
 
     public IReadOnlyList<CrossRef_File_Episode> GetByAnimeID(int animeID)
-        => ReadLock(() => _anidbAnimeIDs!.GetMultiple(animeID));
+        => _anidbAnimeIDs!.GetMultiple(animeID);
 
     public IReadOnlyList<CrossRef_File_Episode> GetByEpisodeID(int episodeID)
-        => ReadLock(() => _anidbEpisodeIDs!.GetMultiple(episodeID));
+        => _anidbEpisodeIDs!.GetMultiple(episodeID);
 }

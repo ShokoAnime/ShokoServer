@@ -52,7 +52,7 @@ public class StoredReleaseInfoRepository : BaseCachedRepository<StoredReleaseInf
 
     public IReadOnlyList<StoredReleaseInfo> GetByEd2k(string ed2k)
         => !string.IsNullOrWhiteSpace(ed2k)
-            ? ReadLock(() => _ed2k!.GetMultiple(ed2k))
+            ? _ed2k!.GetMultiple(ed2k)
             : [];
 
     public StoredReleaseInfo? GetByEd2kAndFileSize(string ed2k, long fileSize)
@@ -60,22 +60,22 @@ public class StoredReleaseInfoRepository : BaseCachedRepository<StoredReleaseInf
 
     public IReadOnlyList<StoredReleaseInfo> GetByGroupAndProviderIDs(string groupId, string source)
         => !string.IsNullOrEmpty(groupId) && !string.IsNullOrEmpty(source)
-            ? ReadLock(() => _groupIDs!.GetMultiple((groupId, source)))
+            ? _groupIDs!.GetMultiple((groupId, source))
             : [];
 
     public StoredReleaseInfo? GetByReleaseURI(string? releaseUri)
         => !string.IsNullOrEmpty(releaseUri)
-            ? ReadLock(() => _releaseURIs!.GetOne(releaseUri))
+            ? _releaseURIs!.GetOne(releaseUri)
             : null;
 
     public IReadOnlyList<StoredReleaseInfo> GetByAnidbEpisodeID(int episodeId)
         => episodeId > 0
-            ? ReadLock(() => _anidbEpisodeIDs!.GetMultiple(episodeId))
+            ? _anidbEpisodeIDs!.GetMultiple(episodeId)
             : [];
 
     public IReadOnlyList<StoredReleaseInfo> GetByAnidbAnimeID(int animeId)
         => animeId > 0
-            ? ReadLock(() => _anidbAnimeIDs!.GetMultiple(animeId))
+            ? _anidbAnimeIDs!.GetMultiple(animeId)
             : [];
 
     public IReadOnlyList<IReleaseGroup> GetReleaseGroups()

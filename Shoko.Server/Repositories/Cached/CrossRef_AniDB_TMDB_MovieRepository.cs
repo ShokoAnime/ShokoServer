@@ -1,10 +1,10 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class CrossRef_AniDB_TMDB_MovieRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<CrossRef_AniDB_TMDB_Movie, int>(databaseFactory)
@@ -26,14 +26,14 @@ public class CrossRef_AniDB_TMDB_MovieRepository(DatabaseFactory databaseFactory
     }
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> GetByAnidbAnimeID(int animeId)
-        => ReadLock(() => _anidbAnimeIDs!.GetMultiple(animeId));
+        => _anidbAnimeIDs!.GetMultiple(animeId);
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> GetByAnidbEpisodeID(int episodeId)
-        => ReadLock(() => _anidbEpisodeIDs!.GetMultiple(episodeId));
+        => _anidbEpisodeIDs!.GetMultiple(episodeId);
 
     public CrossRef_AniDB_TMDB_Movie? GetByAnidbEpisodeAndTmdbMovieIDs(int episodeId, int movieId)
         => GetByAnidbEpisodeID(episodeId).FirstOrDefault(xref => xref.TmdbMovieID == movieId);
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> GetByTmdbMovieID(int movieId)
-        => ReadLock(() => _tmdbMovieIDs!.GetMultiple(movieId));
+        => _tmdbMovieIDs!.GetMultiple(movieId);
 }

@@ -21,7 +21,6 @@ using Shoko.Server.MediaInfo;
 using Shoko.Server.MediaInfo.Subtitles;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
-using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
@@ -686,10 +685,9 @@ public class VideoService : IVideoService
                     // ignore
                 }
 
-                BaseRepository.Lock(session, s =>
                 {
-                    using var transaction = s.BeginTransaction();
-                    _videoLocalPlaceRepository.DeleteWithOpenTransaction(s, place);
+                    using var transaction = session.BeginTransaction();
+                    _videoLocalPlaceRepository.DeleteWithOpenTransaction(session, place);
 
                     seriesToUpdate.AddRange(
                         v
@@ -698,9 +696,9 @@ public class VideoService : IVideoService
                             .Select(a => a.AnimeSeries)
                             .WhereNotNull()
                     );
-                    _videoLocalRepository.DeleteWithOpenTransaction(s, v);
+                    _videoLocalRepository.DeleteWithOpenTransaction(session, v);
                     transaction.Commit();
-                });
+                }
             }
             else
             {
@@ -720,12 +718,11 @@ public class VideoService : IVideoService
                 // duplicate being de-duplicated) is not in the database and must not be deleted —
                 // doing so previously cascaded into removing the whole VideoLocal.
                 if (place.ID != 0)
-                    BaseRepository.Lock(session, s =>
-                    {
-                        using var transaction = s.BeginTransaction();
-                        _videoLocalPlaceRepository.DeleteWithOpenTransaction(s, place);
-                        transaction.Commit();
-                    });
+                {
+                    using var transaction = session.BeginTransaction();
+                    _videoLocalPlaceRepository.DeleteWithOpenTransaction(session, place);
+                    transaction.Commit();
+                }
             }
         }
 
@@ -755,13 +752,12 @@ public class VideoService : IVideoService
                 // ignore
             }
 
-            BaseRepository.Lock(() =>
             {
                 using var transaction = session.BeginTransaction();
                 _videoLocalPlaceRepository.DeleteWithOpenTransaction(session, place);
                 _videoLocalRepository.DeleteWithOpenTransaction(session, v);
                 transaction.Commit();
-            });
+            }
         }
         else
         {
@@ -777,12 +773,11 @@ public class VideoService : IVideoService
                 }
             }
 
-            BaseRepository.Lock(() =>
             {
                 using var transaction = session.BeginTransaction();
                 _videoLocalPlaceRepository.DeleteWithOpenTransaction(session, place);
                 transaction.Commit();
-            });
+            }
         }
     }
 

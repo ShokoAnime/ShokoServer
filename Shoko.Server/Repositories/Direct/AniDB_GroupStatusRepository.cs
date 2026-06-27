@@ -14,22 +14,16 @@ public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatu
 
     public List<AniDB_GroupStatus> GetByAnimeID(int id)
     {
-        return Lock(() =>
-        {
-            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
-            return session.Query<AniDB_GroupStatus>()
-                .Where(a => a.AnimeID == id)
-                .ToList();
-        });
+        using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
+        return session.Query<AniDB_GroupStatus>()
+            .Where(a => a.AnimeID == id)
+            .ToList();
     }
 
     public void DeleteForAnime(int animeid)
     {
-        Lock(() =>
-        {
-            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
-            session.Query<AniDB_GroupStatus>().Where(a => a.AnimeID == animeid).Delete();
-        });
+        using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
+        session.Query<AniDB_GroupStatus>().Where(a => a.AnimeID == animeid).Delete();
 
         _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = animeid).GetAwaiter().GetResult();
     }

@@ -1,9 +1,9 @@
+#nullable enable
 using System.Collections.Generic;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class VideoLocal_UserRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<VideoLocal_User, int>(databaseFactory)
@@ -25,11 +25,11 @@ public class VideoLocal_UserRepository(DatabaseFactory databaseFactory) : BaseCa
     }
 
     public IReadOnlyList<VideoLocal_User> GetByVideoLocalID(int videoLocalID)
-        => ReadLock(() => _videoLocalIDs!.GetMultiple(videoLocalID));
+        => _videoLocalIDs!.GetMultiple(videoLocalID);
 
     public IReadOnlyList<VideoLocal_User> GetByUserID(int userID)
-        => ReadLock(() => _userIDs!.GetMultiple(userID));
+        => _userIDs!.GetMultiple(userID);
 
     public VideoLocal_User? GetByUserAndVideoLocalID(int userID, int videoLocalID)
-        => ReadLock(() => _userVideoLocalIDs!.GetOne((userID, videoLocalID)));
+        => _userVideoLocalIDs!.GetOne((userID, videoLocalID));
 }

@@ -13,14 +13,11 @@ public class TMDB_TitleRepository : BaseDirectRepository<TMDB_Title, int>
     public IReadOnlyList<TMDB_Title> GetByParentTypeAndID(DataEntityType parentType, int parentId)
     {
         var foreignParentType = parentType.ForeignType;
-        return ReadLock(() =>
-        {
-            using var session = _databaseFactory.SessionFactory.OpenSession();
-            return session
-                .Query<TMDB_Title>()
-                .Where(a => a.ForeignParentType == foreignParentType && a.ParentID == parentId)
-                .ToList();
-        });
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        return session
+            .Query<TMDB_Title>()
+            .Where(a => a.ForeignParentType == foreignParentType && a.ParentID == parentId)
+            .ToList();
     }
 
     public TMDB_TitleRepository(DatabaseFactory databaseFactory) : base(databaseFactory)

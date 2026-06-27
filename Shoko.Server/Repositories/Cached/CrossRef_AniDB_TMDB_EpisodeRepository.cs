@@ -1,10 +1,10 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class CrossRef_AniDB_TMDB_EpisodeRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<CrossRef_AniDB_TMDB_Episode, int>(databaseFactory)
@@ -32,23 +32,23 @@ public class CrossRef_AniDB_TMDB_EpisodeRepository(DatabaseFactory databaseFacto
     }
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetByAnidbAnimeID(int animeId)
-        => ReadLock(() => _anidbAnimeIDs!.GetMultiple(animeId).ToList());
+        => _anidbAnimeIDs!.GetMultiple(animeId).ToList();
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetByAnidbEpisodeID(int episodeId)
-        => ReadLock(() => _anidbEpisodeIDs!.GetMultiple(episodeId).OrderBy(a => a.Ordering).ToList());
+        => _anidbEpisodeIDs!.GetMultiple(episodeId).OrderBy(a => a.Ordering).ToList();
 
     public CrossRef_AniDB_TMDB_Episode? GetByAnidbEpisodeAndTmdbEpisodeIDs(int anidbEpisodeId, int tmdbEpisodeId)
         => GetByAnidbAnimeID(anidbEpisodeId).FirstOrDefault(xref => xref.TmdbEpisodeID == tmdbEpisodeId);
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetByTmdbShowID(int showId)
-        => ReadLock(() => _tmdbShowIDs!.GetMultiple(showId).ToList());
+        => _tmdbShowIDs!.GetMultiple(showId).ToList();
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetByTmdbEpisodeID(int episodeId)
-        => ReadLock(() => _tmdbEpisodeIDs!.GetMultiple(episodeId).OrderBy(a => a.Ordering).ToList());
+        => _tmdbEpisodeIDs!.GetMultiple(episodeId).OrderBy(a => a.Ordering).ToList();
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetAllByAnidbAnimeAndTmdbShowIDs(int anidbId, int tmdbId)
         => GetByTmdbShowID(tmdbId).Concat(GetByAnidbAnimeID(anidbId)).ToList();
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetOnlyByAnidbAnimeAndTmdbShowIDs(int anidbId, int tmdbId)
-        => ReadLock(() => _pairedIDs!.GetMultiple((anidbId, tmdbId)));
+        => _pairedIDs!.GetMultiple((anidbId, tmdbId));
 }

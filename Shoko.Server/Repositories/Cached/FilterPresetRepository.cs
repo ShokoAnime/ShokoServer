@@ -13,7 +13,6 @@ using Shoko.Abstractions.Filtering.Sorting.Selectors;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Server;
-
 using Constants = Shoko.Server.Server.Constants;
 
 #nullable enable
@@ -201,11 +200,6 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
         Save(gf);
     }
 
-    public override void Save(FilterPreset obj)
-    {
-        WriteLock(() => { base.Save(obj); });
-    }
-
     public override void Save(IReadOnlyCollection<FilterPreset> objs)
     {
         foreach (var obj in objs)
@@ -223,7 +217,7 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
     }
 
     public IReadOnlyList<FilterPreset> GetByParentID(int parentID)
-        => ReadLock(() => _parentIDs!.GetMultiple(parentID));
+        => _parentIDs!.GetMultiple(parentID);
 
     public FilterPreset? GetTopLevelFilter(int filterID)
     {
@@ -245,10 +239,7 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
         => GetByParentID(0);
 
     public IReadOnlyList<FilterPreset> GetLockedGroupFilters()
-        => ReadLock(() => Cache.Values.Where(a => a.Locked).ToList());
-
-    public IReadOnlyList<FilterPreset> GetTimeDependentFilters()
-        => ReadLock(() => GetAll().Where(a => a.Expression?.TimeDependent ?? false).ToList());
+        => Cache.GetAll().Where(a => a.Locked).ToList();
 
     public static IReadOnlyList<FilterPreset> GetAllYearFilters(int offset = 0)
         => RepoFactory.AnimeSeries.GetAllYears()

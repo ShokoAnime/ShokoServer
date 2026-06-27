@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.IO;
 using System.Linq;
@@ -7,7 +8,6 @@ using Shoko.Abstractions.Video.Events;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<ShokoManagedFolder, int>(databaseFactory)
@@ -23,14 +23,14 @@ public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory) : Bas
 
     public ShokoManagedFolder? GetByImportLocation(string importLocation)
     {
-        return ReadLock(() => Cache.Values.FirstOrDefault(a =>
+        return Cache.GetAll().FirstOrDefault(a =>
             a.Path?.Replace('\\', Path.DirectorySeparatorChar)
                 .Replace('/', Path.DirectorySeparatorChar).TrimEnd(Path.DirectorySeparatorChar)
                 .Equals(
                     importLocation?.Replace('\\', Path.DirectorySeparatorChar)
                         .Replace('/', Path.DirectorySeparatorChar)
                         .TrimEnd(Path.DirectorySeparatorChar),
-                    StringComparison.InvariantCultureIgnoreCase) ?? false));
+                    StringComparison.InvariantCultureIgnoreCase) ?? false);
     }
 
     public ShokoManagedFolder SaveFolder(ShokoManagedFolder folder)

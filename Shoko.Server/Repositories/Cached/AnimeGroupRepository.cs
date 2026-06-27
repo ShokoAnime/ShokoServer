@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.NHibernate;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
@@ -45,7 +45,7 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
 
     public override void PopulateIndexes()
     {
-        _changes.AddOrUpdateRange(Cache.Keys);
+        _changes.AddOrUpdateRange(Cache.GetAllKeys());
         _parentIDs = Cache.CreateIndex(a => a.AnimeGroupParentID ?? 0);
     }
 
@@ -55,24 +55,20 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
     public void Save(AnimeGroup group, bool recursive)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
-        Lock(session, s =>
+        //We are creating one, and we need the AnimeGroupID before Update the contracts
+        if (group.AnimeGroupID == 0)
         {
-            //We are creating one, and we need the AnimeGroupID before Update the contracts
-            if (group.AnimeGroupID == 0)
-            {
-                using var transaction = s.BeginTransaction();
-                s.SaveOrUpdate(group);
-                transaction.Commit();
-            }
-        });
+            using var transaction = session.BeginTransaction();
+            session.SaveOrUpdate(group);
+            transaction.Commit();
+        }
 
         UpdateCache(group);
-        Lock(session, s =>
         {
-            using var transaction = s.BeginTransaction();
-            SaveWithOpenTransaction(s, group);
+            using var transaction = session.BeginTransaction();
+            SaveWithOpenTransaction(session, group);
             transaction.Commit();
-        });
+        }
 
         _changes.AddOrUpdate(group.AnimeGroupID);
 
@@ -105,23 +101,6 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
         _changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
     }
 
-    public async Task UpdateBatch(ISessionWrapper session, IReadOnlyCollection<AnimeGroup> groups)
-    {
-        ArgumentNullException.ThrowIfNull(session);
-        ArgumentNullException.ThrowIfNull(groups);
-
-        using var trans = session.BeginTransaction();
-        foreach (var group in groups)
-        {
-            await session.UpdateAsync(group);
-            UpdateCache(group);
-        }
-
-        await trans.CommitAsync();
-
-        _changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
-    }
-
     /// <summary>
     /// Deletes all AnimeGroup records.
     /// </summary>
@@ -138,21 +117,18 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
         // First, get all of the current groups so that we can inform the change tracker that they have been removed later
         var allGroups = GetAll();
 
-        await Lock(async () =>
+        // Then, actually delete the AnimeGroups
+        if (excludeGroupId != null)
         {
-            // Then, actually delete the AnimeGroups
-            if (excludeGroupId != null)
-            {
-                await session.CreateSQLQuery("DELETE FROM AnimeGroup WHERE AnimeGroupID <> :excludeId")
-                    .SetInt32("excludeId", excludeGroupId.Value)
-                    .ExecuteUpdateAsync();
-            }
-            else
-            {
-                await session.CreateSQLQuery("DELETE FROM AnimeGroup WHERE AnimeGroupID > 0")
-                    .ExecuteUpdateAsync();
-            }
-        });
+            await session.CreateSQLQuery("DELETE FROM AnimeGroup WHERE AnimeGroupID <> :excludeId")
+                .SetInt32("excludeId", excludeGroupId.Value)
+                .ExecuteUpdateAsync();
+        }
+        else
+        {
+            await session.CreateSQLQuery("DELETE FROM AnimeGroup WHERE AnimeGroupID > 0")
+                .ExecuteUpdateAsync();
+        }
 
         if (excludeGroupId != null)
         {
@@ -180,10 +156,7 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
     }
 
     public List<AnimeGroup> GetByParentID(int parentID)
-        => parentID <= 0 ? [] : ReadLock(() => _parentIDs!.GetMultiple(parentID));
-
-    public List<AnimeGroup> GetAllTopLevelGroups()
-        => GetByParentID(0);
+        => parentID <= 0 ? [] : _parentIDs!.GetMultiple(parentID);
 
     public ChangeTracker<int> GetChangeTracker()
         => _changes;

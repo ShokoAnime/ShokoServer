@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,6 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_Anime_TitleRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Anime_Title, int>(databaseFactory)
@@ -22,7 +22,7 @@ public class AniDB_Anime_TitleRepository(DatabaseFactory databaseFactory) : Base
     public override void PopulateIndexes()
     {
         _animeIDs = Cache.CreateIndex(a => a.AnimeID);
-        _normalizedSearchTitles = Cache.Values
+        _normalizedSearchTitles = Cache.GetAll()
             .Where(t => t.TitleType is TitleType.Main or TitleType.Official)
             .GroupBy(t => t.AnimeID)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(t => NormalizeForSearch(t.Title)).ToList());
@@ -32,7 +32,7 @@ public class AniDB_Anime_TitleRepository(DatabaseFactory databaseFactory) : Base
     {
         // Don't need lock in init
         SystemService.StartupMessage = $"Database - Validating - {nameof(AniDB_Anime_Title)} DbRegen...";
-        var titles = Cache.Values.Where(title => title.Title.Contains('`')).ToList();
+        var titles = Cache.GetAll().Where(title => title.Title.Contains('`')).ToList();
         foreach (var title in titles)
         {
             title.Title = title.Title.Replace('`', '\'');
@@ -68,9 +68,9 @@ public class AniDB_Anime_TitleRepository(DatabaseFactory databaseFactory) : Base
         => value.Normalize(NormalizationForm.FormKC).ToLowerInvariant();
 
     public bool AnimeMatchesSearch(int animeID, string normalizedQuery)
-        => ReadLock(() => _normalizedSearchTitles.TryGetValue(animeID, out var titles)
-            && titles.Any(t => t.Contains(normalizedQuery, StringComparison.Ordinal)));
+        => _normalizedSearchTitles.TryGetValue(animeID, out var titles)
+            && titles.Any(t => t.Contains(normalizedQuery, StringComparison.Ordinal));
 
     public List<AniDB_Anime_Title> GetByAnimeID(int animeID)
-        => ReadLock(() => _animeIDs!.GetMultiple(animeID));
+        => _animeIDs!.GetMultiple(animeID);
 }

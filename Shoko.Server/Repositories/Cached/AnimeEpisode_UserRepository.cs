@@ -1,10 +1,10 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AnimeEpisode_User, int>(databaseFactory)
@@ -31,7 +31,7 @@ public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : Base
     public override void RegenerateDb()
     {
         var current = 0;
-        var records = Cache.Values.Where(a => a.AnimeEpisode_UserID == 0).ToList();
+        var records = Cache.GetAll().Where(a => a.AnimeEpisode_UserID == 0).ToList();
         var total = records.Count;
         SystemService.StartupMessage = $"Database - Validating - {nameof(AnimeEpisode_User)} Database Regeneration...";
         if (total is 0)
@@ -51,10 +51,10 @@ public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : Base
     }
 
     public AnimeEpisode_User? GetByUserAndEpisodeID(int userID, int episodeID)
-        => ReadLock(() => _userEpisodeIDs!.GetOne((userID, episodeID)));
+        => _userEpisodeIDs!.GetOne((userID, episodeID));
 
     public IReadOnlyList<AnimeEpisode_User> GetByUserID(int userid)
-        => ReadLock(() => _userIDs!.GetMultiple(userid));
+        => _userIDs!.GetMultiple(userid);
 
     public IReadOnlyList<AnimeEpisode_User> GetMostRecentlyWatched(int userid, int limit = 100)
         => GetByUserID(userid).Where(a => a.WatchedCount > 0)
@@ -69,8 +69,8 @@ public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : Base
             .FirstOrDefault();
 
     public IReadOnlyList<AnimeEpisode_User> GetByEpisodeID(int episodeID)
-        => ReadLock(() => _episodeIDs!.GetMultiple(episodeID));
+        => _episodeIDs!.GetMultiple(episodeID);
 
     public IReadOnlyList<AnimeEpisode_User> GetByUserIDAndSeriesID(int userID, int seriesID)
-        => ReadLock(() => _userSeriesIDs!.GetMultiple((userID, seriesID)));
+        => _userSeriesIDs!.GetMultiple((userID, seriesID));
 }

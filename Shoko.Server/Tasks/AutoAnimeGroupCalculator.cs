@@ -9,7 +9,6 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
-using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
 #pragma warning disable CS0618
@@ -104,7 +103,7 @@ public class AutoAnimeGroupCalculator
         MainAnimeSelectionStrategy mainAnimeSelectionStrategy = MainAnimeSelectionStrategy.MinAirDate)
     {
         using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
-        var relationshipList = BaseRepository.Lock(session, s => s.CreateSQLQuery(@"
+        var relationshipList = session.CreateSQLQuery(@"
                 SELECT    fromAnime.AnimeID AS fromAnimeId
                         , toAnime.AnimeID AS toAnimeId
                         , fromAnime.AnimeType AS fromAnimeType
@@ -128,7 +127,7 @@ public class AutoAnimeGroupCalculator
             .AddScalar("fromAirDate", NHibernateUtil.String)
             .AddScalar("toAirDate", NHibernateUtil.String)
             .AddScalar("relationType", NHibernateUtil.String)
-            .List<object[]>());
+            .List<object[]>();
 
         var relationshipMap = relationshipList.Select(r =>
             {

@@ -1,10 +1,10 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Release;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class StoredReleaseInfo_MatchAttemptRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<StoredReleaseInfo_MatchAttempt, int>(databaseFactory)
@@ -27,7 +27,7 @@ public class StoredReleaseInfo_MatchAttemptRepository(DatabaseFactory databaseFa
 
     public IReadOnlyList<StoredReleaseInfo_MatchAttempt> GetByEd2k(string ed2k)
         => !string.IsNullOrWhiteSpace(ed2k)
-            ? ReadLock(() => _ed2k!.GetMultiple(ed2k))
+            ? _ed2k!.GetMultiple(ed2k)
             : [];
 
     public IReadOnlyList<StoredReleaseInfo_MatchAttempt> GetByEd2kAndFileSize(string ed2k, long fileSize)
@@ -35,9 +35,9 @@ public class StoredReleaseInfo_MatchAttemptRepository(DatabaseFactory databaseFa
 
     public IReadOnlyList<StoredReleaseInfo_MatchAttempt> GetBySourceProviderNames(string providerName)
         => !string.IsNullOrEmpty(providerName)
-            ? ReadLock(() => _sourceProviderNames!.GetMultiple(providerName))
+            ? _sourceProviderNames!.GetMultiple(providerName)
             : [];
 
     public IReadOnlyList<StoredReleaseInfo_MatchAttempt> GetByResultProviderNames(string? providerName)
-        => ReadLock(() => _resultProviderNames!.GetMultiple(providerName));
+        => _resultProviderNames!.GetMultiple(providerName);
 }

@@ -64,7 +64,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
 
     public override void PopulateIndexes()
     {
-        Changes.AddOrUpdateRange(Cache.Keys);
+        Changes.AddOrUpdateRange(Cache.GetAllKeys());
         AniDBIds = Cache.CreateIndex(a => a.AniDB_ID);
         Groups = Cache.CreateIndex(a => a.AnimeGroupID);
     }
@@ -75,14 +75,14 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         {
             SystemService.StartupMessage =
                 $"Database - Validating - {nameof(AnimeSeries)} Database Regeneration - Caching Titles & Overview...";
-            foreach (var series in Cache.Values.ToList())
+            foreach (var series in Cache.GetAll().ToList())
             {
                 series.ResetPreferredTitle();
                 series.ResetPreferredOverview();
                 series.ResetAnimeTitles();
             }
 
-            var sers = Cache.Values.Where(a => a.AnimeGroupID == 0 || RepoFactory.AnimeGroup.GetByID(a.AnimeGroupID) == null).ToList();
+            var sers = Cache.GetAll().Where(a => a.AnimeGroupID == 0 || RepoFactory.AnimeGroup.GetByID(a.AnimeGroupID) == null).ToList();
             var max = sers.Count;
             SystemService.StartupMessage = $"Database - Validating - {nameof(AnimeSeries)} Database Regeneration - Ensuring Groups Exist...";
 
@@ -144,19 +144,14 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         else
         {
             // get the old version from the DB
-            logger.Trace($"Saving Series {animeID} | Waiting for Database Lock");
-            var oldSeries = Lock(obj.AnimeSeriesID, animeID, sw, (animeSeriesID, id, s) =>
-            {
-                s.Stop();
-                logger.Trace($"Saving Series {id} | Got Database Lock in {s.Elapsed.TotalSeconds:0.00###}s");
-                s.Restart();
-                using var session = _databaseFactory.SessionFactory.OpenSession();
-                var series = session.Get<AnimeSeries>(animeSeriesID);
-                s.Stop();
-                logger.Trace($"Saving Series {id} | Got Series from Database in {s.Elapsed.TotalSeconds:0.00###}s");
-                s.Restart();
-                return series;
-            });
+            sw.Stop();
+            logger.Trace($"Saving Series {animeID} | Got Database Lock in {sw.Elapsed.TotalSeconds:0.00###}s");
+            sw.Restart();
+            using var session = _databaseFactory.SessionFactory.OpenSession();
+            var oldSeries = session.Get<AnimeSeries>(obj.AnimeSeriesID);
+            sw.Stop();
+            logger.Trace($"Saving Series {animeID} | Got Series from Database in {sw.Elapsed.TotalSeconds:0.00###}s");
+            sw.Restart();
 
             if (oldSeries != null)
             {
@@ -285,7 +280,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
 
         foreach (var series in seriesBatch)
         {
-            await Lock(async () => await session.UpdateAsync(series));
+            await session.UpdateAsync(series);
             UpdateCache(series);
             Changes.AddOrUpdate(series.AnimeSeriesID);
         }
@@ -297,7 +292,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
     {
         if (id <= 0)
             return null;
-        return ReadLock(() => AniDBIds!.GetOne(id));
+        return AniDBIds!.GetOne(id);
     }
 
     public List<AnimeSeries> GetByGroupID(int groupID)
@@ -305,23 +300,23 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         if (groupID <= 0)
             return [];
 
-        return ReadLock(() => Groups!.GetMultiple(groupID));
+        return Groups!.GetMultiple(groupID);
     }
 
     public List<AnimeSeries> GetWithMissingEpisodes()
     {
-        return ReadLock(() => Cache.Values.Where(a => a.MissingEpisodeCountGroups > 0)
+        return Cache.GetAll().Where(a => a.MissingEpisodeCountGroups > 0)
             .OrderByDescending(a => a.EpisodeAddedDate)
-            .ToList());
+            .ToList();
     }
 
     public List<AnimeSeries> GetMostRecentlyAdded(int maxResults, int userID)
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
-        return ReadLock(() => user == null
-            ? Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList()
-            : Cache.Values.Where(a => user.AllowedSeries(a)).OrderByDescending(a => a.DateTimeCreated).Take(maxResults)
-                .ToList());
+        return user == null
+            ? Cache.GetAll().OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList()
+            : Cache.GetAll().Where(user.AllowedSeries).OrderByDescending(a => a.DateTimeCreated).Take(maxResults)
+                .ToList();
     }
 
     private const string MultipleReleasesIgnoreVariationsQuery =
@@ -331,15 +326,11 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
 
     public IEnumerable<AnimeSeries> GetWithMultipleReleases(bool ignoreVariations)
     {
-        var ids = Lock(() =>
-        {
-            using var session = _databaseFactory.SessionFactory.OpenSession();
-
-            var query = ignoreVariations ? MultipleReleasesIgnoreVariationsQuery : MultipleReleasesCountVariationsQuery;
-            return session.CreateSQLQuery(query)
-                .AddScalar("AnimeID", NHibernateUtil.Int32)
-                .List<int>();
-        });
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        var query = ignoreVariations ? MultipleReleasesIgnoreVariationsQuery : MultipleReleasesCountVariationsQuery;
+        var ids = session.CreateSQLQuery(query)
+            .AddScalar("AnimeID", NHibernateUtil.Int32)
+            .List<int>();
 
         return ids
             .Distinct()
@@ -381,14 +372,10 @@ GROUP BY
 
     public IEnumerable<AnimeSeries> GetWithDuplicateFiles()
     {
-        var ids = Lock(() =>
-        {
-            using var session = _databaseFactory.SessionFactory.OpenSession();
-
-            return session.CreateSQLQuery(DuplicateFilesQuery)
-                .AddScalar("AnimeID", NHibernateUtil.Int32)
-                .List<int>();
-        });
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        var ids = session.CreateSQLQuery(DuplicateFilesQuery)
+            .AddScalar("AnimeID", NHibernateUtil.Int32)
+            .List<int>();
 
         return ids
             .Distinct()

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -5,7 +6,6 @@ using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_AnimeRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Anime, int>(databaseFactory)
@@ -22,17 +22,15 @@ public class AniDB_AnimeRepository(DatabaseFactory databaseFactory) : BaseCached
 
     public override void RegenerateDb()
     {
-        foreach (var anime in Cache.Values.ToList())
+        foreach (var anime in Cache.GetAll())
             anime.ResetPreferredTitle();
     }
 
     public AniDB_Anime? GetByAnimeID(int animeID)
-        => ReadLock(() => _animeIDs!.GetOne(animeID));
+        => _animeIDs!.GetOne(animeID);
 
     public List<AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)
-        => ReadLock(() =>
-            Cache.Values
-                .Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate)
-                .ToList()
-        );
+        => Cache.GetAll()
+            .Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate)
+            .ToList();
 }

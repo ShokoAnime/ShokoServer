@@ -22,8 +22,8 @@ public class AniDB_Anime_SimilarRepository(DatabaseFactory databaseFactory) : Ba
     }
 
     public List<AniDB_Anime_Similar> GetByAnimeID(int animeID)
-        => ReadLock(() => _animeIDs!.GetMultiple(animeID));
+        => _animeIDs!.GetMultiple(animeID);
 
     public AniDB_Anime_Similar? GetByAnimeIDAndSimilarID(int animeID, int similarAnimeID)
-        => ReadLock(() => _pairedIDs!.GetOne((animeID, similarAnimeID)));
+        => _pairedIDs!.GetOne((animeID, similarAnimeID));
 }

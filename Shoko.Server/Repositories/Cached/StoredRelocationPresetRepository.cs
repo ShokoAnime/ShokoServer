@@ -1,10 +1,10 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class StoredRelocationPresetRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<StoredRelocationPreset, int>(databaseFactory)
@@ -30,15 +30,15 @@ public class StoredRelocationPresetRepository(DatabaseFactory databaseFactory) :
 
     public StoredRelocationPreset? GetByName(string? scriptName)
         => !string.IsNullOrEmpty(scriptName)
-            ? Lock(() => _names!.GetOne(scriptName))
+            ? _names!.GetOne(scriptName)
             : null;
 
     public StoredRelocationPreset? GetByPresetID(Guid presetID)
-        => Lock(() => _presetIDs!.GetOne(presetID));
+        => _presetIDs!.GetOne(presetID);
 
     public IReadOnlyList<StoredRelocationPreset> GetByProviderID(Guid providerID)
-        => Lock(() => _providerIDs!.GetMultiple(providerID));
+        => _providerIDs!.GetMultiple(providerID);
 
     public StoredRelocationPreset? GetDefault()
-        => Lock(() => _isDefault!.GetOne(true));
+        => _isDefault!.GetOne(true);
 }

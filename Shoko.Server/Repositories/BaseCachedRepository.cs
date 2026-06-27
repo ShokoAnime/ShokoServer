@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NutzCode.InMemoryIndex;
@@ -20,8 +19,6 @@ namespace Shoko.Server.Repositories;
 public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedRepository, IRepository<T, S>
     where T : class, new()
 {
-    private readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.SupportsRecursion);
-
     protected readonly DatabaseFactory _databaseFactory;
 
     // A hack to not have to pass the system service to every cached repository.
@@ -29,7 +26,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
     public PocoCache<S, T> Cache;
 
-    public Action<T> BeginDeleteCallback { get; set; }
+    public Action<T>? BeginDeleteCallback { get; set; }
 
     public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
 
@@ -73,14 +70,14 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
     public void ClearCache()
     {
-        WriteLock(Cache.Clear);
+        Cache.Clear();
     }
 
     // ReSharper disable once InconsistentNaming
     public virtual T GetByID(S id)
     {
         if (Equals(default(S), id)) throw new InvalidStateException($"Trying to lookup a {typeof(T).Name} by an ID of 0");
-        return ReadLock(() => GetByIDUnsafe(id));
+        return GetByIDUnsafe(id);
     }
 
     public T GetByID(ISession session, S id)
@@ -95,12 +92,12 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
     public virtual IReadOnlyList<T> GetAll()
     {
-        return ReadLock(GetAllUnsafe);
+        return GetAllUnsafe();
     }
 
     public IReadOnlyList<T> GetAll(int maxLimit)
     {
-        return ReadLock(() => GetAllUnsafe(maxLimit));
+        return GetAllUnsafe(maxLimit);
     }
 
     public IReadOnlyList<T> GetAll(ISession session)
@@ -125,21 +122,20 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             return;
         }
 
-        BeginDeleteCallback?.Invoke(cr);
-        Lock(() => DeleteFromDatabaseUnsafe(cr));
-
-        DeleteFromCache(cr);
-        EndDeleteCallback?.Invoke(cr);
+        if (BeginDeleteCallback != null) BeginDeleteCallback(cr);
+        DeleteFromDatabaseUnsafe(cr);
+        DeleteFromCacheUnsafe(cr);
+        if (EndDeleteCallback != null) EndDeleteCallback(cr);
     }
 
     protected void DeleteFromCache(T cr)
     {
-        WriteLock(() => DeleteFromCacheUnsafe(cr));
+        DeleteFromCacheUnsafe(cr);
     }
 
     protected void UpdateCache(T cr)
     {
-        WriteLock(() => UpdateCacheUnsafe(cr));
+        UpdateCacheUnsafe(cr);
     }
 
     public virtual void Delete(IReadOnlyCollection<T> objs)
@@ -151,24 +147,19 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
         foreach (var cr in objs)
         {
-            BeginDeleteCallback?.Invoke(cr);
+            if (BeginDeleteCallback != null) BeginDeleteCallback(cr);
         }
 
-        Lock(() => DeleteFromDatabaseUnsafe(objs));
-
-        WriteLock(
-            () =>
-            {
-                foreach (var cr in objs)
-                {
-                    DeleteFromCacheUnsafe(cr);
-                }
-            }
-        );
+        DeleteFromDatabaseUnsafe(objs);
 
         foreach (var cr in objs)
         {
-            EndDeleteCallback?.Invoke(cr);
+            DeleteFromCacheUnsafe(cr);
+        }
+
+        foreach (var cr in objs)
+        {
+            if (EndDeleteCallback != null) EndDeleteCallback(cr);
         }
     }
 
@@ -180,20 +171,9 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             return;
         }
 
-        DeleteWithOpenTransactionCallback?.Invoke(session, cr);
-        Lock(() => session.Delete(cr));
-
-        WriteLock(() => DeleteFromCacheUnsafe(cr));
-    }
-
-    public virtual async Task DeleteWithOpenTransactionAsync(ISession session, T cr)
-    {
-        if (cr == null) return;
-
-        DeleteWithOpenTransactionCallback?.Invoke(session, cr);
-        await Lock(async () => await session.DeleteAsync(cr));
-
-        WriteLock(() => DeleteFromCacheUnsafe(cr));
+        if (DeleteWithOpenTransactionCallback != null) DeleteWithOpenTransactionCallback(session, cr);
+        session.Delete(cr);
+        DeleteFromCacheUnsafe(cr);
     }
 
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
@@ -203,49 +183,26 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
         foreach (var cr in objs)
         {
-            DeleteWithOpenTransactionCallback?.Invoke(session, cr);
-            Lock(() => session.Delete(cr));
+            if (DeleteWithOpenTransactionCallback != null) DeleteWithOpenTransactionCallback(session, cr);
+            session.Delete(cr);
         }
 
-        WriteLock(() =>
-        {
-            foreach (var obj in objs)
-                DeleteFromCacheUnsafe(obj);
-        });
-    }
-
-    public async Task DeleteWithOpenTransactionAsync(ISession session, IReadOnlyList<T> objs)
-    {
-        if (objs.Count == 0) return;
-
-        foreach (var cr in objs)
-        {
-            DeleteWithOpenTransactionCallback?.Invoke(session, cr);
-            await Lock(async () => await session.DeleteAsync(cr));
-        }
-
-        WriteLock(() =>
-        {
-            foreach (var obj in objs)
-                DeleteFromCacheUnsafe(obj);
-        });
+        foreach (var obj in objs)
+            DeleteFromCacheUnsafe(obj);
     }
 
     public virtual void Save(T obj)
     {
-        BeginSaveCallback?.Invoke(obj);
-        Lock(() =>
-        {
-            using var session = _databaseFactory.SessionFactory.OpenSession();
-            using var transaction = session.BeginTransaction();
-            session.SaveOrUpdate(obj);
-            SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
-            transaction.Commit();
-        });
+        if (BeginSaveCallback != null) BeginSaveCallback(obj);
 
-        WriteLock(() => UpdateCacheUnsafe(obj));
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        using var transaction = session.BeginTransaction();
+        session.SaveOrUpdate(obj);
+        if (SaveWithOpenTransactionCallback != null) SaveWithOpenTransactionCallback(session.Wrap(), obj);
+        transaction.Commit();
 
-        EndSaveCallback?.Invoke(obj);
+        UpdateCacheUnsafe(obj);
+        if (EndSaveCallback != null) EndSaveCallback(obj);
     }
 
     public virtual void Save(IReadOnlyCollection<T> objs)
@@ -257,65 +214,52 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
         foreach (var obj in objs)
         {
-            BeginSaveCallback?.Invoke(obj);
+            if (BeginSaveCallback != null) BeginSaveCallback(obj);
         }
 
-        Lock(() =>
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        using var transaction = session.BeginTransaction();
+        var wrapper = session.Wrap();
+        foreach (var obj in objs)
         {
-            using var session = _databaseFactory.SessionFactory.OpenSession();
-            using var transaction = session.BeginTransaction();
-            var wrapper = session.Wrap();
-            foreach (var obj in objs)
-            {
-                session.SaveOrUpdate(obj);
-                SaveWithOpenTransactionCallback?.Invoke(wrapper, obj);
-            }
-            transaction.Commit();
-        });
-
-        WriteLock(
-            () =>
-            {
-                foreach (var obj in objs)
-                {
-                    UpdateCacheUnsafe(obj);
-                }
-            }
-        );
+            session.SaveOrUpdate(obj);
+            if (SaveWithOpenTransactionCallback != null) SaveWithOpenTransactionCallback(wrapper, obj);
+        }
+        transaction.Commit();
 
         foreach (var obj in objs)
         {
-            EndSaveCallback?.Invoke(obj);
+            UpdateCacheUnsafe(obj);
+        }
+
+        foreach (var obj in objs)
+        {
+            if (EndSaveCallback != null) EndSaveCallback(obj);
         }
     }
 
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
     public virtual void SaveWithOpenTransaction(ISessionWrapper session, T obj)
     {
-        Lock(() =>
+        if (Equals(SelectKey(obj), default(S)))
         {
-            if (Equals(SelectKey(obj), default(S)))
-            {
-                session.Insert(obj);
-            }
-            else
-            {
-                session.Update(obj);
-            }
-        });
+            session.Insert(obj);
+        }
+        else
+        {
+            session.Update(obj);
+        }
 
-        SaveWithOpenTransactionCallback?.Invoke(session, obj);
-        WriteLock(() => UpdateCacheUnsafe(obj));
+        if (SaveWithOpenTransactionCallback != null) SaveWithOpenTransactionCallback(session, obj);
+        UpdateCacheUnsafe(obj);
     }
 
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
     public virtual void SaveWithOpenTransaction(ISession session, T obj)
     {
-        Lock(() => session.SaveOrUpdate(obj));
-
-        SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
-
-        WriteLock(() => UpdateCacheUnsafe(obj));
+        session.SaveOrUpdate(obj);
+        if (SaveWithOpenTransactionCallback != null) SaveWithOpenTransactionCallback(session.Wrap(), obj);
+        UpdateCacheUnsafe(obj);
     }
 
     //This function do not run the BeginDeleteCallback and the EndDeleteCallback
@@ -326,90 +270,21 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             return;
         }
 
-        Lock(() =>
-        {
-            foreach (var obj in objs)
-            {
-                session.SaveOrUpdate(obj);
-            }
-        });
-
         foreach (var obj in objs)
         {
-            SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
+            session.SaveOrUpdate(obj);
         }
 
         foreach (var obj in objs)
         {
-            WriteLock(() => UpdateCacheUnsafe(obj));
-        }
-    }
-
-    public async Task SaveWithOpenTransactionAsync(ISession session, IReadOnlyList<T> objs)
-    {
-        if (objs.Count == 0) return;
-
-        await Lock(async () =>
-        {
-            foreach (var obj in objs)
-            {
-                await session.SaveOrUpdateAsync(obj);
-            }
-        });
-
-        foreach (var obj in objs)
-        {
-            SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
+            if (SaveWithOpenTransactionCallback != null) SaveWithOpenTransactionCallback(session.Wrap(), obj);
         }
 
         foreach (var obj in objs)
         {
-            WriteLock(() => UpdateCacheUnsafe(obj));
+            UpdateCacheUnsafe(obj);
         }
     }
-
-    protected new T5 ReadLock<T5>(Func<T5> action)
-    {
-        _lock.EnterReadLock();
-        try
-        {
-            return action.Invoke();
-        }
-        finally
-        {
-            _lock.ExitReadLock();
-        }
-    }
-
-    protected new void WriteLock(Action action)
-    {
-        _lock.EnterWriteLock();
-        try
-        {
-            action.Invoke();
-        }
-        finally
-        {
-            _lock.ExitWriteLock();
-        }
-    }
-
-    protected new T5 WriteLock<T5>(Func<T5> action)
-    {
-        _lock.EnterWriteLock();
-        try
-        {
-            return action.Invoke();
-        }
-        finally
-        {
-            _lock.ExitWriteLock();
-        }
-    }
-
-    protected static async Task Lock(Func<Task> action) => await action();
-
-    protected static async Task<T5> Lock<T5>(Func<Task<T5>> action) => await action();
 
     #region Unsafe
 
@@ -425,12 +300,12 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
     protected virtual IReadOnlyList<T> GetAllUnsafe()
     {
-        return Cache.Values.ToList();
+        return Cache.GetAll();
     }
 
     protected virtual IReadOnlyList<T> GetAllUnsafe(int maxLimit)
     {
-        return Cache.Values.Take(maxLimit).ToList();
+        return Cache.GetAll().Take(maxLimit).ToList();
     }
 
     protected virtual void UpdateCacheUnsafe(T cr)
@@ -447,7 +322,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         using var transaction = session.BeginTransaction();
-        DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+        if (DeleteWithOpenTransactionCallback != null) DeleteWithOpenTransactionCallback(session, cr);
         session.Delete(cr);
         transaction.Commit();
     }
@@ -459,7 +334,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
         foreach (var cr in objs)
         {
-            DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+            if (DeleteWithOpenTransactionCallback != null) DeleteWithOpenTransactionCallback(session, cr);
             session.Delete(cr);
         }
 

@@ -1,10 +1,10 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_Anime_Character_CreatorRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Anime_Character_Creator, int>(databaseFactory)
@@ -26,14 +26,14 @@ public class AniDB_Anime_Character_CreatorRepository(DatabaseFactory databaseFac
     }
 
     public IReadOnlyList<AniDB_Anime_Character_Creator> GetByAnimeID(int animeID)
-        => ReadLock(() => _animeIDs!.GetMultiple(animeID));
+        => _animeIDs!.GetMultiple(animeID);
 
     public IReadOnlyList<AniDB_Anime_Character_Creator> GetByCharacterID(int characterID)
-        => ReadLock(() => _characterIDs!.GetMultiple(characterID));
+        => _characterIDs!.GetMultiple(characterID);
 
     public IReadOnlyList<AniDB_Anime_Character_Creator> GetByCharacterIDAndAnimeID(int characterID, int animeID)
         => GetByCharacterID(characterID).Where(a => a.AnimeID == animeID).ToList();
 
     public IReadOnlyList<AniDB_Anime_Character_Creator> GetByCreatorID(int creatorID)
-        => ReadLock(() => _creatorIDs!.GetMultiple(creatorID));
+        => _creatorIDs!.GetMultiple(creatorID);
 }

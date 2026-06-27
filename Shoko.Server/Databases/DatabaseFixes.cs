@@ -150,8 +150,8 @@ public class DatabaseFixes
     public static void DeleteSeriesUsersWithoutSeries()
     {
         //DB Fix Series not deleting series_user
-        var list = new HashSet<int>(RepoFactory.AnimeSeries.Cache.Keys);
-        RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.Cache.Values
+        var list = new HashSet<int>(RepoFactory.AnimeSeries.Cache.GetAllKeys());
+        RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.Cache.GetAll()
             .Where(a => !list.Contains(a.AnimeSeriesID))
             .ToList());
     }

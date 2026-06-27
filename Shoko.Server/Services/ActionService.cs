@@ -18,7 +18,6 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
@@ -225,12 +224,11 @@ public class ActionService
 
         var videoLocalsAll = _videoLocals.GetAll().ToList();
         // remove empty video locals
-        BaseRepository.Lock(session, videoLocalsAll, (s, vls) =>
         {
-            using var transaction = s.BeginTransaction();
-            _videoLocals.DeleteWithOpenTransaction(s, vls.Where(a => a.IsEmpty()).ToList());
+            using var transaction = session.BeginTransaction();
+            _videoLocals.DeleteWithOpenTransaction(session, videoLocalsAll.Where(a => a.IsEmpty()).ToList());
             transaction.Commit();
-        });
+        }
 
         // Remove duplicate video locals
         var locals = videoLocalsAll
@@ -248,32 +246,28 @@ public class ActionService
             values.Remove(to);
             foreach (var places in values.Select(from => from.Places).Where(places => places != null && places.Count != 0))
             {
-                BaseRepository.Lock(session, places, (s, ps) =>
+                using var transaction = session.BeginTransaction();
+                foreach (var place in places)
                 {
-                    using var transaction = s.BeginTransaction();
-                    foreach (var place in ps)
-                    {
-                        place.VideoID = to.VideoLocalID;
-                        _videoLocalPlaces.SaveWithOpenTransaction(s, place);
-                    }
+                    place.VideoID = to.VideoLocalID;
+                    _videoLocalPlaces.SaveWithOpenTransaction(session, place);
+                }
 
-                    transaction.Commit();
-                });
+                transaction.Commit();
             }
 
             toRemove.AddRange(values);
         }
 
-        BaseRepository.Lock(session, toRemove, (s, ps) =>
         {
-            using var transaction = s.BeginTransaction();
-            foreach (var remove in ps)
+            using var transaction = session.BeginTransaction();
+            foreach (var remove in toRemove)
             {
-                _videoLocals.DeleteWithOpenTransaction(s, remove);
+                _videoLocals.DeleteWithOpenTransaction(session, remove);
             }
 
             transaction.Commit();
-        });
+        }
 
         // Remove files in invalid managed folders
         foreach (var v in videoLocalsAll)
@@ -281,21 +275,18 @@ public class ActionService
             var places = v.Places;
             if (v.Places?.Count > 0)
             {
-                BaseRepository.Lock(session, places, (s, ps) =>
+                using var transaction = session.BeginTransaction();
+                foreach (var place in places.Where(place => string.IsNullOrWhiteSpace(place?.Path)))
                 {
-                    using var transaction = s.BeginTransaction();
-                    foreach (var place in ps.Where(place => string.IsNullOrWhiteSpace(place?.Path)))
-                    {
 #pragma warning disable CS0618
-                        _logger.LogInformation("Remove Records With Orphaned Managed Folder: {Filename}", v.FileName);
+                    _logger.LogInformation("Remove Records With Orphaned Managed Folder: {Filename}", v.FileName);
 #pragma warning restore CS0618
-                        seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
-                            .DistinctBy(a => a.AnimeSeriesID));
-                        _videoLocalPlaces.DeleteWithOpenTransaction(s, place);
-                    }
+                    seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
+                        .DistinctBy(a => a.AnimeSeriesID));
+                    _videoLocalPlaces.DeleteWithOpenTransaction(session, place);
+                }
 
-                    transaction.Commit();
-                });
+                transaction.Commit();
             }
 
             // Remove duplicate places
@@ -308,12 +299,9 @@ public class ActionService
                 places = v.Places?.Except(places).ToList() ?? [];
                 foreach (var place in places)
                 {
-                    BaseRepository.Lock(session, place, (s, p) =>
-                    {
-                        using var transaction = s.BeginTransaction();
-                        _videoLocalPlaces.DeleteWithOpenTransaction(s, p);
-                        transaction.Commit();
-                    });
+                    using var transaction = session.BeginTransaction();
+                    _videoLocalPlaces.DeleteWithOpenTransaction(session, place);
+                    transaction.Commit();
                 }
             }
 
@@ -329,12 +317,11 @@ public class ActionService
             if (removeMyList)
                 await ((VideoService)_videoService).ScheduleRemovalFromMyList(v);
 
-            BaseRepository.Lock(session, v, (s, vl) =>
             {
-                using var transaction = s.BeginTransaction();
-                _videoLocals.DeleteWithOpenTransaction(s, vl);
+                using var transaction = session.BeginTransaction();
+                _videoLocals.DeleteWithOpenTransaction(session, v);
                 transaction.Commit();
-            });
+            }
         }
 
         // Clean up failed imports
@@ -342,31 +329,29 @@ public class ActionService
             .SelectMany(a => a.EpisodeCrossReferences)
             .Where(a => a.AniDBAnime == null || a.AniDBEpisode == null)
             .ToArray();
-        BaseRepository.Lock(session, s =>
         {
-            using var transaction = s.BeginTransaction();
+            using var transaction = session.BeginTransaction();
             foreach (var xref in list)
             {
                 // We don't need to update anything since they don't exist
-                _crossRefFileEpisodes.DeleteWithOpenTransaction(s, xref);
+                _crossRefFileEpisodes.DeleteWithOpenTransaction(session, xref);
             }
 
             transaction.Commit();
-        });
+        }
 
         // clean up orphaned video local places
         var placesToRemove = _videoLocalPlaces.GetAll().Where(a => a.VideoLocal == null).ToList();
-        BaseRepository.Lock(session, s =>
         {
-            using var transaction = s.BeginTransaction();
+            using var transaction = session.BeginTransaction();
             foreach (var place in placesToRemove)
             {
                 // We don't need to update anything since they don't exist
-                _videoLocalPlaces.DeleteWithOpenTransaction(s, place);
+                _videoLocalPlaces.DeleteWithOpenTransaction(session, place);
             }
 
             transaction.Commit();
-        });
+        }
 
         // NOTE: use 'purge unused releases' if you want to remove the cross-references too.
 

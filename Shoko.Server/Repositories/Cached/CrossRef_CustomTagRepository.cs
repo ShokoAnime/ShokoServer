@@ -1,10 +1,10 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class CrossRef_CustomTagRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<CrossRef_CustomTag, int>(databaseFactory)
@@ -22,11 +22,11 @@ public class CrossRef_CustomTagRepository(DatabaseFactory databaseFactory) : Bas
     }
 
     public IReadOnlyList<CrossRef_CustomTag> GetByCustomTagID(int customTagID)
-        => ReadLock(() => _customTagIDs!.GetMultiple((customTagID, 1)));
+        => _customTagIDs!.GetMultiple((customTagID, 1));
 
     public IReadOnlyList<CrossRef_CustomTag> GetByAnimeID(int animeID)
-        => ReadLock(() => _entityIDandType!.GetMultiple((animeID, 1)));
+        => _entityIDandType!.GetMultiple((animeID, 1));
 
     public CrossRef_CustomTag? GetByUniqueID(int customTagID, int animeID)
-        => ReadLock(() => _entityIDandType!.GetMultiple((animeID, 1)).Where(a => a.CustomTagID == customTagID).FirstOrDefault());
+        => _entityIDandType!.GetMultiple((animeID, 1)).FirstOrDefault(a => a.CustomTagID == customTagID);
 }

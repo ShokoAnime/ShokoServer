@@ -12,7 +12,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.NHibernate;
@@ -106,13 +105,10 @@ public class AnimeGroupCreator
 
         await _animeGroupUserRepo.DeleteAll(session);
         await _animeGroupRepo.DeleteAll(session, tempGroupId);
-        await BaseRepository.Lock(async () =>
-        {
-            await session.CreateSQLQuery(@"
+        await session.CreateSQLQuery(@"
                 UPDATE AnimeSeries SET AnimeGroupID = :tempGroupId;")
-                .SetInt32("tempGroupId", tempGroupId)
-                .ExecuteUpdateAsync();
-        });
+            .SetInt32("tempGroupId", tempGroupId)
+            .ExecuteUpdateAsync();
 
         // We've deleted/modified all AnimeSeries/GroupFilter records, so update caches to reflect that
         _animeSeriesRepo.ClearCache();
@@ -171,7 +167,7 @@ public class AnimeGroupCreator
             newGroupsToSeries[grp] = new Tuple<AnimeGroup, AnimeSeries>(group, series);
         }
 
-        await BaseRepository.Lock(async () => await _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection()));
+        await _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
 
         // Anime groups should have IDs now they've been inserted. Now assign the group ID's to their respective series
         // (The caller of this method will be responsible for saving the AnimeSeries)
@@ -219,7 +215,7 @@ public class AnimeGroupCreator
                     groupAndSeries.AsReadOnlyCollection()));
         }
 
-        await BaseRepository.Lock(async () => await _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection()));
+        await _animeGroupRepo.InsertBatch(session, newGroupsToSeries.Select(gts => gts.Item1).AsReadOnlyCollection());
 
         // Anime groups should have IDs now they've been inserted. Now assign the group ID's to their respective series
         // (The caller of this method will be responsible for saving the AnimeSeries)
@@ -440,13 +436,12 @@ public class AnimeGroupCreator
             var animeSeries = _animeSeriesRepo.GetAll();
             AnimeGroup tempGroup = null;
 
-            await BaseRepository.Lock(async () =>
             {
                 using var trans = session.BeginTransaction();
                 tempGroup = await CreateTempAnimeGroup(session);
                 await ClearGroupsAndDependencies(session, tempGroup.AnimeGroupID);
                 await trans.CommitAsync();
-            });
+            }
 
             var createdGroups = _autoGroupSeries
                 ? (await AutoCreateGroupsWithRelatedSeries(session, animeSeries)).AsReadOnlyCollection()
@@ -454,12 +449,11 @@ public class AnimeGroupCreator
 
             await UpdateAnimeSeriesContractsAndSave(session, animeSeries);
 
-            await BaseRepository.Lock(async () =>
             {
                 using var trans = session.BeginTransaction();
                 await session.DeleteAsync(tempGroup); // We should no longer need the temporary group we created earlier
                 await trans.CommitAsync();
-            });
+            }
 
             // We need groups and series cached for updating of AnimeGroup contracts to work
             _animeGroupRepo.Populate(session, false);
@@ -516,24 +510,22 @@ public class AnimeGroupCreator
         var series = group.AllSeries;
         // recalculate series
         _logger.LogInformation("Recalculating Series Stats and Contracts for Group: {Name} ({ID})", group.GroupName, group.AnimeGroupID);
-        await BaseRepository.Lock(async () =>
         {
             using var trans = session.BeginTransaction();
             await UpdateAnimeSeriesContractsAndSave(session, series);
             await trans.CommitAsync();
-        });
+        }
 
         // Update Cache so that group can recalculate
         series.ForEach(_animeSeriesRepo.Cache.Update);
 
         // Recalculate group
         _logger.LogInformation("Recalculating Group Stats and Contracts for Group: {Name} ({ID})", group.GroupName, group.AnimeGroupID);
-        await BaseRepository.Lock(async () =>
         {
             using var trans = session.BeginTransaction();
             await UpdateAnimeGroupsAndTheirContracts(groups);
             await trans.CommitAsync();
-        });
+        }
 
         // update cache
         _animeGroupRepo.Cache.Update(group);

@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
@@ -5,7 +6,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
@@ -18,7 +18,9 @@ public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
     public CustomTagRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         DeleteWithOpenTransactionCallback = (ses, obj) =>
+        {
             RepoFactory.CrossRef_CustomTag.DeleteWithOpenTransaction(ses, RepoFactory.CrossRef_CustomTag.GetByCustomTagID(obj.CustomTagID));
+        };
     }
 
     public override void PopulateIndexes()
@@ -34,6 +36,6 @@ public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
 
     public CustomTag? GetByTagName(string? tagName)
         => !string.IsNullOrWhiteSpace(tagName)
-            ? ReadLock(() => _names!.GetOne(tagName))
+            ? _names!.GetOne(tagName)
             : null;
 }

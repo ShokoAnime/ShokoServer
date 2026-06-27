@@ -11,35 +11,26 @@ public class AniDB_NotifyQueueRepository : BaseDirectRepository<AniDB_NotifyQueu
 {
     public AniDB_NotifyQueue GetByTypeID(AniDBNotifyType type, int id)
     {
-        return Lock(() =>
-        {
-            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
-            return session.Query<AniDB_NotifyQueue>()
-                .Where(a => a.Type == type && a.ID == id)
-                .Take(1)
-                .SingleOrDefault();
-        });
+        using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
+        return session.Query<AniDB_NotifyQueue>()
+            .Where(a => a.Type == type && a.ID == id)
+            .Take(1)
+            .SingleOrDefault();
     }
 
     public List<AniDB_NotifyQueue> GetByType(AniDBNotifyType type)
     {
-        return Lock(() =>
-        {
-            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
-            return session.Query<AniDB_NotifyQueue>()
-                .Where(a => a.Type == type)
-                .ToList();
-        });
+        using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
+        return session.Query<AniDB_NotifyQueue>()
+            .Where(a => a.Type == type)
+            .ToList();
     }
 
     public void DeleteForTypeID(AniDBNotifyType type, int id)
     {
-        Lock(() =>
-        {
-            using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
-            // Query can't batch delete, while Query can
-            session.Query<AniDB_NotifyQueue>().Where(a => a.Type == type && a.ID == id).Delete();
-        });
+        using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
+        // Query can't batch delete, while Query can
+        session.Query<AniDB_NotifyQueue>().Where(a => a.Type == type && a.ID == id).Delete();
     }
 
     public AniDB_NotifyQueueRepository(DatabaseFactory databaseFactory) : base(databaseFactory)

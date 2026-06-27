@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +7,6 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_EpisodeRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Episode, int>(databaseFactory)
@@ -25,13 +25,13 @@ public class AniDB_EpisodeRepository(DatabaseFactory databaseFactory) : BaseCach
     }
 
     public AniDB_Episode? GetByEpisodeID(int episodeID)
-        => episodeID is not > 0 ? null : ReadLock(() => _episodesIDs!.GetOne(episodeID));
+        => episodeID is not > 0 ? null : _episodesIDs!.GetOne(episodeID);
 
     public IReadOnlyList<AniDB_Episode> GetByAnimeID(int animeID)
-        => animeID is not > 0 ? [] : ReadLock(() => _animeIDs!.GetMultiple(animeID));
+        => animeID is not > 0 ? [] : _animeIDs!.GetMultiple(animeID);
 
     public IReadOnlyList<AniDB_Episode> GetForDate(DateTime startDate, DateTime endDate)
-        => ReadLock(() => Cache.Values.Where(a => a.GetAirDateAsDate() is { } date && date >= startDate && date <= endDate).ToList());
+        => Cache.GetAll().Where(a => a.GetAirDateAsDate() is { } date && date >= startDate && date <= endDate).ToList();
 
     public IReadOnlyList<AniDB_Episode> GetByAnimeIDAndEpisodeNumber(int animeID, int episodeNumber)
         => GetByAnimeID(animeID)

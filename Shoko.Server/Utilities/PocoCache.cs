@@ -29,10 +29,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Threading;
 using Shoko.Abstractions.Extensions;
 
 namespace NutzCode.InMemoryIndex;
-//NOTE PocoCache is not thread SAFE
 
 /// <summary>
 /// Plain Old Class Object (POCO) Cache.
@@ -47,9 +47,7 @@ public class PocoCache<TKey, TEntity> where TKey : notnull where TEntity : class
 
     private readonly List<IPocoCacheObserver<TKey, TEntity>> _observers = [];
 
-    public Dictionary<TKey, TEntity>.KeyCollection Keys => _dict.Keys;
-
-    public Dictionary<TKey, TEntity>.ValueCollection Values => _dict.Values;
+    internal ReaderWriterLockSlim SyncRoot { get; } = new(LockRecursionPolicy.NoRecursion);
 
     public PocoCache(IEnumerable<TEntity> objectList, Func<TEntity, TKey> keyGetterFunc)
     {
@@ -93,12 +91,60 @@ public class PocoCache<TKey, TEntity> where TKey : notnull where TEntity : class
         => _observers.Add(observer);
 
     /// <summary>
-    /// Gets an entity for the given <paramref name="key"/> from the cache, or <langword>null</langword> if not found.
+    /// Gets an entity for the given <paramref name="key"/> from the cache, or <see langword="null"/> if not found.
     /// </summary>
     /// <param name="key">The key for the entity.</param>
-    /// <returns>The entity, or <langword>null</langword> if not found.</returns>
+    /// <returns>The entity, or <see langword="null"/> if not found.</returns>
     public TEntity? Get(TKey key)
+    {
+        SyncRoot.EnterReadLock();
+        try
+        {
+            return _dict.GetValueOrDefault(key);
+        }
+        finally
+        {
+            SyncRoot.ExitReadLock();
+        }
+    }
+
+    /// <summary>
+    /// Gets an entity without acquiring the lock. Only call when the caller already holds <see cref="SyncRoot"/>.
+    /// </summary>
+    internal TEntity? GetUnsafe(TKey key)
         => _dict.GetValueOrDefault(key);
+
+    /// <summary>
+    /// Returns a snapshot of all cached entities.
+    /// </summary>
+    public IReadOnlyList<TEntity> GetAll()
+    {
+        SyncRoot.EnterReadLock();
+        try
+        {
+            return [.. _dict.Values];
+        }
+        finally
+        {
+            SyncRoot.ExitReadLock();
+        }
+    }
+
+    /// <summary>
+    /// Returns a snapshot of all cached keys.
+    /// </summary>
+    public IReadOnlyList<TKey> GetAllKeys()
+    {
+        SyncRoot.EnterReadLock();
+        try
+        {
+            return [.. _dict.Keys];
+        }
+        finally
+        {
+            SyncRoot.ExitReadLock();
+        }
+    }
 
     /// <summary>
     /// Updates an entity in the cache.
@@ -106,10 +152,18 @@ public class PocoCache<TKey, TEntity> where TKey : notnull where TEntity : class
     /// <param name="entity">The entity to update in the cache.</param>
     public void Update(TEntity entity)
     {
-        var key = _keyGetterFunc(entity);
-        foreach (var observer in _observers)
-            observer.Update(key, entity);
-        _dict[key] = entity;
+        SyncRoot.EnterWriteLock();
+        try
+        {
+            var key = _keyGetterFunc(entity);
+            foreach (var observer in _observers)
+                observer.Update(key, entity);
+            _dict[key] = entity;
+        }
+        finally
+        {
+            SyncRoot.ExitWriteLock();
+        }
     }
 
     /// <summary>
@@ -118,10 +172,18 @@ public class PocoCache<TKey, TEntity> where TKey : notnull where TEntity : class
     /// <param name="entity">The entity to remove from the cache.</param>
     public void Remove(TEntity entity)
     {
-        var key = _keyGetterFunc(entity);
-        foreach (var observer in _observers)
-            observer.Remove(key);
-        _dict.Remove(key);
+        SyncRoot.EnterWriteLock();
+        try
+        {
+            var key = _keyGetterFunc(entity);
+            foreach (var observer in _observers)
+                observer.Remove(key);
+            _dict.Remove(key);
+        }
+        finally
+        {
+            SyncRoot.ExitWriteLock();
+        }
     }
 
     /// <summary>
@@ -129,9 +191,17 @@ public class PocoCache<TKey, TEntity> where TKey : notnull where TEntity : class
     /// </summary>
     public void Clear()
     {
-        _dict.Clear();
-        foreach (var observer in _observers)
-            observer.Clear();
+        SyncRoot.EnterWriteLock();
+        try
+        {
+            _dict.Clear();
+            foreach (var observer in _observers)
+                observer.Clear();
+        }
+        finally
+        {
+            SyncRoot.ExitWriteLock();
+        }
     }
 }
 
@@ -172,12 +242,17 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
 
     private readonly Func<TEntity, IEnumerable<TInverseKey>> _func;
 
+    private readonly ReaderWriterLockSlim _lock;
+
     private PocoIndex(PocoCache<TKey, TEntity> cache, Func<TEntity, TInverseKey> func) : this(cache, a => [func(a)]) { }
 
     private PocoIndex(PocoCache<TKey, TEntity> cache, Func<TEntity, IEnumerable<TInverseKey>> func)
     {
         _cache = cache;
-        _dict = new BiDictionaryManyToMany<TKey, TInverseKey>(_cache.Keys.ToDictionary(a => a, a => func(_cache.Get(a)!).ToHashSet()));
+        _lock = cache.SyncRoot;
+        // Startup is single-threaded; read keys directly from the internal dict via GetAllKeys (locked snapshot)
+        _dict = new BiDictionaryManyToMany<TKey, TInverseKey>(
+            cache.GetAllKeys().ToDictionary(a => a, a => func(cache.GetUnsafe(a)!).ToHashSet()));
         _func = func;
         cache.AddObserver(this);
     }
@@ -190,18 +265,34 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
 
     public TEntity? GetOne(TInverseKey key)
     {
-        if (_cache == null || !_dict.TryGetInverse(key, out var results))
-            return null;
+        _lock.EnterReadLock();
+        try
+        {
+            if (_cache == null || !_dict.TryGetInverse(key, out var results))
+                return null;
 
-        return results is { Count: > 0 } ? _cache.Get(results.First()) : null;
+            return results is { Count: > 0 } ? _cache.GetUnsafe(results.First()) : null;
+        }
+        finally
+        {
+            _lock.ExitReadLock();
+        }
     }
 
     public List<TEntity> GetMultiple(TInverseKey key)
     {
-        if (_cache == null || !_dict.TryGetInverse(key, out var results))
-            return _emptyList;
+        _lock.EnterReadLock();
+        try
+        {
+            if (_cache == null || !_dict.TryGetInverse(key, out var results))
+                return _emptyList;
 
-        return results.Select(a => _cache.Get(a)!).ToList();
+            return results.Select(a => _cache.GetUnsafe(a)!).ToList();
+        }
+        finally
+        {
+            _lock.ExitReadLock();
+        }
     }
 
     #region IPocoCacheObserver implementation

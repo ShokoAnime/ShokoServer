@@ -1,9 +1,9 @@
+#nullable enable
 using System.Collections.Generic;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class CrossRef_AniDB_TMDB_ShowRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<CrossRef_AniDB_TMDB_Show, int>(databaseFactory)
@@ -25,11 +25,11 @@ public class CrossRef_AniDB_TMDB_ShowRepository(DatabaseFactory databaseFactory)
     }
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Show> GetByAnidbAnimeID(int animeId)
-        => ReadLock(() => _anidbAnimeIDs!.GetMultiple(animeId));
+        => _anidbAnimeIDs!.GetMultiple(animeId);
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Show> GetByTmdbShowID(int showId)
-        => ReadLock(() => _tmdbShowIDs!.GetMultiple(showId));
+        => _tmdbShowIDs!.GetMultiple(showId);
 
     public CrossRef_AniDB_TMDB_Show? GetByAnidbAnimeAndTmdbShowIDs(int anidbId, int tmdbId)
-        => ReadLock(() => _pairedIDs!.GetOne((anidbId, tmdbId)));
+        => _pairedIDs!.GetOne((anidbId, tmdbId));
 }

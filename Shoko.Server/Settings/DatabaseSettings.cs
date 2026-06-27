@@ -213,21 +213,6 @@ public class DatabaseSettings
     public string DatabaseBackupDirectory { get; set; } = "DatabaseBackup";
 
     /// <summary>
-    /// Use database locking in the application. This should be left on if
-    /// you're using SQLite, but can safely be turned off for the other two.
-    /// </summary>
-    [Badge("Debug", Theme = DisplayColorTheme.Warning)]
-    [Visibility(
-        Advanced = true,
-        DisableWhenMemberIsSet = nameof(Type),
-        DisableWhenSetTo = Constants.DatabaseType.SQLite
-    )]
-    [Display(Name = "Use Application Database Locking")]
-    [RequiresRestart]
-    [EnvironmentVariable("DB_USE_APPLICATION_LOCK")]
-    public bool UseDatabaseLock { get; set; } = true;
-
-    /// <summary>
     /// Log SQL statements to standard output. They will not appear in the log file or Web UI live log.
     /// </summary>
     [Badge("Debug", Theme = DisplayColorTheme.Warning)]

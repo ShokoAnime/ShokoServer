@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
@@ -5,7 +6,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_Anime_TagRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Anime_Tag, int>(databaseFactory)
@@ -24,13 +24,13 @@ public class AniDB_Anime_TagRepository(DatabaseFactory databaseFactory) : BaseCa
     }
 
     public AniDB_Anime_Tag? GetByAnimeIDAndTagID(int animeID, int tagID)
-        => ReadLock(() => _animeIDs!.GetMultiple(animeID).FirstOrDefault(a => a.TagID == tagID));
+        => _animeIDs!.GetMultiple(animeID).FirstOrDefault(a => a.TagID == tagID);
 
     public List<AniDB_Anime_Tag> GetByAnimeID(int animeID)
-        => ReadLock(() => _animeIDs!.GetMultiple(animeID));
+        => _animeIDs!.GetMultiple(animeID);
 
     public List<AniDB_Anime_Tag> GetByTagID(int tagID)
-        => ReadLock(() => _tagIDs!.GetMultiple(tagID));
+        => _tagIDs!.GetMultiple(tagID);
 
     /// <summary>
     /// Gets all the anime tags, but only if we have the anime locally

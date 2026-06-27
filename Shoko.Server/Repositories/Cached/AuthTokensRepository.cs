@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +7,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AuthTokens, int>(databaseFactory)
@@ -29,7 +29,7 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
         if (string.IsNullOrEmpty(token) || !Guid.TryParse(token, out var guid))
             return null;
 
-        var tokens = ReadLock(_tokens!.GetMultiple(guid.ToString("D").ToLowerInvariant().Trim()).ToList);
+        var tokens = _tokens!.GetMultiple(guid.ToString("D").ToLowerInvariant().Trim()).ToList();
         var auth = tokens.FirstOrDefault();
         if (tokens.Count > 1)
         {
@@ -49,7 +49,7 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
     public bool DeleteAllWithUserID(int id)
     {
-        var ids = ReadLock(() => _userIDs!.GetMultiple(id));
+        var ids = _userIDs!.GetMultiple(id);
         ids.ForEach(Delete);
         return ids.Count > 0;
     }
@@ -59,17 +59,17 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
         if (string.IsNullOrEmpty(token))
             return false;
 
-        var tokens = ReadLock(() => _tokens!.GetMultiple(token));
+        var tokens = _tokens!.GetMultiple(token);
         Delete(tokens);
         return tokens.Count > 0;
     }
 
     public IReadOnlyList<AuthTokens> GetByUserID(int userID)
-        => ReadLock(() => _userIDs!.GetMultiple(userID));
+        => _userIDs!.GetMultiple(userID);
 
     public AuthTokens CreateNewApiKey(JMMUser user, string device)
     {
-        var allTokensForUser = ReadLock(() => _userIDs!.GetMultiple(user.JMMUserID));
+        var allTokensForUser = _userIDs!.GetMultiple(user.JMMUserID);
         var existingTokens = allTokensForUser
             .Where(a => !a.ExpiresAt.HasValue && !string.IsNullOrEmpty(a.Token) && a.DeviceName.Trim().Equals(device.Trim(), StringComparison.InvariantCultureIgnoreCase))
             .ToList();

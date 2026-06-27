@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
@@ -7,7 +8,6 @@ using Shoko.Server.Exceptions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place, int>
@@ -26,7 +26,7 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place,
                 throw new InvalidStateException("Attempting to save a VideoLocal_Place with a VideoLocalID of 0");
             if (string.IsNullOrEmpty(place.RelativePath))
                 throw new InvalidStateException("Attempting to save a VideoLocal_Place with a null or empty FilePath");
-            if (place.ID is 0 && GetByRelativePathAndManagedFolderID(place.RelativePath, place.ManagedFolderID) is { } secondPlace)
+            if (place.ID is 0 && GetByRelativePathAndManagedFolderID(place.RelativePath, place.ManagedFolderID) is not null)
                 throw new InvalidStateException("Attempting to save a VideoLocal_Place with a FilePath and ManagedFolderID that already exists in the database");
         };
     }
@@ -44,7 +44,7 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place,
     public override void RegenerateDb()
     {
         SystemService.StartupMessage = $"Database - Validating - {nameof(VideoLocal_Place)} Removing orphaned VideoLocal_Places...";
-        var entries = Cache.Values.Where(a => a is { VideoID: 0 } or { ManagedFolderID: 0 } or { RelativePath: null or "" }).ToList();
+        var entries = Cache.GetAll().Where(a => a is { VideoID: 0 } or { ManagedFolderID: 0 } or { RelativePath: null or "" }).ToList();
         var total = entries.Count;
         var current = 0;
         using var session = _databaseFactory.SessionFactory.OpenSession();
@@ -71,11 +71,11 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place,
     /// <exception cref="InvalidStateException">When the given file path is null or empty.</exception>
     public VideoLocal_Place? GetByRelativePath(string relativePath)
         => !string.IsNullOrEmpty(relativePath)
-            ? ReadLock(() => _paths!.GetMultiple(PlatformUtility.NormalizePath(relativePath, stripLeadingSlash: true)) is { Count: 1 } list ? list[0] : null)
+            ? _paths!.GetMultiple(PlatformUtility.NormalizePath(relativePath, stripLeadingSlash: true)) is { Count: 1 } list ? list[0] : null
             : null;
 
     public IReadOnlyList<VideoLocal_Place> GetByManagedFolderID(int managedFolderID)
-        => ReadLock(() => _managedFolderIDs!.GetMultiple(managedFolderID));
+        => _managedFolderIDs!.GetMultiple(managedFolderID);
 
     /// <summary>
     /// Gets the <see cref="VideoLocal_Place"/> associated with the given file path and managed folder ID.
@@ -86,9 +86,9 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place,
     /// <exception cref="InvalidStateException">When the given file path is null or empty, or the given managed folder ID is 0.</exception>
     public VideoLocal_Place? GetByRelativePathAndManagedFolderID(string relativePath, int managedFolderID)
         => !string.IsNullOrEmpty(relativePath) && managedFolderID > 0
-            ? ReadLock(() => _paths!.GetMultiple(PlatformUtility.NormalizePath(relativePath, stripLeadingSlash: true)).FirstOrDefault(a => a.ManagedFolderID == managedFolderID))
+            ? _paths!.GetMultiple(PlatformUtility.NormalizePath(relativePath, stripLeadingSlash: true)).FirstOrDefault(a => a.ManagedFolderID == managedFolderID)
             : null;
 
     public IReadOnlyList<VideoLocal_Place> GetByVideoLocal(int videoLocalID)
-        => ReadLock(() => _videoLocalIDs!.GetMultiple(videoLocalID));
+        => _videoLocalIDs!.GetMultiple(videoLocalID);
 }

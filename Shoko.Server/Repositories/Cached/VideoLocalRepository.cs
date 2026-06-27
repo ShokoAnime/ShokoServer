@@ -27,7 +27,7 @@ namespace Shoko.Server.Repositories.Cached;
 
 public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
 {
-    private VideoService? _videoService = null;
+    private VideoService? _videoService;
 
     private PocoIndex<int, VideoLocal, string>? _ed2k;
 
@@ -49,7 +49,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
     public override void PopulateIndexes()
     {
         //Fix null hashes
-        foreach (var l in Cache.Values)
+        foreach (var l in Cache.GetAll())
         {
             if (l.Hash != null && l.FileName != null) continue;
 
@@ -71,7 +71,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
 
         try
         {
-            list = Cache.Values.Where(a => a.MediaVersion < VideoLocal.MEDIA_VERSION || a.MediaInfo == null).ToList();
+            list = Cache.GetAll().Where(a => a.MediaVersion < VideoLocal.MEDIA_VERSION || a.MediaInfo == null).ToList();
             max = list.Count;
 
             var scheduler = ISystemService.StaticServices.GetRequiredService<IQueueScheduler>();
@@ -89,7 +89,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             // ignore
         }
 
-        var locals = Cache.Values
+        var locals = Cache.GetAll()
             .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
             .GroupBy(a => a.Hash)
             .ToDictionary(g => g.Key, g => g.ToList());
@@ -97,7 +97,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
         using var session = _databaseFactory.SessionFactory.OpenSession();
         using (var transaction = session.BeginTransaction())
         {
-            list = Cache.Values.Where(a => a.IsEmpty() || a.Places.Count == 0).ToList();
+            list = Cache.GetAll().Where(a => a.IsEmpty() || a.Places.Count == 0).ToList();
             count = 0;
             max = list.Count;
             foreach (var remove in list)
@@ -212,7 +212,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
         if (string.IsNullOrEmpty(hash))
             throw new InvalidStateException("Trying to lookup a VideoLocal by an empty Hash");
 
-        return ReadLock(() => _ed2k!.GetOne(hash));
+        return _ed2k!.GetOne(hash);
     }
 
     public VideoLocal? GetByEd2kAndSize(string hash, long fileSize)
@@ -223,18 +223,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
         if (fileSize <= 0)
             throw new InvalidStateException("Trying to lookup a VideoLocal by a filesize of 0");
 
-        return ReadLock(() => _ed2k!.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fileSize));
-    }
-
-    public VideoLocal? GetByMd5(string hash)
-    {
-        if (string.IsNullOrEmpty(hash))
-            throw new InvalidStateException("Trying to lookup a VideoLocal by an empty MD5");
-
-        return RepoFactory.VideoLocalHashDigest.GetByHashTypeAndValue("MD5", hash)
-            .Select(a => GetByID(a.VideoLocalID))
-            .WhereNotNull()
-            .FirstOrDefault();
+        return _ed2k!.GetMultiple(hash).FirstOrDefault(a => a.FileSize == fileSize);
     }
 
     public VideoLocal? GetByMd5AndSize(string hash, long fileSize)
@@ -251,17 +240,6 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             .FirstOrDefault(a => a.FileSize == fileSize);
     }
 
-    public VideoLocal? GetBySha1(string hash)
-    {
-        if (string.IsNullOrEmpty(hash))
-            throw new InvalidStateException("Trying to lookup a VideoLocal by an empty SHA1");
-
-        return RepoFactory.VideoLocalHashDigest.GetByHashTypeAndValue("SHA1", hash)
-            .Select(a => GetByID(a.VideoLocalID))
-            .WhereNotNull()
-            .FirstOrDefault();
-    }
-
     public VideoLocal? GetBySha1AndSize(string hash, long fileSize)
     {
         if (string.IsNullOrEmpty(hash))
@@ -274,17 +252,6 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             .Select(a => GetByID(a.VideoLocalID))
             .WhereNotNull()
             .FirstOrDefault(a => a.FileSize == fileSize);
-    }
-
-    public VideoLocal? GetByCrc32(string hash)
-    {
-        if (string.IsNullOrEmpty(hash))
-            throw new InvalidStateException("Trying to lookup a VideoLocal by an empty CRC32");
-
-        return RepoFactory.VideoLocalHashDigest.GetByHashTypeAndValue("CRC32", hash)
-            .Select(a => GetByID(a.VideoLocalID))
-            .WhereNotNull()
-            .FirstOrDefault();
     }
 
     public VideoLocal? GetByCrc32AndSize(string hash, long fileSize)
@@ -306,86 +273,42 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
         if (string.IsNullOrEmpty(fileName))
             throw new InvalidStateException("Trying to lookup a VideoLocal by an empty Filename");
 
-        return ReadLock(() => Cache.Values
+        return Cache.GetAll()
             .Where(p => p.Places.Any(a => a.RelativePath.FuzzyMatch(fileName)))
-            .ToList()
-        );
+            .ToList();
     }
 
     public IReadOnlyList<VideoLocal> GetMostRecentlyAdded(int maxResults, int userID)
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
         if (user == null)
-            return ReadLock(() => maxResults < 0
-                ? Cache.Values.OrderByDescending(a => a.DateTimeCreated).ToList()
-                : Cache.Values.OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList());
+            return maxResults < 0
+                ? Cache.GetAll().OrderByDescending(a => a.DateTimeCreated).ToList()
+                : Cache.GetAll().OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
 
         if (maxResults < 0)
-            return ReadLock(() => Cache.Values
+            return Cache.GetAll()
                 .Where(a => a.AnimeEpisodes
                     .Select(b => b.AnimeSeries)
                     .WhereNotNull()
                     .DistinctBy(b => b.AniDB_ID)
                     .All(user.AllowedSeries)
                 ).OrderByDescending(a => a.DateTimeCreated)
-                .ToList()
-            );
+                .ToList();
 
-        return ReadLock(() => Cache.Values
+        return Cache.GetAll()
             .Where(a => a.AnimeEpisodes
                 .Select(b => b.AnimeSeries)
                 .WhereNotNull()
                 .DistinctBy(b => b.AniDB_ID)
                 .All(user.AllowedSeries)
             ).OrderByDescending(a => a.DateTimeCreated)
-            .Take(maxResults).ToList()
-        );
-    }
-
-    public IReadOnlyList<VideoLocal> GetMostRecentlyAdded(int take, int skip, int userID)
-    {
-        if (skip < 0)
-            skip = 0;
-
-        if (take == 0)
-            return [];
-
-        var user = userID == -1 ? null : RepoFactory.JMMUser.GetByID(userID);
-        if (user == null)
-        {
-            return ReadLock(() => take < 0
-                ? Cache.Values.OrderByDescending(a => a.DateTimeCreated).Skip(skip).ToList()
-                : Cache.Values.OrderByDescending(a => a.DateTimeCreated).Skip(skip).Take(take).ToList());
-        }
-
-        return ReadLock(() => take < 0
-            ? Cache.Values
-                .Where(a => a.AnimeEpisodes
-                    .Select(b => b.AnimeSeries)
-                    .WhereNotNull()
-                    .DistinctBy(b => b.AniDB_ID)
-                    .All(user.AllowedSeries)
-                )
-                .OrderByDescending(a => a.DateTimeCreated)
-                .Skip(skip)
-                .ToList()
-            : Cache.Values
-                .Where(a => a.AnimeEpisodes
-                    .Select(b => b.AnimeSeries)
-                    .WhereNotNull()
-                    .DistinctBy(b => b.AniDB_ID)
-                    .All(user.AllowedSeries)
-                )
-                .OrderByDescending(a => a.DateTimeCreated)
-                .Skip(skip)
-                .Take(take)
-                .ToList()
-        );
+            .Take(maxResults).ToList();
     }
 
     public IReadOnlyList<VideoLocal> GetRandomFiles(int maxResults)
     {
-        var values = ReadLock(Cache.Values.ToList).Where(a => a.EpisodeCrossReferences.Any()).ToList();
+        var values = Cache.GetAll().Where(a => a.EpisodeCrossReferences.Any()).ToList();
 
         using var en = new UniqueRandoms(0, values.Count - 1).GetEnumerator();
         var list = new List<VideoLocal>();
@@ -459,10 +382,10 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             .ToList();
 
     public IReadOnlyList<VideoLocal> GetVideosWithoutHash()
-        => ReadLock(() => _ed2k!.GetMultiple(""));
+        => _ed2k!.GetMultiple("");
 
     public IReadOnlyList<VideoLocal> GetVideosWithoutEpisode(bool includeBrokenXRefs = false)
-        => ReadLock(() => Cache.Values
+        => Cache.GetAll()
             .Where(a =>
             {
                 if (a.IsIgnored)
@@ -485,11 +408,10 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             })
             .ThenBy(local => local?.VideoLocalID ?? 0)
             .WhereNotNull()
-            .ToList()
-        );
+            .ToList();
 
     public IReadOnlyList<VideoLocal> GetVideosWithMissingCrossReferenceData()
-        => ReadLock(() => Cache.Values
+        => Cache.GetAll()
             .Where(a =>
             {
                 if (a.IsIgnored)
@@ -509,8 +431,7 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             })
             .ThenBy(local => local?.VideoLocalID ?? 0)
             .WhereNotNull()
-            .ToList()
-        );
+            .ToList();
 
     private static bool IsImported(CrossRef_File_Episode xref)
     {
@@ -529,10 +450,9 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
     }
 
     public IReadOnlyList<VideoLocal> GetVideosWithoutEpisodeUnsorted()
-        => ReadLock(() => Cache.Values
+        => Cache.GetAll()
             .Where(a => !a.IsIgnored && !RepoFactory.CrossRef_File_Episode.GetByEd2k(a.Hash).Any())
-            .ToList()
-        );
+            .ToList();
 
     public IReadOnlyList<VideoLocal> GetManuallyLinkedVideos()
         => RepoFactory.CrossRef_File_Episode.GetAll()
@@ -542,8 +462,8 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
                 .ToList();
 
     public IReadOnlyList<VideoLocal> GetIgnoredVideos()
-        => ReadLock(() => _ignored!.GetMultiple(true));
+        => _ignored!.GetMultiple(true);
 
     public VideoLocal? GetByMyListID(int myListID)
-        => ReadLock(() => Cache.Values.FirstOrDefault(a => a.MyListID == myListID));
+        => Cache.GetAll().FirstOrDefault(a => a.MyListID == myListID);
 }
