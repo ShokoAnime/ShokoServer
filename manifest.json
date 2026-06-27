@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.333",
+      "tag": "v6.0.0-dev.333",
+      "commit": "3c02e5f7a3fa79cdfe82e7bf91b57423b31fba8c",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.333/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-27T18:55:44Z",
+      "releaseNotes": "\n`misc`: **Performance improvements**.\n"
+    },
+    {
       "version": "6.0.0.332",
       "tag": "v6.0.0-dev.332",
       "commit": "881a071b5e57ff6e02ee0001f73142fdb2a5e7f8",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.304/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-21T02:35:52Z",
       "releaseNotes": "\n`fix`: **The AniDB anime XML uses '1970-01-01' for unknown dates, not an empty string**.\n"
-    },
-    {
-      "version": "6.0.0.303",
-      "tag": "v6.0.0-dev.303",
-      "commit": "d8d28c3c6407dbf884ee2ef477a19f8b05b17fc2",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.303/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-21T00:33:04Z",
-      "releaseNotes": "\n`misc`: **More data for Release Candidates**.\n"
     }
   ]
 }
