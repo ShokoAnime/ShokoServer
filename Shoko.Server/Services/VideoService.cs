@@ -1086,9 +1086,9 @@ public class VideoService : IVideoService
         if (!onlyNewFiles.HasValue)
         {
             foreach (var source in sources)
-                await ScheduleScanForManagedFolder(source, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, prioritize: prioritize);
+                await ScheduleScanForManagedFolder(source, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
             foreach (var folder in rest)
-                await ScheduleScanForManagedFolder(folder, onlyNewFiles: true, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, prioritize: prioritize);
+                await ScheduleScanForManagedFolder(folder, onlyNewFiles: true, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
             return;
         }
 
