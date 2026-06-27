@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.330",
+      "tag": "v6.0.0-dev.330",
+      "commit": "b0428517e9c940dc31c2d6e67c7bc8b6bc17f948",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.330/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-26T23:58:20Z",
+      "releaseNotes": "\n`misc`: **Performance improvements in SQLite. Update Stats in a missing code path**.\n"
+    },
+    {
       "version": "6.0.0.329",
       "tag": "v6.0.0-dev.329",
       "commit": "3510b46116b173d869b8e9fd78acef065d98244a",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.301/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-20T03:00:01Z",
       "releaseNotes": "\n`misc`: **Improve Fuzzy Filters. Allow Sorting by Relevance**.\n"
-    },
-    {
-      "version": "6.0.0.300",
-      "tag": "v6.0.0-dev.300",
-      "commit": "a268bb2bfdb78f4ce5a834661ce82c23240bf645",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.300/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-19T22:40:06Z",
-      "releaseNotes": "\n`fix` (`config`): **Handle null JToken in ToJson extension**:\n\n`JValue(null).ToString()` returns an empty string, not `\"null\"`.\nWhen a setting backed by an `[EnvironmentVariable]` is stored as an\nexplicit JSON null in `settings-server.json`, `ToJson()` fell through\nto `_ => token.ToString()` and stored `\"\"` as the original value.\nOn the next save, `JToken.Parse(\"\")` threw a `JsonReaderException`,\nproducing a 500 on any PATCH to `/api/v3/Settings`.\n"
     }
   ]
 }
