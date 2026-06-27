@@ -193,22 +193,21 @@ public class MetadataFilteringService(
         cancellationToken.ThrowIfCancellationRequested();
 
         var allGroupIDChains = BuildGroupIDChains(results);
-        var items = allGroupIDChains
-            .DistinctBy(chain => chain[0])
-            .Select(group => groupRepository.GetByID(group[0]))
+
+        // Pre-group to avoid O(N²) per-group scans of chains and results.
+        var chainsByTopGroup = allGroupIDChains
+            .GroupBy(chain => chain[0])
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<IReadOnlyList<int>>)g.ToArray());
+        var seriesByGroupID = results.ToLookup(t => t.GroupID, t => t.SeriesID);
+
+        var items = chainsByTopGroup.Keys
+            .Select(groupRepository.GetByID)
             .WhereNotNull()
             .Select(group =>
             {
-                var groupIDChains = allGroupIDChains
-                    .Where(chain => chain[0] == group.AnimeGroupID)
-                    .ToArray();
-                var groupIds = groupIDChains
-                    .SelectMany(chain => chain)
-                    .ToHashSet();
-                var seriesIDs = results
-                    .Where(tuple => groupIds.Contains(tuple.GroupID))
-                    .Select(tuple => tuple.SeriesID)
-                    .ToHashSet();
+                var groupIDChains = chainsByTopGroup[group.AnimeGroupID];
+                var groupIds = groupIDChains.SelectMany(chain => chain).ToHashSet();
+                var seriesIDs = groupIds.SelectMany(id => seriesByGroupID[id]).ToHashSet();
                 return new FilteredGroupResult
                 {
                     Group = group,
@@ -243,22 +242,22 @@ public class MetadataFilteringService(
         if (validGroupIDs.Count is 0)
             return [];
 
+        var chainsByTopGroup = scopedGroupIDChains
+            .GroupBy(chain => chain[0])
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<IReadOnlyList<int>>)g.ToArray());
+        var seriesByGroupID = results.ToLookup(t => t.GroupID, t => t.SeriesID);
+
         var items = validGroupIDs
             .OrderBy(a => Array.IndexOf(orderedGroupIDs, a))
             .Select(groupRepository.GetByID)
             .WhereNotNull()
             .Select(group =>
             {
-                var groupIDChains = scopedGroupIDChains
-                    .Where(chain => chain[0] == group.AnimeGroupID)
-                    .ToArray();
-                var groupIds = groupIDChains
-                    .SelectMany(chain => chain)
-                    .ToHashSet();
-                var seriesIDs = results
-                    .Where(tuple => groupIds.Contains(tuple.GroupID))
-                    .Select(tuple => tuple.SeriesID)
-                    .ToHashSet();
+                var groupIDChains = chainsByTopGroup.TryGetValue(group.AnimeGroupID, out var chains)
+                    ? chains
+                    : (IReadOnlyList<IReadOnlyList<int>>)[];
+                var groupIds = groupIDChains.SelectMany(chain => chain).ToHashSet();
+                var seriesIDs = groupIds.SelectMany(id => seriesByGroupID[id]).ToHashSet();
                 return new FilteredGroupResult
                 {
                     Group = group,

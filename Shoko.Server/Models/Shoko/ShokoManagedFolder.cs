@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.IO;
 using Shoko.Abstractions.Utilities;
@@ -5,7 +6,6 @@ using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 /// <summary>
@@ -21,13 +21,19 @@ public class ShokoManagedFolder : IManagedFolder
 
     private string _path = string.Empty;
 
+    private string? _cachedPath;
+
     /// <inheritdoc/>
     public string Path
     {
         // Normalize the path to the current platform.
-        get => PlatformUtility.NormalizePath(_path, platformFormat: true) + System.IO.Path.DirectorySeparatorChar;
+        get => _cachedPath ??= PlatformUtility.NormalizePath(_path, platformFormat: true) + System.IO.Path.DirectorySeparatorChar;
         // Normalize the path to the internal format.
-        set => _path = PlatformUtility.NormalizePath(value);
+        set
+        {
+            _path = PlatformUtility.NormalizePath(value);
+            _cachedPath = null;
+        }
     }
 
     /// <summary>

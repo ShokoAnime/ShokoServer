@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -6,7 +7,6 @@ using Shoko.Abstractions.Video;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 /// <summary>
@@ -41,6 +41,8 @@ public class VideoLocal_Place : IVideoFile
 
     private string _relativePath = string.Empty;
 
+    private string? _platformRelativePath;
+
     /// <summary>
     /// Relative path to where the file is located within the
     /// <see cref="ShokoManagedFolder"/>. It will always use forward slashes (/)
@@ -49,7 +51,11 @@ public class VideoLocal_Place : IVideoFile
     public string RelativePath
     {
         get => _relativePath;
-        set => _relativePath = PlatformUtility.NormalizePath(value, stripLeadingSlash: true);
+        set
+        {
+            _relativePath = PlatformUtility.NormalizePath(value, stripLeadingSlash: true);
+            _platformRelativePath = null;
+        }
     }
 
     #region Helpers
@@ -66,7 +72,8 @@ public class VideoLocal_Place : IVideoFile
             if (string.IsNullOrEmpty(folderPath) || string.IsNullOrEmpty(RelativePath))
                 return null;
 
-            return System.IO.Path.Join(folderPath, PlatformUtility.NormalizePath(RelativePath, platformFormat: true));
+            _platformRelativePath ??= PlatformUtility.NormalizePath(RelativePath, platformFormat: true);
+            return System.IO.Path.Join(folderPath, _platformRelativePath);
         }
     }
 

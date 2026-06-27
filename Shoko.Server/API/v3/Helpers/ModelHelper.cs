@@ -8,7 +8,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
-
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using GroupSizes = Shoko.Server.API.v3.Models.Shoko.GroupSizes;
 using SeriesSizes = Shoko.Server.API.v3.Models.Shoko.SeriesSizes;
@@ -45,28 +44,30 @@ public static class ModelHelper
 
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable)
     {
+        var list = enumerable.ToList();
         return new ListResult<T>
         {
-            Total = enumerable.Count(),
-            List = enumerable.ToList()
+            Total = list.Count,
+            List = list
         };
     }
 
     public static ListResult<T> ToListResult<T>(this IEnumerable<T> enumerable, int page, int pageSize)
     {
+        var list = enumerable.ToList();
         if (pageSize <= 0)
         {
             return new ListResult<T>
             {
-                Total = enumerable.Count(),
-                List = enumerable.ToList()
+                Total = list.Count,
+                List = list
             };
         }
 
         return new ListResult<T>
         {
-            Total = enumerable.Count(),
-            List = enumerable.AsQueryable()
+            Total = list.Count,
+            List = list
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
                 .ToList()
@@ -76,12 +77,13 @@ public static class ModelHelper
     public static ListResult<U> ToListResult<T, U>(this IEnumerable<T> enumerable, Func<T, U> mapper, int page,
         int pageSize)
     {
+        var list = enumerable.ToList();
         if (pageSize <= 0)
         {
             return new ListResult<U>
             {
-                Total = enumerable.Count(),
-                List = enumerable
+                Total = list.Count,
+                List = list
                     .AsParallel()
                     .AsOrdered()
                     .Select(mapper)
@@ -91,8 +93,8 @@ public static class ModelHelper
 
         return new ListResult<U>
         {
-            Total = enumerable.Count(),
-            List = enumerable.AsQueryable()
+            Total = list.Count,
+            List = list
                 .Skip(pageSize * (page - 1))
                 .Take(pageSize)
                 .AsParallel()

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -8,7 +9,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class ManagedFolder : BaseModel
@@ -49,18 +49,18 @@ public class ManagedFolder : BaseModel
 
     public ManagedFolder(ShokoManagedFolder folder)
     {
-        var places = folder.Places;
-        var series = places
-            .Select(a => a?.VideoLocal?.Hash)
+        var videoLocals = folder.Places
+            .Select(a => a.VideoLocal)
+            .WhereNotNull()
+            .ToList();
+        var series = videoLocals
+            .Select(v => v.Hash)
             .WhereNotNullOrDefault()
             .Distinct()
             .SelectMany(RepoFactory.CrossRef_File_Episode.GetByEd2k)
             .DistinctBy(a => a.AnimeID)
             .Count();
-        var size = places
-            .Select(a => a.VideoLocal)
-            .WhereNotNull()
-            .Sum(b => b.FileSize);
+        var size = videoLocals.Sum(v => v.FileSize);
 
         var type = DropFolderType.None;
         if (folder.IsDropDestination && folder.IsDropSource)

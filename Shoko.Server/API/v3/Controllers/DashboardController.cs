@@ -280,7 +280,8 @@ public class DashboardController(
         var episodeList = _videoLocals.GetAll()
             .Where(f => f.DateTimeImported.HasValue)
             .OrderByDescending(f => f.DateTimeImported)
-            .SelectMany(file => file.AnimeEpisodes.Select(episode => (file, episode)));
+            .SelectMany(file => file.AnimeEpisodes.Select(episode => (file, episode)))
+            .ToList();
         var seriesDict = episodeList
             .DistinctBy(tuple => tuple.episode.AnimeSeriesID)
             .Select(tuple => tuple.episode.AnimeSeries)
@@ -326,12 +327,30 @@ public class DashboardController(
     )
     {
         var user = HttpContext.GetUser();
-        return _videoLocals.GetAll()
-            .Where(f => f.DateTimeImported.HasValue)
-            .OrderByDescending(f => f.DateTimeImported)
-            .SelectMany(file => file.AnimeEpisodes.Select(episode => episode.AnimeSeriesID))
-            .Distinct()
-            .Select(_animeSeries.GetByID)
+
+        // Build hash → importDate map (one scan over all video locals)
+        var fileImportDates = _videoLocals.GetAll()
+            .Where(f => f.DateTimeImported.HasValue && !string.IsNullOrEmpty(f.Hash))
+            .ToDictionary(f => f.Hash, f => f.DateTimeImported!.Value);
+
+        // Build AniDB episodeID → AnimeSeriesID map (one scan over all AnimeEpisodes)
+        var episodeSeriesMap = _animeEpisodes.GetAll()
+            .DistinctBy(e => e.AniDB_EpisodeID)
+            .ToDictionary(e => e.AniDB_EpisodeID, e => e.AnimeSeriesID);
+
+        // Compute series → most recent file import date via cross-refs,
+        // avoiding 67,804 per-file GetByEd2k lookups
+        return _crossRefFileEpisodes.GetAll()
+            .Where(xref => fileImportDates.ContainsKey(xref.Hash))
+            .Select(xref => (
+                SeriesID: episodeSeriesMap.TryGetValue(xref.EpisodeID, out var sid) ? sid : 0,
+                ImportDate: fileImportDates[xref.Hash]
+            ))
+            .Where(t => t.SeriesID != 0)
+            .GroupBy(t => t.SeriesID)
+            .Select(g => (SeriesID: g.Key, LastImport: g.Max(t => t.ImportDate)))
+            .OrderByDescending(x => x.LastImport)
+            .Select(x => _animeSeries.GetByID(x.SeriesID))
             .Where(series =>
             {
                 if (series?.AniDB_Anime is not { } anime || !user.AllowedAnime(anime))
