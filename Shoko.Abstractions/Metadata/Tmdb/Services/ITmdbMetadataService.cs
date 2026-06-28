@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -56,7 +57,8 @@ public interface ITmdbMetadataService
     /// <summary>
     /// Schedules all unused movies to be purged.
     /// </summary>
-    Task PurgeAllUnusedMovies();
+    /// <param name="olderThan">When set, only purge movies whose <c>LastUpdatedAt</c> is older than this value.</param>
+    Task PurgeAllUnusedMovies(DateTime? olderThan = null);
 
     /// <summary>
     /// Schedules a movie purge job.
@@ -109,7 +111,8 @@ public interface ITmdbMetadataService
     /// <summary>
     /// Schedules all unused shows to be purged.
     /// </summary>
-    Task PurgeAllUnusedShows();
+    /// <param name="olderThan">When set, only purge shows whose <c>LastUpdatedAt</c> is older than this value.</param>
+    Task PurgeAllUnusedShows(DateTime? olderThan = null);
 
     /// <summary>
     /// Schedules a show purge job.

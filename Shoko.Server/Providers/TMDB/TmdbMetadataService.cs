@@ -885,7 +885,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     #region Purge (Movies)
 
-    public async Task PurgeAllUnusedMovies()
+    public async Task PurgeAllUnusedMovies(DateTime? olderThan = null)
     {
         var toKeep = _xrefAnidbTmdbMovies.GetAll().Select(xref => xref.TmdbMovieID).ToHashSet();
         // Seeded with toKeep so AllCount in the log includes xref-linked IDs that have no TMDB_Movie row yet.
@@ -897,6 +897,11 @@ public class TmdbMetadataService : ITmdbMetadataService
         allMovies.UnionWith(_tmdbMovieCrew.GetAll().Select(x => x.TmdbMovieID));
         allMovies.UnionWith(_xrefTmdbCollectionMovies.GetAll().Select(x => x.TmdbMovieID));
         var toBePurged = allMovies.Except(toKeep).ToHashSet();
+
+        if (olderThan.HasValue)
+            toBePurged = toBePurged
+                .Where(id => _tmdbMovies.GetByTmdbMovieID(id) is not { LastUpdatedAt: var t } || t < olderThan.Value)
+                .ToHashSet();
 
         _logger.LogInformation("Scheduling {Count} out of {AllCount} movies to be purged.", toBePurged.Count, allMovies.Count);
         foreach (var movieID in toBePurged)
@@ -2116,7 +2121,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     #region Purge (Shows)
 
-    public async Task PurgeAllUnusedShows()
+    public async Task PurgeAllUnusedShows(DateTime? olderThan = null)
     {
         var toKeep = _xrefAnidbTmdbShows.GetAll().Select(xref => xref.TmdbShowID).ToHashSet();
         // Seeded with toKeep so AllCount in the log includes xref-linked IDs that have no TMDB_Show row yet.
@@ -2131,6 +2136,11 @@ public class TmdbMetadataService : ITmdbMetadataService
         allShows.UnionWith(_tmdbAlternateOrderingSeasons.GetAll().Select(x => x.TmdbShowID));
         allShows.UnionWith(_tmdbAlternateOrderingEpisodes.GetAll().Select(x => x.TmdbShowID));
         var toBePurged = allShows.Except(toKeep).ToHashSet();
+
+        if (olderThan.HasValue)
+            toBePurged = toBePurged
+                .Where(id => _tmdbShows.GetByTmdbShowID(id) is not { LastUpdatedAt: var t } || t < olderThan.Value)
+                .ToHashSet();
 
         _logger.LogInformation("Scheduling {Count} out of {AllCount} shows to be purged.", toBePurged.Count, allShows.Count);
         foreach (var showID in toBePurged)
