@@ -223,7 +223,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     /// <returns>True if any of the fields have been updated.</returns>
     public bool Populate(Movie movie, HashSet<TitleLanguage>? crLanguages)
     {
-        var translation = movie.Translations!.Translations!.FirstOrDefault(translation => translation.Iso_639_1 == "en");
+        var translation = movie.Translations?.Translations?.FirstOrDefault(translation => translation.Iso_639_1 == "en");
         var lang = movie.ProductionCountries!.FirstOrDefault()?.Iso_3166_1;
         var releaseDate = !string.IsNullOrEmpty(lang) && movie.ReleaseDates!.Results!.FirstOrDefault(obj0 => obj0.Iso_3166_1 == lang) is { ReleaseDates: { } } obj1
             ? obj1.ReleaseDates.FirstOrDefault(obj2 => obj2.Type is ReleaseDateType.TheatricalLimited or ReleaseDateType.Theatrical)?.ReleaseDate ??

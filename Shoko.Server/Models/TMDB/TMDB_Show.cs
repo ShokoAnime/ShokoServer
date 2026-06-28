@@ -224,7 +224,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
     {
         // Don't trust 'show.Name' for the English title since it will fall-back
         // to the original language if there is no title in English.
-        var translation = show.Translations!.Translations!.FirstOrDefault(translation => translation.Iso_639_1 == "en");
+        var translation = show.Translations?.Translations?.FirstOrDefault(translation => translation.Iso_639_1 == "en");
         var updates = new[]
         {
             UpdateProperty(PosterPath, show.PosterPath!, v => PosterPath = v),
