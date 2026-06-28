@@ -1023,6 +1023,8 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(174,  3, "CREATE INDEX IX_AnimeEpisode_IsHidden_AniDB_EpisodeID ON AnimeEpisode(IsHidden, AniDB_EpisodeID);"),
         new(174,  4, "CREATE INDEX IX_StoredReleaseInfo_ED2K ON StoredReleaseInfo(ED2K);"),
         new(174,  5, "CREATE INDEX IX_AniDB_Episode_AnimeID_EpisodeType ON AniDB_Episode(AnimeID, EpisodeType);"),
+        new(175,  1, "ALTER TABLE ShokoImage ADD IsAvailable BIT NOT NULL DEFAULT 0;"),
+        new(175,  2, DatabaseFixes.PopulateImageAvailability),
     ];
 
     #endregion

@@ -22,6 +22,7 @@ public class ShokoImageMap : ClassMap<ShokoImage>
         Map(x => x.Width).Nullable();
         Map(x => x.Height).Nullable();
         Map(x => x.ContentType).Not.Nullable();
+        Map(x => x.IsAvailable).Not.Nullable();
         Map(x => x.DownloadAttempts).Not.Nullable();
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();

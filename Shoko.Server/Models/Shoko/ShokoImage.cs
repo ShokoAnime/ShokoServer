@@ -95,14 +95,11 @@ public class ShokoImage : IImage
     bool IImage.IsLocked => Source is not DataSource.User;
 
     /// <inheritdoc/>
-    public bool IsAvailable
-    {
-        get
-        {
-            var localPath = LocalPath;
-            return !string.IsNullOrEmpty(localPath) && File.Exists(localPath) && ImageManager.IsImageValid(localPath);
-        }
-    }
+    public bool IsAvailable { get; set; }
+
+    /// <inheritdoc/>
+    public bool IsPrimaryAvailable
+        => PrimaryID == ID ? IsAvailable : GetPrimaryImage()?.IsAvailable ?? false;
 
     /// <inheritdoc/>
     public byte DownloadAttempts { get; set; }
@@ -183,11 +180,21 @@ public class ShokoImage : IImage
         return updated;
     }
 
+    /// <summary>
+    ///   Recompute <see cref="IsAvailable"/> from the local file system and store
+    ///   the result. Returns the new value.
+    /// </summary>
+    public bool RefreshAvailability()
+    {
+        var localPath = LocalPath;
+        return IsAvailable = !string.IsNullOrEmpty(localPath) && File.Exists(localPath) && ImageManager.IsImageValid(localPath);
+    }
+
     /// <inheritdoc/>
     public Stream? GetStream()
     {
         var localPath = LocalPath;
-        if (IsAvailable && !string.IsNullOrEmpty(localPath))
+        if (!string.IsNullOrEmpty(localPath) && File.Exists(localPath))
             return new FileStream(localPath, FileMode.Open, FileAccess.Read);
 
         return null;

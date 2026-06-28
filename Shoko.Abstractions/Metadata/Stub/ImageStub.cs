@@ -63,6 +63,9 @@ public class ImageStub(IImage image, IImageCrossReference? xref = null, bool lin
     public bool IsAvailable => image.IsAvailable;
 
     /// <inheritdoc />
+    public bool IsPrimaryAvailable => image.IsPrimaryAvailable;
+
+    /// <inheritdoc />
     public byte DownloadAttempts => image.DownloadAttempts;
 
     /// <inheritdoc />

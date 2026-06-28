@@ -459,6 +459,9 @@ public partial class ImageManager(
             LastUpdatedAt = DateTime.UtcNow,
         };
 
+        // The image data may already exist on disk (e.g. re-added after a purge), so reflect that.
+        image.RefreshAvailability();
+
         imageRepository.Save(image);
 
         _ = Task.Run(() => ImageAdded?.Invoke(this, new() { Image = image }));
@@ -564,6 +567,9 @@ public partial class ImageManager(
 
             throw new ArgumentException("The provided image data is not valid.", nameof(imageByteArray), ex);
         }
+
+        // The file was just written to disk above.
+        image.IsAvailable = true;
 
         imageRepository.Save(image);
 
@@ -774,10 +780,19 @@ public partial class ImageManager(
             return false;
         }
 
-        var previouslyDownloaded = image.IsAvailable;
-        if (!force && image.IsAvailable)
+        // Recompute from disk (this path is cold — about to do network I/O), so a stale
+        // cached flag self-heals in both directions instead of waiting for a validation pass.
+        var wasAvailable = shokoImage.IsAvailable;
+        var previouslyDownloaded = shokoImage.RefreshAvailability();
+        if (!force && previouslyDownloaded)
         {
             logger.LogDebug("Image already in cache. (Image={ImageID})", image.ID);
+            if (wasAvailable != previouslyDownloaded)
+            {
+                shokoImage.LastUpdatedAt = DateTime.UtcNow;
+                imageRepository.Save(shokoImage);
+                _ = Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = shokoImage }));
+            }
             return true;
         }
 
@@ -820,6 +835,7 @@ public partial class ImageManager(
             // Update metadata after successfully storing the file.
             shokoImage.Width = (int)info.Width;
             shokoImage.Height = (int)info.Height;
+            shokoImage.IsAvailable = true;
 
             return downloaded = true;
         }
@@ -838,6 +854,9 @@ public partial class ImageManager(
         {
             // Emit updated event if not downloaded, because the metadata changed.
             shokoImage.DownloadAttempts++;
+            // On failure the file may have been deleted (forced re-download) or never written, so recompute.
+            if (!downloaded)
+                shokoImage.RefreshAvailability();
             shokoImage.LastUpdatedAt = DateTime.UtcNow;
             imageRepository.Save(shokoImage);
             if (downloaded)
@@ -1005,33 +1024,43 @@ public partial class ImageManager(
         {
             if (scanned++ % 1000 == 0)
                 logger.LogInformation("Image validation in progress. Scanned={Scanned}, Invalid={Invalid}, QueuedForRedownload={QueuedForRedownload}", scanned, invalid, queuedForRedownload);
-            if (image.IsAvailable)
+
+            if (image is not ShokoImage shokoImage)
+                continue;
+
+            var wasAvailable = shokoImage.IsAvailable;
+            // Recompute the cached flag from disk (File.Exists + magic-byte check).
+            var available = shokoImage.RefreshAvailability();
+
+            // Deep-validate the file contents and drop it if it's corrupt.
+            if (available)
             {
                 try
                 {
-                    new MagickImageInfo(image.LocalPath);
+                    new MagickImageInfo(shokoImage.LocalPath);
                 }
                 catch
                 {
-                    logger.LogWarning("Found invalid image. (Image={ImageID},Source={Source},ResourceID={ResourceID})", image.ID, image.Source, image.ResourceID);
+                    logger.LogWarning("Found invalid image. (Image={ImageID},Source={Source},ResourceID={ResourceID})", shokoImage.ID, shokoImage.Source, shokoImage.ResourceID);
                     invalid++;
-                    if (File.Exists(image.LocalPath))
-                        try { File.Delete(image.LocalPath); } catch { }
-
-                    if (image.IsEnabled && image.IsDesired)
-                    {
-                        await ScheduleDownloadOfImage(image, force: true).ConfigureAwait(false);
-                        queuedForRedownload++;
-                    }
+                    if (File.Exists(shokoImage.LocalPath))
+                        try { File.Delete(shokoImage.LocalPath); } catch { }
+                    available = shokoImage.RefreshAvailability();
                 }
-                continue;
             }
 
-            if (image.IsEnabled && image.IsDesired)
+            // Persist a corrected flag and notify if the on-disk state differed from the cache.
+            if (wasAvailable != shokoImage.IsAvailable)
             {
-                await ScheduleDownloadOfImage(image, force: true).ConfigureAwait(false);
+                shokoImage.LastUpdatedAt = DateTime.UtcNow;
+                imageRepository.Save(shokoImage);
+                _ = Task.Run(() => ImageUpdated?.Invoke(this, new() { Image = shokoImage }));
+            }
+
+            if (!available && shokoImage.IsEnabled && shokoImage.IsDesired)
+            {
+                await ScheduleDownloadOfImage(shokoImage, force: true).ConfigureAwait(false);
                 queuedForRedownload++;
-                continue;
             }
         }
 

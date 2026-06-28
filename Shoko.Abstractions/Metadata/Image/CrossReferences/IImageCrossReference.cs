@@ -106,6 +106,12 @@ public interface IImageCrossReference : IWithCreationDate, IWithUpdateDate
     bool IsAvailable { get; }
 
     /// <summary>
+    ///   Indicates that the primary image for the associated entity is readily
+    ///   available from the local file system.
+    /// </summary>
+    bool IsPrimaryAvailable { get; }
+
+    /// <summary>
     ///   Indicates that the image cross-reference has a rating and number of
     ///   votes.
     /// </summary>

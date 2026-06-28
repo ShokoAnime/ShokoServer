@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Containers;
@@ -9,7 +7,6 @@ using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Repositories;
-using Shoko.Server.Services;
 
 #pragma warning disable CS0618
 #nullable enable
@@ -67,19 +64,10 @@ public class ShokoImage_Entity : IImageCrossReference
     public bool IsEnabled { get; set; }
 
     /// <inheritdoc/>
-    public bool IsAvailable
-    {
-        get
-        {
-            var id = ImageID.ToString("N");
-            var directoryPath = Path.Join(ApplicationPaths.Instance.ImagesPath, Source.ToString(), id[..2]);
-            if (!Directory.Exists(directoryPath))
-                return false;
+    public bool IsAvailable => GetImage()?.IsAvailable ?? false;
 
-            var localPathTemplate = $"{id}.*";
-            return Directory.GetFiles(directoryPath, localPathTemplate).Any();
-        }
-    }
+    /// <inheritdoc/>
+    public bool IsPrimaryAvailable => GetPrimaryImage()?.IsAvailable ?? false;
 
     /// <inheritdoc/>
     public int Ordering { get; set; }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -2526,6 +2527,40 @@ public class DatabaseFixes
 
         _logger.Info("Completed moving {Count} images to extension paths.", migratedCount);
         systemService.StartupMessage = $"{str} - Completed moving {migratedCount} images to extension paths.";
+    }
+
+    public static void PopulateImageAvailability()
+    {
+        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
+        var str = systemService.StartupMessage ?? string.Empty;
+        var images = RepoFactory.ShokoImage.GetAll();
+        var scannedCount = 0;
+        var updatedCount = 0;
+        foreach (var batch in images.Chunk(20))
+        {
+            // The disk check is I/O bound, so recompute the batch in parallel.
+            var changed = new ConcurrentBag<ShokoImage>();
+            Parallel.ForEach(batch, image =>
+            {
+                var wasAvailable = image.IsAvailable;
+                if (image.RefreshAvailability() != wasAvailable)
+                    changed.Add(image);
+            });
+            if (!changed.IsEmpty)
+            {
+                RepoFactory.ShokoImage.Save(changed.ToArray());
+                updatedCount += changed.Count;
+            }
+
+            scannedCount += batch.Length;
+            if (scannedCount % 1000 == 0)
+            {
+                _logger.Info("Populating image availability flags... {Scanned}/{Total} scanned, {Updated} updated.", scannedCount, images.Count, updatedCount);
+                systemService.StartupMessage = $"{str} - Populating image availability flags... {scannedCount}/{images.Count}";
+            }
+        }
+        _logger.Info("Populated availability flag for {Updated} of {Total} images.", updatedCount, images.Count);
+        systemService.StartupMessage = $"{str} - Populated availability flag for {updatedCount} images.";
     }
 
     private class DNF_UserAvatarMetadata

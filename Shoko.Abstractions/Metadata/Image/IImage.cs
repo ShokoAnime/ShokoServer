@@ -114,6 +114,12 @@ public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
     bool IsAvailable { get; }
 
     /// <summary>
+    ///   Indicates that the primary image in the linked image list is readily
+    ///   available from the local file system.
+    /// </summary>
+    bool IsPrimaryAvailable { get; }
+
+    /// <summary>
     ///   The number of times the image has been attempted to be downloaded from
     ///   the remote provider.
     /// </summary>
