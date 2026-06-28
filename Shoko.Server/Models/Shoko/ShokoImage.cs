@@ -207,22 +207,28 @@ public class ShokoImage : IImage
         DataSource? entitySource = null,
         DataEntityType? entityType = null,
         bool? isEnabled = null,
-        bool? isDesired = null
+        bool? isDesired = null,
+        bool? isAvailable = null,
+        bool? primaryImage = null,
+        bool includeLinkedImages = false
     )
     {
-        var xrefs = (IEnumerable<ShokoImage_Entity>)RepoFactory.ShokoImage_Entity.GetByImageID(ID);
-        if (imageType.HasValue)
-            xrefs = xrefs.Where(xref => xref.ImageType == imageType.Value);
-        if (xrefSource.HasValue)
-            xrefs = xrefs.Where(xref => xref.Source == xrefSource.Value);
-        if (entitySource.HasValue)
-            xrefs = xrefs.Where(xref => xref.EntitySource == entitySource.Value);
-        if (entityType.HasValue)
-            xrefs = xrefs.Where(xref => xref.EntityType == entityType.Value);
-        if (isEnabled.HasValue)
-            xrefs = xrefs.Where(xref => xref.IsEnabled == isEnabled.Value);
-        if (isDesired.HasValue)
-            xrefs = xrefs.Where(xref => xref.IsDesired == isDesired.Value);
+        // When includeLinkedImages is true, aggregate cross-references across the whole linked
+        // image group; otherwise only this image's own cross-references.
+        var xrefs = includeLinkedImages
+            ? GetLinkedImages(includePrimaryImage: true).SelectMany(image => RepoFactory.ShokoImage_Entity.GetByImageID(image.ID))
+            : RepoFactory.ShokoImage_Entity.GetByImageID(ID);
+        if (imageType is not null || xrefSource is not null || entitySource is not null || entityType is not null || isEnabled is not null || isDesired is not null || isAvailable is not null || primaryImage is not null)
+            xrefs = xrefs.Where(xref =>
+                (imageType is null || xref.ImageType == imageType.Value) &&
+                (xrefSource is null || xref.Source == xrefSource.Value) &&
+                (entitySource is null || xref.EntitySource == entitySource.Value) &&
+                (entityType is null || xref.EntityType == entityType.Value) &&
+                (isEnabled is null || xref.IsEnabled == isEnabled.Value) &&
+                (isDesired is null || xref.IsDesired == isDesired.Value) &&
+                (isAvailable is null || xref.IsAvailable == isAvailable.Value) &&
+                (primaryImage is null || xref.PrimaryImageID == xref.ImageID == primaryImage.Value)
+            );
         if (xrefs is IReadOnlyList<ShokoImage_Entity> list)
             return list;
         return xrefs.ToList();
@@ -263,8 +269,11 @@ public class ShokoImage : IImage
         DataSource? entitySource,
         DataEntityType? entityType,
         bool? isEnabled,
-        bool? isDesired
-    ) => GetCrossReferences(imageType, xrefSource, entitySource, entityType, isEnabled, isDesired);
+        bool? isDesired,
+        bool? isAvailable,
+        bool? primaryImage,
+        bool includeLinkedImages
+    ) => GetCrossReferences(imageType, xrefSource, entitySource, entityType, isEnabled, isDesired, isAvailable, primaryImage, includeLinkedImages);
 
     #endregion
 

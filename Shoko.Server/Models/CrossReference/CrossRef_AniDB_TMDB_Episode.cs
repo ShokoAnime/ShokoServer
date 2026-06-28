@@ -92,13 +92,13 @@ public class CrossRef_AniDB_TMDB_Episode : ITmdbEpisodeCrossReference
 
     #region IWithImages Implementation
 
-    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool? isAvailable = null, bool primaryImage = false, bool? linkedEntityImages = null)
         => ISystemService.StaticServices.GetRequiredService<IImageManager>()
-            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable: isAvailable, primaryImage: primaryImage, linkedEntityImages: linkedEntityImages);
 
-    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool? isAvailable = null, bool? primaryImage = null, bool? linkedEntityImages = null)
         => ISystemService.StaticServices.GetRequiredService<IImageManager>()
-            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired);
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable, primaryImage, linkedEntityImages);
 
     #endregion
 

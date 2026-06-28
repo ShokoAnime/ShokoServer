@@ -80,6 +80,11 @@ public interface IWithImages : IMetadata
     ///   desired, <c>false</c> to get only undesired, or <c>null</c> to get
     ///   both. Defaults to <c>null</c>.
     /// </param>
+    /// <param name="isAvailable">
+    ///   Optional. Filter by available state. Pass <c>true</c> to get only
+    ///   available, <c>false</c> to get only unavailable, or <c>null</c> to
+    ///   get both. Defaults to <c>null</c>.
+    /// </param>
     /// <param name="primaryImage">
     ///   Optional. Set to <c>true</c> to retrieve the primary image if the
     ///   image is part of a linked image list.
@@ -100,11 +105,12 @@ public interface IWithImages : IMetadata
         DataSource? xrefSource = null,
         bool? isEnabled = null,
         bool? isDesired = null,
+        bool? isAvailable = null,
         bool primaryImage = false,
         bool? linkedEntityImages = null
     )
         => ISystemService.StaticServices.GetRequiredService<IImageManager>()
-            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable, primaryImage, linkedEntityImages);
 
     /// <summary>
     ///   Get all or a filtered view of the image cross-references for the
@@ -133,6 +139,11 @@ public interface IWithImages : IMetadata
     ///   desired, <c>false</c> to get only undesired, or <c>null</c> to get
     ///   both. Defaults to <c>null</c>.
     /// </param>
+    /// <param name="isAvailable">
+    ///   Optional. Filter by available state. Pass <c>true</c> to get only
+    ///   available, <c>false</c> to get only unavailable, or <c>null</c> to
+    ///   get both. Defaults to <c>null</c>.
+    /// </param>
     /// <param name="primaryImage">
     ///   Optional. Set to <c>true</c> to retrieve the primary image if the
     ///   image is part of a linked image list.
@@ -154,11 +165,12 @@ public interface IWithImages : IMetadata
         DataSource? xrefSource = null,
         bool? isEnabled = null,
         bool? isDesired = null,
+        bool? isAvailable = null,
         bool? primaryImage = null,
         bool? linkedEntityImages = null
     )
         => ISystemService.StaticServices.GetRequiredService<IImageManager>()
-            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage, linkedEntityImages);
+            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable, primaryImage, linkedEntityImages);
 
     #endregion
 }

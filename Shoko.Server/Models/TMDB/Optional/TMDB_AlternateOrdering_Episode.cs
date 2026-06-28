@@ -175,11 +175,11 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
     public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
         => GetTmdbEpisode().GetPreferredImageCrossReferenceForType(imageType);
 
-    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool primaryImage = false)
-        => GetTmdbEpisode().GetImages(imageSource, imageType, xrefSource, isEnabled, isDesired, primaryImage);
+    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool? isAvailable = null, bool primaryImage = false, bool? linkedEntityImages = null)
+        => GetTmdbEpisode().GetImages(imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable: isAvailable, primaryImage: primaryImage, linkedEntityImages: linkedEntityImages);
 
-    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null)
-        => GetTmdbEpisode().GetImageCrossReferences(imageSource, imageType, xrefSource, isEnabled, isDesired);
+    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool? isAvailable = null, bool? primaryImage = null, bool? linkedEntityImages = null)
+        => GetTmdbEpisode().GetImageCrossReferences(imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable, primaryImage, linkedEntityImages);
 
     #endregion
 

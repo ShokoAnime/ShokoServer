@@ -253,13 +253,15 @@ public partial class ImageManager(
         DataSource? xrefSource = null,
         bool? isEnabled = null,
         bool? isDesired = null,
+        bool? isAvailable = null,
         bool? primaryImage = null
     )
     {
         IEnumerable<IImage> images = imageRepository.GetAll();
-        if (imageSource is not null || primaryImage is not null)
+        if (imageSource is not null || isAvailable is not null || primaryImage is not null)
             images = images.Where(image =>
                 (imageSource is null || image.Source == imageSource) &&
+                (isAvailable is null || image.IsAvailable == isAvailable.Value) &&
                 (primaryImage is null || image.PrimaryID == image.ID == primaryImage.Value)
             );
         if (imageType is not null || xrefSource is not null || isEnabled is not null || isDesired is not null)
@@ -285,6 +287,7 @@ public partial class ImageManager(
         DataSource? xrefSource = null,
         bool? isEnabled = null,
         bool? isDesired = null,
+        bool? isAvailable = null,
         bool primaryImage = false,
         bool? linkedEntityImages = null
     )
@@ -293,14 +296,15 @@ public partial class ImageManager(
             throw new ArgumentException(nameof(entity), "Invalid entity given to GetImagesForEntity");
 
         Func<IEnumerable<IImageCrossReference>, IEnumerable<IImageCrossReference>> filter =
-            imageSource is not null || imageType is not null || xrefSource is not null || isEnabled is not null || isDesired is not null
+            imageSource is not null || imageType is not null || xrefSource is not null || isEnabled is not null || isDesired is not null || isAvailable is not null
                 ? xrefs => xrefs
                     .Where(xref =>
                         (imageSource is null || xref.ImageSource == imageSource) &&
                         (imageType is null || xref.ImageType == imageType) &&
                         (xrefSource is null || xref.Source == xrefSource) &&
                         (isEnabled is null || xref.IsEnabled == isEnabled) &&
-                        (isDesired is null || xref.IsDesired == isDesired)
+                        (isDesired is null || xref.IsDesired == isDesired) &&
+                        (isAvailable is null || xref.IsAvailable == isAvailable)
                     )
                 : xrefs => xrefs;
 

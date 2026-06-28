@@ -109,9 +109,12 @@ public class ImageStub(IImage image, IImageCrossReference? xref = null, bool lin
         DataSource? entitySource = null,
         DataEntityType? entityType = null,
         bool? isEnabled = null,
-        bool? isDesired = null
+        bool? isDesired = null,
+        bool? isAvailable = null,
+        bool? primaryImage = null,
+        bool includeLinkedImages = false
     )
-        => image.GetCrossReferences(imageType, xrefSource, entitySource, entityType, isEnabled, isDesired);
+        => image.GetCrossReferences(imageType, xrefSource, entitySource, entityType, isEnabled, isDesired, isAvailable, primaryImage, includeLinkedImages);
 
     /// <inheritdoc />
     public IReadOnlyList<IImage> GetLinkedImages(bool includePrimaryImage = true)

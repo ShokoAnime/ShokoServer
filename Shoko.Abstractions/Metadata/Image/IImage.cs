@@ -249,6 +249,21 @@ public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
     ///   desired, <c>false</c> to get only undesired, or <c>null</c> to get
     ///   both. Defaults to <c>null</c>.
     /// </param>
+    /// <param name="isAvailable">
+    ///   Optional. Filter by available state. Pass <c>true</c> to get only
+    ///   available, <c>false</c> to get only unavailable, or <c>null</c> to
+    ///   get both. Defaults to <c>null</c>.
+    /// </param>
+    /// <param name="primaryImage">
+    ///   Optional. Filter by whether the cross-reference's image is the primary
+    ///   image of its linked image group. Pass <c>true</c> to get only primary
+    ///   images, <c>false</c> to get only non-primary, or <c>null</c> for both.
+    ///   Defaults to <c>null</c>.
+    /// </param>
+    /// <param name="includeLinkedImages">
+    ///   Set to <c>true</c> to also include the cross-references of the other
+    ///   images in this image's linked image group.
+    /// </param>
     /// <returns>
     ///   A readonly list of cross-references for the entity.
     /// </returns>
@@ -258,6 +273,9 @@ public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
         DataSource? entitySource = null,
         DataEntityType? entityType = null,
         bool? isEnabled = null,
-        bool? isDesired = null
+        bool? isDesired = null,
+        bool? isAvailable = null,
+        bool? primaryImage = null,
+        bool includeLinkedImages = false
     );
 }
