@@ -302,7 +302,14 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (!user.AllowedGroup(group))
             return Forbid(GroupForbiddenForUser);
 
-        return group.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(showLinkedIDs: showLinkedIDs);
+        return group.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true)
+            .OrderBy(a => a.Type)
+            .ThenBy(a => a.Source)
+            .ThenByDescending(a => a.LanguageCode is null)
+            .ThenBy(a => a.LanguageCode)
+            .ThenByDescending(a => a.CountryCode is null)
+            .ThenBy(a => a.CountryCode)
+            .ToDto(showLinkedIDs: showLinkedIDs);
     }
 
     #endregion
