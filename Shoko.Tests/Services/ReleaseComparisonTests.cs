@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using Moq;
 using Shoko.Abstractions.Metadata.Enums;
@@ -8,7 +9,6 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Xunit;
 
-#nullable enable
 namespace Shoko.Tests.Services;
 
 /// <summary>
@@ -133,7 +133,7 @@ public class ReleaseComparisonTests
     {
         var prefs = new ReleaseComparisonPreferences
         {
-            SignalPriority = [ReleaseSignalType.IsCorrupted],
+            SignalPriority = [ReleaseSignalType.Corrupted],
         };
         var svc = MakeService(prefs);
 
@@ -165,7 +165,7 @@ public class ReleaseComparisonTests
     {
         var prefs = new ReleaseComparisonPreferences
         {
-            SignalPriority = [ReleaseSignalType.Chapters],
+            SignalPriority = [ReleaseSignalType.Chaptered],
         };
         var svc = MakeService(prefs);
 
