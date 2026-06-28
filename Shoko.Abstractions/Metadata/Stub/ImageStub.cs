@@ -14,6 +14,37 @@ namespace Shoko.Abstractions.Metadata.Stub;
 /// </summary>
 public class ImageStub(IImage image, IImageCrossReference? xref = null, bool linkedXref = false, ImageEntityType? type = null, bool? isPreferred = null) : IImage
 {
+    /// <summary>
+    ///   Creates a new instance of the <see cref="ImageStub"/> class wrapping
+    ///   the given <see cref="IImage"/> instance.
+    /// </summary>
+    /// <param name="image">
+    ///   The image to wrap.
+    /// </param>
+    /// <param name="xref">
+    ///   The cross-reference to wrap.
+    /// </param>
+    /// <param name="linkedXref">
+    ///   Whether the cross-reference is linked.
+    /// </param>
+    /// <param name="type">
+    ///   The image type.
+    /// </param>
+    /// <param name="isPreferred">
+    ///   Whether the image is preferred.
+    /// </param>
+    /// <returns>
+    ///   A new instance of the <see cref="ImageStub"/> class.
+    /// </returns>
+    public static ImageStub Wrap(IImage image, IImageCrossReference? xref = null, bool linkedXref = false, ImageEntityType? type = null, bool? isPreferred = null)
+        => new(
+            image is ImageStub stub ? stub.Image : image,
+            xref,
+            linkedXref,
+            type,
+            isPreferred
+        );
+
     /// <inheritdoc />
     public Guid ID => image.ID;
 

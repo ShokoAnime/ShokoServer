@@ -383,7 +383,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
             return ValidationProblem(InvalidIDForSource);
 
         var xref = _imageManager.SetPreferredImageForEntity(group, imageEntityType, image);
-        return new Image(new ImageStub(image, xref));
+        return new Image(ImageStub.Wrap(image, xref));
     }
 
     /// <summary>

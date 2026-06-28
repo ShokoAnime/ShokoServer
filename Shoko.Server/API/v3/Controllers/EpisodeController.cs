@@ -854,7 +854,7 @@ public class EpisodeController : BaseController
             return ValidationProblem(InvalidIDForSource);
 
         var xref = _imageManager.SetPreferredImageForEntity(episode, imageEntityType, image);
-        return new Image(new ImageStub(image, xref));
+        return new Image(ImageStub.Wrap(image, xref));
     }
 
     /// <summary>

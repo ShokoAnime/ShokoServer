@@ -400,7 +400,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
     #region IWithPrimaryImage Implementation
 
     public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
-        ? new ImageStub(image, xref)
+        ? ImageStub.Wrap(image, xref)
         : null;
 
     public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(PosterPath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, PosterPath) is { } imageID

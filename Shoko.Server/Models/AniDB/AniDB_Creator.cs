@@ -138,7 +138,7 @@ public class AniDB_Creator : ICreator
     #region IWithPrimaryImage Implementation
 
     public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
-        ? new ImageStub(image, xref)
+        ? ImageStub.Wrap(image, xref)
         : null;
 
     public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(ImagePath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, ImagePath) is { } imageID

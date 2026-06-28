@@ -477,7 +477,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
     #region IWithBackdropImage Implementation
 
     public IImage? DefaultBackdropImage => DefaultBackdropImageCrossReference is { } xref && xref.GetImage() is { } image
-        ? new ImageStub(image, xref)
+        ? ImageStub.Wrap(image, xref)
         : null;
 
     public IImageCrossReference? DefaultBackdropImageCrossReference => !string.IsNullOrEmpty(ThumbnailPath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, ThumbnailPath) is { } imageID

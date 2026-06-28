@@ -683,7 +683,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
     #region IWithPrimaryImage Implementation
 
     public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
-        ? new ImageStub(image, xref)
+        ? ImageStub.Wrap(image, xref)
         : null;
 
     public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(PosterPath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, PosterPath) is { } imageID
@@ -695,7 +695,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
     #region IWithBackdropImage Implementation
 
     public IImage? DefaultBackdropImage => DefaultBackdropImageCrossReference is { } xref && xref.GetImage() is { } image
-        ? new ImageStub(image, xref)
+        ? ImageStub.Wrap(image, xref)
         : null;
 
     public IImageCrossReference? DefaultBackdropImageCrossReference => !string.IsNullOrEmpty(BackdropPath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, BackdropPath) is { } imageID
