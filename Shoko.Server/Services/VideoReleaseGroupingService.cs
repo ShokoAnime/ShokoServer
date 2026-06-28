@@ -200,6 +200,9 @@ public class VideoReleaseGroupingService(
         // genuine per-episode choice to make. When all buckets cover completely disjoint
         // episode sets (one file per episode spread across groups), there is nothing for
         // the user to decide; return empty so the series is not surfaced.
+        // Exception: intra-bucket version collisions (same group, same episode, different
+        // version numbers) are also a valid reason to surface a series — the version-strategy
+        // pass will split those into BestAvailable + Consistent candidates.
         var bucketEpSets = mergedBuckets
             .Select(b => b.SelectMany(s => s.EpisodeIds).ToHashSet())
             .Where(eps => eps.Count > 0)
@@ -214,12 +217,21 @@ public class VideoReleaseGroupingService(
                         anyOverlap = true;
                         break;
                     }
-            if (!anyOverlap)
+            if (!anyOverlap && !mergedBuckets.Any(HasIntraBucketVersionCollision))
                 return [];
         }
 
         // Phase 2: version-strategy candidates per merged family
         var specs = mergedBuckets.SelectMany(GenerateVersionStrategyCandidates).ToList();
+
+        // Phase 2.5: cross-bucket same-group candidates
+        // When two buckets from the same release group overlap on at least one episode
+        // (i.e. FuzzyGroup placed the same-group files in separate managed-folder buckets),
+        // generate one candidate per bucket's "take" on those episodes. This is the
+        // cross-folder analogue of the intra-bucket version split: two different files
+        // from the same group for the same episode are competing releases regardless of
+        // which managed folder they live in.
+        specs.AddRange(GenerateCrossBucketCandidates(mergedBuckets));
 
         // Phase 3: gap-fill candidates — one per partial anchor, greedily filled
         // across as many filler groups as needed to cover all episodes.
@@ -455,22 +467,81 @@ public class VideoReleaseGroupingService(
     }
 
     /// <summary>
+    /// For each pair of same-release-group buckets that overlap on at least one episode,
+    /// generates a candidate where bucket <c>j</c>'s files are preferred for the overlapping
+    /// episodes and bucket <c>i</c>'s files cover the rest. This lets gap-fill assemble a
+    /// full-coverage candidate rooted in either bucket's files for the contested episode,
+    /// treating them as competing alternatives rather than duplicates.
+    /// </summary>
+    /// <remarks>
+    /// The "prefer i for overlap" direction is already represented by bucket <c>i</c>'s existing
+    /// version-strategy spec, so it is only generated here when bucket <c>j</c> has additional
+    /// files outside the overlap that would not otherwise appear together with <c>i</c>'s files.
+    /// </remarks>
+    private static IEnumerable<CandidateSpec> GenerateCrossBucketCandidates(
+        IReadOnlyList<List<FileSignature>> mergedBuckets)
+    {
+        for (var i = 0; i < mergedBuckets.Count; i++)
+        {
+            var keyI = mergedBuckets[i].Select(s => GroupKey(s.ReleaseInfo)).FirstOrDefault(k => k is not null);
+            if (keyI is null) continue;
+            var epsI = mergedBuckets[i].SelectMany(s => s.EpisodeIds).ToHashSet();
+            if (epsI.Count == 0) continue;
+
+            for (var j = i + 1; j < mergedBuckets.Count; j++)
+            {
+                var keyJ = mergedBuckets[j].Select(s => GroupKey(s.ReleaseInfo)).FirstOrDefault(k => k is not null);
+                if (keyJ != keyI) continue;
+                var epsJ = mergedBuckets[j].SelectMany(s => s.EpisodeIds).ToHashSet();
+                if (epsJ.Count == 0 || !epsI.Overlaps(epsJ)) continue;
+
+                // "Prefer j for the overlapping episodes":
+                // Take all of j's files, then add i's files that don't cover any episode j covers.
+                // This produces a candidate where j's file is used for the contest and i supplies
+                // the rest — the counterpart to i's existing BestAvailable spec.
+                var iNonOverlap = mergedBuckets[i]
+                    .Where(s => !s.EpisodeIds.Any(ep => epsJ.Contains(ep)))
+                    .ToList();
+                var preferJFiles = mergedBuckets[j].Concat(iNonOverlap).ToList();
+                if (preferJFiles.Count > 0)
+                    yield return new CandidateSpec(preferJFiles, ReleaseVersionStrategy.BestAvailable,
+                        MaxVersion(preferJFiles), false, []);
+
+                // "Prefer i for the overlapping episodes":
+                // Only needed when j has files outside the overlap; otherwise it is
+                // identical to i's existing version-strategy spec.
+                var jNonOverlap = mergedBuckets[j]
+                    .Where(s => !s.EpisodeIds.Any(ep => epsI.Contains(ep)))
+                    .ToList();
+                if (jNonOverlap.Count == 0) continue;
+                var preferIFiles = mergedBuckets[i].Concat(jNonOverlap).ToList();
+                yield return new CandidateSpec(preferIFiles, ReleaseVersionStrategy.BestAvailable,
+                    MaxVersion(preferIFiles), false, []);
+            }
+        }
+    }
+
+    /// <summary>
     /// For each FuzzyGroup bucket, generates one or more version-strategy candidates:
     /// BestAvailable (highest version per episode) and Consistent(v) for each older version
     /// when version-colliding episodes exist.
     /// </summary>
     private static IEnumerable<CandidateSpec> GenerateVersionStrategyCandidates(List<FileSignature> signatures)
     {
-        // Without episode data on every SRI-backed file we cannot determine version collisions
-        if (signatures.Any(s => s.ReleaseInfo is null || s.EpisodeIds.Count == 0))
+        // Separate SRI-backed files from unidentified ones. Unidentified files cannot
+        // participate in version-collision detection, but are carried along with every
+        // generated candidate since we cannot determine which version they belong to.
+        var sriSigs = signatures.Where(s => s.ReleaseInfo is not null && s.EpisodeIds.Count > 0).ToList();
+        var noSriSigs = signatures.Where(s => s.ReleaseInfo is null || s.EpisodeIds.Count == 0).ToList();
+
+        if (sriSigs.Count == 0)
         {
-            yield return new CandidateSpec(signatures, ReleaseVersionStrategy.BestAvailable,
-                MaxVersion(signatures), false, []);
+            yield return new CandidateSpec(signatures, ReleaseVersionStrategy.BestAvailable, 0, false, []);
             yield break;
         }
 
         // Map each episode to the set of (version, sig) pairs covering it
-        var episodeToVersionedFiles = signatures
+        var episodeToVersionedFiles = sriSigs
             .SelectMany(s => s.EpisodeIds.Select(ep => (ep, Version: s.ReleaseInfo!.Version, Sig: s)))
             .GroupBy(x => x.ep)
             .ToDictionary(
@@ -486,18 +557,19 @@ public class VideoReleaseGroupingService(
         if (collidingEpisodes.Count == 0)
         {
             yield return new CandidateSpec(signatures, ReleaseVersionStrategy.BestAvailable,
-                MaxVersion(signatures), false, []);
+                MaxVersion(sriSigs), false, []);
             yield break;
         }
 
-        var maxVersion = MaxVersion(signatures);
+        var maxVersion = MaxVersion(sriSigs);
 
-        // BestAvailable: for each colliding episode, keep only the highest-version file(s)
+        // BestAvailable: for each colliding episode, keep only the highest-version file(s).
+        // No-SRI files are appended to every candidate since their version is unknown.
         var bestAvailableFiles = SelectFilesForStrategy(episodeToVersionedFiles, collidingEpisodes, bestAvailable: true);
-        yield return new CandidateSpec(bestAvailableFiles, ReleaseVersionStrategy.BestAvailable, maxVersion, false, []);
+        yield return new CandidateSpec([..bestAvailableFiles, ..noSriSigs], ReleaseVersionStrategy.BestAvailable, maxVersion, false, []);
 
         // Consistent(v) for each distinct version below maxVersion
-        var distinctVersionsBeforeMax = signatures
+        var distinctVersionsBeforeMax = sriSigs
             .Where(s => (s.ReleaseInfo?.Version ?? 0) > 0)
             .Select(s => s.ReleaseInfo!.Version)
             .Distinct()
@@ -509,7 +581,7 @@ public class VideoReleaseGroupingService(
             var consistentFiles = SelectFilesForStrategy(episodeToVersionedFiles, collidingEpisodes,
                 bestAvailable: false, targetVersion: version);
             if (consistentFiles.Count == 0) continue;
-            yield return new CandidateSpec(consistentFiles, ReleaseVersionStrategy.Consistent, version, false, []);
+            yield return new CandidateSpec([..consistentFiles, ..noSriSigs], ReleaseVersionStrategy.Consistent, version, false, []);
         }
     }
 
@@ -893,6 +965,22 @@ public class VideoReleaseGroupingService(
             TypeSignals = typeSignals,
             HasPartialCoverage = allEpisodes.Count > 0 && !episodeCoverage.IsSupersetOf(allEpisodes),
         };
+    }
+
+    private static bool HasIntraBucketVersionCollision(List<FileSignature> bucket)
+    {
+        var episodeVersions = new Dictionary<(EpisodeType, int), int>();
+        foreach (var sig in bucket)
+        {
+            if (sig.ReleaseInfo is null) continue;
+            foreach (var ep in sig.EpisodeIds)
+            {
+                if (episodeVersions.TryGetValue(ep, out var existing) && existing != sig.ReleaseInfo.Version)
+                    return true;
+                episodeVersions[ep] = sig.ReleaseInfo.Version;
+            }
+        }
+        return false;
     }
 
     private static int MaxVersion(IEnumerable<FileSignature> sigs)
