@@ -60,18 +60,18 @@ public interface ISystemUpdateService
     /// <summary>
     ///   The manifest URL for the web component.
     /// </summary>
-    string ClientManifestUrl { get; set; }
+    string WebComponentManifestUrl { get; set; }
 
     /// <summary>
-    ///   Load the web component version information from the installed into the
-    ///   user data directory.
+    ///   Load the web component version information from the version installed
+    ///   into the user data directory.
     /// </summary>
     /// <returns>The version info, or <see langword="null"/> if not found.</returns>
     WebReleaseVersionInformation? LoadWebComponentVersionInformation();
 
     /// <summary>
-    ///   Load the web component version information from the bundled/included
-    ///   web component.
+    ///   Load the web component version information from the bundled version of
+    ///   the web component, if any.
     /// </summary>
     /// <returns>The version information, or <see langword="null"/> if not found.</returns>
     WebReleaseVersionInformation? LoadIncludedWebComponentVersionInformation();
@@ -116,7 +116,7 @@ public interface ISystemUpdateService
 
     /// <summary>
     ///   Checks the manifest URL specified by
-    ///   <see cref="ClientManifestUrl"/> for an update of the web component.
+    ///   <see cref="WebComponentManifestUrl"/> for an update of the web component.
     /// </summary>
     /// <param name="channel">
     ///   Optional. The release channel to use. Defaults to

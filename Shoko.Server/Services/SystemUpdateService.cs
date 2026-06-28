@@ -185,7 +185,7 @@ public partial class SystemUpdateService(
     public event EventHandler? WebComponentUpdated;
 
     /// <inheritdoc />
-    public string ClientManifestUrl
+    public string WebComponentManifestUrl
     {
         get => settingsProvider.GetSettings().Web.ClientManifestUrl;
         set
@@ -245,7 +245,7 @@ public partial class SystemUpdateService(
     /// <inheritdoc />
     public async Task<bool> InstallWebComponentVersion(WebReleaseVersionInformation version)
     {
-        var versions = await FetchManifestAsync(ClientManifestUrl, "web-manifest.json", false);
+        var versions = await FetchManifestAsync(WebComponentManifestUrl, "web-manifest.json", false);
         var entry = versions.FirstOrDefault(e => e.Version == version.Version);
         if (entry.Entry is null)
             return false;
@@ -349,7 +349,7 @@ public partial class SystemUpdateService(
         if (channel is ReleaseChannel.Auto)
             channel = GetCurrentWebUIReleaseChannel();
 
-        return (await FetchManifestAsync(ClientManifestUrl, "webui-manifest.json", force))
+        return (await FetchManifestAsync(WebComponentManifestUrl, "webui-manifest.json", force))
             .Where(tuple => !channel.HasValue || tuple.Channel == channel.Value)
             .Select(tuple => EntryToWebReleaseInfo(tuple.Entry, tuple.Channel))
             .ToList();
