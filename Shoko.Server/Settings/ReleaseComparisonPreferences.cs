@@ -14,19 +14,19 @@ public class ReleaseComparisonPreferences
     public List<ReleaseSignalType> SignalPriority { get; set; } =
     [
         ReleaseSignalType.Source,
-        ReleaseSignalType.IsCorrupted,
+        ReleaseSignalType.Corrupted,
         ReleaseSignalType.Resolution,
         ReleaseSignalType.BitDepth,
         ReleaseSignalType.VideoCodec,
-        ReleaseSignalType.Chapters,
-        ReleaseSignalType.AudioStreamCount,
-        ReleaseSignalType.SubtitleStreamCount,
+        ReleaseSignalType.Chaptered,
+        ReleaseSignalType.AudioStreams,
+        ReleaseSignalType.SubtitleStreams,
         ReleaseSignalType.AudioLanguage,
         ReleaseSignalType.SubtitleLanguage,
         ReleaseSignalType.AudioCodec,
         ReleaseSignalType.SubGroup,
         ReleaseSignalType.Version,
-        ReleaseSignalType.IsCensored,
+        ReleaseSignalType.Censored,
     ];
 
     /// <summary>Ordered source preference: first entry is most preferred.</summary>
@@ -109,14 +109,15 @@ public enum ReleaseSignalType
     Resolution,
     VideoCodec,
     BitDepth,
-    AudioStreamCount,
-    SubtitleStreamCount,
+    AudioStreams,
+    SubtitleStreams,
     AudioCodec,
-    Chapters,
+    Chaptered,
     SubGroup,
     Version,
-    IsCorrupted,
-    IsCensored,
+    Corrupted,
+    Censored,
+    Creditless,
     /// <summary>
     /// Prefers candidates where all files are from the same release group over
     /// gap-fill candidates that mix files from different release groups.

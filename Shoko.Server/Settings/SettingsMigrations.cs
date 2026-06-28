@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,7 +11,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Plugin;
 
-#nullable enable
 namespace Shoko.Server.Settings;
 
 public static partial class SettingsMigrations
@@ -86,6 +86,7 @@ public static partial class SettingsMigrations
         // using applicationPaths.DataPath. The null tombstone here ensures Version == 15.
         { 15, null },
         { 16, MigrateDefaultRenamerToStatic },
+        { 17, MigrateReleaseSignalTypeNames },
     };
 
     /// <summary>
@@ -309,6 +310,32 @@ public static partial class SettingsMigrations
             loggingSettings["TraceLog"] = rootTrace.DeepClone();
 
         currentSettings.Remove("TraceLog");
+        return currentSettings.ToString();
+    }
+
+    private static readonly Dictionary<string, string> _releaseSignalRenames = new()
+    {
+        { "IsCorrupted", "Corrupted" },
+        { "IsCensored", "Censored" },
+        { "Chapters", "Chaptered" },
+        { "AudioStreamCount", "AudioStreams" },
+        { "SubtitleStreamCount", "SubtitleStreams" },
+    };
+
+    private static string MigrateReleaseSignalTypeNames(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        var signalPriority = currentSettings["ReleaseComparisonPreferences"]?["SignalPriority"] as JArray;
+        if (signalPriority is null)
+            return settings;
+
+        for (var i = 0; i < signalPriority.Count; i++)
+        {
+            var value = signalPriority[i].Value<string>();
+            if (value is not null && _releaseSignalRenames.TryGetValue(value, out var newName))
+                signalPriority[i] = newName;
+        }
+
         return currentSettings.ToString();
     }
 
