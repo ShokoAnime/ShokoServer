@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.337",
+      "tag": "v6.0.0-dev.337",
+      "commit": "3ee23a3b38f74f88e32e53c694c48099dc187b58",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.337/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-28T15:47:31Z",
+      "releaseNotes": "\n`fix`: **Fix Test**.\n"
+    },
+    {
       "version": "6.0.0.336",
       "tag": "v6.0.0-dev.336",
       "commit": "d2716640198da6184302c1593344e69eb1b9dc7c",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.308/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-22T02:18:43Z",
       "releaseNotes": "\n`fix`: **Move new language code**.\n"
-    },
-    {
-      "version": "6.0.0.307",
-      "tag": "v6.0.0-dev.307",
-      "commit": "7f394ed015cc2d5ba0415d43c9ca5525e86b9405",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.307/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-22T00:20:00Z",
-      "releaseNotes": "\n`misc`: **Filter Missing Episodes by User Visibility**.\n"
     }
   ]
 }
