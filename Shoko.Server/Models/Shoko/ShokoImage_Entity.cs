@@ -73,6 +73,9 @@ public class ShokoImage_Entity : IImageCrossReference
         {
             var id = ImageID.ToString("N");
             var directoryPath = Path.Join(ApplicationPaths.Instance.ImagesPath, Source.ToString(), id[..2]);
+            if (!Directory.Exists(directoryPath))
+                return false;
+
             var localPathTemplate = $"{id}.*";
             return Directory.GetFiles(directoryPath, localPathTemplate).Any();
         }
