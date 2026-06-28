@@ -31,10 +31,11 @@ jobs:
         id: webui_release
         run: |
           if [ "${{ github.event.inputs.release }}" = "stable" ]; then
-            download_url=$(curl -s https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases/latest | jq -r '.assets[0].browser_download_url')
+            channel=Stable
           else
-            download_url=$(curl -s https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases | jq -r '.[0].assets[0].browser_download_url')
+            channel=Dev
           fi
+          download_url=$(curl -s https://raw.githubusercontent.com/ShokoAnime/Shoko-WebUI/metadata/manifest.json | jq -r ".${channel}[0].downloadUrl")
           echo "download_url=${download_url}" >> "$GITHUB_OUTPUT"
 
       - name: Download and Extract Web UI

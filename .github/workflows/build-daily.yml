@@ -169,7 +169,7 @@ jobs:
       - name: Get Latest Web UI Release
         id: webui_release
         run: |
-          download_url=$(curl -s https://api.github.com/repos/ShokoAnime/Shoko-WebUI/releases | jq -r '.[0].assets[0].browser_download_url')
+          download_url=$(curl -s https://raw.githubusercontent.com/ShokoAnime/Shoko-WebUI/metadata/manifest.json | jq -r '.Dev[0].downloadUrl')
           echo "download_url=${download_url}" >> "$GITHUB_OUTPUT"
 
       - name: Download and Extract Web UI
