@@ -428,7 +428,7 @@ public class AnimeGroup : IShokoGroup
 
             var mainSeries = (this as IShokoGroup).MainSeries;
             if (mainSeries.GetPreferredImageForType(ImageEntityType.Primary) is { } mainSeriesPreferredImage)
-                return mainSeriesPreferredImage;
+                return ImageStub.Wrap(mainSeriesPreferredImage, mainSeriesPreferredImage.CrossReference, true);
 
             var groupImage = GetImages(imageType: ImageEntityType.Primary, primaryImage: true) is { Count: > 0 } images ? (
                 images.FirstOrDefault(i => i is { IsEnabled: true, IsAvailable: true }) ??
@@ -436,9 +436,13 @@ public class AnimeGroup : IShokoGroup
                 images.FirstOrDefault()
             ) : null;
             if (groupImage is not null)
-                return groupImage;
+                return ImageStub.Wrap(groupImage, groupImage.CrossReference, true);
 
-            return mainSeries.DefaultPrimaryImage;
+            var defaultImage = mainSeries.DefaultPrimaryImage;
+            if (defaultImage is not null)
+                return ImageStub.Wrap(defaultImage, defaultImage.CrossReference, true);
+
+            return null;
         }
     }
 
@@ -446,12 +450,12 @@ public class AnimeGroup : IShokoGroup
     {
         get
         {
-            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Primary) is { } preferredImage)
-                return preferredImage;
+            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Primary) is { } preferredImageCrossReference)
+                return preferredImageCrossReference;
 
             var mainSeries = (this as IShokoGroup).MainSeries;
-            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Primary) is { } mainSeriesPreferredImage)
-                return mainSeriesPreferredImage;
+            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Primary) is { } mainSeriesPreferredImageCrossReference)
+                return mainSeriesPreferredImageCrossReference;
 
             var groupXref = GetImageCrossReferences(imageType: ImageEntityType.Primary) is { Count: > 0 } xrefs ? (
                 xrefs.FirstOrDefault(xref => xref.GetPrimaryImage() is { IsEnabled: true, IsAvailable: true }) ??
@@ -478,7 +482,7 @@ public class AnimeGroup : IShokoGroup
 
             var mainSeries = (this as IShokoGroup).MainSeries;
             if (mainSeries.GetPreferredImageForType(ImageEntityType.Backdrop) is { } mainSeriesPreferredImage)
-                return mainSeriesPreferredImage;
+                return ImageStub.Wrap(mainSeriesPreferredImage, mainSeriesPreferredImage.CrossReference, true);
 
             var groupImage = GetImages(imageType: ImageEntityType.Backdrop) is { Count: > 0 } images ? (
                 images.FirstOrDefault(i => i is { IsEnabled: true, IsAvailable: true }) ??
@@ -486,9 +490,13 @@ public class AnimeGroup : IShokoGroup
                 images.FirstOrDefault()
             ) : null;
             if (groupImage is not null)
-                return groupImage;
+                return ImageStub.Wrap(groupImage, groupImage.CrossReference, true);
 
-            return mainSeries.DefaultBackdropImage;
+            var defaultImage = mainSeries.DefaultBackdropImage;
+            if (defaultImage is not null)
+                return ImageStub.Wrap(defaultImage, defaultImage.CrossReference, true);
+
+            return null;
         }
     }
 
@@ -496,12 +504,12 @@ public class AnimeGroup : IShokoGroup
     {
         get
         {
-            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Backdrop) is { } preferredImage)
-                return preferredImage;
+            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Backdrop) is { } preferredImageCrossReference)
+                return preferredImageCrossReference;
 
             var mainSeries = (this as IShokoGroup).MainSeries;
-            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Backdrop) is { } mainSeriesPreferredImage)
-                return mainSeriesPreferredImage;
+            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Backdrop) is { } mainSeriesPreferredImageCrossReference)
+                return mainSeriesPreferredImageCrossReference;
 
             var groupXref = GetImageCrossReferences(imageType: ImageEntityType.Backdrop) is { Count: > 0 } xrefs ? (
                 xrefs.FirstOrDefault(xref => xref.GetPrimaryImage() is { IsEnabled: true, IsAvailable: true }) ??
@@ -528,7 +536,7 @@ public class AnimeGroup : IShokoGroup
 
             var mainSeries = (this as IShokoGroup).MainSeries;
             if (mainSeries.GetPreferredImageForType(ImageEntityType.Logo) is { } mainSeriesPreferredImage)
-                return mainSeriesPreferredImage;
+                return ImageStub.Wrap(mainSeriesPreferredImage, mainSeriesPreferredImage.CrossReference, true);
 
             var groupImage = GetImages(imageType: ImageEntityType.Logo) is { Count: > 0 } images ? (
                 images.FirstOrDefault(i => i is { IsEnabled: true, IsAvailable: true }) ??
@@ -536,9 +544,13 @@ public class AnimeGroup : IShokoGroup
                 images.FirstOrDefault()
             ) : null;
             if (groupImage is not null)
-                return groupImage;
+                return ImageStub.Wrap(groupImage, groupImage.CrossReference, true);
 
-            return mainSeries.DefaultLogoImage;
+            var defaultImage = mainSeries.DefaultLogoImage;
+            if (defaultImage is not null)
+                return ImageStub.Wrap(defaultImage, defaultImage.CrossReference, true);
+
+            return null;
         }
     }
 
@@ -546,12 +558,12 @@ public class AnimeGroup : IShokoGroup
     {
         get
         {
-            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Logo) is { } preferredImage)
-                return preferredImage;
+            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Logo) is { } preferredImageCrossReference)
+                return preferredImageCrossReference;
 
             var mainSeries = (this as IShokoGroup).MainSeries;
-            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Logo) is { } mainSeriesPreferredImage)
-                return mainSeriesPreferredImage;
+            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Logo) is { } mainSeriesPreferredImageCrossReference)
+                return mainSeriesPreferredImageCrossReference;
 
             var groupXref = GetImageCrossReferences(imageType: ImageEntityType.Logo) is { Count: > 0 } xrefs ? (
                 xrefs.FirstOrDefault(xref => xref.GetPrimaryImage() is { IsEnabled: true, IsAvailable: true }) ??
@@ -578,7 +590,7 @@ public class AnimeGroup : IShokoGroup
 
             var mainSeries = (this as IShokoGroup).MainSeries;
             if (mainSeries.GetPreferredImageForType(ImageEntityType.Banner) is { } mainSeriesPreferredImage)
-                return mainSeriesPreferredImage;
+                return ImageStub.Wrap(mainSeriesPreferredImage, mainSeriesPreferredImage.CrossReference, true);
 
             var groupImage = GetImages(imageType: ImageEntityType.Banner) is { Count: > 0 } images ? (
                 images.FirstOrDefault(i => i is { IsEnabled: true, IsAvailable: true }) ??
@@ -586,9 +598,13 @@ public class AnimeGroup : IShokoGroup
                 images.FirstOrDefault()
             ) : null;
             if (groupImage is not null)
-                return groupImage;
+                return ImageStub.Wrap(groupImage, groupImage.CrossReference, true);
 
-            return mainSeries.DefaultBannerImage;
+            var defaultImage = mainSeries.DefaultBannerImage;
+            if (defaultImage is not null)
+                return ImageStub.Wrap(defaultImage, defaultImage.CrossReference, true);
+
+            return null;
         }
     }
 
@@ -596,12 +612,12 @@ public class AnimeGroup : IShokoGroup
     {
         get
         {
-            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Banner) is { } preferredImage)
-                return preferredImage;
+            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Banner) is { } preferredImageCrossReference)
+                return preferredImageCrossReference;
 
             var mainSeries = (this as IShokoGroup).MainSeries;
-            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Banner) is { } mainSeriesPreferredImage)
-                return mainSeriesPreferredImage;
+            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Banner) is { } mainSeriesPreferredImageCrossReference)
+                return mainSeriesPreferredImageCrossReference;
 
             var groupXref = GetImageCrossReferences(imageType: ImageEntityType.Banner) is { Count: > 0 } xrefs ? (
                 xrefs.FirstOrDefault(xref => xref.GetPrimaryImage() is { IsEnabled: true, IsAvailable: true }) ??
@@ -628,7 +644,7 @@ public class AnimeGroup : IShokoGroup
 
             var mainSeries = (this as IShokoGroup).MainSeries;
             if (mainSeries.GetPreferredImageForType(ImageEntityType.Disc) is { } mainSeriesPreferredImage)
-                return mainSeriesPreferredImage;
+                return ImageStub.Wrap(mainSeriesPreferredImage, mainSeriesPreferredImage.CrossReference, true);
 
             var groupImage = GetImages(imageType: ImageEntityType.Disc) is { Count: > 0 } images ? (
                 images.FirstOrDefault(i => i is { IsEnabled: true, IsAvailable: true }) ??
@@ -636,9 +652,13 @@ public class AnimeGroup : IShokoGroup
                 images.FirstOrDefault()
             ) : null;
             if (groupImage is not null)
-                return groupImage;
+                return ImageStub.Wrap(groupImage, groupImage.CrossReference, true);
 
-            return mainSeries.DefaultDiscImage;
+            var defaultImage = mainSeries.DefaultDiscImage;
+            if (defaultImage is not null)
+                return ImageStub.Wrap(defaultImage, defaultImage.CrossReference, true);
+
+            return null;
         }
     }
 
@@ -646,12 +666,12 @@ public class AnimeGroup : IShokoGroup
     {
         get
         {
-            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Disc) is { } preferredImage)
-                return preferredImage;
+            if (GetPreferredImageCrossReferenceForType(ImageEntityType.Disc) is { } preferredImageCrossReference)
+                return preferredImageCrossReference;
 
             var mainSeries = (this as IShokoGroup).MainSeries;
-            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Disc) is { } mainSeriesPreferredImage)
-                return mainSeriesPreferredImage;
+            if (mainSeries.GetPreferredImageCrossReferenceForType(ImageEntityType.Disc) is { } mainSeriesPreferredImageCrossReference)
+                return mainSeriesPreferredImageCrossReference;
 
             var groupXref = GetImageCrossReferences(imageType: ImageEntityType.Disc) is { Count: > 0 } xrefs ? (
                 xrefs.FirstOrDefault(xref => xref.GetPrimaryImage() is { IsEnabled: true, IsAvailable: true }) ??
@@ -664,6 +684,21 @@ public class AnimeGroup : IShokoGroup
             return mainSeries.DefaultDiscImageCrossReference;
         }
     }
+
+    #endregion
+
+    #region Images
+
+    public IReadOnlyList<IImage> GetPreferredImages()
+        => new[] {
+            PrimaryImage,
+            BackdropImage,
+            LogoImage,
+            BannerImage,
+            DiscImage,
+        }
+            .WhereNotNull()
+            .ToList();
 
     #endregion
 

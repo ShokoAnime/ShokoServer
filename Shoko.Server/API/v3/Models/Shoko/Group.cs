@@ -128,14 +128,10 @@ public class Group : BaseModel
         Updated = group.DateTimeUpdated.ToUniversalTime();
         HasCustomName = group.IsManuallyNamed == 1;
         HasCustomDescription = group.OverrideDescription == 1;
-        Images = group.GetImages(isEnabled: true, isDesired: true)
-            .ToDto(
-                preferredPoster: group.PrimaryImage,
-                preferredBackdrop: group.BackdropImage,
-                preferredLogo: group.LogoImage,
-                preferredImages: true,
-                randomizeImages: randomizeImages
-            );
+        Images = group.GetPreferredImages().ToDto(
+            preferredImages: true,
+            randomizeImages: randomizeImages
+        );
     }
 
     #endregion
