@@ -49,7 +49,7 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
         _anidbEpisodeIDs = Cache.CreateIndex(a => a.EpisodeID);
     }
 
-    public IReadOnlyList<CrossRef_File_Episode> GetByEd2k(string ed2k)
+    public virtual IReadOnlyList<CrossRef_File_Episode> GetByEd2k(string ed2k)
         => _ed2k!.GetMultiple(ed2k).OrderBy(a => a.EpisodeOrder).ToList();
 
     public IReadOnlyList<CrossRef_File_Episode> GetByAnimeID(int animeID)

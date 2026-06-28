@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -244,7 +246,7 @@ public class ReleaseManagementMultipleReleasesController(
         {
             var excludedSet = body?.ExcludedSeriesIDs?.ToHashSet() ?? [];
             seriesSource = animeSeries.GetAll()
-                .Where(s => User.AllowedSeries(s) && s.AniDB_Anime?.GetFinishedAiring() != onlyFinishedSeries && !excludedSet.Contains(s.AnimeSeriesID));
+                .Where(s => User.AllowedSeries(s) && (!onlyFinishedSeries || (s.AniDB_Anime?.GetFinishedAiring() ?? false)) && !excludedSet.Contains(s.AnimeSeriesID));
         }
 
         var result = seriesSource
@@ -317,7 +319,7 @@ public class ReleaseManagementMultipleReleasesController(
         // groups not represented in any full candidate). Otherwise the candidates alone suffice.
         IEnumerable<int> episodeIdSource = includeTracks
             ? placeEpisodeCoverage.Values.SelectMany(cov => cov.Select(e => e.Item2))
-            : ranked.SelectMany(c => c.EpisodeCoverage).Select(e => e.Number);
+            : ranked.SelectMany(c => c.EpisodeCoverage).Select(e => e.EpisodeID);
 
         var episodeLookup = episodeIdSource
             .Distinct()
@@ -334,6 +336,31 @@ public class ReleaseManagementMultipleReleasesController(
             .GroupBy(c => $"{c.GroupID}|{c.GroupSource}")
             .Any(g => g.Count() > 1);
 
+        // Pre-compute candidate names and detect collisions. When two candidates
+        // would render with the same name (e.g., two unrecognised files from
+        // different folders both named "Unknown"), append the first file's parent
+        // folder (or filename when folders also match) as a disambiguation suffix.
+        var precomputedNames = ranked
+            .Select(c => ReleaseCandidate.ComputeName(c, candidateIncludeResolution, candidateIncludeSource, candidateIncludeVersion, episodeLookup))
+            .ToList();
+        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < precomputedNames.Count; i++)
+        {
+            var name = precomputedNames[i];
+            if (!usedNames.Add(name))
+            {
+                // Find the first place's relative path and extract a unique suffix.
+                var firstPath = ranked[i].Places.FirstOrDefault()?.RelativePath ?? string.Empty;
+                var suffix = Path.GetFileName(Path.GetDirectoryName(firstPath));
+                if (string.IsNullOrEmpty(suffix))
+                    suffix = Path.GetFileNameWithoutExtension(firstPath);
+                if (string.IsNullOrEmpty(suffix))
+                    suffix = $"#{i + 1}";
+                precomputedNames[i] = $"{name} ({suffix})";
+                usedNames.Add(precomputedNames[i]);
+            }
+        }
+
         var candidateDTOs = new List<ReleaseCandidate>(ranked.Count);
         for (var i = 0; i < ranked.Count; i++)
         {
@@ -347,7 +374,8 @@ public class ReleaseManagementMultipleReleasesController(
             candidateDTOs.Add(ReleaseCandidate.FromCandidate(
                 candidate, rank: i + 1, isRedundant, videoLookup, redundantPlaces, decision,
                 placeEpisodeCoverage, episodeLookup,
-                candidateIncludeResolution, candidateIncludeSource, candidateIncludeVersion));
+                candidateIncludeResolution, candidateIncludeSource, candidateIncludeVersion,
+                nameOverride: precomputedNames[i]));
         }
 
         IReadOnlyList<ReleaseOverride> overrideDTOs = [];

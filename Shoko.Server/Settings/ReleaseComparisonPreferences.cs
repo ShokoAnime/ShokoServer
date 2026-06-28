@@ -1,8 +1,8 @@
+#nullable enable
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-#nullable enable
 namespace Shoko.Server.Settings;
 
 public class ReleaseComparisonPreferences
@@ -19,7 +19,6 @@ public class ReleaseComparisonPreferences
         ReleaseSignalType.BitDepth,
         ReleaseSignalType.VideoCodec,
         ReleaseSignalType.Chapters,
-        ReleaseSignalType.GroupHomogeneity,
         ReleaseSignalType.AudioStreamCount,
         ReleaseSignalType.SubtitleStreamCount,
         ReleaseSignalType.AudioLanguage,

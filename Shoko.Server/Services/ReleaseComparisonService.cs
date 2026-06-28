@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,6 @@ using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 /// <summary>
@@ -25,34 +25,7 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
     /// configured signals.
     /// </summary>
     public int Compare(VideoReleaseCandidate a, VideoReleaseCandidate b)
-    {
-        var prefs = Prefs;
-        foreach (var signal in prefs.SignalPriority)
-        {
-            var result = signal switch
-            {
-                ReleaseSignalType.Source          => CompareSource(a, b, prefs),
-                ReleaseSignalType.Resolution      => CompareResolution(a, b, prefs),
-                ReleaseSignalType.VideoCodec      => CompareCodecList(a.VideoCodec, b.VideoCodec, prefs.VideoCodecOrder),
-                ReleaseSignalType.BitDepth        => CompareBitDepth(a, b, prefs),
-                ReleaseSignalType.AudioStreamCount    => CompareHigherInt(a.AudioStreamCount, b.AudioStreamCount),
-                ReleaseSignalType.SubtitleStreamCount => CompareHigherInt(a.SubtitleStreamCount, b.SubtitleStreamCount),
-                ReleaseSignalType.AudioCodec      => CompareCodecList(a.AudioCodec, b.AudioCodec, prefs.AudioCodecOrder),
-                ReleaseSignalType.AudioLanguage   => CompareLanguageList(a.AudioLanguages, b.AudioLanguages, prefs.AudioLanguageOrder),
-                ReleaseSignalType.SubtitleLanguage => CompareLanguageList(a.SubtitleLanguages, b.SubtitleLanguages, prefs.SubtitleLanguageOrder),
-                ReleaseSignalType.Chapters        => CompareChapters(a, b),
-                ReleaseSignalType.GroupHomogeneity => CompareHomogeneity(a, b),
-                ReleaseSignalType.SubGroup        => CompareSubGroup(a, b, prefs),
-                ReleaseSignalType.Version         => CompareHigherInt(a.Version, b.Version),
-                ReleaseSignalType.IsCorrupted     => CompareCorrupted(a, b),
-                ReleaseSignalType.IsCensored      => CompareCensored(a, b),
-                _ => 0,
-            };
-            if (result != 0)
-                return result;
-        }
-        return 0;
-    }
+        => CompareWithDecision(a, b).Result;
 
     /// <summary>
     /// Returns the candidates sorted best-first. Stable: ties preserve input order.
@@ -144,63 +117,138 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
     }
 
     /// <summary>
-    /// Result of <see cref="CompareWithDecision"/>: comparison result plus which signal was decisive.
+    /// Result of <see cref="CompareWithDecision"/>: comparison result plus context for the UI.
     /// <see cref="DecidingSignal"/> is null when all configured signals are tied.
+    /// <see cref="DecidingType"/> is the episode type that was decisive under
+    /// <c>EpisodeTypeScope.BestPerType</c>; null for <c>KeepTogether</c> comparisons.
     /// <see cref="PrimaryValue"/> / <see cref="RunnerUpValue"/> hold the winning and losing display
     /// values for the deciding signal (null when signal is null or values are unknown).
     /// </summary>
     public record CompareDecision(
         int Result,
         ReleaseSignalType? DecidingSignal,
+        EpisodeType? DecidingType,
         string? PrimaryValue,
         string? RunnerUpValue);
 
     /// <summary>
-    /// Like <see cref="Compare"/> but also returns which signal decided the outcome
-    /// and the display values on each side, for use in UI explanations.
-    /// When <paramref name="a"/> wins, <see cref="CompareDecision.PrimaryValue"/> is
-    /// <paramref name="a"/>'s value and <see cref="CompareDecision.RunnerUpValue"/> is
-    /// <paramref name="b"/>'s. When <paramref name="b"/> wins the labels are swapped
-    /// so that PrimaryValue always describes the winner.
+    /// Like <see cref="Compare"/> but also returns which signal decided the outcome,
+    /// which episode type (under <c>BestPerType</c>), and display values for the UI.
+    /// <see cref="CompareDecision.PrimaryValue"/> always describes the winner.
     /// </summary>
     public CompareDecision CompareWithDecision(VideoReleaseCandidate a, VideoReleaseCandidate b)
     {
         var prefs = Prefs;
+
+        // Under KeepTogether, homogeneous (single-group) candidates always rank above
+        // gap-fills before any quality signal is consulted.
+        if (prefs.EpisodeTypeScope == EpisodeTypeScope.KeepTogether)
+        {
+            var homResult = CompareHomogeneity(a, b);
+            if (homResult != 0)
+            {
+                var (aH, bH) = (a.IsHomogeneous.ToString(), b.IsHomogeneous.ToString());
+                var (pHom, rHom) = homResult < 0 ? (aH, bH) : (bH, aH);
+                return new CompareDecision(homResult, ReleaseSignalType.GroupHomogeneity, null, pHom, rHom);
+            }
+        }
+
+        // Under BestPerType, compare quality per episode type for contested types
+        // (types where both candidates have files). Episode types are compared in
+        // ascending enum order so regular episodes (lowest value) come first.
+        var contestedTypes = prefs.EpisodeTypeScope == EpisodeTypeScope.BestPerType
+            ? a.TypeSignals.Keys
+                .Intersect(b.TypeSignals.Keys)
+                .OrderBy(t => (int)t)
+                .ToList()
+            : null;
+
         foreach (var signal in prefs.SignalPriority)
         {
-            var result = signal switch
-            {
-                ReleaseSignalType.Source          => CompareSource(a, b, prefs),
-                ReleaseSignalType.Resolution      => CompareResolution(a, b, prefs),
-                ReleaseSignalType.VideoCodec      => CompareCodecList(a.VideoCodec, b.VideoCodec, prefs.VideoCodecOrder),
-                ReleaseSignalType.BitDepth        => CompareBitDepth(a, b, prefs),
-                ReleaseSignalType.AudioStreamCount    => CompareHigherInt(a.AudioStreamCount, b.AudioStreamCount),
-                ReleaseSignalType.SubtitleStreamCount => CompareHigherInt(a.SubtitleStreamCount, b.SubtitleStreamCount),
-                ReleaseSignalType.AudioCodec      => CompareCodecList(a.AudioCodec, b.AudioCodec, prefs.AudioCodecOrder),
-                ReleaseSignalType.AudioLanguage   => CompareLanguageList(a.AudioLanguages, b.AudioLanguages, prefs.AudioLanguageOrder),
-                ReleaseSignalType.SubtitleLanguage => CompareLanguageList(a.SubtitleLanguages, b.SubtitleLanguages, prefs.SubtitleLanguageOrder),
-                ReleaseSignalType.Chapters        => CompareChapters(a, b),
-                ReleaseSignalType.GroupHomogeneity => CompareHomogeneity(a, b),
-                ReleaseSignalType.SubGroup        => CompareSubGroup(a, b, prefs),
-                ReleaseSignalType.Version         => CompareHigherInt(a.Version, b.Version),
-                ReleaseSignalType.IsCorrupted     => CompareCorrupted(a, b),
-                ReleaseSignalType.IsCensored      => CompareCensored(a, b),
-                _ => 0,
-            };
-            if (result == 0)
+            // GroupHomogeneity is now a structural rule (above), not a quality signal.
+            if (signal == ReleaseSignalType.GroupHomogeneity)
                 continue;
 
-            var (aDisplay, bDisplay) = GetSignalDisplayValues(a, b, signal, prefs);
-            // "primary" = the winner; "runnerUp" = the loser
+            // BestPerType: try each contested episode type before falling through
+            // to the aggregate comparison below.
+            if (contestedTypes is { Count: > 0 })
+            {
+                foreach (var type in contestedTypes)
+                {
+                    if (!a.TypeSignals.TryGetValue(type, out var aSig) ||
+                        !b.TypeSignals.TryGetValue(type, out var bSig))
+                        continue;
+                    var typeResult = CompareSignalForType(signal, aSig, bSig, prefs);
+                    if (typeResult != 0)
+                    {
+                        var (aT, bT) = GetTypeSignalDisplayValues(signal, aSig, bSig);
+                        var (pT, rT) = typeResult < 0 ? (aT, bT) : (bT, aT);
+                        return new CompareDecision(typeResult, signal, type, pT, rT);
+                    }
+                }
+            }
+
+            // Aggregate comparison — always used for KeepTogether, and as a fallback
+            // for BestPerType signals not tracked per-type (SubGroup, Version).
+            var result = CompareSignalAggregate(signal, a, b, prefs);
+            if (result == 0) continue;
+
+            var (aDisplay, bDisplay) = GetAggregateSignalDisplayValues(signal, a, b);
             var (primaryVal, runnerUpVal) = result < 0 ? (aDisplay, bDisplay) : (bDisplay, aDisplay);
-            return new CompareDecision(result, signal, primaryVal, runnerUpVal);
+            return new CompareDecision(result, signal, null, primaryVal, runnerUpVal);
         }
-        return new CompareDecision(0, null, null, null);
+        return new CompareDecision(0, null, null, null, null);
     }
 
-    private static (string? AValue, string? BValue) GetSignalDisplayValues(
-        VideoReleaseCandidate a, VideoReleaseCandidate b,
-        ReleaseSignalType signal, ReleaseComparisonPreferences prefs)
+    /// <summary>Compares a single quality signal between two candidates using aggregate signals.</summary>
+    private static int CompareSignalAggregate(
+        ReleaseSignalType signal, VideoReleaseCandidate a, VideoReleaseCandidate b,
+        ReleaseComparisonPreferences prefs) => signal switch
+    {
+        ReleaseSignalType.Source          => CompareSource(a, b, prefs),
+        ReleaseSignalType.Resolution      => CompareResolution(a, b, prefs),
+        ReleaseSignalType.VideoCodec      => CompareCodecList(a.VideoCodec, b.VideoCodec, prefs.VideoCodecOrder),
+        ReleaseSignalType.BitDepth        => CompareBitDepth(a, b, prefs),
+        ReleaseSignalType.AudioStreamCount    => CompareHigherInt(a.AudioStreamCount, b.AudioStreamCount),
+        ReleaseSignalType.SubtitleStreamCount => CompareHigherInt(a.SubtitleStreamCount, b.SubtitleStreamCount),
+        ReleaseSignalType.AudioCodec      => CompareCodecList(a.AudioCodec, b.AudioCodec, prefs.AudioCodecOrder),
+        ReleaseSignalType.AudioLanguage   => CompareLanguageList(a.AudioLanguages, b.AudioLanguages, prefs.AudioLanguageOrder),
+        ReleaseSignalType.SubtitleLanguage => CompareLanguageList(a.SubtitleLanguages, b.SubtitleLanguages, prefs.SubtitleLanguageOrder),
+        ReleaseSignalType.Chapters        => CompareChapters(a, b),
+        ReleaseSignalType.SubGroup        => CompareSubGroup(a, b, prefs),
+        ReleaseSignalType.Version         => CompareHigherInt(a.Version, b.Version),
+        ReleaseSignalType.IsCorrupted     => CompareCorrupted(a, b),
+        ReleaseSignalType.IsCensored      => CompareCensored(a, b),
+        _ => 0,
+    };
+
+    /// <summary>
+    /// Compares a single quality signal between two <see cref="EpisodeTypeQualitySignals"/>
+    /// instances (the per-type quality view). Signals that have no per-type representation
+    /// (SubGroup, Version, GroupHomogeneity) return 0 here; they are handled at the
+    /// aggregate level instead.
+    /// </summary>
+    private static int CompareSignalForType(
+        ReleaseSignalType signal, EpisodeTypeQualitySignals a, EpisodeTypeQualitySignals b,
+        ReleaseComparisonPreferences prefs) => signal switch
+    {
+        ReleaseSignalType.Source          => CompareCodecList(ReleaseSourceToString(a.Source), ReleaseSourceToString(b.Source), prefs.SourceOrder),
+        ReleaseSignalType.Resolution      => CompareCodecList(a.Resolution, b.Resolution, prefs.ResolutionOrder),
+        ReleaseSignalType.VideoCodec      => CompareCodecList(a.VideoCodec, b.VideoCodec, prefs.VideoCodecOrder),
+        ReleaseSignalType.BitDepth        => CompareTypeBitDepth(a.BitDepth, b.BitDepth, prefs),
+        ReleaseSignalType.AudioStreamCount    => CompareHigherInt(a.AudioStreamCount, b.AudioStreamCount),
+        ReleaseSignalType.SubtitleStreamCount => CompareHigherInt(a.SubtitleStreamCount, b.SubtitleStreamCount),
+        ReleaseSignalType.AudioCodec      => CompareCodecList(a.AudioCodec, b.AudioCodec, prefs.AudioCodecOrder),
+        ReleaseSignalType.AudioLanguage   => CompareLanguageList(a.AudioLanguages, b.AudioLanguages, prefs.AudioLanguageOrder),
+        ReleaseSignalType.SubtitleLanguage => CompareLanguageList(a.SubtitleLanguages, b.SubtitleLanguages, prefs.SubtitleLanguageOrder),
+        ReleaseSignalType.Chapters        => CompareNullableBool(a.IsChaptered, b.IsChaptered),
+        ReleaseSignalType.IsCorrupted     => CompareCorruptedBool(a.IsCorrupted, b.IsCorrupted),
+        ReleaseSignalType.IsCensored      => CompareCensoredBool(a.IsCensored, b.IsCensored),
+        _ => 0,
+    };
+
+    private static (string? AValue, string? BValue) GetAggregateSignalDisplayValues(
+        ReleaseSignalType signal, VideoReleaseCandidate a, VideoReleaseCandidate b)
         => signal switch
         {
             ReleaseSignalType.Source          => (ReleaseSourceToString(a.Source), ReleaseSourceToString(b.Source)),
@@ -216,6 +264,25 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
             ReleaseSignalType.GroupHomogeneity => (a.IsHomogeneous.ToString(), b.IsHomogeneous.ToString()),
             ReleaseSignalType.SubGroup        => (GroupDisplay(a), GroupDisplay(b)),
             ReleaseSignalType.Version         => (a.Version > 0 ? a.Version.ToString() : null, b.Version > 0 ? b.Version.ToString() : null),
+            ReleaseSignalType.IsCorrupted     => ((!a.IsCorrupted).ToString(), (!b.IsCorrupted).ToString()),
+            ReleaseSignalType.IsCensored      => (a.IsCensored is null ? null : (!a.IsCensored.Value).ToString(), b.IsCensored is null ? null : (!b.IsCensored.Value).ToString()),
+            _ => (null, null),
+        };
+
+    private static (string? AValue, string? BValue) GetTypeSignalDisplayValues(
+        ReleaseSignalType signal, EpisodeTypeQualitySignals a, EpisodeTypeQualitySignals b)
+        => signal switch
+        {
+            ReleaseSignalType.Source          => (ReleaseSourceToString(a.Source), ReleaseSourceToString(b.Source)),
+            ReleaseSignalType.Resolution      => (a.Resolution, b.Resolution),
+            ReleaseSignalType.VideoCodec      => (a.VideoCodec, b.VideoCodec),
+            ReleaseSignalType.BitDepth        => (a.BitDepth > 0 ? a.BitDepth.ToString() : null, b.BitDepth > 0 ? b.BitDepth.ToString() : null),
+            ReleaseSignalType.AudioStreamCount    => (a.AudioStreamCount > 0 ? a.AudioStreamCount.ToString() : null, b.AudioStreamCount > 0 ? b.AudioStreamCount.ToString() : null),
+            ReleaseSignalType.SubtitleStreamCount => (a.SubtitleStreamCount > 0 ? a.SubtitleStreamCount.ToString() : null, b.SubtitleStreamCount > 0 ? b.SubtitleStreamCount.ToString() : null),
+            ReleaseSignalType.AudioCodec      => (a.AudioCodec, b.AudioCodec),
+            ReleaseSignalType.AudioLanguage   => (LanguageListDisplay(a.AudioLanguages), LanguageListDisplay(b.AudioLanguages)),
+            ReleaseSignalType.SubtitleLanguage => (LanguageListDisplay(a.SubtitleLanguages), LanguageListDisplay(b.SubtitleLanguages)),
+            ReleaseSignalType.Chapters        => (a.IsChaptered?.ToString(), b.IsChaptered?.ToString()),
             ReleaseSignalType.IsCorrupted     => ((!a.IsCorrupted).ToString(), (!b.IsCorrupted).ToString()),
             ReleaseSignalType.IsCensored      => (a.IsCensored is null ? null : (!a.IsCensored.Value).ToString(), b.IsCensored is null ? null : (!b.IsCensored.Value).ToString()),
             _ => (null, null),
@@ -324,16 +391,38 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
     }
 
     private static int CompareChapters(VideoReleaseCandidate a, VideoReleaseCandidate b)
+        => CompareNullableBool(a.IsChaptered, b.IsChaptered);
+
+    private static int CompareNullableBool(bool? a, bool? b)
     {
-        if (a.IsChaptered is null || b.IsChaptered is null) return 0;
-        // true (chaptered) is better
-        return (b.IsChaptered == true ? 1 : 0).CompareTo(a.IsChaptered == true ? 1 : 0);
+        if (a is null || b is null) return 0;
+        return (b == true ? 1 : 0).CompareTo(a == true ? 1 : 0);  // true wins
     }
 
     private static int CompareHomogeneity(VideoReleaseCandidate a, VideoReleaseCandidate b)
     {
         if (a.IsHomogeneous == b.IsHomogeneous) return 0;
         return a.IsHomogeneous ? -1 : 1;  // homogeneous (single-group) wins
+    }
+
+    private static int CompareTypeBitDepth(int a, int b, ReleaseComparisonPreferences prefs)
+    {
+        if (a == 0 || b == 0) return 0;
+        if (a == b) return 0;
+        return prefs.PreferHigherBitDepth ? b.CompareTo(a) : a.CompareTo(b);
+    }
+
+    private static int CompareCorruptedBool(bool a, bool b)
+    {
+        if (a == b) return 0;
+        return a ? 1 : -1;  // not corrupted wins
+    }
+
+    private static int CompareCensoredBool(bool? a, bool? b)
+    {
+        if (a is null || b is null) return 0;
+        if (a == b) return 0;
+        return a == true ? 1 : -1;  // not censored wins
     }
 
     private static int CompareSubGroup(VideoReleaseCandidate a, VideoReleaseCandidate b,

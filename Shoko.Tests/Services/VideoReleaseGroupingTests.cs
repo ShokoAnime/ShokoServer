@@ -1,13 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Release;
+using Shoko.Server.Databases;
 using Shoko.Server.MediaInfo;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Services;
+using Shoko.Server.Settings;
 using Xunit;
 
 namespace Shoko.Tests.Services;
@@ -22,7 +29,32 @@ public class VideoReleaseGroupingTests
 {
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private static readonly VideoReleaseGroupingService _grouper = new(null!, null!, null!);
+    private static readonly VideoReleaseGroupingService _grouper = CreateGrouper();
+
+    private static VideoReleaseGroupingService CreateGrouper()
+    {
+        // AniDB_Episode lookups: decode episode type from the test-convention ID offset
+        // (0-999 = Episode, 1000-1999 = Special, 2000-2999 = Credits, …).
+        var episodeRepo = new Mock<AniDB_EpisodeRepository>((DatabaseFactory)null!);
+        episodeRepo.Setup(r => r.GetByEpisodeID(It.IsAny<int>()))
+            .Returns((int id) => id <= 0 ? null : new AniDB_Episode
+            {
+                EpisodeType = id >= 5000 ? EpisodeType.Other :
+                              id >= 4000 ? EpisodeType.Parody :
+                              id >= 3000 ? EpisodeType.Trailer :
+                              id >= 2000 ? EpisodeType.Credits :
+                              id >= 1000 ? EpisodeType.Special : EpisodeType.Episode,
+            });
+
+        // CrossRef lookups: no manually linked files in unit tests.
+        var crossRefRepo = new Mock<CrossRef_File_EpisodeRepository>(
+            (ILogger<CrossRef_File_EpisodeRepository>)null!,
+            (IServiceProvider)null!,
+            (DatabaseFactory)null!);
+        crossRefRepo.Setup(r => r.GetByEd2k(It.IsAny<string>())).Returns([]);
+
+        return new VideoReleaseGroupingService(null!, episodeRepo.Object, null!, crossRefRepo.Object);
+    }
 
     private static IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<ResolvedVideoPlace> places)
         => _grouper.Group(places);
@@ -906,8 +938,11 @@ public class VideoReleaseGroupingTests
 
         var candidates = Group(resolved);
 
+        // Doki(ep1,ep2) full + gap-fill SubsPlease+Doki = 2 candidates.
+        // SubsPlease(ep1) is partial and is filtered out (choosing it would leave ep2
+        // with no file since SubsPlease has nothing for ep2).
         Assert.Equal(2, candidates.Count);
-        Assert.NotEqual(candidates[0].Key, candidates[1].Key);
+        Assert.Equal(2, candidates.Select(c => c.Key).Distinct().Count());
     }
 
     /// <summary>
@@ -970,14 +1005,15 @@ public class VideoReleaseGroupingTests
 
         var candidates = Group(resolved.ToArray());
 
-        // Expected: SP 1-12 (single, full coverage), TH 1-8 + SP 9-12 (gap-fill, full coverage).
-        // TH 1-8 alone is filtered — it doesn't cover eps 9-12.
+        // Expected: SP 1-12 (full) + gap-fill TH(1-8)+SP(9-12).
+        // TH 1-8 alone is partial and is removed — selecting it would leave eps 9-12 with no file.
         Assert.Equal(2, candidates.Count);
 
         var spAlone = candidates.Single(c => c.GroupShortName == "SubsPlease" && !c.IsMixed);
         var gapFill = candidates.Single(c => c.IsMixed);
 
         Assert.Equal(12, spAlone.Places.Count);
+        Assert.False(spAlone.HasPartialCoverage);
 
         // Gap-fill: TH 1-8 (8 files) + SP 9-12 (4 files) = 12 files
         Assert.Equal(12, gapFill.Places.Count);
@@ -1015,9 +1051,9 @@ public class VideoReleaseGroupingTests
 
         var candidates = Group(resolved.ToArray());
 
-        // SP alone covers all 12 episodes — the only full single-family candidate.
-        // TH alone (1-8) and Unk alone (9-12) are filtered — partial coverage.
-        // Gap-fills that reach full coverage: TH+SP9-12, TH+Unk9-12, Unk+SP1-8.
+        // SP alone (full coverage) + 3 gap-fills: TH+SP9-12, TH+Unk9-12, Unk+SP1-8.
+        // TH (1-8) and Unk (9-12) alone are partial and are removed — full-coverage
+        // candidates are available via gap-fill so partial choices are never valid.
         // Unk+TH1-8 has the same file set as TH+Unk9-12 and is deduped away.
         Assert.Equal(4, candidates.Count);
 
@@ -1027,9 +1063,287 @@ public class VideoReleaseGroupingTests
         Assert.Single(singleFamily);
         Assert.Equal(3, gapFills.Count);
 
+        Assert.Contains(singleFamily, c => c.GroupShortName == "SP" && !c.HasPartialCoverage);
+
         Assert.Contains(gapFills, c => c.GroupShortName == "TH" && c.SecondaryGroupNames.Contains("SP"));
         Assert.Contains(gapFills, c => c.GroupShortName == "TH" && c.SecondaryGroupNames.Contains("Unk"));
         Assert.Contains(gapFills, c => c.GroupShortName == "Unk" && c.SecondaryGroupNames.Contains("SP"));
+    }
+
+    /// <summary>
+    /// Multi-filler gap-fill: when no single filler can cover all uncovered episodes
+    /// (because the gap is split across multiple anonymous groups), the grouper combines
+    /// multiple fillers greedily so that gap-fill candidates always cover all episodes.
+    ///
+    /// Mirrors the Akane-banashi pattern from AniDB #19513:
+    ///   • Erai-raws HEVC: eps 7-9, 11-12  (highest quality, partial)
+    ///   • Web Multi-Audio: eps 1-7         (anonymous group, partial)
+    ///   • Unknown 1080p: ep 10 only        (anonymous group, partial)
+    ///
+    /// The only way to cover all 12 episodes is to combine all three.
+    /// </summary>
+    [Fact]
+    public void GapFill_MultipleAnonymousFillers_ProducesFullCoverageCandidate()
+    {
+        var media = MakeMedia();
+
+        // Named group: Erai-raws HEVC, eps 7-9, 11-12
+        var erai = (string hash, long size, string ep, bool isHevc) =>
+            MakeSri(hash, size, "14642", "AniDB", "Erai-raws", "Erai-raws",
+                ReleaseSource.Web, episodes: [ep]);
+
+        var resolved = new List<ResolvedVideoPlace>();
+
+        // Erai-raws HEVC: eps 7-9, 11-12 (folder A)
+        foreach (var ep in new[] { 7, 8, 9, 11, 12 })
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(ep, ep, 1, $"A/Erai - {ep:D2}.mkv"),
+                MakeVideo(ep, $"E{ep}", 400_000_000, media),
+                erai($"E{ep}", 400_000_000, ep.ToString(), true)));
+
+        // Anonymous multi-audio group: eps 1-7 (folder B, no GroupID)
+        for (var i = 1; i <= 7; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(100 + i, 100 + i, 1, $"B/Multi - {i:D2}.mkv"),
+                MakeVideo(100 + i, $"M{i}", 1_000_000_000, media),
+                new StoredReleaseInfo  // no GroupID or GroupSource
+                {
+                    ED2K = $"M{i}", FileSize = 1_000_000_000,
+                    Source = ReleaseSource.Web,
+                    CrossReferences = [ParseEpisode(i.ToString())],
+                }));
+
+        // Anonymous single-episode file: ep 10 only (folder C, no GroupID)
+        resolved.Add(new ResolvedVideoPlace(
+            MakePlace(200, 200, 1, "C/Unknown - 10.mkv"),
+            MakeVideo(200, "U10", 900_000_000, media),
+            new StoredReleaseInfo
+            {
+                ED2K = "U10", FileSize = 900_000_000,
+                Source = ReleaseSource.Web,
+                CrossReferences = [ParseEpisode("10")],
+            }));
+
+        var candidates = Group(resolved);
+
+        // All 12 episodes are available: the series must surface (overlap guard passes
+        // because ep 7 appears in both Erai-raws and the anonymous multi-audio group).
+        Assert.NotEmpty(candidates);
+
+        // At least one gap-fill candidate must cover all 12 episodes.
+        var fullGapFill = candidates
+            .Where(c => c.IsMixed)
+            .FirstOrDefault(c => c.EpisodeCoverage.Count == 12);
+
+        Assert.NotNull(fullGapFill);
+        Assert.False(fullGapFill.HasPartialCoverage);
+
+        // The full gap-fill should include Erai-raws as its primary group.
+        Assert.Equal("Erai-raws", fullGapFill.GroupShortName);
+    }
+
+    // ── multiple-release detection (core utility invariant) ───────────────────
+
+    /// <summary>
+    /// Core invariant: whenever any episode has files from two or more independent
+    /// release groups, the grouper must return at least two candidates so the
+    /// utility can surface a genuine choice to the user.
+    /// <para>
+    /// Simplest case: two known groups each have the full episode run. Both pure
+    /// candidates are complete and pass the coverage filter independently.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void TwoGroupsBothCoveringAllEpisodes_ProducesTwoCandidates()
+    {
+        var media = MakeMedia();
+        var alpha = (string hash, long size, string ep) =>
+            MakeSri(hash, size, "A01", "AniDB", "Alpha", "Alpha", ReleaseSource.BluRay, episodes: [ep]);
+        var beta = (string hash, long size, string ep) =>
+            MakeSri(hash, size, "B01", "AniDB", "Beta", "Beta", ReleaseSource.Web, episodes: [ep]);
+
+        var resolved = new List<ResolvedVideoPlace>();
+        for (var i = 1; i <= 12; i++)
+        {
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(i, i, 1, $"Show/[Alpha] Show - {i:D2}.mkv"),
+                MakeVideo(i, $"A{i}", 700_000_000, media),
+                alpha($"A{i}", 700_000_000, i.ToString())));
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(100 + i, 100 + i, 1, $"Show/[Beta] Show - {i:D2}.mkv"),
+                MakeVideo(100 + i, $"B{i}", 600_000_000, media),
+                beta($"B{i}", 600_000_000, i.ToString())));
+        }
+
+        var candidates = Group(resolved);
+
+        Assert.Equal(2, candidates.Count);
+        Assert.All(candidates, c => Assert.False(c.IsMixed));
+        Assert.Contains(candidates, c => c.GroupShortName == "Alpha");
+        Assert.Contains(candidates, c => c.GroupShortName == "Beta");
+    }
+
+    /// <summary>
+    /// One group covers all 12 episodes; a second covers only the first 8.
+    /// The partial group alone is not a valid choice (eps 9-12 would be missing).
+    /// The grouper must still produce two complete candidates: the full group
+    /// alone, and a gap-fill of Partial(1-8) + Full(9-12). Episodes 1-8 have
+    /// two files — there is a genuine choice for that range.
+    /// </summary>
+    [Fact]
+    public void OneGroupFullOneGroupPartial_ProducesTwoCandidatesViaGapFill()
+    {
+        var media = MakeMedia();
+        var full = (string hash, long size, string ep) =>
+            MakeSri(hash, size, "F01", "AniDB", "FullGroup", "FUL", ReleaseSource.BluRay, episodes: [ep]);
+        var part = (string hash, long size, string ep) =>
+            MakeSri(hash, size, "P01", "AniDB", "PartialGroup", "PRT", ReleaseSource.Web, episodes: [ep]);
+
+        var resolved = new List<ResolvedVideoPlace>();
+        for (var i = 1; i <= 12; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(i, i, 1, $"Show/FUL - {i:D2}.mkv"),
+                MakeVideo(i, $"F{i}", 700_000_000, media),
+                full($"F{i}", 700_000_000, i.ToString())));
+        for (var i = 1; i <= 8; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(100 + i, 100 + i, 1, $"Show/PRT - {i:D2}.mkv"),
+                MakeVideo(100 + i, $"P{i}", 600_000_000, media),
+                part($"P{i}", 600_000_000, i.ToString())));
+
+        var candidates = Group(resolved);
+
+        // Two candidates: FUL pure (1-12) and gap-fill PRT(1-8)+FUL(9-12).
+        // PRT pure (1-8) is partial and is removed — selecting it would leave eps 9-12 with no file.
+        Assert.Equal(2, candidates.Count);
+
+        var pure    = candidates.Single(c => c.GroupShortName == "FUL" && !c.IsMixed);
+        var gapFill = candidates.Single(c => c.IsMixed);
+
+        Assert.Equal(12, pure.Places.Count);
+        Assert.False(pure.HasPartialCoverage);
+
+        Assert.Equal("PRT", gapFill.GroupShortName);
+        Assert.Contains("FUL", gapFill.SecondaryGroupNames);
+        Assert.Equal(12, gapFill.Places.Count); // PRT 1-8 + FUL 9-12
+    }
+
+    /// <summary>
+    /// Group A covers eps 1-11 and Group B covers only ep 12. No episode has
+    /// two competing files — every episode appears in exactly one group. Because
+    /// no two buckets overlap the grouper returns an empty list: there is no
+    /// genuine per-episode choice to make, and the series should not surface in
+    /// the Multiple Releases utility (AniDB #19310 false-positive scenario).
+    /// </summary>
+    [Fact]
+    public void TwoGroupsComplementaryEpisodes_ProducesNoCandidates()
+    {
+        var media = MakeMedia();
+        var groupA = (string hash, long size, string ep) =>
+            MakeSri(hash, size, "A01", "AniDB", "GroupA", "GrpA", ReleaseSource.Web, episodes: [ep]);
+        var groupB = (string hash, long size, string ep) =>
+            MakeSri(hash, size, "B01", "AniDB", "GroupB", "GrpB", ReleaseSource.Web, episodes: [ep]);
+
+        var resolved = new List<ResolvedVideoPlace>();
+        for (var i = 1; i <= 11; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(i, i, 1, $"Show/GrpA - {i:D2}.mkv"),
+                MakeVideo(i, $"A{i}", 600_000_000, media),
+                groupA($"A{i}", 600_000_000, i.ToString())));
+        resolved.Add(new ResolvedVideoPlace(
+            MakePlace(100, 100, 1, "Show/GrpB - 12.mkv"),
+            MakeVideo(100, "B12", 600_000_000, media),
+            groupB("B12", 600_000_000, "12")));
+
+        var candidates = Group(resolved);
+
+        // Disjoint episode ranges → no overlap → no candidates.
+        Assert.Empty(candidates);
+    }
+
+    /// <summary>
+    /// AniDB #19310 pattern: Erai-raws covers eps 1-7, DRiFTKiNG covers eps 8-12.
+    /// Same import folder, perfectly disjoint ranges — every episode has exactly
+    /// one file. No overlap → grouper must return empty so the series does not
+    /// surface in the Multiple Releases utility.
+    /// </summary>
+    [Fact]
+    public void DisjointGroupsOneFilePerEpisode_ProducesNoCandidates()
+    {
+        var media = MakeMedia();
+        var eraiRaws  = (int ep) => (string hash, long size) =>
+            MakeSri(hash, size, "14642", "AniDB", "Erai-raws",  "Erai-raws",  ReleaseSource.Web, episodes: [ep.ToString()]);
+        var driftkiNG = (int ep) => (string hash, long size) =>
+            MakeSri(hash, size, "18264", "AniDB", "DRiFTKiNG", "DRiFTKiNG", ReleaseSource.Web, episodes: [ep.ToString()]);
+
+        var resolved = new List<ResolvedVideoPlace>();
+        // Erai-raws: eps 1-7, all in folder 3
+        for (var i = 1; i <= 7; i++)
+        {
+            var makeErai = eraiRaws(i);
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(i, i, 3, $"Show/[Erai-raws] Show - {i:D2}.mkv"),
+                MakeVideo(i, $"ER{i}", 700_000_000, media),
+                makeErai($"ER{i}", 700_000_000)));
+        }
+        // DRiFTKiNG: eps 8-12, also in folder 3
+        for (var i = 8; i <= 12; i++)
+        {
+            var makeDK = driftkiNG(i);
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(i, i, 3, $"Show/[DRiFTKiNG] Show - {i:D2}.mkv"),
+                MakeVideo(i, $"DK{i}", 700_000_000, media),
+                makeDK($"DK{i}", 700_000_000)));
+        }
+
+        var candidates = Group(resolved);
+
+        // No episode has two files — buckets are disjoint → no candidates.
+        Assert.Empty(candidates);
+    }
+
+    /// <summary>
+    /// Real-world pattern (AniDB 1185 / Silent Service): one group releases a
+    /// 3-episode batch and another releases a shorter 2-episode batch covering
+    /// the first two of those episodes. The groups are in different import
+    /// folders. Two complete candidates must result: the full 3-episode batch
+    /// alone, and a gap-fill using the 2-episode batch as anchor with the
+    /// 3-episode batch filling ep 3.
+    /// </summary>
+    [Fact]
+    public void BatchFilePartialOverlapDifferentFolders_ProducesTwoCandidates()
+    {
+        var media = MakeMedia();
+
+        // Baka: 1 batch file covering eps 1-2-3, in folder 3
+        var baka = new ResolvedVideoPlace(
+            MakePlace(1, 1, 3, "Show/Baka - 01-03.mkv"),
+            MakeVideo(1, "BAKA", 730_000_000, media),
+            MakeSri("BAKA", 730_000_000, "867", "AniDB", "Baka Group", "Baka", ReleaseSource.Unknown,
+                episodes: ["1", "2", "3"]));
+
+        // Exiled: 1 batch file covering eps 1-2 only, in folder 4
+        var exiled = new ResolvedVideoPlace(
+            MakePlace(2, 2, 4, "Show/Exiled - 01-02.mkv"),
+            MakeVideo(2, "EXIL", 734_000_000, media),
+            MakeSri("EXIL", 734_000_000, "1598", "AniDB", "Exiled-Destiny", "Exiled", ReleaseSource.Unknown,
+                episodes: ["1", "2"]));
+
+        var candidates = Group([baka, exiled]);
+
+        // Baka alone (complete) + gap-fill Exiled(1-2)+Baka(3) = 2 candidates.
+        // Exiled alone (1-2) is partial and is removed — ep 3 would have no file.
+        Assert.Equal(2, candidates.Count);
+
+        var pure    = candidates.Single(c => c.GroupShortName == "Baka" && !c.IsMixed);
+        var gapFill = candidates.Single(c => c.IsMixed);
+
+        Assert.Equal(1, pure.Places.Count);
+        Assert.False(pure.HasPartialCoverage);
+
+        Assert.Equal("Exiled", gapFill.GroupShortName);
+        Assert.Contains("Baka", gapFill.SecondaryGroupNames);
+        Assert.Equal(2, gapFill.Places.Count); // Exiled file + Baka file
     }
 
     /// <summary>
@@ -1065,5 +1379,132 @@ public class VideoReleaseGroupingTests
         Assert.Equal(12, c.Places.Count);
         Assert.Equal(true, c.IsChaptered);     // majority (10/12 chaptered)
         Assert.True(c.IsChapteredMixed);        // 2 unchaptered files disagree
+    }
+
+    // ── EpisodeTypeScope ranking tests ──────────────────────────────────────
+
+    private static ReleaseComparisonService CreateComparer(
+        Action<ServerSettings>? configure = null)
+    {
+        var settings = new ServerSettings();
+        configure?.Invoke(settings);
+        var settingsMock = new Mock<ISettingsProvider>();
+        settingsMock.Setup(s => s.GetSettings()).Returns(settings);
+        return new ReleaseComparisonService(settingsMock.Object, _grouper);
+    }
+
+    /// <summary>
+    /// KeepTogether (default): every pure (single-group, homogeneous) candidate
+    /// ranks above any gap-fill (mixed) candidate, regardless of the gap-fill's
+    /// source quality. The gap-fill ends up last in the ranked list.
+    /// </summary>
+    [Fact]
+    public void KeepTogether_GapFillRanksLastBelowAllPureCandidates()
+    {
+        var media = MakeMedia(videoFormat: "AVC", width: 1920, height: 1080);
+        var media480 = MakeMedia(videoFormat: "AVC", width: 854, height: 480);
+
+        // Commie: all regular episodes + S1-S3, Web, 1080p
+        var resolved = new List<ResolvedVideoPlace>();
+        for (var i = 1; i <= 12; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(i, i, 1, $"Show/Commie - {i:D2}.mkv"),
+                MakeVideo(i, $"C{i}", 700_000_000, media),
+                MakeSri($"C{i}", 700_000_000, "100", "AniDB", "Commie", "Commie",
+                    ReleaseSource.Web, episodes: [i.ToString()])));
+        for (var i = 1; i <= 3; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(100 + i, 100 + i, 1, $"Show/Commie - S{i:D2}.mkv"),
+                MakeVideo(100 + i, $"CS{i}", 300_000_000, media),
+                MakeSri($"CS{i}", 300_000_000, "100", "AniDB", "Commie", "Commie",
+                    ReleaseSource.Web, episodes: [$"S{i}"])));
+
+        // DHD: S1-S3 only, BluRay (better source but partial coverage)
+        for (var i = 1; i <= 3; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(200 + i, 200 + i, 1, $"Show/DHD - S{i:D2}.mkv"),
+                MakeVideo(200 + i, $"DS{i}", 200_000_000, media480),
+                MakeSri($"DS{i}", 200_000_000, "200", "AniDB", "DHD", "DHD",
+                    ReleaseSource.BluRay, episodes: [$"S{i}"])));
+
+        var candidates = Group(resolved);
+        Assert.True(candidates.Count >= 2);
+
+        var comparer = CreateComparer(); // EpisodeTypeScope.KeepTogether by default
+        var ranked = comparer.Rank(candidates);
+
+        // Under KeepTogether the gap-fill must be ranked last because pure candidates
+        // are preferred over mixed ones as a structural rule (not a quality signal).
+        Assert.True(ranked.Last().IsMixed,
+            $"Expected gap-fill to be last; got ranked=[{string.Join(", ", ranked.Select(c => $"{c.GroupShortName}(mixed={c.IsMixed})"))}]");
+
+        // Confirm the deciding signal when gap-fill competes with pure Commie is homogeneity.
+        var gapFill = ranked.First(c => c.IsMixed);
+        var pureCommie = ranked.First(c => !c.IsMixed && c.GroupShortName == "Commie");
+        var decision = comparer.CompareWithDecision(pureCommie, gapFill);
+        Assert.True(decision.Result < 0, "pure Commie must beat gap-fill under KeepTogether");
+        Assert.Equal(ReleaseSignalType.GroupHomogeneity, decision.DecidingSignal);
+    }
+
+    /// <summary>
+    /// BestPerType: the gap-fill (Commie regulars + DHD specials) ranks above the
+    /// pure Commie candidate because DHD provides a better source for specials.
+    /// Under KeepTogether the ranking is reversed (homogeneity penalty).
+    /// </summary>
+    [Fact]
+    public void BestPerType_GapFillRanksAbovePureCommieForBetterSpecials()
+    {
+        var media = MakeMedia(videoFormat: "AVC", width: 1920, height: 1080);
+        var media480 = MakeMedia(videoFormat: "AVC", width: 854, height: 480);
+
+        // Commie: regular eps 1-12 + specials S1-S3, Web, 1080p
+        var resolved = new List<ResolvedVideoPlace>();
+        for (var i = 1; i <= 12; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(i, i, 1, $"Show/Commie - {i:D2}.mkv"),
+                MakeVideo(i, $"C{i}", 700_000_000, media),
+                MakeSri($"C{i}", 700_000_000, "100", "AniDB", "Commie", "Commie",
+                    ReleaseSource.Web, episodes: [i.ToString()])));
+        for (var i = 1; i <= 3; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(100 + i, 100 + i, 1, $"Show/Commie - S{i:D2}.mkv"),
+                MakeVideo(100 + i, $"CS{i}", 300_000_000, media),
+                MakeSri($"CS{i}", 300_000_000, "100", "AniDB", "Commie", "Commie",
+                    ReleaseSource.Web, episodes: [$"S{i}"])));
+
+        // DHD: S1-S3 only, BluRay — higher quality source for specials
+        for (var i = 1; i <= 3; i++)
+            resolved.Add(new ResolvedVideoPlace(
+                MakePlace(200 + i, 200 + i, 1, $"Show/DHD - S{i:D2}.mkv"),
+                MakeVideo(200 + i, $"DS{i}", 200_000_000, media480),
+                MakeSri($"DS{i}", 200_000_000, "200", "AniDB", "DHD", "DHD",
+                    ReleaseSource.BluRay, episodes: [$"S{i}"])));
+
+        var candidates = Group(resolved);
+        Assert.True(candidates.Count >= 2);
+
+        var comparer = CreateComparer(s =>
+            s.ReleaseComparisonPreferences.EpisodeTypeScope = EpisodeTypeScope.BestPerType);
+        var ranked = comparer.Rank(candidates);
+
+        // Under BestPerType the gap-fill Commie+DHD should rank above pure Commie
+        // because DHD provides BluRay for specials. Both may still rank below pure DHD
+        // (specials-only BluRay candidate), but gap-fill must beat pure Commie.
+        var gapFill = ranked.FirstOrDefault(c => c.IsMixed);
+        var pureCommie = ranked.FirstOrDefault(c => !c.IsMixed && c.GroupShortName == "Commie");
+        Assert.NotNull(gapFill);
+        Assert.NotNull(pureCommie);
+
+        var gapFillIdx = ranked.ToList().IndexOf(gapFill);
+        var commieIdx = ranked.ToList().IndexOf(pureCommie);
+        Assert.True(gapFillIdx < commieIdx,
+            $"gap-fill should rank above pure Commie under BestPerType; got gap-fill={gapFillIdx}, commie={commieIdx}");
+
+        // The deciding signal when comparing gap-fill vs pure Commie must be
+        // Source evaluated for EpisodeType.Special.
+        var decision = comparer.CompareWithDecision(gapFill, pureCommie);
+        Assert.True(decision.Result < 0, "gap-fill must beat pure Commie");
+        Assert.Equal(ReleaseSignalType.Source, decision.DecidingSignal);
+        Assert.Equal(EpisodeType.Special, decision.DecidingType);
     }
 }

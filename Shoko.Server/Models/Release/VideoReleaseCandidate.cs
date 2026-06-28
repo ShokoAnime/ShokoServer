@@ -1,9 +1,9 @@
+#nullable enable
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Models.Release;
 
 /// <summary>
@@ -168,15 +168,73 @@ public class VideoReleaseCandidate
         = new Dictionary<int, PlaceQualitySignals>();
 
     /// <summary>
-    /// All (EpisodeType, EpisodeNumber) pairs covered by any file in this candidate.
+    /// All (EpisodeType, AniDB_EpisodeID) pairs covered by any file in this candidate.
     /// Empty when no file has cross-reference data.
     /// </summary>
-    public IReadOnlySet<(EpisodeType Type, int Number)> EpisodeCoverage { get; init; }
+    public IReadOnlySet<(EpisodeType Type, int EpisodeID)> EpisodeCoverage { get; init; }
         = new HashSet<(EpisodeType, int)>();
+
+    /// <summary>
+    /// Maps each covered (EpisodeType, AniDB_EpisodeID) to the short name of the
+    /// release group that provides that episode in this candidate. Null values mean
+    /// the file has no <see cref="StoredReleaseInfo"/> (manually linked or unrecognised).
+    /// For pure candidates every episode maps to the same group; for gap-fill candidates
+    /// anchor and filler episodes map to different groups.
+    /// </summary>
+    public IReadOnlyDictionary<(EpisodeType, int), string?> EpisodeGroupMap { get; init; }
+        = new Dictionary<(EpisodeType, int), string?>();
+
+    /// <summary>
+    /// Aggregated quality signals per <see cref="EpisodeType"/>. Populated for every
+    /// episode type covered by at least one file in this candidate. Used by
+    /// <c>ReleaseComparisonService</c> under <c>EpisodeTypeScope.BestPerType</c> to
+    /// compare source quality, resolution, etc. independently for regular episodes,
+    /// specials, credits, and so on.
+    /// </summary>
+    public IReadOnlyDictionary<EpisodeType, EpisodeTypeQualitySignals> TypeSignals { get; init; }
+        = new Dictionary<EpisodeType, EpisodeTypeQualitySignals>();
+
+    /// <summary>
+    /// True when this candidate does not cover every episode known to exist
+    /// locally for this series. Partial candidates are still returned so the
+    /// user can see all available release options; this flag lets the UI warn
+    /// that choosing this candidate would leave some episodes without a file.
+    /// </summary>
+    public bool HasPartialCoverage { get; init; }
 }
 
 /// <summary>Per-file quality signals for a single <see cref="VideoLocal_Place"/>.</summary>
 public record PlaceQualitySignals(
+    bool? IsChaptered,
+    bool? IsCensored,
+    bool? IsCreditless,
+    bool IsCorrupted,
+    IReadOnlyList<TitleLanguage> AudioLanguages,
+    IReadOnlyList<TitleLanguage> SubtitleLanguages,
+    ReleaseSource? Source,
+    string? Resolution,
+    string? VideoCodec,
+    int BitDepth,
+    string? AudioCodec,
+    int AudioStreamCount,
+    int SubtitleStreamCount,
+    int Version);
+
+/// <summary>
+/// Aggregated quality signals for all files in a candidate that cover a
+/// particular <see cref="EpisodeType"/>. Used by
+/// <c>ReleaseComparisonService</c> when <c>EpisodeTypeScope.BestPerType</c>
+/// is active so that specials, credits, etc. can be ranked independently from
+/// regular episodes.
+/// </summary>
+public record EpisodeTypeQualitySignals(
+    ReleaseSource Source,
+    string? Resolution,
+    string? VideoCodec,
+    int BitDepth,
+    string? AudioCodec,
+    int AudioStreamCount,
+    int SubtitleStreamCount,
     bool? IsChaptered,
     bool? IsCensored,
     bool? IsCreditless,

@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
@@ -7,7 +8,6 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 /// <summary>
@@ -129,7 +129,7 @@ public class ReleaseCandidateSummary
         FileCount = c.Places.Count;
         EpisodeCoverage = c.EpisodeCoverage
             .OrderBy(e => e.Type)
-            .ThenBy(e => e.Number)
+            .ThenBy(e => e.EpisodeID)
             .Select(EpisodeKeyToString)
             .ToList();
         AudioLanguages = c.AudioLanguages.Select(l => l.GetString()).ToList();

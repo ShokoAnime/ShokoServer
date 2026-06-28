@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 /// <summary>
@@ -245,7 +245,14 @@ public class ReleaseAutoManagementService(
             return new HashSet<(EpisodeType, int)>();
         var sri = releaseInfoRepository.GetByEd2kAndFileSize(video.Hash, video.FileSize);
         if (sri is null)
-            return new HashSet<(EpisodeType, int)>();
+            return crossRefs.GetByEd2k(video.Hash)
+                .Select(x => (
+                    anidbEpisodes.GetByEpisodeID(x.EpisodeID) is { } episode
+                        ? episode.EpisodeType
+                        : EpisodeType.Episode,
+                    x.EpisodeID))
+                .Where(k => k.Item2 > 0)
+                .ToHashSet();
         return sri.CrossReferences
             .Select(x => (
                 anidbEpisodes.GetByEpisodeID(x.AnidbEpisodeID) is { } episode
@@ -269,7 +276,7 @@ public class ReleaseAutoManagementService(
                 "  Redundant candidate {Key} covers {EpCount} episode(s): {Episodes}",
                 c.Key,
                 c.EpisodeCoverage.Count,
-                string.Join(", ", c.EpisodeCoverage.Select(e => $"{e.Type}:{e.Number}")));
+                string.Join(", ", c.EpisodeCoverage.Select(e => $"{e.Type}:{e.EpisodeID}")));
     }
 
     private async Task DeleteCandidateAsync(VideoReleaseCandidate candidate, HashSet<int> primaryPlaceIds)

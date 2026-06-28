@@ -24,7 +24,7 @@ public class AniDB_EpisodeRepository(DatabaseFactory databaseFactory) : BaseCach
         _animeIDs = Cache.CreateIndex(a => a.AnimeID);
     }
 
-    public AniDB_Episode? GetByEpisodeID(int episodeID)
+    public virtual AniDB_Episode? GetByEpisodeID(int episodeID)
         => episodeID is not > 0 ? null : _episodesIDs!.GetOne(episodeID);
 
     public IReadOnlyList<AniDB_Episode> GetByAnimeID(int animeID)
