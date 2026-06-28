@@ -161,7 +161,7 @@ public class Series : BaseModel
         HasCustomName = !string.IsNullOrEmpty(ser.SeriesNameOverride);
         Description = ser.PreferredOverview?.Value ?? string.Empty;
         IsFavorite = userData?.IsFavorite ?? false;
-        Images = ser.GetImages(isEnabled: true, isDesired: true).ToDto(preferredImages: true, randomizeImages: randomizeImages);
+        Images = ser.GetPreferredImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
         AirsOn = animeType == AnimeType.TV || animeType == AnimeType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
         YearlySeasons = anime.YearlySeasons
             .Select(x => new SeasonWithYear(x.Year, x.Season))

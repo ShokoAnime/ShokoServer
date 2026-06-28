@@ -565,6 +565,32 @@ public class AnimeSeries : IShokoSeries
 
     #endregion
 
+    #region Images
+
+    public IReadOnlyList<IImage> GetPreferredImages()
+    {
+        // Make sure we have at least one image if the currently found primary image is not enabled or not available.
+        // But if we're unable to find an enabled and available image, then use the default image.
+        var primaryImage = GetPreferredImageForType(ImageEntityType.Primary);
+        if (primaryImage is not { IsEnabled: true, IsAvailable: true })
+        {
+            var defaultImage = DefaultPrimaryImage;
+            primaryImage = defaultImage is { IsEnabled: true, IsAvailable: true }
+                ? defaultImage
+                : GetImages(imageType: ImageEntityType.Primary, isEnabled: true, isAvailable: true).FirstOrDefault() ?? defaultImage;
+        }
+
+        var backdropImage = (this as IWithBackdropImage).BackdropImage;
+        var logoImage = (this as IWithLogoImage).LogoImage;
+        var bannerImage = (this as IWithBannerImage).BannerImage;
+        var discImage = (this as IWithDiscImage).DiscImage;
+        return new[] { primaryImage, backdropImage, logoImage, bannerImage, discImage }
+            .WhereNotNull()
+            .ToList();
+    }
+
+    #endregion
+
     private PartialDateOnly? _airDate;
 
     public PartialDateOnly? AirDate
