@@ -57,15 +57,16 @@ public class WebUiFileProvider : PhysicalFileProvider, IFileProvider
 
     private IFileInfo GetIndexFileInfo()
     {
-        if (_indexFile is not null)
+        var indexFile = base.GetFileInfo("index.html") ?? new NotFoundFileInfo("index.html");
+        if (_indexFile is not null && (indexFile is not { Exists: true, PhysicalPath.Length: > 0, Length: > 0 } || indexFile.LastModified < _indexFile.LastModified))
             return _indexFile;
 
-        lock (this)
+        lock (_webuiUpdateService)
         {
-            if (_indexFile is not null)
+            indexFile = base.GetFileInfo("index.html") ?? new NotFoundFileInfo("index.html");
+            if (_indexFile is not null && (indexFile is not { Exists: true, PhysicalPath.Length: > 0, Length: > 0 } || indexFile.LastModified < _indexFile.LastModified))
                 return _indexFile;
 
-            var indexFile = base.GetFileInfo("index.html");
             if (indexFile is { Exists: true, PhysicalPath.Length: > 0, Length: > 0 })
             {
                 var bytes = Encoding.UTF8.GetBytes(
@@ -77,7 +78,7 @@ public class WebUiFileProvider : PhysicalFileProvider, IFileProvider
                 indexFile = new MemoryFileInfo("index.html", bytes);
             }
 
-            _indexFile = indexFile ?? new NotFoundFileInfo("index.html");
+            _indexFile = indexFile;
             return _indexFile;
         }
     }
