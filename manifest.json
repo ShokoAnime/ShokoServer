@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.341",
+      "tag": "v6.0.0-dev.341",
+      "commit": "22c2ff9c76bd8be9ff8cccc199060e09d628ed38",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.341/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-29T01:36:48Z",
+      "releaseNotes": "\n`refactor`: **Tweak group preferred image lookup internals**.\n"
+    },
+    {
       "version": "6.0.0.340",
       "tag": "v6.0.0-dev.340",
       "commit": "5d29625e89f8110e5082e22f959fc5cbbe804c78",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.312/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-24T22:39:58Z",
       "releaseNotes": "\n`fix`: **Only allow creating one user data entry per type through the service**.\n\n`fix`: **Set series id on user data created through the service**.\n\n`chore`: **Reverse order of members during object construction**.\n\n`chore`: **Modernize release video xref extensions to using C# extension format**.\n\n`chore`: **Fix compiler warnings**.\n\n`chore`: **Sort and remove unnecessary imports**.\n\n`chore`: **Bri'ish engrish → 'murican engrish**.\n\n`fix`: **Expose release cross-reference provider IDs to RESTful API clients**.\n\n`chore`: **Fix reference in doc comment**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.60**.\n"
-    },
-    {
-      "version": "6.0.0.311",
-      "tag": "v6.0.0-dev.311",
-      "commit": "58d1593f5fa84406dc4a8118410df57bb3b3a0b1",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.311/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-24T05:17:23Z",
-      "releaseNotes": "\n`misc`: **Release Pipeline Overhaul. Entirely Untested**.\n\n`misc`: **Purge TMDB Data and Images when Deleting Series**.\n"
     }
   ]
 }
