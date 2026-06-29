@@ -237,24 +237,23 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - name: Build Shoko.Abstractions
+      - name: Run dotnet build
         run: dotnet build -c Release Shoko.Abstractions
 
-      - name: Publish Shoko.Abstractions to NuGet
+      - name: Publish Shoko.Abstractions Nuget
+        uses: brandedoutcast/publish-nuget@v2.5.2
         if: ${{ env.NUGET_API_KEY != '' }}
-        run: |
-          dotnet pack -c Release --no-build Shoko.Abstractions/Shoko.Abstractions.csproj
-          dotnet nuget push Shoko.Abstractions/bin/Release/*.nupkg \
-            --api-key ${{ env.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
+        with:
+          PROJECT_FILE_PATH: Shoko.Abstractions/Shoko.Abstractions.csproj
+          NUGET_KEY: ${{ env.NUGET_API_KEY }}
+          TAG_FORMAT: Shoko.Abstractions-v*
 
   queue-nuget:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        dotnet: ['10.x']
+        dotnet: [ '10.x' ]
 
     name: Publish Shoko.QueueProcessor Nuget
 
@@ -272,17 +271,16 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
-      - name: Build Shoko.QueueProcessor
+      - name: Run dotnet build
         run: dotnet build -c Release Shoko.QueueProcessor
 
-      - name: Publish Shoko.QueueProcessor to NuGet
+      - name: Publish Shoko.QueueProcessor Nuget
+        uses: brandedoutcast/publish-nuget@v2.5.2
         if: ${{ env.NUGET_API_KEY != '' }}
-        run: |
-          dotnet pack -c Release --no-build Shoko.QueueProcessor/Shoko.QueueProcessor.csproj
-          dotnet nuget push Shoko.QueueProcessor/bin/Release/*.nupkg \
-            --api-key ${{ env.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
+        with:
+          PROJECT_FILE_PATH: Shoko.QueueProcessor/Shoko.QueueProcessor.csproj
+          NUGET_KEY: ${{ env.NUGET_API_KEY }}
+          TAG_FORMAT: Shoko.QueueProcessor-v*
 
   cli:
     runs-on: ubuntu-latest
@@ -304,9 +302,6 @@ jobs:
           - build_type: 'Framework'
             build_props: '--no-self-contained'
             rid: 'linux-x64'
-          - build_type: 'Framework'
-            build_props: '--no-self-contained'
-            rid: 'linux-arm64'
 
     name: Build CLI — ${{ matrix.build_type }} ${{ matrix.rid }} (Daily)
 
@@ -356,14 +351,6 @@ jobs:
         with:
           platforms: arm64
         if: ${{ matrix.rid == 'linux-arm64' }}
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v5
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ matrix.rid }}-${{ hashFiles('**/*.csproj', '**/*.sln') }}
-          restore-keys: |
-            nuget-${{ matrix.rid }}-
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v5
@@ -441,14 +428,6 @@ jobs:
         with:
           platforms: arm64
         if: ${{ matrix.rid == 'linux-arm64' }}
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v5
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ matrix.rid }}-${{ hashFiles('**/*.csproj', '**/*.sln') }}
-          restore-keys: |
-            nuget-${{ matrix.rid }}-
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v5
@@ -616,13 +595,23 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
 
-    name: Build and Push Docker Image (Daily)
-
     needs:
       - current_info
-      - cli
       - plugin-nuget
-      - queue-nuget
+      - webui
+      - offline-importer
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: 'amd64'
+            dockerfile: 'Dockerfile'
+
+          - arch: 'arm64'
+            dockerfile: 'Dockerfile.aarch64'
+
+    name: Build Docker Image - ${{ matrix.arch }} (Daily)
 
     steps:
       - name: Checkout "${{ github.ref }}"
@@ -630,17 +619,17 @@ jobs:
         with:
           ref: "${{ github.sha }}"
 
-      - name: Download amd64 CLI artifact
+      - name: Download Web UI
         uses: actions/download-artifact@v8
         with:
-          name: Shoko.CLI_Framework_linux-x64
-          path: publish/amd64/
+          name: webui
+          path: Shoko.Server/webui
 
-      - name: Download arm64 CLI artifact
+      - name: Download Offline Importer
         uses: actions/download-artifact@v8
         with:
-          name: Shoko.CLI_Framework_linux-arm64
-          path: publish/arm64/
+          name: offline-importer
+          path: Shoko.Server/plugins
 
       - name: Replace Sentry DSN and other keys
         shell: pwsh
@@ -653,6 +642,7 @@ jobs:
         name: Set up QEMU
         with:
           platforms: arm64
+        if: ${{ matrix.arch == 'arm64' }}
 
       - uses: docker/setup-buildx-action@v4
         name: Set up Docker Buildx
@@ -670,19 +660,58 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # Disabled provenance for now, until it works with docker manifest create.
+      # The manifest list produced by the new feature is incompatible with the
+      # expected format used in the docker manifest create command.
       - uses: docker/build-push-action@v7
-        name: Build and push multi-platform Docker image
+        name: Build and Push the Docker image
         with:
           context: .
-          file: Dockerfile
+          file: ${{ matrix.dockerfile }}
           push: true
-          platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ secrets.DOCKER_REPO }}:daily
-            ${{ secrets.DOCKER_REPO }}:daily
-          cache-from: type=registry,ref=ghcr.io/${{ secrets.DOCKER_REPO }}:cache-buildkit
-          cache-to: type=registry,ref=ghcr.io/${{ secrets.DOCKER_REPO }}:cache-buildkit,mode=max,image-manifest=true,oci-mediatypes=true
-          provenance: true
+            ghcr.io/${{ secrets.DOCKER_REPO }}:daily-${{ matrix.arch }}
+            ${{ secrets.DOCKER_REPO }}:daily-${{ matrix.arch }}
+          platforms: linux/${{ matrix.arch }}
+          build-args: |
+            version=${{ needs.current_info.outputs.version }}
+            channel=dev
+            commit=${{ needs.current_info.outputs.sha }}
+            date=${{ needs.current_info.outputs.date }}
+            tag=${{ needs.current_info.outputs.tag }}
+          provenance: false
+
+  docker-push-manifest:
+    runs-on: ubuntu-latest
+
+    name: Push combined tag for both docker images
+
+    needs:
+      - docker-build
+
+    steps:
+      - uses: docker/login-action@v4
+        name: Log into GitHub Container Registry
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/login-action@v4
+        name: Log into Docker Hub
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Create & push manifest (GHCR)
+        run: |
+          docker manifest create ghcr.io/${{ secrets.DOCKER_REPO }}:daily --amend ghcr.io/${{ secrets.DOCKER_REPO }}:daily-amd64 --amend ghcr.io/${{ secrets.DOCKER_REPO }}:daily-arm64
+          docker manifest create ${{ secrets.DOCKER_REPO }}:daily --amend ${{ secrets.DOCKER_REPO }}:daily-amd64 --amend ${{ secrets.DOCKER_REPO }}:daily-arm64
+
+      - name: Create & push manifest (Docker Hub)
+        run: |
+          docker manifest push ghcr.io/${{ secrets.DOCKER_REPO }}:daily
+          docker manifest push ${{ secrets.DOCKER_REPO }}:daily
 
   add-tag:
     runs-on: ubuntu-latest
@@ -693,7 +722,7 @@ jobs:
       - tray-service-framework-cross
       - tray-service-windows
       - tray-service-installer
-      - docker-build
+      - docker-push-manifest
 
     name: Add tag for pre-release
 
