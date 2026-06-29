@@ -368,7 +368,7 @@ public partial class ImageManager(
                 .ThenBy(tuple => tuple.xref.EntityID)
                 .ThenBy(tuple => tuple.xref.Ordering)
                 .ThenBy(tuple => tuple.xref.Source)
-                .DistinctBy(tuple => (tuple.xref.ImageID, tuple.xref.ImageType, tuple.xref.ImageSource))
+                .DistinctBy(tuple => (tuple.image.ID, tuple.xref.ImageType))
                 .Select(tuple => ImageStub.Wrap(tuple.image, tuple.xref, tuple.linkedXref))
                 .ToList();
         }
@@ -379,7 +379,7 @@ public partial class ImageManager(
             .OrderBy(tuple => tuple.xref.ImageType)
             .ThenBy(tuple => tuple.xref.Ordering)
             .ThenBy(tuple => tuple.xref.Source)
-            .DistinctBy(tuple => (tuple.xref.ImageID, tuple.xref.ImageType, tuple.xref.ImageSource))
+            .DistinctBy(tuple => (tuple.image.ID, tuple.xref.ImageType))
             .Select(tuple => ImageStub.Wrap(tuple.image, tuple.xref))
             .ToList();
     }
