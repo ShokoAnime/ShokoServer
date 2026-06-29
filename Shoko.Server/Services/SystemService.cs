@@ -437,6 +437,7 @@ public class SystemService : ISystemService
             // Register acquisition filters
             services.AddSingleton<IAcquisitionFilter, AniDBUdpRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, AniDBHttpRateLimitedAcquisitionFilter>();
+            services.AddSingleton<IAcquisitionFilter, TmdbApiRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
 
