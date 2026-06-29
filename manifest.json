@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.342",
+      "tag": "v6.0.0-dev.342",
+      "commit": "e28f1ee6b2c334d09d1c254ed0b9ae68dde75607",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.342/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-29T06:29:26Z",
+      "releaseNotes": "\n`fix`: **Correct distinct by for primary images**.\n"
+    },
+    {
       "version": "6.0.0.341",
       "tag": "v6.0.0-dev.341",
       "commit": "22c2ff9c76bd8be9ff8cccc199060e09d628ed38",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.313/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-24T23:05:35Z",
       "releaseNotes": "\n`fix`: **Make AnidbEpisodeID extension backwards compatible with ol' property**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.61**.\n\n`fix`: **Fix abstract metadata service provider id lookups**.\n"
-    },
-    {
-      "version": "6.0.0.312",
-      "tag": "v6.0.0-dev.312",
-      "commit": "8fe0d2dea42ffcfa075fa28b9f276d04fe36cfc4",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.312/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-24T22:39:58Z",
-      "releaseNotes": "\n`fix`: **Only allow creating one user data entry per type through the service**.\n\n`fix`: **Set series id on user data created through the service**.\n\n`chore`: **Reverse order of members during object construction**.\n\n`chore`: **Modernize release video xref extensions to using C# extension format**.\n\n`chore`: **Fix compiler warnings**.\n\n`chore`: **Sort and remove unnecessary imports**.\n\n`chore`: **Bri'ish engrish → 'murican engrish**.\n\n`fix`: **Expose release cross-reference provider IDs to RESTful API clients**.\n\n`chore`: **Fix reference in doc comment**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.60**.\n"
     }
   ]
 }
