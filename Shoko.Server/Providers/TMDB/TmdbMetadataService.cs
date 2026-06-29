@@ -198,6 +198,12 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private readonly TmdbRateLimiter _rateLimiter;
 
+    public TmdbRateLimitPauseStatus GetPauseStatus()
+    {
+        var (isPaused, remaining) = _rateLimiter.GetPauseSnapshot();
+        return new() { IsPaused = isPaused, RemainingPauseTime = remaining };
+    }
+
     // Retries only on RequestLimitExceededException (cap: 10) and HttpRequestException timeouts (cap: 3).
     // GeneralHttpException and all other types re-throw immediately in OnTmdbRetryAsync.
     // Zero delay is intentional — actual rate-limit pausing happens inside TmdbRateLimiter.EnsureRateAsync.
@@ -236,6 +242,8 @@ public class TmdbMetadataService : ITmdbMetadataService
             }
             case GeneralHttpException ghEx:
                 _logger.LogWarning(ghEx, "Got a general HTTP exception while processing TMDb request: {StatusCode}", (int)ghEx.HttpStatusCode);
+                if ((int)ghEx.HttpStatusCode >= 500)
+                    _rateLimiter.Notify5xxError();
                 throw ex;
             default:
                 throw ex;
@@ -278,7 +286,12 @@ public class TmdbMetadataService : ITmdbMetadataService
 
             var delta = DateTime.Now - now;
             _logger.LogTrace("Completed call: {DisplayName} (Waited {Waited}ms, Executed: {Delta}ms, {Attempts} attempts)", displayName, waitTime.TotalMilliseconds, delta.TotalMilliseconds, attempts);
+            _rateLimiter.NotifySuccess();
             return val;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
