@@ -1,4 +1,3 @@
-#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
@@ -8,6 +7,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Settings;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 /// <summary>

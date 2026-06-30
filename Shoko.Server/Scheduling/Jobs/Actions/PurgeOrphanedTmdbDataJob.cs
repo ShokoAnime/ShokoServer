@@ -1,5 +1,3 @@
-#pragma warning disable CS8618
-#nullable enable
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -9,6 +7,8 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Settings;
 
+#pragma warning disable CS8618
+#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 [DatabaseRequired]

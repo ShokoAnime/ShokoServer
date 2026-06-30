@@ -1,4 +1,3 @@
-#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
@@ -6,6 +5,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class CustomTagRepository : BaseCachedRepository<CustomTag, int>

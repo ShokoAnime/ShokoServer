@@ -1,10 +1,10 @@
-#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AnimeSeries_UserRepository : BaseCachedRepository<AnimeSeries_User, int>

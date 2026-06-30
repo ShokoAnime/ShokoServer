@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +10,7 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class StoredReleaseInfoRepository : BaseCachedRepository<StoredReleaseInfo, int>

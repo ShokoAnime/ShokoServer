@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -9,6 +8,7 @@ using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Settings;
 using Xunit;
 
+#nullable enable
 namespace Shoko.Tests.Scheduling.Jobs.Actions;
 
 public class PurgeOrphanedTmdbDataJobTests

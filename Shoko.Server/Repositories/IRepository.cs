@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using NHibernate;
@@ -6,6 +5,7 @@ using Shoko.Server.Repositories.NHibernate;
 
 // ReSharper disable InconsistentNaming
 
+#nullable enable
 namespace Shoko.Server.Repositories;
 
 public interface IRepository<T, in S>

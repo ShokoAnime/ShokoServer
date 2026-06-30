@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,6 +11,7 @@ using Shoko.Abstractions.Filtering.Sorting.Selectors;
 using Shoko.Abstractions.User;
 using Shoko.Server.Repositories.Cached;
 
+#nullable enable
 namespace Shoko.Server.Filters;
 
 public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupRepository groupRepository, AnimeSeriesRepository seriesRepository) : IFilteringEngine

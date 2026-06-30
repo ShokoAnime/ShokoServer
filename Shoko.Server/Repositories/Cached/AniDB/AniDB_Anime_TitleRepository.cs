@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +7,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_Anime_TitleRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Anime_Title, int>(databaseFactory)

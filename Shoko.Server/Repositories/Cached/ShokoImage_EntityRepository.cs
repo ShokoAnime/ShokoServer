@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +6,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class ShokoImage_EntityRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<ShokoImage_Entity, int>(databaseFactory)

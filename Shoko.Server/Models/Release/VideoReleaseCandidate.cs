@@ -1,9 +1,9 @@
-#nullable enable
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Models.Shoko;
 
+#nullable enable
 namespace Shoko.Server.Models.Release;
 
 /// <summary>

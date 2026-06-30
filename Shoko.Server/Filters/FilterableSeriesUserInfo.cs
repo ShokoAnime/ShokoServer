@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +10,7 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.Filters;
 
 public sealed class FilterableSeriesUserInfo(AnimeSeries series, int userID, DateTime now) : IFilterableUserInfo

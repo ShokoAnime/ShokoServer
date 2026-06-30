@@ -1,9 +1,9 @@
-#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.TMDB;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Direct.TMDB;
 
 public class TMDB_Episode_CrewRepository : BaseDirectRepository<TMDB_Episode_Crew, int>

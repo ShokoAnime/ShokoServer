@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -9,6 +8,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
+#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class ManagedFolder : BaseModel

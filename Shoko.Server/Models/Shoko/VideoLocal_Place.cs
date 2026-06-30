@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -7,6 +6,7 @@ using Shoko.Abstractions.Video;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
+#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 /// <summary>

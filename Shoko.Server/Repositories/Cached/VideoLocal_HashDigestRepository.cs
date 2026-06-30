@@ -1,9 +1,9 @@
-#nullable enable
 using System.Collections.Generic;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class VideoLocal_HashDigestRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<VideoLocal_HashDigest, int>(databaseFactory)

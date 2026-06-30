@@ -1,10 +1,10 @@
-#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Release;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class StoredReleaseInfo_MatchAttemptRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<StoredReleaseInfo_MatchAttempt, int>(databaseFactory)

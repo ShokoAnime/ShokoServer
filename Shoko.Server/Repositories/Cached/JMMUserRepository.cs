@@ -1,9 +1,9 @@
-#nullable enable
 using System;
 using System.Linq;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class JMMUserRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<JMMUser, int>(databaseFactory)

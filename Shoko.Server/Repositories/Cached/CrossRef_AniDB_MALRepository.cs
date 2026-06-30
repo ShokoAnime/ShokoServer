@@ -1,10 +1,10 @@
-#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;
 
+#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class CrossRef_AniDB_MALRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<CrossRef_AniDB_MAL, int>(databaseFactory)
