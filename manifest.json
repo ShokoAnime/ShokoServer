@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.346",
+      "tag": "v6.0.0-dev.346",
+      "commit": "590c67b913863cf685664d542a0ff0b52daf22c9",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.346/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-06-30T22:50:24Z",
+      "releaseNotes": "\n`fix` (`tmdb`): **Try movie search first for short OVA/Web entries** ([#1376](https://github.com/ShokoAnime/ShokoServer/pull/1376)):\n\nShort OVA and Web anime (≤4 main episodes) were routed exclusively to\nshow search, causing mis-links to the parent franchise's TMDB show when\nthe correct TMDB representation is standalone movies (e.g. a two-part\nfilm that AniDB models as an OVA series).\n\nAdded `IsShortFormAnime` heuristic: for `AnimeType.OVA` and\n`AnimeType.Web` with ≤4 `EpisodeType.Episode` entries, movie search\nruns first. If it finds matches, each episode is linked independently to\nits corresponding TMDB movie via the existing per-episode\n`AutoSearchForMovies` path. If movie search returns nothing, the call\nfalls through to the normal show search so well-formed OVA seasons still\nlink correctly.\n"
+    },
+    {
       "version": "6.0.0.345",
       "tag": "v6.0.0-dev.345",
       "commit": "e96895146c0251a43f8cf28988526b8d3ba8ad3a",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.317/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-25T04:46:47Z",
       "releaseNotes": "\n`fix`: **Fixes**.\n"
-    },
-    {
-      "version": "6.0.0.316",
-      "tag": "v6.0.0-dev.316",
-      "commit": "4d0a9bda342133c659f1da37da29fce9110f0982",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.316/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-25T02:27:19Z",
-      "releaseNotes": "\n`repo` (`workflows`): **Correct discord notification action tag**.\n"
     }
   ]
 }
