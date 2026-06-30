@@ -714,11 +714,25 @@ public class VideoReleaseGroupingService(
     /// Returns the filler-pool key for a <see cref="CandidateSpec"/>: the named
     /// group key when one exists, or a synthetic key built from sorted file IDs for
     /// anonymous specs (no <c>GroupID</c> / <c>GroupSource</c>).
+    /// <para>
+    /// For named groups the episode set is included in the key so that two specs
+    /// from the same release group but covering different episodes (i.e., originating
+    /// from distinct merged buckets) remain independent entries in the filler pool.
+    /// BestAvailable and Consistent strategy variants from the <em>same</em> bucket
+    /// always cover identical episode sets and therefore still collapse to one entry.
+    /// </para>
     /// </summary>
     private static string GetFillerKey(CandidateSpec spec)
     {
         var named = spec.Files.Select(f => GroupKey(f.ReleaseInfo)).FirstOrDefault(k => k is not null);
-        return named ?? "__anon__" + string.Join(",", spec.Files.Select(f => f.Place.ID).OrderBy(id => id));
+        if (named is null)
+            return "__anon__" + string.Join(",", spec.Files.Select(f => f.Place.ID).OrderBy(id => id));
+        var epsKey = string.Join(",", spec.Files
+            .SelectMany(f => f.EpisodeIds)
+            .Select(e => $"{(int)e.Item1}:{e.Item2}")
+            .Distinct()
+            .OrderBy(k => k));
+        return $"{named}|{epsKey}";
     }
 
     /// <summary>
