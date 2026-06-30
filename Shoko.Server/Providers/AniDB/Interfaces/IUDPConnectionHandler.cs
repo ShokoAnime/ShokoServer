@@ -4,7 +4,7 @@ namespace Shoko.Server.Providers.AniDB.Interfaces;
 
 public interface IUDPConnectionHandler : IConnectionHandler
 {
-    string SessionID { get; }
+    string? SessionID { get; }
     string ImageServerUrl { get; }
     bool IsInvalidSession { set; get; }
     bool IsLoginFailed { get; }
@@ -19,8 +19,8 @@ public interface IUDPConnectionHandler : IConnectionHandler
     void ForceReconnection();
     void StartBackoffTimer(int time, string message);
     bool Init();
-    bool Init(string username, string password, string serverName, ushort serverPort, ushort clientPort);
-    bool TestLogin(string username, string password);
+    bool Init(string? username, string? password, string serverName, ushort serverPort, ushort clientPort);
+    bool TestLogin(string? username, string? password);
 
     string SendDirectly(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false);
 

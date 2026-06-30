@@ -150,7 +150,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         return true;
     }
 
-    public bool Init(string username, string password, string serverName, ushort serverPort, ushort clientPort)
+    public bool Init(string? username, string? password, string serverName, ushort serverPort, ushort clientPort)
     {
         var settings = SettingsProvider.GetSettings();
         settings.AniDb.UDPServerAddress = serverName;
@@ -586,7 +586,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         }
     }
 
-    public bool TestLogin(string username, string password)
+    public bool TestLogin(string? username, string? password)
     {
         if (!ValidAniDBCredentials(username, password))
         {

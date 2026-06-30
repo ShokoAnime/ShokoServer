@@ -11,7 +11,7 @@ public interface IServerSettings
     /// <remarks>
     /// The default location is the "Images" folder in the same directory as the executable.
     /// </remarks>
-    string ImagesPath { get; set; }
+    string? ImagesPath { get; set; }
 
     /// <summary>
     /// The culture to use when formatting strings.

@@ -50,7 +50,7 @@ public class DatabaseSettings
         get => _sqliteFile;
         set
         {
-            string prefix = null;
+            string? prefix = null;
             if (value.StartsWith('/'))
             {
                 prefix = "/";
@@ -79,7 +79,7 @@ public class DatabaseSettings
                 directory = directory[(ApplicationPaths.StaticDataPath.Length + 1)..];
 
             MySqliteDirectory = directory;
-            _sqliteFile = parts.LastOrDefault();
+            _sqliteFile = parts.Last();
         }
     }
 
@@ -193,7 +193,7 @@ public class DatabaseSettings
     }
 
     [JsonIgnore]
-    public string Hostname
+    public string? Hostname
     {
         get
         {

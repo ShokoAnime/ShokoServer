@@ -31,21 +31,21 @@ public class NullToDefaultValueResolver : DefaultContractResolver
     private class ExistingOrDefaultValueProvider : IValueProvider
     {
         private readonly IValueProvider _innerProvider;
-        private readonly object _defaultValue;
-        private readonly string Name;
+        private readonly object? _defaultValue;
+        private readonly string _name;
 
         public ExistingOrDefaultValueProvider(IValueProvider innerProvider, Type propType, string name)
         {
             _innerProvider = innerProvider;
-            _defaultValue = propType.GetConstructor(Type.EmptyTypes) != null || propType
+            _defaultValue = propType.GetConstructor(Type.EmptyTypes) is not null || propType
                 .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
                 .Any(x => x.GetParameters().All(p => p.IsOptional))
                 ? Activator.CreateInstance(propType)
                 : default;
-            Name = name;
+            _name = name;
         }
 
-        public void SetValue(object target, object value)
+        public void SetValue(object target, object? value)
         {
             // Could be handled as "(value ?? _innerProvider.GetValue(target)) ?? _defaultValue"
             // I think this shows more explicit definition of the order of fallback
@@ -57,7 +57,7 @@ public class NullToDefaultValueResolver : DefaultContractResolver
             _innerProvider.SetValue(target, result);
         }
 
-        public object GetValue(object target)
+        public object? GetValue(object target)
         {
             return _innerProvider.GetValue(target) ?? _defaultValue;
         }

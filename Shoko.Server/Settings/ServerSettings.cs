@@ -71,7 +71,7 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     /// <inheritdoc />
     [EnvironmentVariable("SHOKO_IMAGES_PATH", AllowOverride = true)]
     [RequiresRestart]
-    public string ImagesPath { get; set; }
+    public string? ImagesPath { get; set; }
 
     /// <inheritdoc />
     [Visibility(DisplayVisibility.Hidden)]

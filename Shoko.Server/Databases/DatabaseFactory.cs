@@ -8,8 +8,8 @@ namespace Shoko.Server.Databases;
 public class DatabaseFactory(SystemService systemService)
 {
     private readonly object _sessionLock = new();
-    private ISessionFactory _sessionFactory;
-    private IDatabase _instance;
+    private ISessionFactory? _sessionFactory;
+    private IDatabase? _instance;
 
     public ISessionFactory SessionFactory
     {
@@ -17,7 +17,7 @@ public class DatabaseFactory(SystemService systemService)
         {
             lock (_sessionLock)
             {
-                return _sessionFactory ??= Instance.CreateSessionFactory();
+                return _sessionFactory ??= Instance!.CreateSessionFactory();
             }
         }
     }
@@ -28,7 +28,7 @@ public class DatabaseFactory(SystemService systemService)
         _sessionFactory = null;
     }
 
-    public IDatabase Instance
+    public IDatabase? Instance
     {
         get
         {

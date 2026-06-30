@@ -1070,7 +1070,7 @@ public class VideoService : IVideoService
         checkFileSize ??= _settingsProvider.GetSettings().Import.CheckFileSize;
         await _scheduler.StartJob<ScanFolderJob>(j =>
             (j.ManagedFolderID, j.RelativePath, j.OnlyNewFiles, j.SkipEvents, j.CleanUpStructure, j.CheckFileSize, j.ForceScan) =
-            (folder.ID, relativePath, onlyNewFiles, skipEvents, cleanUpStructure.Value, checkFileSize.Value, forceScan),
+            (folder.ID, relativePath ?? string.Empty, onlyNewFiles, skipEvents, cleanUpStructure.Value, checkFileSize.Value, forceScan),
             prioritize
         );
     }
