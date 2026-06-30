@@ -1188,7 +1188,7 @@ public class VideoService : IVideoService
         try
         {
             var oggFile = OggFile.ParseFile(filename);
-            return oggFile.Duration;
+            return oggFile?.Duration ?? 0;
         }
         catch (Exception e)
         {

@@ -485,7 +485,7 @@ public class GeneratedPlaylistService(
         options ??= new();
         options.IncludeMissing = false;
         options.IncludeUnaired = false;
-        var user = contextAccessor.HttpContext.GetUser();
+        var user = contextAccessor.HttpContext!.GetUser();
         var episodes = animeSeriesService.GetNextUpEpisodes((series as AnimeSeries)!, user.JMMUserID, options);
 
         // Make sure the release group is in the list, otherwise pick the most used group.
@@ -530,7 +530,7 @@ public class GeneratedPlaylistService(
             orderedSeries = BuildSeriesChain(seriesList, options.IncludePrequels);
         }
 
-        var user = contextAccessor.HttpContext.GetUser();
+        var user = contextAccessor.HttpContext!.GetUser();
         foreach (var series in orderedSeries)
         {
             if (series is not AnimeSeries animeSeries)

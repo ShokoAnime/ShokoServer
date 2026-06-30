@@ -21,7 +21,7 @@ public class OggFile
 
     public double Duration => BitStreams.OfType<IDuration>().Max(a => a.Duration.TotalSeconds);
 
-    public static OggFile ParseFile(string filename)
+    public static OggFile? ParseFile(string filename)
     {
         var parser = new OggParser(new Reader(File.OpenRead(filename)));
         parser.Process();
@@ -82,7 +82,7 @@ public class OggFile
     {
         private readonly Reader _reader;
 
-        public OggFile Info { get; private set; }
+        public OggFile? Info { get; private set; }
 
         public OggParser(Reader reader)
         {
@@ -217,7 +217,7 @@ public class OggFile
     {
         public override string CodecName => "Unknown";
 
-        public override string CodecVersion { get; protected set; }
+        public override string CodecVersion { get; protected set; } = string.Empty;
 
         public UnknownOGGBitStream() : base(false) { }
     }
@@ -240,7 +240,7 @@ public class OggFile
 
         public static OGGBitStream ProcessBeginPage(ref OggPage page)
         {
-            OGGBitStream bitStream = null;
+            OGGBitStream? bitStream = null;
             if (page.Data.Length >= 29 && Encoding.ASCII.GetString(page.Data.Slice(1, 5)).Equals("video"))
             {
                 bitStream = new OGMVideoOGGBitStream(page.Data);
@@ -299,7 +299,7 @@ public class OggFile
     public class TheoraOGGBitStream : VideoOGGBitStream
     {
         public override string CodecName => "Theora";
-        public override string CodecVersion { get; protected set; }
+        public override string CodecVersion { get; protected set; } = string.Empty;
         public override long FrameCount => LastGranulePosition;
         public override double FrameRate { get; }
 
@@ -317,7 +317,7 @@ public class OggFile
     {
         public override string CodecName => "OGMVideo";
 
-        public override string CodecVersion { get; protected set; }
+        public override string CodecVersion { get; protected set; } = string.Empty;
 
         public override long FrameCount => LastGranulePosition;
 
@@ -370,7 +370,7 @@ public class OggFile
     {
         public override string CodecName => "OGMText";
 
-        public override string CodecVersion { get; protected set; }
+        public override string CodecVersion { get; protected set; } = string.Empty;
 
         public string ActualCodecName { get; private set; }
 
@@ -408,7 +408,7 @@ public class OggFile
     {
         public override string CodecName => "Vorbis";
 
-        public override string CodecVersion { get; protected set; }
+        public override string CodecVersion { get; protected set; } = string.Empty;
 
         public override long SampleCount => LastGranulePosition;
 
@@ -448,7 +448,7 @@ public class OggFile
     {
         public override string CodecName => "OGMAudio";
 
-        public override string CodecVersion { get; protected set; }
+        public override string CodecVersion { get; protected set; } = string.Empty;
 
         public string ActualCodecName { get; private set; }
 
@@ -498,7 +498,7 @@ public class OggFile
     {
         public override string CodecName => "Flac";
 
-        public override string CodecVersion { get; protected set; }
+        public override string CodecVersion { get; protected set; } = string.Empty;
 
         public override long SampleCount => LastGranulePosition;
 

@@ -143,7 +143,7 @@ public class ActionService
             var p = vl.FirstResolvedPlace;
             if (p == null) continue;
 
-            await _scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path);
+            await _scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path!);
         }
 
         foreach (var vl in filesToHash)
@@ -156,7 +156,7 @@ public class ActionService
                 var p = vl.FirstResolvedPlace;
                 if (p == null) continue;
 
-                await _scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path);
+                await _scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path!);
             }
             catch (Exception ex)
             {
@@ -210,9 +210,9 @@ public class ActionService
 
         // remove missing files in valid managed folders
         var filesAll = _videoLocalPlaces.GetAll()
-            .Where(a => a.ManagedFolder != null)
-            .GroupBy(a => a.ManagedFolder)
-            .ToDictionary(a => a.Key, a => a.ToList());
+            .Where(a => a.ManagedFolder is not null)
+            .GroupBy(a => a.ManagedFolder!)
+            .ToDictionary(a => a.Key!, a => a.ToList());
         foreach (var vl in filesAll.Keys.SelectMany(a => filesAll[a]))
         {
             if (File.Exists(vl.Path)) continue;
@@ -273,7 +273,7 @@ public class ActionService
         foreach (var v in videoLocalsAll)
         {
             var places = v.Places;
-            if (v.Places?.Count > 0)
+            if (places.Count > 0)
             {
                 using var transaction = session.BeginTransaction();
                 foreach (var place in places.Where(place => string.IsNullOrWhiteSpace(place?.Path)))
@@ -281,8 +281,7 @@ public class ActionService
 #pragma warning disable CS0618
                     _logger.LogInformation("Remove Records With Orphaned Managed Folder: {Filename}", v.FileName);
 #pragma warning restore CS0618
-                    seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
-                        .DistinctBy(a => a.AnimeSeriesID));
+                    seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries).WhereNotNull().DistinctBy(a => a.AnimeSeriesID));
                     _videoLocalPlaces.DeleteWithOpenTransaction(session, place);
                 }
 
@@ -291,12 +290,12 @@ public class ActionService
 
             // Remove duplicate places
             places = v.Places;
-            if (places?.Count == 1) continue;
+            if (places.Count == 1) continue;
 
-            if (places?.Count > 0)
+            if (places.Count > 0)
             {
                 places = places.DistinctBy(a => a.Path).ToList();
-                places = v.Places?.Except(places).ToList() ?? [];
+                places = v.Places.Except(places).ToList() ?? [];
                 foreach (var place in places)
                 {
                     using var transaction = session.BeginTransaction();
@@ -305,14 +304,13 @@ public class ActionService
                 }
             }
 
-            if (v.Places?.Count > 0) continue;
+            if (v.Places.Count > 0) continue;
 
             // delete video local record
 #pragma warning disable CS0618
             _logger.LogInformation("RemoveOrphanedVideoLocal : {Filename}", v.FileName);
 #pragma warning restore CS0618
-            seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries)
-                .DistinctBy(a => a.AnimeSeriesID));
+            seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries).WhereNotNull().DistinctBy(a => a.AnimeSeriesID));
 
             if (removeMyList)
                 await ((VideoService)_videoService).ScheduleRemovalFromMyList(v);
@@ -391,7 +389,7 @@ public class ActionService
                     )
                 )
                 .DistinctBy(a => a.GroupID)
-                .Select(a => int.Parse(a.GroupID))
+                .Select(a => int.Parse(a.GroupID!))
                 .ToHashSet();
             _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", incorrectGroups.Count);
             foreach (var a in incorrectGroups)
@@ -540,7 +538,7 @@ public class ActionService
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Could not get Episode Info for {EpisodeID}", episode.EpisodeID);
+                _logger.LogError(e, "Could not get Episode Info for {EpisodeID}", episodeId);
             }
 
             if (epAnimeID is not null)

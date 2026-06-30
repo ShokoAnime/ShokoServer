@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -468,8 +469,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             {
                 try
                 {
-                    var (success, xml) = await TryGetXmlFromCache(job.AnimeID).ConfigureAwait(false);
-                    if (success)
+                    if (TryGetXmlFromCache(job.AnimeID, out var xml))
                         response = _httpParser.Parse(job.AnimeID, xml);
                 }
                 catch (Exception e)
@@ -524,8 +524,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             {
                 try
                 {
-                    var (success, xml) = await TryGetXmlFromCache(job.AnimeID).ConfigureAwait(false);
-                    if (success)
+                    if (TryGetXmlFromCache(job.AnimeID, out var xml))
                         response = _httpParser.Parse(job.AnimeID, xml);
                 }
                 catch (Exception e)
@@ -689,18 +688,18 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         return null;
     }
 
-    private async Task<(bool success, string? xml)> TryGetXmlFromCache(int animeID)
+    private bool TryGetXmlFromCache(int animeID, [NotNullWhen(true)] out string? xml)
     {
-        var xml = await _xmlUtils.LoadAnimeHTTPFromFile(animeID).ConfigureAwait(false);
-        if (xml != null)
-            return (true, xml);
+        xml = _xmlUtils.LoadAnimeHTTPFromFile(animeID).GetAwaiter().GetResult();
+        if (xml is not null)
+            return true;
 
         if (_httpConnectionHandler.IsBanned)
             _logger.LogTrace("We're HTTP Banned and unable to find a cached AnimeDoc_{AnimeID}.xml file", animeID);
         else
             _logger.LogTrace("Unable to find a cached AnimeDoc_{AnimeID}.xml file", animeID);
 
-        return (false, null);
+        return false;
     }
 
     private async Task<AnimeSeries> CreateAnimeSeriesAndGroup(AniDB_Anime anime, AnidbJobDetails job, IServerSettings settings)
