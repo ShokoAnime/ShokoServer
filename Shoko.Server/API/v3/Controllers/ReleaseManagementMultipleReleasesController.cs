@@ -195,6 +195,7 @@ public class ReleaseManagementMultipleReleasesController(
                     FileSize = video?.FileSize ?? 0,
                 };
             })
+            .OrderBy(f => f.AbsolutePath)
             .ToList();
 
         return new ReleaseDeletionPreview
@@ -451,6 +452,7 @@ public class ReleaseManagementMultipleReleasesController(
                     FileSize = video?.FileSize ?? 0,
                 };
             })
+            .OrderBy(f => f.AbsolutePath)
             .ToList();
 
         return new ReleaseDeletionPreview
