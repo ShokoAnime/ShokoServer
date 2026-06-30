@@ -101,8 +101,11 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <param name="xrefSource">Filter by cross-reference source.</param>
     /// <param name="isEnabled">Filter by enabled state.</param>
     /// <param name="isDesired">Filter by desired state.</param>
+    /// <param name="isPreferred">Filter by preferred state.</param>
     /// <param name="isAvailable">Filter by available state.</param>
-    /// <param name="primaryImage">Filter to only primary images.</param>
+    /// <param name="isPrimaryAvailable">Filter by primary image availability.</param>
+    /// <param name="isPrimaryImage">Filter to only primary images.</param>
+    /// <param name="asPrimaryImage">Return the primary image when the image is part of a linked group.</param>
     /// <param name="pageSize">Number of results per page (0-100, default 50).</param>
     /// <param name="page">Page number (default 1).</param>
     /// <returns>A paginated list of images.</returns>
@@ -113,12 +116,27 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         [FromQuery] DataSource? xrefSource = null,
         [FromQuery] bool? isEnabled = null,
         [FromQuery] bool? isDesired = null,
+        [FromQuery] bool? isPreferred = null,
         [FromQuery] bool? isAvailable = null,
-        [FromQuery] bool? primaryImage = null,
+        [FromQuery] bool? isPrimaryAvailable = null,
+        [FromQuery] bool? isPrimaryImage = null,
+        [FromQuery] bool asPrimaryImage = false,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
-        => imageManager.GetAllImages(imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable, primaryImage)
+        => imageManager.GetAllImages(new()
+        {
+            ImageSource = imageSource,
+            ImageType = imageType,
+            XrefSource = xrefSource,
+            IsEnabled = isEnabled,
+            IsDesired = isDesired,
+            IsPreferred = isPreferred,
+            IsAvailable = isAvailable,
+            IsPrimaryImage = isPrimaryImage,
+            IsPrimaryAvailable = isPrimaryAvailable,
+            AsPrimaryImage = asPrimaryImage,
+        })
             .ToListResult(image => new ImageSlim(image), page, pageSize);
 
     /// <summary>
@@ -513,8 +531,10 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <param name="entityType">Filter by entity type.</param>
     /// <param name="isEnabled">Filter by enabled state.</param>
     /// <param name="isDesired">Filter by desired state.</param>
+    /// <param name="isPreferred">Filter by preferred state.</param>
     /// <param name="isAvailable">Filter by available state.</param>
-    /// <param name="primaryImage">Filter to only primary images.</param>
+    /// <param name="isPrimaryImage">Filter to only primary images.</param>
+    /// <param name="isPrimaryAvailable">Filter by primary image availability.</param>
     /// <param name="includeImage">Include the associated image in the response (default false).</param>
     /// <param name="pageSize">Number of results per page (0-100, default 50).</param>
     /// <param name="page">Page number (default 1).</param>
@@ -528,13 +548,28 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         [FromQuery] DataEntityType? entityType = null,
         [FromQuery] bool? isEnabled = null,
         [FromQuery] bool? isDesired = null,
+        [FromQuery] bool? isPreferred = null,
         [FromQuery] bool? isAvailable = null,
-        [FromQuery] bool? primaryImage = null,
+        [FromQuery] bool? isPrimaryImage = null,
+        [FromQuery] bool? isPrimaryAvailable = null,
         [FromQuery] bool includeImage = false,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
-        => imageManager.GetAllImageCrossReferences(imageSource, imageType, xrefSource, entitySource, entityType, isEnabled, isDesired, isAvailable, primaryImage)
+        => imageManager.GetAllImageCrossReferences(new()
+        {
+            ImageSource = imageSource,
+            ImageType = imageType,
+            XrefSource = xrefSource,
+            EntitySource = entitySource,
+            EntityType = entityType,
+            IsEnabled = isEnabled,
+            IsDesired = isDesired,
+            IsPreferred = isPreferred,
+            IsAvailable = isAvailable,
+            IsPrimaryImage = isPrimaryImage,
+            IsPrimaryAvailable = isPrimaryAvailable,
+        })
             .ToListResult(xref => new ImageCrossReference(xref, includeImage), page, pageSize);
 
     /// <summary>
@@ -565,8 +600,10 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <param name="entityType">Filter by entity type.</param>
     /// <param name="isEnabled">Filter by enabled state.</param>
     /// <param name="isDesired">Filter by desired state.</param>
+    /// <param name="isPreferred">Filter by preferred state.</param>
     /// <param name="isAvailable">Filter by available state.</param>
-    /// <param name="primaryImage">Filter to only primary images (default false).</param>
+    /// <param name="isPrimaryImage">Filter to only primary images.</param>
+    /// <param name="isPrimaryAvailable">Filter by primary image availability.</param>
     /// <param name="includeImage">Include the associated image in the response (default false).</param>
     /// <returns>A random cross-reference if found, otherwise 404.</returns>
     [HttpGet("CrossReference/Random")]
@@ -578,12 +615,25 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         [FromQuery] DataEntityType? entityType = null,
         [FromQuery] bool? isEnabled = null,
         [FromQuery] bool? isDesired = null,
+        [FromQuery] bool? isPreferred = null,
         [FromQuery] bool? isAvailable = null,
-        [FromQuery] bool primaryImage = false,
+        [FromQuery] bool? isPrimaryImage = null,
+        [FromQuery] bool? isPrimaryAvailable = null,
         [FromQuery] bool includeImage = false
     )
     {
-        var xref = imageManager.GetRandomImageCrossReference(imageSource, imageType, xrefSource, entitySource, entityType, isEnabled, isDesired, isAvailable, primaryImage);
+        var xref = imageManager.GetRandomImageCrossReference(imageSource, imageType, new()
+        {
+            XrefSource = xrefSource,
+            EntitySource = entitySource,
+            EntityType = entityType,
+            IsEnabled = isEnabled,
+            IsDesired = isDesired,
+            IsPreferred = isPreferred,
+            IsAvailable = isAvailable,
+            IsPrimaryImage = isPrimaryImage,
+            IsPrimaryAvailable = isPrimaryAvailable,
+        });
         if (xref is null)
             return NotFound("No cross-reference found matching the criteria.");
         return new ImageCrossReference(xref, includeImage);
@@ -600,8 +650,10 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <param name="xrefSource">Filter by cross-reference source.</param>
     /// <param name="isEnabled">Filter by enabled state.</param>
     /// <param name="isDesired">Filter by desired state.</param>
+    /// <param name="isPreferred">Filter by preferred state.</param>
     /// <param name="isAvailable">Filter by available state.</param>
-    /// <param name="primaryImage">Filter to only primary images.</param>
+    /// <param name="isPrimaryImage">Filter to only primary images.</param>
+    /// <param name="isPrimaryAvailable">Filter by primary image availability.</param>
     /// <param name="linkedEntityImages">Also include cross-references for images from other entities linked to the entity. Defaults to null (let the service decide based on the entity).</param>
     /// <param name="includeImage">Include the associated image in the response (default false).</param>
     /// <param name="pageSize">Number of results per page (0-100, default 50).</param>
@@ -617,8 +669,10 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         [FromQuery] DataSource? xrefSource = null,
         [FromQuery] bool? isEnabled = null,
         [FromQuery] bool? isDesired = null,
+        [FromQuery] bool? isPreferred = null,
         [FromQuery] bool? isAvailable = null,
-        [FromQuery] bool? primaryImage = null,
+        [FromQuery] bool? isPrimaryImage = null,
+        [FromQuery] bool? isPrimaryAvailable = null,
         [FromQuery] bool? linkedEntityImages = null,
         [FromQuery] bool includeImage = false,
         [FromQuery, Range(0, 100)] int pageSize = 50,
@@ -628,7 +682,19 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         var entity = imageManager.GetEntityForImage(entitySource, entityType, entityID);
         if (entity is null)
             return NotFound(EntityNotFound);
-        return imageManager.GetImageCrossReferencesForEntity(entity, imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable, primaryImage, linkedEntityImages)
+        return imageManager.GetImageCrossReferencesForEntity(entity, new()
+        {
+            ImageSource = imageSource,
+            ImageType = imageType,
+            XrefSource = xrefSource,
+            IsEnabled = isEnabled,
+            IsDesired = isDesired,
+            IsPreferred = isPreferred,
+            IsAvailable = isAvailable,
+            IsPrimaryImage = isPrimaryImage,
+            IsPrimaryAvailable = isPrimaryAvailable,
+            LinkedEntityImages = linkedEntityImages,
+        })
             .ToListResult(xref => new ImageCrossReference(xref, includeImage), page, pageSize);
     }
 

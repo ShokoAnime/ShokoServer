@@ -2577,7 +2577,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return ((IWithImages)series).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true)
+        return ((IWithImages)series).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true })
             .OrderBy(a => a.Type)
             .ThenBy(a => a.Source)
             .ThenByDescending(a => a.LanguageCode is null)
@@ -2613,7 +2613,7 @@ public class SeriesController : BaseController
         if (preferredImage is not null)
             return new Image(preferredImage);
 
-        var images = ((IWithImages)series).GetImages(imageType: imageEntityType).ToDto();
+        var images = ((IWithImages)series).GetImages(new() { ImageType = imageEntityType }).ToDto();
         var image = imageEntityType switch
         {
             ImageEntityType.Primary => images.Posters.FirstOrDefault(),
@@ -2693,7 +2693,7 @@ public class SeriesController : BaseController
         // Check if a default image is set.
         var imageEntityType = imageType.ToServer();
         var xref = _imageManager
-            .GetImageCrossReferencesForEntity(series, imageType: imageEntityType).FirstOrDefault(xref => xref.IsPreferred);
+            .GetImageCrossReferencesForEntity(series, new() { ImageType = imageEntityType, IsPreferred = true }).FirstOrDefault();
         if (xref is null)
             return ValidationProblem("No default image for the selected type.");
 

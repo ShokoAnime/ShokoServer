@@ -58,7 +58,7 @@ public class Studio
         Name = company.Name;
         CountryOfOrigin = company.CountryOfOrigin;
         Size = company.GetTmdbCompanyCrossReferences().Count;
-        Logos = ((IWithImages)company).GetImages(imageType: ImageEntityType.Logo)
+        Logos = ((IWithImages)company).GetImages(new() { ImageType = ImageEntityType.Logo })
             .Select(image => new Image(image))
             .ToList();
         Source = DataSourceType.TMDB;

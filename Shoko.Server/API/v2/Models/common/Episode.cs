@@ -103,7 +103,7 @@ public class Episode : BaseDirectory
 
         if (pic > 0)
         {
-            var backdrops = ((IWithImages)aep).GetImages(imageType: ImageEntityType.Backdrop);
+            var backdrops = ((IWithImages)aep).GetImages(new() { ImageType = ImageEntityType.Backdrop });
             var backdropImage = backdrops.FirstOrDefault(x => x.IsPreferred)
                 ?? backdrops.FirstOrDefault(x => x is { IsEnabled: true, IsAvailable: true });
             if (backdropImage is not null)

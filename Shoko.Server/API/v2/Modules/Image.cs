@@ -114,7 +114,7 @@ public class Image(IImageManager imageManager, ISettingsProvider settingsProvide
         var imageType = (CL_ImageEntityType)type;
         while (tries++ < 5)
         {
-            var metadata = imageManager.GetRandomImageCrossReference(imageType.ToServerSource(), imageType.ToServerType(), isAvailable: true)?.GetImage();
+            var metadata = imageManager.GetRandomImageCrossReference(imageType.ToServerSource(), imageType.ToServerType(), new() { IsAvailable = true })?.GetImage();
             if (metadata is not null && metadata.GetStream() is { } stream)
                 return File(stream, metadata.ContentType);
         }

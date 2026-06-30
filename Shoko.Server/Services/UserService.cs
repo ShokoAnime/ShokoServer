@@ -130,8 +130,8 @@ public class UserService(
 
                     case { AvatarImageAsStream: null, AvatarImage: null } when
                     (
-                        _imageManager.GetImageCrossReferencesForEntity(user, imageType: ImageEntityType.Primary, linkedEntityImages: false)
-                            .FirstOrDefault(xref => xref.IsPreferred) is { } xref
+                        _imageManager.GetImageCrossReferencesForEntity(user, new() { ImageType = ImageEntityType.Primary, LinkedEntityImages = false, IsPreferred = true })
+                            .FirstOrDefault() is { } xref
                     ):
                     {
                         _imageManager.UnsetPreferredImageForEntity(xref);

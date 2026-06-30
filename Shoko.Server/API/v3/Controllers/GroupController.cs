@@ -303,7 +303,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (!user.AllowedGroup(group))
             return Forbid(GroupForbiddenForUser);
 
-        return ((IWithImages)group).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true)
+        return ((IWithImages)group).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true })
             .OrderBy(a => a.Type)
             .ThenBy(a => a.Source)
             .ThenByDescending(a => a.LanguageCode is null)
@@ -339,7 +339,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (preferredImage is not null)
             return new Image(preferredImage);
 
-        var images = ((IWithImages)group).GetImages(imageType: imageEntityType).ToDto();
+        var images = ((IWithImages)group).GetImages(new() { ImageType = imageEntityType }).ToDto();
         var image = imageEntityType switch
         {
             ImageEntityType.Primary => images.Posters.FirstOrDefault(),
@@ -418,7 +418,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         // Check if a default image is set.
         var imageEntityType = imageType.ToServer();
         var xref = _imageManager
-            .GetImageCrossReferencesForEntity(group, imageType: imageEntityType).FirstOrDefault(xref => xref.IsPreferred);
+            .GetImageCrossReferencesForEntity(group, new() { ImageType = imageEntityType, IsPreferred = true }).FirstOrDefault();
         if (xref is null)
             return ValidationProblem("No default image for the selected type.");
 

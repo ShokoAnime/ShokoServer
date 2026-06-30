@@ -10,6 +10,7 @@ using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Image.Exceptions;
+using Shoko.Abstractions.Metadata.Image.Options;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Utilities;
 
@@ -119,95 +120,30 @@ public interface IImageManager
     event EventHandler<ImageEventArgs>? ImageRemoved;
 
     /// <summary>
-    ///   Get all images, optionally filtered by source and enabled state.
+    ///   Get all images, optionally filtered using the specified
+    ///   <paramref name="options"/> options.
     /// </summary>
-    /// <param name="imageSource">
-    ///   Optional. Filter by image source (e.g. AniDB, TMDB, AniList, User,
-    ///   etc.).
-    /// </param>
-    /// <param name="imageType">
-    ///   Optional. Filter by image type (e.g. Primary, Backdrop, Banner, etc.).
-    /// </param>
-    /// <param name="xrefSource">
-    ///   Optional. Filter by cross-reference source (e.g. AniDB, TMDB, AniList,
-    ///   User, etc.).
-    /// </param>
-    /// <param name="isEnabled">
-    ///   Optional. Filter by enabled state. Pass <c>true</c> to get only
-    ///   enabled, <c>false</c> to get only disabled, or <c>null</c> to get
-    ///   both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="isDesired">
-    ///   Optional. Filter by desired state. Pass <c>true</c> to get only
-    ///   desired, <c>false</c> to get only undesired, or <c>null</c> to get
-    ///   both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="isAvailable">
-    ///   Optional. Filter by available state. Pass <c>true</c> to get only
-    ///   available, <c>false</c> to get only unavailable, or <c>null</c> to
-    ///   get both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="primaryImage">
-    ///   Optional. Set to <c>true</c> to retrieve the primary image if the
-    ///   image is part of a linked image list.
+    /// <param name="options">
+    ///   Optional filtering options. See <see cref="ImageFilteringOptions"/>
+    ///   for available filter fields. Omit or pass <c>null</c> to return all
+    ///   images.
     /// </param>
     /// <returns>
-    ///   An enumerable of all images matching the filter criteria.
+    ///   All images matching the filter criteria.
     /// </returns>
-    IEnumerable<IImage> GetAllImages(
-        DataSource? imageSource = null,
-        ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
-        bool? isEnabled = null,
-        bool? isDesired = null,
-        bool? isAvailable = null,
-        bool? primaryImage = null
-    );
+    IEnumerable<IImage> GetAllImages(ImageFilteringOptions? options = null);
 
     /// <summary>
-    ///   Get all images associated with the specified entity. If you need
-    ///   additional metadata about the relationship between the entity and the
-    ///   images then you should use <seealso cref="GetImagesForEntity"/>
-    ///   instead.
+    ///   Get all images associated with the specified entity, optionally
+    ///   filtered using the specified <paramref name="options"/> options.
     /// </summary>
     /// <param name="entity">
     ///   The entity to get images for.
     /// </param>
-    /// <param name="imageSource">
-    ///   Optional. Filter by image source (e.g. AniDB, TMDB, AniList, User,
-    ///   etc.).
-    /// </param>
-    /// <param name="imageType">
-    ///   Optional. Filter by image type (e.g. Primary, Backdrop, Banner, etc.).
-    /// </param>
-    /// <param name="xrefSource">
-    ///   Optional. Filter by cross-reference source (e.g. AniDB, TMDB, AniList,
-    ///   User, etc.).
-    /// </param>
-    /// <param name="isEnabled">
-    ///   Optional. Filter by enabled state. Pass <c>true</c> to get only
-    ///   enabled, <c>false</c> to get only disabled, or <c>null</c> to get
-    ///   both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="isDesired">
-    ///   Optional. Filter by desired state. Pass <c>true</c> to get only
-    ///   desired, <c>false</c> to get only undesired, or <c>null</c> to get
-    ///   both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="isAvailable">
-    ///   Optional. Filter by available state. Pass <c>true</c> to get only
-    ///   available, <c>false</c> to get only unavailable, or <c>null</c> to
-    ///   get both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="primaryImage">
-    ///   Optional. Set to <c>true</c> to retrieve the primary image if the
-    ///   image is part of a linked image list.
-    /// </param>
-    /// <param name="linkedEntityImages">
-    ///   Optional. Set to <c>false</c> to only retrieve the entity's own
-    ///   images. Set to <c>true</c> to also retrieve images from other entities
-    ///   linked to the entity. Set to <c>null</c> to let the service decide
-    ///   based on the entity. Defaults to <c>null</c>.
+    /// <param name="options">
+    ///   Optional filtering options. See <see cref="ImageFilteringOptions"/>
+    ///   for available filter fields. Omit or pass <c>null</c> to return all
+    ///   images for the entity.
     /// </param>
     /// <returns>
     ///   A readonly list of images associated with the entity, filtered by the
@@ -215,14 +151,7 @@ public interface IImageManager
     /// </returns>
     IReadOnlyList<IImage> GetImagesForEntity(
         IWithImages entity,
-        DataSource? imageSource = null,
-        ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
-        bool? isEnabled = null,
-        bool? isDesired = null,
-        bool? isAvailable = null,
-        bool primaryImage = false,
-        bool? linkedEntityImages = null
+        ImageFilteringOptions? options = null
     );
 
     /// <summary>
@@ -678,60 +607,19 @@ public interface IImageManager
     event EventHandler<ImageCrossReferenceEventArgs>? ImageCrossReferenceRemoved;
 
     /// <summary>
-    ///   Get all image cross-references, optionally filtered by various
-    ///   criteria.
+    ///   Get all image cross-references, optionally filtered using the
+    ///   specified <paramref name="options"/>.
     /// </summary>
-    /// <param name="imageSource">
-    ///   Optional. Filter for image source (e.g. AniDB, TMDB, AniList, User,
-    ///   etc.).
-    /// </param>
-    /// <param name="imageType">
-    ///   Optional. Filter for image type (e.g. Group, Series, Episode, etc.).
-    /// </param>
-    /// <param name="xrefSource">
-    ///   Optional. Filter for cross-reference source (e.g. AniDB, TMDB,
-    ///   AniList, User, etc.).
-    /// </param>
-    /// <param name="entitySource">
-    ///   Optional. Filter for entity source (e.g. AniDB, TMDB, AniList, User,
-    ///   etc.).
-    /// </param>
-    /// <param name="entityType">
-    ///   Optional. Filter for entity type (e.g. Group, Series, Episode, etc.).
-    /// </param>
-    /// <param name="isEnabled">
-    ///   Optional. Filter by enabled state. Pass <c>true</c> to get only
-    ///   enabled, <c>false</c> to get only disabled, or <c>null</c> to get
-    ///   both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="isDesired">
-    ///   Optional. Filter by desired state. Pass <c>true</c> to get only
-    ///   desired, <c>false</c> to get only undesired, or <c>null</c> to get
-    ///   both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="isAvailable">
-    ///   Optional. Filter by available state. Pass <c>true</c> to get only
-    ///   available, <c>false</c> to get only unavailable, or <c>null</c> to
-    ///   get both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="primaryImage">
-    ///   Optional. Set to <c>true</c> to retrieve the primary image if the
-    ///   image is part of a linked image list.
+    /// <param name="options">
+    ///   Optional filtering options. See
+    ///   <see cref="ImageCrossReferenceFilteringOptions"/> for available
+    ///   filter fields. Omit or pass <c>null</c> to return all cross-
+    ///   references.
     /// </param>
     /// <returns>
-    ///   An enumerable of all cross-references matching the filter criteria.
+    ///   All cross-references matching the filter criteria.
     /// </returns>
-    IEnumerable<IImageCrossReference> GetAllImageCrossReferences(
-        DataSource? imageSource = null,
-        ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
-        DataSource? entitySource = null,
-        DataEntityType? entityType = null,
-        bool? isEnabled = null,
-        bool? isDesired = null,
-        bool? isAvailable = null,
-        bool? primaryImage = null
-    );
+    IEnumerable<IImageCrossReference> GetAllImageCrossReferences(ImageCrossReferenceFilteringOptions? options = null);
 
     /// <summary>
     ///   Get a specific image cross-reference by its local identifier.
@@ -748,42 +636,16 @@ public interface IImageManager
     ///   Get a random image cross-reference matching the specified criteria.
     /// </summary>
     /// <param name="imageSource">
-    ///   Optional. Filter by image source (e.g. AniDB, TMDB, AniList, User,
-    ///   etc.).
+    ///   The image source to filter by (e.g. AniDB, TMDB, AniList, User, etc.).
     /// </param>
     /// <param name="imageType">
-    ///   Optional. Filter by image type (e.g. Primary, Backdrop, Banner, etc.).
+    ///   The image type to filter by (e.g. Primary, Backdrop, Banner, etc.).
     /// </param>
-    /// <param name="xrefSource">
-    ///   Optional. Filter by cross-reference source (e.g. AniDB, TMDB, AniList,
-    ///   User, etc.).
-    /// </param>
-    /// <param name="entitySource">
-    ///   Optional. Filter for entity source (e.g. AniDB, TMDB, AniList, User,
-    ///   etc.).
-    /// </param>
-    /// <param name="entityType">
-    ///   Optional. Filter for entity type (e.g. Primary, Backdrop, Banner,
-    ///   etc.).
-    /// </param>
-    /// <param name="isEnabled">
-    ///   Optional. Filter by enabled state. Pass <c>true</c> to get only
-    ///   enabled, <c>false</c> to get only disabled, or <c>null</c> to get
-    ///   both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="isDesired">
-    ///   Optional. Filter by desired state. Pass <c>true</c> to get only
-    ///   desired, <c>false</c> to get only undesired, or <c>null</c> to get
-    ///   both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="isAvailable">
-    ///   Optional. Filter by available state. Pass <c>true</c> to get only
-    ///   available, <c>false</c> to get only unavailable, or <c>null</c> to
-    ///   get both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="primaryImage">
-    ///   Optional. Set to <c>true</c> to retrieve the primary image if the
-    ///   image is part of a linked image list.
+    /// <param name="options">
+    ///   Optional filtering options. See
+    ///   <see cref="RandomImageCrossReferenceFilteringOptions"/> for
+    ///   available filter fields. Omit or pass <c>null</c> for no additional
+    ///   filtering.
     /// </param>
     /// <returns>
     ///   A random matching cross-reference, or <c>null</c> if none found.
@@ -791,72 +653,28 @@ public interface IImageManager
     IImageCrossReference? GetRandomImageCrossReference(
         DataSource imageSource,
         ImageEntityType imageType,
-        DataSource? xrefSource = null,
-        DataSource? entitySource = null,
-        DataEntityType? entityType = null,
-        bool? isEnabled = null,
-        bool? isDesired = null,
-        bool? isAvailable = null,
-        bool? primaryImage = null
+        RandomImageCrossReferenceFilteringOptions? options = null
     );
 
     /// <summary>
     ///   Get all cross-references for the specific entity, optionally filtered
-    ///   by various criteria.
+    ///   using the specified <paramref name="options"/>.
     /// </summary>
     /// <param name="entity">
     ///   The entity to get cross-references for.
     /// </param>
-    /// <param name="imageSource">
-    ///   Optional. Filter by image source (e.g. AniDB, TMDB, AniList, User,
-    ///   etc.).
-    /// </param>
-    /// <param name="imageType">
-    ///   Optional. Filter by image type (e.g. Primary, Backdrop, Banner, etc.).
-    /// </param>
-    /// <param name="xrefSource">
-    ///   Optional. Filter by cross-reference source (e.g. AniDB, TMDB, AniList,
-    ///   User, etc.).
-    /// </param>
-    /// <param name="isEnabled">
-    ///   Optional. Filter by enabled state. Pass <c>true</c> to get only
-    ///   enabled, <c>false</c> to get only disabled, or <c>null</c> to get
-    ///   both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="isDesired">
-    ///   Optional. Filter by desired state. Pass <c>true</c> to get only
-    ///   desired, <c>false</c> to get only undesired, or <c>null</c> to get
-    ///   both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="isAvailable">
-    ///   Optional. Filter by available state. Pass <c>true</c> to get only
-    ///   available, <c>false</c> to get only unavailable, or <c>null</c> to
-    ///   get both. Defaults to <c>null</c>.
-    /// </param>
-    /// <param name="primaryImage">
-    ///   Optional. Set to <c>true</c> to retrieve the primary image if the
-    ///   image is part of a linked image list.
-    /// </param>
-    /// <param name="linkedEntityImages">
-    ///   Optional. Set to <c>false</c> to only retrieve cross-references for
-    ///   the entity's own images. Set to <c>true</c> to also retrieve
-    ///   cross-references for images from other entities linked to the entity.
-    ///   Set to <c>null</c> to let the service decide based on the entity.
-    ///   Defaults to <c>null</c>.
+    /// <param name="options">
+    ///   Optional filtering options. See
+    ///   <see cref="ImageCrossReferenceFilteringOptions"/> for available
+    ///   filter fields. Pass <c>null</c> to return all cross-references
+    ///   for the entity.
     /// </param>
     /// <returns>
     ///   A readonly list of cross-references for the entity.
     /// </returns>
     IReadOnlyList<IImageCrossReference> GetImageCrossReferencesForEntity(
         IWithImages entity,
-        DataSource? imageSource = null,
-        ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
-        bool? isEnabled = null,
-        bool? isDesired = null,
-        bool? isAvailable = null,
-        bool? primaryImage = null,
-        bool? linkedEntityImages = null
+        ImageCrossReferenceFilteringOptions? options = null
     );
 
     #region Cross References | Add

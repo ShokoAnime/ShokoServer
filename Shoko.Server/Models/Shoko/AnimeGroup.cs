@@ -417,7 +417,7 @@ public class AnimeGroup : IShokoGroup
                 return defaultImageCrossReference;
 
             // Otherwise, return the first available image, first enabled image, or the first image.
-            var selectedImageCrossReference = withImages.GetImageCrossReferences(imageType: imageType) is { Count: > 0 } xrefs ? (
+            var selectedImageCrossReference = withImages.GetImageCrossReferences(new() { ImageType = imageType }) is { Count: > 0 } xrefs ? (
                 xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsDesired: true, IsPrimaryAvailable: true }) ??
                 xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsPrimaryAvailable: true }) ??
                 xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsDesired: true }) ??
@@ -439,7 +439,7 @@ public class AnimeGroup : IShokoGroup
             if (defaultImageCrossReference is { IsEnabled: true, IsPrimaryAvailable: true })
                 return defaultImageCrossReference;
 
-            var selectedImageCrossReference = withImages.GetImageCrossReferences(imageType: imageType) is { Count: > 0 } xrefs ? (
+            var selectedImageCrossReference = withImages.GetImageCrossReferences(new() { ImageType = imageType }) is { Count: > 0 } xrefs ? (
                 xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsDesired: true, IsPrimaryAvailable: true }) ??
                 xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsPrimaryAvailable: true }) ??
                 xrefs.FirstOrDefault(i => i is { IsEnabled: true, IsDesired: true }) ??

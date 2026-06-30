@@ -23,6 +23,7 @@ using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Image.Exceptions;
+using Shoko.Abstractions.Metadata.Image.Options;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
@@ -247,24 +248,37 @@ public partial class ImageManager(
     public event EventHandler<ImageEventArgs>? ImageRemoved;
 
     /// <inheritdoc/>
-    public IEnumerable<IImage> GetAllImages(
-        DataSource? imageSource = null,
-        ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
-        bool? isEnabled = null,
-        bool? isDesired = null,
-        bool? isAvailable = null,
-        bool? primaryImage = null
-    )
+    public IEnumerable<IImage> GetAllImages(ImageFilteringOptions? options = null)
     {
+        var imageSource = options?.ImageSource;
+        var imageType = options?.ImageType;
+        var xrefSource = options?.XrefSource;
+        var isEnabled = options?.IsEnabled;
+        var isDesired = options?.IsDesired;
+        var isPreferred = options?.IsPreferred;
+        var isAvailable = options?.IsAvailable;
+        var isPrimaryAvailable = options?.IsPrimaryAvailable;
+        var isPrimaryImage = options?.IsPrimaryImage;
         IEnumerable<IImage> images = imageRepository.GetAll();
-        if (imageSource is not null || isAvailable is not null || primaryImage is not null)
+        if (
+            imageSource is not null ||
+            isAvailable is not null ||
+            isPrimaryAvailable is not null ||
+            isPrimaryImage is not null
+        )
             images = images.Where(image =>
                 (imageSource is null || image.Source == imageSource) &&
                 (isAvailable is null || image.IsAvailable == isAvailable.Value) &&
-                (primaryImage is null || image.PrimaryID == image.ID == primaryImage.Value)
+                (isPrimaryAvailable is null || image.IsPrimaryAvailable == isPrimaryAvailable) &&
+                (isPrimaryImage is null || image.PrimaryID == image.ID == isPrimaryImage.Value)
             );
-        if (imageType is not null || xrefSource is not null || isEnabled is not null || isDesired is not null)
+        if (
+            imageType is not null ||
+            xrefSource is not null ||
+            isEnabled is not null ||
+            isDesired is not null ||
+            isPreferred is not null
+        )
         {
             images = images
                 .Where(image => xrefRepository.GetByImageID(image.ID) is { Count: > 0 } xrefs && xrefs
@@ -272,31 +286,50 @@ public partial class ImageManager(
                         (imageType is null || xref.ImageType == imageType) &&
                         (xrefSource is null || xref.Source == xrefSource) &&
                         (isEnabled is null || xref.IsEnabled == isEnabled) &&
-                        (isDesired is null || xref.IsDesired == isDesired)
+                        (isDesired is null || xref.IsDesired == isDesired) &&
+                        (isPreferred is null || xref.IsPreferred == isPreferred)
                     )
                 );
         }
+
+        if (options?.AsPrimaryImage is not null)
+            images = images
+                .Select(image => image.ID == image.PrimaryID ? image : imageRepository.GetByID(image.PrimaryID))
+                .WhereNotNull();
+
         return images;
     }
 
     /// <inheritdoc/>
     public IReadOnlyList<IImage> GetImagesForEntity(
         IWithImages entity,
-        DataSource? imageSource = null,
-        ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
-        bool? isEnabled = null,
-        bool? isDesired = null,
-        bool? isAvailable = null,
-        bool primaryImage = false,
-        bool? linkedEntityImages = null
+        ImageFilteringOptions? options = null
     )
     {
         if (!TryGetMetadataForEntity(entity, out var entitySource, out var entityType, out var entityID, out _, out _, out _))
             throw new ArgumentException(nameof(entity), "Invalid entity given to GetImagesForEntity");
 
+        var imageSource = options?.ImageSource;
+        var imageType = options?.ImageType;
+        var xrefSource = options?.XrefSource;
+        var isEnabled = options?.IsEnabled;
+        var isDesired = options?.IsDesired;
+        var isPreferred = options?.IsPreferred;
+        var isAvailable = options?.IsAvailable;
+        var isPrimaryImage = options?.IsPrimaryImage;
+        var primaryImage = options?.AsPrimaryImage ?? false;
+        var isPrimaryAvailable = options?.IsPrimaryAvailable;
+        var linkedEntityImages = options?.LinkedEntityImages;
         Func<IEnumerable<IImageCrossReference>, IEnumerable<IImageCrossReference>> filter =
-            imageSource is not null || imageType is not null || xrefSource is not null || isEnabled is not null || isDesired is not null || isAvailable is not null
+            imageSource is not null ||
+            imageType is not null ||
+            xrefSource is not null ||
+            isEnabled is not null ||
+            isDesired is not null ||
+            isPreferred is not null ||
+            isAvailable is not null ||
+            isPrimaryImage is not null ||
+            isPrimaryAvailable is not null
                 ? xrefs => xrefs
                     .Where(xref =>
                         (imageSource is null || xref.ImageSource == imageSource) &&
@@ -304,7 +337,10 @@ public partial class ImageManager(
                         (xrefSource is null || xref.Source == xrefSource) &&
                         (isEnabled is null || xref.IsEnabled == isEnabled) &&
                         (isDesired is null || xref.IsDesired == isDesired) &&
-                        (isAvailable is null || xref.IsAvailable == isAvailable)
+                        (isPreferred is null || xref.IsPreferred == isPreferred) &&
+                        (isAvailable is null || xref.IsAvailable == isAvailable) &&
+                        (isPrimaryImage is null || xref.PrimaryImageID == xref.ImageID == isPrimaryImage) &&
+                        (isPrimaryAvailable is null || xref.IsPrimaryAvailable == isPrimaryAvailable)
                     )
                 : xrefs => xrefs;
 
@@ -893,7 +929,7 @@ public partial class ImageManager(
         bool force = false
     )
     {
-        var images = GetImagesForEntity(entity, imageSource: imageSource, imageType: imageType, xrefSource: xrefSource, isEnabled: true, isDesired: true);
+        var images = GetImagesForEntity(entity, new() { ImageSource = imageSource, ImageType = imageType, XrefSource = xrefSource, IsEnabled = true, IsDesired = true });
         foreach (var image in images)
         {
             if (!force && (image.IsAvailable || image.DownloadAttempts > 3))
@@ -911,7 +947,7 @@ public partial class ImageManager(
         bool force = false
     )
     {
-        var images = GetAllImages(imageSource: imageSource, imageType: imageType, xrefSource: xrefSource, isEnabled: true, isDesired: true);
+        var images = GetAllImages(new() { ImageSource = imageSource, ImageType = imageType, XrefSource = xrefSource, IsEnabled = true, IsDesired = true });
         foreach (var image in images)
         {
             if (!force && (image.IsAvailable || image.DownloadAttempts > 3))
@@ -1099,20 +1135,33 @@ public partial class ImageManager(
     public event EventHandler<ImageCrossReferenceEventArgs>? ImageCrossReferenceRemoved;
 
     /// <inheritdoc/>
-    public IEnumerable<IImageCrossReference> GetAllImageCrossReferences(
-        DataSource? imageSource = null,
-        ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
-        DataSource? entitySource = null,
-        DataEntityType? entityType = null,
-        bool? isEnabled = null,
-        bool? isDesired = null,
-        bool? isAvailable = null,
-        bool? primaryImage = null
-    )
+    public IEnumerable<IImageCrossReference> GetAllImageCrossReferences(ImageCrossReferenceFilteringOptions? options = null)
     {
+        var imageSource = options?.ImageSource;
+        var imageType = options?.ImageType;
+        var xrefSource = options?.XrefSource;
+        var entitySource = options?.EntitySource;
+        var entityType = options?.EntityType;
+        var isEnabled = options?.IsEnabled;
+        var isDesired = options?.IsDesired;
+        var isPreferred = options?.IsPreferred;
+        var isAvailable = options?.IsAvailable;
+        var isPrimaryImage = options?.IsPrimaryImage;
+        var isPrimaryAvailable = options?.IsPrimaryAvailable;
         IEnumerable<IImageCrossReference> xrefs = xrefRepository.GetAll();
-        if (imageSource is not null || imageType is not null || xrefSource is not null || entitySource is not null || entityType is not null || isEnabled is not null || isDesired is not null || isAvailable is not null || primaryImage is not null)
+        if (
+            imageSource is not null ||
+            imageType is not null ||
+            xrefSource is not null ||
+            entitySource is not null ||
+            entityType is not null ||
+            isEnabled is not null ||
+            isDesired is not null ||
+            isPreferred is not null ||
+            isAvailable is not null ||
+            isPrimaryImage is not null ||
+            isPrimaryAvailable is not null
+        )
         {
             xrefs = xrefs
                 .Where(xref =>
@@ -1123,8 +1172,10 @@ public partial class ImageManager(
                     (entityType is null || xref.EntityType == entityType) &&
                     (isEnabled is null || xref.IsEnabled == isEnabled) &&
                     (isDesired is null || xref.IsDesired == isDesired) &&
+                    (isPreferred is null || xref.IsPreferred == isPreferred) &&
                     (isAvailable is null || xref.IsAvailable == isAvailable) &&
-                    (primaryImage is null || xref.PrimaryImageID == xref.ImageID == primaryImage)
+                    (isPrimaryImage is null || xref.PrimaryImageID == xref.ImageID == isPrimaryImage) &&
+                    (isPrimaryAvailable is null || xref.IsPrimaryAvailable == isPrimaryAvailable)
                 );
         }
         return xrefs
@@ -1140,25 +1191,21 @@ public partial class ImageManager(
     public IImageCrossReference? GetRandomImageCrossReference(
         DataSource imageSource,
         ImageEntityType imageType,
-        DataSource? xrefSource = null,
-        DataSource? entitySource = null,
-        DataEntityType? entityType = null,
-        bool? isEnabled = null,
-        bool? isDesired = null,
-        bool? isAvailable = null,
-        bool? primaryImage = null
+        RandomImageCrossReferenceFilteringOptions? options = null
     )
         => xrefRepository.GetAll()
             .Where(xref =>
                 (xref.ImageSource == imageSource) &&
                 (xref.ImageType == imageType) &&
-                (xrefSource is null || xref.Source == xrefSource) &&
-                (entitySource is null || xref.EntitySource == entitySource) &&
-                (entityType is null || xref.EntityType == entityType) &&
-                (isEnabled is null || xref.IsEnabled == isEnabled) &&
-                (isDesired is null || xref.IsDesired == isDesired) &&
-                (isAvailable is null || xref.IsAvailable == isAvailable) &&
-                (primaryImage is null || xref.PrimaryImageID == xref.ImageID == primaryImage)
+                (options?.XrefSource is null || xref.Source == options.XrefSource) &&
+                (options?.EntitySource is null || xref.EntitySource == options.EntitySource) &&
+                (options?.EntityType is null || xref.EntityType == options.EntityType) &&
+                (options?.IsEnabled is null || xref.IsEnabled == options.IsEnabled) &&
+                (options?.IsDesired is null || xref.IsDesired == options.IsDesired) &&
+                (options?.IsPreferred is null || xref.IsPreferred == options.IsPreferred) &&
+                (options?.IsAvailable is null || xref.IsAvailable == options.IsAvailable) &&
+                (options?.IsPrimaryImage is null || xref.PrimaryImageID == xref.ImageID == options.IsPrimaryImage) &&
+                (options?.IsPrimaryAvailable is null || xref.IsPrimaryAvailable == options.IsPrimaryAvailable)
             )
             .OrderByDescending(xref => xref.LastUpdatedAt)
             .GetRandomElement(Random.Shared);
@@ -1166,21 +1213,32 @@ public partial class ImageManager(
     /// <inheritdoc/>
     public IReadOnlyList<IImageCrossReference> GetImageCrossReferencesForEntity(
         IWithImages entity,
-        DataSource? imageSource = null,
-        ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
-        bool? isEnabled = null,
-        bool? isDesired = null,
-        bool? isAvailable = null,
-        bool? primaryImage = null,
-        bool? linkedEntityImages = null
+        ImageCrossReferenceFilteringOptions? options = null
     )
     {
         if (!TryGetMetadataForEntity(entity, out var entitySource, out var entityType, out var entityID, out _, out _, out _))
             throw new ArgumentException("Invalid entity given to GetImagesForEntity", nameof(entity));
 
+        var imageSource = options?.ImageSource;
+        var imageType = options?.ImageType;
+        var xrefSource = options?.XrefSource;
+        var isEnabled = options?.IsEnabled;
+        var isDesired = options?.IsDesired;
+        var isPreferred = options?.IsPreferred;
+        var isAvailable = options?.IsAvailable;
+        var isPrimaryImage = options?.IsPrimaryImage;
+        var isPrimaryAvailable = options?.IsPrimaryAvailable;
+        var linkedEntityImages = options?.LinkedEntityImages;
         Func<IEnumerable<IImageCrossReference>, IEnumerable<IImageCrossReference>> filter =
-            imageSource is not null || imageType is not null || xrefSource is not null || isEnabled is not null || isDesired is not null || isAvailable is not null || primaryImage is not null
+            imageSource is not null ||
+            imageType is not null ||
+            xrefSource is not null ||
+            isEnabled is not null ||
+            isDesired is not null ||
+            isPreferred is not null ||
+            isAvailable is not null ||
+            isPrimaryImage is not null ||
+            isPrimaryAvailable is not null
                 ? xrefs => xrefs
                     .Where(xref =>
                         (imageSource is null || xref.ImageSource == imageSource) &&
@@ -1188,8 +1246,10 @@ public partial class ImageManager(
                         (xrefSource is null || xref.Source == xrefSource) &&
                         (isEnabled is null || xref.IsEnabled == isEnabled) &&
                         (isDesired is null || xref.IsDesired == isDesired) &&
+                        (isPreferred is null || xref.IsPreferred == isPreferred) &&
                         (isAvailable is null || xref.IsAvailable == isAvailable) &&
-                        (primaryImage is null || xref.PrimaryImageID == xref.ImageID == primaryImage)
+                        (isPrimaryImage is null || xref.PrimaryImageID == xref.ImageID == isPrimaryImage) &&
+                        (isPrimaryAvailable is null || xref.IsPrimaryAvailable == isPrimaryAvailable)
                     )
                 : xrefs => xrefs;
 
@@ -1323,7 +1383,7 @@ public partial class ImageManager(
 
     /// <inheritdoc/>
     public IImageCrossReference SetPreferredImageForEntity(IWithImages entity, ImageEntityType imageType, IImage image)
-        => GetImageCrossReferencesForEntity(entity, imageType: imageType, linkedEntityImages: false).FirstOrDefault(xref => xref.ImageID == image.ID) is { } xref
+        => GetImageCrossReferencesForEntity(entity, new() { ImageType = imageType, LinkedEntityImages = false }).FirstOrDefault(xref => xref.ImageID == image.ID) is { } xref
             ? xref.IsPreferred && xref.IsEnabled && xref.IsDesired ? xref : UpdateImageCrossReference(xref, new() { IsPreferred = true, IsEnabled = true, IsDesired = true })
             : AddImageCrossReference(entity, image, new() { ImageType = imageType, IsPreferred = true, IsEnabled = true, IsDesired = true });
 
@@ -1338,7 +1398,7 @@ public partial class ImageManager(
     /// <inheritdoc/>
     public bool UnsetAllPreferredImagesForEntity(IWithImages entity)
     {
-        var xrefs = GetImageCrossReferencesForEntity(entity, linkedEntityImages: false);
+        var xrefs = GetImageCrossReferencesForEntity(entity, new() { LinkedEntityImages = false });
         if (xrefs.Count is 0)
             return true;
 

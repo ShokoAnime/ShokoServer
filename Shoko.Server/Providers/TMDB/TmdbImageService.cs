@@ -69,7 +69,7 @@ public class TmdbImageService(ILogger<TmdbImageService> logger, IImageManager im
             .ThenBy(tuple => tuple.Index)
             .Select((tuple, index) => (tuple.Image, index))
             .ToList();
-        var xrefs = imageManager.GetImageCrossReferencesForEntity(entity, imageSource: DataSource.TMDB, imageType: imageType, xrefSource: DataSource.TMDB)
+        var xrefs = imageManager.GetImageCrossReferencesForEntity(entity, new() { ImageSource = DataSource.TMDB, ImageType = imageType, XrefSource = DataSource.TMDB })
             .ToDictionary(xref => xref.ImageID);
         var validImageCrossReferences = new HashSet<Guid>();
         foreach (var (imageData, index) in orderedImages)

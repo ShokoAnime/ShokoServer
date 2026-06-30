@@ -80,7 +80,7 @@ public class Filter : Filters
         {
             var rand = new Random();
             var series = (IWithImages)arts[rand.Next(arts.Count)];
-            var backdrops = series.GetImages(imageType: ImageEntityType.Backdrop);
+            var backdrops = series.GetImages(new() { ImageType = ImageEntityType.Backdrop });
             if (backdrops.Count > 0)
             {
                 var backdrop = backdrops[rand.Next(backdrops.Count)];

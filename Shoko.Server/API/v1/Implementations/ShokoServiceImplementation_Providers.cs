@@ -57,9 +57,9 @@ public partial class ShokoServiceImplementation
             if (xrefMovie?.TmdbMovie is { } tmdbMovie)
             {
                 result.MovieDBMovie = xrefMovie?.TmdbMovie?.ToClient();
-                foreach (var fanart in ((IWithImages)tmdbMovie).GetImages(imageType: ImageEntityType.Backdrop))
+                foreach (var fanart in ((IWithImages)tmdbMovie).GetImages(new() { ImageType = ImageEntityType.Backdrop }))
                     result.MovieDBFanarts.Add(fanart.ToClientFanart());
-                foreach (var poster in ((IWithImages)tmdbMovie).GetImages(imageType: ImageEntityType.Primary))
+                foreach (var poster in ((IWithImages)tmdbMovie).GetImages(new() { ImageType = ImageEntityType.Primary }))
                     result.MovieDBPosters.Add(poster.ToClientPoster());
             }
 

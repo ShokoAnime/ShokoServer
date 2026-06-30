@@ -771,7 +771,7 @@ public class EpisodeController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        return ((IWithImages)episode).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true)
+        return ((IWithImages)episode).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true })
             .OrderBy(a => a.Type)
             .ThenBy(a => a.Source)
             .ThenByDescending(a => a.LanguageCode is null)
@@ -811,7 +811,7 @@ public class EpisodeController : BaseController
         if (preferredImage is not null)
             return new Image(preferredImage);
 
-        var images = ((IWithImages)episode).GetImages(imageType: imageEntityType).ToDto();
+        var images = ((IWithImages)episode).GetImages(new() { ImageType = imageEntityType }).ToDto();
         return imageEntityType switch
         {
             ImageEntityType.Primary => images.Posters.FirstOrDefault(),
@@ -893,7 +893,7 @@ public class EpisodeController : BaseController
         // Check if a default image is set.
         var imageEntityType = imageType.ToServer();
         var xref = _imageManager
-            .GetImageCrossReferencesForEntity(episode, imageType: imageEntityType).FirstOrDefault(xref => xref.IsPreferred);
+            .GetImageCrossReferencesForEntity(episode, new() { ImageType = imageEntityType, IsPreferred = true }).FirstOrDefault();
         if (xref is null)
             return ValidationProblem("No default image for the selected type.");
 

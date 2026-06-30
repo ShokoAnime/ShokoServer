@@ -880,7 +880,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                 ResourceID = resourceID,
             });
 
-        var imageXref = _imageManager.GetImageCrossReferencesForEntity(entity, imageSource: DataSource.AniDB, imageType: ImageEntityType.Primary, xrefSource: DataSource.AniDB)
+        var imageXref = _imageManager.GetImageCrossReferencesForEntity(entity, new() { ImageSource = DataSource.AniDB, ImageType = ImageEntityType.Primary, XrefSource = DataSource.AniDB })
             .FirstOrDefault(xref => xref.ImageID == image.ID)
             ?? _imageManager.AddImageCrossReference(entity, image, new ImageCrossReferenceData
             {

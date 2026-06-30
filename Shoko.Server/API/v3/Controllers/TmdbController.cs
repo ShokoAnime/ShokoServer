@@ -286,7 +286,7 @@ public partial class TmdbController : BaseController
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return ((IWithImages)movie).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
+        return ((IWithImages)movie).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language);
     }
 
     [HttpGet("Movie/{movieID}/Cast")]
@@ -892,7 +892,7 @@ public partial class TmdbController : BaseController
         if (collection is null)
             return NotFound(MovieCollectionNotFound);
 
-        return ((IWithImages)collection).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
+        return ((IWithImages)collection).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language);
     }
 
     #endregion
@@ -1152,7 +1152,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
-        return ((IWithImages)show).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
+        return ((IWithImages)show).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language);
     }
 
     [HttpGet("Show/{showID}/Ordering")]
@@ -2050,7 +2050,7 @@ public partial class TmdbController : BaseController
                 return NotFound(SeasonNotFound);
 
 
-            return ((IWithImages)altOrderSeason).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
+            return ((IWithImages)altOrderSeason).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language);
         }
 
         var seasonId = int.Parse(seasonID);
@@ -2060,7 +2060,7 @@ public partial class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return ((IWithImages)season).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
+        return ((IWithImages)season).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language);
     }
 
     [HttpGet("Season/{seasonID}/Cast")]
@@ -2603,7 +2603,7 @@ public partial class TmdbController : BaseController
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
-        return ((IWithImages)episode).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
+        return ((IWithImages)episode).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language);
     }
 
     [HttpGet("Episode/{episodeID}/Cast")]

@@ -456,7 +456,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
     #region IWithImages Implementation
 
     public IImageCrossReference? DefaultBackdropImageCrossReference => !string.IsNullOrEmpty(ThumbnailPath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, ThumbnailPath) is { } imageID
-        ? ((IWithImages)this).GetImageCrossReferences(imageSource: DataSource.TMDB, imageType: ImageEntityType.Backdrop).FirstOrDefault(xref => xref.ImageID == imageID)
+        ? ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = DataSource.TMDB, ImageType = ImageEntityType.Backdrop }).FirstOrDefault(xref => xref.ImageID == imageID)
         : null;
 
     #endregion
