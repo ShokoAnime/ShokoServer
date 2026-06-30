@@ -11,7 +11,6 @@ using NHibernate.UserTypes;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.Extensions;
 
-#nullable enable
 namespace Shoko.Server.Databases.NHibernate;
 
 public class PartialDateOnlyConverter : TypeConverter, IUserType

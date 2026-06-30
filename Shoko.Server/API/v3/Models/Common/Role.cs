@@ -7,7 +7,6 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Server;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
 /// <summary>

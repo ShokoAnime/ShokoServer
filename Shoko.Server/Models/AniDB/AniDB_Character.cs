@@ -12,7 +12,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_Character : ICharacter

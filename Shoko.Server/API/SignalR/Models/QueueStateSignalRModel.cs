@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Shoko.Server.API.v3.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 public class QueueStateSignalRModel

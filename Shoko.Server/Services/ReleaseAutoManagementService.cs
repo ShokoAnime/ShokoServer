@@ -12,7 +12,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 /// <summary>

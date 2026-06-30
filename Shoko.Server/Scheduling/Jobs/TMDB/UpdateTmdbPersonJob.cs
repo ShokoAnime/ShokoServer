@@ -8,7 +8,6 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Direct.TMDB;
 
 #pragma warning disable CS8618
-#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.TMDB;
 
 [DatabaseRequired]

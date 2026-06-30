@@ -11,7 +11,6 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.API.v2.Models.common;
 
 [DataContract]

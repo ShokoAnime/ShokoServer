@@ -10,7 +10,6 @@ using Shoko.QueueProcessor.Events;
 using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.API.v3.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class QueueEventEmitter : BaseEventEmitter, IDisposable

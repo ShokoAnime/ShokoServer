@@ -14,7 +14,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Filters;
 
 public sealed class FilterableAnimeSeries(AnimeSeries series, DateTime now) : IFilterableInfo

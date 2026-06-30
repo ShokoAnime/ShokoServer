@@ -15,7 +15,6 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities.FileSystemWatcher;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class FileWatcherService

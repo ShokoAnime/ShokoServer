@@ -20,7 +20,6 @@ using Shoko.Abstractions.Utilities;
 
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public partial class SystemUpdateService(

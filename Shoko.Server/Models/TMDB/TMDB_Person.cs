@@ -16,7 +16,6 @@ using TMDbLib.Objects.People;
 using PersonGender = Shoko.Server.Providers.TMDB.PersonGender;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 /// <summary>

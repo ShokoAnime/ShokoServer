@@ -2,7 +2,6 @@ using System;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Relocation;
 
-#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 public class StoredRelocationPreset : IStoredRelocationPreset

@@ -5,7 +5,6 @@ using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Events;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 public class GroupUserDataSavedSignalRModel(GroupUserDataSavedEventArgs args)

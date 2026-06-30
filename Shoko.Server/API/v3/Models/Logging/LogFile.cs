@@ -2,7 +2,6 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Logging.Models;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Logging;
 
 /// <summary>

@@ -9,7 +9,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Server;
 
-#nullable enable
 namespace Shoko.Server.Filters;
 
 public class FilterPresetManager(FilterPresetRepository filterPresetRepository) : IFilterPresetManager

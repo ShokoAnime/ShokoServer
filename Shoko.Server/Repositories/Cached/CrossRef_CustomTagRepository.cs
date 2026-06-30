@@ -4,7 +4,6 @@ using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class CrossRef_CustomTagRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<CrossRef_CustomTag, int>(databaseFactory)

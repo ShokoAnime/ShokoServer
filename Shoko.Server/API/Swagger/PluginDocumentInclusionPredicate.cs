@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Shoko.Abstractions.Plugin;
 
-#nullable enable
 namespace Shoko.Server.API.Swagger;
 
 /// <summary>

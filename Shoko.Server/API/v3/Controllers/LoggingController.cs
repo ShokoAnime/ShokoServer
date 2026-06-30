@@ -17,7 +17,6 @@ using Shoko.Server.Settings;
 
 using LogReadResult = Shoko.Server.API.v3.Models.Logging.LogReadResult;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>

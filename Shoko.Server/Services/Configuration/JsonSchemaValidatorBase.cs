@@ -11,7 +11,6 @@ using NJsonSchema;
 using NJsonSchema.Validation;
 using NJsonSchema.Validation.FormatValidators;
 
-#nullable enable
 namespace Shoko.Server.Services.Configuration;
 
 /// <summary>

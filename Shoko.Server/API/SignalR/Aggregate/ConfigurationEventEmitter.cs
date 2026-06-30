@@ -4,7 +4,6 @@ using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Server.API.SignalR.Models;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class ConfigurationEventEmitter : BaseEventEmitter, IDisposable

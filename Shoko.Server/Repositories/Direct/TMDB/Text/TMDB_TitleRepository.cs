@@ -5,7 +5,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Server;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Direct.TMDB.Text;
 
 public class TMDB_TitleRepository : BaseDirectRepository<TMDB_Title, int>

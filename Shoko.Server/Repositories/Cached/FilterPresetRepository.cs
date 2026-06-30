@@ -16,7 +16,6 @@ using Shoko.Server.Server;
 
 using Constants = Shoko.Server.Server.Constants;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<FilterPreset, int>(databaseFactory)

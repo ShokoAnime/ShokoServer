@@ -9,7 +9,6 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.Image;
 
 [DatabaseRequired]

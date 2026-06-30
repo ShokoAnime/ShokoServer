@@ -9,7 +9,6 @@ using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata<int>, IEntityMetadata

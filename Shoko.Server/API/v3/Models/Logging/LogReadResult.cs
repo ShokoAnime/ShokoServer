@@ -4,7 +4,6 @@ using System.Linq;
 
 using AbstractLogReadResult = Shoko.Abstractions.Logging.Models.LogReadResult;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Logging;
 
 /// <summary>

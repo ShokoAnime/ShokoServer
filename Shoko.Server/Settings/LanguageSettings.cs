@@ -5,7 +5,6 @@ using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Metadata.Enums;
 
-#nullable enable
 namespace Shoko.Server.Settings;
 
 public class LanguageSettings

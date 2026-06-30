@@ -1,5 +1,4 @@
 
-#nullable enable
 using System.ComponentModel.DataAnnotations;
 
 namespace Shoko.Server.API.v3.Models.Common;

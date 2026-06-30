@@ -5,7 +5,6 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 
-#nullable enable
 namespace Shoko.Server.Scheduling.Acquisition.Filters;
 
 public class DatabaseRequiredAcquisitionFilter : IAcquisitionFilter

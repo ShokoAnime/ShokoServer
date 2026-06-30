@@ -6,7 +6,6 @@ using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Release;
 
 /// <summary>

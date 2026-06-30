@@ -11,7 +11,6 @@ using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Models.CrossReference;
 
 /// <summary>

@@ -1,5 +1,4 @@
 
-# nullable enable
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 

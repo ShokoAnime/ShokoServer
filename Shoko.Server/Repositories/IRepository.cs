@@ -5,7 +5,6 @@ using Shoko.Server.Repositories.NHibernate;
 
 // ReSharper disable InconsistentNaming
 
-#nullable enable
 namespace Shoko.Server.Repositories;
 
 public interface IRepository<T, in S>

@@ -20,7 +20,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class UserService(

@@ -1,6 +1,5 @@
 using System;
 
-#nullable enable
 namespace Shoko.Server.Providers.AniDB.UDP.Info;
 
 /// <summary>

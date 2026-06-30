@@ -5,7 +5,6 @@ using NLog;
 
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.NLog;
 
 public class LogEvent : EventArgs

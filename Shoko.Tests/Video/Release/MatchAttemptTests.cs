@@ -2,7 +2,6 @@ using System.Linq;
 using Shoko.Server.Models.Release;
 using Xunit;
 
-#nullable enable
 namespace Shoko.Tests.Video.Release;
 
 /// <summary>

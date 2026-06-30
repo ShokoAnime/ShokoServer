@@ -17,7 +17,6 @@ using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.API.v3.Models.AniDB;
 
 /// <summary>

@@ -35,7 +35,6 @@ using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class VideoHashingService(

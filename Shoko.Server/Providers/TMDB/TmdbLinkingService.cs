@@ -23,7 +23,6 @@ using Shoko.Server.Utilities;
 #pragma warning disable CA1822
 #pragma warning disable CA1826
 
-#nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
 public class TmdbLinkingService : ITmdbLinkingService

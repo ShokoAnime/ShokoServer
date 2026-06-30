@@ -23,7 +23,6 @@ using TMDbLib.Objects.Search;
 using TMDbLib.Objects.TvShows;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 /// <summary>

@@ -15,7 +15,6 @@ using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Server.Hashing.HashAlgorithms;
 
-#nullable enable
 namespace Shoko.Server.Hashing;
 
 /// <summary>

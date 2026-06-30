@@ -22,7 +22,6 @@ using Shoko.Server.Utilities;
 
 using ConfigurationActionType = Shoko.Abstractions.Config.Enums.ConfigurationActionType;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>

@@ -10,7 +10,6 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using TMDbLib.Objects.TvShows;
 
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 /// <summary>

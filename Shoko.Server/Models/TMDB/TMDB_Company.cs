@@ -10,7 +10,6 @@ using Shoko.Server.Repositories;
 using TMDbLib.Objects.General;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Company : IStudio

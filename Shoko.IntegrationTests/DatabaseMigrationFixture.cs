@@ -5,7 +5,6 @@ using Microsoft.Extensions.Hosting;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.IntegrationTests;
 
 /// <summary>

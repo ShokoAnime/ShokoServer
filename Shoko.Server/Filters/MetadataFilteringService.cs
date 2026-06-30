@@ -11,7 +11,6 @@ using Shoko.Abstractions.User;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 
-#nullable enable
 namespace Shoko.Server.Filters;
 
 public class MetadataFilteringService(

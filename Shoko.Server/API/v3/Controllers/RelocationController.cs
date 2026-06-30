@@ -29,7 +29,6 @@ using ApiRelocationPreset = Shoko.Server.API.v3.Models.Relocation.RelocationPres
 using ApiRelocationResult = Shoko.Server.API.v3.Models.Relocation.RelocationResult;
 using RelocationPreset = Shoko.Abstractions.Video.Relocation.RelocationPreset;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>

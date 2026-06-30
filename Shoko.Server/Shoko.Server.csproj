@@ -20,6 +20,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591;NU1902;NU1903</NoWarn>
     <ApplicationIcon>db.ico</ApplicationIcon>
+    <Nullable>enable</Nullable>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'ApiLogging' ">

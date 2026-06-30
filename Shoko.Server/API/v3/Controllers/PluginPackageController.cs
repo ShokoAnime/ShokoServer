@@ -21,7 +21,6 @@ using AbstractPackageUpdateInfo = Shoko.Abstractions.Plugin.Models.PackageUpdate
 using PackageUpdateInfo = Shoko.Server.API.v3.Models.Plugin.PackageUpdateInfo;
 using PluginInfo = Shoko.Server.API.v3.Models.Plugin.PluginInfo;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>

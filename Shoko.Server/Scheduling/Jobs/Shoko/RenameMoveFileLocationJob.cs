@@ -8,7 +8,6 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Models.Shoko;
 
 #pragma warning disable CS8618
-#nullable enable
 using Shoko.Server.Repositories.Cached;
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 

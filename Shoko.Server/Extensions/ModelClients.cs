@@ -18,7 +18,6 @@ using Shoko.Server.Settings;
 using TMDbLib.Objects.Search;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-#nullable enable
 namespace Shoko.Server.Extensions;
 
 public static class ModelClients

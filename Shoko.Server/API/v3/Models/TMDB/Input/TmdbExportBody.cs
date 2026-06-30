@@ -6,7 +6,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.CrossReference;
 using static Shoko.Server.API.v3.Controllers.TmdbController;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB.Input;
 
 public class TmdbExportBody

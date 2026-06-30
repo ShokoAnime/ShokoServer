@@ -5,7 +5,6 @@ using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_AnimeRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Anime, int>(databaseFactory)

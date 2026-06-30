@@ -6,7 +6,6 @@ using Shoko.Abstractions.Video;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 /// <summary>

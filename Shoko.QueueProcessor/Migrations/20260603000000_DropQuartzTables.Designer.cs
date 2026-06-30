@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Shoko.QueueProcessor.Storage;
 using Shoko.QueueProcessor.Storage.Contexts;
 
-#nullable disable
 
 namespace Shoko.QueueProcessor.Migrations
 {

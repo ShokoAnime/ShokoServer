@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 using AbstractPluginThumbnailInfo = Shoko.Abstractions.Plugin.Models.PackageThumbnailInfo;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Plugin;
 
 /// <summary>

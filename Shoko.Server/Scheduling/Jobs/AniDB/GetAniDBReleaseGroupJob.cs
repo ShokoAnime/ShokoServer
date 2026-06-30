@@ -17,7 +17,6 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 
 #pragma warning disable CS8618
-#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]

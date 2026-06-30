@@ -3,7 +3,6 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Server;
 
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Overview : IText

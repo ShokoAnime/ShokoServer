@@ -23,7 +23,6 @@ using Shoko.Server.Settings;
 
 using ReleaseInfo = Shoko.Server.API.v3.Models.Release.ReleaseInfo;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>

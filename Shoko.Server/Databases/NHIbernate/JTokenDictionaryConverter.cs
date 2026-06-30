@@ -13,7 +13,6 @@ using NHibernate.Engine;
 using NHibernate.SqlTypes;
 using NHibernate.UserTypes;
 
-#nullable enable
 namespace Shoko.Server.Databases.NHibernate;
 
 public class JTokenDictionaryConverter : TypeConverter, IUserType

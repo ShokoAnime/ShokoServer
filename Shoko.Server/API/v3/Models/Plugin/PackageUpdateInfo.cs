@@ -6,7 +6,6 @@ using Shoko.Abstractions.Plugin.Models;
 
 using AbstractPackageUpdateInfo = Shoko.Abstractions.Plugin.Models.PackageUpdateInfo;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Plugin;
 
 /// <summary>

@@ -20,7 +20,6 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 
 #pragma warning disable CS8618
-#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]

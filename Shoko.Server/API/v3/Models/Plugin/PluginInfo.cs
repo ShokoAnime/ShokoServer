@@ -8,7 +8,6 @@ using Shoko.Server.Services;
 
 using AbstractPluginInfo = Shoko.Abstractions.Plugin.Models.LocalPluginInfo;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Plugin;
 
 /// <summary>

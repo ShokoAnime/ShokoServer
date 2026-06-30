@@ -4,7 +4,6 @@ using Newtonsoft.Json;
 
 using AbstractLogEntry = Shoko.Abstractions.Logging.Models.LogEntry;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Logging;
 
 /// <summary>

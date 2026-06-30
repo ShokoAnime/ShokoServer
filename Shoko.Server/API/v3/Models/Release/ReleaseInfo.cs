@@ -9,7 +9,6 @@ using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.API.v3.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Release;
 
 public class ReleaseInfo : IReleaseInfo

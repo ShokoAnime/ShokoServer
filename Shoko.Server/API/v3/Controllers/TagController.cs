@@ -16,7 +16,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]

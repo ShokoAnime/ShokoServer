@@ -15,7 +15,6 @@ using Shoko.Server.Settings;
 using TMDbLib.Objects.TvShows;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason

@@ -12,7 +12,6 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>

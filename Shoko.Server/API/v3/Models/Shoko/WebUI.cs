@@ -20,7 +20,6 @@ using Shoko.Server.Repositories;
 using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
 using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class WebUI

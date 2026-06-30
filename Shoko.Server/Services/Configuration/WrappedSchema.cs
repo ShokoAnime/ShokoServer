@@ -1,6 +1,5 @@
 using NJsonSchema;
 
-#nullable enable
 namespace Shoko.Server.Services.Configuration;
 
 public record class WrappedJsonSchema

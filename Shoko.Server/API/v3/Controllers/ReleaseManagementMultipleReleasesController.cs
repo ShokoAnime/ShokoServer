@@ -24,7 +24,6 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 #pragma warning disable CA1822
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]

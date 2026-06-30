@@ -1,6 +1,5 @@
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_Anime_Tag

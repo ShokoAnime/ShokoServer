@@ -13,7 +13,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 /// <summary>

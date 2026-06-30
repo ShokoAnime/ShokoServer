@@ -5,7 +5,6 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.AniDB;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.AniDB;
 
 /// <summary>

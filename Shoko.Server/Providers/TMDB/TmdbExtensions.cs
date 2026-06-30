@@ -9,7 +9,6 @@ using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.Search;
 using TMDbLib.Objects.TvShows;
 
-#nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
 public static class TmdbExtensions

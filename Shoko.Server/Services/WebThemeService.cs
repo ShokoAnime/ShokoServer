@@ -14,7 +14,6 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Web;
 using Shoko.Abstractions.Web.Services;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public partial class WebThemeService(IApplicationPaths applicationPaths) : IWebThemeService

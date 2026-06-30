@@ -11,7 +11,6 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 /// <summary>

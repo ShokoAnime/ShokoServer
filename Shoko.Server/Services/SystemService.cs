@@ -64,7 +64,6 @@ using Trinet.Core.IO.Ntfs;
 
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class SystemService : ISystemService

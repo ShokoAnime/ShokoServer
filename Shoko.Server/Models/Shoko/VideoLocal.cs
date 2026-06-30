@@ -20,7 +20,6 @@ using Shoko.Server.Repositories;
 using MediaContainer = Shoko.Server.MediaInfo.MediaContainer;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 public class VideoLocal : IVideo

@@ -14,7 +14,6 @@ using Shoko.Server.Settings;
 
 using ApiToken = Shoko.Server.API.v3.Models.Auth.ApiToken;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>

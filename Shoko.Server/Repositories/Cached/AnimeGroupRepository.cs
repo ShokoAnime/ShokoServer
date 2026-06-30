@@ -8,7 +8,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.NHibernate;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>

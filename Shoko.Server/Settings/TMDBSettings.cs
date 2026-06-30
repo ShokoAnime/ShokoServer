@@ -9,7 +9,6 @@ using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 
-#nullable enable
 namespace Shoko.Server.Settings;
 
 public class TMDBSettings

@@ -9,7 +9,6 @@ using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Models.CrossReference;
 
 public class CrossRef_AniDB_TMDB_Movie : ITmdbMovieCrossReference

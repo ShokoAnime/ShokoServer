@@ -23,7 +23,6 @@ using Shoko.Server.Settings;
 
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class UserDataService(

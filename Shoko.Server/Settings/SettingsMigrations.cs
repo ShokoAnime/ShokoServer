@@ -10,7 +10,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Plugin;
 
-#nullable enable
 namespace Shoko.Server.Settings;
 
 public static partial class SettingsMigrations

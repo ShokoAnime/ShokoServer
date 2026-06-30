@@ -21,7 +21,6 @@ using Shoko.Server.Utilities;
 
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
-#nullable enable
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_Episode : IEpisode, IAnidbEpisode

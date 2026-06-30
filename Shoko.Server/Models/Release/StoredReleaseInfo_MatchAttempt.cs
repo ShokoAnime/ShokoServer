@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
 
-#nullable enable
 namespace Shoko.Server.Models.Release;
 
 /// <summary>

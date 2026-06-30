@@ -1,5 +1,4 @@
 
-#nullable enable
 using System;
 
 namespace Shoko.Server.API.v3.Models.Plugin.Input;

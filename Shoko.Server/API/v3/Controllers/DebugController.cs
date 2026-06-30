@@ -20,7 +20,6 @@ using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Test;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 #if DEBUG

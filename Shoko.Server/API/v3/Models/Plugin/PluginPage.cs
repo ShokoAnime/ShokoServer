@@ -3,7 +3,6 @@ using System;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Plugin.Models;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Plugin;
 
 /// <summary>

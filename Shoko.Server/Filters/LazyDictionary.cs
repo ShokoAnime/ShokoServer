@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-#nullable enable
 namespace Shoko.Server.Filters;
 
 public sealed class LazyDictionary<TKey, TValue>(Dictionary<TKey, Lazy<TValue>>? dictionary = null) : IReadOnlyDictionary<TKey, TValue> where TKey : notnull

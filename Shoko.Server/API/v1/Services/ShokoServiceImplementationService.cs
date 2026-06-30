@@ -19,7 +19,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.API.v1.Services;
 
 public class ShokoServiceImplementationService(

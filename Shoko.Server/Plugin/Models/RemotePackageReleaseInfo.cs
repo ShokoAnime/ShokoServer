@@ -5,7 +5,6 @@ using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Core;
 
-#nullable enable
 namespace Shoko.Server.Plugin.Models;
 
 /// <summary>

@@ -30,7 +30,6 @@ using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class AnimeSeriesService

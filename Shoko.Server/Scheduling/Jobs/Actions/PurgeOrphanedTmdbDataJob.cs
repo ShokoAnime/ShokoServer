@@ -8,7 +8,6 @@ using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Settings;
 
 #pragma warning disable CS8618
-#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 [DatabaseRequired]

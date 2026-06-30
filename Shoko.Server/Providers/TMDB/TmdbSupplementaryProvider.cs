@@ -5,7 +5,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
 /// <summary>

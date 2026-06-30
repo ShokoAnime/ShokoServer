@@ -7,7 +7,6 @@ using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Events;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 public class AvdumpEventSignalRModel

@@ -44,7 +44,6 @@ using PatchReleaseBody = Shoko.Server.API.v3.Models.Release.Input.PatchReleaseBo
 using Path = System.IO.Path;
 using ReleaseInfo = Shoko.Server.API.v3.Models.Release.ReleaseInfo;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3]

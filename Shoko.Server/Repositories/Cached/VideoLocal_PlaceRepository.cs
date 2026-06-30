@@ -7,7 +7,6 @@ using Shoko.Server.Exceptions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place, int>

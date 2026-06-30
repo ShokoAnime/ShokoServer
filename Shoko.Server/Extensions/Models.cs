@@ -6,7 +6,6 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Extensions;
 
 public static class Models

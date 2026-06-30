@@ -18,7 +18,6 @@ using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 using ImageEntityType = Shoko.Abstractions.Metadata.Enums.ImageEntityType;
 using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Helpers;
 
 public static class APIv3_Extensions

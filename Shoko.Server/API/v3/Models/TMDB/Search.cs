@@ -13,7 +13,6 @@ using TMDbLib.Objects.Search;
 using RemoteMovie = TMDbLib.Objects.Movies.Movie;
 using RemoteShow = TMDbLib.Objects.TvShows.TvShow;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
 
 /// <summary>

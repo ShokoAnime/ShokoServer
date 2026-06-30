@@ -1,5 +1,4 @@
-﻿# nullable enable
-using System;
+﻿using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Core;

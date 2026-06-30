@@ -5,7 +5,6 @@ using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Events;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.AniDB;
 
 /// <summary>

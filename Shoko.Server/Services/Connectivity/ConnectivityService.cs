@@ -16,7 +16,6 @@ using Shoko.Server.Settings;
 
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
-#nullable enable
 namespace Shoko.Server.Services.Connectivity;
 
 public class ConnectivityService : IConnectivityService

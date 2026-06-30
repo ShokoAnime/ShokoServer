@@ -7,7 +7,6 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Repositories.Cached.AniDB;
 
 #pragma warning disable CS8618
-#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]

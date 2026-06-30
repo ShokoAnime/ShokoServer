@@ -11,7 +11,6 @@ using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, ITmdbEpisodeOrderingInformation

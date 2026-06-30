@@ -9,7 +9,6 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Network : ITmdbNetwork

@@ -20,7 +20,6 @@ using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Settings;
 
 public class SettingsProvider : ISettingsProvider, IDisposable

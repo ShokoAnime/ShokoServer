@@ -34,7 +34,6 @@ using NLogLevel = NLog.LogLevel;
 using Timer = System.Timers.Timer;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class LogService(ILogger<LogService> logger, IApplicationPaths applicationPaths, ISettingsProvider settingsProvider) : ILogService

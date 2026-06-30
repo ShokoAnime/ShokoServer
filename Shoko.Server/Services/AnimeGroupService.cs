@@ -7,7 +7,6 @@ using Shoko.Abstractions.User.Services;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class AnimeGroupService

@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json.Converters;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class Queue

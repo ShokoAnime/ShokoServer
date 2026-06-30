@@ -14,7 +14,6 @@ using Shoko.Abstractions.Video.Media;
 #pragma warning disable IDE0019
 #pragma warning disable IDE1006
 #pragma warning disable MsgPack015
-#nullable enable
 namespace Shoko.Server.MediaInfo;
 
 /// <summary>
@@ -192,7 +191,6 @@ public class MediaContainer : IMediaInfo
 
     public override int GetHashCode() => (media != null ? media.GetHashCode() : 0);
 }
-#nullable disable
 
 [MessagePackObject]
 public class Media
@@ -734,7 +732,6 @@ public class MenuStream : Stream
     }
 }
 
-#nullable enable
 public class ChapterInfo : IChapterInfo
 {
     /// <inheritdoc/>

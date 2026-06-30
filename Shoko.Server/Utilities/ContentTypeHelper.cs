@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 
-#nullable enable
 namespace Shoko.Server.Utilities;
 
 /// <summary>

@@ -10,7 +10,6 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.Image;
 
 [DatabaseRequired]

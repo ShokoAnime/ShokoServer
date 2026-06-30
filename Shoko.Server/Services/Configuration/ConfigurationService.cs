@@ -33,7 +33,6 @@ using Shoko.Server.Settings;
 
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
-#nullable enable
 namespace Shoko.Server.Services.Configuration;
 
 public partial class ConfigurationService : IConfigurationService

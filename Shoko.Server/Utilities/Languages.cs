@@ -6,7 +6,6 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Settings;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Utilities;
 
 public static class Languages

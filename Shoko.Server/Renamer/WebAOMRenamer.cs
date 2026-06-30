@@ -17,7 +17,6 @@ using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
-#nullable enable
 namespace Shoko.Server.Renamer;
 
 public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationService _relocationService) : IRelocationProvider<WebAOMSettings>

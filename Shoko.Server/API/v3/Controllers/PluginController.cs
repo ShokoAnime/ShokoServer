@@ -19,7 +19,6 @@ using PluginCompatibilityInfo = Shoko.Server.API.v3.Models.Plugin.PluginCompatib
 using PluginInfo = Shoko.Server.API.v3.Models.Plugin.PluginInfo;
 using PluginPage = Shoko.Server.API.v3.Models.Plugin.PluginPage;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>

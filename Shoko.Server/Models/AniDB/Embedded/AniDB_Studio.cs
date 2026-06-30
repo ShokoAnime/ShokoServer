@@ -8,7 +8,6 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_Studio : IStudio

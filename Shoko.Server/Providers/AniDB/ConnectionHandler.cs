@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Events;
 
-#nullable enable
 namespace Shoko.Server.Providers.AniDB;
 
 public abstract class ConnectionHandler

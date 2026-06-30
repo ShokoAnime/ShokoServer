@@ -19,7 +19,6 @@ using TMDbLib.Objects.General;
 using TMDbLib.Objects.Search;
 using TMDbLib.Objects.TvShows;
 
-#nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
 public partial class TmdbSearchService : ITmdbSearchService

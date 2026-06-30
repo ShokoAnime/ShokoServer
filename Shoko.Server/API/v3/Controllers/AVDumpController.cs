@@ -11,7 +11,6 @@ using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>

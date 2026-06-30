@@ -1,6 +1,5 @@
 using System;
 
-#nullable enable
 namespace Shoko.Server.Settings;
 
 public interface ISettingsProvider

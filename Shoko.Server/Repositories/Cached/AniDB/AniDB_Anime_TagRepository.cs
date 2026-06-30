@@ -5,7 +5,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_Anime_TagRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Anime_Tag, int>(databaseFactory)

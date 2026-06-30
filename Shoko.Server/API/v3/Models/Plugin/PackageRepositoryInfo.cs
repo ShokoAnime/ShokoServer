@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations;
 
 using AbstractPackageRepositoryInfo = Shoko.Abstractions.Plugin.Models.PackageRepositoryInfo;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Plugin;
 
 /// <summary>

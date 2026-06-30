@@ -4,7 +4,6 @@ using Shoko.Abstractions.Video.Relocation;
 using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.API.v3.Models.Plugin;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Relocation;
 
 /// <summary>

@@ -13,7 +13,6 @@ using Shoko.Server.Properties;
 using Shoko.Server.Settings;
 
 #pragma warning disable CS0618 // Type or member is obsolete
-#nullable enable
 namespace Shoko.Server.API.v2.Modules;
 
 [ApiController]

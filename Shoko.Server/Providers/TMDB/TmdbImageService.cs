@@ -10,7 +10,6 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using TMDbLib.Objects.General;
 
-#nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
 public class TmdbImageService(ILogger<TmdbImageService> logger, IImageManager imageManager)

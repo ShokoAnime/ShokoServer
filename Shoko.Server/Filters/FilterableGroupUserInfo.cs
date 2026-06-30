@@ -9,7 +9,6 @@ using Shoko.Abstractions.User.Enums;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Filters;
 
 public sealed class FilterableGroupUserInfo(AnimeGroup group, int userID, DateTime now) : IFilterableUserInfo

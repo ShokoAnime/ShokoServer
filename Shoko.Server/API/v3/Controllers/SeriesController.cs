@@ -51,7 +51,6 @@ using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 #pragma warning disable CS0612 // Type or member is obsolete
 #pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable CA1822
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]

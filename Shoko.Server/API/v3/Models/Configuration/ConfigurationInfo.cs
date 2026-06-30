@@ -6,7 +6,6 @@ using Shoko.Server.API.v3.Models.Plugin;
 
 using AbstractConfigurationInfo = Shoko.Abstractions.Config.ConfigurationInfo;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Configuration;
 
 public class ConfigurationInfo(AbstractConfigurationInfo info)

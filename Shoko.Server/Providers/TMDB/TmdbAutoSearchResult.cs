@@ -5,7 +5,6 @@ using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Server.Models.AniDB;
 using TMDbLib.Objects.Search;
 
-#nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
 public class TmdbAutoSearchResult : ITmdbAutoSearchResult

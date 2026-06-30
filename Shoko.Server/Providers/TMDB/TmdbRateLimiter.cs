@@ -7,7 +7,6 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Events;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
 /// <summary>

@@ -5,7 +5,6 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class ApplicationPaths : IApplicationPaths

@@ -1,7 +1,6 @@
 using System;
 using Shoko.Abstractions.Video.Hashing;
 
-#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 public class VideoLocal_HashDigest : IHashDigest

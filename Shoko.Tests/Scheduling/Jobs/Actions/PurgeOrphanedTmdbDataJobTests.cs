@@ -8,7 +8,6 @@ using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Settings;
 using Xunit;
 
-#nullable enable
 namespace Shoko.Tests.Scheduling.Jobs.Actions;
 
 public class PurgeOrphanedTmdbDataJobTests

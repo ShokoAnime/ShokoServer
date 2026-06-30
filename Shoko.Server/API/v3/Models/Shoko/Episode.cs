@@ -23,7 +23,6 @@ using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.TmdbEpisode;
 using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.TmdbMovie;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class Episode : BaseModel

@@ -1,5 +1,4 @@
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB.Input;
 
 public class TmdbDownloadImagesBody

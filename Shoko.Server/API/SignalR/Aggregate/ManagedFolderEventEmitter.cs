@@ -4,7 +4,6 @@ using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.SignalR.Models;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class ManagedFolderEventEmitter : BaseEventEmitter, IDisposable

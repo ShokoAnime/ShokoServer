@@ -9,7 +9,6 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Server;
 
-#nullable enable
 namespace Shoko.Server.Settings;
 
 [Section(DisplaySectionType.Minimal)]

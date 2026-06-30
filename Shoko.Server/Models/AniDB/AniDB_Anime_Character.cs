@@ -5,7 +5,6 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
-#nullable enable
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_Anime_Character

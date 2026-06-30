@@ -2,7 +2,6 @@ using System;
 using System.Security.Cryptography;
 using System.Text;
 
-#nullable enable
 namespace Shoko.Server;
 
 /// <summary>

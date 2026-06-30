@@ -4,7 +4,6 @@ using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 public class TMDB_Company_Entity

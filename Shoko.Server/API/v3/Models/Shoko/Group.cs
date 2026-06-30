@@ -23,7 +23,6 @@ using Shoko.Server.Repositories;
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 /// <summary>

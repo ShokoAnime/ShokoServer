@@ -6,7 +6,6 @@ using Shoko.Server.Repositories;
 
 using AbstractRelationType = Shoko.Abstractions.Metadata.Enums.RelationType;
 
-#nullable enable
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_Anime_Relation : IRelatedMetadata<ISeries, ISeries>, IEquatable<IRelatedMetadata<ISeries, ISeries>>, IEquatable<AniDB_Anime_Relation>

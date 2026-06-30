@@ -44,7 +44,6 @@ using Shoko.Server.Utilities;
 using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class AnidbService : IAnidbService, IAnidbAvdumpService

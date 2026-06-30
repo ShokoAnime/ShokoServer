@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Image;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.ImageManagement.Input;
 
 /// <summary>

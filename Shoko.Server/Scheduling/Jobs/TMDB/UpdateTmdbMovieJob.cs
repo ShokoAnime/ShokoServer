@@ -7,7 +7,6 @@ using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Providers.TMDB;
 
 #pragma warning disable CS8618
-#nullable enable
 using Shoko.Server.Repositories.Cached.TMDB;
 namespace Shoko.Server.Scheduling.Jobs.TMDB;
 

@@ -30,7 +30,6 @@ using Shoko.Server.Server;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.Plugin;
 
 /// <summary>

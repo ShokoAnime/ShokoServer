@@ -33,7 +33,6 @@ using WebUISeriesFileSummary = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISerie
 using WebUITheme = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUITheme;
 
 #pragma warning disable CA1822
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>

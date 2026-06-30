@@ -9,7 +9,6 @@ using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Plugin;
 
-#nullable enable
 namespace Shoko.Server.Settings;
 
 /// <summary>

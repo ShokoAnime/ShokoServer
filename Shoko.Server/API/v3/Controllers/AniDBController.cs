@@ -16,7 +16,6 @@ using Shoko.Server.Utilities;
 using ReleaseGroup = Shoko.Server.API.v3.Models.Release.ReleaseGroup;
 
 #pragma warning disable CA1822
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]

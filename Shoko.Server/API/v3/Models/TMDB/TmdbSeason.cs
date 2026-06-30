@@ -12,7 +12,6 @@ using Shoko.Server.Models.TMDB;
 
 using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
 
 /// <summary>

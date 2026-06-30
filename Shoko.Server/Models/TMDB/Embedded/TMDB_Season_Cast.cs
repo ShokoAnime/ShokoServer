@@ -1,5 +1,4 @@
 
-#nullable enable
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.Repositories;
 

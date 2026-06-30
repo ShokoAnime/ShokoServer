@@ -25,7 +25,6 @@ using Shoko.Server.Plugin;
 using JsonIgnoreAttribute = Newtonsoft.Json.JsonIgnoreAttribute;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
-#nullable enable
 namespace Shoko.Server.Services.Configuration;
 
 /// <summary>

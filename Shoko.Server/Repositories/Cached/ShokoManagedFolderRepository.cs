@@ -7,7 +7,6 @@ using Shoko.Abstractions.Video.Events;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class ShokoManagedFolderRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<ShokoManagedFolder, int>(databaseFactory)

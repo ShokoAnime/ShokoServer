@@ -18,7 +18,6 @@ using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Services.ErrorHandling;
 
 public static class SentryInit

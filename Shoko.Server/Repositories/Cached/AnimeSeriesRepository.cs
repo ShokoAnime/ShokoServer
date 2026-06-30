@@ -20,7 +20,6 @@ using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
 #pragma warning disable CA1822
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>

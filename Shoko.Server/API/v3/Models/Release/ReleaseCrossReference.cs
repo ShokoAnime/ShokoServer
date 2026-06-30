@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Release;
 
 public class ReleaseCrossReference : IReleaseVideoCrossReference

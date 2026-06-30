@@ -4,7 +4,6 @@ using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Server.Extensions;
 using TMDbLib.Objects.Search;
 
-#nullable enable
 namespace Shoko.Server.Providers.TMDB;
 
 /// <summary>

@@ -8,7 +8,6 @@ using Shoko.Server.API.v3.Models.Common;
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 /// <summary>

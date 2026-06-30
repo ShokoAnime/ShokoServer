@@ -14,7 +14,6 @@ using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
 using DataSource = Shoko.Abstractions.Metadata.Enums.DataSource;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_Creator : ICreator

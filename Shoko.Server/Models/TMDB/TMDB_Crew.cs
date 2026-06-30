@@ -2,7 +2,6 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 /// <summary>

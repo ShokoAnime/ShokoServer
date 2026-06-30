@@ -19,7 +19,6 @@ using Shoko.Server.API.v3.Models.ImageManagement.Input;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>

@@ -4,7 +4,6 @@ using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.TMDB;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached.TMDB;
 
 public class TMDB_MovieRepository : BaseCachedRepository<TMDB_Movie, int>

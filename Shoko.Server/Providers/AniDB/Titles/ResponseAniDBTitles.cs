@@ -8,7 +8,6 @@ using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server.Providers.AniDB.Titles;
 
 [XmlRoot("animetitles")]

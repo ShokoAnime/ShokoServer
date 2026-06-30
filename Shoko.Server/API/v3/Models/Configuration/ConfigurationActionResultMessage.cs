@@ -4,7 +4,6 @@ using Shoko.Abstractions.Config.Enums;
 
 using AbstractConfigurationActionResultMessage = Shoko.Abstractions.Config.ConfigurationActionResultMessage;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Configuration;
 
 /// <summary>

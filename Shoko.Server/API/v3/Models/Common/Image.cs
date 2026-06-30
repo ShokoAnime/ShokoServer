@@ -9,7 +9,6 @@ using Shoko.Server.API.Converters;
 using Shoko.Server.Extensions;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
 /// <summary>

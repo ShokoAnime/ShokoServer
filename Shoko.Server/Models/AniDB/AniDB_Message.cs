@@ -1,4 +1,3 @@
-# nullable enable
 using System;
 using Shoko.Server.Server;
 

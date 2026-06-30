@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Hashing;
 
 /// <summary>

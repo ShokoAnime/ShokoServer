@@ -19,7 +19,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 public class User

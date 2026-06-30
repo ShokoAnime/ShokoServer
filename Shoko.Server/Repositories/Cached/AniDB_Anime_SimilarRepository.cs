@@ -3,7 +3,6 @@ using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AniDB_Anime_SimilarRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Anime_Similar, int>(databaseFactory)

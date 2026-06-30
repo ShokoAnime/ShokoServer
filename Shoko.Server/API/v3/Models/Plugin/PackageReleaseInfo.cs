@@ -9,7 +9,6 @@ using Shoko.Abstractions.Plugin.Models;
 
 using AbstractPackageReleaseInfo = Shoko.Abstractions.Plugin.Models.PackageReleaseInfo;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Plugin;
 
 /// <summary>

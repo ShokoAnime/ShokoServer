@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using Namotion.Reflection;
 using Shoko.Abstractions.Extensions;
 
-#nullable enable
 namespace Shoko.Server.Plugin;
 
 public static partial class TypeReflectionExtensions

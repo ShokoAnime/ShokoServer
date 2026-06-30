@@ -16,7 +16,6 @@ using Xunit;
 
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
-#nullable enable
 namespace Shoko.Tests;
 
 public class LogServiceTests : IDisposable

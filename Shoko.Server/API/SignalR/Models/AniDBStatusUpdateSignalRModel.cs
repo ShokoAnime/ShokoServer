@@ -1,7 +1,6 @@
 using System;
 using Shoko.Server.Providers.AniDB;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 public class AniDBStatusUpdateSignalRModel

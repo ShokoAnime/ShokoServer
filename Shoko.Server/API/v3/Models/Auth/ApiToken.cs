@@ -1,7 +1,6 @@
 using System;
 using Newtonsoft.Json;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Auth;
 
 /// <summary>

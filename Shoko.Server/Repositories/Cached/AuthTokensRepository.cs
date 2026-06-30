@@ -6,7 +6,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AuthTokens, int>(databaseFactory)

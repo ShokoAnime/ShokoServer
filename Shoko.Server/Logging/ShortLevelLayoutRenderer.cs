@@ -7,7 +7,6 @@ using Shoko.Abstractions.Extensions;
 using ELogLevel = Microsoft.Extensions.Logging.LogLevel;
 using NLogLevel = NLog.LogLevel;
 
-#nullable enable
 namespace Shoko.Server.Logging;
 
 /// <summary>

@@ -4,7 +4,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 
-#nullable enable
 namespace Shoko.Server.Models.TMDB;
 
 [Serializable]

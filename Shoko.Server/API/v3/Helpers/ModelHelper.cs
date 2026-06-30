@@ -13,7 +13,6 @@ using File = Shoko.Server.API.v3.Models.Shoko.File;
 using GroupSizes = Shoko.Server.API.v3.Models.Shoko.GroupSizes;
 using SeriesSizes = Shoko.Server.API.v3.Models.Shoko.SeriesSizes;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Helpers;
 
 public static class ModelHelper

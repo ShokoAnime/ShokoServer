@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Server.Models.TMDB;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Common;
 
 /// <summary>

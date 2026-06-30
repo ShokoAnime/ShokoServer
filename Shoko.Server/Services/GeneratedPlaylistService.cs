@@ -20,7 +20,6 @@ using Shoko.Server.Repositories.Cached;
 using FileCrossReference = Shoko.Server.API.v3.Models.Shoko.FileCrossReference;
 
 #pragma warning disable CA1822
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class GeneratedPlaylistService(

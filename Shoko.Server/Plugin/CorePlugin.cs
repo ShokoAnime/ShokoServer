@@ -2,7 +2,6 @@ using System;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Utilities;
 
-#nullable enable
 namespace Shoko.Server.Plugin;
 
 /// <summary>

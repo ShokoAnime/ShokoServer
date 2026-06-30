@@ -21,7 +21,6 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]

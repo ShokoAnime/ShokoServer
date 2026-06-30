@@ -9,7 +9,6 @@ using NJsonSchema.Validation;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Extensions;
 
-#nullable enable
 namespace Shoko.Server.Services.Configuration;
 
 public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, ConfigurationService configurationService, ConfigurationInfo info, TConfig? config, bool saveValidation, bool loadValidation, JsonSchemaValidatorSettings? settings = null) : JsonSchemaValidatorBase(settings) where TConfig : class, IConfiguration, new()

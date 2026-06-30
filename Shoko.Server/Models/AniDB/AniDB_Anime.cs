@@ -30,7 +30,6 @@ using Shoko.Server.Utilities;
 using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_Anime : IAnidbAnime

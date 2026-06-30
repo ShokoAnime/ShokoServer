@@ -5,7 +5,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Server.Server;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 // TODO: Improve this once we're bringing back the integrity check feature.

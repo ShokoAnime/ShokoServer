@@ -8,7 +8,6 @@ using Shoko.Abstractions.Filtering.Expressions.Info;
 using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Filters;
 
 internal static class ExpressionDiscovery

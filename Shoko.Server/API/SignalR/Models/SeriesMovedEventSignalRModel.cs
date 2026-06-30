@@ -1,6 +1,5 @@
 using Shoko.Abstractions.Metadata.Events;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 public class SeriesMovedEventSignalRModel

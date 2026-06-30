@@ -15,7 +15,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Utilities;
 
-#nullable enable
 namespace Shoko.Server;
 
 public class ShokoEventHandler

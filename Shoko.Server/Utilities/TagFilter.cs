@@ -606,7 +606,6 @@ public static class TagFilter
 
 public class TagFilter<T> where T : class
 {
-#nullable enable
     private readonly Func<T, string> _nameSelector;
     private readonly Func<string, T?> _lookup;
     private readonly Func<string, T?> _ctor;
@@ -618,7 +617,6 @@ public class TagFilter<T> where T : class
         _ctor = ctor ?? (typeof(T) == typeof(string) ? new Func<string, T?>(name => name as T) : name => Activator.CreateInstance(typeof(T), name) as T);
         _lookup = lookup;
     }
-#nullable disable
 
     private string GetTagName(T tag)
     {

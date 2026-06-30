@@ -1,6 +1,5 @@
 using Newtonsoft.Json;
 
-#nullable enable
 namespace Shoko.Server.Settings;
 
 public class RelocationSettings

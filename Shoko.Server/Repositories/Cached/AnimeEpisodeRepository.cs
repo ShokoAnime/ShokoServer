@@ -10,7 +10,6 @@ using Shoko.Server.Models.Shoko;
 
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class AnimeEpisodeRepository : BaseCachedRepository<AnimeEpisode, int>

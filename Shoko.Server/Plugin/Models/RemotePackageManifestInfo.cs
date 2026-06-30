@@ -10,7 +10,6 @@ using Newtonsoft.Json.Converters;
 using JsonConverter = System.Text.Json.Serialization.JsonConverterAttribute;
 using NewtonsoftJsonConverter = Newtonsoft.Json.JsonConverterAttribute;
 
-#nullable enable
 namespace Shoko.Server.Plugin.Models;
 
 /// <summary>

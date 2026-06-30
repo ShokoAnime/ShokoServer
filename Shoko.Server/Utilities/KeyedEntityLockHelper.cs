@@ -5,7 +5,6 @@ using AsyncKeyedLock;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Enums;
 
-#nullable enable
 namespace Shoko.Server.Utilities;
 
 /// <summary>

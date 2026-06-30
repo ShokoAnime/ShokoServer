@@ -8,7 +8,6 @@ using Shoko.Abstractions.Utilities;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 
-#nullable enable
 namespace Shoko.Server.Repositories.Cached;
 
 public class ShokoImageRepository : BaseCachedRepository<ShokoImage, Guid>

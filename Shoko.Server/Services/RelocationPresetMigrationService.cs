@@ -11,7 +11,6 @@ using Shoko.Abstractions.Video.Relocation;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public class RelocationPresetMigrationService(

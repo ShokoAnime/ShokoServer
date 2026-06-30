@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
-#nullable enable
 namespace Shoko.Server.Plugin.Models;
 
 /// <summary>

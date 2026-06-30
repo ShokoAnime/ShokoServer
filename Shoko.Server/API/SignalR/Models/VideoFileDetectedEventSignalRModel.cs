@@ -1,6 +1,5 @@
 using Shoko.Abstractions.Video.Events;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Models;
 
 public class VideoFileDetectedEventSignalRModel

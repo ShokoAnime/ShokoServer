@@ -20,7 +20,6 @@ using Timer = System.Timers.Timer;
 
 namespace Shoko.Server.Providers.AniDB.UDP;
 
-#nullable enable
 public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnectionHandler
 {
     /****

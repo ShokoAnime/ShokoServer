@@ -8,7 +8,6 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
 
-#nullable enable
 namespace Shoko.Server.Models.AniDB;
 
 public class AniDB_Anime_Tag_Abstract(AniDB_Tag tag, AniDB_Anime_Tag xref) : IAnidbTagForAnime

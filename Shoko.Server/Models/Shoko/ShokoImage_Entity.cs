@@ -9,7 +9,6 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 /// <summary>

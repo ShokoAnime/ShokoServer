@@ -1,5 +1,4 @@
 ﻿
-# nullable enable
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Server.Repositories;
 

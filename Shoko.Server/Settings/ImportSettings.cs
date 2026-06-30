@@ -8,7 +8,6 @@ using Newtonsoft.Json;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 
-#nullable enable
 namespace Shoko.Server.Settings;
 
 public class ImportSettings

@@ -9,7 +9,6 @@ using Shoko.Abstractions.Config.Services;
 using AbstractConfigurationActionResult = Shoko.Abstractions.Config.ConfigurationActionResult;
 using Operation = Microsoft.AspNetCore.JsonPatch.Operations.Operation;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Configuration;
 
 /// <summary>

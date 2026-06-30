@@ -43,7 +43,6 @@ using MatchRating = Shoko.Abstractions.Metadata.Enums.MatchRating;
 using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 
 #pragma warning disable CA1822
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]

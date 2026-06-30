@@ -15,7 +15,6 @@ using Shoko.Server.Settings;
 
 using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]

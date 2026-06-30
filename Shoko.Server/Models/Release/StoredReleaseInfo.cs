@@ -9,7 +9,6 @@ using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Release;
 
-#nullable enable
 namespace Shoko.Server.Models.Release;
 
 public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo, IEquatable<StoredReleaseInfo>

@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Abstractions.User;
 
-#nullable enable
 namespace Shoko.Server.API.SignalR.Aggregate;
 
 public abstract class BaseEventEmitter : IEventEmitter

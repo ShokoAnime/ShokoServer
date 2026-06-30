@@ -6,7 +6,6 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Server;
 
-#nullable enable
 namespace Shoko.Server.Models.Shoko;
 
 public class FilterPreset : IFilterPreset

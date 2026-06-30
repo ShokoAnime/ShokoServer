@@ -32,7 +32,6 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.Plugin;
 
 public partial class PluginManager(ILogger<PluginManager> logger, ISystemService systemService, IApplicationPaths applicationPaths) : IPluginManager

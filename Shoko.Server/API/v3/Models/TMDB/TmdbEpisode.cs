@@ -15,7 +15,6 @@ using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Models.TMDB;
 
 /// <summary>

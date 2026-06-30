@@ -11,7 +11,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
-#nullable enable
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController, Route("/api/v{version:apiVersion}/[controller]"), ApiV3, Authorize]

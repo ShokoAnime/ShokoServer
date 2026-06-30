@@ -13,7 +13,6 @@ using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories.Cached;
 
 #pragma warning disable CS8618
-#nullable enable
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 /// <summary>

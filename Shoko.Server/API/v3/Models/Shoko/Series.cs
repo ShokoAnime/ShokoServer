@@ -27,7 +27,6 @@ using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #pragma warning disable CS0618
-#nullable enable
 namespace Shoko.Server.API.v3.Models.Shoko;
 
 /// <summary>
