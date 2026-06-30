@@ -33,7 +33,7 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
         var auth = tokens.FirstOrDefault();
         if (tokens.Count > 1)
         {
-            tokens.Remove(auth);
+            tokens.Remove(auth!);
             Delete(tokens);
         }
 

@@ -26,7 +26,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
     public PocoCache<S, T> Cache;
 
-    public Action<T>? BeginDeleteCallback { get; set; }
+    public Action<T> BeginDeleteCallback { get; set; }
 
     public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
 
