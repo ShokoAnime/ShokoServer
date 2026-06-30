@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Shoko.Server.Filters;
+using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Utilities;
 using Xunit;
 
@@ -170,6 +171,21 @@ public class TmdbSearchServiceTests
         var normalizedFullTitle = SeriesSearch.NormalizeForIndex("Fairy Tail: 100 Years Quest");
         Assert.NotEqual(strippedFromFull, normalizedFullTitle);
     }
+
+    // ── IsShortFormByEpisodeCount: OVA/Web movie routing threshold ───────────
+    // OVA and Web anime with ≤4 main episodes route to movie search first,
+    // because TMDB may model them as standalone films even though AniDB treats
+    // them as a series (e.g. "Grudge of Edinburgh" = 2 AniDB episodes → 2 TMDB movies).
+
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]   // two-part film like Grudge of Edinburgh
+    [InlineData(4, true)]   // upper bound of short-form heuristic
+    [InlineData(5, false)]  // five-episode OVA stays on show search path
+    [InlineData(13, false)]
+    public void IsShortFormByEpisodeCount_Threshold(int count, bool expected)
+        => Assert.Equal(expected, TmdbSearchService.IsShortFormByEpisodeCount(count));
 
     // ── NormalizeForIndex: exclamation collision in movie context ─────────────
     // Movies lack an episode-count tiebreaker, so when two candidates collide on
