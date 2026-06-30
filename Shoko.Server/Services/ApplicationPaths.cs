@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Settings;
@@ -22,10 +23,13 @@ public class ApplicationPaths : IApplicationPaths
         => _applicationPath ??= Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 
     private string? _webPath = null;
+    private static readonly AsyncLocal<string?> s_dataPathOverride = new();
 
     /// <inheritdoc/>
     public string WebPath
-        => _webPath ??= Path.Combine(DataPath, ISettingsProvider.Instance.GetSettings().Web.WebUIPath);
+        => s_dataPathOverride.Value is { Length: > 0 }
+            ? Path.Combine(DataPath, ISettingsProvider.Instance.GetSettings().Web.WebUIPath)
+            : _webPath ??= Path.Combine(DataPath, ISettingsProvider.Instance.GetSettings().Web.WebUIPath);
 
     private static string? _dataPath = null;
 
@@ -36,6 +40,9 @@ public class ApplicationPaths : IApplicationPaths
     {
         get
         {
+            if (s_dataPathOverride.Value is { Length: > 0 } overriddenPath)
+                return overriddenPath;
+
             if (_dataPath != null)
                 return _dataPath;
 
@@ -93,9 +100,13 @@ public class ApplicationPaths : IApplicationPaths
 
     /// <inheritdoc/>
     public string ImagesPath
-        => _imagesPath ??= ISettingsProvider.Instance.GetSettings().ImagesPath is { Length: > 0 } imagePath
-            ? Path.Combine(DataPath, imagePath)
-            : DefaultImagePath;
+        => s_dataPathOverride.Value is { Length: > 0 }
+            ? ISettingsProvider.Instance.GetSettings().ImagesPath is { Length: > 0 } configuredImagePath
+                ? Path.Combine(DataPath, configuredImagePath)
+                : DefaultImagePath
+            : _imagesPath ??= ISettingsProvider.Instance.GetSettings().ImagesPath is { Length: > 0 } cachedConfiguredImagePath
+                ? Path.Combine(DataPath, cachedConfiguredImagePath)
+                : DefaultImagePath;
 
     public static string DefaultImagePath => Path.Combine(StaticDataPath, "images");
 
@@ -113,4 +124,28 @@ public class ApplicationPaths : IApplicationPaths
     /// <inheritdoc/>
     public string LogsPath
         => Path.Combine(DataPath, "logs");
+
+    internal static IDisposable PushDataPathOverride(string absolutePath)
+        => new ScopedDataPathOverride(absolutePath);
+
+    private sealed class ScopedDataPathOverride : IDisposable
+    {
+        private readonly string? _previousValue;
+        private bool _disposed;
+
+        public ScopedDataPathOverride(string value)
+        {
+            _previousValue = s_dataPathOverride.Value;
+            s_dataPathOverride.Value = value;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            s_dataPathOverride.Value = _previousValue;
+            _disposed = true;
+        }
+    }
 }
