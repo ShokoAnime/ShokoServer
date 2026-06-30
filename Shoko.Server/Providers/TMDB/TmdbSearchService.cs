@@ -65,8 +65,24 @@ public partial class TmdbSearchService : ITmdbSearchService
             // Music videos are not allowed on TMDB, and the other and unknown types are hard to auto-map, so just don't.
             AnimeType.MusicVideo or AnimeType.Other or AnimeType.Unknown => [],
             AnimeType.Movie => await AutoSearchForMovies(anime).ConfigureAwait(false),
+            // OVA/Web entries with ≤4 main episodes may be standalone movies on TMDB even though AniDB models them as a series.
+            // Try movie search first; fall back to show search if nothing matches.
+            AnimeType.OVA or AnimeType.Web when IsShortFormAnime(anime) => await AutoSearchForMoviesWithShowFallback(anime).ConfigureAwait(false),
             _ => await AutoSearchForShow(anime).ConfigureAwait(false)
         };
+
+    internal static bool IsShortFormAnime(AniDB_Anime anime)
+        => IsShortFormByEpisodeCount(anime.AniDBEpisodes.Count(e => e.EpisodeType is EpisodeType.Episode));
+
+    internal static bool IsShortFormByEpisodeCount(int mainEpisodeCount) => mainEpisodeCount <= 4;
+
+    private async Task<IReadOnlyList<TmdbAutoSearchResult>> AutoSearchForMoviesWithShowFallback(AniDB_Anime anime)
+    {
+        var movieResults = await AutoSearchForMovies(anime).ConfigureAwait(false);
+        if (movieResults.Count > 0)
+            return movieResults;
+        return await AutoSearchForShow(anime).ConfigureAwait(false);
+    }
 
     #region Movie
 
