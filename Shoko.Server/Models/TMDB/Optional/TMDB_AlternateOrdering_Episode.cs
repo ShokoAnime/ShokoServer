@@ -4,7 +4,6 @@ using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Tmdb;
@@ -168,31 +167,6 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
     #endregion
 
     #region IWithImages Implementation
-
-    public IImage? GetPreferredImageForType(ImageEntityType imageType)
-        => GetTmdbEpisode().GetPreferredImageForType(imageType);
-
-    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
-        => GetTmdbEpisode().GetPreferredImageCrossReferenceForType(imageType);
-
-    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool? isAvailable = null, bool primaryImage = false, bool? linkedEntityImages = null)
-        => GetTmdbEpisode().GetImages(imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable: isAvailable, primaryImage: primaryImage, linkedEntityImages: linkedEntityImages);
-
-    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool? isAvailable = null, bool? primaryImage = null, bool? linkedEntityImages = null)
-        => GetTmdbEpisode().GetImageCrossReferences(imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable, primaryImage, linkedEntityImages);
-
-    #endregion
-
-    #region IWithBackdropImage Implementation
-
-    public IImage? BackdropImage
-        => GetTmdbEpisode().BackdropImage;
-
-    public IImageCrossReference? BackdropImageCrossReference
-        => GetTmdbEpisode().BackdropImageCrossReference;
-
-    public IImage? DefaultBackdropImage
-        => GetTmdbEpisode().DefaultBackdropImage;
 
     public IImageCrossReference? DefaultBackdropImageCrossReference
         => GetTmdbEpisode().DefaultBackdropImageCrossReference;

@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
@@ -226,7 +227,7 @@ public class TmdbMovie
                 .Select(company => new Studio(company))
                 .ToList();
         if (include.HasFlag(IncludeDetails.Images))
-            Images = movie.GetImages()
+            Images = ((IWithImages)movie).GetImages()
                 .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = movie.Cast
@@ -333,7 +334,7 @@ public class TmdbMovie
                     .ToOverviewDto(collection.EnglishOverview, preferredOverview, language);
             MovieCount = collection.MovieCount;
             if (include.HasFlag(IncludeDetails.Images))
-                Images = collection.GetImages()
+                Images = ((IWithImages)collection).GetImages()
                     .ToDto(language);
             CreatedAt = collection.CreatedAt.ToUniversalTime();
             LastUpdatedAt = collection.LastUpdatedAt.ToUniversalTime();

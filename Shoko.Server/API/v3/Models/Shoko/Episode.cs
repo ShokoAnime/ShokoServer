@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.v3.Helpers;
@@ -180,7 +181,7 @@ public class Episode : BaseModel
             },
         };
         HasCustomName = !string.IsNullOrEmpty(episode.EpisodeNameOverride);
-        Images = episode.GetImages(isEnabled: true, isDesired: true).ToDto(preferredImages: true);
+        Images = ((IWithImages)episode).GetImages(isEnabled: true, isDesired: true).ToDto(preferredImages: true);
         Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, anidbEpisode.LengthSeconds);
         ResumePosition = fileUserRecord?.ProgressPosition;
         Watched = episodeUserRecord?.WatchedDate?.ToUniversalTime();

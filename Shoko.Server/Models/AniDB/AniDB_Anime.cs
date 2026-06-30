@@ -10,7 +10,6 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
@@ -536,28 +535,8 @@ public class AniDB_Anime : IAnidbAnime
 
     #region IWithImages Implementation
 
-    public IImage? GetPreferredImageForType(ImageEntityType imageType)
-        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
-
-    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
-        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
-
-    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool? isAvailable = null, bool primaryImage = false, bool? linkedEntityImages = null)
-        => ISystemService.StaticServices.GetRequiredService<IImageManager>().GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable, primaryImage, linkedEntityImages);
-
-    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool? isAvailable = null, bool? primaryImage = null, bool? linkedEntityImages = null)
-        => ISystemService.StaticServices.GetRequiredService<IImageManager>().GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable, primaryImage, linkedEntityImages);
-
-    #endregion
-
-    #region IWithPrimaryImage Implementation
-
-    public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
-        ? ImageStub.Wrap(image, xref)
-        : null;
-
     public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(Picname) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, Picname) is { } imageID
-        ? GetImageCrossReferences(imageSource: DataSource.AniDB, imageType: ImageEntityType.Primary).FirstOrDefault(xref => xref.ImageID == imageID)
+        ? ((IWithImages)this).GetImageCrossReferences(imageSource: DataSource.AniDB, imageType: ImageEntityType.Primary).FirstOrDefault(xref => xref.ImageID == imageID)
         : null;
 
     #endregion

@@ -1039,6 +1039,21 @@ public interface IImageManager
     );
 
     /// <summary>
+    ///   Check if the given cross-reference is linked to the given entity.
+    /// </summary>
+    /// <param name="entity">
+    ///   The entity to check.
+    /// </param>
+    /// <param name="xref">
+    ///   The cross-reference to check.
+    /// </param>
+    /// <returns>
+    ///   <c>true</c> if the cross-reference is linked to the entity, otherwise
+    ///   <c>false</c>.
+    /// </returns>
+    bool IsLinkedCrossReference(IWithImages entity, IImageCrossReference xref);
+
+    /// <summary>
     ///   Resolve an entity from its source, type, and stringified identifier.
     ///   This is the inverse of <see cref="TryGetMetadataForEntity"/> and is
     ///   useful for looking up entities when only their metadata triplet is

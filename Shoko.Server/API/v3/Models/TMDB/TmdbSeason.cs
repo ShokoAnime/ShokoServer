@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.TMDB;
@@ -147,7 +148,7 @@ public class TmdbSeason
             Overviews = season.GetAllOverviews()
                 .ToOverviewDto(season.EnglishOverview, preferredOverview, language);
         if (include.HasFlag(IncludeDetails.Images))
-            Images = season.GetImages()
+            Images = ((IWithImages)season).GetImages()
                 .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = season.Cast

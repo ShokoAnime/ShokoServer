@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
@@ -2576,7 +2577,7 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
         }
 
-        return series.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true)
+        return ((IWithImages)series).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true)
             .OrderBy(a => a.Type)
             .ThenBy(a => a.Source)
             .ThenByDescending(a => a.LanguageCode is null)
@@ -2608,11 +2609,11 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         var imageEntityType = imageType.ToServer();
-        var preferredImage = series.GetPreferredImageForType(imageEntityType);
+        var preferredImage = ((IWithImages)series).GetPreferredImageForType(imageEntityType);
         if (preferredImage is not null)
             return new Image(preferredImage);
 
-        var images = series.GetImages(imageType: imageEntityType).ToDto();
+        var images = ((IWithImages)series).GetImages(imageType: imageEntityType).ToDto();
         var image = imageEntityType switch
         {
             ImageEntityType.Primary => images.Posters.FirstOrDefault(),

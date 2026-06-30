@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
@@ -302,7 +303,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (!user.AllowedGroup(group))
             return Forbid(GroupForbiddenForUser);
 
-        return group.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true)
+        return ((IWithImages)group).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true)
             .OrderBy(a => a.Type)
             .ThenBy(a => a.Source)
             .ThenByDescending(a => a.LanguageCode is null)
@@ -334,11 +335,11 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
             return Forbid(GroupForbiddenForUser);
 
         var imageEntityType = imageType.ToServer();
-        var preferredImage = group.GetPreferredImageForType(imageEntityType);
+        var preferredImage = ((IWithImages)group).GetPreferredImageForType(imageEntityType);
         if (preferredImage is not null)
             return new Image(preferredImage);
 
-        var images = group.GetImages(imageType: imageEntityType).ToDto();
+        var images = ((IWithImages)group).GetImages(imageType: imageEntityType).ToDto();
         var image = imageEntityType switch
         {
             ImageEntityType.Primary => images.Posters.FirstOrDefault(),

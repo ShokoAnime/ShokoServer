@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Server.API.v3.Helpers;
@@ -205,7 +206,7 @@ public class TmdbEpisode
         };
         Runtime = episode.Runtime;
         if (include.HasFlag(IncludeDetails.Images))
-            Images = episode.GetImages()
+            Images = ((IWithImages)episode).GetImages()
                 .InLanguage(language)
                 .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))

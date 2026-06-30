@@ -4,10 +4,8 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
-using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Repositories;
 
 #nullable enable
@@ -49,11 +47,7 @@ public class AniDB_Studio : IStudio
 
     #endregion
 
-    #region IWithPrimaryImage Implementation
-
-    public IImage? DefaultPrimaryImage => DefaultPrimaryImageCrossReference is { } xref && xref.GetImage() is { } image
-        ? ImageStub.Wrap(image, xref)
-        : null;
+    #region IWithImages Implementation
 
     public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(_imagePath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, _imagePath) is { } posterID
         ? (this as IWithImages).GetImageCrossReferences(imageType: ImageEntityType.Primary).FirstOrDefault(xref => xref.ImageID == posterID)

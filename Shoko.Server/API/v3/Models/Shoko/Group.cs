@@ -10,6 +10,7 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Core.Update;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Services;
@@ -128,7 +129,7 @@ public class Group : BaseModel
         Updated = group.DateTimeUpdated.ToUniversalTime();
         HasCustomName = group.IsManuallyNamed == 1;
         HasCustomDescription = group.OverrideDescription == 1;
-        Images = group.GetPreferredImages().ToDto(
+        Images = ((IWithImages)group).GetBestImages().ToDto(
             preferredImages: true,
             randomizeImages: randomizeImages
         );

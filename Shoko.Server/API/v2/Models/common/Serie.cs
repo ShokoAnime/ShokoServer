@@ -359,7 +359,7 @@ public class Serie : BaseDirectory, IComparable
         // Calling GetImages directly on AniDB_Anime only returns AniDB-native images
         // (i.e. posters), so backdrops and banners would always come back empty.
         var series = RepoFactory.AnimeSeries.GetByAnimeID(anime.AnimeID);
-        IWithImages imageEntity = series ?? (IWithImages)anime;
+        var imageEntity = series ?? (IWithImages)anime;
         var allImages = imageEntity.GetImages();
         var backdrops = allImages.Where(x => x.Type == ImageEntityType.Backdrop).ToList();
         var banners = allImages.Where(x => x.Type == ImageEntityType.Banner).ToList();

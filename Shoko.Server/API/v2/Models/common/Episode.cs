@@ -6,6 +6,7 @@ using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v1.Services;
 using Shoko.Server.Extensions;
@@ -102,7 +103,7 @@ public class Episode : BaseDirectory
 
         if (pic > 0)
         {
-            var backdrops = aep.GetImages(imageType: ImageEntityType.Backdrop);
+            var backdrops = ((IWithImages)aep).GetImages(imageType: ImageEntityType.Backdrop);
             var backdropImage = backdrops.FirstOrDefault(x => x.IsPreferred)
                 ?? backdrops.FirstOrDefault(x => x is { IsEnabled: true, IsAvailable: true });
             if (backdropImage is not null)

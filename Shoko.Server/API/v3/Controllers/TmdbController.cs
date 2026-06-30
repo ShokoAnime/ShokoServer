@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
@@ -285,7 +286,7 @@ public partial class TmdbController : BaseController
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return movie.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
+        return ((IWithImages)movie).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
     }
 
     [HttpGet("Movie/{movieID}/Cast")]
@@ -891,7 +892,7 @@ public partial class TmdbController : BaseController
         if (collection is null)
             return NotFound(MovieCollectionNotFound);
 
-        return collection.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
+        return ((IWithImages)collection).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
     }
 
     #endregion
@@ -1151,7 +1152,7 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
-        return show.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
+        return ((IWithImages)show).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
     }
 
     [HttpGet("Show/{showID}/Ordering")]
@@ -2049,7 +2050,7 @@ public partial class TmdbController : BaseController
                 return NotFound(SeasonNotFound);
 
 
-            return altOrderSeason.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
+            return ((IWithImages)altOrderSeason).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
         }
 
         var seasonId = int.Parse(seasonID);
@@ -2059,7 +2060,7 @@ public partial class TmdbController : BaseController
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return season.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
+        return ((IWithImages)season).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
     }
 
     [HttpGet("Season/{seasonID}/Cast")]
@@ -2602,7 +2603,7 @@ public partial class TmdbController : BaseController
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
-        return episode.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
+        return ((IWithImages)episode).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true).ToDto(language);
     }
 
     [HttpGet("Episode/{episodeID}/Cast")]

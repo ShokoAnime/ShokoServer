@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
@@ -770,7 +771,7 @@ public class EpisodeController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        return episode.GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true)
+        return ((IWithImages)episode).GetImages(isEnabled: includeDisabled ? null : true, isDesired: includeUndesired ? null : true)
             .OrderBy(a => a.Type)
             .ThenBy(a => a.Source)
             .ThenByDescending(a => a.LanguageCode is null)
@@ -806,11 +807,11 @@ public class EpisodeController : BaseController
             return Forbid(EpisodeForbiddenForUser);
 
         var imageEntityType = imageType.ToServer();
-        var preferredImage = episode.GetPreferredImageForType(imageEntityType);
+        var preferredImage = ((IWithImages)episode).GetPreferredImageForType(imageEntityType);
         if (preferredImage is not null)
             return new Image(preferredImage);
 
-        var images = episode.GetImages(imageType: imageEntityType).ToDto();
+        var images = ((IWithImages)episode).GetImages(imageType: imageEntityType).ToDto();
         return imageEntityType switch
         {
             ImageEntityType.Primary => images.Posters.FirstOrDefault(),

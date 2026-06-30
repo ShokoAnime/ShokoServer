@@ -1,15 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
-using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Image;
-using Shoko.Abstractions.Metadata.Image.CrossReferences;
-using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
@@ -274,24 +269,6 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
     IReadOnlyList<ICast> IWithCastAndCrew.Cast => Cast;
 
     IReadOnlyList<ICrew> IWithCastAndCrew.Crew => Crew;
-
-    #endregion
-
-    #region IWithImages Implementation
-
-    public IImage? GetPreferredImageForType(ImageEntityType imageType)
-        => GetImages(imageType: imageType).FirstOrDefault(image => image.IsPreferred);
-
-    public IImageCrossReference? GetPreferredImageCrossReferenceForType(ImageEntityType imageType)
-        => GetImageCrossReferences(imageType: imageType).FirstOrDefault(xref => xref.IsPreferred);
-
-    public IReadOnlyList<IImage> GetImages(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool? isAvailable = null, bool primaryImage = false, bool? linkedEntityImages = null)
-        => ISystemService.StaticServices.GetRequiredService<IImageManager>()
-            .GetImagesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable: isAvailable, primaryImage: primaryImage, linkedEntityImages: linkedEntityImages);
-
-    public IReadOnlyList<IImageCrossReference> GetImageCrossReferences(DataSource? imageSource = null, ImageEntityType? imageType = null, DataSource? xrefSource = null, bool? isEnabled = null, bool? isDesired = null, bool? isAvailable = null, bool? primaryImage = null, bool? linkedEntityImages = null)
-        => ISystemService.StaticServices.GetRequiredService<IImageManager>()
-            .GetImageCrossReferencesForEntity(this, imageSource, imageType, xrefSource, isEnabled, isDesired, isAvailable, primaryImage, linkedEntityImages);
 
     #endregion
 

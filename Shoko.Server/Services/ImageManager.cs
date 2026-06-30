@@ -1537,6 +1537,15 @@ public partial class ImageManager(
         return false;
     }
 
+    /// <inheritdoc/>
+    public bool IsLinkedCrossReference(IWithImages entity, IImageCrossReference xref)
+    {
+        if (!TryGetMetadataForEntity(entity, out var entitySource, out var entityType, out var entityID, out _, out _, out _))
+            return false;
+
+        return xref.EntitySource == entitySource && xref.EntityType == entityType && xref.EntityID == entityID;
+    }
+
     internal const int SeasonIdHexLength = 24;
 
     [GeneratedRegex(@"^(?:[0-9]{1,23}|[a-f0-9]{24})$")]

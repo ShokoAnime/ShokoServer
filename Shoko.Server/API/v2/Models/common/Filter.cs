@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
@@ -78,8 +79,8 @@ public class Filter : Filters
         if (arts?.Count > 0)
         {
             var rand = new Random();
-            var anime = arts[rand.Next(arts.Count)];
-            var backdrops = anime.GetImages(imageType: ImageEntityType.Backdrop);
+            var series = (IWithImages)arts[rand.Next(arts.Count)];
+            var backdrops = series.GetImages(imageType: ImageEntityType.Backdrop);
             if (backdrops.Count > 0)
             {
                 var backdrop = backdrops[rand.Next(backdrops.Count)];
@@ -90,7 +91,7 @@ public class Filter : Filters
                 });
             }
 
-            if (anime.AniDB_Anime?.DefaultPrimaryImage is { IsAvailable: true } defaultPoster)
+            if (series.GetDefaultImageForType(ImageEntityType.Primary) is { IsAvailable: true } defaultPoster)
                 filter.art.thumb.Add(new Art
                 {
                     index = 0,

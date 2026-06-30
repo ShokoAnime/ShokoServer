@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
@@ -161,7 +162,7 @@ public class Series : BaseModel
         HasCustomName = !string.IsNullOrEmpty(ser.SeriesNameOverride);
         Description = ser.PreferredOverview?.Value ?? string.Empty;
         IsFavorite = userData?.IsFavorite ?? false;
-        Images = ser.GetPreferredImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
+        Images = ((IWithImages)ser).GetBestImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
         AirsOn = animeType == AnimeType.TV || animeType == AnimeType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
         YearlySeasons = anime.YearlySeasons
             .Select(x => new SeasonWithYear(x.Year, x.Season))

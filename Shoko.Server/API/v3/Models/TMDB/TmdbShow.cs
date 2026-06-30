@@ -5,6 +5,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.CrossReference;
@@ -250,7 +251,7 @@ public class TmdbShow
                 .Select(network => new Network(network))
                 .ToList();
         if (include.HasFlag(IncludeDetails.Images))
-            Images = show.GetImages()
+            Images = ((IWithImages)show).GetImages()
                 .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
             Cast = (alternateOrdering is null ? show.Cast : alternateOrdering.Cast)

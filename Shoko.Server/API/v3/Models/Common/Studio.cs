@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.TMDB;
 
@@ -57,7 +58,7 @@ public class Studio
         Name = company.Name;
         CountryOfOrigin = company.CountryOfOrigin;
         Size = company.GetTmdbCompanyCrossReferences().Count;
-        Logos = company.GetImages(imageType: ImageEntityType.Logo)
+        Logos = ((IWithImages)company).GetImages(imageType: ImageEntityType.Logo)
             .Select(image => new Image(image))
             .ToList();
         Source = DataSourceType.TMDB;

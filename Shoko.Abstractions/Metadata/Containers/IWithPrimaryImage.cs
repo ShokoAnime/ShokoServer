@@ -1,4 +1,3 @@
-using System.Linq;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
@@ -15,16 +14,7 @@ public interface IWithPrimaryImage : IWithImages
     ///   image of type <see cref="ImageEntityType.Primary"/> for the entity.
     /// </summary>
     IImage? PrimaryImage
-    {
-        get =>
-            GetPreferredImageForType(ImageEntityType.Primary) ??
-            DefaultPrimaryImage ??
-            (GetImages(imageType: ImageEntityType.Primary, primaryImage: true) is { Count: > 0 } images ? (
-                images.FirstOrDefault(i => i is { IsEnabled: true, IsAvailable: true }) ??
-                images.FirstOrDefault(i => i is { IsEnabled: true }) ??
-                images.FirstOrDefault()
-            ) : null);
-    }
+        => GetBestImageForType(ImageEntityType.Primary);
 
     /// <summary>
     ///   The cross-reference for the primary image for the entity. Same as the
@@ -33,25 +23,5 @@ public interface IWithPrimaryImage : IWithImages
     ///   for the entity.
     /// </summary>
     IImageCrossReference? PrimaryImageCrossReference
-    {
-        get =>
-            GetPreferredImageCrossReferenceForType(ImageEntityType.Primary) ??
-            DefaultPrimaryImageCrossReference ??
-            (GetImageCrossReferences(imageType: ImageEntityType.Primary) is { Count: > 0 } xrefs ? (
-                xrefs.FirstOrDefault(xref => xref.GetPrimaryImage() is { IsEnabled: true, IsAvailable: true }) ??
-                xrefs.FirstOrDefault(xref => xref is { IsEnabled: true }) ??
-                xrefs.FirstOrDefault()
-            ) : null);
-    }
-
-    /// <summary>
-    ///   The default primary image for the entity, if it has one.
-    /// </summary>
-    IImage? DefaultPrimaryImage { get => null; }
-
-    /// <summary>
-    ///   The cross-reference for the default primary image for the entity, if
-    ///   it has one.
-    /// </summary>
-    IImageCrossReference? DefaultPrimaryImageCrossReference { get => null; }
+        => GetBestImageCrossReferenceForType(ImageEntityType.Primary);
 }

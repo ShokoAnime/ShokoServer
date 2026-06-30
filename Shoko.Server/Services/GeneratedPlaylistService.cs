@@ -764,7 +764,7 @@ public class GeneratedPlaylistService(
 
     private string GetEpisodeEntry(UriBuilder uri, IShokoSeries series, IShokoEpisode episode, IVideo video, int part, int totalParts, int episodeRange, string apiKey)
     {
-        var poster = series.GetPreferredImageForType(ImageEntityType.Primary) ?? series.DefaultPrimaryImage;
+        var poster = series.GetBestImageForType(ImageEntityType.Primary);
         var parts = totalParts > 1 ? $" ({part}/{totalParts})" : string.Empty;
         var episodeNumber = episode.Type is EpisodeType.Episode
             ? episode.EpisodeNumber.ToString()

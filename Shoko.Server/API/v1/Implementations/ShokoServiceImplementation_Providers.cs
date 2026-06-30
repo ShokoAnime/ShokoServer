@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.Databases;
@@ -56,9 +57,9 @@ public partial class ShokoServiceImplementation
             if (xrefMovie?.TmdbMovie is { } tmdbMovie)
             {
                 result.MovieDBMovie = xrefMovie?.TmdbMovie?.ToClient();
-                foreach (var fanart in tmdbMovie.GetImages(imageType: ImageEntityType.Backdrop))
+                foreach (var fanart in ((IWithImages)tmdbMovie).GetImages(imageType: ImageEntityType.Backdrop))
                     result.MovieDBFanarts.Add(fanart.ToClientFanart());
-                foreach (var poster in tmdbMovie.GetImages(imageType: ImageEntityType.Primary))
+                foreach (var poster in ((IWithImages)tmdbMovie).GetImages(imageType: ImageEntityType.Primary))
                     result.MovieDBPosters.Add(poster.ToClientPoster());
             }
 

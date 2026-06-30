@@ -5,7 +5,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
@@ -20,9 +19,6 @@ public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seaso
     int ISeason.SeriesID => series.ID;
 
     int ISeason.SeasonNumber => seasonNumber;
-
-    public IImage? DefaultPrimaryImage
-        => series.DefaultPrimaryImage;
 
     public IImageCrossReference? DefaultPrimaryImageCrossReference
         => series.DefaultBackdropImageCrossReference;
