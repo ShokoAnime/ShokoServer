@@ -56,6 +56,24 @@ public class ReleaseCandidate
     public required bool IsRedundant { get; init; }
 
     /// <summary>
+    /// Number of file locations in this candidate that would be deleted by
+    /// auto-management given the current ranking. For non-airing series this
+    /// equals <see cref="Files"/>.Count when <see cref="IsRedundant"/> is true
+    /// and 0 otherwise. For airing series (per-file deletion) it may be any
+    /// value from 0 to <see cref="Files"/>.Count.
+    /// </summary>
+    [Required]
+    public required int RedundantFileCount { get; init; }
+
+    /// <summary>
+    /// Episodes covered by the file locations that would be deleted. Files
+    /// shared with the primary candidate are excluded. Empty when nothing
+    /// would be deleted.
+    /// </summary>
+    [Required]
+    public required IReadOnlyList<EpisodeCoverage> RedundantEpisodes { get; init; }
+
+    /// <summary>
     /// The quality signal that caused this candidate to rank below the previous
     /// one in the ordered list. Null for the primary (rank 1) candidate.
     /// </summary>
@@ -250,6 +268,13 @@ public class ReleaseCandidate
             Name = name,
             HasReleaseInfo = candidate.HasReleaseInfo,
             IsRedundant = isRedundant,
+            RedundantFileCount = files.Count(f => f.IsRedundant),
+            RedundantEpisodes = files
+                .Where(f => f.IsRedundant)
+                .SelectMany(f => f.Episodes)
+                .DistinctBy(e => (e.Type, e.Number))
+                .OrderBy(e => e.Type).ThenBy(e => e.Number)
+                .ToList(),
             DecidingSignal = decision?.DecidingSignal,
             DecidingType = decision?.DecidingType,
             WinnerValue = decision?.PrimaryValue,
