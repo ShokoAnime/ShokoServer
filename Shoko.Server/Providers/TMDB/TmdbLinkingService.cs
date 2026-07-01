@@ -806,7 +806,7 @@ public class TmdbLinkingService : ITmdbLinkingService
     {
         // Skip matching if we try to match a music video or complete movie.
         var anidbTitle = _anidbEpisodeTitles.GetByEpisodeIDAndLanguage(anidbEpisode.EpisodeID, TitleLanguage.English)
-            .Where(title => !title.Title.Trim().Equals($"Episode {anidbEpisode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))
+            .Where(title => !IsGenericEpisodeTitle(title.Title, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber))
             .FirstOrDefault()?.Title;
         var titlesToNotSearch = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { "Complete Movie", "Music Video" };
         if (!string.IsNullOrEmpty(anidbTitle) && titlesToNotSearch.Any(title => anidbTitle.Contains(title, StringComparison.InvariantCultureIgnoreCase)))
@@ -902,6 +902,27 @@ public class TmdbLinkingService : ITmdbLinkingService
 
     private static string ReplaceTitle(string title) =>
         _characterReplacementDict.Aggregate(title, (current, kv) => current.Replace(kv.Key, kv.Value));
+
+    // AniDB emits an auto-generated placeholder title ("Episode 5", "Episode S1", "Episode C2", ...) for
+    // episodes it has no real title for, using the same type-prefix convention as AniDBEpisodeNumber
+    // (Episode="", Special="S", Credits="C", Trailer="T", Parody="P", Other="O" — see
+    // Shoko.Server.Providers.AniDB.Helpers.AniDBEpisodeNumber). Treating a placeholder as real title
+    // content lets it leak into the fuzzy title search and coincidentally "match" an unrelated TMDB
+    // episode purely because both titles are just "Episode <number>" — with no title evidence behind it.
+    // The old check only excluded the normal-episode form ("Episode {N}"), so specials/credits/trailers/
+    // etc. with no real title were never filtered.
+    private static readonly Dictionary<EpisodeType, string> _episodeTypePrefixes = new()
+    {
+        [EpisodeType.Episode] = "",
+        [EpisodeType.Special] = "S",
+        [EpisodeType.Credits] = "C",
+        [EpisodeType.Trailer] = "T",
+        [EpisodeType.Parody] = "P",
+        [EpisodeType.Other] = "O",
+    };
+
+    private static bool IsGenericEpisodeTitle(string title, EpisodeType episodeType, int episodeNumber) =>
+        title.Trim().Equals($"Episode {_episodeTypePrefixes.GetValueOrDefault(episodeType)}{episodeNumber}", StringComparison.InvariantCultureIgnoreCase);
 
     // Ratings assigned without any title evidence — pure air-date coincidence or the last-resort
     // positional fallback. Both are cheap to get backwards when TMDB's own episode dates are shifted
