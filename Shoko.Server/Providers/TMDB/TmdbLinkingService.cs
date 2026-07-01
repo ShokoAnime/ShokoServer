@@ -819,12 +819,12 @@ public class TmdbLinkingService : ITmdbLinkingService
 
         var dateMatchedEpisodes = tmdbEpisodes
             .Select(episode => (episode, probability: CalculateAirDateProbability(anidbDate, episode.AiredAt)))
-            .Where(r => r.probability > 0)
-            .OrderByDescending(r => r.probability)
-            .ThenBy(r => r.episode.SeasonNumber == 0)
-            .ThenBy(r => r.episode.SeasonNumber)
-            .ThenBy(r => r.episode.EpisodeNumber)
-            .Select(r => r.episode)
+            .Where(result => result.probability > 0)
+            .OrderByDescending(result => result.probability)
+            .ThenBy(result => result.episode.SeasonNumber == 0)
+            .ThenBy(result => result.episode.SeasonNumber)
+            .ThenBy(result => result.episode.EpisodeNumber)
+            .Select(result => result.episode)
             .ToList();
         var titleSearchResults = !string.IsNullOrEmpty(anidbTitle) ? tmdbEpisodes
             .Search(anidbTitle, episode => GetEpisodeTitleCandidates(episode, originalLanguageCode), true)
@@ -929,7 +929,7 @@ public class TmdbLinkingService : ITmdbLinkingService
     private static IReadOnlyList<string> GetEpisodeTitleCandidates(TMDB_Episode episode, string originalLanguageCode) =>
         episode.GetAllTitles()
             .Where(t => (t.LanguageCode == "en" && t.CountryCode == "US") || t.LanguageCode == originalLanguageCode)
-            .Where(t => t.LanguageCode == "en" || !t.Value.Trim().Equals($"Episode {episode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))
+            .Where(t => !t.Value.Trim().Equals($"Episode {episode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))
             .Select(t => ReplaceTitle(t.Value))
             .Where(t => !string.IsNullOrEmpty(t))
             .Distinct()
