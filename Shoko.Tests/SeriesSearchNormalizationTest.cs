@@ -60,4 +60,19 @@ public class SeriesSearchNormalizationTest
     [Theory, MemberData(nameof(EllipsisData))]
     public void EllipsisNormalization(string title, string query, bool expectMatch)
         => Assert.Equal(expectMatch, title.FuzzyMatch(query));
+
+    public static IEnumerable<object[]> TildeData => new List<object[]>
+    {
+        // TMDB-style "~Emphasis~" title matched by an AniDB-style ": Emphasis" query, and vice versa
+        // (e.g. Slime (2021 Part 2) episode 10, "Demon Lords' Banquet ~Walpurgis~" vs "Demon Lords'
+        // Banquet: Walpurgis").
+        new object[] { "Demon Lords' Banquet ~Walpurgis~", "Demon Lords' Banquet: Walpurgis", true },
+        new object[] { "Demon Lords' Banquet: Walpurgis", "Demon Lords' Banquet ~Walpurgis~", true },
+        // Unrelated titles should not match just because both use tildes.
+        new object[] { "~Naruto~", "~Fullmetal Alchemist~", false },
+    };
+
+    [Theory, MemberData(nameof(TildeData))]
+    public void TildeNormalization(string title, string query, bool expectMatch)
+        => Assert.Equal(expectMatch, title.FuzzyMatch(query));
 }
