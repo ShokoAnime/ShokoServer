@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.347",
+      "tag": "v6.0.0-dev.347",
+      "commit": "a92510b948afcb038b0bc2f85272187a6f639b71",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.347/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-01T01:32:05Z",
+      "releaseNotes": "\n`misc`: **Include Files to Delete in Release Candidates**.\n"
+    },
+    {
       "version": "6.0.0.346",
       "tag": "v6.0.0-dev.346",
       "commit": "590c67b913863cf685664d542a0ff0b52daf22c9",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.318/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-25T06:52:54Z",
       "releaseNotes": "\n`chore`: **Update sharp compress** ([#1368](https://github.com/ShokoAnime/ShokoServer/pull/1368)):\n\nYes, this looks like a version downgrade. In reality, `1.0.0` has been marked as [deprecated and unlisted](https://www.nuget.org/packages/SharpCompress/1.0.0).\n"
-    },
-    {
-      "version": "6.0.0.317",
-      "tag": "v6.0.0-dev.317",
-      "commit": "9892b1ff3caa0fd10146f63c5e4d517ab549c9da",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.317/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-25T04:46:47Z",
-      "releaseNotes": "\n`fix`: **Fixes**.\n"
     }
   ]
 }
