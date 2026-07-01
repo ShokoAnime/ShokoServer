@@ -99,8 +99,10 @@ public static class SeriesSearch
         {
             if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
                 continue;
-            // U+301C 〜 (wave dash) survives NFKD unchanged and must be mapped explicitly.
-            sb.Append(c is '-' or '_' or '.' or ':' or ',' or '!' or ';' or '/' or '\\' or '(' or ')' or '[' or ']' or '〜' ? ' ' : c);
+            // U+301C 〜 (wave dash) survives NFKD unchanged and must be mapped explicitly. ASCII '~' is
+            // included alongside it since both are used interchangeably as decorative emphasis brackets
+            // in anime episode titles (e.g. "~Walpurgis~" vs ": Walpurgis"), never as meaningful content.
+            sb.Append(c is '-' or '_' or '.' or ':' or ',' or '!' or ';' or '/' or '\\' or '(' or ')' or '[' or ']' or '〜' or '~' ? ' ' : c);
         }
 
         return sb.ToString().Normalize(NormalizationForm.FormKC).ToLowerInvariant().CompactWhitespaces();
