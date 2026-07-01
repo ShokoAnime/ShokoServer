@@ -764,6 +764,8 @@ public class TmdbLinkingService : ITmdbLinkingService
             }
         }
 
+        ReconcileEpisodeOrderInversions(anidbEpisodes, tmdbEpisodeDict, toAdd);
+
         if (!saveToDatabase)
         {
             _logger.LogDebug(
@@ -900,6 +902,50 @@ public class TmdbLinkingService : ITmdbLinkingService
 
     private static string ReplaceTitle(string title) =>
         _characterReplacementDict.Aggregate(title, (current, kv) => current.Replace(kv.Key, kv.Value));
+
+    // Ratings assigned without any title evidence — pure air-date coincidence or the last-resort
+    // positional fallback. Both are cheap to get backwards when TMDB's own episode dates are shifted
+    // relative to AniDB's (e.g. an early exclusive-stream premiere AniDB tracked but TMDB never listed),
+    // since a date-only match can grab the wrong TMDB episode before its true AniDB neighbor gets a turn.
+    private static readonly HashSet<MatchRating> _weakOrderRatings = [MatchRating.DateMatches, MatchRating.FirstAvailable];
+
+    // AniDB's episode order is the point of truth. If two AniDB-adjacent episodes both matched on
+    // weak evidence alone and their TMDB assignments came out in the wrong order, swap them back into
+    // AniDB order instead of trusting TMDB's (possibly mis-dated) episode numbering.
+    internal static void ReconcileEpisodeOrderInversions(IReadOnlyDictionary<int, AniDB_Episode> anidbEpisodes, IReadOnlyDictionary<int, TMDB_Episode> tmdbEpisodeDict, IReadOnlyList<CrossRef_AniDB_TMDB_Episode> toAdd)
+    {
+        var groups = toAdd
+            .Where(xref => xref.TmdbEpisodeID != 0 && _weakOrderRatings.Contains(xref.MatchRating) && anidbEpisodes.ContainsKey(xref.AnidbEpisodeID))
+            .GroupBy(xref => anidbEpisodes[xref.AnidbEpisodeID].EpisodeType);
+
+        foreach (var group in groups)
+        {
+            var ordered = group.OrderBy(xref => anidbEpisodes[xref.AnidbEpisodeID].EpisodeNumber).ToList();
+
+            // A single left-to-right pass only bubbles one inversion at a time, so a run of 3+
+            // weak matches in reverse order (e.g. T3,T2,T1) needs more than one pass to fully
+            // untangle. Repeat until a full pass makes no swaps.
+            bool swapped;
+            do
+            {
+                swapped = false;
+                for (var i = 0; i < ordered.Count - 1; i++)
+                {
+                    var a = ordered[i];
+                    var b = ordered[i + 1];
+                    if (!tmdbEpisodeDict.TryGetValue(a.TmdbEpisodeID, out var tmdbA) || !tmdbEpisodeDict.TryGetValue(b.TmdbEpisodeID, out var tmdbB))
+                        continue;
+
+                    if ((tmdbA.SeasonNumber, tmdbA.EpisodeNumber).CompareTo((tmdbB.SeasonNumber, tmdbB.EpisodeNumber)) <= 0)
+                        continue;
+
+                    (a.TmdbEpisodeID, b.TmdbEpisodeID) = (b.TmdbEpisodeID, a.TmdbEpisodeID);
+                    (a.TmdbShowID, b.TmdbShowID) = (b.TmdbShowID, a.TmdbShowID);
+                    swapped = true;
+                }
+            } while (swapped);
+        }
+    }
 
     #endregion
 }
