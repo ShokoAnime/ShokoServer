@@ -85,27 +85,10 @@ public class ScanForMissingReleaseInfoJob : BaseJob
         var queued = 0;
         foreach (var release in incompleteReleases)
         {
-            var matchAttempts = _matchAttemptRepository.GetByEd2kAndFileSize(release.ED2K, release.FileSize);
-            var latest = matchAttempts.MaxBy(m => m.AttemptEndedAt);
-            if (latest is null)
-            {
-                latest = new StoredReleaseInfo_MatchAttempt
-                {
-                    ED2K = release.ED2K,
-                    FileSize = release.FileSize,
-                    ProviderName = release.ProviderName,
-                    AttemptStartedAt = DateTime.UnixEpoch,
-                    AttemptEndedAt = DateTime.UnixEpoch,
-                    AttemptCount = 1,
-                    AttemptedProviderNames = [release.ProviderName],
-                };
-                _matchAttemptRepository.Save(latest);
-            }
+            if (_videoLocals.GetByEd2kAndSize(release.ED2K, release.FileSize) is not { } video)
+                continue;
 
-            var videoLocal = _videoLocals.GetByEd2kAndSize(release.ED2K, release.FileSize);
-            if (videoLocal is null) continue;
-
-            if (await _videoReleaseService.TryScheduleRescanForVideo(videoLocal, release, latest))
+            if (await _videoReleaseService.TryScheduleRescanForVideo(video, release))
                 queued++;
         }
 

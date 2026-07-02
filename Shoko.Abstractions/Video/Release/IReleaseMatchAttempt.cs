@@ -21,7 +21,7 @@ public interface IReleaseMatchAttempt
     /// If the attempt was successful, then this will be the name of the release
     /// provider that matched the video to a release.
     /// </summary>
-    public string? ProviderName { get; set; }
+    public string? ProviderName { get; }
 
     /// <summary>
     /// A list of provider names that were attempted to match the video.
@@ -43,12 +43,12 @@ public interface IReleaseMatchAttempt
     /// <summary>
     /// The time that the attempt was started.
     /// </summary>
-    public DateTime AttemptStartedAt { get; set; }
+    public DateTime AttemptStartedAt { get; }
 
     /// <summary>
     /// The time that the attempt was complete.
     /// </summary>
-    public DateTime AttemptEndedAt { get; set; }
+    public DateTime AttemptEndedAt { get; }
 
     /// <summary>
     /// Total number of times this file has been (re-)processed for release
@@ -56,5 +56,5 @@ public interface IReleaseMatchAttempt
     /// missing-info scanner before each rescan is queued, and used to compute
     /// the backoff delay between rescans.
     /// </summary>
-    public int AttemptCount { get; set; }
+    public int AttemptCount { get; }
 }

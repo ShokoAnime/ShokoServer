@@ -9,6 +9,7 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
@@ -92,22 +93,13 @@ public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleas
         _matchAttempt ??= _matchAttempts.GetByID(MatchAttemptID);
         if (_vlocal is null || _matchAttempt is null) return;
 
-        var isRescan = false;
+
+        // Skip if the chain already has a definitive (non-deferred) result.
         if (_matchAttempt.IsCompleted)
         {
-            // Chain is done; only continue if the matched provider wants to rescan for missing info.
-            if (!_matchAttempt.ProviderID.HasValue) return;
-
-            var existingRelease = _videoReleaseService.GetCurrentReleaseForVideo(_vlocal);
-            var anidbProviderInfo = _videoReleaseService.GetProviderInfo<AnidbReleaseProvider>();
-            if (existingRelease is null || anidbProviderInfo is null
-                || anidbProviderInfo.Provider.GetRescanDelay(existingRelease, _matchAttempt) is null)
-            {
+            if (_matchAttempt.ProviderID.HasValue)
                 _logger.LogTrace("Release already found for {FileName}, skipping AniDB lookup.", _fileName);
-                return;
-            }
-            isRescan = true;
-            _logger.LogTrace("Rescan triggered for {FileName} to update incomplete release info.", _fileName);
+            return;
         }
 
         try
@@ -119,27 +111,20 @@ public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleas
             if (release is null || release.CrossReferences.Count < 1)
             {
                 _logger.LogTrace("No AniDB release found for {FileName}.", _fileName);
-                if (isRescan)
-                {
-                    _matchAttempt.AttemptEndedAt = DateTime.Now;
-                    _matchAttempts.Save(_matchAttempt);
-                }
                 return;
             }
 
             var releaseInfo = new ReleaseInfoWithProvider(release, providerInfo.Name);
             _matchAttempt.ProviderID = providerInfo.ID;
             _matchAttempt.ProviderName = providerInfo.Name;
-            if (!isRescan)
-                _matchAttempt.AttemptCount = 1;
             await _videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, skipEvents: SkipEvents);
         }
         catch (Exception ex)
         {
             _matchAttempt.AttemptEndedAt = DateTime.Now;
             _matchAttempts.Save(_matchAttempt);
-            _videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, null, ex);
-            throw;
+            await _videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, null, ex);
+            throw new ChainAbortException(ex);
         }
     }
 

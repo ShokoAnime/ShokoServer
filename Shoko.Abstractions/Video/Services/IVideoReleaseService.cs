@@ -252,7 +252,7 @@ public interface IVideoReleaseService
     ///   <c>true</c> if a rescan was scheduled; <c>false</c> if no provider
     ///   wanted to rescan the file or the delay has not yet elapsed.
     /// </returns>
-    Task<bool> TryScheduleRescanForVideo(IVideo video, IReleaseInfo existingRelease, IReleaseMatchAttempt lastAttempt);
+    Task<bool> TryScheduleRescanForVideo(IVideo video, IReleaseInfo existingRelease);
 
     /// <summary>
     ///   If parallel mode is disabled, then it will run all provided

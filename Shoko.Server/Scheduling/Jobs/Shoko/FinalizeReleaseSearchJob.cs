@@ -31,8 +31,6 @@ public class FinalizeReleaseSearchJob : BaseJob
 
     private readonly StoredReleaseInfo_MatchAttemptRepository _matchAttempts;
 
-    private readonly ReleaseAutoManagementService _releaseAutoManagement;
-
     private VideoLocal? _vlocal;
 
     private StoredReleaseInfo_MatchAttempt? _matchAttempt;
@@ -95,20 +93,11 @@ public class FinalizeReleaseSearchJob : BaseJob
         matchAttempt.IsCompleted = true;
         _matchAttempts.Save(matchAttempt);
 
-        // Run auto-management before any post-import actions so we know whether the
-        // incoming file itself was identified as redundant and deleted.
-        var incomingDeleted = await _releaseAutoManagement.CheckAndAutoManage(_vlocal);
-
         // Fire SearchCompleted now that auto-management has run. IsCancelled lets subscribers
         // (plugins, internal handlers) skip provider-specific post-import work.
-        var completedArgs = _videoReleaseService.FireSearchCompleted(_vlocal, matchAttempt, isCancelled: incomingDeleted);
-
-        if (incomingDeleted)
+        var args = await _videoReleaseService.FireSearchCompleted(_vlocal, matchAttempt);
+        if (args.IsCancelled)
             return;
-
-        // Call the winning provider's post-import hook (e.g. AniDB MyList sync).
-        if (releaseFound && completedArgs.SelectedProvider is { } selectedProvider)
-            await selectedProvider.Provider.OnSearchCompleted(completedArgs);
 
         // Trigger relocation if requested.
         if (ShouldRelocate)
@@ -119,15 +108,13 @@ public class FinalizeReleaseSearchJob : BaseJob
         IVideoReleaseService videoReleaseService,
         VideoLocalRepository videoLocals,
         IVideoRelocationService relocationService,
-        StoredReleaseInfo_MatchAttemptRepository matchAttempts,
-        ReleaseAutoManagementService releaseAutoManagement
+        StoredReleaseInfo_MatchAttemptRepository matchAttempts
     )
     {
         _videoReleaseService = (VideoReleaseService)videoReleaseService;
         _videoLocals = videoLocals;
         _relocationService = relocationService;
         _matchAttempts = matchAttempts;
-        _releaseAutoManagement = releaseAutoManagement;
     }
 
     protected FinalizeReleaseSearchJob() { }

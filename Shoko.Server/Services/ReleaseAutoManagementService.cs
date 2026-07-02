@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
@@ -43,12 +44,12 @@ public class ReleaseAutoManagementService(
     /// <see langword="true"/> if the incoming <paramref name="video"/> was itself deleted
     /// (i.e. it was the redundant candidate); <see langword="false"/> otherwise.
     /// </returns>
-    public async Task<bool> CheckAndAutoManage(VideoLocal video)
+    public async Task<bool> CheckAndAutoManage(IVideo video)
     {
         if (!settingsProvider.GetSettings().ReleaseComparisonPreferences.AutoDeleteOnImport)
             return false;
 
-        var animeIDs = crossRefs.GetByEd2k(video.Hash)
+        var animeIDs = crossRefs.GetByEd2k(video.ED2K)
             .Select(x => x.AnimeID)
             .Where(id => id > 0)
             .Distinct()
@@ -67,7 +68,7 @@ public class ReleaseAutoManagementService(
         }
 
         // If the VideoLocal record is gone, auto-management deleted the incoming file.
-        return videoLocals.GetByID(video.VideoLocalID) is null;
+        return videoLocals.GetByID(video.ID) is null;
     }
 
     /// <summary>

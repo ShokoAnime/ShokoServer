@@ -8,6 +8,7 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Chain;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
@@ -131,8 +132,8 @@ public class ProcessReleaseProviderJob : BaseJob
         {
             _matchAttempt.AttemptEndedAt = DateTime.Now;
             _matchAttempts.Save(_matchAttempt);
-            _videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, null, ex);
-            throw;
+            await _videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, null, ex);
+            throw new ChainAbortException(ex);
         }
     }
 

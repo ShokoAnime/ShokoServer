@@ -19,4 +19,9 @@ public class VideoReleaseDeletedEventArgs : EventArgs
     /// The release information for the video.
     /// </summary>
     public required IReleaseInfo ReleaseInfo { get; init; }
+
+    /// <summary>
+    /// The new release information replacing the deleted one, if any.
+    /// </summary>
+    public required IReleaseInfo? NewReleaseInfo { get; init; }
 }

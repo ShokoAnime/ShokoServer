@@ -65,7 +65,7 @@ public class StoredReleaseInfo_MatchAttempt : IReleaseMatchAttempt
     /// plus any subsequent rescans). Incremented by the missing-info scanner
     /// before each rescan is queued.
     /// </summary>
-    public int AttemptCount { get; set; }
+    public int AttemptCount { get; set; } = 1;
 
     /// <summary>
     /// <c>true</c> once the provider chain has run to completion for this

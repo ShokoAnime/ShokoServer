@@ -67,42 +67,6 @@ public interface IReleaseInfoProvider
     /// </summary>
     TimeSpan? GetRescanDelay(IReleaseInfo existingInfo, IReleaseMatchAttempt lastAttempt)
         => null;
-
-    /// <summary>
-    ///   Called before a release is saved. Allows the provider to resolve
-    ///   missing data in the release info in place (e.g. look up episode-to-anime
-    ///   ID mappings, fetch or validate group names). Called only on the provider
-    ///   that matched the release.
-    /// </summary>
-    Task PrepareForSave(IVideo video, ReleaseInfo releaseInfo)
-        => Task.CompletedTask;
-
-    /// <summary>
-    ///   Called after a release is saved. Use this for provider-specific
-    ///   post-save actions (e.g. scheduling metadata downloads).
-    ///   Called only on the provider that matched the release.
-    /// </summary>
-    Task OnReleaseSaved(IVideo? video, IReleaseInfo savedRelease, IReadOnlyList<IVideoCrossReference> xrefs)
-        => Task.CompletedTask;
-
-    /// <summary>
-    ///   Called when a release is cleared from the database. The
-    ///   <paramref name="replacingRelease"/> parameter is set when the clear
-    ///   is part of a replace operation. Called only on the provider that
-    ///   originally matched the cleared release.
-    /// </summary>
-    Task OnReleaseCleared(IVideo? video, IReleaseInfo clearedRelease, IReleaseInfo? replacingRelease)
-        => Task.CompletedTask;
-
-    /// <summary>
-    ///   Called after a search completes for a video that this provider
-    ///   successfully matched. Only invoked on the winning provider.
-    ///   Use this to trigger provider-specific post-import actions.
-    ///   Implementations should short-circuit when
-    ///   <see cref="VideoReleaseSearchCompletedEventArgs.IsCancelled"/> is true.
-    /// </summary>
-    Task OnSearchCompleted(VideoReleaseSearchCompletedEventArgs args)
-        => Task.CompletedTask;
 }
 
 /// <summary>
