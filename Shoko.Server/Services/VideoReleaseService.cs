@@ -1066,6 +1066,17 @@ public class VideoReleaseService(
             return null;
         }
 
+        // If releaseInfo is defined and hasn't short circuited, use the provided information.
+        if (releaseInfo.GroupID is not null && releaseInfo.GroupName is not null)
+        {
+            // Handle the one group on AniDB which has GroupShortName = ''
+            if (string.IsNullOrWhiteSpace(releaseInfo.GroupShortName))
+            {
+                releaseInfo.GroupShortName = releaseInfo.GroupName;
+            }
+            return null;
+        }
+
         // If we have an existing release from the group with valid names, use that.
         var existingReleasesForGroup = releaseInfoRepository.GetByGroupAndProviderIDs(releaseInfo.GroupID, releaseInfo.GroupSource)
             .Where(rI => !string.IsNullOrEmpty(rI.GroupName) && !string.IsNullOrEmpty(rI.GroupShortName))
