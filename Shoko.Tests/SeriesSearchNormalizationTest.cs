@@ -70,6 +70,9 @@ public class SeriesSearchNormalizationTest
         new object[] { "Demon Lords' Banquet: Walpurgis", "Demon Lords' Banquet ~Walpurgis~", true },
         // Unrelated titles should not match just because both use tildes.
         new object[] { "~Naruto~", "~Fullmetal Alchemist~", false },
+        // Same normalization applies to show titles, not just episode titles (e.g. TMDB show
+        // "Naruto ~Shippuden~" vs AniDB show "Naruto: Shippuden").
+        new object[] { "Naruto ~Shippuden~", "Naruto: Shippuden", true },
     };
 
     // Via NormalizeForIndex (what .Search() uses), not FuzzyMatch — its ForceASCII pipeline already deletes '~'/'|', so it'd pass regardless of this fix.
@@ -87,6 +90,9 @@ public class SeriesSearchNormalizationTest
         new object[] { "Berlint Panic | The Informant", "Berlint Panic / The Informant", true },
         // Unrelated titles should not match just because both use pipes.
         new object[] { "Naruto | Shippuden", "Fullmetal Alchemist | Brotherhood", false },
+        // Same normalization applies to show titles, not just episode titles (e.g. TMDB show
+        // "Naruto | Shippuden" vs AniDB show "Naruto: Shippuden").
+        new object[] { "Naruto | Shippuden", "Naruto: Shippuden", true },
     };
 
     [Theory, MemberData(nameof(PipeData))]
