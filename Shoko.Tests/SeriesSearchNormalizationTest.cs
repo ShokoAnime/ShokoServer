@@ -60,4 +60,36 @@ public class SeriesSearchNormalizationTest
     [Theory, MemberData(nameof(EllipsisData))]
     public void EllipsisNormalization(string title, string query, bool expectMatch)
         => Assert.Equal(expectMatch, title.FuzzyMatch(query));
+
+    public static IEnumerable<object[]> TildeData => new List<object[]>
+    {
+        // TMDB-style "~Emphasis~" title matched by an AniDB-style ": Emphasis" query, and vice versa
+        // (e.g. Slime (2021 Part 2) episode 10, "Demon Lords' Banquet ~Walpurgis~" vs "Demon Lords'
+        // Banquet: Walpurgis").
+        new object[] { "Demon Lords' Banquet ~Walpurgis~", "Demon Lords' Banquet: Walpurgis", true },
+        new object[] { "Demon Lords' Banquet: Walpurgis", "Demon Lords' Banquet ~Walpurgis~", true },
+        // Unrelated titles should not match just because both use tildes.
+        new object[] { "~Naruto~", "~Fullmetal Alchemist~", false },
+    };
+
+    // Via NormalizeForIndex (what .Search() uses), not FuzzyMatch — its ForceASCII pipeline already deletes '~'/'|', so it'd pass regardless of this fix.
+    [Theory, MemberData(nameof(TildeData))]
+    public void TildeNormalization(string title, string query, bool expectMatch)
+        => Assert.Equal(expectMatch, SeriesSearch.NormalizeForIndex(title) == SeriesSearch.NormalizeForIndex(query));
+
+    public static IEnumerable<object[]> PipeData => new List<object[]>
+    {
+        // AniDB-style "A: B" title matched by a TMDB-style "A | B" query, and vice versa (e.g. DanMachi
+        // episode 1, AniDB "Bell Cranel: Adventurer" vs TMDB "Bell Cranel | Adventurer").
+        new object[] { "Bell Cranel | Adventurer", "Bell Cranel: Adventurer", true },
+        new object[] { "Bell Cranel: Adventurer", "Bell Cranel | Adventurer", true },
+        // "/" (already normalized) and "|" should be interchangeable too.
+        new object[] { "Berlint Panic | The Informant", "Berlint Panic / The Informant", true },
+        // Unrelated titles should not match just because both use pipes.
+        new object[] { "Naruto | Shippuden", "Fullmetal Alchemist | Brotherhood", false },
+    };
+
+    [Theory, MemberData(nameof(PipeData))]
+    public void PipeNormalization(string title, string query, bool expectMatch)
+        => Assert.Equal(expectMatch, SeriesSearch.NormalizeForIndex(title) == SeriesSearch.NormalizeForIndex(query));
 }

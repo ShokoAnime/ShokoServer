@@ -764,6 +764,8 @@ public class TmdbLinkingService : ITmdbLinkingService
             }
         }
 
+        ReconcileEpisodeOrderInversions(anidbEpisodes, tmdbEpisodeDict, toAdd);
+
         if (!saveToDatabase)
         {
             _logger.LogDebug(
@@ -804,7 +806,7 @@ public class TmdbLinkingService : ITmdbLinkingService
     {
         // Skip matching if we try to match a music video or complete movie.
         var anidbTitle = _anidbEpisodeTitles.GetByEpisodeIDAndLanguage(anidbEpisode.EpisodeID, TitleLanguage.English)
-            .Where(title => !title.Title.Trim().Equals($"Episode {anidbEpisode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))
+            .Where(title => !IsGenericEpisodeTitle(title.Title, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber))
             .FirstOrDefault()?.Title;
         var titlesToNotSearch = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { "Complete Movie", "Music Video" };
         if (!string.IsNullOrEmpty(anidbTitle) && titlesToNotSearch.Any(title => anidbTitle.Contains(title, StringComparison.InvariantCultureIgnoreCase)))
@@ -900,6 +902,63 @@ public class TmdbLinkingService : ITmdbLinkingService
 
     private static string ReplaceTitle(string title) =>
         _characterReplacementDict.Aggregate(title, (current, kv) => current.Replace(kv.Key, kv.Value));
+
+    // Mirrors AniDBEpisodeNumber.ToString()'s prefix convention; throws instead of silently defaulting if the two ever drift apart.
+    private static string GenericEpisodeTitlePrefix(EpisodeType episodeType) => episodeType switch
+    {
+        EpisodeType.Episode => "",
+        EpisodeType.Special => "S",
+        EpisodeType.Credits => "C",
+        EpisodeType.Trailer => "T",
+        EpisodeType.Parody => "P",
+        EpisodeType.Other => "O",
+        _ => throw new ArgumentOutOfRangeException(nameof(episodeType), episodeType, null),
+    };
+
+    private static bool IsGenericEpisodeTitle(string title, EpisodeType episodeType, int episodeNumber) =>
+        title.Trim().Equals($"Episode {GenericEpisodeTitlePrefix(episodeType)}{episodeNumber}", StringComparison.InvariantCultureIgnoreCase);
+
+    // Ratings assigned with zero title evidence — the only ones a coincidental air-date mismatch can put out of order.
+    private static readonly HashSet<MatchRating> _weakOrderRatings = [MatchRating.DateMatches, MatchRating.FirstAvailable];
+
+    // Swaps adjacent weak TMDB matches into AniDB order; strong matches stay in the ordering (true adjacency) but are never swapped.
+    internal static void ReconcileEpisodeOrderInversions(
+        IReadOnlyDictionary<int, AniDB_Episode> anidbEpisodes,
+        IReadOnlyDictionary<int, TMDB_Episode> tmdbEpisodeDict,
+        IReadOnlyList<CrossRef_AniDB_TMDB_Episode> toAdd)
+    {
+        var groups = toAdd
+            .Where(xref => xref.TmdbEpisodeID != 0 && anidbEpisodes.ContainsKey(xref.AnidbEpisodeID))
+            .GroupBy(xref => anidbEpisodes[xref.AnidbEpisodeID].EpisodeType);
+
+        foreach (var group in groups)
+        {
+            var ordered = group.OrderBy(xref => anidbEpisodes[xref.AnidbEpisodeID].EpisodeNumber).ToList();
+
+            // Repeat until a full pass makes no swaps, to fully untangle runs of 3+ reversed weak matches.
+            bool swapped;
+            do
+            {
+                swapped = false;
+                for (var i = 0; i < ordered.Count - 1; i++)
+                {
+                    var a = ordered[i];
+                    var b = ordered[i + 1];
+                    if (!_weakOrderRatings.Contains(a.MatchRating) || !_weakOrderRatings.Contains(b.MatchRating))
+                        continue;
+                    if (!tmdbEpisodeDict.TryGetValue(a.TmdbEpisodeID, out var tmdbA) || !tmdbEpisodeDict.TryGetValue(b.TmdbEpisodeID, out var tmdbB))
+                        continue;
+
+                    if ((tmdbA.SeasonNumber, tmdbA.EpisodeNumber).CompareTo((tmdbB.SeasonNumber, tmdbB.EpisodeNumber)) <= 0)
+                        continue;
+
+                    (a.TmdbEpisodeID, b.TmdbEpisodeID) = (b.TmdbEpisodeID, a.TmdbEpisodeID);
+                    (a.TmdbShowID, b.TmdbShowID) = (b.TmdbShowID, a.TmdbShowID);
+                    swapped = true;
+                }
+            } while (swapped);
+        }
+    }
 
     #endregion
 }
