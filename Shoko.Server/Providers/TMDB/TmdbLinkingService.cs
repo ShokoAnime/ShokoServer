@@ -584,7 +584,7 @@ public class TmdbLinkingService : ITmdbLinkingService
                 _logger.LogTrace("Linking episode. (AniDB ID: {AnidbEpisodeID}, Pass: 1/4)", episode.EpisodeID);
                 var isSpecial = episode.EpisodeType is EpisodeType.Special || anime.AnimeType is not AnimeType.TVSeries and not AnimeType.Web;
                 var episodeList = isSpecial ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
-                var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA);
+                var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA, show.OriginalLanguageCode);
                 if (crossRef.MatchRating is MatchRating.DateAndTitleMatches)
                 {
                     var index = episodeList.FindIndex(episode => episode.TmdbEpisodeID == crossRef.TmdbEpisodeID);
@@ -638,7 +638,7 @@ public class TmdbLinkingService : ITmdbLinkingService
                 _logger.LogTrace("Linking episode {EpisodeType} {EpisodeNumber}. (AniDB ID: {EpisodeID}, Progress: {Current}/{Total}, Pass: 2/4)", episode.EpisodeType, episode.EpisodeNumber, episode.EpisodeID, current, secondPass.Count);
                 var isSpecial = episode.EpisodeType is EpisodeType.Special || anime.AnimeType is not AnimeType.TVSeries and not AnimeType.Web;
                 var episodeList = isSpecial ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
-                var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA);
+                var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA, show.OriginalLanguageCode);
                 if (crossRef.MatchRating is MatchRating.TitleMatches)
                 {
                     var index = episodeList.FindIndex(episode => episode.TmdbEpisodeID == crossRef.TmdbEpisodeID);
@@ -692,7 +692,7 @@ public class TmdbLinkingService : ITmdbLinkingService
                 _logger.LogTrace("Linking episode {EpisodeType} {EpisodeNumber}. (AniDB ID: {EpisodeID}, Progress: {Current}/{Total}, Pass: 3/4)", episode.EpisodeType, episode.EpisodeNumber, episode.EpisodeID, current, thirdPass.Count);
                 var isSpecial = episode.EpisodeType is EpisodeType.Special || anime.AnimeType is not AnimeType.TVSeries and not AnimeType.Web;
                 var episodeList = isSpecial ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
-                var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA);
+                var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA, show.OriginalLanguageCode);
                 if (crossRef.MatchRating is not MatchRating.FirstAvailable and not MatchRating.None)
                 {
                     var index = episodeList.FindIndex(episode => episode.TmdbEpisodeID == crossRef.TmdbEpisodeID);
@@ -746,7 +746,7 @@ public class TmdbLinkingService : ITmdbLinkingService
                 _logger.LogTrace("Linking episode {EpisodeType} {EpisodeNumber}. (AniDB ID: {EpisodeID}, Progress: {Current}/{Total}, Pass: 4/4)", episode.EpisodeType, episode.EpisodeNumber, episode.EpisodeID, current, fourthPass.Count);
                 var isSpecial = episode.EpisodeType is EpisodeType.Special || anime.AnimeType is not AnimeType.TVSeries and not AnimeType.Web;
                 var episodeList = isSpecial ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
-                var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA);
+                var crossRef = TryFindAnidbAndTmdbMatch(anime, episode, episodeList, isSpecial && !isOVA, show.OriginalLanguageCode);
                 if (crossRef.TmdbEpisodeID != 0)
                 {
                     _logger.LogTrace("Adding new link for episode. (AniDB ID: {AnidbEpisodeID}, TMDB ID: {TMDbEpisodeID}, Rating: {MatchRating}, Pass: 4/4)", episode.EpisodeID, crossRef.TmdbEpisodeID, crossRef.MatchRating);
@@ -800,26 +800,14 @@ public class TmdbLinkingService : ITmdbLinkingService
         int NormalEpisodeSeasonNumberSelector(CrossRef_AniDB_TMDB_Episode xref) => xref.TmdbEpisodeID is not 0 && (isOVA || anidbEpisodes[xref.AnidbEpisodeID].EpisodeType is EpisodeType.Episode) && tmdbEpisodeDict.TryGetValue(xref.TmdbEpisodeID, out var tmdbEpisode) ? tmdbEpisode.SeasonNumber : -1;
     }
 
-    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(AniDB_Anime anime, AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial)
+    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(AniDB_Anime anime, AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial, string originalLanguageCode)
     {
-        // Skip matching if we try to match a music video or complete movie.
-        var anidbTitle = _anidbEpisodeTitles.GetByEpisodeIDAndLanguage(anidbEpisode.EpisodeID, TitleLanguage.English)
-            .Where(title => !title.Title.Trim().Equals($"Episode {anidbEpisode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))
-            .FirstOrDefault()?.Title;
+        var anidbTitle = ResolveAnidbTitle(anime, anidbEpisode);
         var titlesToNotSearch = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { "Complete Movie", "Music Video" };
         if (!string.IsNullOrEmpty(anidbTitle) && titlesToNotSearch.Any(title => anidbTitle.Contains(title, StringComparison.InvariantCultureIgnoreCase)))
             return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, 0, 0, MatchRating.None);
 
-        // Fix up the title for the first/single episode of a few anime types.
-        if (!string.IsNullOrEmpty(anidbTitle) && _titlesToSearch.Contains(anidbTitle))
-        {
-            var englishAnimeTitle = anime.Titles.FirstOrDefault(title => title.TitleType == TitleType.Official && title.Language == TitleLanguage.English)?.Title;
-            if (englishAnimeTitle is not null)
-            {
-                var i = englishAnimeTitle.IndexOf(':');
-                anidbTitle = i > 0 && i < englishAnimeTitle.Length - 1 ? englishAnimeTitle[(i + 1)..].TrimStart() : englishAnimeTitle;
-            }
-        }
+        anidbTitle = FixUpAnidbTitle(anime, anidbTitle);
 
         var anidbDate = anidbEpisode.GetAirDateAsDate()?.ToDateOnly();
         if (anidbDate is not null && anidbDate > DateTime.UtcNow.AddDays(1).ToDateOnly())
@@ -828,52 +816,91 @@ public class TmdbLinkingService : ITmdbLinkingService
             return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, 0, 0, MatchRating.None, 0);
         }
 
-        var airdateProbability = tmdbEpisodes
-            .Select(episode => new { episode, probability = CalculateAirDateProbability(anidbDate, episode.AiredAt) })
-            .Where(result => result.probability != 0)
+        var dateMatchedEpisodes = tmdbEpisodes
+            .Select(episode => (episode, probability: CalculateAirDateProbability(anidbDate, episode.AiredAt)))
+            .Where(result => result.probability > 0)
             .OrderByDescending(result => result.probability)
             .ThenBy(result => result.episode.SeasonNumber == 0)
             .ThenBy(result => result.episode.SeasonNumber)
             .ThenBy(result => result.episode.EpisodeNumber)
+            .Select(result => result.episode)
             .ToList();
         var titleSearchResults = !string.IsNullOrEmpty(anidbTitle) ? tmdbEpisodes
-            .Search(anidbTitle, episode => [ReplaceTitle(episode.EnglishTitle)], true)
+            .Search(anidbTitle, episode => GetEpisodeTitleCandidates(episode, originalLanguageCode), true)
             .OrderBy(result => result)
             .ToList() : [];
 
-        // Exact match first.
-        if (titleSearchResults.Count > 0 && titleSearchResults[0] is { } exactTitleMatch && exactTitleMatch.ExactMatch && exactTitleMatch.LengthDifference < 3)
+        return PickBestMatch(anidbEpisode, isSpecial, tmdbEpisodes, dateMatchedEpisodes, titleSearchResults);
+    }
+
+    private string? ResolveAnidbTitle(AniDB_Anime anime, AniDB_Episode anidbEpisode)
+    {
+        var mainTitle = anime.Titles.FirstOrDefault(t => t.TitleType == TitleType.Main);
+        var fallbackLanguage = mainTitle?.Language switch
         {
-            var tmdbEpisode = exactTitleMatch.Result;
-            var dateMatches = airdateProbability.Any(result => result.episode == tmdbEpisode);
-            var rating = dateMatches ? MatchRating.DateAndTitleMatches : MatchRating.TitleMatches;
+            TitleLanguage.Romaji => TitleLanguage.Japanese,
+            TitleLanguage.Pinyin => TitleLanguage.ChineseSimplified,
+            TitleLanguage.KoreanTranscription => TitleLanguage.Korean,
+            TitleLanguage.ThaiTranscription => TitleLanguage.Thai,
+            _ => mainTitle?.Language ?? TitleLanguage.English,
+        };
+        return _anidbEpisodeTitles.GetByEpisodeIDAndLanguage(anidbEpisode.EpisodeID, TitleLanguage.English)
+            .FirstOrDefault(title => !title.Title.Trim().Equals($"Episode {anidbEpisode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))?.Title
+            ?? (fallbackLanguage != TitleLanguage.English
+                ? _anidbEpisodeTitles.GetByEpisodeIDAndLanguage(anidbEpisode.EpisodeID, fallbackLanguage)
+                    .FirstOrDefault()?.Title
+                : null);
+    }
+
+    private static string? FixUpAnidbTitle(AniDB_Anime anime, string? anidbTitle)
+    {
+        if (string.IsNullOrEmpty(anidbTitle) || !_titlesToSearch.Contains(anidbTitle))
+            return anidbTitle;
+        var englishAnimeTitle = anime.Titles.FirstOrDefault(title => title.TitleType == TitleType.Official && title.Language == TitleLanguage.English)?.Title;
+        if (englishAnimeTitle is null)
+            return anidbTitle;
+        var i = englishAnimeTitle.IndexOf(':');
+        return i > 0 && i < englishAnimeTitle.Length - 1 ? englishAnimeTitle[(i + 1)..].TrimStart() : englishAnimeTitle;
+    }
+
+    private static CrossRef_AniDB_TMDB_Episode PickBestMatch(
+        AniDB_Episode anidbEpisode,
+        bool isSpecial,
+        IReadOnlyList<TMDB_Episode> tmdbEpisodes,
+        IReadOnlyList<TMDB_Episode> dateMatchedEpisodes,
+        IReadOnlyList<SeriesSearch.SearchResult<TMDB_Episode>> titleSearchResults)
+    {
+        var bestTitle = titleSearchResults.Count > 0 ? titleSearchResults[0] : null;
+
+        // Exact title match first.
+        if (bestTitle is not null && bestTitle.ExactMatch && bestTitle.LengthDifference < 3)
+        {
+            var tmdbEpisode = bestTitle.Result;
+            var rating = dateMatchedEpisodes.Contains(tmdbEpisode) ? MatchRating.DateAndTitleMatches : MatchRating.TitleMatches;
             return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
         }
 
         // Almost exact match second.
-        if (titleSearchResults.Count > 0 && titleSearchResults[0] is { } kindaTitleMatch && kindaTitleMatch.Distance < 0.2D && kindaTitleMatch.LengthDifference < 6)
+        if (bestTitle is not null && bestTitle.Distance < 0.2D && bestTitle.LengthDifference < 6)
         {
-            var tmdbEpisode = kindaTitleMatch.Result;
-            var dateMatches = airdateProbability.Any(result => result.episode == tmdbEpisode);
-            var rating = dateMatches ? MatchRating.DateAndTitleKindaMatches : MatchRating.TitleKindaMatches;
+            var tmdbEpisode = bestTitle.Result;
+            var rating = dateMatchedEpisodes.Contains(tmdbEpisode) ? MatchRating.DateAndTitleKindaMatches : MatchRating.TitleKindaMatches;
             return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
         }
 
         // Followed by checking the air date.
-        if (airdateProbability.Count > 0)
+        if (dateMatchedEpisodes.Count > 0)
         {
-            var tmdbEpisode = airdateProbability.FirstOrDefault(r => titleSearchResults.Any(result => result.Result == r.episode))?.episode;
-            var rating = tmdbEpisode is null ? MatchRating.DateMatches : MatchRating.DateAndTitleKindaMatches;
-            tmdbEpisode ??= airdateProbability[0].episode;
+            var titleMatchedSet = titleSearchResults.Select(r => r.Result).ToHashSet();
+            var titleAndDateMatch = dateMatchedEpisodes.FirstOrDefault(e => titleMatchedSet.Contains(e));
+            var tmdbEpisode = titleAndDateMatch ?? dateMatchedEpisodes[0];
+            var rating = titleAndDateMatch is null ? MatchRating.DateMatches : MatchRating.DateAndTitleKindaMatches;
             return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
         }
 
         // Followed by _any_ title match.
-        if (titleSearchResults.Count > 0)
-        {
-            var tmdbEpisode = titleSearchResults[0]!.Result;
-            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, MatchRating.TitleKindaMatches);
-        }
+        if (bestTitle is not null)
+            return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, bestTitle.Result.TmdbEpisodeID, bestTitle.Result.TmdbShowID, MatchRating.TitleKindaMatches);
 
         // And finally, just pick the first available episode if it's not a special.
         if (!isSpecial && tmdbEpisodes.Count > 0)
@@ -897,6 +924,15 @@ public class TmdbLinkingService : ITmdbLinkingService
 
         return 0;
     }
+
+    private static IReadOnlyList<string> GetEpisodeTitleCandidates(TMDB_Episode episode, string originalLanguageCode) =>
+        episode.GetAllTitles()
+            .Where(t => (t.LanguageCode == "en" && t.CountryCode == "US") || t.LanguageCode == originalLanguageCode)
+            .Where(t => !t.Value.Trim().Equals($"Episode {episode.EpisodeNumber}", StringComparison.InvariantCultureIgnoreCase))
+            .Select(t => ReplaceTitle(t.Value))
+            .Where(t => !string.IsNullOrEmpty(t))
+            .Distinct()
+            .ToList();
 
     private static string ReplaceTitle(string title) =>
         _characterReplacementDict.Aggregate(title, (current, kv) => current.Replace(kv.Key, kv.Value));
