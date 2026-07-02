@@ -511,8 +511,19 @@ public class TmdbLinkingService : ITmdbLinkingService
             .Where(episode => episode.SeasonNumber == 0)
             .OrderBy(episode => episode.EpisodeNumber)
             .ToList();
+        // Ranks an AniDB episode's best candidate match without consuming it, so passes can process
+        // the strongest matches first and let weaker duplicate claims fall back to their next-best
+        // candidate instead of losing a shared TMDB episode purely by AniDB episode order.
+        double PeekMatchConfidence(AniDB_Episode ep)
+        {
+            var isSpecialEpisode = ep.EpisodeType is EpisodeType.Special || anime.AnimeType is not AnimeType.TVSeries and not AnimeType.Web;
+            var candidates = isSpecialEpisode ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
+            TryFindAnidbAndTmdbMatch(anime, ep, candidates, isSpecialEpisode && !isOVA, out var episodeConfidence);
+            return episodeConfidence;
+        }
+
         var current = 0;
-        foreach (var episode in anidbEpisodes.Values)
+        foreach (var episode in anidbEpisodes.Values.OrderByDescending(PeekMatchConfidence))
         {
             current++;
             _logger.LogTrace("Checking episode {EpisodeType} {EpisodeNumber}. (AniDB ID: {AnidbEpisodeID}, Progress: {Current}/{Total}, Pass: 1/4)", episode.EpisodeType, episode.EpisodeNumber, episode.EpisodeID, current, anidbEpisodes.Count);
@@ -631,7 +642,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             }
 
             current = 0;
-            foreach (var episode in secondPass)
+            foreach (var episode in secondPass.OrderByDescending(PeekMatchConfidence))
             {
                 // Try find a match.
                 current++;
@@ -685,7 +696,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             }
 
             current = 0;
-            foreach (var episode in thirdPass)
+            foreach (var episode in thirdPass.OrderByDescending(PeekMatchConfidence))
             {
                 // Try find a match.
                 current++;
@@ -739,7 +750,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             }
 
             current = 0;
-            foreach (var episode in fourthPass)
+            foreach (var episode in fourthPass.OrderByDescending(PeekMatchConfidence))
             {
                 // Try find a match.
                 current++;
@@ -802,12 +813,19 @@ public class TmdbLinkingService : ITmdbLinkingService
         int NormalEpisodeSeasonNumberSelector(CrossRef_AniDB_TMDB_Episode xref) => xref.TmdbEpisodeID is not 0 && (isOVA || anidbEpisodes[xref.AnidbEpisodeID].EpisodeType is EpisodeType.Episode) && tmdbEpisodeDict.TryGetValue(xref.TmdbEpisodeID, out var tmdbEpisode) ? tmdbEpisode.SeasonNumber : -1;
     }
 
-    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(AniDB_Anime anime, AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial)
+    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(AniDB_Anime anime, AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial) =>
+        TryFindAnidbAndTmdbMatch(anime, anidbEpisode, tmdbEpisodes, isSpecial, out _);
+
+    // The out confidence score lets callers rank multiple AniDB episodes contending for the same
+    // TMDB episode within a pass, so the strongest match claims it instead of whichever AniDB
+    // episode happened to be processed first.
+    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(AniDB_Anime anime, AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial, out double confidence)
     {
+        confidence = 0;
+
         // Skip matching if we try to match a music video or complete movie.
         var anidbTitle = _anidbEpisodeTitles.GetByEpisodeIDAndLanguage(anidbEpisode.EpisodeID, TitleLanguage.English)
-            .Where(title => !IsGenericEpisodeTitle(title.Title, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber))
-            .FirstOrDefault()?.Title;
+            .FirstOrDefault(title => !IsGenericEpisodeTitle(title.Title, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber))?.Title;
         var titlesToNotSearch = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase) { "Complete Movie", "Music Video" };
         if (!string.IsNullOrEmpty(anidbTitle) && titlesToNotSearch.Any(title => anidbTitle.Contains(title, StringComparison.InvariantCultureIgnoreCase)))
             return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, 0, 0, MatchRating.None);
@@ -849,6 +867,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             var tmdbEpisode = exactTitleMatch.Result;
             var dateMatches = airdateProbability.Any(result => result.episode == tmdbEpisode);
             var rating = dateMatches ? MatchRating.DateAndTitleMatches : MatchRating.TitleMatches;
+            confidence = (dateMatches ? 1 : 0) + (1 - exactTitleMatch.Distance);
             return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
         }
 
@@ -858,14 +877,17 @@ public class TmdbLinkingService : ITmdbLinkingService
             var tmdbEpisode = kindaTitleMatch.Result;
             var dateMatches = airdateProbability.Any(result => result.episode == tmdbEpisode);
             var rating = dateMatches ? MatchRating.DateAndTitleKindaMatches : MatchRating.TitleKindaMatches;
+            confidence = (dateMatches ? 1 : 0) + (1 - kindaTitleMatch.Distance);
             return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
         }
 
         // Followed by checking the air date.
         if (airdateProbability.Count > 0)
         {
-            var tmdbEpisode = airdateProbability.FirstOrDefault(r => titleSearchResults.Any(result => result.Result == r.episode))?.episode;
+            var matched = airdateProbability.FirstOrDefault(r => titleSearchResults.Any(result => result.Result == r.episode));
+            var tmdbEpisode = matched?.episode;
             var rating = tmdbEpisode is null ? MatchRating.DateMatches : MatchRating.DateAndTitleKindaMatches;
+            confidence = matched?.probability ?? airdateProbability[0].probability;
             tmdbEpisode ??= airdateProbability[0].episode;
             return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, rating);
         }
@@ -874,6 +896,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         if (titleSearchResults.Count > 0)
         {
             var tmdbEpisode = titleSearchResults[0]!.Result;
+            confidence = 1 - titleSearchResults[0]!.Distance;
             return new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, MatchRating.TitleKindaMatches);
         }
 
@@ -936,28 +959,39 @@ public class TmdbLinkingService : ITmdbLinkingService
             var ordered = group.OrderBy(xref => anidbEpisodes[xref.AnidbEpisodeID].EpisodeNumber).ToList();
 
             // Repeat until a full pass makes no swaps, to fully untangle runs of 3+ reversed weak matches.
-            bool swapped;
-            do
+            while (BubbleSwapPass(ordered, tmdbEpisodeDict))
             {
-                swapped = false;
-                for (var i = 0; i < ordered.Count - 1; i++)
-                {
-                    var a = ordered[i];
-                    var b = ordered[i + 1];
-                    if (!_weakOrderRatings.Contains(a.MatchRating) || !_weakOrderRatings.Contains(b.MatchRating))
-                        continue;
-                    if (!tmdbEpisodeDict.TryGetValue(a.TmdbEpisodeID, out var tmdbA) || !tmdbEpisodeDict.TryGetValue(b.TmdbEpisodeID, out var tmdbB))
-                        continue;
-
-                    if ((tmdbA.SeasonNumber, tmdbA.EpisodeNumber).CompareTo((tmdbB.SeasonNumber, tmdbB.EpisodeNumber)) <= 0)
-                        continue;
-
-                    (a.TmdbEpisodeID, b.TmdbEpisodeID) = (b.TmdbEpisodeID, a.TmdbEpisodeID);
-                    (a.TmdbShowID, b.TmdbShowID) = (b.TmdbShowID, a.TmdbShowID);
-                    swapped = true;
-                }
-            } while (swapped);
+            }
         }
+    }
+
+    // A single left-to-right adjacent-swap pass over the ordered group; returns true if anything moved.
+    private static bool BubbleSwapPass(List<CrossRef_AniDB_TMDB_Episode> ordered, IReadOnlyDictionary<int, TMDB_Episode> tmdbEpisodeDict)
+    {
+        var swapped = false;
+        for (var i = 0; i < ordered.Count - 1; i++)
+        {
+            var a = ordered[i];
+            var b = ordered[i + 1];
+            if (!ShouldSwap(a, b, tmdbEpisodeDict))
+                continue;
+
+            (a.TmdbEpisodeID, b.TmdbEpisodeID) = (b.TmdbEpisodeID, a.TmdbEpisodeID);
+            (a.TmdbShowID, b.TmdbShowID) = (b.TmdbShowID, a.TmdbShowID);
+            swapped = true;
+        }
+
+        return swapped;
+    }
+
+    private static bool ShouldSwap(CrossRef_AniDB_TMDB_Episode a, CrossRef_AniDB_TMDB_Episode b, IReadOnlyDictionary<int, TMDB_Episode> tmdbEpisodeDict)
+    {
+        if (!_weakOrderRatings.Contains(a.MatchRating) || !_weakOrderRatings.Contains(b.MatchRating))
+            return false;
+        if (!tmdbEpisodeDict.TryGetValue(a.TmdbEpisodeID, out var tmdbA) || !tmdbEpisodeDict.TryGetValue(b.TmdbEpisodeID, out var tmdbB))
+            return false;
+
+        return (tmdbA.SeasonNumber, tmdbA.EpisodeNumber).CompareTo((tmdbB.SeasonNumber, tmdbB.EpisodeNumber)) > 0;
     }
 
     #endregion
