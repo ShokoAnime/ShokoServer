@@ -27,6 +27,8 @@ public class StoredReleaseInfo_MatchAttemptRepository(DatabaseFactory databaseFa
     public IReadOnlyList<StoredReleaseInfo_MatchAttempt> GetByEd2k(string ed2k)
         => !string.IsNullOrWhiteSpace(ed2k)
             ? _ed2k!.GetMultiple(ed2k)
+                .OrderBy(m => m.AttemptStartedAt)
+                .ToList()
             : [];
 
     public IReadOnlyList<StoredReleaseInfo_MatchAttempt> GetByEd2kAndFileSize(string ed2k, long fileSize)
@@ -35,8 +37,12 @@ public class StoredReleaseInfo_MatchAttemptRepository(DatabaseFactory databaseFa
     public IReadOnlyList<StoredReleaseInfo_MatchAttempt> GetBySourceProviderNames(string providerName)
         => !string.IsNullOrEmpty(providerName)
             ? _sourceProviderNames!.GetMultiple(providerName)
+                .OrderBy(m => m.AttemptStartedAt)
+                .ToList()
             : [];
 
     public IReadOnlyList<StoredReleaseInfo_MatchAttempt> GetByResultProviderNames(string? providerName)
-        => _resultProviderNames!.GetMultiple(providerName);
+        => _resultProviderNames!.GetMultiple(providerName)
+                .OrderBy(m => m.AttemptStartedAt)
+                .ToList();
 }
