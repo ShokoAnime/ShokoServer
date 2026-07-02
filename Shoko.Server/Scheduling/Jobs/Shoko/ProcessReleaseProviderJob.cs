@@ -48,7 +48,6 @@ public class ProcessReleaseProviderJob : BaseJob
 
     public int MatchAttemptID { get; set; }
 
-    [JobKeyMember]
     public Guid ProviderID { get; set; }
 
     public override string TypeName => "Get Release Information for Video From Provider";
