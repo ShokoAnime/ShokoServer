@@ -243,7 +243,6 @@ public partial class AnidbReleaseProvider(
     public TimeSpan? GetRescanDelay(IReleaseInfo existingInfo, IReleaseMatchAttempt lastAttempt)
     {
         if (existingInfo.IsPublic is false) return null;
-        if (lastAttempt.ProviderName != Name) return null;
         if (existingInfo.Source != ReleaseSource.Unknown && existingInfo.MediaInfo is not null)
             return null;
         var settings = configurationProvider.Load();
