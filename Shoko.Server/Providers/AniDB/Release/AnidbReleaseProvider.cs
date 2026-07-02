@@ -247,8 +247,8 @@ public partial class AnidbReleaseProvider(
         if (existingInfo.Source != ReleaseSource.Unknown && existingInfo.MediaInfo is not null)
             return null;
         var settings = configurationProvider.Load();
-        if (lastAttempt.AttemptCount >= settings.RescanDelayHours.Length) return null;
-        return TimeSpan.FromHours(settings.RescanDelayHours[lastAttempt.AttemptCount]);
+        if (lastAttempt.AttemptCount > settings.RescanDelayHours.Length) return null;
+        return TimeSpan.FromHours(settings.RescanDelayHours[lastAttempt.AttemptCount - 1]);
     }
 
     [GeneratedRegex(@"(?:(?<![a-z0-9])(?:nc|creditless)[\s_.]*(?:ed|op)(?![a-z]))(?:[\s_.]*(?:\d+(?!\d*p)))?", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript)]
