@@ -365,7 +365,7 @@ public class ReleaseManagementMultipleReleasesController(
         for (var i = 0; i < ranked.Count; i++)
         {
             var candidate = ranked[i];
-            var isRedundant = candidate.Places.All(p => redundantPlaces.Contains(p.ID));
+            var isRedundant = candidate.Places.Count > 0 && candidate.Places.All(p => redundantPlaces.Contains(p.ID));
 
             ReleaseComparisonService.CompareDecision? decision = null;
             if (i > 0)
@@ -389,6 +389,12 @@ public class ReleaseManagementMultipleReleasesController(
                 .ToList();
         }
 
+        var filesToAutoDeleteCount = ranked
+            .Where(c => c.Places.Count > 0 && c.Places.All(p => redundantPlaces.Contains(p.ID)))
+            .SelectMany(c => c.Places.Select(p => p.ID))
+            .Distinct()
+            .Count();
+
         return new SeriesWithCandidates
         {
             SeriesID = series.AnimeSeriesID,
@@ -396,6 +402,7 @@ public class ReleaseManagementMultipleReleasesController(
             AnidbAnimeID = series.AniDB_ID,
             IsAiring = autoManagement.IsSeriesAiring(series),
             HasRedundantCandidates = candidateDTOs.Any(c => c.IsRedundant),
+            FilesToAutoDeleteCount = filesToAutoDeleteCount,
             Candidates = candidateDTOs,
             Overrides = overrideDTOs,
         };
@@ -439,7 +446,20 @@ public class ReleaseManagementMultipleReleasesController(
         if (redundantPlaces.Count == 0)
             return null;
 
+        // Only include places from candidates where ALL places are redundant, matching the IsRedundant semantics.
+        // Per-file deletion for airing series is handled automatically on import; the manual preview only surfaces
+        // whole-candidate redundancy so the UI stays consistent with the "No auto-delete available" / "Would be
+        // deleted" badges shown on the candidates view.
+        var redundantPlaceSet = redundantPlaces.Select(p => p.ID).ToHashSet();
+        var fullyRedundantPlaceIds = ranked
+            .Where(c => c.Places.Count > 0 && c.Places.All(p => redundantPlaceSet.Contains(p.ID)))
+            .SelectMany(c => c.Places.Select(p => p.ID))
+            .ToHashSet();
+        if (fullyRedundantPlaceIds.Count == 0)
+            return null;
+
         var fileLocations = redundantPlaces
+            .Where(p => fullyRedundantPlaceIds.Contains(p.ID))
             .Select(place =>
             {
                 videoLookup.TryGetValue(place.VideoID, out var video);

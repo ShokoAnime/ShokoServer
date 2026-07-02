@@ -35,6 +35,15 @@ public class SeriesWithCandidates
     public required bool HasRedundantCandidates { get; init; }
 
     /// <summary>
+    /// Deduplicated count of file locations that would be deleted across all
+    /// candidates. Use this instead of summing
+    /// <see cref="ReleaseCandidate.RedundantFileCount"/> values, which can
+    /// double-count places shared between gap-fill candidates.
+    /// </summary>
+    [Required]
+    public required int FilesToAutoDeleteCount { get; init; }
+
+    /// <summary>
     /// Ranked release candidates for the series, best-first (rank 1 is the primary).
     /// </summary>
     [Required]
