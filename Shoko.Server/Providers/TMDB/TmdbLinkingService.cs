@@ -903,49 +903,39 @@ public class TmdbLinkingService : ITmdbLinkingService
     private static string ReplaceTitle(string title) =>
         _characterReplacementDict.Aggregate(title, (current, kv) => current.Replace(kv.Key, kv.Value));
 
-    // AniDB emits an auto-generated placeholder title ("Episode 5", "Episode S1", "Episode C2", ...) for
-    // episodes it has no real title for, using the same type-prefix convention as AniDBEpisodeNumber
-    // (Episode="", Special="S", Credits="C", Trailer="T", Parody="P", Other="O" — see
-    // Shoko.Server.Providers.AniDB.Helpers.AniDBEpisodeNumber). Treating a placeholder as real title
-    // content lets it leak into the fuzzy title search and coincidentally "match" an unrelated TMDB
-    // episode purely because both titles are just "Episode <number>" — with no title evidence behind it.
-    // The old check only excluded the normal-episode form ("Episode {N}"), so specials/credits/trailers/
-    // etc. with no real title were never filtered.
-    private static readonly Dictionary<EpisodeType, string> _episodeTypePrefixes = new()
+    // Mirrors AniDBEpisodeNumber.ToString()'s prefix convention; throws instead of silently defaulting if the two ever drift apart.
+    private static string GenericEpisodeTitlePrefix(EpisodeType episodeType) => episodeType switch
     {
-        [EpisodeType.Episode] = "",
-        [EpisodeType.Special] = "S",
-        [EpisodeType.Credits] = "C",
-        [EpisodeType.Trailer] = "T",
-        [EpisodeType.Parody] = "P",
-        [EpisodeType.Other] = "O",
+        EpisodeType.Episode => "",
+        EpisodeType.Special => "S",
+        EpisodeType.Credits => "C",
+        EpisodeType.Trailer => "T",
+        EpisodeType.Parody => "P",
+        EpisodeType.Other => "O",
+        _ => throw new ArgumentOutOfRangeException(nameof(episodeType), episodeType, null),
     };
 
     private static bool IsGenericEpisodeTitle(string title, EpisodeType episodeType, int episodeNumber) =>
-        title.Trim().Equals($"Episode {_episodeTypePrefixes.GetValueOrDefault(episodeType)}{episodeNumber}", StringComparison.InvariantCultureIgnoreCase);
+        title.Trim().Equals($"Episode {GenericEpisodeTitlePrefix(episodeType)}{episodeNumber}", StringComparison.InvariantCultureIgnoreCase);
 
-    // Ratings assigned without any title evidence — pure air-date coincidence or the last-resort
-    // positional fallback. Both are cheap to get backwards when TMDB's own episode dates are shifted
-    // relative to AniDB's (e.g. an early exclusive-stream premiere AniDB tracked but TMDB never listed),
-    // since a date-only match can grab the wrong TMDB episode before its true AniDB neighbor gets a turn.
+    // Ratings assigned with zero title evidence — the only ones a coincidental air-date mismatch can put out of order.
     private static readonly HashSet<MatchRating> _weakOrderRatings = [MatchRating.DateMatches, MatchRating.FirstAvailable];
 
-    // AniDB's episode order is the point of truth. If two AniDB-adjacent episodes both matched on
-    // weak evidence alone and their TMDB assignments came out in the wrong order, swap them back into
-    // AniDB order instead of trusting TMDB's (possibly mis-dated) episode numbering.
-    internal static void ReconcileEpisodeOrderInversions(IReadOnlyDictionary<int, AniDB_Episode> anidbEpisodes, IReadOnlyDictionary<int, TMDB_Episode> tmdbEpisodeDict, IReadOnlyList<CrossRef_AniDB_TMDB_Episode> toAdd)
+    // Swaps adjacent weak TMDB matches into AniDB order; strong matches stay in the ordering (true adjacency) but are never swapped.
+    internal static void ReconcileEpisodeOrderInversions(
+        IReadOnlyDictionary<int, AniDB_Episode> anidbEpisodes,
+        IReadOnlyDictionary<int, TMDB_Episode> tmdbEpisodeDict,
+        IReadOnlyList<CrossRef_AniDB_TMDB_Episode> toAdd)
     {
         var groups = toAdd
-            .Where(xref => xref.TmdbEpisodeID != 0 && _weakOrderRatings.Contains(xref.MatchRating) && anidbEpisodes.ContainsKey(xref.AnidbEpisodeID))
+            .Where(xref => xref.TmdbEpisodeID != 0 && anidbEpisodes.ContainsKey(xref.AnidbEpisodeID))
             .GroupBy(xref => anidbEpisodes[xref.AnidbEpisodeID].EpisodeType);
 
         foreach (var group in groups)
         {
             var ordered = group.OrderBy(xref => anidbEpisodes[xref.AnidbEpisodeID].EpisodeNumber).ToList();
 
-            // A single left-to-right pass only bubbles one inversion at a time, so a run of 3+
-            // weak matches in reverse order (e.g. T3,T2,T1) needs more than one pass to fully
-            // untangle. Repeat until a full pass makes no swaps.
+            // Repeat until a full pass makes no swaps, to fully untangle runs of 3+ reversed weak matches.
             bool swapped;
             do
             {
@@ -954,6 +944,8 @@ public class TmdbLinkingService : ITmdbLinkingService
                 {
                     var a = ordered[i];
                     var b = ordered[i + 1];
+                    if (!_weakOrderRatings.Contains(a.MatchRating) || !_weakOrderRatings.Contains(b.MatchRating))
+                        continue;
                     if (!tmdbEpisodeDict.TryGetValue(a.TmdbEpisodeID, out var tmdbA) || !tmdbEpisodeDict.TryGetValue(b.TmdbEpisodeID, out var tmdbB))
                         continue;
 

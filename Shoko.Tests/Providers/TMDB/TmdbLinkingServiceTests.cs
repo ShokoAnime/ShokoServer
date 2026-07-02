@@ -161,7 +161,8 @@ public class TmdbLinkingServiceTests
     [InlineData(EpisodeType.Special, 1, "Demon Lords' Banquet: Walpurgis", false)]
     public void IsGenericEpisodeTitle_RecognizesPerTypePlaceholderFormat(EpisodeType episodeType, int episodeNumber, string title, bool expected)
     {
-        var method = typeof(TmdbLinkingService).GetMethod("IsGenericEpisodeTitle", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
+        var method = typeof(TmdbLinkingService).GetMethod("IsGenericEpisodeTitle", flags)!;
         var result = (bool)method.Invoke(null, [title, episodeType, episodeNumber])!;
         Assert.Equal(expected, result);
     }
