@@ -72,9 +72,10 @@ public class SeriesSearchNormalizationTest
         new object[] { "~Naruto~", "~Fullmetal Alchemist~", false },
     };
 
+    // Via NormalizeForIndex (what .Search() uses), not FuzzyMatch — its ForceASCII pipeline already deletes '~'/'|', so it'd pass regardless of this fix.
     [Theory, MemberData(nameof(TildeData))]
     public void TildeNormalization(string title, string query, bool expectMatch)
-        => Assert.Equal(expectMatch, title.FuzzyMatch(query));
+        => Assert.Equal(expectMatch, SeriesSearch.NormalizeForIndex(title) == SeriesSearch.NormalizeForIndex(query));
 
     public static IEnumerable<object[]> PipeData => new List<object[]>
     {
@@ -90,5 +91,5 @@ public class SeriesSearchNormalizationTest
 
     [Theory, MemberData(nameof(PipeData))]
     public void PipeNormalization(string title, string query, bool expectMatch)
-        => Assert.Equal(expectMatch, title.FuzzyMatch(query));
+        => Assert.Equal(expectMatch, SeriesSearch.NormalizeForIndex(title) == SeriesSearch.NormalizeForIndex(query));
 }

@@ -99,11 +99,7 @@ public static class SeriesSearch
         {
             if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
                 continue;
-            // U+301C 〜 (wave dash) survives NFKD unchanged and must be mapped explicitly. ASCII '~' is
-            // included alongside it since both are used interchangeably as decorative emphasis brackets
-            // in anime episode titles (e.g. "~Walpurgis~" vs ": Walpurgis"), never as meaningful content.
-            // '|' joins the same family: some sources join a double-episode title with "A / B", others
-            // with "A | B" (e.g. "Bell Cranel: Adventurer" vs "Bell Cranel | Adventurer").
+            // U+301C 〜 survives NFKD unchanged; '~'/'|' join it as decorative separators (e.g. "~X~"/": X", "A | B"/"A / B").
             sb.Append(c is '-' or '_' or '.' or ':' or ',' or '!' or ';' or '/' or '\\' or '(' or ')' or '[' or ']' or '〜' or '~' or '|' ? ' ' : c);
         }
 
