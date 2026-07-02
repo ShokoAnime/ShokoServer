@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.349",
+      "tag": "v6.0.0-dev.349",
+      "commit": "5a511e0ba10fe15bb7ff799c22b1bbc5d43a848f",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.349/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-02T04:06:36Z",
+      "releaseNotes": "\n`misc`: **Make adjustments to Auto-Delete Logic**.\n"
+    },
+    {
       "version": "6.0.0.348",
       "tag": "v6.0.0-dev.348",
       "commit": "b6cf48261b41dd98bd24b7c280940c1a3dfefc65",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.320/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-25T18:06:00Z",
       "releaseNotes": "\n`fix`: **Reverse release notes versions order**.\n"
-    },
-    {
-      "version": "6.0.0.319",
-      "tag": "v6.0.0-dev.319",
-      "commit": "2577b0ab86e4cca88f73eae0571bd1cb5c4b8ca3",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.319/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-25T17:16:30Z",
-      "releaseNotes": "\n`misc`: **Null handling for EmbeddedCrossReference**.\n\n`fix`: **Remove embedded episode type/number from embedded xref model**.\n"
     }
   ]
 }
