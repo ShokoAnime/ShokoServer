@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
 
+#nullable disable
 namespace Shoko.Server.API.v1.Models;
 
 [DataContract]

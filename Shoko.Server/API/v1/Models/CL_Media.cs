@@ -7,6 +7,7 @@ using System.Xml.Serialization;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Media;
 
+#nullable disable
 namespace Shoko.Server.API.v1.Models;
 
 [XmlType("Media")]
