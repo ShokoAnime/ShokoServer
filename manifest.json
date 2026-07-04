@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.351",
+      "tag": "v6.0.0-dev.351",
+      "commit": "6dd36ed5e7eebee627eb22585176639b16e18454",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.351/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-04T04:27:27Z",
+      "releaseNotes": "\n`misc`: **A lot more safety and improvements to FileSystemWatcher. Cleanup**.\n"
+    },
+    {
       "version": "6.0.0.350",
       "tag": "v6.0.0-dev.350",
       "commit": "cda353c06aec41f4e0bcd5444b0b12aacf6c14f9",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.322/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-25T21:24:22Z",
       "releaseNotes": "\n`feat` (`plugin`): **Add svg support for plugin and package thumbnails**:\n\nAdded MagickFormat.Svg and MagickFormat.Svgz mappings to\nGetMimeFromFormat so that MagickImageInfo can return the correct MIME\ntype for SVG files. This enables SVG thumbnails in both PluginManager\nand PluginPackageManager, where the MIME-from-format lookup is used\nafter reading thumbnail dimensions.\n\n`feat` (`api`): **Add `difficultyClass` param to random image cross-reference lookup**:\n\nAdded a `difficultyClass` parameter (1-20, D&D-style DC) to\n`GetRandomImageCrossReference`, replacing the hardcoded `roll == 20`\nwith a configurable threshold.\n\n- `IImageManager`: added `[Range(1, 20)] int difficultyClass = 20`\n- `ImageManager`: added validation and `threshold = difficultyClass + 1`\n- `ImageManagementController` (APIv3): exposed as query param (default 10)\n- `Image` (APIv2): hardcoded `difficultyClass: 10` without exposing\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.63**.\n"
-    },
-    {
-      "version": "6.0.0.321",
-      "tag": "v6.0.0-dev.321",
-      "commit": "3af7db0c9e7a5fba21dc1042fbf6ad04c959e7e0",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.321/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-25T19:35:15Z",
-      "releaseNotes": "\n`refactor` (`filters`): **Add cancellation support and improve thread safety**:\n\nAdded CancellationToken parameter propagation through the filter\nevaluation pipeline, from the API controller down through\n`IFilteringEngine` and `IMetadataFilteringService` methods. The\ncontroller passes `HttpContext.RequestAborted` to respect client\ndisconnects.\n\nIntroduced a `Lock` in `FilteringEngine` to serialize filter\nevaluation, preventing race conditions from concurrent access.\n\nRemoved the unused `IFilteringEngine` dependency from\n`FilterController`, accessing it via `IMetadataFilteringService.Engine`\ninstead. Also dropped underscore prefixes from repository field\nnames to match project conventions.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.62**.\n\n`refactor` (`filters`): **Replace Lock with SemaphoreSlim and allow 2 concurrent filter evaluations**.\n\n`refactor` (`filters`): **Add cancellation token support to batch operations**:\n\nExtended CancellationToken propagation to the batch filter methods\nin both IFilteringEngine (BatchPrepareFiltersWithTuples,\nBatchPrepareFiltersWithGrouping) and IMetadataFilteringService\n(BatchFilterGroups, BatchFilterSeries).\n\nThe token is captured in lazy evaluation closures and checked\nbefore materialization. In InternalBatchPrepareFilters it is also\npassed to _filterSemaphore.Wait() so semaphore acquisition respects\ncancellation.\n\nWired HttpContext.RequestAborted from the v3 FilterController\n(GetAllFilters) and FilterFactory (GetFilters) down to the engine.\n"
     }
   ]
 }
