@@ -61,7 +61,6 @@ using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Trinet.Core.IO.Ntfs;
-
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 namespace Shoko.Server.Services;
@@ -151,41 +150,40 @@ public class SystemService : ISystemService
     /// <inheritdoc/>
     public DateTime? StartedAt { get; private set; }
 
-    private string? _startupMessage = string.Empty;
-
     /// <inheritdoc/>
     public string? StartupMessage
     {
-        get => _startupMessage;
+        get;
         internal set
         {
             // We only allow setting it during startup.
-            if (_startupMessage is null && StartedAt.HasValue)
+            if (field is null && StartedAt.HasValue)
                 return;
 
-            var changed = !string.Equals(_startupMessage, value);
-            _startupMessage = value;
+            var changed = !string.Equals(field, value);
+            field = value;
             if (value is { Length: > 0 } && changed)
             {
                 _logger.LogInformation("Starting Server: {Message}", value);
-                Task.Run(() => StartupMessageChanged?.Invoke(this, new() { Message = value }));
+                Task.Run(() => StartupMessageChanged?.Invoke(this, new()
+                {
+                    Message = value
+                }));
             }
         }
-    }
-
-    private StartupFailedException? _startupFailedException;
+    } = string.Empty;
 
     /// <inheritdoc/>
     public StartupFailedException? StartupFailedException
     {
-        get => _startupFailedException;
+        get;
         private set
         {
-            if (value is null || _startupFailedException is not null) return;
+            if (value is null || field is not null) return;
             lock (_logger)
             {
-                if (_startupFailedException is not null) return;
-                _startupFailedException = value;
+                if (field is not null) return;
+                field = value;
                 InSetupMode = false;
                 // Always allow shutdown if we failed to start.
                 CanShutdown = true;
@@ -380,6 +378,7 @@ public class SystemService : ISystemService
             services.AddSingleton(ApplicationPaths.Instance);
 
             services.AddSingleton<IPluginPackageManager, PluginPackageManager>();
+            services.AddSingleton<FileSystemHelpers>();
             services.AddSingleton<FileWatcherService>();
             services.AddSingleton<TmdbRateLimiter>();
             services.AddSingleton<TmdbImageService>();

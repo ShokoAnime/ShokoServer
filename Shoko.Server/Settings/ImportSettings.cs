@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using NLog;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 
@@ -12,7 +13,30 @@ namespace Shoko.Server.Settings;
 
 public class ImportSettings
 {
-    private List<string> _internalVideoExtensions =
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
+    /// <summary>
+    /// List of video file extensions to import.
+    /// </summary>
+    [Visibility(Size = DisplayElementSize.Large)]
+    [DefaultValue(new[]
+    {
+        "MKV", "AVI",
+        "MP4", "MOV",
+        "OGM", "WMV",
+        "MPG", "MPEG",
+        "MK3D", "M4V"
+    })]
+    [List(UniqueItems = true, Sortable = true)]
+    public List<string> VideoExtensions
+    {
+        get;
+        set => field = value
+            .Select(ext => "." + ext.ToLowerInvariant().TrimStart('.').Trim())
+            .Distinct()
+            .Except([string.Empty, null!])
+            .ToList();
+    } =
     [
         "MKV",
         "AVI",
@@ -27,45 +51,31 @@ public class ImportSettings
     ];
 
     /// <summary>
-    /// List of video file extensions to import.
-    /// </summary>
-    [Visibility(Size = DisplayElementSize.Large)]
-    [DefaultValue(new string[] { "MKV", "AVI", "MP4", "MOV", "OGM", "WMV", "MPG", "MPEG", "MK3D", "M4V" })]
-    [List(UniqueItems = true, Sortable = true)]
-    public List<string> VideoExtensions
-    {
-        get => _internalVideoExtensions;
-        set => _internalVideoExtensions = value
-            .Select(ext => "." + ext.ToLowerInvariant().TrimStart('.').Trim())
-            .Distinct()
-            .Except([string.Empty, null!])
-            .ToList();
-    }
-
-    private List<string> _internalExclude =
-    [
-        @"[\\\/]\$RECYCLE\.BIN[\\\/]", @"[\\\/]\.Recycle\.Bin[\\\/]", @"[\\\/]\.Trash-\d+[\\\/]"
-    ];
-
-    /// <summary>
     /// List of regular expression patterns to exclude any files that match on the full path.
     /// </summary>
     [Display(Name = "Exclude Regex Patterns")]
-    [DefaultValue(new string[] { @"[\\\/]\$RECYCLE\.BIN[\\\/]", @"[\\\/]\.Recycle\.Bin[\\\/]", @"[\\\/]\.Trash-\d+[\\\/]" })]
+    [DefaultValue(new[]
+    {
+        @"[\\\/]\$RECYCLE\.BIN[\\\/]", @"[\\\/]\.Recycle\.Bin[\\\/]",
+        @"[\\\/]\.Trash-\d+[\\\/]"
+    })]
     [List(UniqueItems = true, Sortable = true)]
     public List<string> Exclude
     {
-        get => _internalExclude;
+        get;
         set
         {
             _internalExcludeRegexes = null;
-            _internalExclude = value
+            field = value
                 .Select(ext => string.IsNullOrWhiteSpace(ext) ? string.Empty : ext)
                 .Distinct()
                 .Except([string.Empty, null!])
                 .ToList();
         }
-    }
+    } =
+    [
+        @"[\\\/]\$RECYCLE\.BIN[\\\/]", @"[\\\/]\.Recycle\.Bin[\\\/]", @"[\\\/]\.Trash-\d+[\\\/]"
+    ];
 
     private List<Regex>? _internalExcludeRegexes;
 
@@ -81,16 +91,16 @@ public class ImportSettings
                 return _internalExcludeRegexes;
 
             var excludes = new List<Regex>();
-            foreach (var exclusion in _internalExclude)
+            foreach (var exclusion in Exclude)
             {
                 try
                 {
                     var regex = new Regex(exclusion, RegexOptions.Compiled);
                     excludes.Add(regex);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // Logger.LogError(e, "Unable to compile exclusion regular expression: {Regex}", exclusion);
+                    _logger.Warn(ex, "Unable to compile exclusion regular expression: {0}", exclusion);
                 }
             }
 

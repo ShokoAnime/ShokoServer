@@ -29,7 +29,6 @@ using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services.Ogg;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Services;
@@ -69,6 +68,8 @@ public class VideoService : IVideoService
 
     private readonly DatabaseFactory _databaseFactory;
 
+    private readonly FileSystemHelpers _fileSystemHelpers;
+
     /// <inheritdoc/>
     public event EventHandler<VideoFileDetectedEventArgs>? VideoFileDetected;
 
@@ -106,7 +107,8 @@ public class VideoService : IVideoService
         IVideoRelocationService relocationService,
         IQueueScheduler schedulerFactory,
         ISettingsProvider settingsProvider,
-        DatabaseFactory databaseFactory
+        DatabaseFactory databaseFactory,
+        FileSystemHelpers fileSystemHelpers
     )
     {
         _logger = logger;
@@ -125,6 +127,7 @@ public class VideoService : IVideoService
         _scheduler = schedulerFactory;
         _settingsProvider = settingsProvider;
         _databaseFactory = databaseFactory;
+        _fileSystemHelpers = fileSystemHelpers;
 
         ShokoEventHandler.Instance.FileDeleted += OnFileDeleted;
         _videoHashingService.VideoFileHashed += OnVideoFileHashed;
@@ -1061,7 +1064,7 @@ public class VideoService : IVideoService
             FileSystemInfo info = isDirectory ? new DirectoryInfo(p) : new FileInfo(p);
             return !_ignoreRules.Any(rule => rule.ShouldIgnore(folder, info));
         }
-        return FileSystemHelpers.GetFilePaths(folder.Path, recursive: true, filter: IsMatch);
+        return _fileSystemHelpers.GetFilePaths(folder.Path, recursive: true, filter: IsMatch);
     }
 
     public async Task ScheduleScanForManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false, bool prioritize = true)
@@ -1103,7 +1106,7 @@ public class VideoService : IVideoService
 
     public void CleanupManagedFolder(IManagedFolder managedFolder)
     {
-        var directories = FileSystemHelpers.GetDirectoryPaths(managedFolder.Path, recursive: true);
+        var directories = _fileSystemHelpers.GetDirectoryPaths(managedFolder.Path, recursive: true);
         RecursiveDeleteEmptyDirectories(directories, managedFolder.Path);
     }
 

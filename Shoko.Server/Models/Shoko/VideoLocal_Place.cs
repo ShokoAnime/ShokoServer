@@ -1,11 +1,14 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
+using Shoko.Server.Services;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Models.Shoko;
 
 /// <summary>
@@ -36,7 +39,7 @@ public class VideoLocal_Place : IVideoFile
     /// is nullable, meaning it can have a value of null if the unique
     /// identifier cannot be obtained or the file does not exist.
     /// </remarks>
-    public long? OnDiskUniqueID => FileSystemHelpers.GetVideoFileUID(Path);
+    public long? OnDiskUniqueID => ISystemService.StaticServices.GetRequiredService<FileSystemHelpers>().GetVideoFileUID(Path);
 
     private string _relativePath = string.Empty;
 

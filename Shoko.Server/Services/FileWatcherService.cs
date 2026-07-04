@@ -11,14 +11,19 @@ using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Services.FileSystemWatcher;
 using Shoko.Server.Settings;
-using Shoko.Server.Utilities.FileSystemWatcher;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Services;
 
 public class FileWatcherService
 {
+    // Guards every read/write of _fileWatchers. ConfigurationSaved/ManagedFoldersChanged are wired
+    // to events (ConfigurationProvider.Saved, ShokoManagedFolderRepository.ManagedFolder*) that are
+    // each raised via independent, unsynchronized Task.Run calls, so two rebuild sequences can
+    // genuinely run concurrently on different threadpool threads without this lock.
+    private readonly object _watchersLock = new();
     private List<RecoveringFileSystemWatcher> _fileWatchers = [];
 
     private readonly ILogger<FileWatcherService> _logger;
@@ -27,29 +32,24 @@ public class FileWatcherService
 
     private readonly ShokoManagedFolderRepository _managedFolders;
 
+    private readonly FileSystemHelpers _fileSystemHelpers;
+
     private List<string>? _videoExtensions;
 
     private IReadOnlyList<Regex>? _excludeExpressions;
 
     private IVideoService? _videoService;
 
-    public FileWatcherService(ILogger<FileWatcherService> logger, ConfigurationProvider<ServerSettings> settingsProvider, ShokoManagedFolderRepository managedFolders)
+    public FileWatcherService(ILogger<FileWatcherService> logger, ConfigurationProvider<ServerSettings> settingsProvider, ShokoManagedFolderRepository managedFolders, FileSystemHelpers fileSystemHelpers)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;
+        _fileSystemHelpers = fileSystemHelpers;
         _settingsProvider.Saved += ConfigurationSaved;
         _managedFolders = managedFolders;
         _managedFolders.ManagedFolderAdded += ManagedFoldersChanged;
         _managedFolders.ManagedFolderUpdated += ManagedFoldersChanged;
         _managedFolders.ManagedFolderRemoved += ManagedFoldersChanged;
-    }
-
-    ~FileWatcherService()
-    {
-        _settingsProvider.Saved -= ConfigurationSaved;
-        _managedFolders.ManagedFolderAdded -= ManagedFoldersChanged;
-        _managedFolders.ManagedFolderUpdated -= ManagedFoldersChanged;
-        _managedFolders.ManagedFolderRemoved -= ManagedFoldersChanged;
     }
 
     private void ConfigurationSaved(object? sender, ConfigurationSavedEventArgs<ServerSettings> e)
@@ -60,17 +60,32 @@ public class FileWatcherService
         if (_excludeExpressions == settings.Import.ExcludeExpressions && _videoExtensions == settings.Import.VideoExtensions)
             return;
 
-        StopWatchingFiles();
-        StartWatchingFiles();
+        lock (_watchersLock)
+        {
+            StopWatchingFilesLocked();
+            StartWatchingFilesLocked();
+        }
     }
 
     private void ManagedFoldersChanged(object? sender, EventArgs e)
     {
-        StopWatchingFiles();
-        StartWatchingFiles();
+        lock (_watchersLock)
+        {
+            StopWatchingFilesLocked();
+            StartWatchingFilesLocked();
+        }
     }
 
     public void StartWatchingFiles()
+    {
+        lock (_watchersLock)
+        {
+            StartWatchingFilesLocked();
+        }
+    }
+
+    // Must be called while holding _watchersLock.
+    private void StartWatchingFilesLocked()
     {
         _videoService ??= ISystemService.StaticServices.GetRequiredService<IVideoService>();
         _fileWatchers = [];
@@ -98,7 +113,8 @@ public class FileWatcherService
 
                 var fsw = new RecoveringFileSystemWatcher(share.Path,
                     filters: _videoExtensions,
-                    pathExclusions: _excludeExpressions);
+                    pathExclusions: _excludeExpressions,
+                    fileSystemHelpers: _fileSystemHelpers);
                 fsw.Options = new FileSystemWatcherLockOptions
                 {
                     Enabled = settings.Import.FileLockChecking,
@@ -138,23 +154,40 @@ public class FileWatcherService
 
     public void AddFileWatcherExclusion(string path)
     {
-        if (_fileWatchers == null || !_fileWatchers.Any()) return;
-        var watcher = _fileWatchers.FirstOrDefault(a => a.IsPathWatched(path));
-        watcher?.AddExclusion(path);
+        RecoveringFileSystemWatcher? watcher;
+        lock (_watchersLock)
+        {
+            watcher = _fileWatchers.FirstOrDefault(a => a.IsPathWatched(path));
+        }
+        if (watcher is null) return;
+        watcher.AddExclusion(path);
         _logger.LogTrace("Added {Path} to filesystem watcher exclusions", path);
     }
 
     public void RemoveFileWatcherExclusion(string path)
     {
-        if (_fileWatchers == null || !_fileWatchers.Any()) return;
-        var watcher = _fileWatchers.FirstOrDefault(a => a.IsPathWatched(path));
-        watcher?.RemoveExclusion(path);
+        RecoveringFileSystemWatcher? watcher;
+        lock (_watchersLock)
+        {
+            watcher = _fileWatchers.FirstOrDefault(a => a.IsPathWatched(path));
+        }
+        if (watcher is null) return;
+        watcher.RemoveExclusion(path);
         _logger.LogTrace("Removed {Path} from filesystem watcher exclusions", path);
     }
 
     public void StopWatchingFiles()
     {
-        if (_fileWatchers == null || !_fileWatchers.Any())
+        lock (_watchersLock)
+        {
+            StopWatchingFilesLocked();
+        }
+    }
+
+    // Must be called while holding _watchersLock.
+    private void StopWatchingFilesLocked()
+    {
+        if (_fileWatchers.Count == 0)
         {
             return;
         }
