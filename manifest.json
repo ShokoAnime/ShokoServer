@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.353",
+      "tag": "v6.0.0-dev.353",
+      "commit": "e079488b5670569eac03ea984a9267206e6db629",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.353/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-05T21:08:39Z",
+      "releaseNotes": "\n`chore`: **Disable nullable on APIv1 models and controllers**.\n"
+    },
+    {
       "version": "6.0.0.352",
       "tag": "v6.0.0-dev.352",
       "commit": "1cbd8f74572b32db8e05cd66e032389490b47400",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.324/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-25T22:09:58Z",
       "releaseNotes": "\n`fix`: **Correct reverse `for` loop condition**.\n"
-    },
-    {
-      "version": "6.0.0.323",
-      "tag": "v6.0.0-dev.323",
-      "commit": "1f39c246187a1dbabc180754ce7968474cec3713",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.323/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-25T21:53:50Z",
-      "releaseNotes": "\n`refactor`: **Simplify GetRandomImageCrossReference and add isAvailable filter**:\n\nReplaced the custom gambling algorithm with GetRandomElement() for\nuniform random selection. Changed primaryImage from bool to bool?\nto act as a proper nullable filter.\n\nAdded IImageCrossReference.IsAvailable backed by a filesystem check\nin ShokoImage_Entity, and wired the isAvailable filter parameter\nthrough all query methods. APIv2/v3 random image endpoints now pass\nisAvailable: true to skip unavailable images at query time.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.64**.\n"
     }
   ]
 }
