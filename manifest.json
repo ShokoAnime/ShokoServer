@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.352",
+      "tag": "v6.0.0-dev.352",
+      "commit": "1cbd8f74572b32db8e05cd66e032389490b47400",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.352/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-05T03:36:41Z",
+      "releaseNotes": "\n`misc`: **Ensure Long Path Compat in Paths that Matter**.\n"
+    },
+    {
       "version": "6.0.0.351",
       "tag": "v6.0.0-dev.351",
       "commit": "6dd36ed5e7eebee627eb22585176639b16e18454",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.323/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-25T21:53:50Z",
       "releaseNotes": "\n`refactor`: **Simplify GetRandomImageCrossReference and add isAvailable filter**:\n\nReplaced the custom gambling algorithm with GetRandomElement() for\nuniform random selection. Changed primaryImage from bool to bool?\nto act as a proper nullable filter.\n\nAdded IImageCrossReference.IsAvailable backed by a filesystem check\nin ShokoImage_Entity, and wired the isAvailable filter parameter\nthrough all query methods. APIv2/v3 random image endpoints now pass\nisAvailable: true to skip unavailable images at query time.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.64**.\n"
-    },
-    {
-      "version": "6.0.0.322",
-      "tag": "v6.0.0-dev.322",
-      "commit": "c4a07099488b46dbe1354c4fe85e06a131fbeda7",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.322/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-25T21:24:22Z",
-      "releaseNotes": "\n`feat` (`plugin`): **Add svg support for plugin and package thumbnails**:\n\nAdded MagickFormat.Svg and MagickFormat.Svgz mappings to\nGetMimeFromFormat so that MagickImageInfo can return the correct MIME\ntype for SVG files. This enables SVG thumbnails in both PluginManager\nand PluginPackageManager, where the MIME-from-format lookup is used\nafter reading thumbnail dimensions.\n\n`feat` (`api`): **Add `difficultyClass` param to random image cross-reference lookup**:\n\nAdded a `difficultyClass` parameter (1-20, D&D-style DC) to\n`GetRandomImageCrossReference`, replacing the hardcoded `roll == 20`\nwith a configurable threshold.\n\n- `IImageManager`: added `[Range(1, 20)] int difficultyClass = 20`\n- `ImageManager`: added validation and `threshold = difficultyClass + 1`\n- `ImageManagementController` (APIv3): exposed as query param (default 10)\n- `Image` (APIv2): hardcoded `difficultyClass: 10` without exposing\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.63**.\n"
     }
   ]
 }
