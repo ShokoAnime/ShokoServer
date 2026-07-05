@@ -48,7 +48,8 @@ public class VideoRelocationService(
     VideoLocal_PlaceRepository videoLocalPlace,
     StoredRelocationPresetRepository storedRelocationPresetRepository,
     FileNameHashRepository fileNameHash,
-    ShokoManagedFolderRepository managedFolders
+    ShokoManagedFolderRepository managedFolders,
+    FileSystemHelpers fileSystemHelpers
 ) : IVideoRelocationService, IRelocationPresetManager
 {
     private Dictionary<Guid, RelocationProviderInfo> _relocationProviderInfos = [];
@@ -605,7 +606,7 @@ public class VideoRelocationService(
 
         // make sure we can find the file
         var previousLocation = file.Path;
-        if (!File.Exists(previousLocation))
+        if (!fileSystemHelpers.FileExists(previousLocation))
             return RelocationResponse.FromError($"Could not find or access the file to move: {file.FileName} ({file.ID})");
 
         var retryPolicy = Policy
@@ -984,7 +985,7 @@ public class VideoRelocationService(
             ), false);
 
         // this can happen due to file locks, so retry in a while.
-        if (!File.Exists(oldFullPath))
+        if (!fileSystemHelpers.FileExists(oldFullPath))
             return (RelocationResponse.FromError(
                 "Could not find or access the video file in the file system!"
             ), true);
@@ -1028,12 +1029,12 @@ public class VideoRelocationService(
         var destFullTree = string.IsNullOrEmpty(newFolderPath)
             ? request.ManagedFolder.Path
             : Path.Combine(request.ManagedFolder.Path, newFolderPath);
-        if (!Directory.Exists(destFullTree))
+        if (!fileSystemHelpers.DirectoryExists(destFullTree))
         {
             fileWatcherService.AddFileWatcherExclusion(destFullTree);
             try
             {
-                Directory.CreateDirectory(destFullTree);
+                fileSystemHelpers.CreateDirectory(destFullTree);
             }
             catch (Exception ex)
             {
@@ -1047,10 +1048,9 @@ public class VideoRelocationService(
             }
         }
 
-        var sourceFile = new FileInfo(oldFullPath);
         var destVideoLocalPlace = videoLocalPlace.GetByRelativePathAndManagedFolderID(newRelativePath, request.ManagedFolder.ID);
         var relocatedFile = false;
-        if (File.Exists(newFullPath))
+        if (fileSystemHelpers.FileExists(newFullPath))
         {
             // A file with the same name exists at the destination.
             logger.LogTrace("A file already exists at the new location, checking it for duplicate…");
@@ -1099,7 +1099,7 @@ public class VideoRelocationService(
                 logger.LogInformation("Moving file from {PreviousPath} to {NextPath}", oldFullPath, newFullPath);
                 try
                 {
-                    sourceFile.MoveTo(newFullPath);
+                    fileSystemHelpers.MoveFile(oldFullPath, newFullPath);
                     SetLinuxPermissions(newFullPath);
                 }
                 catch (Exception ex)
@@ -1139,7 +1139,7 @@ public class VideoRelocationService(
             logger.LogInformation("Moving file from {PreviousPath} to {NextPath}", oldFullPath, newFullPath);
             try
             {
-                sourceFile.MoveTo(newFullPath);
+                fileSystemHelpers.MoveFile(oldFullPath, newFullPath);
                 SetLinuxPermissions(newFullPath);
             }
             catch (Exception ex)
@@ -1224,8 +1224,7 @@ public class VideoRelocationService(
 
                 var subPath = Path.Combine(oldParent, subtitleFile.Filename);
                 var subExtraPart = subtitleFile.Filename[oldFileName.Length..];
-                var subFile = new FileInfo(subPath);
-                if (!subFile.Exists)
+                if (!fileSystemHelpers.FileExists(subPath))
                 {
                     logger.LogError("Unable to rename external subtitle file {SubtitleFile}. Cannot access the file.", subPath);
                     continue;
@@ -1238,11 +1237,11 @@ public class VideoRelocationService(
                     continue;
                 }
 
-                if (File.Exists(newSubPath))
+                if (fileSystemHelpers.FileExists(newSubPath))
                 {
                     try
                     {
-                        File.Delete(newSubPath);
+                        fileSystemHelpers.DeleteFile(newSubPath);
                     }
                     catch (Exception e)
                     {
@@ -1252,7 +1251,7 @@ public class VideoRelocationService(
 
                 try
                 {
-                    subFile.MoveTo(newSubPath);
+                    fileSystemHelpers.MoveFile(subPath, newSubPath);
                 }
                 catch (Exception e)
                 {

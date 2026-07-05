@@ -560,7 +560,7 @@ public class VideoService : IVideoService
     {
         _logger.LogInformation("Deleting video local place record and file: {Place}", place.Path ?? place.ID.ToString());
 
-        if (!File.Exists(place.Path))
+        if (!_fileSystemHelpers.FileExists(place.Path))
         {
             _logger.LogInformation("Unable to find file. Removing Record: {Place}", place.Path ?? place.RelativePath);
             await RemoveRecord(place, skipEvents);
@@ -569,7 +569,7 @@ public class VideoService : IVideoService
 
         try
         {
-            File.Delete(place.Path);
+            _fileSystemHelpers.DeleteFile(place.Path);
             DeleteExternalSubtitles(place.Path);
         }
         catch (FileNotFoundException)
@@ -594,7 +594,7 @@ public class VideoService : IVideoService
         {
             _logger.LogInformation("Deleting video local place record and file: {Place}", place.Path ?? place.ID.ToString());
 
-            if (!File.Exists(place.Path))
+            if (!_fileSystemHelpers.FileExists(place.Path))
             {
                 _logger.LogInformation("Unable to find file. Removing Record: {FullServerPath}", place.Path);
                 await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, skipEvents);
@@ -603,7 +603,7 @@ public class VideoService : IVideoService
 
             try
             {
-                File.Delete(place.Path);
+                _fileSystemHelpers.DeleteFile(place.Path);
                 DeleteExternalSubtitles(place.Path);
             }
             catch (FileNotFoundException)
@@ -642,11 +642,11 @@ public class VideoService : IVideoService
                 if (string.IsNullOrEmpty(srcParent)) continue;
 
                 var subPath = Path.Combine(srcParent, subtitleFile.Filename);
-                if (!File.Exists(subPath)) continue;
+                if (!_fileSystemHelpers.FileExists(subPath)) continue;
 
                 try
                 {
-                    File.Delete(subPath);
+                    _fileSystemHelpers.DeleteFile(subPath);
                 }
                 catch (Exception e)
                 {
@@ -1003,7 +1003,7 @@ public class VideoService : IVideoService
         {
             files = files
                 .Except(ignoredFiles, StringComparer.InvariantCultureIgnoreCase)
-                .Where(filePath => !existingFiles.ContainsKey(filePath) || existingFiles[filePath] != new FileInfo(filePath).Length)
+                .Where(filePath => !existingFiles.ContainsKey(filePath) || existingFiles[filePath] != _fileSystemHelpers.GetFileSize(filePath))
                 .ToArray();
         }
         else
@@ -1057,7 +1057,7 @@ public class VideoService : IVideoService
 
     private string[] GetFilesInImportFolder(ShokoManagedFolder folder)
     {
-        if (!Directory.Exists(folder.Path))
+        if (!_fileSystemHelpers.DirectoryExists(folder.Path))
             return [];
         bool IsMatch(string p, bool isDirectory)
         {
@@ -1119,7 +1119,12 @@ public class VideoService : IVideoService
             return;
         try
         {
-            directoryToClean = directoryToClean.TrimEnd(Path.DirectorySeparatorChar);
+            // Path.TrimEndingDirectorySeparator, unlike TrimEnd, leaves a drive/volume root's
+            // separator intact (e.g. "C:\" stays "C:\" instead of becoming "C:"). Path.GetDirectoryName
+            // always returns a root with its trailing separator, so stripping it here would make the
+            // `path == directoryToClean` break check below never match for a root-level managed folder,
+            // letting the root itself leak into the deletion candidate list.
+            directoryToClean = Path.TrimEndingDirectorySeparator(directoryToClean);
             var directoriesToClean = toBeChecked
                 .SelectMany(path =>
                 {
@@ -1146,13 +1151,13 @@ public class VideoService : IVideoService
                 .ToList();
             foreach (var directoryPath in directoriesToClean)
             {
-                if (Directory.Exists(directoryPath) && IsDirectoryEmpty(directoryPath))
+                if (_fileSystemHelpers.DirectoryExists(directoryPath) && IsDirectoryEmpty(directoryPath))
                 {
                     _logger.LogTrace("Removing EMPTY directory at {Path}", directoryPath);
 
                     try
                     {
-                        Directory.Delete(directoryPath);
+                        _fileSystemHelpers.DeleteDirectory(directoryPath);
                     }
                     catch (Exception ex)
                     {
@@ -1173,7 +1178,7 @@ public class VideoService : IVideoService
     {
         try
         {
-            return !Directory.EnumerateFileSystemEntries(path).Any();
+            return !Directory.EnumerateFileSystemEntries(PlatformUtility.EnsureUsablePath(path)).Any();
         }
         catch
         {
