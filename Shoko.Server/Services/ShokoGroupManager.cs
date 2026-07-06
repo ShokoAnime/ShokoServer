@@ -238,18 +238,18 @@ public class ShokoGroupManager : IShokoGroupManager
             }
         }
 
-        // Check if the names have changed if we omit the value, or if
-        // we set it to true.
+        // HasName is true whenever Name was explicitly set (including to null).
         if (updateData.HasName)
         {
-            // The group name changed.
-            if (updateData.Name is { } name && !string.Equals(group.GroupName, name))
+            // The group name was explicitly provided — mark as custom.
+            if (updateData.Name is { } name)
             {
                 group.IsManuallyNamed = 1;
-                group.GroupName = name;
                 needsAutoName = false;
+                if (!string.Equals(group.GroupName, name))
+                    group.GroupName = name;
             }
-            // Reset the name.
+            // Name was explicitly set to null — reset to automatic naming.
             else
             {
                 group.IsManuallyNamed = 0;
@@ -261,13 +261,15 @@ public class ShokoGroupManager : IShokoGroupManager
         // Same as above, but for the description.
         if (updateData.HasDescription)
         {
-            if (updateData.Description is { } description && !string.Equals(group.Description, description))
+            // The description was explicitly provided — mark as custom.
+            if (updateData.Description is { } description)
             {
                 group.OverrideDescription = 1;
-                group.Description = description;
                 needsAutoDescription = false;
+                if (!string.Equals(group.Description, description))
+                    group.Description = description;
             }
-            // Reset the description.
+            // Description was explicitly set to null — reset to automatic.
             else
             {
                 group.OverrideDescription = 0;
