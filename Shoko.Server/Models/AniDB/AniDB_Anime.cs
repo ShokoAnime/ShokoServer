@@ -159,54 +159,57 @@ public class AniDB_Anime : IAnidbAnime
         _ => null,
     };
 
-    public List<(string Type, string Name, string URL)> Resources
+    public IReadOnlyList<Resource> Resources
     {
         get
         {
-            var result = new List<(string Type, string Name, string URL)>();
+            var result = new List<Resource>();
             if (!string.IsNullOrEmpty(Site_EN))
                 foreach (var site in Site_EN.Split('|'))
-                    result.Add((Type: "source", Name: "Official Site (EN)", URL: site));
+                    result.Add(new() { Type = ResourceType.Website, Name = "Official Site (EN)", Url = site, LanguageCode = "en" });
 
             if (!string.IsNullOrEmpty(Site_JP))
                 foreach (var site in Site_JP.Split('|'))
-                    result.Add((Type: "source", Name: "Official Site (JP)", URL: site));
+                    result.Add(new() { Type = ResourceType.Website, Name = "Official Site (JP)", Url = site, LanguageCode = "ja" });
 
             if (!string.IsNullOrEmpty(Wikipedia_ID))
-                result.Add((Type: "wiki", Name: "Wikipedia (EN)", URL: $"https://en.wikipedia.org/{Wikipedia_ID}"));
+                result.Add(new() { Type = ResourceType.Metadata, Name = "Wikipedia (EN)", Url = $"https://en.wikipedia.org/{Wikipedia_ID}", LanguageCode = "en" });
 
             if (!string.IsNullOrEmpty(WikipediaJP_ID))
-                result.Add((Type: "wiki", Name: "Wikipedia (JP)", URL: $"https://en.wikipedia.org/{WikipediaJP_ID}"));
+                result.Add(new() { Type = ResourceType.Metadata, Name = "Wikipedia (JP)", Url = $"https://en.wikipedia.org/{WikipediaJP_ID}", LanguageCode = "ja" });
 
             if (!string.IsNullOrEmpty(CrunchyrollID))
-                result.Add((Type: "streaming", Name: "Crunchyroll", URL: $"https://crunchyroll.com/series/{CrunchyrollID}"));
+                result.Add(new() { Type = ResourceType.Streaming, Name = "Crunchyroll", Url = $"https://crunchyroll.com/series/{CrunchyrollID}" });
 
             if (!string.IsNullOrEmpty(FunimationID))
-                result.Add((Type: "streaming", Name: "Funimation", URL: FunimationID));
+                result.Add(new() { Type = ResourceType.Streaming, Name = "Funimation", Url = FunimationID });
 
             if (!string.IsNullOrEmpty(HiDiveID))
-                result.Add((Type: "streaming", Name: "HiDive", URL: $"https://www.hidive.com/{HiDiveID}"));
+                result.Add(new() { Type = ResourceType.Streaming, Name = "HiDive", Url = $"https://www.hidive.com/{HiDiveID}" });
 
             if (AllCinemaID.HasValue && AllCinemaID.Value > 0)
-                result.Add((Type: "foreign-metadata", Name: "allcinema", URL: $"https://allcinema.net/cinema/{AllCinemaID.Value}"));
+                result.Add(new() { Type = ResourceType.CrossReference, Name = "allcinema", Url = $"https://allcinema.net/cinema/{AllCinemaID.Value}" });
 
             if (AnisonID.HasValue && AnisonID.Value > 0)
-                result.Add((Type: "foreign-metadata", Name: "Anison", URL: $"https://anison.info/data/program/{AnisonID.Value}.html"));
+                result.Add(new() { Type = ResourceType.CrossReference, Name = "Anison", Url = $"https://anison.info/data/program/{AnisonID.Value}.html" });
 
             if (SyoboiID.HasValue && SyoboiID.Value > 0)
-                result.Add((Type: "foreign-metadata", Name: "syoboi", URL: $"https://cal.syoboi.jp/tid/{SyoboiID.Value}/time"));
+                result.Add(new() { Type = ResourceType.CrossReference, Name = "syoboi", Url = $"https://cal.syoboi.jp/tid/{SyoboiID.Value}/time" });
 
             if (BangumiID.HasValue && BangumiID.Value > 0)
-                result.Add((Type: "foreign-metadata", Name: "bangumi", URL: $"https://bgm.tv/subject/{BangumiID.Value}"));
+                result.Add(new() { Type = ResourceType.CrossReference, Name = "bangumi", Url = $"https://bgm.tv/subject/{BangumiID.Value}" });
 
             if (LainID.HasValue && LainID.Value > 0)
-                result.Add((Type: "foreign-metadata", Name: ".lain", URL: $"https://lain.gr.jp/mediadb/media/{LainID.Value}"));
+                result.Add(new() { Type = ResourceType.CrossReference, Name = ".lain", Url = $"https://lain.gr.jp/mediadb/media/{LainID.Value}" });
 
             if (ANNID.HasValue && ANNID.Value > 0)
-                result.Add((Type: "english-metadata", Name: "AnimeNewsNetwork", URL: $"https://www.animenewsnetwork.com/encyclopedia/php?id={ANNID.Value}"));
+                result.Add(new() { Type = ResourceType.CrossReference, Name = "AnimeNewsNetwork", Url = $"https://www.animenewsnetwork.com/encyclopedia/php?id={ANNID.Value}" });
 
             if (VNDBID.HasValue && VNDBID.Value > 0)
-                result.Add((Type: "english-metadata", Name: "VNDB", URL: $"https://vndb.org/v{VNDBID.Value}"));
+                result.Add(new() { Type = ResourceType.CrossReference, Name = "VNDB", Url = $"https://vndb.org/v{VNDBID.Value}" });
+
+            foreach (var malId in MalCrossReferences.Select(xref => xref.MALID).Distinct().Where(x => x >= 0))
+                result.Add(new() { Type = ResourceType.CrossReference, Name = "MyAnimeList", Url = $"https://myanimelist.net/anime/{malId}" });
 
             return result;
         }

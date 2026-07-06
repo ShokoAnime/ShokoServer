@@ -8,7 +8,7 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Creator.
 /// </summary>
-public interface ICreator : IMetadata<int>, IWithDescriptions, IWithPrimaryImage, IWithUpdateDate
+public interface ICreator : IMetadata<int>, IWithDescriptions, IWithPrimaryImage, IWithUpdateDate, IWithResources
 {
     /// <summary>
     /// Casted role name.

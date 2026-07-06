@@ -915,6 +915,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(158,  5, "CREATE INDEX IX_AniDB_Episode_AnimeID_EpisodeType ON AniDB_Episode(AnimeID, EpisodeType);"),
         new(159,  1, "ALTER TABLE ShokoImage ADD COLUMN IsAvailable INTEGER NOT NULL DEFAULT 0;"),
         new(159,  2, DatabaseFixes.PopulateImageAvailability),
+        new(160,  1, "ALTER TABLE TMDB_Person ADD COLUMN ImdbPersonID TEXT NULL DEFAULT NULL;"),
     ];
 
     #endregion

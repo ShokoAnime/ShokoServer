@@ -92,6 +92,26 @@ public class AniDB_Creator : ICreator
     public IReadOnlyList<AniDB_Anime_Staff> Staff
         => RepoFactory.AniDB_Anime_Staff.GetByCreatorID(CreatorID);
 
+    /// <summary>
+    ///   External resources/links associated with the creator.
+    /// </summary>
+    public IReadOnlyList<Resource> Resources
+    {
+        get
+        {
+            var list = new List<Resource>();
+            if (!string.IsNullOrEmpty(EnglishHomepageUrl))
+                list.Add(new() { Type = ResourceType.Website, Name = "Homepage (EN)", Url = EnglishHomepageUrl, LanguageCode = "en" });
+            if (!string.IsNullOrEmpty(JapaneseHomepageUrl))
+                list.Add(new() { Type = ResourceType.Website, Name = "Homepage (JP)", Url = JapaneseHomepageUrl, LanguageCode = "ja" });
+            if (!string.IsNullOrEmpty(EnglishWikiUrl))
+                list.Add(new() { Type = ResourceType.Metadata, Name = "Wikipedia (EN)", Url = EnglishWikiUrl, LanguageCode = "en" });
+            if (!string.IsNullOrEmpty(JapaneseWikiUrl))
+                list.Add(new() { Type = ResourceType.Metadata, Name = "Wikipedia (JP)", Url = JapaneseWikiUrl, LanguageCode = "ja" });
+            return list;
+        }
+    }
+
     #region IMetadata Implementation
 
     DataEntityType IMetadata.EntityType => DataEntityType.Creator;

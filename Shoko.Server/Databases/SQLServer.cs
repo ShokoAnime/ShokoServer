@@ -1025,6 +1025,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(174,  5, "CREATE INDEX IX_AniDB_Episode_AnimeID_EpisodeType ON AniDB_Episode(AnimeID, EpisodeType);"),
         new(175,  1, "ALTER TABLE ShokoImage ADD IsAvailable BIT NOT NULL DEFAULT 0;"),
         new(175,  2, DatabaseFixes.PopulateImageAvailability),
+        new(176,  1, "ALTER TABLE TMDB_Person ADD ImdbPersonID NVARCHAR(12) NULL DEFAULT NULL;"),
     ];
 
     #endregion

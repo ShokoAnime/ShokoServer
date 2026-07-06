@@ -2662,7 +2662,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             }
 
             _logger.LogDebug("Updating staff member. (Person={PersonId})", personId);
-            var methods = PersonMethods.Translations;
+            var methods = PersonMethods.Translations | PersonMethods.ExternalIds;
             if (downloadImages)
                 methods |= PersonMethods.Images;
             var newlyAdded = tmdbPerson.TMDB_PersonID is 0;

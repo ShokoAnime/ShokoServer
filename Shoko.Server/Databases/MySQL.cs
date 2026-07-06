@@ -1114,6 +1114,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(178,  4, "CREATE INDEX `IX_AniDB_Episode_AnimeID_EpisodeType` ON `AniDB_Episode`(`AnimeID`, `EpisodeType`);"),
         new(179,  1, "ALTER TABLE `ShokoImage` ADD COLUMN `IsAvailable` TINYINT(1) NOT NULL DEFAULT 0;"),
         new(179,  2, DatabaseFixes.PopulateImageAvailability),
+        new(180,  1, "ALTER TABLE `TMDB_Person` ADD COLUMN `ImdbPersonID` VARCHAR(12) NULL DEFAULT NULL;"),
     ];
 
     #endregion

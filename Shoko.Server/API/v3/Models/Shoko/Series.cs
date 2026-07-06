@@ -156,7 +156,7 @@ public class Series : BaseModel
             MAL = ser.MalCrossReferences.Select(a => a.MALID).Distinct().ToList()
         };
         Links = anime.Resources
-            .Select(tuple => new Resource(tuple))
+            .Select(resource => new Resource(resource))
             .ToList();
         Name = ser.Title;
         HasCustomName = !string.IsNullOrEmpty(ser.SeriesNameOverride);

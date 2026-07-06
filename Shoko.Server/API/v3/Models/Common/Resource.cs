@@ -1,6 +1,8 @@
 
 using System.ComponentModel.DataAnnotations;
 
+using AbstractResource = Shoko.Abstractions.Metadata.Resource;
+
 namespace Shoko.Server.API.v3.Models.Common;
 
 /// <summary>
@@ -26,15 +28,24 @@ public class Resource
     [Required]
     public string URL { get; init; } = string.Empty;
 
-    public Resource() { }
+    /// <summary>
+    ///   The ISO 639-1 alpha-2 language code the resource's content is
+    ///   in, if known and applicable.
+    /// </summary>
+    public string? LanguageCode { get; init; }
 
-    public Resource((string type, string name, string url) tuple)
-        : this(tuple.type, tuple.name, tuple.url) { }
+    public Resource() { }
 
     public Resource(string type, string name, string url)
     {
         Type = type;
         Name = name;
         URL = url;
+    }
+
+    public Resource(AbstractResource resource)
+        : this(resource.Type.ToString(), resource.Name, resource.Url)
+    {
+        LanguageCode = resource.LanguageCode;
     }
 }

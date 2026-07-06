@@ -84,6 +84,15 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
     public string? PlaceOfBirth { get; set; }
 
     /// <summary>
+    ///   Linked Imdb person ID.
+    /// </summary>
+    /// <remarks>
+    ///   Will be <c>null</c> if not linked or not fetched. Otherwise,
+    ///   it will be the Imdb person ID.
+    /// </remarks>
+    public string? ImdbPersonID { get; set; }
+
+    /// <summary>
     /// When the metadata was first downloaded.
     /// </summary>
     public DateTime CreatedAt { get; set; }
@@ -141,6 +150,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
             UpdateProperty(BirthDay, person.Birthday?.ToDateOnly(), v => BirthDay = v),
             UpdateProperty(DeathDay, person.Deathday?.ToDateOnly(), v => DeathDay = v),
             UpdateProperty(PlaceOfBirth, string.IsNullOrEmpty(person.PlaceOfBirth) ? null : person.PlaceOfBirth, v => PlaceOfBirth = v),
+            UpdateProperty(ImdbPersonID, string.IsNullOrEmpty(person.ExternalIds?.ImdbId) ? null : person.ExternalIds.ImdbId, v => ImdbPersonID = v),
         };
 
         return updates.Any(updated => updated);
@@ -187,6 +197,20 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
     public IReadOnlyList<TMDB_Overview> GetAllBiographies(bool force = false) => force
         ? _allBiographies = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Person, TmdbPersonID)
         : _allBiographies ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Person, TmdbPersonID);
+
+    /// <summary>
+    ///   External resources/links associated with the person.
+    /// </summary>
+    public IReadOnlyList<Resource> Resources
+    {
+        get
+        {
+            var list = new List<Resource>();
+            if (!string.IsNullOrEmpty(ImdbPersonID))
+                list.Add(new() { Type = ResourceType.CrossReference, Name = "IMDb", Url = $"https://www.imdb.com/name/{ImdbPersonID}/" });
+            return list;
+        }
+    }
 
     #endregion
 

@@ -384,6 +384,20 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
             .ToList();
 
     /// <summary>
+    ///   External resources/links associated with the movie.
+    /// </summary>
+    public IReadOnlyList<Resource> Resources
+    {
+        get
+        {
+            var list = new List<Resource>();
+            if (!string.IsNullOrEmpty(ImdbMovieID) && ImdbMovieID != "0")
+                list.Add(new() { Type = ResourceType.CrossReference, Name = "IMDb", Url = $"https://www.imdb.com/title/{ImdbMovieID}/" });
+            return list;
+        }
+    }
+
+    /// <summary>
     /// Get all cast members that have worked on this movie.
     /// </summary>
     /// <returns>All cast members that have worked on this movie.</returns>

@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using Shoko.Abstractions.Metadata;
+using System.Linq;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.AniDB;
+
+using ICreator = Shoko.Abstractions.Metadata.ICreator;
 
 namespace Shoko.Server.API.v3.Models.AniDB;
 
@@ -66,6 +69,12 @@ public class AnidbCreator
     /// </summary>
     public Image? Image { get; set; }
 
+    /// <summary>
+    /// External resources/links associated with the creator.
+    /// </summary>
+    [Required]
+    public List<Resource> Links { get; set; } = [];
+
     public AnidbCreator(AniDB_Creator creator)
     {
         ID = creator.CreatorID;
@@ -78,5 +87,8 @@ public class AnidbCreator
         JapaneseWikiUrl = creator.JapaneseWikiUrl;
         LastUpdatedAt = creator.LastUpdatedAt.ToUniversalTime();
         Image = ((ICreator)creator).PrimaryImage is { } image ? new Image(image) : null;
+        Links = creator.Resources
+            .Select(resource => new Resource(resource))
+            .ToList();
     }
 }

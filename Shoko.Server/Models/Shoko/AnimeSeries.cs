@@ -786,6 +786,25 @@ public class AnimeSeries : IShokoSeries
 
     #endregion
 
+    #region IWithResources Implementation
+
+    IReadOnlyList<Resource> IWithResources.Resources
+    {
+        get
+        {
+            var list = new List<Resource>();
+            if (AniDB_Anime is ISeries anidbAnime)
+                list.AddRange(anidbAnime.Resources);
+            foreach (var movie in TmdbMovies)
+                list.AddRange(movie.Resources);
+            foreach (var show in TmdbShows)
+                list.AddRange(show.Resources);
+            return list;
+        }
+    }
+
+    #endregion
+
     #region ISeries Implementation
 
     AnimeType ISeries.Type => AniDB_Anime?.AnimeType ?? AnimeType.Unknown;

@@ -9,7 +9,7 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Series metadata.
 /// </summary>
-public interface ISeries : IWithTitles, IWithDescriptions, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithBannerImage, IWithDiscImage, IWithCastAndCrew, IWithStudios, IWithContentRatings, IWithYearlySeasons, IMetadata<int>
+public interface ISeries : IWithTitles, IWithDescriptions, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithBannerImage, IWithDiscImage, IWithCastAndCrew, IWithStudios, IWithContentRatings, IWithYearlySeasons, IWithResources, IMetadata<int>
 {
     /// <summary>
     /// The shoko series ID, if we have any.

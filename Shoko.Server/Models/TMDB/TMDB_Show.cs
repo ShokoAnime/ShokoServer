@@ -377,6 +377,20 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
             .ToList();
 
     /// <summary>
+    ///   External resources/links associated with the show.
+    /// </summary>
+    public IReadOnlyList<Resource> Resources
+    {
+        get
+        {
+            var list = new List<Resource>();
+            if (TvdbShowID is > 0)
+                list.Add(new() { Type = ResourceType.CrossReference, Name = "TheTVDB", Url = $"https://www.thetvdb.com/dereferrer/series/{TvdbShowID}" });
+            return list;
+        }
+    }
+
+    /// <summary>
     /// Get all TMDB network cross-references linked to the show.
     /// </summary>
     /// <returns>All TMDB network cross-references linked to the show.</returns>
