@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.354",
+      "tag": "v6.0.0-dev.354",
+      "commit": "8db2b190719528aed4c00c46cc26901c1563ad55",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.354/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-06T02:50:39Z",
+      "releaseNotes": "\n`refactor`: **Use `Shoko.Abstractions` `AnimeType`/`EpisodeType` directly in v3 models**:\n\nRemoved the duplicate `Shoko.Server.API.v3.Models.AniDB.AnimeType` and\n`EpisodeType` enums along with their `ToV3Dto` mapping extensions in\n`APIv3_Extensions`. `AnidbAnime`, `AnidbEpisode`, and their consumers\nnow expose the `Shoko.Abstractions.Metadata.Enums` types directly,\nserialized via Newtonsoft's global string-enum converter instead of a\nper-property `JsonConverter` attribute.\n\nAdded `AnimeType.TV` to `Shoko.Abstractions` as the primary value, with\n`TVSeries` kept as a legacy compat. alias.\n\n`chore`: **Remove unused imports**.\n"
+    },
+    {
       "version": "6.0.0.353",
       "tag": "v6.0.0-dev.353",
       "commit": "e079488b5670569eac03ea984a9267206e6db629",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.325/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-26T03:53:14Z",
       "releaseNotes": "\n`chore`: **Remove legacy `FileName` field from file↔episode cross-reference**.\n\n`fix`: **More forgiving xref percentage groupings**.\n"
-    },
-    {
-      "version": "6.0.0.324",
-      "tag": "v6.0.0-dev.324",
-      "commit": "f9e0aea5fe53ad00c66fe09c2556fded090f18de",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.324/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-25T22:09:58Z",
-      "releaseNotes": "\n`fix`: **Correct reverse `for` loop condition**.\n"
     }
   ]
 }
