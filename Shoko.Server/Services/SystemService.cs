@@ -222,6 +222,22 @@ public class SystemService : ISystemService
             CultureInfo.DefaultThreadCurrentCulture = culture;
             CultureInfo.DefaultThreadCurrentUICulture = culture;
 
+            // Raise the thread pool's minimum thread count so bursts of concurrent
+            // work don't stall behind the runtime's gradual hill-climbing thread
+            // injection. 0 leaves the runtime default untouched; negative values
+            // are a multiplier against the CPU count, offset by one (e.g. -1 =>
+            // CPU count x 2, -2 => CPU count x 3).
+            if (settings.ThreadPoolMinThreads is not 0)
+            {
+                var minThreads = settings.ThreadPoolMinThreads > 0
+                    ? settings.ThreadPoolMinThreads
+                    : Environment.ProcessorCount * (Math.Abs(settings.ThreadPoolMinThreads) + 1);
+                if (ThreadPool.SetMinThreads(minThreads, minThreads))
+                    _logger.LogInformation("Thread pool minimum threads set to {MinThreads}.", minThreads);
+                else
+                    _logger.LogWarning("Failed to set thread pool minimum threads to {MinThreads}; leaving runtime default in place.", minThreads);
+            }
+
             // Set default options for MessagePack.
             MessagePackSerializer.DefaultOptions = MessagePackSerializer.DefaultOptions.WithAllowAssemblyVersionMismatch(true)
                 .WithCompression(MessagePackCompression.Lz4BlockArray);

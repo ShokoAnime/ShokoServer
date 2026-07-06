@@ -49,6 +49,15 @@ public interface IServerSettings
     int CachingDatabaseTimeout { get; set; }
 
     /// <summary>
+    /// Minimum number of .NET thread pool worker/I-O completion threads to
+    /// keep warm. Set to 0 to leave the runtime's own default untouched.
+    /// Positive values are used directly. Negative values are treated as a
+    /// multiplier against the CPU count, offset by one, e.g. -1 means CPU
+    /// count x 2, -2 means CPU count x 3, up to -9 meaning CPU count x 10.
+    /// </summary>
+    int ThreadPoolMinThreads { get; set; }
+
+    /// <summary>
     /// The database settings.
     /// </summary>
     DatabaseSettings Database { get; set; }

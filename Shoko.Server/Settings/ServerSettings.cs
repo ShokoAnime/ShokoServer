@@ -106,6 +106,24 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     [Range(1, 600, ErrorMessage = "Caching Database Timeout must be between 1 and 600")]
     public int CachingDatabaseTimeout { get; set; } = 180;
 
+    /// <summary>
+    /// Minimum number of .NET thread pool worker/I-O completion threads to
+    /// keep warm. Raising this avoids the runtime's gradual "hill-climbing"
+    /// thread injection delay under bursts of concurrent, blocking, or
+    /// synchronous work. Set to 0 to leave the runtime's own default
+    /// untouched. Positive values are used directly. Negative values are
+    /// treated as a multiplier against the CPU count, offset by one, e.g.
+    /// -1 means CPU count x 2, -2 means CPU count x 3, up to -9 meaning
+    /// CPU count x 10.
+    /// </summary>
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
+    [Display(Name = "Thread Pool Minimum Threads")]
+    [RequiresRestart]
+    [EnvironmentVariable("THREADPOOL_MIN_THREADS")]
+    [Range(-9, int.MaxValue)]
+    public int ThreadPoolMinThreads { get; set; }
+
     /// <inheritdoc />
     public ImportSettings Import { get; set; } = new();
 
