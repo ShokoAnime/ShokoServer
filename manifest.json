@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.356",
+      "tag": "v6.0.0-dev.356",
+      "commit": "1098c94ff664ddaac0aff5a6766dab5e77614d73",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.356/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-06T03:06:57Z",
+      "releaseNotes": "\n`feat` (`tmdb`): **Add 5XX circuit breaker with escalating backoff and force-run UX** ([#1370](https://github.com/ShokoAnime/ShokoServer/pull/1370)):\n\nAdds a 5XX circuit breaker to `TmdbRateLimiter` that detects sustained TMDB server distress and pauses all TMDB API job dispatch until the server recovers, preventing pointless retry floods. Jobs queued during a pause are held and dispatched automatically when the pause lifts — no work is lost.\n\n**Circuit breaker behaviour**\n- A ring buffer tracks the last 3 distress-error timestamps. When all 3 fall within a 10-second window the breaker trips.\n- Pause duration escalates with each successive trip: 1 → 3 → 5 → 15 → 60 min (capped at level 5).\n- On trip, the ring buffer is cleared so errors from requests already in flight when the breaker tripped don't immediately re-trip and escalate the level further.\n- A `Task.Delay`-based timer auto-clears the pause when the duration elapses, so the queue resumes even if no TMDB request is made to call `NotifySuccess` (which would otherwise deadlock behind the acquisition filter).\n- The pause also clears on the first successful request after the backoff window passes (`NotifySuccess`), which resets the ramp level and ring buffer. A cheap pre-check skips the lock entirely once the breaker is idle, since every successful TMDB call (up to 10 concurrent) would otherwise funnel through it for nothing.\n- 429 backoff and 5XX pause share a single `_backoffUntilTicks` deadline. Both interact safely under `_breakerLock`.\n- `GetPauseSnapshot()` reads the paused flag and remaining-time deadline together under the lock, since both are cleared as a pair elsewhere and reading them independently could observe a mid-flip state (paused but no remaining time, or vice versa).\n\n**Job gating**\n- New `[TmdbApiRateLimited]` acquisition attribute (extends `[NetworkRequired]` at TMDB worker priority).\n- `TmdbApiRateLimitedAcquisitionFilter` blocks all `[TmdbApiRateLimited]` jobs from dispatch while the circuit breaker is tripped, and fires `StateChanged` when the pause toggles so the queue wakes immediately. Implements `IDisposable` via the standard dispose pattern.\n- `DownloadTmdbShowImagesJob` and `DownloadTmdbMovieImagesJob` gained `[TmdbApiRateLimited]` (previously missing despite making API calls).\n- `PurgeTmdbMovieJob` and `PurgeTmdbShowJob` reverted to `[NetworkRequired]` (they only do local DB deletes, no TMDB API calls).\n\n**Force-run UX**\n- When a user force-triggers a refresh or image download while the circuit breaker is active, the job is queued at elevated priority and the endpoint returns **503** with a `Retry-After` header instead of 202. The log emits the approximate wait in seconds.\n- The quick-refresh early-return (already updating, episodes present) is answered entirely from local state, so it's checked before the pause gate — it never touches TMDB and shouldn't be refused just because TMDB itself is unavailable.\n- `QuickRefresh` is only honored on the immediate execution path (`body.Immediate && body.QuickRefresh`); scheduled/background show refreshes always run the full job with `ForceRefresh` as requested, applied consistently across all force paths.\n- Job deduplication in `IQueueScheduler.Enqueue` prevents users from stacking duplicate jobs while paused.\n\n**API surface**\n- `TmdbRateLimiter.GetPauseSnapshot()` returns `(IsPaused, Remaining)` as an atomic, lock-protected read so callers never observe a TOCTOU split between the two fields.\n- `TmdbMetadataService` exposes `Is5xxPaused`, `RemainingPauseTime`, and `GetPauseSnapshot()` as pass-throughs so the controller doesn't need to inject `TmdbRateLimiter` directly.\n\n**Code quality / concurrency**\n- `_5xxPauseLevel` is `volatile` so the lock-free fast-path check in `NotifySuccess` is safe.\n- Removed a `fireEvent` variable that was always `true` at its read site (early returns inside the lock exit the lambda entirely, so the log/event only fire on the path where the pause was actually cleared).\n"
+    },
+    {
       "version": "6.0.0.355",
       "tag": "v6.0.0-dev.355",
       "commit": "288ed5235546f9ec1c1c1e2493fc34055debb37f",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.327/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-26T05:00:38Z",
       "releaseNotes": "\n`fix`: **Add back semaphore to restrict the number of concurrent filtering runs**.\n\n`chore`: **Sort and remove unnecessary imports**.\n"
-    },
-    {
-      "version": "6.0.0.326",
-      "tag": "v6.0.0-dev.326",
-      "commit": "68903c652b32bb314af388c92e54ae243be116be",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.326/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-26T04:43:54Z",
-      "releaseNotes": "\n`misc`: **Missing Files and Performance Improvements**.\n"
     }
   ]
 }
