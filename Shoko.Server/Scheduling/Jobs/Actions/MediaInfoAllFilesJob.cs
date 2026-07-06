@@ -13,32 +13,19 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [JobKeyMember("MediaInfo")]
 [JobKeyGroup(JobKeyGroup.Legacy)]
 [DisallowConcurrentExecution]
-internal class MediaInfoAllFilesJob : BaseJob
+internal class MediaInfoAllFilesJob(IQueueScheduler scheduler, VideoLocalRepository videoLocals) : BaseJob
 {
-    private readonly IQueueScheduler _scheduler;
-
     public override string TypeName => "Schedule MediaInfo Scan for All Files";
+
     public override string Title => "Scheduling MediaInfo Scan for All Files";
 
     public override async Task Execute()
     {
         // first build a list of files that we already know about, as we don't want to process them again
-        var filesAll = _videoLocals.GetAll();
+        var filesAll = videoLocals.GetAll();
         foreach (var vl in filesAll)
         {
-            await _scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = vl.VideoLocalID);
+            await scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = vl.VideoLocalID);
         }
     }
-
-    private readonly VideoLocalRepository _videoLocals;
-    public MediaInfoAllFilesJob(IQueueScheduler schedulerFactory,
-        VideoLocalRepository videoLocals
-    )
-    {
-        _scheduler = schedulerFactory;
-        _videoLocals = videoLocals;
-
-    }
-
-    protected MediaInfoAllFilesJob() { }
 }

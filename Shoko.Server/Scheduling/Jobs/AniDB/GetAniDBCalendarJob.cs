@@ -23,11 +23,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetAniDBCalendarJob : BaseJob
+public class GetAniDBCalendarJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDB_AnimeRepository anidbAnime, AniDB_AnimeUpdateRepository anidbAnimeUpdates, AnimeSeriesRepository animeSeries, ScheduledUpdateRepository scheduledUpdates) : BaseJob
 {
-    private readonly IRequestFactory _requestFactory;
-    private readonly IAnidbService _anidbService;
-    private readonly ISettingsProvider _settingsProvider;
     public bool ForceRefresh { get; set; }
 
     public override string TypeName => "Get AniDB Calendar";
@@ -38,10 +35,10 @@ public class GetAniDBCalendarJob : BaseJob
     {
         _logger.LogInformation("Processing {Job}", nameof(GetAniDBCalendarJob));
 
-        var settings = _settingsProvider.GetSettings();
+        var settings = settingsProvider.GetSettings();
         // we will always assume that an anime was downloaded via http first
 
-        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
+        var schedule = scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
         if (schedule is null)
         {
             schedule = new()
@@ -64,9 +61,9 @@ public class GetAniDBCalendarJob : BaseJob
 
         schedule.LastUpdate = DateTime.Now;
 
-        var request = _requestFactory.Create<RequestCalendar>();
+        var request = requestFactory.Create<RequestCalendar>();
         var response = request.Send();
-        _scheduledUpdates.Save(schedule);
+        scheduledUpdates.Save(schedule);
 
         if (response.Response?.Next25Anime is not null)
         {
@@ -88,8 +85,8 @@ public class GetAniDBCalendarJob : BaseJob
 
     private async Task GetAnime(ResponseCalendar.CalendarEntry cal, IServerSettings settings)
     {
-        var anime = _anidbAnimes.GetByAnimeID(cal.AnimeID);
-        var update = _anidbAnimeUpdates.GetByAnimeID(cal.AnimeID);
+        var anime = anidbAnime.GetByAnimeID(cal.AnimeID);
+        var update = anidbAnimeUpdates.GetByAnimeID(cal.AnimeID);
         var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
         if (settings.AutoGroupSeries || settings.AniDb.DownloadRelatedAnime)
             refreshMethod |= AnidbRefreshMethod.DownloadRelations;
@@ -101,7 +98,7 @@ public class GetAniDBCalendarJob : BaseJob
             var ts = DateTime.Now - update.UpdatedAt;
             if (ts.TotalDays >= 2)
             {
-                await _anidbService.ScheduleRefreshOfAnimeByID(cal.AnimeID, refreshMethod).ConfigureAwait(false);
+                await anidbService.ScheduleRefreshOfAnimeByID(cal.AnimeID, refreshMethod).ConfigureAwait(false);
             }
             else
             {
@@ -110,40 +107,14 @@ public class GetAniDBCalendarJob : BaseJob
                 if (anime.AirDate == releaseDate) return;
 
                 anime.AirDate = releaseDate;
-                _anidbAnimes.Save(anime);
-                var ser = _animeSeries.GetByAnimeID(anime.AnimeID);
-                if (ser is not null) _animeSeries.Save(ser, true);
+                anidbAnime.Save(anime);
+                var ser = animeSeries.GetByAnimeID(anime.AnimeID);
+                if (ser is not null) animeSeries.Save(ser, true);
             }
         }
         else
         {
-            await _anidbService.ScheduleRefreshOfAnimeByID(cal.AnimeID, refreshMethod).ConfigureAwait(false);
+            await anidbService.ScheduleRefreshOfAnimeByID(cal.AnimeID, refreshMethod).ConfigureAwait(false);
         }
-    }
-
-    private readonly AniDB_AnimeRepository _anidbAnimes;
-    private readonly AniDB_AnimeUpdateRepository _anidbAnimeUpdates;
-    private readonly AnimeSeriesRepository _animeSeries;
-    private readonly ScheduledUpdateRepository _scheduledUpdates;
-    public GetAniDBCalendarJob(IRequestFactory requestFactory,
-        IAnidbService anidbService, ISettingsProvider settingsProvider,
-        AniDB_AnimeRepository anidbAnimes,
-        AniDB_AnimeUpdateRepository anidbAnimeUpdates,
-        AnimeSeriesRepository animeSeries,
-        ScheduledUpdateRepository scheduledUpdates
-    )
-    {
-        _requestFactory = requestFactory;
-        _anidbService = anidbService;
-        _settingsProvider = settingsProvider;
-        _anidbAnimes = anidbAnimes;
-        _anidbAnimeUpdates = anidbAnimeUpdates;
-        _animeSeries = animeSeries;
-        _scheduledUpdates = scheduledUpdates;
-
-    }
-
-    protected GetAniDBCalendarJob()
-    {
     }
 }

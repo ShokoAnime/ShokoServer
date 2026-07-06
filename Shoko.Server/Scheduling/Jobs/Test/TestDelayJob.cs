@@ -6,7 +6,7 @@ using Shoko.QueueProcessor.Builder;
 namespace Shoko.Server.Scheduling.Jobs.Test;
 
 [JobKeyGroup(JobKeyGroup.System)]
-public class TestDelayJob : BaseJob
+public class TestDelayJob() : BaseJob
 {
     public int Offset { get; set; }
     public int DelaySeconds { get; set; } = 60;

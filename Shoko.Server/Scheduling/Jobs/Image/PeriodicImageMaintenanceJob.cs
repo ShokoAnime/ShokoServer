@@ -1,7 +1,6 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
@@ -14,7 +13,7 @@ namespace Shoko.Server.Scheduling.Jobs.Image;
 [DatabaseRequired]
 [DisallowConcurrentExecution]
 [JobKeyGroup(JobKeyGroup.Image)]
-public class PeriodicImageMaintenanceJob : BaseJob
+public class PeriodicImageMaintenanceJob(ISettingsProvider settingsProvider, IImageManager imageManager) : BaseJob
 {
     public override string TypeName => "Periodic Image Maintenance";
 
@@ -22,9 +21,7 @@ public class PeriodicImageMaintenanceJob : BaseJob
 
     public override async Task Execute()
     {
-        var settings = ISettingsProvider.Instance.GetSettings();
-        var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();
-
+        var settings = settingsProvider.GetSettings();
         if (settings.Image.AutoPurge)
         {
             _logger.LogInformation("Purging orphaned images older than 7 days...");
@@ -39,6 +36,4 @@ public class PeriodicImageMaintenanceJob : BaseJob
             _logger.LogInformation("Validation queued {Count} images for re-download.", queued);
         }
     }
-
-    public PeriodicImageMaintenanceJob() { }
 }

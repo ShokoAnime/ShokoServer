@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
-using Shoko.Server.Repositories;
+using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
@@ -12,20 +12,19 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [JobKeyGroup(JobKeyGroup.System)]
 [DisallowConcurrentExecution]
 [DatabaseRequired]
-public class CleanupExpiredTokensJob : BaseJob
+public class CleanupExpiredTokensJob(AuthTokensRepository authTokensRepository) : BaseJob
 {
     public override string TypeName => "Cleanup Expired Tokens";
-    public override string Title => "Cleaning up expired auth tokens";
 
-    protected CleanupExpiredTokensJob() { }
+    public override string Title => "Cleaning up expired auth tokens";
 
     public override Task Execute()
     {
         var now = DateTime.Now;
-        var tokens = RepoFactory.AuthTokens.GetAll();
+        var tokens = authTokensRepository.GetAll();
         var expired = tokens.Where(t => t.ExpiresAt.HasValue && t.ExpiresAt.Value < now).ToList();
         foreach (var token in expired)
-            RepoFactory.AuthTokens.Delete(token);
+            authTokensRepository.Delete(token);
 
         return Task.CompletedTask;
     }

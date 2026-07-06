@@ -16,10 +16,10 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class AcknowledgeAniDBNotifyJob : BaseJob
+public class AcknowledgeAniDBNotifyJob(IRequestFactory requestFactory, AniDB_MessageRepository anidbMessages) : BaseJob
 {
-    private readonly IRequestFactory _requestFactory;
     public int NotifyID { get; set; }
+
     public AniDBNotifyType NotifyType { get; set; }
 
     public override string TypeName => "Acknowledge AniDB Notify";
@@ -30,7 +30,7 @@ public class AcknowledgeAniDBNotifyJob : BaseJob
     {
         _logger.LogInformation("Processing {Job}: {Type} {ID}", nameof(AcknowledgeAniDBNotifyJob), NotifyType.ToString(), NotifyID);
 
-        var requestAck = _requestFactory.Create<RequestAcknowledgeNotify>(
+        var requestAck = requestFactory.Create<RequestAcknowledgeNotify>(
             r =>
             {
                 r.Type = NotifyType;
@@ -42,27 +42,13 @@ public class AcknowledgeAniDBNotifyJob : BaseJob
         // successful, set the read flag
         if (NotifyType == AniDBNotifyType.Message)
         {
-            var message = _anidbMessages.GetByMessageId(NotifyID);
+            var message = anidbMessages.GetByMessageId(NotifyID);
             if (message != null)
             {
                 message.IsReadOnAniDB = true;
-                _anidbMessages.Save(message);
+                anidbMessages.Save(message);
             }
         }
         return Task.CompletedTask;
-    }
-
-    private readonly AniDB_MessageRepository _anidbMessages;
-    public AcknowledgeAniDBNotifyJob(IRequestFactory requestFactory,
-        AniDB_MessageRepository anidbMessages
-    )
-    {
-        _requestFactory = requestFactory;
-        _anidbMessages = anidbMessages;
-
-    }
-
-    protected AcknowledgeAniDBNotifyJob()
-    {
     }
 }

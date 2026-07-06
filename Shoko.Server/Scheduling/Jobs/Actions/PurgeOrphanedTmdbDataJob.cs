@@ -7,24 +7,20 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Settings;
 
-#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 [DatabaseRequired]
 [DisallowConcurrentExecution]
 [JobKeyGroup(JobKeyGroup.Actions)]
-public class PurgeOrphanedTmdbDataJob : BaseJob
+public class PurgeOrphanedTmdbDataJob(ISettingsProvider settingsProvider, ITmdbMetadataService tmdbMetadataService) : BaseJob
 {
-    private readonly ISettingsProvider _settingsProvider;
-    private readonly ITmdbMetadataService _tmdbMetadataService;
-
     public override string TypeName => "Purge Orphaned TMDB Data";
 
     public override string Title => "Purging Orphaned TMDB Data";
 
     public override async Task Execute()
     {
-        var threshold = _settingsProvider.GetSettings().TMDB.AutoPurgeUnlinkedAfterDays;
+        var threshold = settingsProvider.GetSettings().TMDB.AutoPurgeUnlinkedAfterDays;
         if (threshold <= 0)
         {
             _logger.LogTrace("Auto-purge disabled (AutoPurgeUnlinkedAfterDays=0). Skipping.");
@@ -32,15 +28,7 @@ public class PurgeOrphanedTmdbDataJob : BaseJob
         }
 
         var cutoff = DateTime.Now.AddDays(-threshold);
-        await _tmdbMetadataService.PurgeAllUnusedShows(cutoff);
-        await _tmdbMetadataService.PurgeAllUnusedMovies(cutoff);
+        await tmdbMetadataService.PurgeAllUnusedShows(cutoff);
+        await tmdbMetadataService.PurgeAllUnusedMovies(cutoff);
     }
-
-    public PurgeOrphanedTmdbDataJob(ISettingsProvider settingsProvider, ITmdbMetadataService tmdbMetadataService)
-    {
-        _settingsProvider = settingsProvider;
-        _tmdbMetadataService = tmdbMetadataService;
-    }
-
-    protected PurgeOrphanedTmdbDataJob() { }
 }

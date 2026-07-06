@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.User.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
@@ -28,27 +29,23 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class AddFileToMyListJob : BaseJob
+public class AddFileToMyListJob(IRequestFactory requestFactory, IQueueScheduler scheduler, ISettingsProvider settingsProvider, VideoLocal_UserRepository vlUsers, IUserDataService userDataService, JMMUserRepository jmmUsers, VideoLocalRepository videoLocals) : BaseJob
 {
-    private readonly IRequestFactory _requestFactory;
-    private readonly IQueueScheduler _scheduler;
-    private readonly ISettingsProvider _settingsProvider;
-    private readonly VideoLocal_UserRepository _vlUsers;
-    private readonly IUserDataService _userDataService;
-    private VideoLocal _videoLocal;
+    private VideoLocal? _videoLocal;
 
     public string Hash { get; set; }
+
     public bool ReadStates { get; set; } = true;
 
     public override void PostInit()
     {
-        _videoLocal = _videoLocals.GetByEd2k(Hash);
-        if (_videoLocal == null) throw new Exception($"VideoLocal not Found: {Hash}");
+        _videoLocal = videoLocals.GetByEd2k(Hash) ?? throw new Exception($"VideoLocal not Found: {Hash}");
     }
 
     public override string TypeName => "Add File to MyList";
 
     public override string Title => "Adding File to MyList";
+
     public override Dictionary<string, object> Details => new()
     {
         {
@@ -63,7 +60,7 @@ public class AddFileToMyListJob : BaseJob
 
         if (_videoLocal == null) return;
 
-        var settings = _settingsProvider.GetSettings();
+        var settings = settingsProvider.GetSettings();
 
         // when adding a file via the API, newWatchedStatus will return with current watched status on AniDB
         // if the file is already on the user's list
@@ -71,23 +68,23 @@ public class AddFileToMyListJob : BaseJob
         var isManualLink = _videoLocal.ReleaseInfo is not { } releaseInfo || !(releaseInfo.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false);
 
         // mark the video file as watched
-        var user = _jmmUsers.GetAniDBUser();
+        var user = jmmUsers.GetAniDBUser();
         DateTime? originalWatchedDate = null;
         if (user != null)
         {
-            originalWatchedDate = _vlUsers.GetByUserAndVideoLocalID(user.JMMUserID, _videoLocal.VideoLocalID)?.WatchedDate?.ToUniversalTime();
+            originalWatchedDate = vlUsers.GetByUserAndVideoLocalID(user.JMMUserID, _videoLocal.VideoLocalID)?.WatchedDate?.ToUniversalTime();
         }
 
-        UDPResponse<ResponseMyListFile> response = null;
+        UDPResponse<ResponseMyListFile>? response = null;
         // this only gets overwritten if the response is File Already in MyList
         var state = settings.AniDb.MyList_StorageState;
 
         if (isManualLink)
         {
-            var episodes = _videoLocal.AnimeEpisodes.Select(a => a.AniDB_Episode).ToArray();
+            var episodes = _videoLocal.AnimeEpisodes.Select(a => a.AniDB_Episode).WhereNotNull().ToArray();
             foreach (var episode in episodes)
             {
-                var request = _requestFactory.Create<RequestAddEpisode>(
+                var request = requestFactory.Create<RequestAddEpisode>(
                     r =>
                     {
                         r.State = state;
@@ -105,7 +102,7 @@ public class AddFileToMyListJob : BaseJob
                     continue;
                 }
 
-                var updateRequest = _requestFactory.Create<RequestUpdateEpisode>(
+                var updateRequest = requestFactory.Create<RequestUpdateEpisode>(
                     r =>
                     {
                         r.State = state;
@@ -121,7 +118,7 @@ public class AddFileToMyListJob : BaseJob
         }
         else
         {
-            var request = _requestFactory.Create<RequestAddFile>(
+            var request = requestFactory.Create<RequestAddFile>(
                 r =>
                 {
                     r.State = state;
@@ -135,7 +132,7 @@ public class AddFileToMyListJob : BaseJob
 
             if (response.Code == UDPReturnCode.FILE_ALREADY_IN_MYLIST)
             {
-                var updateRequest = _requestFactory.Create<RequestUpdateFile>(
+                var updateRequest = requestFactory.Create<RequestUpdateFile>(
                     r =>
                     {
                         r.State = state;
@@ -153,8 +150,8 @@ public class AddFileToMyListJob : BaseJob
         // never true for Manual Links, so no worries about the loop overwriting it
         if ((response?.Response?.MyListID ?? 0) != 0)
         {
-            _videoLocal.MyListID = response.Response.MyListID;
-            _videoLocals.Save(_videoLocal);
+            _videoLocal.MyListID = response!.Response!.MyListID;
+            videoLocals.Save(_videoLocal);
         }
 
         var newWatchedDate = response?.Response?.WatchedDate;
@@ -174,7 +171,7 @@ public class AddFileToMyListJob : BaseJob
                 // handle import watched settings. Don't update AniDB in either case, we'll do that with the storage state
                 if (settings.AniDb.MyList_ReadWatched && watched && !watchedLocally)
                 {
-                    await _userDataService.ImportVideoUserData(_videoLocal, user, new()
+                    await userDataService.ImportVideoUserData(_videoLocal, user, new()
                     {
                         ProgressPosition = TimeSpan.Zero,
                         LastPlayedAt = newWatchedDate ?? DateTime.Now,
@@ -183,7 +180,7 @@ public class AddFileToMyListJob : BaseJob
                 }
                 else if (settings.AniDb.MyList_ReadUnwatched && !watched && watchedLocally)
                 {
-                    await _userDataService.ImportVideoUserData(_videoLocal, user, new()
+                    await userDataService.ImportVideoUserData(_videoLocal, user, new()
                     {
                         ProgressPosition = TimeSpan.Zero,
                         LastPlayedAt = null,
@@ -199,25 +196,8 @@ public class AddFileToMyListJob : BaseJob
         {
             return;
         }
-        await Task.WhenAll(series.Select(id => _scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = id)));
+        await Task.WhenAll(series.Select(id => scheduler.StartJob<RefreshAnimeStatsJob>(a => a.AnimeID = id)));
     }
 
-    private readonly JMMUserRepository _jmmUsers;
-    private readonly VideoLocalRepository _videoLocals;
-    public AddFileToMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, IQueueScheduler schedulerFactory, VideoLocal_UserRepository vlUsers, IUserDataService userDataService,
-        JMMUserRepository jmmUsers,
-        VideoLocalRepository videoLocals
-    )
-    {
-        _requestFactory = requestFactory;
-        _settingsProvider = settingsProvider;
-        _scheduler = schedulerFactory;
-        _vlUsers = vlUsers;
-        _userDataService = userDataService;
-        _jmmUsers = jmmUsers;
-        _videoLocals = videoLocals;
 
-    }
-
-    protected AddFileToMyListJob() { }
 }

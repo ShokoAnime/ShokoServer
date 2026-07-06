@@ -7,21 +7,20 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Services;
 
-#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Actions)]
-public class RefreshAnimeStatsJob : BaseJob
+public class RefreshAnimeStatsJob(
+    AnimeSeriesService seriesService,
+    AniDB_AnimeRepository animeRepo,
+    AnimeSeriesRepository seriesRepo,
+    AnimeGroupService groupService
+) : BaseJob
 {
-    private readonly AniDB_AnimeRepository _animeRepo;
-    private readonly AnimeSeriesRepository _seriesRepo;
-    private readonly AnimeSeriesService _seriesService;
-    private readonly AnimeGroupService _groupService;
-
     public int AnimeID { get; set; }
 
-    private string? _anime;
+    private string? _animeName;
 
     public override string TypeName => "Refresh Anime Stats";
     public override string Title => "Refreshing Anime Stats";
@@ -34,21 +33,19 @@ public class RefreshAnimeStatsJob : BaseJob
 
     public override void PostInit()
     {
-        _anime = _animeRepo.GetByAnimeID(AnimeID)?.Title ?? AnimeID.ToString();
+        _animeName = animeRepo.GetByAnimeID(AnimeID)?.Title ?? AnimeID.ToString();
     }
 
     public override Task Execute()
     {
-        _logger.LogInformation("Processing {Job} for {Anime}", nameof(RefreshAnimeStatsJob), _anime);
-        var anime = _animeRepo.GetByAnimeID(AnimeID);
+        _logger.LogInformation("Processing {Job} for {Anime}", nameof(RefreshAnimeStatsJob), _animeName);
+        var anime = animeRepo.GetByAnimeID(AnimeID);
         if (anime == null)
         {
             _logger.LogWarning("AniDB_Anime not found: {AnimeID}", AnimeID);
             return Task.CompletedTask;
         }
-        _animeRepo.Save(anime);
-        var series = _seriesRepo.GetByAnimeID(AnimeID);
-
+        var series = seriesRepo.GetByAnimeID(AnimeID);
         if (series is not null)
         {
             series.ResetAnimeTitles();
@@ -57,18 +54,8 @@ public class RefreshAnimeStatsJob : BaseJob
         }
 
         // Updating stats saves everything and updates groups
-        _seriesService.UpdateStats(series, true, true);
-        _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, true, true);
+        seriesService.UpdateStats(series, true, true);
+        groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, true, true);
         return Task.CompletedTask;
     }
-
-    public RefreshAnimeStatsJob(AnimeSeriesService seriesService, AniDB_AnimeRepository animeRepo, AnimeSeriesRepository seriesRepo, AnimeGroupService groupService)
-    {
-        _seriesService = seriesService;
-        _animeRepo = animeRepo;
-        _seriesRepo = seriesRepo;
-        _groupService = groupService;
-    }
-
-    protected RefreshAnimeStatsJob() { }
 }

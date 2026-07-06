@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
-using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -20,14 +19,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBHttpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetRemoteAniDBAnimeJob : BaseJob<AniDB_Anime>
+public class GetRemoteAniDBAnimeJob(ISettingsProvider settingsProvider, AnidbService anidbService, AniDBTitleHelper titleHelper, AniDB_AnimeRepository anidbAnimes) : BaseJob<AniDB_Anime>
 {
-    private readonly ISettingsProvider _settingsProvider;
-
-    private readonly AnidbService _anidbService;
-
-    private readonly AniDBTitleHelper _titleHelper;
-
     private string _animeName;
 
     /// <summary>
@@ -105,7 +98,7 @@ public class GetRemoteAniDBAnimeJob : BaseJob<AniDB_Anime>
             // Use the defaults based on settings.
             if (value is AnidbRefreshMethod.Auto)
             {
-                var settings = _settingsProvider.GetSettings();
+                var settings = settingsProvider.GetSettings();
                 DownloadRelations = settings.AutoGroupSeries || settings.AniDb.DownloadRelatedAnime;
                 CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
             }
@@ -126,7 +119,7 @@ public class GetRemoteAniDBAnimeJob : BaseJob<AniDB_Anime>
     public override void PostInit()
     {
         // We have the title helper. May as well use it to provide better info for the user
-        _animeName = _anidbAnimes.GetByAnimeID(AnimeID)?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title;
+        _animeName = anidbAnimes.GetByAnimeID(AnimeID)?.Title ?? titleHelper.SearchAnimeID(AnimeID)?.Title;
     }
 
     public override string TypeName => "Get AniDB Anime Data (Force Remote)";
@@ -148,21 +141,7 @@ public class GetRemoteAniDBAnimeJob : BaseJob<AniDB_Anime>
     public override async Task<AniDB_Anime> Process()
     {
         _logger.LogInformation("Processing {JobName} for {Anime}: AniDB ID {ID}", nameof(GetRemoteAniDBAnimeJob), _animeName ?? AnimeID.ToString(), AnimeID);
-        return await _anidbService.Process(AnimeID, RefreshMethod, RelDepth).ConfigureAwait(false);
+        return await anidbService.Process(AnimeID, RefreshMethod, RelDepth).ConfigureAwait(false);
     }
 
-
-    private readonly AniDB_AnimeRepository _anidbAnimes;
-    public GetRemoteAniDBAnimeJob(ISettingsProvider settingsProvider, IAnidbService anidbService, AniDBTitleHelper titleHelper,
-        AniDB_AnimeRepository anidbAnimes
-    )
-    {
-        _settingsProvider = settingsProvider;
-        _anidbService = (AnidbService)anidbService;
-        _titleHelper = titleHelper;
-        _anidbAnimes = anidbAnimes;
-
-    }
-
-    protected GetRemoteAniDBAnimeJob() { }
 }

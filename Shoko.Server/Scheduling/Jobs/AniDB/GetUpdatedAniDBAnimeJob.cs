@@ -25,13 +25,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetUpdatedAniDBAnimeJob : BaseJob
+public class GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper, AniDB_AnimeRepository anidbAnimeRepository, AniDB_AnimeUpdateRepository anidbAnimeUpdates, AnimeSeriesRepository animeSeries, ScheduledUpdateRepository scheduledUpdates) : BaseJob
 {
-    private readonly IRequestFactory _requestFactory;
-    private readonly IAnidbService _anidbService;
-    private readonly ISettingsProvider _settingsProvider;
-    private readonly AniDBTitleHelper _titleHelper;
-
     public bool ForceRefresh { get; set; }
 
     public override string TypeName => "Get Updated AniDB Anime List";
@@ -43,10 +38,10 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
         _logger.LogInformation("Processing {Job}", nameof(GetUpdatedAniDBAnimeJob));
 
         // check the automated update table to see when the last time we ran this command
-        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
+        var schedule = scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
         if (schedule is not null)
         {
-            var settings = _settingsProvider.GetSettings();
+            var settings = settingsProvider.GetSettings();
             var freqHours = settings.AniDb.Anime_UpdateFrequency.Hours;
 
             // if we have run this in the last 12 hours and are not forcing it, then exit
@@ -74,18 +69,18 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
 
         while (response?.Response?.Count > 200)
         {
-            (response, countAnime, countSeries) = await Update(response.Response.LastUpdated, schedule, countAnime, countSeries);
+            (response, countAnime, countSeries) = await Update(response!.Response.LastUpdated, schedule, countAnime, countSeries);
         }
 
         _logger.LogInformation("Updating {Count} anime records, and {CountSeries} group status records", countAnime,
             countSeries);
     }
 
-    private async Task<(UDPResponse<ResponseUpdatedAnime> response, int countAnime, int countSeries)> Update(DateTime webUpdateTime, ScheduledUpdate schedule, int countAnime, int countSeries)
+    private async Task<(UDPResponse<ResponseUpdatedAnime>? response, int countAnime, int countSeries)> Update(DateTime webUpdateTime, ScheduledUpdate schedule, int countAnime, int countSeries)
     {
         // get a list of updates from AniDB
         // startTime will contain the date/time from which the updates apply to
-        var request = _requestFactory.Create<RequestUpdatedAnime>(r => r.LastUpdated = webUpdateTime);
+        var request = requestFactory.Create<RequestUpdatedAnime>(r => r.LastUpdated = webUpdateTime);
         var response = request.Send();
         if (response?.Response is null)
         {
@@ -98,7 +93,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
         // we will use this next time as a starting point when querying the web cache
         schedule.LastUpdate = DateTime.Now;
         schedule.UpdateDetails = ((int)(response.Response.LastUpdated - DateTime.UnixEpoch).TotalSeconds).ToString();
-        _scheduledUpdates.Save(schedule);
+        scheduledUpdates.Save(schedule);
 
         if (animeIDsToUpdate.Count == 0)
         {
@@ -106,18 +101,18 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
             return (response, countAnime, countSeries);
         }
 
-        var settings = _settingsProvider.GetSettings();
+        var settings = settingsProvider.GetSettings();
         foreach (var animeID in animeIDsToUpdate)
         {
             // update the anime from HTTP
-            var anime = _anidbAnimes.GetByAnimeID(animeID);
+            var anime = anidbAnimeRepository.GetByAnimeID(animeID);
             if (anime is null)
             {
-                var name = _titleHelper.SearchAnimeID(animeID)?.DefaultTitle.Value ?? "<Unknown>";
+                var name = titleHelper.SearchAnimeID(animeID)?.DefaultTitle.Value ?? "<Unknown>";
                 if (settings.AniDb.AutomaticallyImportSeries)
                 {
                     _logger.LogInformation("Scheduling update for anime: {AnimeTitle} ({AnimeID})", name, animeID);
-                    await _anidbService.ScheduleRefreshOfAnimeByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.CreateShokoSeries).ConfigureAwait(false);
+                    await anidbService.ScheduleRefreshOfAnimeByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.CreateShokoSeries).ConfigureAwait(false);
                     countAnime++;
                 }
                 else
@@ -128,7 +123,7 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
             }
 
             _logger.LogInformation("Scheduling update for anime: {AnimeTitle} ({AnimeID})", anime.MainTitle, animeID);
-            var update = _anidbAnimeUpdates.GetByAnimeID(animeID);
+            var update = anidbAnimeUpdates.GetByAnimeID(animeID);
 
             // but only if it hasn't been recently updated
             var ts = DateTime.Now - (update?.UpdatedAt ?? DateTime.UnixEpoch);
@@ -137,46 +132,20 @@ public class GetUpdatedAniDBAnimeJob : BaseJob
                 var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
                 if (settings.AniDb.AutomaticallyImportSeries)
                     refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
-                await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod).ConfigureAwait(false);
+                await anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod).ConfigureAwait(false);
                 countAnime++;
             }
 
             // update the group status
             // this will allow us to determine which anime has missing episodes
             // we only get by an anime where we also have an associated series
-            var ser = _animeSeries.GetByAnimeID(animeID);
+            var ser = animeSeries.GetByAnimeID(animeID);
             if (ser is null) continue;
 
-            await _anidbService.ScheduleRefreshOfAnimeByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
+            await anidbService.ScheduleRefreshOfAnimeByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
             countSeries++;
         }
 
         return (response, countAnime, countSeries);
-    }
-
-    private readonly AniDB_AnimeRepository _anidbAnimes;
-    private readonly AniDB_AnimeUpdateRepository _anidbAnimeUpdates;
-    private readonly AnimeSeriesRepository _animeSeries;
-    private readonly ScheduledUpdateRepository _scheduledUpdates;
-    public GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper,
-        AniDB_AnimeRepository anidbAnimes,
-        AniDB_AnimeUpdateRepository anidbAnimeUpdates,
-        AnimeSeriesRepository animeSeries,
-        ScheduledUpdateRepository scheduledUpdates
-    )
-    {
-        _requestFactory = requestFactory;
-        _anidbService = anidbService;
-        _settingsProvider = settingsProvider;
-        _titleHelper = titleHelper;
-        _anidbAnimes = anidbAnimes;
-        _anidbAnimeUpdates = anidbAnimeUpdates;
-        _animeSeries = animeSeries;
-        _scheduledUpdates = scheduledUpdates;
-
-    }
-
-    protected GetUpdatedAniDBAnimeJob()
-    {
     }
 }

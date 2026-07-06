@@ -27,12 +27,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetAniDBReleaseGroupStatusJob : BaseJob
+public class GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper, IQueueScheduler scheduler, AniDB_AnimeRepository anidbAnimes, AniDB_EpisodeRepository anidbEpisodes, AniDB_GroupStatusRepository anidbGroupStatuses, AnimeSeriesRepository animeSeries) : BaseJob
 {
-    private readonly AniDBTitleHelper _titleHelper;
-    private readonly IRequestFactory _requestFactory;
-    private readonly IAnidbService _anidbService;
-    private readonly ISettingsProvider _settingsProvider;
     private AniDB_Anime _anime;
     private string _animeName;
     public int AnimeID { get; set; }
@@ -43,8 +39,8 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
 
     public override void PostInit()
     {
-        _anime = _anidbAnimes.GetByAnimeID(AnimeID);
-        _animeName = _anime?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title;
+        _anime = anidbAnimes.GetByAnimeID(AnimeID);
+        _animeName = _anime?.Title ?? titleHelper.SearchAnimeID(AnimeID)?.Title;
     }
 
     public override Dictionary<string, object> Details => _animeName == null ? new()
@@ -64,10 +60,10 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
 
         if (AnimeID == 0) return;
         // only get group status if we have an associated series
-        var series = _animeSeries.GetByAnimeID(AnimeID);
+        var series = animeSeries.GetByAnimeID(AnimeID);
         if (series == null) return;
 
-        var anime = _anidbAnimes.GetByAnimeID(AnimeID);
+        var anime = anidbAnimes.GetByAnimeID(AnimeID);
         if (anime == null) return;
 
         // don't get group status if the anime has already ended more than 50 days ago
@@ -78,14 +74,14 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
             return;
         }
 
-        var request = _requestFactory.Create<RequestReleaseGroupStatus>(r => r.AnimeID = AnimeID);
+        var request = requestFactory.Create<RequestReleaseGroupStatus>(r => r.AnimeID = AnimeID);
         var response = request.Send();
         if (response.Response == null) return;
 
         var maxEpisode = response.Response.Max(a => a.LastEpisodeNumber);
 
         // delete existing records
-        _anidbGroupStatuses.DeleteForAnime(AnimeID);
+        anidbGroupStatuses.DeleteForAnime(AnimeID);
 
         // save the records
         var toSave = response.Response.Select(
@@ -101,25 +97,25 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
                 EpisodeRange = string.Join(',', raw.ReleasedEpisodes)
             }
         ).ToArray();
-        _anidbGroupStatuses.Save(toSave);
-        await _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(a => a.AnimeID = AnimeID).ConfigureAwait(false);
+        anidbGroupStatuses.Save(toSave);
+        await scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(a => a.AnimeID = AnimeID).ConfigureAwait(false);
 
-        var settings = _settingsProvider.GetSettings();
+        var settings = settingsProvider.GetSettings();
         if (maxEpisode > 0)
         {
             // update the anime with a record of the latest subbed episode
             anime.LatestEpisodeNumber = maxEpisode;
-            _anidbAnimes.Save(anime);
+            anidbAnimes.Save(anime);
 
             // check if we have this episode in the database
             // if not get it now by updating the anime record
-            var eps = _anidbEpisodes.GetByAnimeIDAndEpisodeNumber(AnimeID, maxEpisode);
+            var eps = anidbEpisodes.GetByAnimeIDAndEpisodeNumber(AnimeID, maxEpisode);
             if (eps.Count == 0)
             {
                 var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful;
                 if (settings.AniDb.AutomaticallyImportSeries)
                     refreshMethod |= AnidbRefreshMethod.CreateShokoSeries;
-                await _anidbService.ScheduleRefreshOfAnimeByID(AnimeID, refreshMethod).ConfigureAwait(false);
+                await anidbService.ScheduleRefreshOfAnimeByID(AnimeID, refreshMethod).ConfigureAwait(false);
             }
         }
     }
@@ -148,34 +144,9 @@ public class GetAniDBReleaseGroupStatusJob : BaseJob
         }
 
         // don't skip if we have never downloaded this info before
-        var grpStatuses = _anidbGroupStatuses.GetByAnimeID(AnimeID);
+        var grpStatuses = anidbGroupStatuses.GetByAnimeID(AnimeID);
         return grpStatuses is { Count: > 0 };
     }
 
-    private readonly IQueueScheduler _scheduler;
-    private readonly AniDB_AnimeRepository _anidbAnimes;
-    private readonly AniDB_EpisodeRepository _anidbEpisodes;
-    private readonly AniDB_GroupStatusRepository _anidbGroupStatuses;
-    private readonly AnimeSeriesRepository _animeSeries;
-    public GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper,
-        IQueueScheduler scheduler,
-        AniDB_AnimeRepository anidbAnimes,
-        AniDB_EpisodeRepository anidbEpisodes,
-        AniDB_GroupStatusRepository anidbGroupStatuses,
-        AnimeSeriesRepository animeSeries
-    )
-    {
-        _requestFactory = requestFactory;
-        _anidbService = anidbService;
-        _settingsProvider = settingsProvider;
-        _titleHelper = titleHelper;
-        _scheduler = scheduler;
-        _anidbAnimes = anidbAnimes;
-        _anidbEpisodes = anidbEpisodes;
-        _anidbGroupStatuses = anidbGroupStatuses;
-        _animeSeries = animeSeries;
 
-    }
-
-    protected GetAniDBReleaseGroupStatusJob() { }
 }

@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
-using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
@@ -19,7 +18,6 @@ using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Services;
 
-#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
@@ -27,14 +25,8 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.Import)]
-public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleaseProvider>
+public class AnidbProcessFileJob(VideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository matchAttempts) : BaseJob, IVideoReleaseProviderJob<AnidbReleaseProvider>
 {
-    private readonly VideoReleaseService _videoReleaseService;
-
-    private readonly VideoLocalRepository _videoLocals;
-
-    private readonly StoredReleaseInfo_MatchAttemptRepository _matchAttempts;
-
     private VideoLocal? _vlocal;
 
     private StoredReleaseInfo_MatchAttempt? _matchAttempt;
@@ -77,10 +69,10 @@ public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleas
 
     public override void PostInit()
     {
-        _vlocal = _videoLocals.GetByID(VideoLocalID);
-        _matchAttempt = _matchAttempts.GetByID(MatchAttemptID);
+        _vlocal = videoLocals.GetByID(VideoLocalID);
+        _matchAttempt = matchAttempts.GetByID(MatchAttemptID);
         if (_vlocal is not null && _matchAttempt is not null)
-            _attemptNumber = _matchAttempts.GetByEd2kAndFileSize(_vlocal.Hash, _vlocal.FileSize)
+            _attemptNumber = matchAttempts.GetByEd2kAndFileSize(_vlocal.Hash, _vlocal.FileSize)
                 .FindIndex(m => m.StoredReleaseInfo_MatchAttemptID == MatchAttemptID) + 1;
         _fileName = VideoService.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
@@ -89,8 +81,8 @@ public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleas
     {
         _logger.LogInformation("Processing {Job}: {FileName}", nameof(AnidbProcessFileJob), _fileName ?? VideoLocalID.ToString());
 
-        _vlocal ??= _videoLocals.GetByID(VideoLocalID);
-        _matchAttempt ??= _matchAttempts.GetByID(MatchAttemptID);
+        _vlocal ??= videoLocals.GetByID(VideoLocalID);
+        _matchAttempt ??= matchAttempts.GetByID(MatchAttemptID);
         if (_vlocal is null || _matchAttempt is null) return;
 
 
@@ -105,7 +97,7 @@ public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleas
         try
         {
             // Get the AniDB provider instance managed by the release service (preserves memory cache)
-            var providerInfo = _videoReleaseService.GetProviderInfo<AnidbReleaseProvider>();
+            var providerInfo = videoReleaseService.GetProviderInfo<AnidbReleaseProvider>();
             var request = new ReleaseInfoContext { Video = _vlocal, IsAutomatic = true };
             var release = await providerInfo.Provider.GetReleaseInfoForVideo(request, CancellationToken.None);
             if (release is null || release.CrossReferences.Count < 1)
@@ -117,23 +109,15 @@ public class AnidbProcessFileJob : BaseJob, IVideoReleaseProviderJob<AnidbReleas
             var releaseInfo = new ReleaseInfoWithProvider(release, providerInfo.Name);
             _matchAttempt.ProviderID = providerInfo.ID;
             _matchAttempt.ProviderName = providerInfo.Name;
-            await _videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, skipEvents: SkipEvents);
+            await videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, skipEvents: SkipEvents);
         }
         catch (Exception ex)
         {
             _matchAttempt.AttemptEndedAt = DateTime.Now;
-            _matchAttempts.Save(_matchAttempt);
-            await _videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, null, ex);
+            matchAttempts.Save(_matchAttempt);
+            await videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, null, ex);
             throw new ChainAbortException(ex);
         }
     }
 
-    public AnidbProcessFileJob(IVideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository matchAttempts)
-    {
-        _videoReleaseService = (VideoReleaseService)videoReleaseService;
-        _videoLocals = videoLocals;
-        _matchAttempts = matchAttempts;
-    }
-
-    protected AnidbProcessFileJob() { }
 }

@@ -21,11 +21,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetAniDBMessageJob : BaseJob
+public class GetAniDBMessageJob(IRequestFactory requestFactory, IQueueScheduler scheduler, ISettingsProvider settingsProvider, AniDB_MessageRepository anidbMessages, AniDB_NotifyQueueRepository anidbNotifyQueues) : BaseJob
 {
-    private readonly IRequestFactory _requestFactory;
-    private readonly IQueueScheduler _scheduler;
-    private readonly ISettingsProvider _settingsProvider;
     public int MessageID { get; set; }
 
     public override string TypeName => "Get AniDB Message Content";
@@ -36,10 +33,10 @@ public class GetAniDBMessageJob : BaseJob
     {
         _logger.LogInformation("Processing {Job}: {MessageID}", nameof(GetAniDBMessageJob), MessageID);
 
-        var message = _anidbMessages.GetByMessageId(MessageID);
+        var message = anidbMessages.GetByMessageId(MessageID);
         if (message is not null) return; // message content has already been fetched
 
-        var request = _requestFactory.Create<RequestGetMessageContent>(r => r.ID = MessageID);
+        var request = requestFactory.Create<RequestGetMessageContent>(r => r.ID = MessageID);
         var response = request.Send();
         if (response?.Response == null) return;
 
@@ -63,11 +60,11 @@ public class GetAniDBMessageJob : BaseJob
         }
 
         // save to db and remove from queue
-        _anidbMessages.Save(message);
-        _anidbNotifyQueues.DeleteForTypeID(AniDBNotifyType.Message, MessageID);
+        anidbMessages.Save(message);
+        anidbNotifyQueues.DeleteForTypeID(AniDBNotifyType.Message, MessageID);
 
-        var settings = _settingsProvider.GetSettings();
-        await _scheduler.StartJob<AcknowledgeAniDBNotifyJob>(
+        var settings = settingsProvider.GetSettings();
+        await scheduler.StartJob<AcknowledgeAniDBNotifyJob>(
             r =>
             {
                 r.NotifyType = AniDBNotifyType.Message;
@@ -77,26 +74,9 @@ public class GetAniDBMessageJob : BaseJob
 
         if (message.IsFileMoved && settings.AniDb.Notification_HandleMovedFiles)
         {
-            await _scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = message.MessageID);
+            await scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = message.MessageID);
         }
     }
 
-    private readonly AniDB_MessageRepository _anidbMessages;
-    private readonly AniDB_NotifyQueueRepository _anidbNotifyQueues;
-    public GetAniDBMessageJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory, ISettingsProvider settingsProvider,
-        AniDB_MessageRepository anidbMessages,
-        AniDB_NotifyQueueRepository anidbNotifyQueues
-    )
-    {
-        _requestFactory = requestFactory;
-        _scheduler = schedulerFactory;
-        _settingsProvider = settingsProvider;
-        _anidbMessages = anidbMessages;
-        _anidbNotifyQueues = anidbNotifyQueues;
 
-    }
-
-    protected GetAniDBMessageJob()
-    {
-    }
 }

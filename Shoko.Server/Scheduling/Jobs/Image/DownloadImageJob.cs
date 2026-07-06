@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
@@ -16,10 +15,8 @@ namespace Shoko.Server.Scheduling.Jobs.Image;
 [NetworkRequired]
 [LimitConcurrency(4)]
 [JobKeyGroup(JobKeyGroup.Image)]
-public class DownloadImageJob : BaseJob
+public class DownloadImageJob(IImageManager imageManager) : BaseJob
 {
-    public DownloadImageJob() { }
-
     public DataSource Source { get; set; }
 
     public string ResourceID { get; set; } = string.Empty;
@@ -47,7 +44,6 @@ public class DownloadImageJob : BaseJob
     {
         _logger.LogInformation("Processing {Job} for {Source}: {ResourceID} (ForceDownload: {ForceDownload})", nameof(DownloadImageJob), Source, ResourceID, ForceDownload);
 
-        var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();
         var image = imageManager.GetImageBySourceAndRemoteResourceID(Source, ResourceID);
         if (image is null)
         {

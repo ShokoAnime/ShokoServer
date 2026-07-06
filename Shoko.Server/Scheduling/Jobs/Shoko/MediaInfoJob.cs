@@ -15,12 +15,11 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [DatabaseRequired]
 [LimitConcurrency(2)]
 [JobKeyGroup(JobKeyGroup.Import)]
-public class MediaInfoJob : BaseJob
+public class MediaInfoJob(IVideoService videoService, VideoLocalRepository videoLocals) : BaseJob
 {
-    private readonly VideoService _videoService;
+    private VideoLocal? _vlocal;
 
-    private VideoLocal _vlocal;
-    private string _fileName;
+    private string? _fileName;
 
     public int VideoLocalID { get; set; }
 
@@ -29,8 +28,8 @@ public class MediaInfoJob : BaseJob
 
     public override void PostInit()
     {
-        _vlocal = _videoLocals.GetByID(VideoLocalID);
-        if (_vlocal == null) throw new Exception($"VideoLocal not Found: {VideoLocalID}");
+        _vlocal = videoLocals.GetByID(VideoLocalID) ??
+            throw new Exception($"VideoLocal not Found: {VideoLocalID}");
         _fileName = VideoService.GetDistinctPath(_vlocal.FirstValidPlace?.Path);
     }
 
@@ -39,31 +38,16 @@ public class MediaInfoJob : BaseJob
     public override Task Execute()
     {
         _logger.LogInformation("Processing {Job}: {FileName}", nameof(MediaInfoJob), _fileName);
-
-        var place = _vlocal?.FirstResolvedPlace;
-        if (place == null)
+        if (_vlocal?.FirstResolvedPlace is not { } place)
         {
             _logger.LogWarning("Could not find file for Video: {VideoLocalID}", VideoLocalID);
             return Task.CompletedTask;
         }
 
-        if (_videoService.RefreshMediaInfo(place, _vlocal))
-        {
-            _videoLocals.Save(place.VideoLocal, true);
-        }
+        if (((VideoService)videoService).RefreshMediaInfo(place, _vlocal))
+            videoLocals.Save(_vlocal, true);
 
         return Task.CompletedTask;
     }
 
-    private readonly VideoLocalRepository _videoLocals;
-    public MediaInfoJob(IVideoService videoService,
-        VideoLocalRepository videoLocals
-    )
-    {
-        _videoService = (VideoService)videoService;
-        _videoLocals = videoLocals;
-
-    }
-
-    protected MediaInfoJob() { }
 }

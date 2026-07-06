@@ -11,15 +11,14 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [JobKeyMember("ScanFolder")]
 [LongRunning]
 [JobKeyGroup(JobKeyGroup.Import)]
-internal class ScanFolderJob : BaseJob
+internal class ScanFolderJob(IVideoService videoService) : BaseJob
 {
-    private readonly IVideoService _videoService;
-
-    private string _managedFolder;
+    private string? _managedFolder;
 
     [JobKeyMember]
     public int ManagedFolderID { get; set; }
 
+    [JobKeyMember]
     public string RelativePath { get; set; } = string.Empty;
 
     public bool OnlyNewFiles { get; set; }
@@ -63,16 +62,16 @@ internal class ScanFolderJob : BaseJob
 
     public override void PostInit()
     {
-        _managedFolder = _videoService.GetManagedFolderByID(ManagedFolderID)?.Name;
+        _managedFolder = videoService.GetManagedFolderByID(ManagedFolderID)?.Name;
     }
 
     public override async Task Execute()
     {
-        var managedFolder = _videoService.GetManagedFolderByID(ManagedFolderID);
+        var managedFolder = videoService.GetManagedFolderByID(ManagedFolderID);
         if (managedFolder == null)
             return;
 
-        await _videoService.ScanManagedFolder(
+        await videoService.ScanManagedFolder(
             managedFolder,
             relativePath: RelativePath,
             onlyNewFiles: OnlyNewFiles,
@@ -82,11 +81,4 @@ internal class ScanFolderJob : BaseJob
             forceScan: ForceScan
         );
     }
-
-    public ScanFolderJob(IVideoService videoService)
-    {
-        _videoService = videoService;
-    }
-
-    protected ScanFolderJob() { }
 }

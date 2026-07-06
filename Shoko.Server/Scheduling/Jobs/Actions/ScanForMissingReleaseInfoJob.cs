@@ -12,11 +12,10 @@ using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories.Cached;
 
-#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 /// <summary>
-/// Scans for <see cref="Models.Release.StoredReleaseInfo"/> records that are
+/// Scans for <see cref="StoredReleaseInfo"/> records that are
 /// missing key fields (unknown source, missing audio or subtitle languages)
 /// and re-queues the appropriate provider job for each file on the backoff
 /// schedule defined by each provider's <c>GetRescanDelay</c> method.
@@ -24,15 +23,12 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [DatabaseRequired]
 [DisallowConcurrentExecution]
 [JobKeyGroup(JobKeyGroup.Import)]
-public class ScanForMissingReleaseInfoJob : BaseJob
+public class ScanForMissingReleaseInfoJob(
+        IVideoReleaseService videoReleaseService,
+        StoredReleaseInfoRepository releaseInfoRepository,
+        VideoLocalRepository videoLocals
+) : BaseJob
 {
-    private readonly IVideoReleaseService _videoReleaseService;
-
-    private readonly StoredReleaseInfoRepository _releaseInfoRepository;
-
-    private readonly StoredReleaseInfo_MatchAttemptRepository _matchAttemptRepository;
-
-    private readonly VideoLocalRepository _videoLocals;
 
     public override string TypeName => "Scan for Missing Release Info";
 
@@ -40,7 +36,7 @@ public class ScanForMissingReleaseInfoJob : BaseJob
 
     public override async Task Execute()
     {
-        var allReleases = _releaseInfoRepository.GetAll()
+        var allReleases = releaseInfoRepository.GetAll()
             .Where(r => !r.PreventRescan)
             .ToList();
 
@@ -69,7 +65,7 @@ public class ScanForMissingReleaseInfoJob : BaseJob
             // but SRI recorded fewer than 10 languages for it — indicates truncated/stale data.
             if (audioLangs.Count >= 10 && subLangs.Count >= 10) continue;
 
-            var video = _videoLocals.GetByEd2kAndSize(release.ED2K, release.FileSize);
+            var video = videoLocals.GetByEd2kAndSize(release.ED2K, release.FileSize);
             var media = video?.MediaInfo;
             if (media is null) continue;
 
@@ -85,27 +81,13 @@ public class ScanForMissingReleaseInfoJob : BaseJob
         var queued = 0;
         foreach (var release in incompleteReleases)
         {
-            if (_videoLocals.GetByEd2kAndSize(release.ED2K, release.FileSize) is not { } video)
+            if (videoLocals.GetByEd2kAndSize(release.ED2K, release.FileSize) is not { } video)
                 continue;
 
-            if (await _videoReleaseService.TryScheduleRescanForVideo(video, release))
+            if (await videoReleaseService.TryScheduleRescanForVideo(video, release))
                 queued++;
         }
 
         _logger.LogInformation("Queued {Queued} provider rescan jobs for files with missing release info.", queued);
     }
-
-    public ScanForMissingReleaseInfoJob(
-        IVideoReleaseService videoReleaseService,
-        StoredReleaseInfoRepository releaseInfoRepository,
-        StoredReleaseInfo_MatchAttemptRepository matchAttemptRepository,
-        VideoLocalRepository videoLocals)
-    {
-        _videoReleaseService = videoReleaseService;
-        _releaseInfoRepository = releaseInfoRepository;
-        _matchAttemptRepository = matchAttemptRepository;
-        _videoLocals = videoLocals;
-    }
-
-    protected ScanForMissingReleaseInfoJob() { }
 }

@@ -21,11 +21,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class DeleteFileFromMyListJob : BaseJob
+public class DeleteFileFromMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider) : BaseJob
 {
-    private readonly IRequestFactory _requestFactory;
-    private readonly ISettingsProvider _settingsProvider;
-
     public string Hash { get; set; }
     public long FileSize { get; set; }
     public EpisodeType EpisodeType { get; set; }
@@ -55,7 +52,7 @@ public class DeleteFileFromMyListJob : BaseJob
         _logger.LogInformation("Processing {Job}: Hash: {Hash} FileSize: {Size} MyListID: {MyListID} FileID: {FileID} AnimeID: {AnimeID} Episode: {EpisodeType} {EpisodeNumber}",
             nameof(DeleteFileFromMyListJob), Hash, FileSize, MyListID, FileID, AnimeID, EpisodeType, EpisodeNumber);
 
-        var settings = _settingsProvider.GetSettings();
+        var settings = settingsProvider.GetSettings();
         switch (settings.AniDb.MyList_DeleteType)
         {
             case AniDBFileDeleteType.Delete:
@@ -87,7 +84,7 @@ public class DeleteFileFromMyListJob : BaseJob
         UDPRequest<Void> request;
         if (!string.IsNullOrEmpty(Hash))
         {
-            request = _requestFactory.Create<RequestRemoveFile>(
+            request = requestFactory.Create<RequestRemoveFile>(
                 r =>
                 {
                     r.Hash = Hash;
@@ -101,7 +98,7 @@ public class DeleteFileFromMyListJob : BaseJob
 
         if (MyListID != 0)
         {
-            request = _requestFactory.Create<RequestRemoveMyListID>(
+            request = requestFactory.Create<RequestRemoveMyListID>(
                 r =>
                 {
                     r.MyListID = MyListID;
@@ -115,7 +112,7 @@ public class DeleteFileFromMyListJob : BaseJob
 
         if (FileID != 0)
         {
-            request = _requestFactory.Create<RequestRemoveFileID>(
+            request = requestFactory.Create<RequestRemoveFileID>(
                 r =>
                 {
                     r.FileID = FileID;
@@ -129,7 +126,7 @@ public class DeleteFileFromMyListJob : BaseJob
 
         if (AnimeID == 0) return;
 
-        request = _requestFactory.Create<RequestRemoveEpisode>(
+        request = requestFactory.Create<RequestRemoveEpisode>(
             r =>
             {
                 r.AnimeID = AnimeID;
@@ -148,7 +145,7 @@ public class DeleteFileFromMyListJob : BaseJob
         UDPRequest<Void> request;
         if (!string.IsNullOrEmpty(Hash))
         {
-            request = _requestFactory.Create<RequestUpdateFile>(
+            request = requestFactory.Create<RequestUpdateFile>(
                 r =>
                 {
                     r.Hash = Hash;
@@ -164,7 +161,7 @@ public class DeleteFileFromMyListJob : BaseJob
 
         if (MyListID != 0)
         {
-            request = _requestFactory.Create<RequestUpdateMyListID>(
+            request = requestFactory.Create<RequestUpdateMyListID>(
                 r =>
                 {
                     r.MyListID = MyListID;
@@ -179,7 +176,7 @@ public class DeleteFileFromMyListJob : BaseJob
 
         if (FileID != 0)
         {
-            request = _requestFactory.Create<RequestUpdateFileID>(
+            request = requestFactory.Create<RequestUpdateFileID>(
                 r =>
                 {
                     r.FileID = FileID;
@@ -194,7 +191,7 @@ public class DeleteFileFromMyListJob : BaseJob
 
         if (AnimeID == 0) return;
 
-        request = _requestFactory.Create<RequestUpdateEpisode>(
+        request = requestFactory.Create<RequestUpdateEpisode>(
             r =>
             {
                 r.AnimeID = AnimeID;
@@ -209,13 +206,5 @@ public class DeleteFileFromMyListJob : BaseJob
         request.Send();
     }
 
-    public DeleteFileFromMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider)
-    {
-        _requestFactory = requestFactory;
-        _settingsProvider = settingsProvider;
-    }
 
-    protected DeleteFileFromMyListJob()
-    {
-    }
 }

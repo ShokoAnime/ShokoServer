@@ -6,18 +6,15 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
 
-#pragma warning disable CS8618
-using Shoko.Server.Repositories.Cached;
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Import)]
-public class RenameMoveFileJob : BaseJob
+public class RenameMoveFileJob(IVideoRelocationService relocationService, VideoLocalRepository videoLocals) : BaseJob
 {
-    private readonly IVideoRelocationService _relocationService;
-
     private VideoLocal? _vlocal;
 
     private string? _fileName;
@@ -30,8 +27,7 @@ public class RenameMoveFileJob : BaseJob
 
     public override void PostInit()
     {
-        _vlocal = _videoLocals.GetByID(VideoLocalID);
-        if (_vlocal == null) throw new Exception($"VideoLocal not Found: {VideoLocalID}");
+        _vlocal = videoLocals.GetByID(VideoLocalID) ?? throw new Exception($"VideoLocal not Found: {VideoLocalID}");
         _fileName = VideoService.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
 
@@ -45,7 +41,7 @@ public class RenameMoveFileJob : BaseJob
         // Check if the video local (file) is available.
         if (_vlocal == null)
         {
-            _vlocal = _videoLocals.GetByID(VideoLocalID);
+            _vlocal = videoLocals.GetByID(VideoLocalID);
             if (_vlocal == null)
                 return;
         }
@@ -60,21 +56,10 @@ public class RenameMoveFileJob : BaseJob
                 continue;
             }
 
-            var result = await _relocationService.AutoRelocateFile(location);
+            var result = await relocationService.AutoRelocateFile(location);
             if (!result.Success)
                 _logger.LogTrace(result.Error.Exception, "Unable to move/rename file; {ErrorMessage} (Video={VideoID},Location={LocationID})", result.Error.Message, _vlocal.VideoLocalID, location.ID);
         }
     }
 
-    private readonly VideoLocalRepository _videoLocals;
-    public RenameMoveFileJob(IVideoRelocationService relocationService,
-        VideoLocalRepository videoLocals
-    )
-    {
-        _relocationService = relocationService;
-        _videoLocals = videoLocals;
-
-    }
-
-    protected RenameMoveFileJob() { }
 }

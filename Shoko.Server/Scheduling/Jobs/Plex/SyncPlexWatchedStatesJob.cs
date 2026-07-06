@@ -23,11 +23,8 @@ namespace Shoko.Server.Scheduling.Jobs.Plex;
 [NetworkRequired]
 [LimitConcurrency(1, 1)]
 [JobKeyGroup(JobKeyGroup.Actions)]
-public class SyncPlexWatchedStatesJob : BaseJob
+public class SyncPlexWatchedStatesJob(ISettingsProvider settingsProvider, VideoLocal_UserRepository vlUsers, IUserDataService userDataService) : BaseJob
 {
-    private readonly ISettingsProvider _settingsProvider;
-    private readonly VideoLocal_UserRepository _vlUsers;
-    private readonly IUserDataService _userDataService;
     public JMMUser User { get; set; }
 
     public override string TypeName => "Sync Plex States for User";
@@ -41,7 +38,7 @@ public class SyncPlexWatchedStatesJob : BaseJob
     public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job} -> User: {Name}", nameof(SyncPlexWatchedStatesJob), User.Username);
-        var settings = _settingsProvider.GetSettings();
+        var settings = settingsProvider.GetSettings();
         foreach (var section in PlexHelper.GetForUser(User).GetDirectories().Where(a => settings.Plex.Libraries.Contains(a.Key)))
         {
             var allSeries = ((SVR_Directory)section).GetShows();
@@ -79,7 +76,7 @@ public class SyncPlexWatchedStatesJob : BaseJob
                     if (video == null) continue;
 
                     var alreadyWatched = animeEpisode.VideoLocals
-                        .Select(a => _vlUsers.GetByUserAndVideoLocalID(User.JMMUserID, a.VideoLocalID))
+                        .Select(a => vlUsers.GetByUserAndVideoLocalID(User.JMMUserID, a.VideoLocalID))
                         .WhereNotNull()
                         .Any(x => x.WatchedDate is not null || x.WatchedCount > 0);
 
@@ -99,25 +96,16 @@ public class SyncPlexWatchedStatesJob : BaseJob
                     if (isWatched && !alreadyWatched)
                     {
                         _logger.LogInformation("Marking episode watched in Shoko");
-                        await _userDataService.SaveVideoUserData(video, User, new() { LastPlayedAt = lastWatched ?? DateTime.Now });
+                        await userDataService.SaveVideoUserData(video, User, new() { LastPlayedAt = lastWatched ?? DateTime.Now });
                     }
                 }
             }
         }
     }
 
-    private DateTime FromUnixTime(long unixTime)
+    private static DateTime FromUnixTime(long unixTime)
     {
         return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             .AddSeconds(unixTime);
     }
-
-    public SyncPlexWatchedStatesJob(ISettingsProvider settingsProvider, VideoLocal_UserRepository vlUsers, IUserDataService userDataService)
-    {
-        _settingsProvider = settingsProvider;
-        _vlUsers = vlUsers;
-        _userDataService = userDataService;
-    }
-
-    protected SyncPlexWatchedStatesJob() { }
 }

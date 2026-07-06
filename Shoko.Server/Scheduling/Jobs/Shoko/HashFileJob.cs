@@ -8,17 +8,14 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Services;
 
-#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
 [LimitConcurrency(2)]
 [LongRunning]
 [JobKeyGroup(JobKeyGroup.Import)]
-public class HashFileJob : BaseJob
+public class HashFileJob(IVideoHashingService videoHashingService) : BaseJob
 {
-    private readonly IVideoHashingService _videoHashingService;
-
     public string FilePath { get; set; }
 
     public bool ForceHash { get; set; }
@@ -43,19 +40,12 @@ public class HashFileJob : BaseJob
         }
     }
 
-    protected HashFileJob() { }
-
-    public HashFileJob(IVideoHashingService videoHashingService)
-    {
-        _videoHashingService = videoHashingService;
-    }
-
     public override async Task Execute()
     {
         try
         {
             _logger.LogInformation("Processing {Job}: {FileName}", nameof(HashFileJob), VideoService.GetDistinctPath(FilePath));
-            await _videoHashingService.GetHashesForPath(FilePath, useExistingHashes: !ForceHash, skipFindRelease: SkipFindRelease, skipEvents: SkipEvents);
+            await videoHashingService.GetHashesForPath(FilePath, useExistingHashes: !ForceHash, skipFindRelease: SkipFindRelease, skipEvents: SkipEvents);
         }
         catch (Exception ex)
         {

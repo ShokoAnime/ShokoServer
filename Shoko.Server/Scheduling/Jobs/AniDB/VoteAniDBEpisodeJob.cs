@@ -16,9 +16,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class VoteAniDBEpisodeJob : BaseJob
+public class VoteAniDBEpisodeJob(IRequestFactory requestFactory, AnimeEpisodeRepository animeEpisodes) : BaseJob
 {
-    private readonly IRequestFactory _requestFactory;
     private string _animeName;
     private string _episodeName;
 
@@ -27,7 +26,7 @@ public class VoteAniDBEpisodeJob : BaseJob
 
     public override void PostInit()
     {
-        var episode = _animeEpisodes.GetByID(EpisodeID);
+        var episode = animeEpisodes.GetByID(EpisodeID);
         _animeName = episode?.AnimeSeries?.Title ?? EpisodeID.ToString();
         _episodeName = episode?.Title ?? EpisodeID.ToString();
     }
@@ -46,7 +45,7 @@ public class VoteAniDBEpisodeJob : BaseJob
     {
         _logger.LogInformation("Processing {Job} for {EpisodeID} | {Value}", nameof(VoteAniDBEpisodeJob), EpisodeID, VoteValue);
 
-        var vote = _requestFactory.Create<RequestVoteEpisode>(
+        var vote = requestFactory.Create<RequestVoteEpisode>(
             r =>
             {
                 r.EpisodeID = EpisodeID;
@@ -56,16 +55,4 @@ public class VoteAniDBEpisodeJob : BaseJob
         vote.Send();
         return Task.CompletedTask;
     }
-
-    private readonly AnimeEpisodeRepository _animeEpisodes;
-    public VoteAniDBEpisodeJob(IRequestFactory requestFactory,
-        AnimeEpisodeRepository animeEpisodes
-    )
-    {
-        _requestFactory = requestFactory;
-        _animeEpisodes = animeEpisodes;
-
-    }
-
-    protected VoteAniDBEpisodeJob() { }
 }

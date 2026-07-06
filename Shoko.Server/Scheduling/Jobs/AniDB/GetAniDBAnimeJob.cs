@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
-using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
@@ -14,20 +13,13 @@ using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
-#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetAniDBAnimeJob : BaseJob<AniDB_Anime?>, IJobMerge
+public class GetAniDBAnimeJob(ISettingsProvider settingsProvider, AnidbService anidbService, AniDBTitleHelper titleHelper, AniDB_AnimeRepository anidbAnimes) : BaseJob<AniDB_Anime?>, IJobMerge
 {
-    private readonly ISettingsProvider _settingsProvider;
-
-    private readonly AnidbService _anidbService;
-
-    private readonly AniDBTitleHelper _titleHelper;
-
     private string? _animeName;
 
     /// <summary>
@@ -120,7 +112,7 @@ public class GetAniDBAnimeJob : BaseJob<AniDB_Anime?>, IJobMerge
             // Use the defaults based on settings.
             if (value is AnidbRefreshMethod.Auto)
             {
-                var settings = _settingsProvider.GetSettings();
+                var settings = settingsProvider.GetSettings();
                 DownloadRelations = settings.AutoGroupSeries || settings.AniDb.DownloadRelatedAnime;
                 CreateSeriesEntry = settings.AniDb.AutomaticallyImportSeries;
             }
@@ -155,24 +147,10 @@ public class GetAniDBAnimeJob : BaseJob<AniDB_Anime?>, IJobMerge
         }
     };
 
-    private readonly AniDB_AnimeRepository _anidbAnimes;
-    public GetAniDBAnimeJob(ISettingsProvider settingsProvider, IAnidbService anidbService, AniDBTitleHelper titleHelper,
-        AniDB_AnimeRepository anidbAnimes
-    )
-    {
-        _settingsProvider = settingsProvider;
-        _anidbService = (AnidbService)anidbService;
-        _titleHelper = titleHelper;
-        _anidbAnimes = anidbAnimes;
-
-    }
-
-    protected GetAniDBAnimeJob() { }
-
     public override void PostInit()
     {
         // We have the title helper. May as well use it to provide better info for the user
-        _animeName = _anidbAnimes.GetByAnimeID(AnimeID)?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title;
+        _animeName = anidbAnimes.GetByAnimeID(AnimeID)?.Title ?? titleHelper.SearchAnimeID(AnimeID)?.Title;
     }
 
     public bool TryMerge(IQueueJob incoming)
@@ -180,22 +158,22 @@ public class GetAniDBAnimeJob : BaseJob<AniDB_Anime?>, IJobMerge
         if (incoming is not GetAniDBAnimeJob other) return false;
         var changed = false;
         // OR-semantics: if either request enables a flag, the merged job enables it
-        if (!DownloadRelations  && other.DownloadRelations)  { DownloadRelations  = true; changed = true; }
-        if (!IgnoreTimeCheck    && other.IgnoreTimeCheck)    { IgnoreTimeCheck    = true; changed = true; }
-        if (!IgnoreHttpBans     && other.IgnoreHttpBans)     { IgnoreHttpBans     = true; changed = true; }
-        if (!CreateSeriesEntry  && other.CreateSeriesEntry)  { CreateSeriesEntry  = true; changed = true; }
-        if (!UseRemote          && other.UseRemote)          { UseRemote          = true; changed = true; }
-        if (!UseCache           && other.UseCache)           { UseCache           = true; changed = true; }
+        if (!DownloadRelations && other.DownloadRelations) { DownloadRelations = true; changed = true; }
+        if (!IgnoreTimeCheck && other.IgnoreTimeCheck) { IgnoreTimeCheck = true; changed = true; }
+        if (!IgnoreHttpBans && other.IgnoreHttpBans) { IgnoreHttpBans = true; changed = true; }
+        if (!CreateSeriesEntry && other.CreateSeriesEntry) { CreateSeriesEntry = true; changed = true; }
+        if (!UseRemote && other.UseRemote) { UseRemote = true; changed = true; }
+        if (!UseCache && other.UseCache) { UseCache = true; changed = true; }
         // AND-semantics: SkipSupplementaryUpdate=false means "do update TMDB" — false wins
-        if (SkipSupplementaryUpdate      && !other.SkipSupplementaryUpdate)    { SkipSupplementaryUpdate     = false; changed = true; }
+        if (SkipSupplementaryUpdate && !other.SkipSupplementaryUpdate) { SkipSupplementaryUpdate = false; changed = true; }
         // MIN-semantics: lower RelDepth = can recurse deeper
-        if (other.RelDepth < RelDepth)                       { RelDepth = other.RelDepth; changed = true; }
+        if (other.RelDepth < RelDepth) { RelDepth = other.RelDepth; changed = true; }
         return changed;
     }
 
     public override async Task<AniDB_Anime?> Process()
     {
         _logger.LogInformation("Processing {JobName} for {Anime}: AniDB ID {ID}", nameof(GetAniDBAnimeJob), _animeName ?? AnimeID.ToString(), AnimeID);
-        return await _anidbService.Process(AnimeID, RefreshMethod, RelDepth).ConfigureAwait(false);
+        return await anidbService.Process(AnimeID, RefreshMethod, RelDepth).ConfigureAwait(false);
     }
 }

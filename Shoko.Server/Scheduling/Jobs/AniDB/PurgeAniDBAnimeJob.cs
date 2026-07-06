@@ -6,15 +6,13 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Repositories.Cached.AniDB;
 
-#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class PurgeAniDBAnimeJob : BaseJob
+public class PurgeAniDBAnimeJob(IAnidbService anidbService, AniDB_AnimeRepository anidbAnimeRepository) : BaseJob
 {
     private string? _title;
-    private readonly IAnidbService _anidbService;
 
     public int AnimeID { get; set; }
 
@@ -37,24 +35,12 @@ public class PurgeAniDBAnimeJob : BaseJob
 
     public override void PostInit()
     {
-        _title = _anidbAnimes.GetByAnimeID(AnimeID)?.MainTitle;
+        _title = anidbAnimeRepository.GetByAnimeID(AnimeID)?.MainTitle;
     }
 
     public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job} for {Anime}", nameof(PurgeAniDBAnimeJob), _title ?? AnimeID.ToString());
-        await _anidbService.PurgeAnimeByID(AnimeID, RemoveFromMylist).ConfigureAwait(false);
+        await anidbService.PurgeAnimeByID(AnimeID, RemoveFromMylist).ConfigureAwait(false);
     }
-
-    private readonly AniDB_AnimeRepository _anidbAnimes;
-    public PurgeAniDBAnimeJob(IAnidbService anidbService,
-        AniDB_AnimeRepository anidbAnimes
-    )
-    {
-        _anidbService = anidbService;
-        _anidbAnimes = anidbAnimes;
-
-    }
-
-    protected PurgeAniDBAnimeJob() { }
 }

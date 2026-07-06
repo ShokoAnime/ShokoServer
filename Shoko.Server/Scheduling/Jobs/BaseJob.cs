@@ -11,14 +11,14 @@ using Shoko.QueueProcessor.Chain;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 
-#pragma warning disable CS0618
+#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs;
 
 [UsedImplicitly(ImplicitUseTargetFlags.WithInheritors)]
 public abstract class BaseJob : IQueueJob
 {
     [XmlIgnore, JsonIgnore]
-    protected ILogger _logger;
+    protected ILogger _logger { get; private set; }
 
     /// <inheritdoc/>
     public virtual void Setup(IServiceProvider serviceProvider)
@@ -68,7 +68,7 @@ public abstract class BaseJob : IQueueJob
 
 public abstract class BaseJob<T> : BaseJob
 {
-    private IJobChainContextAccessor _chainContextAccessor;
+    private IJobChainContextAccessor? _chainContextAccessor;
 
     public override void Setup(IServiceProvider serviceProvider)
     {

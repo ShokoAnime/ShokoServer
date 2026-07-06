@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Video.Services;
-using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -16,14 +15,13 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
 
-#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetAniDBReleaseGroupJob : BaseJob
+public class GetAniDBReleaseGroupJob(IRequestFactory requestFactory, IVideoReleaseService videoReleaseService, CrossRef_File_EpisodeRepository crossRefFileEpisodes, StoredReleaseInfoRepository storedReleaseInfos, VideoLocalRepository videoLocals) : BaseJob
 {
     internal static HashSet<string?> InvalidReleaseGroupNames = new(StringComparer.InvariantCultureIgnoreCase)
     {
@@ -33,10 +31,6 @@ public class GetAniDBReleaseGroupJob : BaseJob
         "raw/unknown",
         "raw/unk",
     };
-
-    private readonly IRequestFactory _requestFactory;
-    private readonly IQueueScheduler _scheduler;
-    private readonly IVideoReleaseService _videoReleaseService;
 
     public int GroupID { get; set; }
     public bool ForceRefresh { get; set; }
@@ -56,7 +50,7 @@ public class GetAniDBReleaseGroupJob : BaseJob
         _logger.LogInformation("Processing {Job}: {GroupID}", nameof(GetAniDBReleaseGroupJob), GroupID);
 
         // We've got nothing to download.
-        var databaseReleaseGroups = _storedReleaseInfos.GetByGroupAndProviderIDs(GroupID.ToString(), "AniDB");
+        var databaseReleaseGroups = storedReleaseInfos.GetByGroupAndProviderIDs(GroupID.ToString(), "AniDB");
         if (databaseReleaseGroups.Count == 0)
             return;
 
@@ -75,12 +69,12 @@ public class GetAniDBReleaseGroupJob : BaseJob
                 incorrectReleaseGroup.GroupName = existingReleaseGroup.GroupName;
                 incorrectReleaseGroup.GroupShortName = existingReleaseGroup.GroupShortName;
             }
-            _storedReleaseInfos.Save(incorrectReleaseGroups);
+            storedReleaseInfos.Save(incorrectReleaseGroups);
 
             return;
         }
 
-        var request = _requestFactory.Create<RequestReleaseGroup>(r => r.ReleaseGroupID = GroupID);
+        var request = requestFactory.Create<RequestReleaseGroup>(r => r.ReleaseGroupID = GroupID);
         var response = request.Send();
         if (response.Response is null)
         {
@@ -88,25 +82,25 @@ public class GetAniDBReleaseGroupJob : BaseJob
             var videosToUpdate = new List<VideoLocal>();
             foreach (var databaseReleaseGroup in databaseReleaseGroups)
             {
-                var xrefs = _crossRefFileEpisodes.GetByEd2k(databaseReleaseGroup.ED2K);
+                var xrefs = crossRefFileEpisodes.GetByEd2k(databaseReleaseGroup.ED2K);
                 xrefsToDelete.AddRange(xrefs);
 
-                var video = _videoLocals.GetByEd2kAndSize(databaseReleaseGroup.ED2K, databaseReleaseGroup.FileSize);
+                var video = videoLocals.GetByEd2kAndSize(databaseReleaseGroup.ED2K, databaseReleaseGroup.FileSize);
                 if (video is not null)
                     videosToUpdate.Add(video);
             }
 
-            _crossRefFileEpisodes.Delete(xrefsToDelete);
-            _storedReleaseInfos.Delete(databaseReleaseGroups);
+            crossRefFileEpisodes.Delete(xrefsToDelete);
+            storedReleaseInfos.Delete(databaseReleaseGroups);
 
             // If auto-match is not available then just ignore the removal of
             // the group, since it seems like we don't care about changes like
             // that.
-            if (!_videoReleaseService.AutoMatchEnabled)
+            if (!videoReleaseService.AutoMatchEnabled)
                 return;
 
             foreach (var video in videosToUpdate)
-                await _videoReleaseService.ScheduleFindReleaseForVideo(video, force: true);
+                await videoReleaseService.ScheduleFindReleaseForVideo(video, force: true);
             return;
         }
 
@@ -131,32 +125,11 @@ public class GetAniDBReleaseGroupJob : BaseJob
                 databaseReleaseGroup.GroupShortName = null;
             }
         }
-        _storedReleaseInfos.Save(databaseReleaseGroups);
+        storedReleaseInfos.Save(databaseReleaseGroups);
 
         // TODO: Maybe schedule all files with a release from the release group to be ran through the rename/move process again.
 
         return;
     }
 
-    private readonly CrossRef_File_EpisodeRepository _crossRefFileEpisodes;
-    private readonly StoredReleaseInfoRepository _storedReleaseInfos;
-    private readonly VideoLocalRepository _videoLocals;
-    public GetAniDBReleaseGroupJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory, IVideoReleaseService videoReleaseService,
-        CrossRef_File_EpisodeRepository crossRefFileEpisodes,
-        StoredReleaseInfoRepository storedReleaseInfos,
-        VideoLocalRepository videoLocals
-    )
-    {
-        _requestFactory = requestFactory;
-        _scheduler = schedulerFactory;
-        _videoReleaseService = videoReleaseService;
-        _crossRefFileEpisodes = crossRefFileEpisodes;
-        _storedReleaseInfos = storedReleaseInfos;
-        _videoLocals = videoLocals;
-
-    }
-
-    protected GetAniDBReleaseGroupJob()
-    {
-    }
 }

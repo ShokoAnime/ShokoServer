@@ -6,7 +6,7 @@ using Shoko.QueueProcessor.Builder;
 namespace Shoko.Server.Scheduling.Jobs.Test;
 
 [JobKeyGroup(JobKeyGroup.System)]
-public class TestErrorJob : BaseJob
+public class TestErrorJob() : BaseJob
 {
     public int Offset { get; set; }
     public override string TypeName => "Test Error";

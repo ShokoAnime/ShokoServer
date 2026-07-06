@@ -18,10 +18,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class VoteAniDBAnimeJob : BaseJob
+public class VoteAniDBAnimeJob(IRequestFactory requestFactory, AniDBTitleHelper titleHelper, AniDB_AnimeRepository anidbAnimes) : BaseJob
 {
-    private readonly AniDBTitleHelper _titleHelper;
-    private readonly IRequestFactory _requestFactory;
     private string _animeName;
 
     public int AnimeID { get; set; }
@@ -30,7 +28,7 @@ public class VoteAniDBAnimeJob : BaseJob
 
     public override void PostInit()
     {
-        _animeName = _anidbAnimes.GetByAnimeID(AnimeID)?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title ?? AnimeID.ToString();
+        _animeName = anidbAnimes.GetByAnimeID(AnimeID)?.Title ?? titleHelper.SearchAnimeID(AnimeID)?.Title ?? AnimeID.ToString();
     }
 
     public override string TypeName => "Send AniDB Anime Rating";
@@ -47,7 +45,7 @@ public class VoteAniDBAnimeJob : BaseJob
     {
         _logger.LogInformation("Processing {Job} for {AnimeID} | {Type} | {Value}", nameof(VoteAniDBAnimeJob), AnimeID, VoteType, VoteValue);
 
-        var vote = _requestFactory.Create<RequestVoteAnime>(
+        var vote = requestFactory.Create<RequestVoteAnime>(
             r =>
             {
                 r.Temporary = VoteType == VoteType.AnimeTemporary;
@@ -58,17 +56,4 @@ public class VoteAniDBAnimeJob : BaseJob
         vote.Send();
         return Task.CompletedTask;
     }
-
-    private readonly AniDB_AnimeRepository _anidbAnimes;
-    public VoteAniDBAnimeJob(IRequestFactory requestFactory, AniDBTitleHelper titleHelper,
-        AniDB_AnimeRepository anidbAnimes
-    )
-    {
-        _requestFactory = requestFactory;
-        _titleHelper = titleHelper;
-        _anidbAnimes = anidbAnimes;
-
-    }
-
-    protected VoteAniDBAnimeJob() { }
 }

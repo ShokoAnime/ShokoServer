@@ -13,7 +13,6 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
-#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
@@ -22,15 +21,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyMember("CheckAniDBFileUpdates")]
 [JobKeyGroup(JobKeyGroup.AniDB)]
 [DisallowConcurrentExecution]
-public class CheckAniDBFileUpdatesJob : BaseJob
+public class CheckAniDBFileUpdatesJob(ISettingsProvider settingsProvider, IVideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository storedReleaseInfoMatchAttempts, ScheduledUpdateRepository scheduledUpdates, ActionService actionService) : BaseJob
 {
-    private readonly ISettingsProvider _settingsProvider;
-    private readonly IVideoReleaseService _videoReleaseService;
-    private readonly VideoLocalRepository _videoLocals;
-    private readonly StoredReleaseInfo_MatchAttemptRepository _storedReleaseInfoMatchAttempts;
-    private readonly ScheduledUpdateRepository _scheduledUpdates;
-    private readonly ActionService _actionService;
-
     public override string TypeName => "Check AniDB File Updates";
 
     public override string Title => "Checking AniDB File Updates";
@@ -39,34 +31,34 @@ public class CheckAniDBFileUpdatesJob : BaseJob
     {
         _logger.LogInformation("Processing {Job}", nameof(CheckAniDBFileUpdatesJob));
 
-        var settings = _settingsProvider.GetSettings();
+        var settings = settingsProvider.GetSettings();
         if (settings.AniDb.File_UpdateFrequency == ScheduledUpdateFrequency.Never) return;
 
         var freqHours = settings.AniDb.File_UpdateFrequency.Hours;
-        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
+        var schedule = scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
         if (schedule is not null)
         {
             var tsLastRun = DateTime.Now - schedule.LastUpdate;
             if (tsLastRun.TotalHours < freqHours) return;
         }
 
-        if (_videoReleaseService.AutoMatchEnabled)
+        if (videoReleaseService.AutoMatchEnabled)
         {
-            var filesWithoutEpisode = _videoLocals.GetVideosWithoutEpisode();
+            var filesWithoutEpisode = videoLocals.GetVideosWithoutEpisode();
             foreach (var vl in filesWithoutEpisode)
             {
                 if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
                 {
-                    var matchAttempts = _storedReleaseInfoMatchAttempts.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
+                    var matchAttempts = storedReleaseInfoMatchAttempts.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
                     if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
                         continue;
                 }
 
-                await _videoReleaseService.ScheduleFindReleaseForVideo(vl);
+                await videoReleaseService.ScheduleFindReleaseForVideo(vl);
             }
         }
 
-        await _actionService.ScheduleMissingAnidbAnimeForFiles();
+        await actionService.ScheduleMissingAnidbAnimeForFiles();
 
         schedule ??= new()
         {
@@ -74,20 +66,8 @@ public class CheckAniDBFileUpdatesJob : BaseJob
             UpdateDetails = string.Empty,
         };
         schedule.LastUpdate = DateTime.Now;
-        _scheduledUpdates.Save(schedule);
+        scheduledUpdates.Save(schedule);
     }
 
-    public CheckAniDBFileUpdatesJob(ISettingsProvider settingsProvider, IVideoReleaseService videoReleaseService,
-        VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository storedReleaseInfoMatchAttempts,
-        ScheduledUpdateRepository scheduledUpdates, ActionService actionService)
-    {
-        _settingsProvider = settingsProvider;
-        _videoReleaseService = videoReleaseService;
-        _videoLocals = videoLocals;
-        _storedReleaseInfoMatchAttempts = storedReleaseInfoMatchAttempts;
-        _scheduledUpdates = scheduledUpdates;
-        _actionService = actionService;
-    }
 
-    protected CheckAniDBFileUpdatesJob() { }
 }

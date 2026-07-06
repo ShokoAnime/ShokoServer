@@ -24,12 +24,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class UpdateMyListFileStatusJob : BaseJob
+public class UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, AnimeEpisodeRepository animeEpisodes, FileNameHashRepository fileNameHashes, VideoLocalRepository videoLocals) : BaseJob
 {
-    private readonly IRequestFactory _requestFactory;
-    private readonly ISettingsProvider _settingsProvider;
-    private readonly AnimeSeriesService _seriesService;
-
     private string FullFileName { get; set; }
     public string Hash { get; set; }
     public bool? Watched { get; set; }
@@ -41,7 +37,7 @@ public class UpdateMyListFileStatusJob : BaseJob
 
     public override void PostInit()
     {
-        FullFileName = _fileNameHashes.GetByHash(Hash).FirstOrDefault()?.FileName;
+        FullFileName = fileNameHashes.GetByHash(Hash).FirstOrDefault()?.FileName;
     }
 
     public override Dictionary<string, object> Details => FullFileName != null ? new()
@@ -60,15 +56,15 @@ public class UpdateMyListFileStatusJob : BaseJob
     {
         _logger.LogInformation("Processing {Job} for {Filename} | {Watched} | {WatchedDate}", nameof(UpdateMyListFileStatusJob), FullFileName, Watched, WatchedDate);
 
-        var settings = _settingsProvider.GetSettings();
+        var settings = settingsProvider.GetSettings();
         // NOTE - we might return more than one VideoLocal record here, if there are duplicates by hash
-        var vid = _videoLocals.GetByEd2k(Hash);
+        var vid = videoLocals.GetByEd2k(Hash);
         if (vid == null) return;
 
         if (vid.ReleaseInfo is { } releaseInfo && (releaseInfo.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false))
         {
             _logger.LogInformation("Updating File MyList Status: {Hash}|{Size}", vid.Hash, vid.FileSize);
-            var request = _requestFactory.Create<RequestUpdateFile>(
+            var request = requestFactory.Create<RequestUpdateFile>(
                 r =>
                 {
                     r.State = settings.AniDb.MyList_StorageState;
@@ -89,7 +85,7 @@ public class UpdateMyListFileStatusJob : BaseJob
             {
                 _logger.LogInformation("Updating Episode MyList Status: AnimeID: {AnimeID}, Episode Type: {Type}, Episode No: {EP}", episode.AnimeID,
                     episode.EpisodeType, episode.EpisodeNumber);
-                var request = _requestFactory.Create<RequestUpdateEpisode>(
+                var request = requestFactory.Create<RequestUpdateEpisode>(
                     r =>
                     {
                         r.State = settings.AniDb.MyList_StorageState;
@@ -108,27 +104,8 @@ public class UpdateMyListFileStatusJob : BaseJob
         if (!UpdateSeriesStats) return;
 
         // update watched stats
-        var eps = _animeEpisodes.GetByHash(vid.Hash);
-        if (eps.Count > 0) await Task.WhenAll(eps.DistinctBy(a => a.AnimeSeriesID).Select(a => _seriesService.QueueUpdateStats(a.AnimeSeries)));
+        var eps = animeEpisodes.GetByHash(vid.Hash);
+        if (eps.Count > 0) await Task.WhenAll(eps.DistinctBy(a => a.AnimeSeriesID).Select(a => seriesService.QueueUpdateStats(a.AnimeSeries)));
     }
 
-    private readonly AnimeEpisodeRepository _animeEpisodes;
-    private readonly FileNameHashRepository _fileNameHashes;
-    private readonly VideoLocalRepository _videoLocals;
-    public UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService,
-        AnimeEpisodeRepository animeEpisodes,
-        FileNameHashRepository fileNameHashes,
-        VideoLocalRepository videoLocals
-    )
-    {
-        _requestFactory = requestFactory;
-        _settingsProvider = settingsProvider;
-        _seriesService = seriesService;
-        _animeEpisodes = animeEpisodes;
-        _fileNameHashes = fileNameHashes;
-        _videoLocals = videoLocals;
-
-    }
-
-    protected UpdateMyListFileStatusJob() { }
 }

@@ -13,28 +13,25 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [JobKeyMember("Import")]
 [JobKeyGroup(JobKeyGroup.Legacy)]
 [DisallowConcurrentExecution]
-public class ImportJob : BaseJob
+public class ImportJob(IVideoService videoService, ActionService service) : BaseJob
 {
-    private readonly IVideoService _videoService;
-
-    private readonly ActionService _service;
     public override string TypeName => "Run Import";
     public override string Title => "Running Import";
 
     public override async Task Execute()
     {
-        await _service.RunImport_IntegrityCheck();
+        await service.RunImport_IntegrityCheck();
 
         // managed folder
-        await _videoService.ScheduleScanForManagedFolders();
+        await videoService.ScheduleScanForManagedFolders();
 
         // TMDB association checks
-        await _service.RunImport_ScanTMDB();
+        await service.RunImport_ScanTMDB();
 
         // TMDB Purge people — partial failures are non-fatal; log and continue.
         try
         {
-            await _service.RunImport_PurgeUnlinkedTmdbPeople();
+            await service.RunImport_PurgeUnlinkedTmdbPeople();
         }
         catch (AggregateException ex)
         {
@@ -42,22 +39,14 @@ public class ImportJob : BaseJob
         }
 
         // TMDB Purge networks
-        await _service.RunImport_PurgeUnlinkedTmdbShowNetworks();
+        await service.RunImport_PurgeUnlinkedTmdbShowNetworks();
 
         // Check for missing images
-        await _service.RunImport_GetImages();
+        await service.RunImport_GetImages();
 
         // Check for previously ignored files
-        _service.CheckForPreviouslyIgnored();
+        service.CheckForPreviouslyIgnored();
 
-        await _service.ScheduleMissingAnidbAnimeForFiles();
+        await service.ScheduleMissingAnidbAnimeForFiles();
     }
-
-    public ImportJob(IVideoService videoService, ActionService service)
-    {
-        _videoService = videoService;
-        _service = service;
-    }
-
-    protected ImportJob() { }
 }

@@ -1,22 +1,17 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 
-#pragma warning disable CS0618
 namespace Shoko.Server.Scheduling.Jobs.Image;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Image)]
-public class PurgeOrphanedImagesJob : BaseJob
+public class PurgeOrphanedImagesJob(IImageManager imageManager) : BaseJob
 {
-    public PurgeOrphanedImagesJob() { }
-
     public int DaysOld { get; set; }
 
     public DataSource? ImageSource { get; set; }
@@ -33,7 +28,6 @@ public class PurgeOrphanedImagesJob : BaseJob
     {
         _logger.LogInformation("Processing {Job} for {Days} (ImageSource: {ImageSource})", nameof(PurgeOrphanedImagesJob), DaysOld, ImageSource);
 
-        var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();
         await imageManager.PurgeOrphanedImages(DaysOld, ImageSource);
     }
 }

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Models.AniDB;
@@ -13,12 +12,10 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetAniDBImagesJob : BaseJob
+public class GetAniDBImagesJob(AniDBTitleHelper titleHelper, AnidbService anidbService, AniDB_AnimeRepository anidbAnimes) : BaseJob
 {
     private AniDB_Anime _anime;
     private string _title;
-    private readonly AniDBTitleHelper _titleHelper;
-    private readonly AnidbService _anidbService;
 
     public int AnimeID { get; set; }
     public bool ForceDownload { get; set; }
@@ -43,8 +40,8 @@ public class GetAniDBImagesJob : BaseJob
 
     public override void PostInit()
     {
-        _anime = _anidbAnimes.GetByAnimeID(AnimeID);
-        _title = _anime?.Title ?? _titleHelper.SearchAnimeID(AnimeID)?.Title;
+        _anime = anidbAnimes.GetByAnimeID(AnimeID);
+        _title = _anime?.Title ?? titleHelper.SearchAnimeID(AnimeID)?.Title;
     }
 
     public override async Task Execute()
@@ -56,19 +53,6 @@ public class GetAniDBImagesJob : BaseJob
             return;
         }
 
-        await _anidbService.ProcessImagesForAnimeByID(AnimeID, OnlyPosters, ForceDownload).ConfigureAwait(false);
+        await anidbService.ProcessImagesForAnimeByID(AnimeID, OnlyPosters, ForceDownload).ConfigureAwait(false);
     }
-
-    private readonly AniDB_AnimeRepository _anidbAnimes;
-    public GetAniDBImagesJob(AniDBTitleHelper aniDBTitleHelper, IAnidbService anidbService,
-        AniDB_AnimeRepository anidbAnimes
-    )
-    {
-        _titleHelper = aniDBTitleHelper;
-        _anidbService = (AnidbService)anidbService;
-        _anidbAnimes = anidbAnimes;
-
-    }
-
-    protected GetAniDBImagesJob() { }
 }

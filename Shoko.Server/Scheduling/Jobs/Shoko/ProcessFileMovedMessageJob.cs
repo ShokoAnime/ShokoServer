@@ -12,10 +12,8 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Import)]
-public class ProcessFileMovedMessageJob : BaseJob
+public class ProcessFileMovedMessageJob(IVideoReleaseService videoReleaseService, AniDB_MessageRepository anidbMessages, StoredReleaseInfoRepository storedReleaseInfos, VideoLocalRepository videoLocals) : BaseJob
 {
-    private readonly IVideoReleaseService _videoReleaseService;
-
     public override string TypeName => "Handle Moved File Message";
 
     public override string Title => "Handling Moved File Message";
@@ -26,7 +24,7 @@ public class ProcessFileMovedMessageJob : BaseJob
     {
         _logger.LogInformation("Processing {Job}: {MessageId}", nameof(ProcessFileMovedMessageJob), MessageID);
 
-        var message = _anidbMessages.GetByMessageId(MessageID);
+        var message = anidbMessages.GetByMessageId(MessageID);
         if (message == null) return;
 
         if (message.IsFileMoveHandled)
@@ -41,14 +39,14 @@ public class ProcessFileMovedMessageJob : BaseJob
             throw new Exception("Could not parse file ID from message title");
         }
 
-        var file = _storedReleaseInfos.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{fileId}");
+        var file = storedReleaseInfos.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{fileId}");
         if (file == null)
         {
             _logger.LogWarning("Could not find file with AniDB ID: {ID}", fileId);
             return;
         }
 
-        var vlocal = _videoLocals.GetByEd2k(file.ED2K);
+        var vlocal = videoLocals.GetByEd2k(file.ED2K);
         if (vlocal == null)
         {
             _logger.LogWarning("Could not find VideoLocal for file with AniDB ID and Hash: {ID} {Hash}", fileId, file.ED2K);
@@ -57,41 +55,22 @@ public class ProcessFileMovedMessageJob : BaseJob
 
         // If auto-match is not available then just ignore the file move, since
         // it seems like we don't care about changes like that.
-        if (!_videoReleaseService.AutoMatchEnabled)
+        if (!videoReleaseService.AutoMatchEnabled)
             return;
 
-        await _videoReleaseService.ScheduleFindReleaseForVideo(vlocal, force: true).ContinueWith(t =>
+        await videoReleaseService.ScheduleFindReleaseForVideo(vlocal, force: true).ContinueWith(t =>
         {
             if (!t.IsFaulted)
             {
                 // This runs after the file processing job is successfully done, which might be at a later point in time
                 // Let us refetch the message to make sure we have the latest data and then mark it as handled
-                var msg = _anidbMessages.GetByMessageId(MessageID);
+                var msg = anidbMessages.GetByMessageId(MessageID);
                 if (msg == null) return;
 
                 msg.IsFileMoveHandled = true;
-                _anidbMessages.Save(msg);
+                anidbMessages.Save(msg);
             }
         });
     }
 
-    private readonly AniDB_MessageRepository _anidbMessages;
-    private readonly StoredReleaseInfoRepository _storedReleaseInfos;
-    private readonly VideoLocalRepository _videoLocals;
-    public ProcessFileMovedMessageJob(IVideoReleaseService videoReleaseService,
-        AniDB_MessageRepository anidbMessages,
-        StoredReleaseInfoRepository storedReleaseInfos,
-        VideoLocalRepository videoLocals
-    )
-    {
-        _videoReleaseService = videoReleaseService;
-        _anidbMessages = anidbMessages;
-        _storedReleaseInfos = storedReleaseInfos;
-        _videoLocals = videoLocals;
-
-    }
-
-    protected ProcessFileMovedMessageJob()
-    {
-    }
 }

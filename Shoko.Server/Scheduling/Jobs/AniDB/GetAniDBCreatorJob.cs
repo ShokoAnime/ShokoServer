@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
-using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -19,19 +18,14 @@ using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 
-#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetAniDBCreatorJob : BaseJob
+public class GetAniDBCreatorJob(IRequestFactory requestFactory, AnidbService anidbService, AniDB_AnimeRepository anidbAnimes, AniDB_Anime_CharacterRepository anidbAnimeCharacters, AniDB_Anime_Character_CreatorRepository anidbAnimeCharacterCreators, AniDB_Anime_StaffRepository anidbAnimeStaff, AniDB_CreatorRepository anidbCreators) : BaseJob
 {
-    private readonly IRequestFactory _requestFactory;
-
-    private readonly AnidbService _anidbService;
-
     private string? _creatorName;
 
     public int CreatorID { get; set; }
@@ -43,7 +37,7 @@ public class GetAniDBCreatorJob : BaseJob
     public override void PostInit()
     {
         // We have the title helper. May as well use it to provide better info for the user
-        _creatorName = _anidbCreators.GetByCreatorID(CreatorID)?.OriginalName;
+        _creatorName = anidbCreators.GetByCreatorID(CreatorID)?.OriginalName;
     }
     public override Dictionary<string, object> Details => string.IsNullOrEmpty(_creatorName)
         ? new()
@@ -60,39 +54,39 @@ public class GetAniDBCreatorJob : BaseJob
     {
         _logger.LogInformation("Processing {Job}", nameof(GetAniDBCreatorJob));
 
-        var request = _requestFactory.Create<RequestGetCreator>(r => r.CreatorID = CreatorID);
+        var request = requestFactory.Create<RequestGetCreator>(r => r.CreatorID = CreatorID);
         var response = request.Send().Response;
         if (response is null)
         {
             _logger.LogError("Unable to find an AniDB Creator with the given ID: {CreatorID}", CreatorID);
-            var anidbAnimeStaffRoles = _anidbAnimeStaff.GetByAnimeID(CreatorID);
-            var anidbCharacterCreators = _anidbAnimeCharacterCreators.GetByCreatorID(CreatorID);
-            var anidbAnimeCharacters = anidbCharacterCreators
-                .SelectMany(c => _anidbAnimeCharacters.GetByCharacterID(c.CharacterID))
+            var anidbAnimeStaffRoles = anidbAnimeStaff.GetByAnimeID(CreatorID);
+            var anidbCharacterCreators = anidbAnimeCharacterCreators.GetByCreatorID(CreatorID);
+            var animeCharacters = anidbCharacterCreators
+                .SelectMany(c => anidbAnimeCharacters.GetByCharacterID(c.CharacterID))
                 .ToList();
             var anidbAnime = anidbAnimeStaffRoles.Select(a => a.AnimeID)
-                .Concat(anidbAnimeCharacters.Select(a => a.AnimeID))
+                .Concat(animeCharacters.Select(a => a.AnimeID))
                 .Distinct()
-                .Select(_anidbAnimes.GetByAnimeID)
+                .Select(anidbAnimes.GetByAnimeID)
                 .WhereNotNull()
                 .ToList();
 
-            _anidbCreators.Delete(CreatorID);
-            _anidbAnimeCharacterCreators.Delete(anidbCharacterCreators);
-            _anidbAnimeStaff.Delete(anidbAnimeStaffRoles);
+            anidbCreators.Delete(CreatorID);
+            anidbAnimeCharacterCreators.Delete(anidbCharacterCreators);
+            anidbAnimeStaff.Delete(anidbAnimeStaffRoles);
 
             if (anidbAnime.Count > 0)
             {
                 _logger.LogInformation("Scheduling {Count} AniDB Anime for a refresh due to removal of creator: {CreatorID}", anidbAnime.Count, CreatorID);
                 foreach (var anime in anidbAnime)
-                    await _anidbService.ScheduleRefreshOfAnime(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
+                    await anidbService.ScheduleRefreshOfAnime(anime, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
             }
 
             return;
         }
 
         _logger.LogInformation("Found AniDB Creator: {Creator} (ID={CreatorID},Type={Type})", response.Name, response.ID, response.Type.ToString());
-        var creator = _anidbCreators.GetByCreatorID(CreatorID) ?? new();
+        var creator = anidbCreators.GetByCreatorID(CreatorID) ?? new();
         creator.CreatorID = response.ID;
         if (!string.IsNullOrEmpty(response.Name))
             creator.Name = response.Name;
@@ -105,12 +99,12 @@ public class GetAniDBCreatorJob : BaseJob
         creator.EnglishWikiUrl = response.EnglishWikiUrl;
         creator.JapaneseWikiUrl = response.JapaneseWikiUrl;
         creator.LastUpdatedAt = response.LastUpdateAt;
-        _anidbCreators.Save(creator);
+        anidbCreators.Save(creator);
 
-        await _anidbService.ProcessImagesForCreatorByID(creator.CreatorID).ConfigureAwait(false);
+        await anidbService.ProcessImagesForCreatorByID(creator.CreatorID).ConfigureAwait(false);
 
         var rolesToUpdate = new List<AniDB_Anime_Staff>();
-        var roles = _anidbAnimeStaff.GetByCreatorID(creator.CreatorID);
+        var roles = anidbAnimeStaff.GetByCreatorID(creator.CreatorID);
         foreach (var role in roles)
         {
             var roleType = role.Role switch
@@ -132,33 +126,6 @@ public class GetAniDBCreatorJob : BaseJob
             }
         }
 
-        _anidbAnimeStaff.Save(rolesToUpdate);
-    }
-
-    private readonly AniDB_AnimeRepository _anidbAnimes;
-    private readonly AniDB_Anime_CharacterRepository _anidbAnimeCharacters;
-    private readonly AniDB_Anime_Character_CreatorRepository _anidbAnimeCharacterCreators;
-    private readonly AniDB_Anime_StaffRepository _anidbAnimeStaff;
-    private readonly AniDB_CreatorRepository _anidbCreators;
-    public GetAniDBCreatorJob(IRequestFactory requestFactory, IAnidbService anidbService,
-        AniDB_AnimeRepository anidbAnimes,
-        AniDB_Anime_CharacterRepository anidbAnimeCharacters,
-        AniDB_Anime_Character_CreatorRepository anidbAnimeCharacterCreators,
-        AniDB_Anime_StaffRepository anidbAnimeStaff,
-        AniDB_CreatorRepository anidbCreators
-    )
-    {
-        _requestFactory = requestFactory;
-        _anidbService = (AnidbService)anidbService;
-        _anidbAnimes = anidbAnimes;
-        _anidbAnimeCharacters = anidbAnimeCharacters;
-        _anidbAnimeCharacterCreators = anidbAnimeCharacterCreators;
-        _anidbAnimeStaff = anidbAnimeStaff;
-        _anidbCreators = anidbCreators;
-
-    }
-
-    protected GetAniDBCreatorJob()
-    {
+        anidbAnimeStaff.Save(rolesToUpdate);
     }
 }

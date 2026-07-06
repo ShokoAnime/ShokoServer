@@ -6,16 +6,14 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Models.Shoko;
-
-#pragma warning disable CS8618
 using Shoko.Server.Repositories.Cached;
+
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Import)]
-public class RenameMoveFileLocationJob : BaseJob
+public class RenameMoveFileLocationJob(IVideoRelocationService relocationService, VideoLocal_PlaceRepository videoLocalPlaces) : BaseJob
 {
-    private readonly IVideoRelocationService _relocationService;
 
     private VideoLocal_Place? _location;
 
@@ -23,7 +21,7 @@ public class RenameMoveFileLocationJob : BaseJob
 
     public int ManagedFolderID { get; set; }
 
-    public string RelativePath { get; set; }
+    public string RelativePath { get; set; } = string.Empty;
 
     public override string TypeName => "Rename/Move Video Location";
 
@@ -31,9 +29,10 @@ public class RenameMoveFileLocationJob : BaseJob
 
     public override void PostInit()
     {
-        _location = _videoLocalPlaces.GetByRelativePathAndManagedFolderID(RelativePath, ManagedFolderID);
+        _location = videoLocalPlaces.GetByRelativePathAndManagedFolderID(RelativePath, ManagedFolderID);
         _fileName = _location?.Path;
-        if (_location == null || string.IsNullOrEmpty(_fileName)) throw new Exception($"VideoLocalPlace not Found: {RelativePath} (ManagedFolder={ManagedFolderID})");
+        if (_location == null || string.IsNullOrEmpty(_fileName))
+            throw new Exception($"VideoLocalPlace not Found: {RelativePath} (ManagedFolder={ManagedFolderID})");
     }
 
     public override Dictionary<string, object> Details => new() { { "File Path", _fileName ?? RelativePath } };
@@ -46,7 +45,7 @@ public class RenameMoveFileLocationJob : BaseJob
         // Check if the video local (file) is available.
         if (_location == null)
         {
-            _location = _videoLocalPlaces.GetByRelativePathAndManagedFolderID(RelativePath, ManagedFolderID);
+            _location = videoLocalPlaces.GetByRelativePathAndManagedFolderID(RelativePath, ManagedFolderID);
             if (_location == null)
                 return;
         }
@@ -59,20 +58,8 @@ public class RenameMoveFileLocationJob : BaseJob
             return;
         }
 
-        var result = await _relocationService.AutoRelocateFile(_location);
+        var result = await relocationService.AutoRelocateFile(_location);
         if (!result.Success)
             _logger.LogTrace(result.Error.Exception, "Unable to relocate video file; {ErrorMessage} (Video={VideoID},Location={LocationID})", result.Error.Message, _location.VideoID, _location.ID);
     }
-
-    private readonly VideoLocal_PlaceRepository _videoLocalPlaces;
-    public RenameMoveFileLocationJob(IVideoRelocationService relocationService,
-        VideoLocal_PlaceRepository videoLocalPlaces
-    )
-    {
-        _relocationService = relocationService;
-        _videoLocalPlaces = videoLocalPlaces;
-
-    }
-
-    protected RenameMoveFileLocationJob() { }
 }

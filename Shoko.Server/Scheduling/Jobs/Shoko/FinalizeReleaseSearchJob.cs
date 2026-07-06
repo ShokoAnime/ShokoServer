@@ -11,7 +11,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
 
-#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 /// <summary>
@@ -21,16 +20,8 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 /// </summary>
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Import)]
-public class FinalizeReleaseSearchJob : BaseJob
+public class FinalizeReleaseSearchJob(VideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, IVideoRelocationService relocationService, StoredReleaseInfo_MatchAttemptRepository matchAttempts) : BaseJob
 {
-    private readonly VideoReleaseService _videoReleaseService;
-
-    private readonly VideoLocalRepository _videoLocals;
-
-    private readonly IVideoRelocationService _relocationService;
-
-    private readonly StoredReleaseInfo_MatchAttemptRepository _matchAttempts;
-
     private VideoLocal? _vlocal;
 
     private StoredReleaseInfo_MatchAttempt? _matchAttempt;
@@ -66,10 +57,10 @@ public class FinalizeReleaseSearchJob : BaseJob
 
     public override void PostInit()
     {
-        _vlocal = _videoLocals.GetByID(VideoLocalID);
-        _matchAttempt = _matchAttempts.GetByID(MatchAttemptID);
+        _vlocal = videoLocals.GetByID(VideoLocalID);
+        _matchAttempt = matchAttempts.GetByID(MatchAttemptID);
         if (_vlocal is not null && _matchAttempt is not null)
-            _attemptNumber = _matchAttempts.GetByEd2kAndFileSize(_vlocal.Hash, _vlocal.FileSize)
+            _attemptNumber = matchAttempts.GetByEd2kAndFileSize(_vlocal.Hash, _vlocal.FileSize)
                 .FindIndex(m => m.StoredReleaseInfo_MatchAttemptID == MatchAttemptID) + 1;
         _fileName = VideoService.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
@@ -78,9 +69,9 @@ public class FinalizeReleaseSearchJob : BaseJob
     {
         _logger.LogTrace("Finalizing release search for VideoLocalID={VideoLocalID}", VideoLocalID);
 
-        _vlocal ??= _videoLocals.GetByID(VideoLocalID);
+        _vlocal ??= videoLocals.GetByID(VideoLocalID);
         if (_vlocal is null) return;
-        if (_matchAttempts.GetByID(MatchAttemptID) is not { } matchAttempt) return;
+        if (matchAttempts.GetByID(MatchAttemptID) is not { } matchAttempt) return;
 
         // Mark the chain as completed. AttemptEndedAt may already be set if a
         // non-deferred save occurred; set it here for the no-match case.
@@ -88,31 +79,17 @@ public class FinalizeReleaseSearchJob : BaseJob
         if (!releaseFound)
             matchAttempt.AttemptEndedAt = DateTime.Now;
         matchAttempt.IsCompleted = true;
-        _matchAttempts.Save(matchAttempt);
+        matchAttempts.Save(matchAttempt);
 
         // Fire SearchCompleted now that auto-management has run. IsCancelled lets subscribers
         // (plugins, internal handlers) skip provider-specific post-import work.
-        var args = await _videoReleaseService.FireSearchCompleted(_vlocal, matchAttempt);
+        var args = await videoReleaseService.FireSearchCompleted(_vlocal, matchAttempt);
         if (args.IsCancelled)
             return;
 
         // Trigger relocation if requested.
         if (ShouldRelocate)
-            await _relocationService.ScheduleAutoRelocationForVideo(_vlocal);
+            await relocationService.ScheduleAutoRelocationForVideo(_vlocal);
     }
 
-    public FinalizeReleaseSearchJob(
-        IVideoReleaseService videoReleaseService,
-        VideoLocalRepository videoLocals,
-        IVideoRelocationService relocationService,
-        StoredReleaseInfo_MatchAttemptRepository matchAttempts
-    )
-    {
-        _videoReleaseService = (VideoReleaseService)videoReleaseService;
-        _videoLocals = videoLocals;
-        _relocationService = relocationService;
-        _matchAttempts = matchAttempts;
-    }
-
-    protected FinalizeReleaseSearchJob() { }
 }

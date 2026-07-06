@@ -30,7 +30,6 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
-#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
@@ -38,17 +37,20 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
 [LongRunning]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class SyncAniDBMyListJob : BaseJob
+public class SyncAniDBMyListJob(
+    IRequestFactory requestFactory,
+    IQueueScheduler scheduler,
+    ISettingsProvider settingsProvider,
+    AnimeSeriesService seriesService,
+    VideoLocal_UserRepository vlUsers,
+    IUserDataService userDataService,
+    IApplicationPaths applicationPaths,
+    JMMUserRepository users,
+    ScheduledUpdateRepository scheduledUpdates,
+    StoredReleaseInfoRepository storedReleaseInfos,
+    VideoLocalRepository videoLocals
+) : BaseJob
 {
-    private readonly IRequestFactory _requestFactory;
-    private readonly IQueueScheduler _scheduler;
-    private readonly ISettingsProvider _settingsProvider;
-    private IServerSettings _settings => _settingsProvider.GetSettings();
-    private readonly AnimeSeriesService _seriesService;
-    private readonly VideoLocal_UserRepository _vlUsers;
-    private readonly IUserDataService _userDataService;
-    private readonly IApplicationPaths _applicationPaths;
-
     public bool ForceRefresh { get; set; }
 
     public override string TypeName => "Sync AniDB MyList";
@@ -60,13 +62,14 @@ public class SyncAniDBMyListJob : BaseJob
         _logger.LogInformation("Processing {Job}", nameof(SyncAniDBMyListJob));
 
         if (!ShouldRun()) return;
+        var settings = settingsProvider.GetSettings();
 
         // Get the list from AniDB
-        var request = _requestFactory.Create<RequestMyList>(
+        var request = requestFactory.Create<RequestMyList>(
             r =>
             {
-                r.Username = _settings.AniDb.Username;
-                r.Password = _settings.AniDb.Password;
+                r.Username = settings.AniDb.Username;
+                r.Password = settings.AniDb.Password;
             }
         );
         var response = request.Send();
@@ -77,7 +80,7 @@ public class SyncAniDBMyListJob : BaseJob
             return;
         }
 
-        await CreateMyListBackup(response);
+        await CreateMyListBackup(response, settings);
 
         var totalItems = 0;
         var watchedItems = 0;
@@ -88,13 +91,13 @@ public class SyncAniDBMyListJob : BaseJob
         var onlineFiles = response.Response
             .Where(a => a.FileID is not null and not 0)
             .ToLookup(a => a.FileID!.Value);
-        var localFiles = _storedReleaseInfos.GetAll()
+        var localFiles = storedReleaseInfos.GetAll()
             .Where(r => !string.IsNullOrEmpty(r.ReleaseURI) && r.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
             .ToLookup(a => a.ED2K);
 
         var missingFiles = await AddMissingFiles(localFiles, onlineFiles);
 
-        var aniDBUser = _jmmUsers.GetAniDBUser();
+        var aniDBUser = users.GetAniDBUser();
         var modifiedSeries = new LinkedHashSet<AnimeSeries>();
 
         // Remove Missing Files and update watched states (single loop)
@@ -108,15 +111,15 @@ public class SyncAniDBMyListJob : BaseJob
                 if (myItem.ViewedAt.HasValue) watchedItems++;
 
                 // the null is checked in the collection
-                var aniFile = _storedReleaseInfos.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myItem.FileID}");
+                var aniFile = storedReleaseInfos.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myItem.FileID}");
 
                 // the AniDB_File should never have a null hash, but just in case
-                var vl = aniFile?.ED2K is null ? null : _videoLocals.GetByEd2k(aniFile.ED2K);
+                var vl = aniFile?.ED2K is null ? null : videoLocals.GetByEd2k(aniFile.ED2K);
 
                 if (vl != null)
                 {
                     // We have it, so process watched states and update storage states if needed
-                    modifiedItems = await ProcessStates(aniDBUser, vl, myItem, modifiedItems, modifiedSeries);
+                    modifiedItems = await ProcessStates(aniDBUser, vl, myItem, modifiedItems, modifiedSeries, settings);
                     continue;
                 }
 
@@ -128,7 +131,7 @@ public class SyncAniDBMyListJob : BaseJob
 
                 // We don't have the file
                 // If it's local only, then we don't update. The rest update in one way or another
-                if (_settings.AniDb.MyList_DeleteType == AniDBFileDeleteType.DeleteLocalOnly)
+                if (settings.AniDb.MyList_DeleteType == AniDBFileDeleteType.DeleteLocalOnly)
                     continue;
                 filesToRemove.Add(myItem.FileID!.Value);
             }
@@ -143,7 +146,7 @@ public class SyncAniDBMyListJob : BaseJob
         {
             foreach (var id in filesToRemove)
             {
-                await _scheduler.StartJob<DeleteFileFromMyListJob>(a => a.FileID = id);
+                await scheduler.StartJob<DeleteFileFromMyListJob>(a => a.FileID = id);
             }
         }
 
@@ -151,17 +154,17 @@ public class SyncAniDBMyListJob : BaseJob
             _logger.LogInformation("MYLIST Missing Files: {Count} added to queue for deletion",
                 filesToRemove.Count);
 
-        await Task.WhenAll(modifiedSeries.Select(a => _seriesService.QueueUpdateStats(a)));
+        await Task.WhenAll(modifiedSeries.Select(a => seriesService.QueueUpdateStats(a)));
 
         _logger.LogInformation(
             "Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {WatchedItems} Watched, {ModifiedItems} Modified",
             totalItems, missingFiles, filesToRemove.Count, watchedItems, modifiedItems);
     }
 
-    private async Task CreateMyListBackup(HttpResponse<List<ResponseMyList>> response)
+    private async Task CreateMyListBackup(HttpResponse<List<ResponseMyList>> response, IServerSettings settings)
     {
         var serialized = JsonConvert.SerializeObject(response.Response, Formatting.Indented);
-        var myListDirectory = new DirectoryInfo(Path.Combine(_applicationPaths.DataPath, "MyList"));
+        var myListDirectory = new DirectoryInfo(Path.Combine(applicationPaths.DataPath, "MyList"));
         myListDirectory.Create();
 
         var currentBackupPath = Path.Join(myListDirectory.FullName, "mylist.json");
@@ -177,7 +180,7 @@ public class SyncAniDBMyListJob : BaseJob
         // Delete oldest backups when more than 30 exist
         // Only gets zip files that start with ISO 8601 date format YYYY-MM-DD
         var backupFiles = myListDirectory.GetFiles("????-??-?? *.zip").OrderByDescending(f => f.Name).ToList();
-        var backUpFilesToDelete = backupFiles.Skip(_settings.AniDb.MyList_RetainedBackupCount).ToList();
+        var backUpFilesToDelete = backupFiles.Skip(settings.AniDb.MyList_RetainedBackupCount).ToList();
         foreach (var file in backUpFilesToDelete)
         {
             try
@@ -191,28 +194,34 @@ public class SyncAniDBMyListJob : BaseJob
         }
     }
 
-    private async Task<int> ProcessStates(JMMUser? aniDBUser, VideoLocal video, ResponseMyList myItem,
-        int modifiedItems, ISet<AnimeSeries> modifiedSeries)
+    private async Task<int> ProcessStates(
+        JMMUser? aniDBUser,
+        VideoLocal video,
+        ResponseMyList myItem,
+        int modifiedItems,
+        ISet<AnimeSeries> modifiedSeries,
+        IServerSettings settings
+    )
     {
         // check watched states, read the states if needed, and update differences
         // aggregate and assume if one AniDB User has watched it, it should be marked
         // if multiple have, then take the latest
         // compare the states and update if needed
-        var localWatchedDate = aniDBUser is null ? null : _vlUsers.GetByUserAndVideoLocalID(aniDBUser.JMMUserID, video.VideoLocalID)?.WatchedDate;
+        var localWatchedDate = aniDBUser is null ? null : vlUsers.GetByUserAndVideoLocalID(aniDBUser.JMMUserID, video.VideoLocalID)?.WatchedDate;
         if (localWatchedDate is not null && localWatchedDate.Value.Millisecond > 0)
             localWatchedDate = localWatchedDate.Value.AddMilliseconds(-localWatchedDate.Value.Millisecond);
 
-        var localState = _settings.AniDb.MyList_StorageState;
+        var localState = settings.AniDb.MyList_StorageState;
         var shouldUpdate = false;
         var updateDate = myItem.ViewedAt;
 
         // we don't support multiple AniDB accounts, so we can just only iterate to set states
-        if (_settings.AniDb.MyList_ReadWatched && localWatchedDate == null && updateDate != null)
+        if (settings.AniDb.MyList_ReadWatched && localWatchedDate == null && updateDate != null)
         {
             if (aniDBUser is not null)
             {
                 modifiedItems++;
-                await _userDataService.ImportVideoUserData(video, aniDBUser, new()
+                await userDataService.ImportVideoUserData(video, aniDBUser, new()
                 {
                     ProgressPosition = TimeSpan.Zero,
                     LastPlayedAt = updateDate,
@@ -226,12 +235,12 @@ public class SyncAniDBMyListJob : BaseJob
             }
         }
         // if we did the previous, then we don't want to undo it
-        else if (_settings.AniDb.MyList_ReadUnwatched && localWatchedDate != null && updateDate == null)
+        else if (settings.AniDb.MyList_ReadUnwatched && localWatchedDate != null && updateDate == null)
         {
             if (aniDBUser is not null)
             {
                 modifiedItems++;
-                await _userDataService.ImportVideoUserData(video, aniDBUser, new()
+                await userDataService.ImportVideoUserData(video, aniDBUser, new()
                 {
                     ProgressPosition = TimeSpan.Zero,
                     LastPlayedAt = null,
@@ -244,12 +253,12 @@ public class SyncAniDBMyListJob : BaseJob
                     .ForEach(a => modifiedSeries.Add(a));
             }
         }
-        else if (_settings.AniDb.MyList_SetUnwatched && localWatchedDate == null && updateDate != null)
+        else if (settings.AniDb.MyList_SetUnwatched && localWatchedDate == null && updateDate != null)
         {
             shouldUpdate = true;
             updateDate = null;
         }
-        else if (_settings.AniDb.MyList_SetWatched && localWatchedDate != null && !localWatchedDate.Equals(updateDate))
+        else if (settings.AniDb.MyList_SetWatched && localWatchedDate != null && !localWatchedDate.Equals(updateDate))
         {
             shouldUpdate = true;
             updateDate = localWatchedDate.Value.ToUniversalTime();
@@ -260,7 +269,7 @@ public class SyncAniDBMyListJob : BaseJob
 
         if (!shouldUpdate) return modifiedItems;
 
-        await _scheduler.StartJob<UpdateMyListFileStatusJob>(a =>
+        await scheduler.StartJob<UpdateMyListFileStatusJob>(a =>
         {
             a.Hash = video.Hash;
             a.Watched = updateDate != null;
@@ -274,7 +283,7 @@ public class SyncAniDBMyListJob : BaseJob
     private bool ShouldRun()
     {
         // we will always assume that an anime was downloaded via http first
-        var schedule = _scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
+        var schedule = scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
         if (schedule == null)
         {
             schedule = new()
@@ -285,7 +294,7 @@ public class SyncAniDBMyListJob : BaseJob
         }
         else
         {
-            var freqHours = _settings.AniDb.MyList_UpdateFrequency.Hours;
+            var freqHours = settingsProvider.GetSettings().AniDb.MyList_UpdateFrequency.Hours;
 
             // if we have run this in the last 24 hours and are not forcing it, then exit
             var lastRan = DateTime.Now - schedule.LastUpdate;
@@ -294,18 +303,19 @@ public class SyncAniDBMyListJob : BaseJob
         }
 
         schedule.LastUpdate = DateTime.Now;
-        _scheduledUpdates.Save(schedule);
+        scheduledUpdates.Save(schedule);
 
         return true;
     }
 
-    private async Task<int> AddMissingFiles(ILookup<string, StoredReleaseInfo> localFiles,
-        ILookup<int, ResponseMyList> onlineFiles)
+    private async Task<int> AddMissingFiles(
+        ILookup<string, StoredReleaseInfo> localFiles,
+        ILookup<int, ResponseMyList> onlineFiles
+    )
     {
-        if (!_settings.AniDb.MyList_AddFiles) return 0;
+        if (!settingsProvider.GetSettings().AniDb.MyList_AddFiles) return 0;
         var missingFiles = 0;
-        foreach (var vid in _videoLocals.GetAll()
-                     .Where(a => !string.IsNullOrEmpty(a.Hash)).ToList())
+        foreach (var vid in videoLocals.GetAll())
         {
             // Does it have a linked AniFile
             if (TryGetFileID(localFiles, vid.Hash, out var fileID))
@@ -318,7 +328,7 @@ public class SyncAniDBMyListJob : BaseJob
             }
             else continue;
 
-            await _scheduler.StartJob<AddFileToMyListJob>(a => a.Hash = vid.Hash);
+            await scheduler.StartJob<AddFileToMyListJob>(a => a.Hash = vid.Hash);
         }
 
         _logger.LogInformation(
@@ -336,31 +346,4 @@ public class SyncAniDBMyListJob : BaseJob
         if (!int.TryParse(file.ReleaseURI![AnidbReleaseProvider.ReleasePrefix.Length..], out fileID)) return false;
         return fileID != 0;
     }
-
-    private readonly JMMUserRepository _jmmUsers;
-    private readonly ScheduledUpdateRepository _scheduledUpdates;
-    private readonly StoredReleaseInfoRepository _storedReleaseInfos;
-    private readonly VideoLocalRepository _videoLocals;
-    public SyncAniDBMyListJob(IRequestFactory requestFactory, IQueueScheduler schedulerFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, VideoLocal_UserRepository vlUsers, IUserDataService userDataService, IApplicationPaths applicationPaths,
-        JMMUserRepository jmmUsers,
-        ScheduledUpdateRepository scheduledUpdates,
-        StoredReleaseInfoRepository storedReleaseInfos,
-        VideoLocalRepository videoLocals
-    )
-    {
-        _requestFactory = requestFactory;
-        _scheduler = schedulerFactory;
-        _seriesService = seriesService;
-        _vlUsers = vlUsers;
-        _userDataService = userDataService;
-        _settingsProvider = settingsProvider;
-        _applicationPaths = applicationPaths;
-        _jmmUsers = jmmUsers;
-        _scheduledUpdates = scheduledUpdates;
-        _storedReleaseInfos = storedReleaseInfos;
-        _videoLocals = videoLocals;
-
-    }
-
-    protected SyncAniDBMyListJob() { }
 }

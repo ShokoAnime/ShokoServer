@@ -16,12 +16,12 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [NetworkRequired]
 [LimitConcurrency(1, 16)]
 [LongRunning]
-public class AVDumpFilesJob : BaseJob<AVDumpHelper.AVDumpSession>
+public class AVDumpFilesJob() : BaseJob<AVDumpHelper.AVDumpSession>
 {
     /// <summary>
     /// Videos to dump.
     /// </summary>
-    public Dictionary<int, string> Videos { get; set; }
+    public Dictionary<int, string> Videos { get; set; } = [];
 
     /// <summary>
     /// Hash key representing the videos to dump.

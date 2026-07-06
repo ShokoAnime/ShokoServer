@@ -1,29 +1,42 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Repositories.Cached;
 
-#pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 [DatabaseRequired]
 [DisallowConcurrentExecution]
 [JobKeyGroup(JobKeyGroup.Actions)]
-public class DeleteRedundantReleasesJob : BaseJob
+public class DeleteRedundantReleasesJob(IVideoService videoService, VideoLocal_PlaceRepository places) : BaseJob
 {
-    private readonly IVideoService _videoService;
-
-    private readonly VideoLocal_PlaceRepository _places;
 
     public List<int> PlaceIDs { get; set; } = [];
 
-    public override string TypeName => "Delete Redundant Releases";
+    /// <summary>
+    /// Hash key representing the places to be deleted.
+    /// </summary>
+    [JobKeyMember]
+    public string Key
+    {
+        get => PlaceIDs is not null
+            ? Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(PlaceIDs.Order().ToArray()))))
+            : string.Empty;
+        set { }
+    }
 
-    public override string Title => $"Deleting {PlaceIDs.Count} redundant file(s)";
+    public override string TypeName => "Delete Redundant Files";
+
+    public override string Title => $"Deleting {PlaceIDs.Count} Redundant File{(PlaceIDs.Count != 1 ? "s" : "")}";
 
     public override Dictionary<string, object> Details => new()
     {
@@ -37,7 +50,7 @@ public class DeleteRedundantReleasesJob : BaseJob
         var deleted = 0;
         foreach (var placeID in PlaceIDs)
         {
-            var place = _places.GetByID(placeID);
+            var place = places.GetByID(placeID);
             if (place is null)
             {
                 _logger.LogDebug("Skipping place {PlaceID}: not found", placeID);
@@ -45,18 +58,10 @@ public class DeleteRedundantReleasesJob : BaseJob
             }
 
             _logger.LogDebug("Deleting redundant place {PlaceID}: {Path}", placeID, place.Path ?? place.RelativePath);
-            await _videoService.DeleteVideoFile(place, removeFile: true, removeFolders: false);
+            await videoService.DeleteVideoFile(place, removeFile: true);
             deleted++;
         }
 
         _logger.LogInformation("Deleted {Deleted}/{Total} redundant release file(s)", deleted, PlaceIDs.Count);
     }
-
-    public DeleteRedundantReleasesJob(IVideoService videoService, VideoLocal_PlaceRepository places)
-    {
-        _videoService = videoService;
-        _places = places;
-    }
-
-    protected DeleteRedundantReleasesJob() { }
 }
