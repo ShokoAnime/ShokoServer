@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.359",
+      "tag": "v6.0.0-dev.359",
+      "commit": "4ad5d34837e29f471198e5c0db5e1bee9586ac42",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.359/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-06T22:02:48Z",
+      "releaseNotes": "\n`fix` (`tmdb`): **Reject zero-confidence TMDB matches for anime auto-linking and manual search** ([#1379](https://github.com/ShokoAnime/ShokoServer/pull/1379)):\n\n`AutoSearchForShowUsingTitle`/`AutoSearchMovieUsingTitle` always auto-linked the\ntop-scored candidate even when it had no title or date correlation to the AniDB\nentry at all (`MatchRating.FirstAvailable`) — it only reached scoring because\nTMDB's search returned it and it happened to carry the `animation` genre tag.\nThis let unrelated content (e.g. adult titles genre-tagged as animation on TMDB)\nget auto-linked to legitimate anime like \"One Piece\" purely by coincidence.\n\n- Added `IsAcceptableAutoMatch` to reject `FirstAvailable` before linking in\n  both the show and movie auto-match paths, and applied the same floor to the\n  transient-outage fallback (which previously guessed blindly when\n  `GetTvShowAsync`/`GetMovieAsync` failed for every candidate). This mirrors\n  the existing convention in `TmdbLinkingService`'s episode-level matching,\n  which already treats `FirstAvailable` as \"no match.\"\n- Manual TMDB search (used by the WebUI's link-selection panel) returned TMDB's\n  raw search order, which ranks purely on title-text relevance with no genre\n  awareness. Added a stable sort (by `animation` genre membership) to the paged\n  results in `SearchMoviesRaw`/`SearchShowsRaw` — nothing is filtered out, a\n  human still picks the result, this only reorders the page so genuine anime\n  surfaces first.\n- Extracted the repeated `\"animation\"` literal into an `AnimationGenre` constant.\n\nThis does not affect adult-content handling — `include_adult` is still driven\nentirely by `anime.IsRestricted` from AniDB, so correctly-matched restricted\nanime are unaffected in both paths. The fix only requires that AniDB's own\ntitle or air-date data actually corroborate the TMDB candidate before\nauto-linking, and reorders (without hiding) manual search results by genre.\n"
+    },
+    {
       "version": "6.0.0.358",
       "tag": "v6.0.0-dev.358",
       "commit": "556e84bbd1d114e7393b2afe4995c2df802479de",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.330/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-26T23:58:20Z",
       "releaseNotes": "\n`misc`: **Performance improvements in SQLite. Update Stats in a missing code path**.\n"
-    },
-    {
-      "version": "6.0.0.329",
-      "tag": "v6.0.0-dev.329",
-      "commit": "3510b46116b173d869b8e9fd78acef065d98244a",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.329/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-26T21:41:06Z",
-      "releaseNotes": "\n`misc`: **Improvements to Dashboard Performance**.\n"
     }
   ]
 }
