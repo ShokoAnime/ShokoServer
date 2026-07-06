@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.358",
+      "tag": "v6.0.0-dev.358",
+      "commit": "556e84bbd1d114e7393b2afe4995c2df802479de",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.358/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-06T03:44:43Z",
+      "releaseNotes": "\n`feat`: **Add `ThreadPoolMinThreads` setting**:\n\nRaise the .NET thread pool's minimum thread count at startup so bursts\nof concurrent work don't stall behind the runtime's gradual\nhill-climbing thread injection delay. Configurable via the\nTHREADPOOL_MIN_THREADS env var; 0 leaves the runtime default\nuntouched, positive values are used directly, negative values act as\na CPU-count multiplier offset by one (-1 => CPU count x 2, up to -9 =>\nCPU count x 10).\n"
+    },
+    {
       "version": "6.0.0.357",
       "tag": "v6.0.0-dev.357",
       "commit": "86da9aba636346d4ebd6a8626e391e21c31faed8",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.329/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-26T21:41:06Z",
       "releaseNotes": "\n`misc`: **Improvements to Dashboard Performance**.\n"
-    },
-    {
-      "version": "6.0.0.328",
-      "tag": "v6.0.0-dev.328",
-      "commit": "c21936ebe7f834b97d773a81814f63e747224470",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.328/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-26T05:24:56Z",
-      "releaseNotes": "\n`misc`: **Improve Performance and Simplify Filtering a bit**.\n"
     }
   ]
 }
