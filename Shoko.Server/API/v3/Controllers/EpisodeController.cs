@@ -29,10 +29,6 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
-#pragma warning disable CS0612 // Type or member is obsolete
-#pragma warning disable CS0618 // Type or member is obsolete
-using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
-
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -145,18 +141,17 @@ public class EpisodeController : BaseController
         [FromQuery] IncludeOnlyFilter includeUnaired = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeVoted = IncludeOnlyFilter.True,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
         [FromQuery] bool includeFiles = false,
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,
-        [FromQuery] string search = null, [FromQuery] bool fuzzy = true)
+        [FromQuery] string? search = null, [FromQuery] bool fuzzy = true)
     {
         var user = User;
-        var hasSearch = !string.IsNullOrWhiteSpace(search);
         var allowedSeriesDict = new ConcurrentDictionary<int, bool>();
         var episodes = _animeEpisodes.GetAll()
             .AsParallel()
@@ -164,7 +159,7 @@ public class EpisodeController : BaseController
             {
                 // Only show episodes the user is allowed to view.
                 if (!allowedSeriesDict.TryGetValue(episode.AnimeSeriesID, out var isAllowed))
-                    allowedSeriesDict.TryAdd(episode.AnimeSeriesID, isAllowed = user.AllowedSeries(episode.AnimeSeries));
+                    allowedSeriesDict.TryAdd(episode.AnimeSeriesID, isAllowed = user.AllowedSeries(episode.AnimeSeries!));
                 return isAllowed;
             })
             .Select(episode => new { Shoko = episode, AniDB = episode?.AniDB_Episode })
@@ -188,12 +183,8 @@ public class EpisodeController : BaseController
                 }
 
                 // Filter by episode type, if specified
-                if (type != null && type.Count > 0)
-                {
-                    var mappedType = anidb.EpisodeType.ToV3Dto();
-                    if (!type.Contains(mappedType))
-                        return false;
-                }
+                if (type is not null && type.Count > 0 && !type.Contains(anidb.EpisodeType))
+                    return false;
 
                 // Filter by availability, if specified
                 if (includeMissing != IncludeOnlyFilter.True)
@@ -221,7 +212,7 @@ public class EpisodeController : BaseController
                     // If we should hide watched episodes and the episode is watched, then hide it.
                     // Or if we should only show watched episodes and the episode is not watched, then hide it.
                     var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
-                    var isWatched = shoko.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
+                    var isWatched = shoko.GetUserRecord(user.JMMUserID)?.WatchedDate is not null;
                     if (shouldHideWatched == isWatched)
                         return false;
                 }
@@ -239,7 +230,7 @@ public class EpisodeController : BaseController
 
                 return true;
             });
-        if (hasSearch)
+        if (!string.IsNullOrWhiteSpace(search))
         {
             var languages = SettingsProvider.GetSettings()
                 .Language.EpisodeTitleLanguageOrder
@@ -249,8 +240,8 @@ public class EpisodeController : BaseController
             return episodes
                 .Search(
                     search,
-                    ep => ep.AniDB.GetTitles()
-                        .Where(title => title != null && languages.Contains(title.Language))
+                    ep => ep.AniDB!.GetTitles()
+                        .Where(title => title is not null && languages.Contains(title.Language))
                         .Select(title => title.Title)
                         .Append(ep.Shoko.Title)
                         .Distinct()
@@ -263,8 +254,8 @@ public class EpisodeController : BaseController
         // Order the episodes since we're not using the search ordering.
         return episodes
             .OrderBy(episode => episode.Shoko.AnimeSeriesID)
-            .ThenBy(episode => episode.AniDB.EpisodeType)
-            .ThenBy(episode => episode.AniDB.EpisodeNumber)
+            .ThenBy(episode => episode.AniDB!.EpisodeType)
+            .ThenBy(episode => episode.AniDB!.EpisodeNumber)
             .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo), page, pageSize);
     }
 
@@ -280,7 +271,7 @@ public class EpisodeController : BaseController
     public ActionResult<ListResult<AnidbEpisode>> GetAllAniDBEpisodes(
         [FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType> type = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null)
     {
         var user = User;
         var allowedAnimeDict = new ConcurrentDictionary<int, bool>();
@@ -302,12 +293,8 @@ public class EpisodeController : BaseController
                     return false;
 
                 // Filter by episode type, if specified
-                if (type != null && type.Count > 0)
-                {
-                    var mappedType = episode.EpisodeType.ToV3Dto();
-                    if (!type.Contains(mappedType))
-                        return false;
-                }
+                if (type is not null && type.Count > 0 && !type.Contains(episode.EpisodeType))
+                    return false;
 
                 return true;
             })
@@ -338,7 +325,7 @@ public class EpisodeController : BaseController
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
         var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
@@ -485,7 +472,7 @@ public class EpisodeController : BaseController
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
         var anidb = _anidbEpisodes.GetByEpisodeID(anidbEpisodeID);
         if (anidb == null)
@@ -540,8 +527,8 @@ public class EpisodeController : BaseController
     [HttpGet("{episodeID}/TMDB/Movie")]
     public ActionResult<List<TmdbMovie>> GetTmdbMoviesByEpisodeID(
         [FromRoute, Range(1, int.MaxValue)] int episodeID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails> include = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
         var episode = _animeEpisodes.GetByID(episodeID);
@@ -626,7 +613,7 @@ public class EpisodeController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        if (body != null && body.ID > 0)
+        if (body is not null && body.ID > 0)
             await _tmdbLinkingService.RemoveMovieLinkForEpisode(episode.AniDB_EpisodeID, body.ID, body.Purge);
         else
             await _tmdbLinkingService.RemoveAllMovieLinksForEpisode(episode.AniDB_EpisodeID, body?.Purge ?? false);
@@ -671,8 +658,8 @@ public class EpisodeController : BaseController
     [HttpGet("{episodeID}/TMDB/Episode")]
     public ActionResult<List<TmdbEpisode>> GetTmdbEpisodesByEpisodeID(
         [FromRoute, Range(1, int.MaxValue)] int episodeID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbEpisode.IncludeDetails> include = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage> language = null
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbEpisode.IncludeDetails>? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
         var episode = _animeEpisodes.GetByID(episodeID);
@@ -812,7 +799,7 @@ public class EpisodeController : BaseController
             return new Image(preferredImage);
 
         var images = ((IWithImages)episode).GetImages(new() { ImageType = imageEntityType }).ToDto();
-        return imageEntityType switch
+        var image = imageEntityType switch
         {
             ImageEntityType.Primary => images.Posters.FirstOrDefault(),
             ImageEntityType.Banner => images.Banners.FirstOrDefault(),
@@ -821,6 +808,10 @@ public class EpisodeController : BaseController
             ImageEntityType.Disc => images.Discs.FirstOrDefault(),
             _ => null,
         };
+        if (image is null)
+            return NotFound("Default image for episode not found.");
+
+        return image;
     }
 
     /// <summary>

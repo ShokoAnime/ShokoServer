@@ -3,20 +3,13 @@ using System.Linq;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
-
-using AbstractAnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
-using AbstractEpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
-using AbstractYearlySeason = Shoko.Abstractions.Metadata.Enums.YearlySeason;
-using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
-using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
-using ImageEntityType = Shoko.Abstractions.Metadata.Enums.ImageEntityType;
-using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 
 namespace Shoko.Server.API.v3.Helpers;
 
@@ -32,33 +25,7 @@ public static class APIv3_Extensions
             _ => CreatorRoleType.Staff,
         };
 
-    public static AnimeType ToV3Dto(this AbstractAnimeType animeType)
-        => animeType switch
-        {
-            AbstractAnimeType.TVSeries => AnimeType.TV,
-            AbstractAnimeType.Movie => AnimeType.Movie,
-            AbstractAnimeType.OVA => AnimeType.OVA,
-            AbstractAnimeType.TVSpecial => AnimeType.TVSpecial,
-            AbstractAnimeType.Web => AnimeType.Web,
-            AbstractAnimeType.Other => AnimeType.Other,
-            AbstractAnimeType.MusicVideo => AnimeType.MusicVideo,
-            _ => AnimeType.Unknown,
-        };
-
-
-    internal static EpisodeType ToV3Dto(this AbstractEpisodeType episodeType)
-        => episodeType switch
-        {
-            AbstractEpisodeType.Episode => EpisodeType.Episode,
-            AbstractEpisodeType.Special => EpisodeType.Special,
-            AbstractEpisodeType.Parody => EpisodeType.Parody,
-            AbstractEpisodeType.Credits => EpisodeType.Credits,
-            AbstractEpisodeType.Trailer => EpisodeType.Trailer,
-            AbstractEpisodeType.Other => EpisodeType.Other,
-            _ => EpisodeType.Unknown,
-        };
-
-    public static List<SeasonWithYear> ToV3Dto(this IEnumerable<(int Year, AbstractYearlySeason Season)> seasons)
+    public static List<SeasonWithYear> ToV3Dto(this IEnumerable<(int Year, YearlySeason Season)> seasons)
         => seasons
             .Select(season => new SeasonWithYear(season.Year, season.Season))
             .ToList();

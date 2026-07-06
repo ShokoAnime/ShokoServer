@@ -9,6 +9,7 @@ using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
@@ -24,7 +25,6 @@ using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
 using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
-using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -130,7 +130,7 @@ public class Series : BaseModel
     {
         var anime = ser.AniDB_Anime ??
             throw new NullReferenceException($"Unable to get AniDB Anime {ser.AniDB_ID} for AnimeSeries {ser.AnimeSeriesID}");
-        var animeType = anime.AnimeType.ToV3Dto();
+        var animeType = anime.AnimeType;
         var allEpisodes = ser.AllAnimeEpisodes;
         var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userId, ser.AnimeSeriesID);
         var tmdbMovieXRefs = ser.TmdbMovieCrossReferences;
@@ -163,7 +163,7 @@ public class Series : BaseModel
         Description = ser.PreferredOverview?.Value ?? string.Empty;
         IsFavorite = userData?.IsFavorite ?? false;
         Images = ((IWithImages)ser).GetBestImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
-        AirsOn = animeType == AnimeType.TV || animeType == AnimeType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
+        AirsOn = animeType is AnimeType.TV or AnimeType.Web ? GetAirsOnDaysOfWeek(allEpisodes) : [];
         YearlySeasons = anime.YearlySeasons
             .Select(x => new SeasonWithYear(x.Year, x.Season))
             .ToList();

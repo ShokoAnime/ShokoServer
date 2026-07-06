@@ -46,11 +46,7 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
-using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 
-#pragma warning disable CS0612 // Type or member is obsolete
-#pragma warning disable CS0618 // Type or member is obsolete
-#pragma warning disable CA1822
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -86,7 +82,7 @@ public class SeriesController : BaseController
     private readonly IVideoRelocationService _relocationService;
 
     private readonly IJobFactory _jobFactory;
-    private readonly AniDB_AnimeRepository _anidbAnimes;
+    private readonly AniDB_AnimeRepository _anidbAnime;
     private readonly AniDB_Anime_RelationRepository _anidbAnimeRelations;
     private readonly AniDB_Anime_SimilarRepository _anidbAnimeSimilar;
     private readonly AniDB_EpisodeRepository _anidbEpisodes;
@@ -120,7 +116,7 @@ public class SeriesController : BaseController
         IVideoReleaseService videoReleaseService,
         IVideoRelocationService relocationService,
         IJobFactory jobFactory,
-        AniDB_AnimeRepository anidbAnimes,
+        AniDB_AnimeRepository anidbAnime,
         AniDB_Anime_RelationRepository anidbAnimeRelations,
         AniDB_Anime_SimilarRepository anidbAnimeSimilar,
         AniDB_EpisodeRepository anidbEpisodes,
@@ -153,7 +149,7 @@ public class SeriesController : BaseController
         _videoReleaseService = videoReleaseService;
         _relocationService = relocationService;
         _jobFactory = jobFactory;
-        _anidbAnimes = anidbAnimes;
+        _anidbAnime = anidbAnime;
         _anidbAnimeRelations = anidbAnimeRelations;
         _anidbAnimeSimilar = anidbAnimeSimilar;
         _anidbEpisodes = anidbEpisodes;
@@ -470,7 +466,7 @@ public class SeriesController : BaseController
             .Concat(_anidbAnimeRelations.GetByRelatedAnimeID(series.AniDB_ID).OfType<IRelatedMetadata>().Select(a => a.Reversed))
             .Distinct()
             .Select(relation => (relation, relatedSeries: _animeSeries.GetByAnimeID(relation.RelatedID)))
-            .Where(tuple => tuple.relatedSeries != null)
+            .Where(tuple => tuple.relatedSeries is not null)
             .OrderBy(tuple => tuple.relation.BaseID)
             .ThenBy(tuple => tuple.relation.RelatedID)
             .ThenBy(tuple => tuple.relation.RelationType)
@@ -581,7 +577,7 @@ public class SeriesController : BaseController
     {
         startsWith = startsWith.ToLowerInvariant();
         var user = User;
-        return _anidbAnimes.GetAll()
+        return _anidbAnime.GetAll()
             .Select(anime => (anime, animeTitle: anime.Title.ToLowerInvariant()))
             .Where(tuple =>
             {
@@ -887,7 +883,7 @@ public class SeriesController : BaseController
 
         if (showAll)
         {
-            return _anidbAnimes.GetAll()
+            return _anidbAnime.GetAll()
                 .Where(anime => user.AllowedAnime(anime) && !watchedSeriesSet.Contains(anime.AnimeID) && (includeRestricted || !anime.IsRestricted))
                 .ToDictionary<AniDB_Anime, int, (AniDB_Anime, AnimeSeries?)>(anime => anime.AnimeID,
                     anime => (anime, null));
@@ -910,7 +906,7 @@ public class SeriesController : BaseController
     [HttpGet("AniDB/{anidbID}")]
     public ActionResult<AnidbAnime> GetSeriesAnidbByAnidbID([FromRoute] int anidbID)
     {
-        var anidb = _anidbAnimes.GetByAnimeID(anidbID);
+        var anidb = _anidbAnime.GetByAnimeID(anidbID);
         if (anidb == null)
         {
             return NotFound(AnidbNotFoundForAnidbID);
@@ -932,7 +928,7 @@ public class SeriesController : BaseController
     [HttpGet("AniDB/{anidbID}/Similar")]
     public ActionResult<List<AnidbAnime>> GetAnidbSimilarByAnidbID([FromRoute] int anidbID)
     {
-        var anidb = _anidbAnimes.GetByAnimeID(anidbID);
+        var anidb = _anidbAnime.GetByAnimeID(anidbID);
         if (anidb == null)
         {
             return NotFound(AnidbNotFoundForAnidbID);
@@ -956,7 +952,7 @@ public class SeriesController : BaseController
     [HttpGet("AniDB/{anidbID}/Related")]
     public ActionResult<List<AnidbAnime>> GetAnidbRelatedByAnidbID([FromRoute] int anidbID)
     {
-        var anidb = _anidbAnimes.GetByAnimeID(anidbID);
+        var anidb = _anidbAnime.GetByAnimeID(anidbID);
         if (anidb == null)
         {
             return NotFound(AnidbNotFoundForAnidbID);
@@ -980,7 +976,7 @@ public class SeriesController : BaseController
     [HttpGet("AniDB/{anidbID}/Relations")]
     public ActionResult<List<SeriesRelation>> GetAnidbRelationsByAnidbID([FromRoute] int anidbID)
     {
-        var anidb = _anidbAnimes.GetByAnimeID(anidbID);
+        var anidb = _anidbAnime.GetByAnimeID(anidbID);
         if (anidb == null)
         {
             return NotFound(AnidbNotFoundForAnidbID);
@@ -1258,7 +1254,7 @@ public class SeriesController : BaseController
 
         foreach (var episodeID in episodeIDs)
         {
-            if (body != null && body.ID > 0)
+            if (body is not null && body.ID > 0)
                 await _tmdbLinkingService.RemoveMovieLinkForEpisode(episodeID, body.ID, body.Purge);
             else
                 await _tmdbLinkingService.RemoveAllMovieLinksForEpisode(episodeID, body?.Purge ?? false);
@@ -1486,7 +1482,7 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        if (body != null && body.ID > 0)
+        if (body is not null && body.ID > 0)
             await _tmdbLinkingService.RemoveShowLink(series.AniDB_ID, body.ID, body.Purge);
         else
             await _tmdbLinkingService.RemoveAllShowLinksForAnime(series.AniDB_ID, body?.Purge ?? false);
@@ -2122,7 +2118,6 @@ public class SeriesController : BaseController
         bool fuzzy)
     {
         var user = User;
-        var hasSearch = !string.IsNullOrWhiteSpace(search);
         var episodes = series.AllAnimeEpisodes
             .AsParallel()
             .Select(episode => new { Shoko = episode, AniDB = episode?.AniDB_Episode })
@@ -2146,12 +2141,8 @@ public class SeriesController : BaseController
                 }
 
                 // Filter by episode type, if specified
-                if (type != null && type.Count > 0)
-                {
-                    var mappedType = anidb.EpisodeType.ToV3Dto();
-                    if (!type.Contains(mappedType))
-                        return false;
-                }
+                if (type is not null && type.Count > 0 && !type.Contains(anidb.EpisodeType))
+                    return false;
 
                 // Filter by availability, if specified
                 if (includeMissing != IncludeOnlyFilter.True)
@@ -2190,7 +2181,7 @@ public class SeriesController : BaseController
                     // If we should hide watched episodes and the episode is watched, then hide it.
                     // Or if we should only show watched episodes and the episode is not watched, then hide it.
                     var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
-                    var isWatched = shoko.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
+                    var isWatched = shoko.GetUserRecord(user.JMMUserID)?.WatchedDate is not null;
                     if (shouldHideWatched == isWatched)
                         return false;
                 }
@@ -2208,7 +2199,7 @@ public class SeriesController : BaseController
 
                 return true;
             });
-        if (hasSearch)
+        if (!string.IsNullOrWhiteSpace(search))
         {
             var languages = SettingsProvider.GetSettings()
                 .Language.EpisodeTitleLanguageOrder
@@ -2219,7 +2210,7 @@ public class SeriesController : BaseController
                 .Search(
                     search,
                     ep => ep.AniDB!.GetTitles()
-                        .Where(title => title != null && languages.Contains(title.Language))
+                        .Where(title => title is not null && languages.Contains(title.Language))
                         .Select(title => title.Title)
                         .Append(ep.Shoko.Title)
                         .Distinct()
@@ -2266,7 +2257,7 @@ public class SeriesController : BaseController
         [FromQuery] string? search = null,
         [FromQuery] bool fuzzy = true)
     {
-        var anidbSeries = _anidbAnimes.GetByAnimeID(anidbID);
+        var anidbSeries = _anidbAnime.GetByAnimeID(anidbID);
         if (anidbSeries == null)
             return NotFound(AnidbNotFoundForAnidbID);
 
@@ -2274,7 +2265,6 @@ public class SeriesController : BaseController
             return Forbid(AnidbForbiddenForUser);
 
         var user = User;
-        var hasSearch = !string.IsNullOrWhiteSpace(search);
         var episodes = anidbSeries.AniDBEpisodes
             .AsParallel()
             .Select(episode => new { Shoko = _animeEpisodes.GetByAniDBEpisodeID(episode.EpisodeID), AniDB = episode })
@@ -2299,12 +2289,8 @@ public class SeriesController : BaseController
                 }
 
                 // Filter by episode type, if specified
-                if (type != null && type.Count > 0)
-                {
-                    var mappedType = anidb.EpisodeType.ToV3Dto();
-                    if (!type.Contains(mappedType))
-                        return false;
-                }
+                if (type is not null && type.Count > 0 && !type.Contains(anidb.EpisodeType))
+                    return false;
 
                 // Filter by availability, if specified
                 if (includeMissing != IncludeOnlyFilter.True)
@@ -2332,14 +2318,14 @@ public class SeriesController : BaseController
                     // If we should hide watched episodes and the episode is watched, then hide it.
                     // Or if we should only show watched episodes and the episode is not watched, then hide it.
                     var shouldHideWatched = includeWatched == IncludeOnlyFilter.False;
-                    var isWatched = shoko?.GetUserRecord(user.JMMUserID)?.WatchedDate != null;
+                    var isWatched = shoko?.GetUserRecord(user.JMMUserID)?.WatchedDate is not null;
                     if (shouldHideWatched == isWatched)
                         return false;
                 }
 
                 return true;
             });
-        if (hasSearch)
+        if (!string.IsNullOrWhiteSpace(search))
         {
             var languages = SettingsProvider.GetSettings()
                 .Language.SeriesTitleLanguageOrder
@@ -2350,7 +2336,7 @@ public class SeriesController : BaseController
                 .Search(
                     search,
                     ep => ep.AniDB.GetTitles()
-                        .Where(title => title != null && languages.Contains(title.Language))
+                        .Where(title => title is not null && languages.Contains(title.Language))
                         .Select(title => title.Title)
                         .Append(ep.Shoko?.Title)
                         .WhereNotNullOrDefault()
@@ -2998,15 +2984,15 @@ public class SeriesController : BaseController
         // We're searching using the anime ID, so first check the local db then the title cache for a match.
         if (searchById && int.TryParse(query, out var animeID))
         {
-            var anime = _anidbAnimes.GetByAnimeID(animeID);
-            if (anime != null)
+            var anime = _anidbAnime.GetByAnimeID(animeID);
+            if (anime is not null)
             {
                 return new(1, [new(anime, includeTitles: includeTitles)]);
             }
 
             // Check the title cache for a match.
             var result = _titleHelper.SearchAnimeID(animeID);
-            if (result != null)
+            if (result is not null)
             {
                 return new(1, [new(result, includeTitles: includeTitles)]);
             }
@@ -3109,7 +3095,7 @@ public class SeriesController : BaseController
             {
                 if (a.Path == null) return false;
                 var dir = Path.GetDirectoryName(a.Path);
-                return dir != null && dir.EndsWith(query, StringComparison.OrdinalIgnoreCase);
+                return dir is not null && dir.EndsWith(query, StringComparison.OrdinalIgnoreCase);
             })
             .SelectMany(a => a.VideoLocal?.AnimeEpisodes ?? Enumerable.Empty<AnimeEpisode>())
             .DistinctBy(a => a.AnimeSeriesID)

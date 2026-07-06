@@ -151,7 +151,7 @@ public class AniDB_Anime : IAnidbAnime
     {
         AnimeType.Movie => "movie",
         AnimeType.OVA => "ova",
-        AnimeType.TVSeries => "tv series",
+        AnimeType.TV => "tv series",
         AnimeType.TVSpecial => "tv special",
         AnimeType.Web => "web",
         AnimeType.Other => "other",

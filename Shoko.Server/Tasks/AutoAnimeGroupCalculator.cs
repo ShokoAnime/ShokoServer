@@ -452,7 +452,7 @@ public class AutoAnimeGroupCalculator
 
                 switch (AnimeNode.Type)
                 {
-                    case AnimeType.TVSeries:
+                    case AnimeType.TV:
                         score += 3;
                         break;
                     case AnimeType.Web:

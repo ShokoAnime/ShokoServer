@@ -29,7 +29,12 @@ public enum AnimeType : int
     /// <summary>
     /// A TV series. A series of episodes that are broadcast on TV.
     /// </summary>
-    TVSeries = 2,
+    TV = 2,
+
+    /// <summary>
+    /// Legacy compat. alias for <see cref="TV"/>.
+    /// </summary>
+    TVSeries = TV,
 
     /// <summary>
     /// A TV special. A special episode of a TV series.

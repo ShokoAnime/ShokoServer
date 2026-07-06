@@ -39,7 +39,7 @@ public class Overview
     [Required]
     public string Source { get; init; }
 
-    public Overview(IText overview, string mainDescription = null, IText preferredDescription = null)
+    public Overview(IText overview, string? mainDescription = null, IText? preferredDescription = null)
     {
         Value = overview.Value;
         Language = overview.Language.GetString();

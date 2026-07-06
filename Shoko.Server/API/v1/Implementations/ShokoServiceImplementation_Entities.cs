@@ -179,7 +179,7 @@ public partial class ShokoServiceImplementation
                     if (!user.AllowedSeries(ser)) continue;
 
                     var anime = ser.AniDB_Anime;
-                    var useSeries = seriesWatching.Count == 0 || anime.AnimeType is not AnimeType.TVSeries || !anime.RelatedAnime.Any(a =>
+                    var useSeries = seriesWatching.Count == 0 || anime.AnimeType is not AnimeType.TV || !anime.RelatedAnime.Any(a =>
                         a.RelationType.ToLower().Trim().Equals("sequel") || a.RelationType.ToLower().Trim().Equals("prequel"));
                     if (!useSeries) continue;
 
@@ -191,7 +191,7 @@ public partial class ShokoServiceImplementation
                     // Lets only return the specified amount
                     if (retEps.Count == maxRecords) return retEps;
 
-                    if (anime.AnimeType is AnimeType.TVSeries) seriesWatching.Add(ser.AniDB_ID);
+                    if (anime.AnimeType is AnimeType.TV) seriesWatching.Add(ser.AniDB_ID);
                 }
             }
         }

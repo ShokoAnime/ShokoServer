@@ -9,7 +9,6 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
@@ -43,7 +42,7 @@ public class AnidbAnime
     /// <summary>
     /// Series type. Series, OVA, Movie, etc
     /// </summary>
-    [Required, JsonConverter(typeof(StringEnumConverter))]
+    [Required]
     public AnimeType Type { get; set; }
 
     /// <summary>
@@ -116,7 +115,7 @@ public class AnidbAnime
             ArgumentNullException.ThrowIfNull(anime);
             series ??= RepoFactory.AnimeSeries.GetByAnimeID(animeId);
             ShokoID = series?.AnimeSeriesID;
-            Type = anime.AnimeType.ToV3Dto();
+            Type = anime.AnimeType;
             Title = series?.Title ?? anime.Title;
             Titles = includeTitles
                 ? anime.Titles.Select(title => new Title(title, anime.MainTitle, Title)).ToList()
