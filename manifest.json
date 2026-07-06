@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.357",
+      "tag": "v6.0.0-dev.357",
+      "commit": "86da9aba636346d4ebd6a8626e391e21c31faed8",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.357/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-06T03:12:20Z",
+      "releaseNotes": "\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.68**.\n"
+    },
+    {
       "version": "6.0.0.356",
       "tag": "v6.0.0-dev.356",
       "commit": "1098c94ff664ddaac0aff5a6766dab5e77614d73",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.328/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-26T05:24:56Z",
       "releaseNotes": "\n`misc`: **Improve Performance and Simplify Filtering a bit**.\n"
-    },
-    {
-      "version": "6.0.0.327",
-      "tag": "v6.0.0-dev.327",
-      "commit": "da1acab5fd58e0aca0085ea8d3842e4fb10dd2cb",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.327/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-26T05:00:38Z",
-      "releaseNotes": "\n`fix`: **Add back semaphore to restrict the number of concurrent filtering runs**.\n\n`chore`: **Sort and remove unnecessary imports**.\n"
     }
   ]
 }
