@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -12,19 +11,13 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Enums;
-using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Release;
-using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
-using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Settings;
 
 namespace Shoko.Server.Providers.AniDB.Release;
 
