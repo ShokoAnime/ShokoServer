@@ -23,6 +23,7 @@ namespace Shoko.Server.Providers.TMDB;
 
 public partial class TmdbSearchService : ITmdbSearchService
 {
+    private const string AnimationGenre = "animation";
 
     /// <summary>
     /// This regex might save the day if the local database doesn't contain any prequel metadata, but the title itself contains a suffix that indicates it's a sequel of sorts.
@@ -114,7 +115,12 @@ public partial class TmdbSearchService : ITmdbSearchService
         }
 
         var skipCount = startIndex - (startPage - 1) * actualPageSize;
-        var pagedResults = results.Skip(skipCount).Take(pageSize).ToList();
+        // Stable sort so genuine anime bubbles above unrelated live-action/adult results that only
+        // matched on title text — TMDB's own relevance ranking doesn't account for genre at all.
+        // Nothing is filtered out; ties keep TMDB's original relative order.
+        var pagedResults = results.Skip(skipCount).Take(pageSize)
+            .OrderByDescending(m => m.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase))
+            .ToList();
 
         _logger.LogTrace(
             "Got {Count} movies from {Results} total movies at {IndexRange} across {PageRange}.",
@@ -329,14 +335,17 @@ public partial class TmdbSearchService : ITmdbSearchService
                 break;
         }
 
-        // If all GetMovieAsync calls returned null (transient outage), fall back to the first candidate
-        // at lowest confidence rather than returning null when TMDB did return search results.
+        // If all GetMovieAsync calls returned null (transient outage), there's no title/date data to
+        // score against, so we can't tell this candidate apart from an unrelated one — don't guess.
         if (scored.Count == 0)
-            return new(anime, episode, candidates[0]) { IsRemote = true };
+            return null;
 
         var best = scored
             .OrderBy(x => ShowMatchPriority(x.rating))
             .First();
+
+        if (!IsAcceptableAutoMatch(best.rating))
+            return null;
 
         _logger.LogInformation(
             "Best match for \"{Query}\": {MovieName} ({ID}) rating={Rating}",
@@ -379,7 +388,12 @@ public partial class TmdbSearchService : ITmdbSearchService
         }
 
         var skipCount = startIndex - (startPage - 1) * actualPageSize;
-        var pagedResults = results.Skip(skipCount).Take(pageSize).ToList();
+        // Stable sort so genuine anime bubbles above unrelated live-action/adult results that only
+        // matched on title text — TMDB's own relevance ranking doesn't account for genre at all.
+        // Nothing is filtered out; ties keep TMDB's original relative order.
+        var pagedResults = results.Skip(skipCount).Take(pageSize)
+            .OrderByDescending(s => s.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase))
+            .ToList();
 
         _logger.LogTrace(
             "Got {Count} shows from {Results} total shows at {IndexRange} across {PageRange}.",
@@ -710,10 +724,10 @@ public partial class TmdbSearchService : ITmdbSearchService
                 break;
         }
 
-        // If all GetTvShowAsync calls returned null (transient outage), fall back to the first candidate
-        // at lowest confidence rather than returning null when TMDB did return search results.
+        // If all GetTvShowAsync calls returned null (transient outage), there's no title/date data to
+        // score against, so we can't tell this candidate apart from an unrelated one — don't guess.
         if (scored.Count == 0)
-            return new(anime, candidates[0]) { IsRemote = true };
+            return null;
 
         // Kinda values (TitleKindaMatches=7, DateAndTitleKindaMatches=8) are numerically above
         // FirstAvailable=5, so sort by an ordinal priority mapping instead of the raw enum value.
@@ -721,6 +735,9 @@ public partial class TmdbSearchService : ITmdbSearchService
             .OrderBy(x => ShowMatchPriority(x.rating))
             .ThenBy(x => x.bestSeasonEpisodeDiff)
             .First();
+
+        if (!IsAcceptableAutoMatch(best.rating))
+            return null;
 
         _logger.LogInformation(
             "Best match for \"{Query}\": {ShowName} ({ID}) rating={Rating}",
@@ -747,13 +764,19 @@ public partial class TmdbSearchService : ITmdbSearchService
         _                                    => 6,
     };
 
+    // FirstAvailable means no title or date correlation at all, only a shared genre tag. Auto-linking
+    // those produced false matches, such as unrelated adult content genre-tagged as animation.
+    // TmdbLinkingService's episode-level matching already treats FirstAvailable as no match, so this
+    // applies the same floor for show and movie auto-matching.
+    internal static bool IsAcceptableAutoMatch(MatchRating rating) => rating is not MatchRating.FirstAvailable;
+
     private static void CollectCandidates(List<SearchTv> candidates, List<SearchTv> results, HashSet<int> seen, int candidateCount)
     {
         foreach (var result in results)
         {
             if (candidates.Count >= candidateCount) break;
             if (!seen.Add(result.Id)) continue;
-            if (!result.GetGenres().Contains("animation", StringComparer.OrdinalIgnoreCase)) continue;
+            if (!result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase)) continue;
             candidates.Add(result);
         }
     }
@@ -764,7 +787,7 @@ public partial class TmdbSearchService : ITmdbSearchService
         {
             if (candidates.Count >= candidateCount) break;
             if (!seen.Add(result.Id)) continue;
-            if (!result.GetGenres().Contains("animation", StringComparer.OrdinalIgnoreCase)) continue;
+            if (!result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase)) continue;
             candidates.Add(result);
         }
     }
