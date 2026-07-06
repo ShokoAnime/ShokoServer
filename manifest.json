@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.355",
+      "tag": "v6.0.0-dev.355",
+      "commit": "288ed5235546f9ec1c1c1e2493fc34055debb37f",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.355/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-06T03:03:46Z",
+      "releaseNotes": "\n`fix` (`tmdb`): **Improve episode title matching for non-English content** ([#1372](https://github.com/ShokoAnime/ShokoServer/pull/1372)):\n\n**Non-English title matching**:\n- Expands the TMDB episode title candidates from `en-US` only to `en-US` plus the show's `OriginalLanguageCode` (already stored on `TMDB_Show`), so Japanese-only TMDB episodes can match by title instead of falling through to date-only matching. Titles in other languages are excluded to prevent false-positive fuzzy matches.\n- Template titles (\"Episode N\") are excluded from title candidates in every language — TMDB stores these placeholders per language, but AniDB only stores them in English so they're already filtered on the AniDB side.\n- Adds a language fallback for the AniDB episode title lookup: when no English title exists, falls back to the anime's primary/official language (Romaji→Japanese, Pinyin→ChineseSimplified, etc.), rather than skipping title matching entirely.\n\n**Episode matching accuracy fixes**:\n- **Episode order reconciliation**: when two AniDB-adjacent episodes both matched on weak evidence alone (date-only or last-resort positional), a coincidental TMDB air-date mismatch could swap them. `ReconcileEpisodeOrderInversions` detects and corrects these after matching, iterating to convergence for runs of 3+ reversed episodes, without disturbing true adjacency between trusted (title-corroborated) matches.\n- **Generic placeholder titles**: AniDB's auto-generated placeholder titles (\"Episode 5\", \"Episode S1\", \"Episode C2\", ...) are now excluded from title search for every episode type, not just normal episodes. If both sides only have a placeholder title, the episode isn't left unmatched — title search is simply skipped and the existing air-date and positional-fallback tiers (`TryAirDateMatch` / `FirstAvailable`) still apply, same as before this change.\n- **Punctuation normalization**: `~` and `|` are normalized the same as the wave dash and `/`, so decorative/joining-character differences between AniDB and TMDB titles don't silently downgrade an otherwise-identical title to a lower match confidence tier.\n- **Greedy candidate starvation**: `TryFindAnidbAndTmdbMatch` now also reports a confidence score (title distance plus air-date corroboration), and each matching pass orders its episodes by that score before matching so the strongest match gets first pick of a shared TMDB episode instead of whichever AniDB episode happened to be processed first. `RankByConfidence` computes this ranking once per pass and reuses the cached match in the pass loop when its chosen TMDB candidate hasn't since been claimed by an earlier (stronger) episode, instead of running the full title-search/air-date match twice per episode.\n"
+    },
+    {
       "version": "6.0.0.354",
       "tag": "v6.0.0-dev.354",
       "commit": "8db2b190719528aed4c00c46cc26901c1563ad55",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.326/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-26T04:43:54Z",
       "releaseNotes": "\n`misc`: **Missing Files and Performance Improvements**.\n"
-    },
-    {
-      "version": "6.0.0.325",
-      "tag": "v6.0.0-dev.325",
-      "commit": "41ebb2f9a38a0cac9cd7212d34e1fc327e86722f",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.325/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-26T03:53:14Z",
-      "releaseNotes": "\n`chore`: **Remove legacy `FileName` field from file↔episode cross-reference**.\n\n`fix`: **More forgiving xref percentage groupings**.\n"
     }
   ]
 }
