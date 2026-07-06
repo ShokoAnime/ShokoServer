@@ -300,15 +300,6 @@ public class Group : BaseModel
 
             public CreateOrUpdateGroupBody() { }
 
-            public CreateOrUpdateGroupBody(AnimeGroup group)
-            {
-                Name = group.GroupName;
-                ParentGroupID = group.AnimeGroupParentID;
-                PreferredSeriesID = group.DefaultAnimeSeriesID;
-                SeriesIDs = group.Series.Select(series => series.AnimeSeriesID).ToList();
-                GroupIDs = group.Children.Select(group => group.AnimeGroupID).ToList();
-            }
-
             public Group? MergeWithExisting(AnimeGroup? group, int userID, ModelStateDictionary modelState)
             {
                 group ??= new() { DateTimeCreated = DateTime.Now, DateTimeUpdated = DateTime.Now };

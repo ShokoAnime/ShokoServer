@@ -216,12 +216,12 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
             return Forbid(GroupForbiddenForUser);
 
         // Patch the body with the existing model.
-        var body = new Group.Input.CreateOrUpdateGroupBody(animeGroup);
+        var body = new Group.Input.CreateOrUpdateGroupBody();
         patchDocument.ApplyTo(body, ModelState);
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState);
+        var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState)!;
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
