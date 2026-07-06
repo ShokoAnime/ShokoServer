@@ -1,4 +1,5 @@
-﻿namespace Shoko.Server.API.v1.Models.Metro;
+#nullable disable
+namespace Shoko.Server.API.v1.Models.Metro;
 
 public class Metro_AniDB_Character
 {

@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
+#nullable disable
 namespace Shoko.Server.API.v1.Models.Metro;
 
 public class Metro_Anime_Detail

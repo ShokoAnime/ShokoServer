@@ -127,7 +127,6 @@ public partial class TmdbController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var hasSearch = !string.IsNullOrWhiteSpace(search);
         var movies = _tmdbMovies.GetAll()
             .AsParallel()
             .Where(movie =>
@@ -150,7 +149,7 @@ public partial class TmdbController : BaseController
 
                 return true;
             });
-        if (hasSearch)
+        if (!string.IsNullOrWhiteSpace(search))
         {
             var languages = SettingsProvider.GetSettings()
                 .Language.DescriptionLanguageOrder
@@ -967,7 +966,6 @@ public partial class TmdbController : BaseController
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var hasSearch = !string.IsNullOrWhiteSpace(search);
         var shows = _tmdbShows.GetAll()
             .AsParallel()
             .Where(show =>
@@ -982,7 +980,7 @@ public partial class TmdbController : BaseController
 
                 return true;
             });
-        if (hasSearch)
+        if (!string.IsNullOrWhiteSpace(search))
         {
             var languages = SettingsProvider.GetSettings()
                 .Language.DescriptionLanguageOrder
@@ -2930,7 +2928,7 @@ public partial class TmdbController : BaseController
         {
             AnimeType.Movie => "MV",
             AnimeType.OVA => "VA",
-            AnimeType.TVSeries => "TV",
+            AnimeType.TV => "TV",
             AnimeType.TVSpecial => "SP",
             AnimeType.Web => "WB",
             AnimeType.Other => "OT",

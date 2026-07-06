@@ -128,7 +128,7 @@ public class DashboardController(
             (decimal)watchedEpisodeRecords.Sum(r =>
             {
                 if (anidbEpIdByAnimeEpId.TryGetValue(r.AnimeEpisodeID, out var anidbEpId) &&
-                    firstFileByAnidbEpId.TryGetValue(anidbEpId, out var file) && file != null)
+                    firstFileByAnidbEpId.TryGetValue(anidbEpId, out var file) && file is not null)
                     return file.DurationTimeSpan.TotalHours;
                 return new TimeSpan(0, 0, episodeLengthByAnimeEpId.GetValueOrDefault(r.AnimeEpisodeID)).TotalHours;
             }),
@@ -217,9 +217,9 @@ public class DashboardController(
         var tags = _anidbAnimeTags.GetAllForLocalSeries()
             .GroupBy(xref => xref.TagID)
             .Select(xrefList => (tag: _anidbTags.GetByTagID(xrefList.Key), weight: xrefList.Count()))
-            .Where(tuple => tuple.tag != null && User.AllowedTag(tuple.tag))
+            .Where(tuple => tuple.tag is not null && User.AllowedTag(tuple.tag))
             .OrderByDescending(tuple => tuple.weight)
-            .Select(tuple => new Tag(tuple.tag, true) { Weight = tuple.weight })
+            .Select(tuple => new Tag(tuple.tag!, true) { Weight = tuple.weight })
             .ToList();
         var tagDict = tags
             .ToDictionary(tag => tag.Name.ToLowerInvariant());
@@ -250,7 +250,7 @@ public class DashboardController(
 
         return new Dashboard.SeriesSummary
         {
-            Series = series.GetValueOrDefault(AnimeType.TVSeries, 0),
+            Series = series.GetValueOrDefault(AnimeType.TV, 0),
             Special = series.GetValueOrDefault(AnimeType.TVSpecial, 0),
             Movie = series.GetValueOrDefault(AnimeType.Movie, 0),
             OVA = series.GetValueOrDefault(AnimeType.OVA, 0),
@@ -285,10 +285,11 @@ public class DashboardController(
         var seriesDict = episodeList
             .DistinctBy(tuple => tuple.episode.AnimeSeriesID)
             .Select(tuple => tuple.episode.AnimeSeries)
-            .Where(series => series != null && user.AllowedSeries(series))
+            .WhereNotNull()
+            .Where(user.AllowedSeries)
             .ToDictionary(series => series.AnimeSeriesID);
         var animeDict = seriesDict.Values
-            .ToDictionary(series => series.AnimeSeriesID, series => series.AniDB_Anime);
+            .ToDictionary(series => series.AnimeSeriesID, series => series.AniDB_Anime!);
         return episodeList
             .Where(tuple =>
             {
@@ -412,8 +413,8 @@ public class DashboardController(
                 return (series, episode, video, videoUserData);
             })
             .Where(tuple => tuple.episode is not null && tuple.video is not null)
-            .OrderByDescending(tuple => tuple.videoUserData.LastUpdated)
-            .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series, file: tuple.video), page, pageSize);
+            .OrderByDescending(tuple => tuple.videoUserData!.LastUpdated)
+            .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode!, tuple.series, file: tuple.video), page, pageSize);
     }
 
     /// <summary>
@@ -493,7 +494,7 @@ public class DashboardController(
             })
             .Where(tuple => tuple.episode is not null)
             .OrderByDescending(tuple => tuple.orderDate)
-            .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode, tuple.series, file: tuple.video), page, pageSize);
+            .ToListResult(tuple => GetEpisodeDetailsForSeriesAndEpisode(user, tuple.episode!, tuple.series, file: tuple.video), page, pageSize);
     }
 
     [NonAction]
@@ -501,13 +502,13 @@ public class DashboardController(
         JMMUser user,
         AnimeEpisode episode,
         AnimeSeries series,
-        AniDB_Anime anime = null,
-        VideoLocal file = null
+        AniDB_Anime? anime = null,
+        VideoLocal? file = null
         )
     {
-        VideoLocal_User userRecord;
-        var animeEpisode = episode.AniDB_Episode;
-        anime ??= series.AniDB_Anime;
+        VideoLocal_User? userRecord;
+        var animeEpisode = episode.AniDB_Episode!;
+        anime ??= series.AniDB_Anime!;
 
         if (file is not null)
         {
@@ -563,6 +564,7 @@ public class DashboardController(
             .ToList();
         var animeDict = episodeList
             .Select(episode => _anidbAnimes.GetByAnimeID(episode.AnimeID))
+            .WhereNotNull()
             .Distinct()
             .ToDictionary(anime => anime.AnimeID);
         var seriesDict = animeDict.Values

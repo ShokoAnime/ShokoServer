@@ -323,6 +323,7 @@ public class VideoHashingService(
         var resolvedPath = File.ResolveLinkTarget(path, true)?.FullName;
         if (!string.IsNullOrEmpty(resolvedPath))
         {
+            resolvedPath = PlatformUtility.EnsureUsablePath(resolvedPath);
             logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
             if (!File.Exists(resolvedPath))
                 throw new FileNotFoundException($"Symbolic link points to file that does not exist: {resolvedPath}", resolvedPath);
@@ -398,6 +399,7 @@ public class VideoHashingService(
         }
         else
         {
+            resolvedPath = PlatformUtility.EnsureUsablePath(resolvedPath);
             logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
             if (!File.Exists(resolvedPath))
                 throw new FileNotFoundException($"Symbolic link points to file that does not exist: {resolvedPath}", resolvedPath);
@@ -423,6 +425,7 @@ public class VideoHashingService(
         var resolvedPath = File.ResolveLinkTarget(path, true)?.FullName;
         if (!string.IsNullOrEmpty(resolvedPath))
         {
+            resolvedPath = PlatformUtility.EnsureUsablePath(resolvedPath);
             logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
             if (!File.Exists(resolvedPath))
                 throw new FileNotFoundException($"Symbolic link points to file that does not exist: {resolvedPath}", resolvedPath);
@@ -447,6 +450,7 @@ public class VideoHashingService(
         var resolvedPath = File.ResolveLinkTarget(path, true)?.FullName;
         if (!string.IsNullOrEmpty(resolvedPath))
         {
+            resolvedPath = PlatformUtility.EnsureUsablePath(resolvedPath);
             logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
             if (!File.Exists(resolvedPath))
                 throw new FileNotFoundException($"Symbolic link points to file that does not exist: {resolvedPath}", resolvedPath);

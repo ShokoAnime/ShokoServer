@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Video.Events;
 
 namespace Shoko.Abstractions.Video.Release;
 

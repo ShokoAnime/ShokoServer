@@ -9,11 +9,8 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
-using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Settings;
-
-using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -210,7 +207,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
                     continue;
             }
 
-            if (seriesType is not null && !seriesType.Contains(anime.Type.ToV3Dto()))
+            if (seriesType is not null && !seriesType.Contains(anime.Type))
                 continue;
 
             image.Series = new(series.ID, series.Title);

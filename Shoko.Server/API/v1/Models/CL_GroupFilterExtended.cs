@@ -1,4 +1,5 @@
-﻿namespace Shoko.Server.API.v1.Models;
+#nullable disable
+namespace Shoko.Server.API.v1.Models;
 
 public class CL_GroupFilterExtended
 {

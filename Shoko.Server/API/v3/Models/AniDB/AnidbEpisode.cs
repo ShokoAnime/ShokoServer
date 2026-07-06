@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Shoko.Server.API.v3.Helpers;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
@@ -31,7 +30,7 @@ public class AnidbEpisode
     /// <summary>
     /// Episode Type
     /// </summary>
-    [Required, JsonConverter(typeof(StringEnumConverter))]
+    [Required]
     public EpisodeType Type { get; set; }
 
     /// <summary>
@@ -76,7 +75,7 @@ public class AnidbEpisode
         var titles = ep.GetTitles();
         ID = ep.EpisodeID;
         AnimeID = ep.AnimeID;
-        Type = ep.EpisodeType.ToV3Dto();
+        Type = ep.EpisodeType;
         EpisodeNumber = ep.EpisodeNumber;
         AirDate = ep.GetAirDateAsDate()?.ToDateOnly();
         Description = ep.Description;

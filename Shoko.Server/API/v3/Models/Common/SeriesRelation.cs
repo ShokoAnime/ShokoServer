@@ -39,8 +39,8 @@ public class SeriesRelation
     [Required]
     public string Source { get; set; }
 
-    public SeriesRelation(IRelatedMetadata relation, IShokoSeries series = null,
-        IShokoSeries relatedSeries = null)
+    public SeriesRelation(IRelatedMetadata relation, IShokoSeries? series = null,
+        IShokoSeries? relatedSeries = null)
     {
         series ??= RepoFactory.AnimeSeries.GetByAnimeID(relation.BaseID);
         relatedSeries ??= RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedID);

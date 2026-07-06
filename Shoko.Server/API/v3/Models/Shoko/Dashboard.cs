@@ -4,10 +4,10 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
-using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 
@@ -180,7 +180,7 @@ public static class Dashboard
             };
             Title = shokoEpisode?.Title ?? anidbEpisode.Title;
             Number = anidbEpisode.EpisodeNumber;
-            Type = anidbEpisode.Type.ToV3Dto();
+            Type = anidbEpisode.Type;
             AirDate = anidbEpisode.AirDate;
             Duration = video?.MediaInfo?.Duration ?? anidbEpisode.Runtime;
             ResumePosition = videoUserData?.ProgressPosition;
@@ -213,7 +213,7 @@ public static class Dashboard
         /// <summary>
         /// Episode type.
         /// </summary>
-        [Required, JsonConverter(typeof(StringEnumConverter))]
+        [Required]
         public EpisodeType Type { get; set; }
 
         /// <summary>

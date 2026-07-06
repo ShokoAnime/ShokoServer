@@ -14,7 +14,7 @@ public class WebUIFactory
 {
     public WebUI.WebUISeriesExtra GetWebUISeriesExtra(AnimeSeries series)
     {
-        var anime = series.AniDB_Anime;
+        var anime = series.AniDB_Anime!;
         var animeEpisodes = anime.AniDBEpisodes;
         var runtimeLength = GuessCorrectRuntimeLength(animeEpisodes);
         var cast = Series.GetCast(anime.AnimeID, [CreatorRoleType.Studio, CreatorRoleType.Producer]);
@@ -31,13 +31,13 @@ public class WebUIFactory
         return result;
     }
 
-    private static string GetFirstAiringSeason(AniDB_Anime anime)
+    private static string? GetFirstAiringSeason(AniDB_Anime anime)
     {
-        if (anime.AnimeType is not AnimeType.TVSeries and not AnimeType.Web)
+        if (anime.AnimeType is not AnimeType.TV and not AnimeType.Web)
             return null;
 
         var (year, season) = anime.YearlySeasons.FirstOrDefault();
-        return year == 0 ? null : $"{season} {year}";
+        return year is 0 ? null : $"{season} {year}";
     }
 
     private static TimeSpan? GuessCorrectRuntimeLength(IReadOnlyList<AniDB_Episode> episodes)
@@ -68,7 +68,7 @@ public class WebUIFactory
         var result = new WebUI.WebUIGroupExtra
         {
             ID = group.AnimeGroupID,
-            Type = anime.AnimeType.ToV3Dto(),
+            Type = anime.AnimeType,
             Rating = new Rating { Source = "AniDB", Value = anime.Rating, MaxValue = 1000, Votes = anime.VoteCount }
         };
         if (anime.AirDate is { } airDate && airDate != DateTime.MinValue)

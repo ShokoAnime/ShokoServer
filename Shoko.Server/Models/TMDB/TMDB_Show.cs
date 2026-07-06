@@ -625,7 +625,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
 
     IReadOnlyList<int> ISeries.ShokoSeriesIDs => CrossReferences.Select(xref => xref.AnimeSeries?.AnimeSeriesID).WhereNotNull().Distinct().ToList();
 
-    AnimeType ISeries.Type => AnimeType.TVSeries;
+    AnimeType ISeries.Type => AnimeType.TV;
 
     PartialDateOnly? ISeries.AirDate => PartialDateOnly.FromDateOnly(FirstAiredAt);
 

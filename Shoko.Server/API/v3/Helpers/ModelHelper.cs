@@ -418,7 +418,7 @@ public static class ModelHelper
                 case AnimeType.Other:
                     sizes.SeriesTypes.Other++;
                     break;
-                case AnimeType.TVSeries:
+                case AnimeType.TV:
                     sizes.SeriesTypes.TV++;
                     break;
                 case AnimeType.TVSpecial:

@@ -1,12 +1,9 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Text.Json.Serialization;
-using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
-using Shoko.Server.API.v3.Helpers;
-using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -41,7 +38,7 @@ public class PlaylistEpisode
         };
         Title = shokoEpisode.Title;
         Number = anidbEpisode.EpisodeNumber;
-        Type = anidbEpisode.Type.ToV3Dto();
+        Type = anidbEpisode.Type;
         AirDate = anidbEpisode.AirDate;
         SeriesTitle = shokoSeries.Title;
         SeriesPoster = shokoSeries.PrimaryImage is { } poster
@@ -71,7 +68,7 @@ public class PlaylistEpisode
     /// <summary>
     /// Episode type.
     /// </summary>
-    [Required, JsonConverter(typeof(StringEnumConverter))]
+    [Required]
     public EpisodeType Type { get; set; }
 
     /// <summary>

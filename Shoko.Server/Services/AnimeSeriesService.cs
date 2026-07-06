@@ -229,7 +229,7 @@ public class AnimeSeriesService
 
     private void UpdateMissingEpisodeStats(AnimeSeries series, IReadOnlyList<AnimeEpisode> eps, string name, ref DateTime start)
     {
-        var animeType = series.AniDB_Anime?.AnimeType ?? AnimeType.TVSeries;
+        var animeType = series.AniDB_Anime?.AnimeType ?? AnimeType.TV;
 
         series.MissingEpisodeCount = 0;
         series.MissingEpisodeCountGroups = 0;

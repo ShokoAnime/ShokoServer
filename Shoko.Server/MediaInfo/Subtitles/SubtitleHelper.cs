@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Extensions;
 
 // ReSharper disable StringLiteralTypo
@@ -21,6 +22,8 @@ public static class SubtitleHelper
 
         var directoryName = Path.GetDirectoryName(path);
         if (string.IsNullOrEmpty(directoryName)) return new List<TextStream>();
+
+        directoryName = PlatformUtility.EnsureUsablePath(directoryName);
         if (!Directory.Exists(directoryName)) return new List<TextStream>();
 
         var directory = new DirectoryInfo(directoryName);

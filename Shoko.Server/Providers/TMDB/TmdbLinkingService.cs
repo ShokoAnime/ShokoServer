@@ -511,7 +511,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             .Where(episode => episode.SeasonNumber == 0)
             .OrderBy(episode => episode.EpisodeNumber)
             .ToList();
-        bool IsSpecialEpisode(AniDB_Episode ep) => ep.EpisodeType is EpisodeType.Special || anime.AnimeType is not AnimeType.TVSeries and not AnimeType.Web;
+        bool IsSpecialEpisode(AniDB_Episode ep) => ep.EpisodeType is EpisodeType.Special || anime.AnimeType is not AnimeType.TV and not AnimeType.Web;
 
         List<TMDB_Episode> GetEpisodeList(AniDB_Episode ep) => IsSpecialEpisode(ep) ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
 

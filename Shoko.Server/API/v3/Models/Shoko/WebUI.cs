@@ -6,19 +6,16 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Web;
-using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
-
-using AnimeType = Shoko.Server.API.v3.Models.AniDB.AnimeType;
-using EpisodeType = Shoko.Server.API.v3.Models.AniDB.EpisodeType;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -94,7 +91,6 @@ public class WebUI
         /// Series type.
         /// </summary>
         [Required]
-        [JsonConverter(typeof(StringEnumConverter))]
         public AnimeType Type { get; set; }
 
         /// <summary>
@@ -181,7 +177,7 @@ public class WebUI
                 .Select(shoko =>
                 {
                     var anidb = shoko.AniDB_Episode!;
-                    var type = anidb.EpisodeType.ToV3Dto();
+                    var type = anidb.EpisodeType;
                     var airDate = anidb.GetAirDateAsDate();
                     return new
                     {
@@ -906,7 +902,6 @@ public class WebUI
             /// <summary>
             /// AniDB Episode Type.
             /// </summary>
-            [JsonConverter(typeof(StringEnumConverter))]
             public required EpisodeType Type { get; init; }
 
             /// <summary>
@@ -951,7 +946,6 @@ public class WebUI
             /// <summary>
             /// The type of episode.
             /// </summary>
-            [JsonConverter(typeof(StringEnumConverter))]
             [Required]
             public EpisodeType Type { get; set; }
 

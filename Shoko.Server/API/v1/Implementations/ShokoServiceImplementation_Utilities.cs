@@ -1,3 +1,4 @@
+#nullable disable
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -52,7 +53,7 @@ public partial class ShokoServiceImplementation
     private static readonly char[] _replaceWithSpace = @"[]_-.+&()".ToCharArray();
 
     private static readonly string[] _replacementStrings =
-        {"h264", "x264", "x265", "bluray", "blu-ray", "remux", "avc", "flac", "dvd", "1080p", "720p", "480p", "hevc", "webrip", "web", "h265", "ac3", "aac", "mp3", "dts", "bd"};
+        ["h264", "x264", "x265", "bluray", "blu-ray", "remux", "avc", "flac", "dvd", "1080p", "720p", "480p", "hevc", "webrip", "web", "h265", "ac3", "aac", "mp3", "dts", "bd"];
 
     private static readonly char[] _pipeSeparator = ['|'];
 
