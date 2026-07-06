@@ -105,16 +105,15 @@ public class TmdbSearchServiceTests
     public void NormalizeForIndex_WaveDash_MapsToSpace(string input, string expected)
         => Assert.Equal(expected, SeriesSearch.NormalizeForIndex(input).Trim());
 
-    // ── NormalizeForIndex: fullwidth tilde U+FF5E (known gap) ───────────────
+    // ── NormalizeForIndex: fullwidth tilde U+FF5E ────────────────────────────
 
     [Fact]
-    public void NormalizeForIndex_FullwidthTilde_NotMappedToSpace()
+    public void NormalizeForIndex_FullwidthTilde_MappedToSpace()
     {
-        // U+FF5E ～ is converted by NFKC to ASCII tilde ~ (not a space).
-        // This is a known gap — it does not get the same treatment as U+301C 〜.
-        // This test documents the current behavior so any future change is intentional.
+        // U+FF5E ～ is decomposed by NFKD to ASCII tilde ~ before the separator mapping runs,
+        // so it now gets the same space treatment as ASCII '~' and U+301C 〜.
         var result = SeriesSearch.NormalizeForIndex("Foo～Bar");
-        Assert.NotEqual("foo bar", result);  // tilde survives, space not inserted
+        Assert.Equal("foo bar", result);
     }
 
     // ── NormalizeForIndex: superscript decomposition ─────────────────────────
