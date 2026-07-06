@@ -353,7 +353,7 @@ public class Group : BaseModel
                             Series = seriesList,
                         };
 
-                        if (HasCustomName is true && !string.IsNullOrWhiteSpace(Name))
+                        if (HasCustomName is true && string.IsNullOrWhiteSpace(Name))
                             update.Name = group.GroupName; // lock current name without changing value
                         else if (HasCustomName is false)
                             update.Name = null;
