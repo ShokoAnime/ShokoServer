@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Filters;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Utilities;
@@ -204,5 +205,25 @@ public class TmdbSearchServiceTests
         var mainMovie = SeriesSearch.NormalizeForIndex("Fairy Tail: Phoenix Priestess");
         var bonusShort = SeriesSearch.NormalizeForIndex("Fairy Tail: Phoenix Priestess!");
         Assert.Equal(mainMovie, bonusShort);
+    }
+
+    // ── IsAcceptableAutoMatch: zero-confidence floor ───────────────────────
+    // A candidate that scored FirstAvailable had no title match and no date match at all —
+    // it only reached scoring because TMDB's search returned it and it carried the "animation"
+    // genre tag. Auto-linking it produced false matches (e.g. unrelated adult content tagged as
+    // animation on TMDB matching a query like "One Piece"). Every other rating implies at least
+    // one genuine signal (title or date) and should remain acceptable.
+
+    [Theory]
+    [InlineData(MatchRating.FirstAvailable, false)]
+    [InlineData(MatchRating.DateMatches, true)]
+    [InlineData(MatchRating.TitleKindaMatches, true)]
+    [InlineData(MatchRating.TitleMatches, true)]
+    [InlineData(MatchRating.DateAndTitleKindaMatches, true)]
+    [InlineData(MatchRating.DateAndTitleMatches, true)]
+    [InlineData(MatchRating.UserVerified, true)]
+    public void IsAcceptableAutoMatch_RejectsOnlyFirstAvailable(MatchRating rating, bool expectedAcceptable)
+    {
+        Assert.Equal(expectedAcceptable, TmdbSearchService.IsAcceptableAutoMatch(rating));
     }
 }
