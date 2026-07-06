@@ -95,6 +95,32 @@ public partial class TmdbController : BaseController
         _tmdbShows = tmdbShows;
     }
 
+    // When paused and the caller can wait (not immediate), queue the job (prioritized so it jumps
+    // the backlog on resume) and return 503 with Retry-After. Dedup in Enqueue prevents the same job
+    // from stacking while paused. When the caller wanted an immediate result, queuing for later is
+    // useless — the UI is waiting synchronously — so just refuse with 503 instead.
+    //
+    // This only gives a fast, friendly 503+Retry-After response — it is not the safety net. Any TMDB
+    // job type dispatched here must also carry [TmdbApiRateLimited] (see TmdbApiRateLimitedAcquisitionFilter)
+    // so dispatch is still blocked at the queue layer even if a call site here forgets to check the pause.
+    private async Task<ActionResult?> TryQueueWhenPaused<T>(Action<T> configure, string jobDescription, bool immediate) where T : class, IQueueJob
+    {
+        var status = _tmdbMetadataService.GetPauseStatus();
+        if (!status.IsPaused) return null;
+        var seconds = (int)(status.RemainingPauseTime?.TotalSeconds ?? 0);
+        if (immediate)
+        {
+            _logger.LogInformation("TMDB is currently paused. {Job} was requested immediately and has been refused; retry in approximately {Seconds} second(s).", jobDescription, seconds);
+        }
+        else
+        {
+            _logger.LogInformation("TMDB is currently paused. {Job} has been queued and will start in approximately {Seconds} second(s).", jobDescription, seconds);
+            await _scheduler.StartJob(configure, prioritize: true);
+        }
+        Response.Headers.RetryAfter = seconds.ToString();
+        return StatusCode(503);
+    }
+
     #region Movies
 
     #region Constants
@@ -603,27 +629,24 @@ public partial class TmdbController : BaseController
                 return Ok();
         }
 
-        if (body.Immediate)
-        {
-            await _jobFactory.Execute<UpdateTmdbMovieJob>(j =>
-            {
-                j.TmdbMovieID = movieID;
-                j.ForceRefresh = body.Force;
-                j.DownloadImages = body.DownloadImages;
-                j.DownloadCrewAndCast = body.DownloadCrewAndCast;
-                j.DownloadCollections = body.DownloadCollections;
-            });
-            return Ok();
-        }
-
-        await _scheduler.StartJob<UpdateTmdbMovieJob>(j =>
+        Action<UpdateTmdbMovieJob> configure = j =>
         {
             j.TmdbMovieID = movieID;
             j.ForceRefresh = body.Force;
             j.DownloadImages = body.DownloadImages;
             j.DownloadCrewAndCast = body.DownloadCrewAndCast;
             j.DownloadCollections = body.DownloadCollections;
-        });
+        };
+        if (await TryQueueWhenPaused(configure, "Movie refresh", body.Immediate) is { } pausedMovie)
+            return pausedMovie;
+
+        if (body.Immediate)
+        {
+            await _jobFactory.Execute(configure);
+            return Ok();
+        }
+
+        await _scheduler.StartJob(configure);
         return NoContent();
     }
 
@@ -647,21 +670,21 @@ public partial class TmdbController : BaseController
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        if (body.Immediate)
-        {
-            await _jobFactory.Execute<DownloadTmdbMovieImagesJob>(j =>
-            {
-                j.TmdbMovieID = movieID;
-                j.ForceDownload = body.Force;
-            });
-            return Ok();
-        }
-
-        await _scheduler.StartJob<DownloadTmdbMovieImagesJob>(j =>
+        Action<DownloadTmdbMovieImagesJob> configure = j =>
         {
             j.TmdbMovieID = movieID;
             j.ForceDownload = body.Force;
-        });
+        };
+        if (await TryQueueWhenPaused(configure, "Movie image download", body.Immediate) is { } pausedMovieImages)
+            return pausedMovieImages;
+
+        if (body.Immediate)
+        {
+            await _jobFactory.Execute(configure);
+            return Ok();
+        }
+
+        await _scheduler.StartJob(configure);
         return NoContent();
     }
 
@@ -1755,34 +1778,35 @@ public partial class TmdbController : BaseController
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbRefreshShowBody body
     )
     {
-        if (body.Immediate)
-        {
-            // If we want quick results, we're already running an update, and we already have episodes to use, then just return early.
-            if (body.QuickRefresh && _tmdbMetadataService.IsShowUpdating(showID) && _tmdbEpisodes.GetByTmdbShowID(showID).Count > 0)
-                return Ok();
-
-            await _jobFactory.Execute<UpdateTmdbShowJob>(j =>
-            {
-                j.TmdbShowID = showID;
-                j.ForceRefresh = !body.QuickRefresh && body.Force;
-                j.QuickRefresh = body.QuickRefresh;
-                j.DownloadImages = body.DownloadImages;
-                j.DownloadCrewAndCast = body.DownloadCrewAndCast;
-                j.DownloadAlternateOrdering = body.DownloadAlternateOrdering;
-                j.DownloadNetworks = body.DownloadNetworks;
-            });
+        // If we want quick results, we're already running an update, and we already have episodes to use, then
+        // just return early. This is answered entirely from local state, so it must run before the pause check
+        // below — it never touches TMDB and shouldn't be refused just because TMDB itself is unavailable.
+        if (body.Immediate && body.QuickRefresh && _tmdbMetadataService.IsShowUpdating(showID) && _tmdbEpisodes.GetByTmdbShowID(showID).Count > 0)
             return Ok();
-        }
 
-        await _scheduler.StartJob<UpdateTmdbShowJob>(j =>
+        // QuickRefresh is only meaningful for a synchronous, immediate caller waiting on the
+        // result — a queued/background refresh always does the full job.
+        var isQuickRefresh = body.Immediate && body.QuickRefresh;
+        Action<UpdateTmdbShowJob> configure = j =>
         {
             j.TmdbShowID = showID;
-            j.ForceRefresh = body.Force;
+            j.ForceRefresh = !isQuickRefresh && body.Force;
+            j.QuickRefresh = isQuickRefresh;
             j.DownloadImages = body.DownloadImages;
             j.DownloadCrewAndCast = body.DownloadCrewAndCast;
             j.DownloadAlternateOrdering = body.DownloadAlternateOrdering;
             j.DownloadNetworks = body.DownloadNetworks;
-        });
+        };
+        if (await TryQueueWhenPaused(configure, "Show refresh", body.Immediate) is { } pausedShow)
+            return pausedShow;
+
+        if (body.Immediate)
+        {
+            await _jobFactory.Execute(configure);
+            return Ok();
+        }
+
+        await _scheduler.StartJob(configure);
         return NoContent();
     }
 
@@ -1806,21 +1830,21 @@ public partial class TmdbController : BaseController
         if (show is null)
             return NotFound(ShowNotFound);
 
-        if (body.Immediate)
-        {
-            await _jobFactory.Execute<DownloadTmdbShowImagesJob>(j =>
-            {
-                j.TmdbShowID = showID;
-                j.ForceDownload = body.Force;
-            });
-            return Ok();
-        }
-
-        await _scheduler.StartJob<DownloadTmdbShowImagesJob>(j =>
+        Action<DownloadTmdbShowImagesJob> configure = j =>
         {
             j.TmdbShowID = showID;
             j.ForceDownload = body.Force;
-        });
+        };
+        if (await TryQueueWhenPaused(configure, "Show image download", body.Immediate) is { } pausedShowImages)
+            return pausedShowImages;
+
+        if (body.Immediate)
+        {
+            await _jobFactory.Execute(configure);
+            return Ok();
+        }
+
+        await _scheduler.StartJob(configure);
         return NoContent();
     }
 

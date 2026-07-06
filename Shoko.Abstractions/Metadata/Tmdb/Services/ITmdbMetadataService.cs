@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Shoko.Abstractions.Metadata.Tmdb;
 
 namespace Shoko.Abstractions.Metadata.Tmdb.Services;
 
@@ -141,6 +142,15 @@ public interface ITmdbMetadataService
     /// Scans all series for missing TMDB matches and schedules search jobs.
     /// </summary>
     Task ScanForMatches();
+
+    #endregion
+
+    #region Rate Limiting
+
+    /// <summary>
+    /// Gets a consistent snapshot of the TMDB 5XX circuit-breaker pause state.
+    /// </summary>
+    TmdbRateLimitPauseStatus GetPauseStatus();
 
     #endregion
 }

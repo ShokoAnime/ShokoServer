@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.Server.Providers.TMDB;
@@ -12,6 +13,7 @@ namespace Shoko.Server.Scheduling.Jobs.TMDB;
 
 [DatabaseRequired]
 [NetworkRequired]
+[TmdbApiRateLimited]
 [LimitConcurrency(1, 16)]
 [JobKeyGroup(JobKeyGroup.TMDB)]
 public class DownloadTmdbMovieImagesJob : BaseJob
