@@ -1143,7 +1143,7 @@ public class Common : BaseController
     /// <returns>Episode or APIStatus</returns>
     [HttpGet("ep/getbyfilename")]
     [ApiVersion("2.0")]
-    public ActionResult<Episode> GetEpisodeFromName(string filename, int pic = 1)
+    public ActionResult<Episode> GetEpisodeFromName(string? filename, int pic = 1)
     {
         var user = HttpContext.GetUser();
         if (string.IsNullOrEmpty(filename))
@@ -1165,7 +1165,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>Episode or APIStatis</returns>
     [HttpGet("ep/getbyhash")]
-    public ActionResult<List<Episode>> GetEpisodeFromHash(string hash, int pic = 1)
+    public ActionResult<List<Episode>> GetEpisodeFromHash(string? hash, int pic = 1)
     {
         var user = HttpContext.GetUser();
         if (string.IsNullOrEmpty(hash))
@@ -1368,7 +1368,7 @@ public class Common : BaseController
     /// </summary>
     /// <returns>List&lt;&gt;</returns>
     [HttpGet("ep/last_watched")]
-    public List<Episode> ListWatchedEpisodes(string query, int pic, int level, int limit, int offset)
+    public List<Episode> ListWatchedEpisodes(string? query, int pic, int level, int limit, int offset)
     {
         var user = HttpContext.GetUser();
         var date_after = new DateTime(1900, 01, 01);
@@ -2565,8 +2565,7 @@ public class Common : BaseController
         if (gf.IsDirectory)
         {
             // if it's a directory, it IS a filter-inception;
-            var fgs = APIFilters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic,
-                tagfilter);
+            var fgs = APIFilters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic, tagfilter);
             return fgs;
         }
 
@@ -2748,7 +2747,7 @@ public class Common : BaseController
         return BadRequest();
     }
 
-    private static void CheckGroupNameFuzzy(AnimeGroup a, string query,
+    private static void CheckGroupNameFuzzy(AnimeGroup a, string? query,
         ConcurrentDictionary<AnimeGroup, double> distLevenshtein, int limit)
     {
         if (distLevenshtein.Count >= limit)
@@ -2905,7 +2904,7 @@ public class Common_v2_1 : BaseController
     [HttpGet("v{version:apiVersion}/ep/getbyfilename")]
 #pragma warning restore ASP0018
     [HttpGet("ep/getbyfilename")] //to allow via the header explicitly.
-    public ActionResult<IEnumerable<Episode>> GetEpisodeFromName_v2([FromQuery] string filename,
+    public ActionResult<IEnumerable<Episode>> GetEpisodeFromName_v2([FromQuery] string? filename,
         [FromQuery] int pic = 1, [FromQuery] int level = 0)
     {
         var user = HttpContext.GetUser();

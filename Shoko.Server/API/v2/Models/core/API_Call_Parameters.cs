@@ -8,7 +8,7 @@ public class API_Call_Parameters
     /// <summary>
     /// String used in searching or as parameter in 'soon'
     /// </summary>
-    public string query { get; set; }
+    public string? query { get; set; }
 
     /// <summary>
     /// Maximum number of items to return
