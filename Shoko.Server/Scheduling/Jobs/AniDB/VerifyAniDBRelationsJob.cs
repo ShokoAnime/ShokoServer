@@ -118,11 +118,11 @@ public class VerifyAniDBRelationsJob(IRequestFactory requestFactory, AniDB_Anime
         {
             1 => RelationType.Sequel,
             2 => RelationType.Prequel,
-            11 => RelationType.SameSetting,
-            12 => RelationType.AlternativeSetting,
-            32 => RelationType.AlternativeVersion,
-            41 => RelationType.Other,
-            42 => RelationType.Other,
+            11 or 12 => RelationType.SameSetting, // for legacy reasons these are two sides of the same coin.
+            21 or 22 => RelationType.AlternativeSetting, // see above.
+            31 or 32 => RelationType.AlternativeVersion, // see above.
+            41 => RelationType.Other, // legacy 'music video' type. no longer used.
+            42 => RelationType.SharedCharacters,
             51 => RelationType.SideStory,
             52 => RelationType.MainStory,
             61 => RelationType.Summary,

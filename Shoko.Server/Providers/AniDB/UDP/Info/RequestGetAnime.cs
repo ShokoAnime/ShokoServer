@@ -25,27 +25,26 @@ public class RequestGetAnime : UDPRequest<ResponseGetAnime>
                 var parts = receivedData.Split('|').Select(a => a.Trim()).ToArray();
                 if (!int.TryParse(parts[0], out var aid))
                     throw new UnexpectedUDPResponseException("Anime ID was not an int", code, receivedData, Command);
+                if (parts.Length != 3)
+                    throw new UnexpectedUDPResponseException("Incorrect Number of Parts Returned", code, receivedData, Command);
 
                 var relations = new List<ResponseGetAnime.Relation>();
-                if (parts.Length >= 3)
+                var aidList = parts[1].Split('\'', StringSplitOptions.RemoveEmptyEntries);
+                var typeList = parts[2].Split('\'', StringSplitOptions.RemoveEmptyEntries);
+                var count = Math.Min(aidList.Length, typeList.Length);
+                for (var i = 0; i < count; i++)
                 {
-                    var aidList = parts[1].Split('\'', StringSplitOptions.RemoveEmptyEntries);
-                    var typeList = parts[2].Split('\'', StringSplitOptions.RemoveEmptyEntries);
-                    var count = Math.Min(aidList.Length, typeList.Length);
-                    for (var i = 0; i < count; i++)
-                    {
-                        if (!int.TryParse(aidList[i], out var relatedAid))
-                            continue;
-                        if (!int.TryParse(typeList[i], out var rawType))
-                            continue;
-                        relations.Add(new ResponseGetAnime.Relation { RelatedAnimeID = relatedAid, RawType = rawType });
-                    }
+                    if (!int.TryParse(aidList[i], out var relatedAid))
+                        continue;
+                    if (!int.TryParse(typeList[i], out var rawType))
+                        continue;
+                    relations.Add(new ResponseGetAnime.Relation { RelatedAnimeID = relatedAid, RawType = rawType });
                 }
 
                 return new UDPResponse<ResponseGetAnime>
                 {
                     Code = code,
-                    Response = new ResponseGetAnime { AnimeID = aid, Relations = relations }
+                    Response = new ResponseGetAnime { AnimeID = aid, Relations = relations },
                 };
             }
             case UDPReturnCode.NO_SUCH_ANIME:
