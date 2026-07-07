@@ -33,6 +33,12 @@ public interface IRelatedMetadata : IEquatable<IRelatedMetadata>
     ///   The source of the relation.
     /// </summary>
     DataSource Source { get; }
+
+    /// <summary>
+    ///   Whether the relation has been verified to be correct. For now, only
+    ///   relevant to AniDB relations.
+    /// </summary>
+    bool Verified { get; }
 }
 
 /// <summary>

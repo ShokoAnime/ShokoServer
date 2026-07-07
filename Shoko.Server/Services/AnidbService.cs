@@ -44,6 +44,7 @@ using Shoko.Server.Utilities;
 
 using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
+using RelationType = Shoko.Abstractions.Metadata.Enums.RelationType;
 
 namespace Shoko.Server.Services;
 
@@ -111,6 +112,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     private readonly ShokoImage_EntityRepository _shokoImageXrefRepository;
 
+    private readonly AniDB_Anime_RelationRepository _anidbAnimeRelationRepository;
+
     private readonly AsyncBulkheadPolicy<AniDB_Anime?> _bulkheadPolicy;
 
     private readonly IImageManager _imageManager;
@@ -148,6 +151,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         CrossRef_File_EpisodeRepository crossReferenceRepository,
         StoredReleaseInfoRepository storedReleaseInfoRepository,
         ShokoImage_EntityRepository shokoImageXrefRepository,
+        AniDB_Anime_RelationRepository anidbAnimeRelationRepository,
         IImageManager imageManager,
         ISupplementaryMetadataService supplementaryMetadataService
     )
@@ -181,6 +185,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         _crossReferenceRepository = crossReferenceRepository;
         _storedReleaseInfoRepository = storedReleaseInfoRepository;
         _shokoImageXrefRepository = shokoImageXrefRepository;
+        _anidbAnimeRelationRepository = anidbAnimeRelationRepository;
         _imageManager = imageManager;
         _supplementaryMetadataService = supplementaryMetadataService;
         _entityLock = new(logger);
@@ -573,6 +578,37 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             var isNew = anime.AniDB_AnimeID == 0;
             _animeCreator ??= _serviceProvider.GetRequiredService<AnimeCreator>();
             var (isUpdated, titlesUpdated, descriptionUpdated, shouldUpdateFiles, animeEpisodeChanges) = await _animeCreator.CreateAnime(response, anime, job.RelDepth).ConfigureAwait(false);
+
+            {
+                var relations = _anidbAnimeRelationRepository.GetByAnimeID(job.AnimeID);
+                var unverified = relations.Where(r => !r.Verified).ToList();
+                if (unverified.Count > 0)
+                {
+                    foreach (var rel in unverified)
+                    {
+                        if (rel.AbstractRelationType is not (RelationType.AlternativeSetting or RelationType.AlternativeVersion))
+                        {
+                            rel.Verified = true;
+                            continue;
+                        }
+
+                        var reverseRelation = _anidbAnimeRelationRepository.GetByAnimeID(rel.RelatedAnimeID)
+                            .SingleOrDefault(r => r.RelatedAnimeID == job.AnimeID);
+                        if (reverseRelation is { Verified: true, AbstractRelationType: RelationType.AlternativeSetting or RelationType.AlternativeVersion })
+                        {
+                            rel.AbstractRelationType = reverseRelation.AbstractRelationType.Reverse();
+                            rel.Verified = true;
+                        }
+                    }
+
+                    var verifiedNow = unverified.Where(r => r.Verified).ToList();
+                    if (verifiedNow.Count > 0)
+                        _anidbAnimeRelationRepository.Save(verifiedNow);
+
+                    if (relations.Any(r => !r.Verified))
+                        await _scheduler.StartJob<VerifyAniDBRelationsJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
+                }
+            }
 
             // then conditionally create the series record if it doesn't exist,
             var series = _seriesRepository.GetByAnimeID(job.AnimeID);

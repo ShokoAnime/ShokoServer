@@ -14,5 +14,6 @@ public class AniDB_Anime_RelationMap : ClassMap<AniDB_Anime_Relation>
         Map(x => x.AnimeID).Not.Nullable();
         Map(x => x.RelatedAnimeID).Not.Nullable();
         Map(x => x.RelationType).Not.Nullable();
+        Map(x => x.Verified).Not.Nullable();
     }
 }

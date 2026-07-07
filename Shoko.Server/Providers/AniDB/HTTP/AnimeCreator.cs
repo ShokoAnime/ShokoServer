@@ -1443,6 +1443,11 @@ public class AnimeCreator
                 RelationType.SharedCharacters => "character",
                 _ => "other"
             };
+            relation.Verified = raw.RelationType switch
+            {
+                RelationType.AlternativeSetting or RelationType.AlternativeVersion => raw.Verified ?? false,
+                _ => true
+            };
             toSave.Add(relation);
         }
 

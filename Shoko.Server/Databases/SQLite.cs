@@ -916,6 +916,8 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(159,  1, "ALTER TABLE ShokoImage ADD COLUMN IsAvailable INTEGER NOT NULL DEFAULT 0;"),
         new(159,  2, DatabaseFixes.PopulateImageAvailability),
         new(160,  1, "ALTER TABLE TMDB_Person ADD COLUMN ImdbPersonID TEXT NULL DEFAULT NULL;"),
+        new(161,  1, "ALTER TABLE AniDB_Anime_Relation ADD COLUMN Verified INTEGER NOT NULL DEFAULT 1;"),
+        new(161,  2, "UPDATE AniDB_Anime_Relation SET Verified = 0 WHERE RelationType IN ('alternative setting', 'alternative version');"),
     ];
 
     #endregion

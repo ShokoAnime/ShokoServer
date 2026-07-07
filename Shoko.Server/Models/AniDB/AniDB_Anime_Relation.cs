@@ -20,10 +20,13 @@ public class AniDB_Anime_Relation : IRelatedMetadata<ISeries, ISeries>, IEquatab
 
     public int RelatedAnimeID { get; set; }
 
+    public bool Verified { get; set; }
+
     #endregion
 
-    public AbstractRelationType AbstractRelationType =>
-        RelationType.ToLowerInvariant() switch
+    public AbstractRelationType AbstractRelationType
+    {
+        get => RelationType.ToLowerInvariant() switch
         {
             "parent story" => AbstractRelationType.MainStory,
             "side story" => AbstractRelationType.SideStory,
@@ -36,12 +39,26 @@ public class AniDB_Anime_Relation : IRelatedMetadata<ISeries, ISeries>, IEquatab
                 ? type
                 : AbstractRelationType.Other
         };
+        set => RelationType = value switch
+        {
+            AbstractRelationType.MainStory => "parent story",
+            AbstractRelationType.SideStory => "side story",
+            AbstractRelationType.FullStory => "full story",
+            AbstractRelationType.AlternativeSetting => "alternative setting",
+            AbstractRelationType.AlternativeVersion => "alternative version",
+            AbstractRelationType.SameSetting => "same setting",
+            AbstractRelationType.SharedCharacters => "character",
+            AbstractRelationType.Other => "other",
+            _ => value.ToString(),
+        };
+    }
 
     public AniDB_Anime_Relation Reversed => new()
     {
         AnimeID = RelatedAnimeID,
         RelatedAnimeID = AnimeID,
-        RelationType = ((IRelatedMetadata)this).RelationType.Reverse().ToString(),
+        AbstractRelationType = AbstractRelationType.Reverse(),
+        Verified = Verified,
     };
 
     public bool Equals(IRelatedMetadata? other)
@@ -104,6 +121,8 @@ public class AniDB_Anime_Relation : IRelatedMetadata<ISeries, ISeries>, IEquatab
 
     DataSource IRelatedMetadata.Source => DataSource.AniDB;
 
+    bool IRelatedMetadata.Verified => Verified;
+
     #endregion
 
     #region IRelatedMetadata<ISeries> implementation
@@ -119,6 +138,7 @@ public class AniDB_Anime_Relation : IRelatedMetadata<ISeries, ISeries>, IEquatab
         AnimeID = RelatedAnimeID,
         RelatedAnimeID = AnimeID,
         RelationType = ((IRelatedMetadata)this).RelationType.Reverse().ToString(),
+        Verified = Verified,
     };
 
     IRelatedMetadata IRelatedMetadata.Reversed => Reversed;

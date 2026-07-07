@@ -5,4 +5,5 @@ public class ResponseRelation
     public int AnimeID { get; set; }
     public int RelatedAnimeID { get; set; }
     public RelationType RelationType { get; set; }
+    public bool? Verified { get; set; }
 }

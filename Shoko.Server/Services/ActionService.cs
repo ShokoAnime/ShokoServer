@@ -78,6 +78,8 @@ public class ActionService
 
     private readonly ScheduledUpdateRepository _scheduledUpdates;
 
+    private readonly AniDB_Anime_RelationRepository _anidbAnimeRelations;
+
     public ActionService(
         ILogger<ActionService> logger,
         IQueueScheduler schedulerFactory,
@@ -102,7 +104,8 @@ public class ActionService
         CrossRef_File_EpisodeRepository crossRefFileEpisodes,
         AnimeSeriesRepository animeSeries,
         AnimeEpisodeRepository animeEpisodes,
-        ScheduledUpdateRepository scheduledUpdates
+        ScheduledUpdateRepository scheduledUpdates,
+        AniDB_Anime_RelationRepository anidbAnimeRelations
     )
     {
         _logger = logger;
@@ -129,6 +132,7 @@ public class ActionService
         _animeSeries = animeSeries;
         _animeEpisodes = animeEpisodes;
         _scheduledUpdates = scheduledUpdates;
+        _anidbAnimeRelations = anidbAnimeRelations;
     }
 
     public async Task RunImport_IntegrityCheck()
@@ -617,6 +621,22 @@ public class ActionService
             await _anidbService.ScheduleRefreshOfAnime(aniDBAnime, methods, prioritize: false);
 
         _logger.LogInformation("Queued Creation of {Count} Series that were missing.", missingSeries.Count);
+    }
+
+    public async Task<int> VerifyAllUnverifiedRelations()
+    {
+        var unverifiedAnimeIDs = _anidbAnimeRelations.GetAll()
+            .Where(r => !r.Verified)
+            .Select(r => r.AnimeID)
+            .Distinct()
+            .ToList();
+
+        _logger.LogInformation("Scheduling verification of relations for {Count} anime with unverified relations", unverifiedAnimeIDs.Count);
+
+        foreach (var animeID in unverifiedAnimeIDs)
+            await _scheduler.StartJob<VerifyAniDBRelationsJob>(c => c.AnimeID = animeID);
+
+        return unverifiedAnimeIDs.Count;
     }
 
 }

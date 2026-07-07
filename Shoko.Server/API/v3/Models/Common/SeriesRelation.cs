@@ -39,6 +39,12 @@ public class SeriesRelation
     [Required]
     public string Source { get; set; }
 
+    /// <summary>
+    /// Whether the relation has been verified.
+    /// </summary>
+    [Required]
+    public bool Verified { get; set; }
+
     public SeriesRelation(IRelatedMetadata relation, IShokoSeries? series = null,
         IShokoSeries? relatedSeries = null)
     {
@@ -49,6 +55,7 @@ public class SeriesRelation
         RelatedIDs = new RelationIDs { AniDB = relation.RelatedID, Shoko = relatedSeries?.ID };
         Type = relation.RelationType;
         Source = "AniDB";
+        Verified = relation.Verified;
     }
 
     /// <summary>

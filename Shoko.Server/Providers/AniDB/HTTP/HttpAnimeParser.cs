@@ -727,8 +727,9 @@ public class HttpAnimeParser
                     "character" => RelationType.SharedCharacters,
                     _ => RelationType.Other
                 };
+                bool? verified = bool.TryParse(TryGetAttribute(node, "verified"), out var v) ? v : null;
                 var relation =
-                    new ResponseRelation { AnimeID = animeID, RelationType = relationType, RelatedAnimeID = id };
+                    new ResponseRelation { AnimeID = animeID, RelationType = relationType, RelatedAnimeID = id, Verified = verified };
                 rels.Add(relation);
             }
             catch (Exception ex)

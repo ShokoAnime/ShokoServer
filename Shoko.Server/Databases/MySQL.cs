@@ -1115,6 +1115,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(179,  1, "ALTER TABLE `ShokoImage` ADD COLUMN `IsAvailable` TINYINT(1) NOT NULL DEFAULT 0;"),
         new(179,  2, DatabaseFixes.PopulateImageAvailability),
         new(180,  1, "ALTER TABLE `TMDB_Person` ADD COLUMN `ImdbPersonID` VARCHAR(12) NULL DEFAULT NULL;"),
+        new(181,  1, "ALTER TABLE `AniDB_Anime_Relation` ADD COLUMN `Verified` TINYINT(1) NOT NULL DEFAULT 1;"),
+        new(181,  2, "UPDATE `AniDB_Anime_Relation` SET `Verified` = 0 WHERE `RelationType` IN ('alternative setting', 'alternative version');"),
     ];
 
     #endregion

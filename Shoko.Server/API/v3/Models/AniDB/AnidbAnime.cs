@@ -107,6 +107,12 @@ public class AnidbAnime
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public RelationType? Relation { get; set; }
 
+    /// <summary>
+    /// Whether the relation has been verified. Only available for relations. Otherwise null.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public bool? Verified { get; set; }
+
     private AnidbAnime(int animeId, bool includeTitles, AnimeSeries? series = null, AniDB_Anime? anime = null, ResponseAniDBTitles.Anime? result = null)
     {
         ID = animeId;
@@ -174,6 +180,7 @@ public class AnidbAnime
         : this(relation.RelatedID, includeTitles, series)
     {
         Relation = relation.RelationType;
+        Verified = relation.Verified;
         // If the other anime is present we assume they're of the same kind. Be it restricted or unrestricted.
         if (Type == AnimeType.Unknown && TitleHelper.SearchAnimeID(relation.RelatedID) is not null)
             Restricted = RepoFactory.AniDB_Anime.GetByAnimeID(relation.BaseID) is { IsRestricted: true };

@@ -581,5 +581,17 @@ public class ActionController : BaseController
         return Ok();
     }
 
+    /// <summary>
+    /// Verify all unverified AniDB relations by fetching the correct data via UDP.
+    /// </summary>
+    /// <returns></returns>
+    [Authorize("admin")]
+    [HttpGet("VerifyAllRelations")]
+    public async Task<ActionResult> VerifyAllRelations()
+    {
+        var count = await _actionService.VerifyAllUnverifiedRelations();
+        return Ok(new { ScheduledJobs = count });
+    }
+
     #endregion
 }
