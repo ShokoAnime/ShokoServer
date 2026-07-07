@@ -256,6 +256,9 @@ public class AniDB_Anime : IAnidbAnime
     public List<AniDB_Anime_Similar> SimilarAnime
         => RepoFactory.AniDB_Anime_Similar.GetByAnimeID(AnimeID);
 
+    public IReadOnlyList<AniDB_GroupStatus> ReleaseGroupStatuses
+        => RepoFactory.AniDB_GroupStatus.GetByAnimeID(AnimeID).OrderBy(a => a.GroupID).ToList();
+
     public IReadOnlyList<AniDB_Anime_Character> Characters
         => RepoFactory.AniDB_Anime_Character.GetByAnimeID(AnimeID);
 
@@ -684,6 +687,8 @@ public class AniDB_Anime : IAnidbAnime
         .ToList();
 
     IReadOnlyList<IAnidbSimilarAnime> IAnidbAnime.Similar => SimilarAnime;
+
+    IReadOnlyList<IAnidbReleaseGroupStatus> IAnidbAnime.ReleaseGroupStatuses => ReleaseGroupStatuses;
 
     IReadOnlyList<IAnidbSeason> IAnidbAnime.Seasons => AniDBSeasons;
 

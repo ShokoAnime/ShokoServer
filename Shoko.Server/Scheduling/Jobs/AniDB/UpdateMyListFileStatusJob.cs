@@ -7,7 +7,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
-using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.UDP.User;
@@ -91,7 +90,7 @@ public class UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettings
                         r.State = settings.AniDb.MyList_StorageState;
                         r.AnimeID = episode.AnimeID;
                         r.EpisodeNumber = episode.EpisodeNumber;
-                        r.EpisodeType = (EpisodeType)episode.EpisodeType;
+                        r.EpisodeType = episode.EpisodeType;
                         r.IsWatched = Watched;
                         r.WatchedDate = WatchedDate;
                     }

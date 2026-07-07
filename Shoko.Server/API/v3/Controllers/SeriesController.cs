@@ -85,6 +85,7 @@ public class SeriesController : BaseController
     private readonly AniDB_AnimeRepository _anidbAnime;
     private readonly AniDB_Anime_RelationRepository _anidbAnimeRelations;
     private readonly AniDB_Anime_SimilarRepository _anidbAnimeSimilar;
+    private readonly AniDB_GroupStatusRepository _anidbGroupStatus;
     private readonly AniDB_EpisodeRepository _anidbEpisodes;
     private readonly AnimeEpisodeRepository _animeEpisodes;
     private readonly AnimeEpisode_UserRepository _animeEpisodeUsers;
@@ -119,6 +120,7 @@ public class SeriesController : BaseController
         AniDB_AnimeRepository anidbAnime,
         AniDB_Anime_RelationRepository anidbAnimeRelations,
         AniDB_Anime_SimilarRepository anidbAnimeSimilar,
+        AniDB_GroupStatusRepository anidbGroupStatus,
         AniDB_EpisodeRepository anidbEpisodes,
         AnimeEpisodeRepository animeEpisodes,
         AnimeEpisode_UserRepository animeEpisodeUsers,
@@ -152,6 +154,7 @@ public class SeriesController : BaseController
         _anidbAnime = anidbAnime;
         _anidbAnimeRelations = anidbAnimeRelations;
         _anidbAnimeSimilar = anidbAnimeSimilar;
+        _anidbGroupStatus = anidbGroupStatus;
         _anidbEpisodes = anidbEpisodes;
         _animeEpisodes = animeEpisodes;
         _animeEpisodeUsers = animeEpisodeUsers;
@@ -742,6 +745,39 @@ public class SeriesController : BaseController
             .ToList();
     }
 
+    /// <summary>
+    ///   Get all <see cref="AnidbReleaseGroupStatus"/> entries for the
+    ///   <paramref name="seriesID"/>.
+    /// </summary>
+    /// <param name="seriesID">
+    ///   Shoko ID
+    /// </param>
+    [HttpGet("{seriesID}/AniDB/ReleaseGroupStatus")]
+    public ActionResult<List<AnidbReleaseGroupStatus>> GetAnidbReleaseGroupStatusBySeriesID([FromRoute, Range(1, int.MaxValue)] int seriesID)
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+        {
+            return NotFound(SeriesNotFoundWithSeriesID);
+        }
+
+        if (!User.AllowedSeries(series))
+        {
+            return Forbid(SeriesForbiddenForUser);
+        }
+
+        var anidb = series.AniDB_Anime;
+        if (anidb == null)
+        {
+            return InternalError(AnidbNotFoundForSeriesID);
+        }
+
+        return _anidbGroupStatus.GetByAnimeID(anidb.AnimeID)
+            .OrderBy(status => status.GroupID)
+            .Select(status => new AnidbReleaseGroupStatus(status))
+            .ToList();
+    }
+
     #region Recommended For You
 
     /// <summary>
@@ -989,6 +1025,33 @@ public class SeriesController : BaseController
 
         return _anidbAnimeRelations.GetByAnimeID(anidbID)
             .Select(relation => new SeriesRelation(relation))
+            .ToList();
+    }
+
+    /// <summary>
+    ///   Get all <see cref="AnidbReleaseGroupStatus"/> entries for the
+    ///   <paramref name="anidbID"/>.
+    /// </summary>
+    /// <param name="anidbID">
+    ///   AniDB ID
+    /// </param>
+    [HttpGet("AniDB/{anidbID}/ReleaseGroupStatus")]
+    public ActionResult<List<AnidbReleaseGroupStatus>> GetAnidbReleaseGroupStatusByAnidbID([FromRoute] int anidbID)
+    {
+        var anidb = _anidbAnime.GetByAnimeID(anidbID);
+        if (anidb == null)
+        {
+            return NotFound(AnidbNotFoundForAnidbID);
+        }
+
+        if (!User.AllowedAnime(anidb))
+        {
+            return Forbid(AnidbForbiddenForUser);
+        }
+
+        return _anidbGroupStatus.GetByAnimeID(anidbID)
+            .OrderBy(status => status.GroupID)
+            .Select(status => new AnidbReleaseGroupStatus(status))
             .ToList();
     }
 

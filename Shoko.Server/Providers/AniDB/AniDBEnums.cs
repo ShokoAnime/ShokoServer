@@ -247,16 +247,6 @@ public enum VoteType
     Episode = 4,
 }
 
-public enum EpisodeType
-{
-    Episode = 1,
-    Credits = 2,
-    Special = 3,
-    Trailer = 4,
-    Parody = 5,
-    Other = 6,
-}
-
 public enum AnimeType
 {
     Unknown = -1, // Not on AniDB or not yet assigned a type.

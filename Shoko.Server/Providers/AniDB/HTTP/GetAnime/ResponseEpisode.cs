@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 

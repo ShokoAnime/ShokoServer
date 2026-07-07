@@ -92,7 +92,7 @@ public class AddFileToMyListJob(IRequestFactory requestFactory, IQueueScheduler 
                         r.WatchedDate = originalWatchedDate;
                         r.AnimeID = episode.AnimeID;
                         r.EpisodeNumber = episode.EpisodeNumber;
-                        r.EpisodeType = (EpisodeType)episode.EpisodeType;
+                        r.EpisodeType = episode.EpisodeType;
                     }
                 );
                 response = request.Send();
@@ -110,7 +110,7 @@ public class AddFileToMyListJob(IRequestFactory requestFactory, IQueueScheduler 
                         r.WatchedDate = originalWatchedDate;
                         r.AnimeID = episode.AnimeID;
                         r.EpisodeNumber = episode.EpisodeNumber;
-                        r.EpisodeType = (EpisodeType)episode.EpisodeType;
+                        r.EpisodeType = episode.EpisodeType;
                     }
                 );
                 updateRequest.Send();

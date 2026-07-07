@@ -24,6 +24,11 @@ public interface IAnidbAnime : ISeries, IWithUpdateDate
     IReadOnlyList<IAnidbSimilarAnime> Similar { get; }
 
     /// <summary>
+    ///   All release group statuses for the AniDB anime.
+    /// </summary>
+    IReadOnlyList<IAnidbReleaseGroupStatus> ReleaseGroupStatuses { get; }
+
+    /// <summary>
     /// All known fake "seasons" for the AniDB anime.
     /// </summary>
     new IReadOnlyList<IAnidbSeason> Seasons { get; }
