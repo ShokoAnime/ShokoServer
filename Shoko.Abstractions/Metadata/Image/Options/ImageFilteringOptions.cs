@@ -1,5 +1,5 @@
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 
 namespace Shoko.Abstractions.Metadata.Image.Options;

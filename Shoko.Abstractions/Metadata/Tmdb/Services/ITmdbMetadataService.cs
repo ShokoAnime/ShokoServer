@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Shoko.Abstractions.Metadata.Tmdb;
 
 namespace Shoko.Abstractions.Metadata.Tmdb.Services;
 
