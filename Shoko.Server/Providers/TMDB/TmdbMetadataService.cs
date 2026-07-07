@@ -1917,7 +1917,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         ]);
 
         _logger.LogDebug(
-            "Added/updated/removed/skipped {aa}/{au}/{ar}/{as} cast and {ra}/{ru}/{rr}/{rs} crew for episode {EpisodeTitle} (Show={ShowId},Season={SeasonId},Episode={EpisodeId})",
+            "Added/updated/removed/skipped {aa}/{au}/{ar}/{as} cast and {ra}/{ru}/{rr}/{rs} crew for episode {EpisodeTitle} (Show={ShowId}, Season={SeasonId}, Episode={EpisodeId})",
             castToAdd,
             castToSave.Count - castToAdd,
             castToRemove.Count,

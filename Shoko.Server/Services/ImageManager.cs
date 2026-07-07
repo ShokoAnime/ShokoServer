@@ -1080,7 +1080,7 @@ public partial class ImageManager(
                 }
                 catch
                 {
-                    logger.LogWarning("Found invalid image. (Image={ImageID},Source={Source},ResourceID={ResourceID})", shokoImage.ID, shokoImage.Source, shokoImage.ResourceID);
+                    logger.LogWarning("Found invalid image. (Image={ImageID}, Source={Source}, ResourceID={ResourceID})", shokoImage.ID, shokoImage.Source, shokoImage.ResourceID);
                     invalid++;
                     if (File.Exists(shokoImage.LocalPath))
                         try { File.Delete(shokoImage.LocalPath); } catch { }

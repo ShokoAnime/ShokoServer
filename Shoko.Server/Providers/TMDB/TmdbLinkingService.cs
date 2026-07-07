@@ -173,7 +173,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         }
 
         // Add or update the link.
-        _logger.LogInformation("Adding TMDB Movie Link: AniDB episode (EpisodeID={EpisodeID},AnimeID={AnimeID}) → TMDB movie (MovieID={TmdbID})", anidbEpisodeId, episode.AnimeID, tmdbMovieId);
+        _logger.LogInformation("Adding TMDB Movie Link: AniDB episode (EpisodeID={EpisodeID}, AnimeID={AnimeID}) → TMDB movie (MovieID={TmdbID})", anidbEpisodeId, episode.AnimeID, tmdbMovieId);
         var xref = _xrefAnidbTmdbMovies.GetByAnidbEpisodeAndTmdbMovieIDs(anidbEpisodeId, tmdbMovieId) ?? new(anidbEpisodeId, episode.AnimeID, tmdbMovieId);
         xref.AnidbAnimeID = episode.AnimeID;
         xref.MatchRating = matchRating;
@@ -245,7 +245,7 @@ public class TmdbLinkingService : ITmdbLinkingService
 
     private async Task RemoveMovieLink(CrossRef_AniDB_TMDB_Movie xref, bool purge = false)
     {
-        _logger.LogInformation("Removing TMDB movie link: AniDB episode (EpisodeID={EpisodeID},AnimeID={AnimeID}) → TMDB movie (ID:{TmdbID})", xref.AnidbEpisodeID, xref.AnidbAnimeID, xref.TmdbMovieID);
+        _logger.LogInformation("Removing TMDB movie link: AniDB episode (EpisodeID={EpisodeID}, AnimeID={AnimeID}) → TMDB movie (ID:{TmdbID})", xref.AnidbEpisodeID, xref.AnidbAnimeID, xref.TmdbMovieID);
         _xrefAnidbTmdbMovies.Delete(xref);
 
         if (purge)
@@ -493,7 +493,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             var otherShowsExisting = existing.Values.SelectMany(xref => xref).ExceptBy(anidbEpisodes.Keys.Append(0), xref => xref.AnidbEpisodeID).ToList();
             foreach (var link in otherShowsExisting)
             {
-                _logger.LogTrace("Skipping existing episode link: AniDB episode (EpisodeID={EpisodeID},AnimeID={AnimeID}) → TMDB episode (EpisodeID={TmdbID})", link.AnidbEpisodeID, link.AnidbAnimeID, link.TmdbEpisodeID);
+                _logger.LogTrace("Skipping existing episode link: AniDB episode (EpisodeID={EpisodeID}, AnimeID={AnimeID}) → TMDB episode (EpisodeID={TmdbID})", link.AnidbEpisodeID, link.AnidbAnimeID, link.TmdbEpisodeID);
 
                 // Exclude the linked episodes from the auto-match candidates.
                 var index = tmdbEpisodes.FindIndex(episode => episode.TmdbEpisodeID == link.TmdbEpisodeID);
@@ -708,7 +708,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         if (!saveToDatabase)
         {
             _logger.LogDebug(
-                "Found {a} anidb/tmdb episode links for show {ShowTitle} in {Delta}. (Anime={AnimeId},Show={ShowId})",
+                "Found {a} anidb/tmdb episode links for show {ShowTitle} in {Delta}. (Anime={AnimeId}, Show={ShowId})",
                 crossReferences.Count,
                 anime.PreferredTitle,
                 DateTime.Now - startedAt,
@@ -725,7 +725,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             .ToList();
 
         _logger.LogDebug(
-            "Added/removed/skipped {a}/{r}/{s} anidb/tmdb episode cross-references for show {ShowTitle} in {Delta} (Anime={AnimeId},Show={ShowId})",
+            "Added/removed/skipped {a}/{r}/{s} anidb/tmdb episode cross-references for show {ShowTitle} in {Delta} (Anime={AnimeId}, Show={ShowId})",
             toAdd.Count,
             toRemove.Count,
             existing.Count - toRemove.Count,

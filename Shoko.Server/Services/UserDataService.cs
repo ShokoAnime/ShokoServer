@@ -236,7 +236,7 @@ public class UserDataService(
             userData.LastUpdated = userDataUpdate.LastUpdatedAt ?? DateTime.Now;
             videoUserDataRepository.Save(userData);
 
-            logger.LogDebug("Got update for {VideoID} with reason {Reason}. (WatchedStatusChanged={WatchedStatusChanged},User={User})", video.ID, reason, watchedStatusChanged, user.ID);
+            logger.LogDebug("Got update for {VideoID} with reason {Reason}. (WatchedStatusChanged={WatchedStatusChanged}, User={User})", video.ID, reason, watchedStatusChanged, user.ID);
 
             try
             {

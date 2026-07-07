@@ -348,10 +348,10 @@ public class VideoService : IVideoService
 
         if (shouldSave)
         {
-            _logger.LogTrace("Saving video record for path: {Path} (ED2K={ED2K},Size={Size})", absolutePath, video.Hash, video.FileSize);
+            _logger.LogTrace("Saving video record for path: {Path} (ED2K={ED2K}, Size={Size})", absolutePath, video.Hash, video.FileSize);
             _videoLocalRepository.Save(video, true);
 
-            _logger.LogTrace("Saving video file record for path: {Path} (ED2K={ED2K},Size={Size})", absolutePath, video.Hash, video.FileSize);
+            _logger.LogTrace("Saving video file record for path: {Path} (ED2K={ED2K}, Size={Size})", absolutePath, video.Hash, video.FileSize);
             videoLocation.VideoID = video.VideoLocalID;
             _videoLocalPlaceRepository.Save(videoLocation);
         }
@@ -378,13 +378,13 @@ public class VideoService : IVideoService
 
         if (hasXrefs)
         {
-            _logger.LogTrace("Found existing video file with hashes and release info: {Path} (ED2K={ED2K},Size={Size})", absolutePath, video.Hash, video.FileSize);
+            _logger.LogTrace("Found existing video file with hashes and release info: {Path} (ED2K={ED2K}, Size={Size})", absolutePath, video.Hash, video.FileSize);
             return;
         }
 
         if (!_videoReleaseService.AutoMatchEnabled)
         {
-            _logger.LogTrace("Found existing video file with hashes but without release info and auto-match is disabled: {Path} (ED2K={ED2K},Size={Size})", absolutePath, video.Hash, video.FileSize);
+            _logger.LogTrace("Found existing video file with hashes but without release info and auto-match is disabled: {Path} (ED2K={ED2K}, Size={Size})", absolutePath, video.Hash, video.FileSize);
             return;
         }
 
@@ -396,7 +396,7 @@ public class VideoService : IVideoService
         )
         {
             _logger.LogTrace(
-                "Found existing video file with hashes but without release info with more than {MaxAutoScanAttemptsPerFile} attempts: {Path} (Attempts={Attempts},ED2K={ED2K},Size={Size})",
+                "Found existing video file with hashes but without release info with more than {MaxAutoScanAttemptsPerFile} attempts: {Path} (Attempts={Attempts}, ED2K={ED2K}, Size={Size})",
                 settings.Import.MaxAutoScanAttemptsPerFile,
                 absolutePath,
                 count,
@@ -479,7 +479,7 @@ public class VideoService : IVideoService
                         resolvedLocation.VideoLocal is { } resolvedVideo
                     )
                     {
-                        _logger.LogTrace("Found video for symbolic link: {ResolvedPath} (Hash={Hash},Size={Size})", resolvedPath, resolvedVideo.Hash, resolvedVideo.FileSize);
+                        _logger.LogTrace("Found video for symbolic link: {ResolvedPath} (Hash={Hash}, Size={Size})", resolvedPath, resolvedVideo.Hash, resolvedVideo.FileSize);
                         video = resolvedVideo;
                     }
                 }
@@ -496,7 +496,7 @@ public class VideoService : IVideoService
                     var fileName = Path.GetFileName(resolvedPath);
                     if (TryGetVideoFromFileNameHashTable(fileName, fileSize, out var otherVideo))
                     {
-                        _logger.LogTrace("Found video for file name and size through FileNameHash table: {ResolvedPath} (Hash={Hash},Size={Size})", resolvedPath, otherVideo.Hash, fileSize);
+                        _logger.LogTrace("Found video for file name and size through FileNameHash table: {ResolvedPath} (Hash={Hash}, Size={Size})", resolvedPath, otherVideo.Hash, fileSize);
                         video = otherVideo;
                     }
                 }
@@ -623,8 +623,7 @@ public class VideoService : IVideoService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Could not delete file and remove record for \"{Place}\": {Ex}", place.Path ?? place.ID.ToString(),
-                ex);
+            _logger.LogError(ex, "Could not delete file and remove record for \"{Place}\": {Ex}", place.Path ?? place.ID.ToString(), ex);
         }
     }
 
@@ -956,7 +955,7 @@ public class VideoService : IVideoService
         }
 
         var filesAt = DateTime.Now - startedAt;
-        _logger.LogInformation("Managed folder scan started; {Path} (ManagedFolder={ManagedFolderID}RelativePath={RelativePath},Files={FilesCount},FilesScanTime={FilesAt})", folder.Path, folder.ID, relativePath, files.Length, filesAt);
+        _logger.LogInformation("Managed folder scan started; {Path} (ManagedFolder={ManagedFolderID}, RelativePath={RelativePath}, Files={FilesCount}, FilesScanTime={FilesAt})", folder.Path, folder.ID, relativePath, files.Length, filesAt);
         var existingFiles = new ConcurrentDictionary<string, long>();
         foreach (var location in folder.Places)
         {
@@ -964,21 +963,21 @@ public class VideoService : IVideoService
             {
                 if (location.Path is not { Length: > 0 } path)
                 {
-                    _logger.LogInformation("Removing invalid full path for VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
+                    _logger.LogInformation("Removing invalid full path for VideoLocal_Place; {Path} (Video={VideoID}, Place={PlaceID}, ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
                     await RemoveRecord(location, skipEvents: skipEvents);
                     continue;
                 }
 
                 if (!location.IsAvailable)
                 {
-                    _logger.LogInformation("Removing missing path for VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
+                    _logger.LogInformation("Removing missing path for VideoLocal_Place; {Path} (Video={VideoID}, Place={PlaceID}, ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
                     await RemoveRecord(location, skipEvents: skipEvents);
                     continue;
                 }
 
                 if (location.VideoLocal is not { } video)
                 {
-                    _logger.LogInformation("Removing orphaned VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
+                    _logger.LogInformation("Removing orphaned VideoLocal_Place; {Path} (Video={VideoID}, Place={PlaceID}, ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
                     await RemoveRecord(location, skipEvents: true);
                     continue;
                 }
@@ -987,7 +986,7 @@ public class VideoService : IVideoService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An exception occurred while processing VideoLocal_Place; {Path} (Video={VideoID},Place={PlaceID},ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
+                _logger.LogError(ex, "An exception occurred while processing VideoLocal_Place; {Path} (Video={VideoID}, Place={PlaceID}, ManagedFolder={ManagedFolderID})", location.RelativePath, location.VideoID, location.ID, location.ManagedFolderID);
             }
         }
 
@@ -1044,7 +1043,7 @@ public class VideoService : IVideoService
 
         await actionBlock.Completion;
 
-        _logger.LogDebug("Found {FileCount} files and {VideoCount} videos in folder {FolderName} in {TimeSpan}. (Folder={FolderID},FilesScanTime={FilesAt})", filesFound, videosFound, folder.Name, DateTime.Now - startedAt, folder.ID, filesAt);
+        _logger.LogDebug("Found {FileCount} files and {VideoCount} videos in folder {FolderName} in {TimeSpan}. (Folder={FolderID}, FilesScanTime={FilesAt})", filesFound, videosFound, folder.Name, DateTime.Now - startedAt, folder.ID, filesAt);
 
         if (cleanUpStructure.Value)
         {
@@ -1234,8 +1233,7 @@ public class VideoService : IVideoService
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Unable to read the media information of file {Place} ERROR: {Ex}", path,
-                e);
+            _logger.LogError(e, "Unable to read the media information of file {Place} ERROR: {Ex}", path, e);
         }
 
         _logger.LogError("File {Place} failed to read MediaInfo", path);

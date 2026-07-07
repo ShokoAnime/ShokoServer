@@ -85,7 +85,7 @@ public class GetAniDBCreatorJob(IRequestFactory requestFactory, AnidbService ani
             return;
         }
 
-        _logger.LogInformation("Found AniDB Creator: {Creator} (ID={CreatorID},Type={Type})", response.Name, response.ID, response.Type.ToString());
+        _logger.LogInformation("Found AniDB Creator: {Creator} (ID={CreatorID}, Type={Type})", response.Name, response.ID, response.Type.ToString());
         var creator = anidbCreators.GetByCreatorID(CreatorID) ?? new();
         creator.CreatorID = response.ID;
         if (!string.IsNullOrEmpty(response.Name))

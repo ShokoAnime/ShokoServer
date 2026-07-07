@@ -329,7 +329,7 @@ public class DatabaseFixes
                     ?? new() { JMMUserID = userID, AnimeSeriesID = series.AnimeSeriesID };
                 seriesUserRecord.LastEpisodeUpdate = seriesUserRecord.LastUpdated = DateTime.Now;
                 _logger.Debug(
-                    $"Updating series user contract for user \"{userDict[seriesUserRecord.JMMUserID].Username}\". (UserID={seriesUserRecord.JMMUserID},SeriesID={seriesUserRecord.AnimeSeriesID})");
+                    $"Updating series user contract for user \"{userDict[seriesUserRecord.JMMUserID].Username}\". (UserID={seriesUserRecord.JMMUserID}, SeriesID={seriesUserRecord.AnimeSeriesID})");
                 RepoFactory.AnimeSeries_User.Save(seriesUserRecord);
             }
 

@@ -541,36 +541,36 @@ public class VideoRelocationService(
         var folder = file is VideoLocal_Place place ? place.ManagedFolder : file.ManagedFolder;
         if (string.IsNullOrEmpty(locationPath) || folder is null)
         {
-            logger.LogTrace("Invalid path or managed folder. Skipping relocation for video file: {Path}. (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
+            logger.LogTrace("Invalid path or managed folder. Skipping relocation for video file: {Path}. (Video={VideoID}, Location={LocationID})", locationPath, file.VideoID, file.ID);
             return;
         }
 
         if (!RelocateOnImport)
         {
-            logger.LogTrace("Auto-Relocation is disabled. Skipping relocation for video file: {Path} (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
+            logger.LogTrace("Auto-Relocation is disabled. Skipping relocation for video file: {Path} (Video={VideoID}, Location={LocationID})", locationPath, file.VideoID, file.ID);
             return;
         }
 
         if (file.ManagedFolder.DropFolderType is DropFolderType.Excluded)
         {
-            logger.LogTrace("Not in a drop destination or source. Skipping relocation for video file: {Path}. (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
+            logger.LogTrace("Not in a drop destination or source. Skipping relocation for video file: {Path}. (Video={VideoID}, Location={LocationID})", locationPath, file.VideoID, file.ID);
             return;
         }
 
         var availableProviders = GetAvailableProviders().ToList();
         if (availableProviders.Count == 0)
         {
-            logger.LogTrace("No relocation providers available. Skipping relocation for video file: {Path}. (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
+            logger.LogTrace("No relocation providers available. Skipping relocation for video file: {Path}. (Video={VideoID}, Location={LocationID})", locationPath, file.VideoID, file.ID);
             return;
         }
 
         if (file.Video.CrossReferences.Count == 0 && !availableProviders.Any(p => p.SupportsUnrecognized))
         {
-            logger.LogTrace("File is unrecognized and no available renamer supports unrecognized files. Skipping relocation for video file: {Path}. (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
+            logger.LogTrace("File is unrecognized and no available renamer supports unrecognized files. Skipping relocation for video file: {Path}. (Video={VideoID}, Location={LocationID})", locationPath, file.VideoID, file.ID);
             return;
         }
 
-        logger.LogTrace("Scheduling relocation for video file: {Path} (Video={VideoID},Location={LocationID})", locationPath, file.VideoID, file.ID);
+        logger.LogTrace("Scheduling relocation for video file: {Path} (Video={VideoID}, Location={LocationID})", locationPath, file.VideoID, file.ID);
         if (chainAfterCurrent)
             await schedulerFactory.RunAfterCurrent<RenameMoveFileLocationJob>(b => (b.ManagedFolderID, b.RelativePath) = (file.ManagedFolderID, file.RelativePath), cancellationToken).ConfigureAwait(false);
         else

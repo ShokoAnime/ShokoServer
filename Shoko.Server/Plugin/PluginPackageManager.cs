@@ -271,7 +271,7 @@ public partial class PluginPackageManager(
         var eventArgs = new PackageInstallationStartedEventArgs() { Package = packageInfo, StartedAt = DateTime.UtcNow };
 
         _logger.LogInformation(
-            "Installing package {PackageName}. (Id={PackageId},Version={PackageVersion},RuntimeId={PackageRuntimeId})",
+            "Installing package {PackageName}. (Id={PackageId}, Version={PackageVersion}, RuntimeId={PackageRuntimeId})",
             packageInfo.Manifest.Name,
             packageInfo.Manifest.PackageID,
             packageInfo.Release.Version,
@@ -290,7 +290,7 @@ public partial class PluginPackageManager(
         {
             _logger.LogWarning(
                 ex,
-                "Installation of package {PackageName} failed during the started event. (Id={PackageId},Version={PackageVersion},Runtime={PackageRuntimeId})",
+                "Installation of package {PackageName} failed during the started event. (Id={PackageId}, Version={PackageVersion}, Runtime={PackageRuntimeId})",
                 packageInfo.Manifest.Name,
                 packageInfo.Manifest.PackageID,
                 packageInfo.Release.Version,
@@ -314,7 +314,7 @@ public partial class PluginPackageManager(
             var ex = new OperationCanceledException("Installation was cancelled by a started event consumer before starting.");
             _logger.LogWarning(
                 ex,
-                "Installation of package {PackageName} was cancelled before starting. (Id={PackageId},Version={PackageVersion},RuntimeId={PackageRuntimeId})",
+                "Installation of package {PackageName} was cancelled before starting. (Id={PackageId}, Version={PackageVersion}, RuntimeId={PackageRuntimeId})",
                 packageInfo.Manifest.Name,
                 packageInfo.Manifest.PackageID,
                 packageInfo.Release.Version,
@@ -403,7 +403,7 @@ public partial class PluginPackageManager(
         {
             _logger.LogWarning(
                 ex,
-                "Installation of package {PackageName} was cancelled during installation. (Id={PackageId},Version={PackageVersion},RuntimeId={PackageRuntimeId})",
+                "Installation of package {PackageName} was cancelled during installation. (Id={PackageId}, Version={PackageVersion}, RuntimeId={PackageRuntimeId})",
                 packageInfo.Manifest.Name,
                 packageInfo.Manifest.PackageID,
                 packageInfo.Release.Version,
@@ -424,7 +424,7 @@ public partial class PluginPackageManager(
         {
             _logger.LogError(
                 ex,
-                "Failed to install package {PackageName} due to an exception occurring during installation. (Id={PackageId},Version={PackageVersion},RuntimeId={PackageRuntimeId})",
+                "Failed to install package {PackageName} due to an exception occurring during installation. (Id={PackageId}, Version={PackageVersion}, RuntimeId={PackageRuntimeId})",
                 packageInfo.Manifest.Name,
                 packageInfo.Manifest.PackageID,
                 packageInfo.Release.Version,

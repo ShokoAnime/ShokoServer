@@ -54,12 +54,12 @@ public class RenameMoveFileLocationJob(IVideoRelocationService relocationService
         var folder = _location.ManagedFolder;
         if (string.IsNullOrEmpty(locationPath) || folder is null)
         {
-            _logger.LogTrace("Invalid path or managed folder, skipping {FileName}. (Video={VideoID},Location={LocationID})", locationPath, _location.VideoID, _location.ID);
+            _logger.LogTrace("Invalid path or managed folder, skipping {FileName}. (Video={VideoID}, Location={LocationID})", locationPath, _location.VideoID, _location.ID);
             return;
         }
 
         var result = await relocationService.AutoRelocateFile(_location);
         if (!result.Success)
-            _logger.LogTrace(result.Error.Exception, "Unable to relocate video file; {ErrorMessage} (Video={VideoID},Location={LocationID})", result.Error.Message, _location.VideoID, _location.ID);
+            _logger.LogTrace(result.Error.Exception, "Unable to relocate video file; {ErrorMessage} (Video={VideoID}, Location={LocationID})", result.Error.Message, _location.VideoID, _location.ID);
     }
 }
