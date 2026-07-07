@@ -1117,6 +1117,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(180,  1, "ALTER TABLE `TMDB_Person` ADD COLUMN `ImdbPersonID` VARCHAR(12) NULL DEFAULT NULL;"),
         new(181,  1, "ALTER TABLE `AniDB_Anime_Relation` ADD COLUMN `Verified` TINYINT(1) NOT NULL DEFAULT 1;"),
         new(181,  2, "UPDATE `AniDB_Anime_Relation` SET `Verified` = 0 WHERE `RelationType` IN ('alternative setting', 'alternative version');"),
+        new(182,  1, "ALTER TABLE `TMDB_Show` MODIFY COLUMN `Genres` LONGTEXT NOT NULL;"),
+        new(182,  2, "ALTER TABLE `TMDB_Movie` MODIFY COLUMN `Genres` LONGTEXT NOT NULL;"),
     ];
 
     #endregion

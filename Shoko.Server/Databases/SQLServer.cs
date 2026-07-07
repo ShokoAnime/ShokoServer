@@ -1028,6 +1028,8 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(176,  1, "ALTER TABLE TMDB_Person ADD ImdbPersonID NVARCHAR(12) NULL DEFAULT NULL;"),
         new(177,  1, "ALTER TABLE AniDB_Anime_Relation ADD Verified BIT NOT NULL DEFAULT 1;"),
         new(177,  2, "UPDATE AniDB_Anime_Relation SET Verified = 0 WHERE RelationType IN ('alternative setting', 'alternative version');"),
+        new(178,  1, "ALTER TABLE TMDB_Show ALTER COLUMN Genres NVARCHAR(MAX) NOT NULL;"),
+        new(178,  2, "ALTER TABLE TMDB_Movie ALTER COLUMN Genres NVARCHAR(MAX) NOT NULL;"),
     ];
 
     #endregion
