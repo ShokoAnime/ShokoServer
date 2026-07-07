@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -9,10 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MimeDetective;
-using MimeDetective.Definitions;
-using MimeDetective.Definitions.Licensing;
-using MimeDetective.Storage;
 using Namotion.Reflection;
 using Polly;
 using Shoko.Abstractions.Config;
@@ -61,8 +56,6 @@ public class VideoHashingService(
     private const string ED2K = "ED2K";
 
     private const string CRC32 = "CRC32";
-
-    private IContentInspector? _contentInspector;
 
     private Dictionary<Guid, HashProviderInfo> _hashProviderInfos = [];
 
@@ -148,19 +141,6 @@ public class VideoHashingService(
                 .ThenBy(info => info.Name)
                 .ThenBy(info => info.ID)
                 .ToDictionary(info => info.ID);
-
-            logger.LogInformation("Building content inspector.");
-            _contentInspector = new ContentInspectorBuilder()
-            {
-                Definitions = new CondensedBuilder() { UsageType = UsageType.PersonalNonCommercial, }
-                    .Build()
-                    .ScopeExtensions(["3g2", "3gp", "avi", "av1", "flv", "h265", "h264", "m4v", "mkv", "mov", "mp4", "mpg", "mpeg", "ogv", "ogg", "qt", "rm", "swf", "vob", "wmv", "webm"])
-                    .TrimMeta()
-                    .TrimDescription()
-                    .TrimMimeType()
-                    .TrimCategories()
-                    .ToImmutableArray(),
-            }.Build();
 
             _loaded = true;
         }
@@ -467,7 +447,7 @@ public class VideoHashingService(
     }
 
     private bool IsVideoFile(string path)
-        => _contentInspector!.Inspect(path, ContentReader.Min).Length > 0;
+        => _videoService.IsAllowedVideoExtension(path);
 
     private async Task<HashingResult> GetHashesForVideo(VideoLocal video, VideoLocal_Place videoLocation, ShokoManagedFolder folder, bool useExistingHashes, bool skipFindRelease = false, bool skipEvents = false, CancellationToken cancellationToken = default)
     {
@@ -485,7 +465,7 @@ public class VideoHashingService(
 
         // Verify that the _unknown_ file we're going to hash is, in fact, a video file.
         if (!IsVideoFile(resolvedPath))
-            throw new InvalidOperationException($"File is not a known video file format: {resolvedPath}");
+            throw new InvalidOperationException($"File is not an allowed video file format: {resolvedPath}");
 
         var isNewVideo = video.VideoLocalID is 0;
         var isNewFile = video.FileSize is 0;
