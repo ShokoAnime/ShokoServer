@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
+using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Chain;
@@ -22,8 +23,10 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 /// </summary>
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Import)]
-public class ProcessReleaseProviderJob(VideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository matchAttempts) : BaseJob
+public class ProcessReleaseProviderJob(IVideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository matchAttempts) : BaseJob
 {
+    private readonly VideoReleaseService _videoReleaseService = (VideoReleaseService)videoReleaseService;
+
     private VideoLocal? _vlocal;
 
     private StoredReleaseInfo_MatchAttempt? _matchAttempt;
@@ -77,7 +80,7 @@ public class ProcessReleaseProviderJob(VideoReleaseService videoReleaseService, 
         if (_vlocal is not null && _matchAttempt is not null)
             _attemptNumber = matchAttempts.GetByEd2kAndFileSize(_vlocal.Hash, _vlocal.FileSize)
                 .FindIndex(m => m.StoredReleaseInfo_MatchAttemptID == MatchAttemptID) + 1;
-        _providerInfo = videoReleaseService.GetProviderInfo(ProviderID);
+        _providerInfo = _videoReleaseService.GetProviderInfo(ProviderID);
         _fileName = VideoService.GetDistinctPath(_vlocal?.FirstValidPlace?.Path);
     }
 
@@ -89,7 +92,7 @@ public class ProcessReleaseProviderJob(VideoReleaseService videoReleaseService, 
         _matchAttempt ??= matchAttempts.GetByID(MatchAttemptID);
         if (_vlocal is null || _matchAttempt is null) return;
 
-        _providerInfo ??= videoReleaseService.GetProviderInfo(ProviderID);
+        _providerInfo ??= _videoReleaseService.GetProviderInfo(ProviderID);
         if (_providerInfo is null)
         {
             _logger.LogWarning("Provider with id {ProviderID} not found, skipping.", ProviderID);
@@ -117,13 +120,13 @@ public class ProcessReleaseProviderJob(VideoReleaseService videoReleaseService, 
             var releaseInfo = new ReleaseInfoWithProvider(release, _providerInfo.Name);
             _matchAttempt.ProviderID = _providerInfo.ID;
             _matchAttempt.ProviderName = _providerInfo.Name;
-            await videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, skipEvents: SkipEvents);
+            await _videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, skipEvents: SkipEvents);
         }
         catch (Exception ex)
         {
             _matchAttempt.AttemptEndedAt = DateTime.Now;
             matchAttempts.Save(_matchAttempt);
-            await videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, null, ex);
+            await _videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, null, ex);
             throw new ChainAbortException(ex);
         }
     }

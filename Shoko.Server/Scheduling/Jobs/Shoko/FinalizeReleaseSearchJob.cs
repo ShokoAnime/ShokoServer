@@ -20,8 +20,10 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 /// </summary>
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Import)]
-public class FinalizeReleaseSearchJob(VideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, IVideoRelocationService relocationService, StoredReleaseInfo_MatchAttemptRepository matchAttempts) : BaseJob
+public class FinalizeReleaseSearchJob(IVideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, IVideoRelocationService relocationService, StoredReleaseInfo_MatchAttemptRepository matchAttempts) : BaseJob
 {
+    private readonly VideoReleaseService _videoReleaseService = (VideoReleaseService)videoReleaseService;
+
     private VideoLocal? _vlocal;
 
     private StoredReleaseInfo_MatchAttempt? _matchAttempt;
@@ -83,7 +85,7 @@ public class FinalizeReleaseSearchJob(VideoReleaseService videoReleaseService, V
 
         // Fire SearchCompleted now that auto-management has run. IsCancelled lets subscribers
         // (plugins, internal handlers) skip provider-specific post-import work.
-        var args = await videoReleaseService.FireSearchCompleted(_vlocal, matchAttempt);
+        var args = await _videoReleaseService.FireSearchCompleted(_vlocal, matchAttempt);
         if (args.IsCancelled)
             return;
 

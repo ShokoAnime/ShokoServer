@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
+using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
@@ -25,8 +26,10 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.Import)]
-public class AnidbProcessFileJob(VideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository matchAttempts) : BaseJob, IVideoReleaseProviderJob<AnidbReleaseProvider>
+public class AnidbProcessFileJob(IVideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository matchAttempts) : BaseJob, IVideoReleaseProviderJob<AnidbReleaseProvider>
 {
+    private readonly VideoReleaseService _videoReleaseService = (VideoReleaseService)videoReleaseService;
+
     private VideoLocal? _vlocal;
 
     private StoredReleaseInfo_MatchAttempt? _matchAttempt;
@@ -97,7 +100,7 @@ public class AnidbProcessFileJob(VideoReleaseService videoReleaseService, VideoL
         try
         {
             // Get the AniDB provider instance managed by the release service (preserves memory cache)
-            var providerInfo = videoReleaseService.GetProviderInfo<AnidbReleaseProvider>();
+            var providerInfo = _videoReleaseService.GetProviderInfo<AnidbReleaseProvider>();
             var request = new ReleaseInfoContext { Video = _vlocal, IsAutomatic = true };
             var release = await providerInfo.Provider.GetReleaseInfoForVideo(request, CancellationToken.None);
             if (release is null || release.CrossReferences.Count < 1)
@@ -109,13 +112,13 @@ public class AnidbProcessFileJob(VideoReleaseService videoReleaseService, VideoL
             var releaseInfo = new ReleaseInfoWithProvider(release, providerInfo.Name);
             _matchAttempt.ProviderID = providerInfo.ID;
             _matchAttempt.ProviderName = providerInfo.Name;
-            await videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, skipEvents: SkipEvents);
+            await _videoReleaseService.SaveReleaseForVideo(_vlocal, releaseInfo, matchAttempt: _matchAttempt, skipEvents: SkipEvents);
         }
         catch (Exception ex)
         {
             _matchAttempt.AttemptEndedAt = DateTime.Now;
             matchAttempts.Save(_matchAttempt);
-            await videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, null, ex);
+            await _videoReleaseService.FireSearchCompleted(_vlocal, _matchAttempt, null, ex);
             throw new ChainAbortException(ex);
         }
     }
