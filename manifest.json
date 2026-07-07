@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.362",
+      "tag": "v6.0.0-dev.362",
+      "commit": "5940220751d3ab6a6a30b81cc75550e82f037e06",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.362/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-07T17:21:29Z",
+      "releaseNotes": "\n`chore`: **Normalize spacing after commas in log message templates**. (_Skip CI_)\n\n`chore`: **Move nullable disabled declaration**.\n\n`chore`: **Sort imports and remove unnecessary imports**.\n\n`feat`: **Expose AniDB release group status via abstraction and v3 API**:\n\nAdds `IAnidbAnime.ReleaseGroupStatuses` to the plugin abstraction, reusing\n`IAnidbEpisode` and `IReleaseGroup` for resolved references while keeping raw\nscalars available for plugins that don't need them, and surfaces the same\ndata read-only via `GET /api/v3/Series/{seriesID}/AniDB/ReleaseGroupStatus`\nand `GET /api/v3/Series/AniDB/{anidbID}/ReleaseGroupStatus` (closes #1359).\n\nAlso removes the duplicate `Shoko.Server.Providers.AniDB.EpisodeType` enum\nnow that its values are identical to the abstraction's `EpisodeType`, in\nline with already dropping the redundant APIv3 episode type.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.70**.\n\n`fix` (`scheduling`): **Restore abstraction-typed DI for `VideoReleaseService` jobs**:\n\n`72142566f` converted job classes to primary constructors and, for\n`AnidbProcessFileJob`, `FinalizeReleaseSearchJob`, and\n`ProcessReleaseProviderJob`, switched the constructor parameter from\n`IVideoReleaseService` to the concrete `VideoReleaseService`. Only the\ninterface is registered in the DI container (`SystemService.cs`), so\nthose jobs failed to activate at runtime.\n\nReverted the constructor parameters to `IVideoReleaseService` and added\na `VideoReleaseService` field cast once at construction, used only for\nthe impl-only members (`FireSearchCompleted`, the `matchAttempt`\noverload of `SaveReleaseForVideo`) that aren't exposed on the\ninterface.\n\n`refactor`: **Remove `MimeDetective` and use `IsAllowedVideoExtension` for file type checks**:\n\nReplaced the MimeDetective magic-byte content inspector with a call to\n`VideoService.IsAllowedVideoExtension`, which checks against the\nuser-configurable `ImportSettings.VideoExtensions` list. A new video\nformat no longer requires a code change to be recognized by the hashing\npipeline.\n\n`chore`: **Add missing video extensions to `ContentTypeHelper`**:\n\nAdded .asf, .divx, .f4v, .m1v, .m2ts, .m2v, .mk3d, .mts, .mxf, .nsv,\n.nut, .ogm, .roq, .tp, .trp, .ts, .xvid\n"
+    },
+    {
       "version": "6.0.0.361",
       "tag": "v6.0.0-dev.361",
       "commit": "1b688ee1933016ad6917fdf2335e9d86b1e01aed",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.333/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-27T18:55:44Z",
       "releaseNotes": "\n`misc`: **Performance improvements**.\n"
-    },
-    {
-      "version": "6.0.0.332",
-      "tag": "v6.0.0-dev.332",
-      "commit": "881a071b5e57ff6e02ee0001f73142fdb2a5e7f8",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.332/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-27T03:10:52Z",
-      "releaseNotes": "\n`misc`: **Remove Database Locking and Make PocoCache Thread Safe**.\n"
     }
   ]
 }
