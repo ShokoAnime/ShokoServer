@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.361",
+      "tag": "v6.0.0-dev.361",
+      "commit": "1b688ee1933016ad6917fdf2335e9d86b1e01aed",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.361/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-06T23:57:02Z",
+      "releaseNotes": "\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.69**.\n"
+    },
+    {
       "version": "6.0.0.360",
       "tag": "v6.0.0-dev.360",
       "commit": "dabf41933bd2ccf0bb98bf66972f4c2a553da21c",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.332/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-27T03:10:52Z",
       "releaseNotes": "\n`misc`: **Remove Database Locking and Make PocoCache Thread Safe**.\n"
-    },
-    {
-      "version": "6.0.0.331",
-      "tag": "v6.0.0-dev.331",
-      "commit": "5c807160fd08dfd2d6ccaf22277ada8d067fa783",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.331/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-27T00:05:05Z",
-      "releaseNotes": "\n`fix`: **Add database indexes to speed up missing episode queries**:\n\nThe MissingEpisodesQuery, MissingCollectingEpisodesQuery, and their\nanime-filtered variants were timing out (>120s) against ~291k episodes\nand ~64k group statuses due to missing indexes causing full table scans\nand automatic temporary indexes in the correlated subqueries.\n\nFive indexes added across all supported backends (SQLite, MySQL, SQL\nServer):\n\n- IX_CrossRef_File_Episode_EpisodeID — the NOT EXISTS\n  (CFE.EpisodeID = ADBE.EpisodeID) check had no index on SQLite/SQL\n  Server (was dropped at v89 on SQLite, never existed on SQL Server).\n  MySQL already had this index from the original schema.\n\n- IX_AniDB_Episode_EpisodeType_AirDate — the WHERE filter\n  (EpisodeType=1 AND AirDate NOT NULL AND AirDate < now) previously\n  relied on the single-column EpisodeType index and scanned all matching\n  rows to check AirDate.\n\n- IX_AniDB_Episode_AnimeID_EpisodeType — the collecting variant's\n  deeply nested EXISTS subquery joins ADBE2.AnimeID to a correlated\n  outer value. Without statistics, SQLite's planner prefers scanning\n  by EpisodeType (208k rows) over seeking by AnimeID. This composite\n  covers both equality conditions and wins the heuristic regardless\n  of whether ANALYZE has been run.\n\n- IX_AnimeEpisode_IsHidden_AniDB_EpisodeID — the IsHidden=0 filter\n  and join had no covering index, forcing a full scan of the\n  AnimeEpisode table before joining.\n\n- IX_StoredReleaseInfo_ED2K — the MissingCollectingEpisodesQuery's\n  nested EXISTS joins SRI.ED2K to CrossRef_File_Episode.Hash with no\n  index on SRI, forcing SQLite to build an automatic partial covering\n  index at query time for every invocation of the correlated subquery.\n\nBefore: both queries timed out at 120s+. After: 0.19s (non-collecting)\nand 4s (collecting).\n"
     }
   ]
 }
