@@ -1,4 +1,3 @@
-#nullable disable
 using System.Collections.Generic;
 using System.Linq;
 using Asp.Versioning;
@@ -11,6 +10,7 @@ using Shoko.Server.Plex.Models.Libraries;
 using Shoko.Server.Repositories;
 using Shoko.Server.Settings;
 
+#nullable disable
 namespace Shoko.Server.API.v1.Implementations;
 
 [ApiController]

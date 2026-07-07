@@ -1,4 +1,3 @@
-#nullable disable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,6 +30,7 @@ using Constants = Shoko.Server.Server.Constants;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 #pragma warning disable CS0618
+#nullable disable
 namespace Shoko.Server.API.v1.Implementations;
 
 [ApiController]

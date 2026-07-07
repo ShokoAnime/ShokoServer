@@ -1,4 +1,3 @@
-#nullable disable
 using System;
 using System.IO;
 using System.Linq;
@@ -19,6 +18,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
+#nullable disable
 namespace Shoko.Server.API.v1.Implementations;
 
 [ApiInUse]

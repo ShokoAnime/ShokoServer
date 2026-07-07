@@ -1,4 +1,3 @@
-#nullable disable
 using System;
 using System.IO;
 using Asp.Versioning;
@@ -8,6 +7,7 @@ using NLog;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Properties;
 
+#nullable disable
 namespace Shoko.Server.API.v1.Implementations;
 
 [ApiController]

@@ -1,4 +1,3 @@
-#nullable disable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,6 +30,7 @@ using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
 
 #pragma warning disable CS0618
+#nullable disable
 namespace Shoko.Server.API.v1.Implementations;
 
 public partial class ShokoServiceImplementation

@@ -1,4 +1,3 @@
-#nullable disable
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -30,6 +29,7 @@ using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
+#nullable disable
 namespace Shoko.Server.API.v1.Implementations;
 
 public partial class ShokoServiceImplementation

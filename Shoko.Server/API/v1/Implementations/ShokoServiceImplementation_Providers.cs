@@ -1,4 +1,3 @@
-#nullable disable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +17,7 @@ using Shoko.Server.Repositories;
 #pragma warning disable CS0618
 #pragma warning disable ASP0023
 #pragma warning disable CA2012
+#nullable disable
 namespace Shoko.Server.API.v1.Implementations;
 
 public partial class ShokoServiceImplementation
