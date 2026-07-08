@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.364",
+      "tag": "v6.0.0-dev.364",
+      "commit": "97e524f1e24245ac3a3dd893c6d529b5140e731f",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.364/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-08T04:30:08Z",
+      "releaseNotes": "\n`fix`: **Fix an edge case in Release Management**.\n"
+    },
+    {
       "version": "6.0.0.363",
       "tag": "v6.0.0-dev.363",
       "commit": "5916bc00559e04f1c7fe82a031fd5d3c0d1949e4",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.335/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-28T06:27:37Z",
       "releaseNotes": "\n`misc`: **Updates to Release Management**.\n"
-    },
-    {
-      "version": "6.0.0.334",
-      "tag": "v6.0.0-dev.334",
-      "commit": "7947612ca43e15cf6d5c49af2fa9ebf525a331b2",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.334/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-28T04:28:53Z",
-      "releaseNotes": "\n`fix`: **Add missing `forceScan` parameter In managed folder scans** ([#1373](https://github.com/ShokoAnime/ShokoServer/pull/1373)):\n\n- Pass the forceScan parameter to ScheduleScanForManagedFolder during the default fallback logic when onlyNewFiles is null\n- Ensure that manual import commands can properly force re-evaluation of unrecognized files that have exceeded the maximum auto-scan attempts\n"
     }
   ]
 }
