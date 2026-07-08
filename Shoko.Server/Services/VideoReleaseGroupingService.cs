@@ -170,7 +170,7 @@ public class VideoReleaseGroupingService(
     /// </summary>
     public IReadOnlyList<VideoReleaseOverride> GetOverrides(IEnumerable<ResolvedVideoPlace> resolved)
     {
-        var sigs = resolved.Select(BuildSignature).ToList();
+        var sigs = BuildSignatures(resolved);
         var allEpisodes = (IReadOnlySet<(EpisodeType, int)>)sigs.SelectMany(s => s.EpisodeIds).ToHashSet();
         var buckets = FuzzyGroup(sigs);
         var mergedBuckets = MergeSameGroupBuckets(buckets);
@@ -182,7 +182,7 @@ public class VideoReleaseGroupingService(
     /// </summary>
     public IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<ResolvedVideoPlace> resolved)
     {
-        var sigs = resolved.Select(BuildSignature).ToList();
+        var sigs = BuildSignatures(resolved);
 
         // Full episode set across all files — used to filter incomplete candidates
         var allEpisodes = sigs.SelectMany(s => s.EpisodeIds).ToHashSet();
@@ -252,7 +252,7 @@ public class VideoReleaseGroupingService(
             if (specEpisodes.Count == 0 && allEpisodes.Count > 0) continue;
             if (allEpisodes.Count > 0 && !specEpisodes.IsSupersetOf(allEpisodes)) continue;
 
-            var fileSetKey = string.Join(",", spec.Files.Select(f => f.Place.ID).OrderBy(id => id));
+            var fileSetKey = string.Join(",", spec.Files.SelectMany(f => f.Places).Select(p => p.ID).OrderBy(id => id));
             if (seenFileSets.Add(fileSetKey))
                 result.Add(BuildCandidate(spec, allEpisodes));
         }
@@ -260,9 +260,23 @@ public class VideoReleaseGroupingService(
         return result;
     }
 
-    private FileSignature BuildSignature(ResolvedVideoPlace r)
+    /// <summary>
+    /// Builds one <see cref="FileSignature"/> per distinct <see cref="VideoLocal.VideoLocalID"/>,
+    /// carrying every <see cref="VideoLocal_Place"/> that shares that video. This guarantees that
+    /// places of the exact same video (e.g. the same file duplicated across two managed folders)
+    /// are never split into different fuzzy-group buckets or candidates — they are always ranked,
+    /// kept, and deleted together.
+    /// </summary>
+    private List<FileSignature> BuildSignatures(IEnumerable<ResolvedVideoPlace> resolved)
+        => resolved
+            .GroupBy(r => r.Video.VideoLocalID)
+            .Select(g => BuildSignature(g.ToList()))
+            .ToList();
+
+    private FileSignature BuildSignature(IReadOnlyList<ResolvedVideoPlace> group)
     {
-        var (place, video, sri) = r;
+        var (place, video, sri) = group[0];
+        var places = group.Select(g => g.Place).ToList();
         var media = video.MediaInfo;
 
         var videoStream = media?.VideoStream;
@@ -333,6 +347,7 @@ public class VideoReleaseGroupingService(
         return new FileSignature
         {
             Place = place,
+            Places = places,
             ParentDirectory = parentDirectory,
             ReleaseInfo = sri,
             AudioLanguages = audioLangs,
@@ -725,7 +740,7 @@ public class VideoReleaseGroupingService(
     {
         var named = spec.Files.Select(f => GroupKey(f.ReleaseInfo)).FirstOrDefault(k => k is not null);
         if (named is null)
-            return "__anon__" + string.Join(",", spec.Files.Select(f => f.Place.ID).OrderBy(id => id));
+            return "__anon__" + string.Join(",", spec.Files.SelectMany(f => f.Places).Select(p => p.ID).OrderBy(id => id));
         var epsKey = string.Join(",", spec.Files
             .SelectMany(f => f.EpisodeIds)
             .Select(e => $"{(int)e.Item1}:{e.Item2}")
@@ -795,14 +810,14 @@ public class VideoReleaseGroupingService(
         var bucketEps = signatures.SelectMany(s => s.EpisodeIds).ToHashSet();
 
         var files = signatures
-            .Select(s => new VideoReleaseOverrideFile
+            .SelectMany(s => s.Places.Select(p => new VideoReleaseOverrideFile
             {
-                Place = s.Place,
+                Place = p,
                 Version = s.ReleaseInfo?.Version ?? 0,
                 IsChaptered = s.IsChaptered,
                 SubtitleStreamCount = s.SubtitleStreamCount,
                 EpisodeIds = s.EpisodeIds,
-            })
+            }))
             .ToList();
 
         return new VideoReleaseOverride
@@ -923,9 +938,10 @@ public class VideoReleaseGroupingService(
             isCorrupted, spec.Version,
             spec.Strategy, spec.IsMixed, sortedSecondaryGroups);
 
-        var placeSignals = signatures.ToDictionary(
-            s => s.Place.ID,
-            s => new PlaceQualitySignals(
+        // Every place sharing a signature (i.e. the same VideoLocalID) gets the same
+        // signals — they are the same physical video, just present in multiple locations.
+        var placeSignals = signatures
+            .SelectMany(s => s.Places.Select(p => (p.ID, Signal: new PlaceQualitySignals(
                 s.IsChaptered,
                 s.ReleaseInfo?.IsCensored,
                 s.ReleaseInfo?.IsCreditless,
@@ -939,7 +955,8 @@ public class VideoReleaseGroupingService(
                 s.AudioCodec,
                 s.AudioStreamCount,
                 s.SubtitleStreamCount,
-                s.ReleaseInfo?.Version ?? 1));
+                s.ReleaseInfo?.Version ?? 1))))
+            .ToDictionary(x => x.ID, x => x.Signal);
 
         return new VideoReleaseCandidate
         {
@@ -971,7 +988,7 @@ public class VideoReleaseGroupingService(
             IsMixed = spec.IsMixed,
             IsHomogeneous = isHomogeneous,
             SecondaryGroupNames = spec.SecondaryGroupShortNames,
-            Places = signatures.Select(s => s.Place).ToList(),
+            Places = signatures.SelectMany(s => s.Places).ToList(),
             PlaceSignals = placeSignals,
             EpisodeCoverage = episodeCoverage,
             EpisodeGroupMap = episodeGroupMap,
@@ -1115,6 +1132,7 @@ public class VideoReleaseGroupingService(
     private sealed class FileSignature
     {
         public required VideoLocal_Place Place { get; init; }
+        public required IReadOnlyList<VideoLocal_Place> Places { get; init; }
         public required string ParentDirectory { get; init; }
         public StoredReleaseInfo? ReleaseInfo { get; init; }
         public required IReadOnlyList<TitleLanguage> AudioLanguages { get; init; }

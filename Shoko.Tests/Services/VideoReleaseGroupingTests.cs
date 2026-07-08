@@ -405,6 +405,63 @@ public class VideoReleaseGroupingTests
         Assert.Equal(2, candidates.Count);
     }
 
+    // ── same video, multiple places ──────────────────────────────────────────
+
+    /// <summary>
+    /// The exact same <see cref="VideoLocal"/> (one <see cref="VideoLocal.VideoLocalID"/>)
+    /// duplicated across two managed folders must never be treated as two competing
+    /// releases. Before places were grouped by VideoLocalID, the folder-based hard
+    /// separator in <c>AreCompatible</c> split them into two single-place buckets that
+    /// both trivially covered the same episode, producing two "candidates" for what is
+    /// really one file — and the second would be flagged redundant and queued for
+    /// deletion even though it's the same content as the "kept" one.
+    /// </summary>
+    [Fact]
+    public void SameVideoMultiplePlaces_ProducesOneCandidateWithBothPlaces()
+    {
+        var media = MakeMedia();
+        var video = MakeVideo(1, "AAA", 700_000_000, media);
+        var sri = MakeSri("AAA", 700_000_000, "209", "AniDB", "Chihiro", "Chihiro", ReleaseSource.BluRay, episodes: ["1"]);
+        var resolved = new[]
+        {
+            new ResolvedVideoPlace(MakePlace(1, 1, folderId: 1, "Toradora/[Chihiro] Toradora - 01 [BD].mkv"), video, sri),
+            new ResolvedVideoPlace(MakePlace(2, 1, folderId: 8, "Toradora (dupe)/[Chihiro] Toradora - 01 [BD].mkv"), video, sri),
+        };
+
+        var candidates = Group(resolved);
+
+        var candidate = Assert.Single(candidates);
+        Assert.Equal([1, 2], candidate.Places.Select(p => p.ID).OrderBy(id => id));
+    }
+
+    /// <summary>
+    /// When the duplicated video genuinely competes against a different release for
+    /// the same episode, both places of the duplicated video must land in the same
+    /// candidate — never split between the kept candidate and the redundant one.
+    /// </summary>
+    [Fact]
+    public void SameVideoMultiplePlaces_CompetingRelease_PlacesStayTogether()
+    {
+        var media = MakeMedia();
+        var duplicatedVideo = MakeVideo(1, "AAA", 700_000_000, media);
+        var duplicatedSri = MakeSri("AAA", 700_000_000, "209", "AniDB", "Chihiro", "Chihiro", ReleaseSource.BluRay, episodes: ["1"]);
+        var resolved = new[]
+        {
+            new ResolvedVideoPlace(MakePlace(1, 1, folderId: 1, "Toradora/[Chihiro] Toradora - 01 [BD].mkv"), duplicatedVideo, duplicatedSri),
+            new ResolvedVideoPlace(MakePlace(2, 1, folderId: 8, "Toradora (dupe)/[Chihiro] Toradora - 01 [BD].mkv"), duplicatedVideo, duplicatedSri),
+            new ResolvedVideoPlace(
+                MakePlace(3, 2, folderId: 1, "Toradora/[SubsPlease] Toradora - 01 [1080p].mkv"),
+                MakeVideo(2, "BBB", 700_000_000, media),
+                MakeSri("BBB", 700_000_000, "1337", "AniDB", "SubsPlease", "SubsPlease", ReleaseSource.Web, episodes: ["1"])),
+        };
+
+        var candidates = Group(resolved);
+
+        Assert.Equal(2, candidates.Count);
+        var duplicatedCandidate = Assert.Single(candidates, c => c.Places.Any(p => p.VideoID == 1));
+        Assert.Equal([1, 2], duplicatedCandidate.Places.Select(p => p.ID).OrderBy(id => id));
+    }
+
     // ── missing-field tolerance (fuzzy grouping) ─────────────────────────────
 
     /// <summary>
