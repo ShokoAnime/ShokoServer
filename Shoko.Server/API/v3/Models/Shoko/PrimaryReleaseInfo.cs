@@ -136,16 +136,5 @@ public class ReleaseCandidateSummary
     }
 
     private static string EpisodeKeyToString((EpisodeType Type, int Number) key)
-    {
-        var prefix = key.Type switch
-        {
-            EpisodeType.Special => "S",
-            EpisodeType.Credits => "C",
-            EpisodeType.Trailer => "T",
-            EpisodeType.Parody  => "P",
-            EpisodeType.Other   => "O",
-            _ => string.Empty,
-        };
-        return prefix + key.Number;
-    }
+        => key.Type.Prefix + key.Number;
 }

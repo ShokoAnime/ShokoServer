@@ -45,6 +45,60 @@ public static class EnumerableExtensions
         }, stringComparer ?? StringComparer.CurrentCulture);
     }
 
+    /// <summary>
+    ///   Converts an enumerable sequence of numbers into a formatted range string.
+    /// </summary>
+    /// <param name="numbers">
+    ///   The sequence of numbers to convert.
+    /// </param>
+    /// <param name="prefix">
+    ///   The prefix to add before each starting and ending number in a range block.
+    /// </param>
+    /// <param name="zeroPad">
+    ///   If <c>true</c>, the numbers will be zero-padded to two digits.
+    /// </param>
+    /// <returns>
+    ///   A formatted range string representing the given episode numbers.
+    /// </returns>
+    public static string ToCompressedRange(this IEnumerable<int> numbers, string prefix = "", bool zeroPad = false)
+    {
+        var list = numbers.Distinct().Order().ToList();
+        if (list.Count == 0)
+            return "";
+
+        if (list.Count == 1)
+            return zeroPad
+                ? $"{prefix}{list[0].ToString().PadLeft(2, '0')}"
+                : $"{prefix}{list[0]}";
+
+        var ranges = new List<string>();
+        int start = list[0], end = list[0];
+        for (var i = 1; i < list.Count; i++)
+        {
+            if (list[i] == end + 1)
+            {
+                end = list[i];
+            }
+            else
+            {
+                var range = start == end
+                    ? (zeroPad ? $"{prefix}{start.ToString().PadLeft(2, '0')}" : $"{prefix}{start}")
+                    : (zeroPad
+                        ? $"{prefix}{start.ToString().PadLeft(2, '0')}-{prefix}{end.ToString().PadLeft(2, '0')}"
+                        : $"{prefix}{start}-{prefix}{end}");
+                ranges.Add(range);
+                start = end = list[i];
+            }
+        }
+        var finalRange = start == end
+            ? (zeroPad ? $"{prefix}{start.ToString().PadLeft(2, '0')}" : $"{prefix}{start}")
+            : (zeroPad
+                ? $"{prefix}{start.ToString().PadLeft(2, '0')}-{prefix}{end.ToString().PadLeft(2, '0')}"
+                : $"{prefix}{start}-{prefix}{end}");
+        ranges.Add(finalRange);
+        return string.Join(", ", ranges);
+    }
+
     public static string ToRanges(this List<int> ints)
     {
         if (ints.Count < 1) return "";

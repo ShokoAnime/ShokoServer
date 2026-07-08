@@ -1,7 +1,13 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Providers.AniDB.Helpers;
 
 namespace Shoko.Server.API.v3.Models.AniDB;
 
@@ -34,8 +40,8 @@ public class AnidbReleaseGroupStatus
     public int LastEpisodeNumber { get; set; }
 
     /// <summary>
-    ///   The raw, comma-separated AniDB episode codes released by
-    ///   the group (e.g. "1,2,3,S1"), as reported by AniDB.
+    ///   The episodes released by the group, compressed into
+    ///   ranges (e.g. "1-5, 7, S1-S3"), or empty if unknown.
     /// </summary>
     public string EpisodeRange { get; set; }
 
@@ -56,8 +62,24 @@ public class AnidbReleaseGroupStatus
         GroupName = status.GroupName;
         CompletionState = (GroupCompletionStatus)status.CompletionState;
         LastEpisodeNumber = status.LastEpisodeNumber;
-        EpisodeRange = status.EpisodeRange;
+        EpisodeRange = CompressEpisodeRange(status.EpisodeRange);
         Rating = (double)status.Rating;
         RatingVotes = status.Votes;
+    }
+
+    private static string CompressEpisodeRange(string rawRange)
+    {
+        if (string.IsNullOrWhiteSpace(rawRange))
+            return string.Empty;
+
+        var parsed = rawRange.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(AniDBEpisodeNumber.Parse)
+            .ToList();
+
+        return parsed
+            .GroupBy(x => x.EpisodeType)
+            .OrderBy(g => g.Key)
+            .Select(g => g.Select(x => x.EpisodeNumber).ToCompressedRange(prefix: g.Key.Prefix))
+            .Join(", ");
     }
 }

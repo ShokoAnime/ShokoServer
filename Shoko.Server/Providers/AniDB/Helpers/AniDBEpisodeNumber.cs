@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Server.Providers.AniDB.Helpers;
@@ -25,31 +26,10 @@ public class AniDBEpisodeNumber
     public static AniDBEpisodeNumber Parse(string value)
     {
         var prefix = char.IsDigit(value[0]) ? string.Empty : value[..1];
-        var type = prefix switch
-        {
-            "" => EpisodeType.Episode,
-            "S" => EpisodeType.Special,
-            "C" => EpisodeType.Credits,
-            "T" => EpisodeType.Trailer,
-            "P" => EpisodeType.Parody,
-            "O" => EpisodeType.Other,
-            _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown episode number prefix."),
-        };
+        var type = EpisodeType.FromPrefix(prefix);
         return new AniDBEpisodeNumber { EpisodeType = type, EpisodeNumber = int.Parse(value[prefix.Length..]) };
     }
 
     public override string ToString()
-    {
-        var prefix = EpisodeType switch
-        {
-            EpisodeType.Episode => string.Empty,
-            EpisodeType.Special => "S",
-            EpisodeType.Credits => "C",
-            EpisodeType.Trailer => "T",
-            EpisodeType.Parody => "P",
-            EpisodeType.Other => "O",
-            _ => throw new ArgumentOutOfRangeException(),
-        };
-        return prefix + EpisodeNumber;
-    }
+        => EpisodeType.Prefix + EpisodeNumber;
 }

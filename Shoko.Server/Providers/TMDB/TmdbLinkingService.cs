@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.Metadata.Tmdb.Services;
@@ -965,24 +966,8 @@ public class TmdbLinkingService : ITmdbLinkingService
     private static string ReplaceTitle(string title) =>
         _characterReplacementDict.Aggregate(title, (current, kv) => current.Replace(kv.Key, kv.Value));
 
-    // Mirrors AniDBEpisodeNumber.ToString()'s prefix convention, but can't call it directly: AniDBEpisodeNumber
-    // lives in the Providers.AniDB namespace and uses that namespace's own EpisodeType enum, a distinct type
-    // from Abstractions.Metadata.Enums.EpisodeType used here despite the identical name and values (importing
-    // it previously caused a build break from the ambiguous EpisodeType reference). Throws instead of silently
-    // defaulting if the two conventions ever drift apart.
-    private static string GenericEpisodeTitlePrefix(EpisodeType episodeType) => episodeType switch
-    {
-        EpisodeType.Episode => "",
-        EpisodeType.Special => "S",
-        EpisodeType.Credits => "C",
-        EpisodeType.Trailer => "T",
-        EpisodeType.Parody => "P",
-        EpisodeType.Other => "O",
-        _ => throw new ArgumentOutOfRangeException(nameof(episodeType), episodeType, null),
-    };
-
     private static bool IsGenericEpisodeTitle(string title, EpisodeType episodeType, int episodeNumber) =>
-        title.Trim().Equals($"Episode {GenericEpisodeTitlePrefix(episodeType)}{episodeNumber}", StringComparison.InvariantCultureIgnoreCase);
+        title.Trim().Equals($"Episode {episodeType.Prefix}{episodeNumber}", StringComparison.InvariantCultureIgnoreCase);
 
     // Ratings assigned with zero title evidence — the only ones a coincidental air-date mismatch can put out of order.
     private static readonly HashSet<MatchRating> _weakOrderRatings = [MatchRating.DateMatches, MatchRating.FirstAvailable];

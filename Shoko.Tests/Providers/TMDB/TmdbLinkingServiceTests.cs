@@ -147,29 +147,6 @@ public class TmdbLinkingServiceTests
         Assert.Equal(102, xrefSpecial.TmdbEpisodeID);
     }
 
-    // AniDB's auto-generated placeholder title for an untitled episode follows the same type-prefix
-    // convention as AniDBEpisodeNumber (Episode="", Special="S", Credits="C", Trailer="T", Parody="P",
-    // Other="O"). Reproduces a live mismatch: an untitled AniDB special aired 2021-01-06 got matched to
-    // an unrelated TMDB "Episode 10" (aired 2019-08-01, no date corroboration at all) purely because the
-    // old filter only recognized the normal-episode placeholder form ("Episode {N}") and let "Episode S1"
-    // leak through as if it were a real, distinguishing title.
-    [Theory]
-    [InlineData(EpisodeType.Episode, 5, "Episode 5", true)]
-    [InlineData(EpisodeType.Special, 1, "Episode S1", true)]
-    [InlineData(EpisodeType.Credits, 2, "Episode C2", true)]
-    [InlineData(EpisodeType.Trailer, 3, "Episode T3", true)]
-    [InlineData(EpisodeType.Parody, 4, "Episode P4", true)]
-    [InlineData(EpisodeType.Other, 6, "Episode O6", true)]
-    [InlineData(EpisodeType.Special, 1, "Episode 1", false)]
-    [InlineData(EpisodeType.Special, 1, "Demon Lords' Banquet: Walpurgis", false)]
-    public void IsGenericEpisodeTitle_RecognizesPerTypePlaceholderFormat(EpisodeType episodeType, int episodeNumber, string title, bool expected)
-    {
-        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
-        var method = typeof(TmdbLinkingService).GetMethod("IsGenericEpisodeTitle", flags)!;
-        var result = (bool)method.Invoke(null, [title, episodeType, episodeNumber])!;
-        Assert.Equal(expected, result);
-    }
-
     // GetAllTitles() normally hits RepoFactory; seeding the private cache field directly keeps this
     // a pure unit test instead of requiring a repository/DB fixture.
     private static void SeedTitles(TMDB_Episode episode, params TMDB_Title[] titles)

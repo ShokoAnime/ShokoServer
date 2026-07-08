@@ -12,6 +12,7 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Web;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Extensions;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
@@ -387,7 +388,10 @@ public class WebUI
                                     .Select(file => file.Number)
                                     .Distinct()
                                     .ToList();
-                                var range = SequenceToRange(sequence);
+                                var range = sequence.ToCompressedRange(
+                                    prefix: data[0].Type.Prefix,
+                                    zeroPad: true
+                                );
                                 var fileSize = data.Sum(file => file.Size);
                                 return new EpisodeRangeByType
                                 {
@@ -970,44 +974,6 @@ public class WebUI
             /// </summary>
             [Required]
             public int Count { get; set; }
-        }
-
-        /// <summary>
-        /// Converts a list of episode numbers into a range format string.
-        /// </summary>
-        /// <param name="sequence">The list of episode numbers to convert.</param>
-        /// <returns>A range format string representing the given episode numbers.</returns>
-        private static string SequenceToRange(List<int> sequence)
-        {
-            if (sequence == null || sequence.Count == 0)
-                return "";
-
-            if (sequence.Count == 1)
-                return sequence[0].ToString().PadLeft(2, '0');
-
-            var list = sequence.Distinct().OrderBy(x => x).ToList();
-            var ranges = new List<string>();
-            int start = list[0], end = list[0];
-            for (var i = 1; i < list.Count; i++)
-            {
-                if (list[i] == end + 1)
-                {
-                    end = list[i];
-                }
-                else
-                {
-                    var range = start == end
-                        ? start.ToString().PadLeft(2, '0')
-                        : $"{start.ToString().PadLeft(2, '0')}-{end.ToString().PadLeft(2, '0')}";
-                    ranges.Add(range);
-                    start = end = list[i];
-                }
-            }
-            var finalRange = start == end
-                ? start.ToString().PadLeft(2, '0')
-                : $"{start.ToString().PadLeft(2, '0')}-{end.ToString().PadLeft(2, '0')}";
-            ranges.Add(finalRange);
-            return string.Join(", ", ranges);
         }
 
         private static int CompareSequences(List<int> sequenceA, List<int> sequenceB)

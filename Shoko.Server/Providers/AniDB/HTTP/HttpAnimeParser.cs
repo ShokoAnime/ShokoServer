@@ -6,6 +6,7 @@ using System.Net;
 using System.Web;
 using System.Xml;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
@@ -433,15 +434,7 @@ public class HttpAnimeParser
         // this will allow for the user customizing how it is displayed on screen later
         var epType = fld.Trim()[..1].ToUpper();
 
-        return epType switch
-        {
-            "C" => EpisodeType.Credits,
-            "S" => EpisodeType.Special,
-            "O" => EpisodeType.Other,
-            "T" => EpisodeType.Trailer,
-            "P" => EpisodeType.Parody,
-            _ => EpisodeType.Episode
-        };
+        return EpisodeType.FromPrefix(epType);
     }
 
     #endregion
