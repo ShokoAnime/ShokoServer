@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -63,8 +64,12 @@ public static partial class PlatformUtility
     /// </summary>
     /// <param name="path">The path.</param>
     /// <returns>The potentially modified path.</returns>
-    public static string EnsureUsablePath(string path)
+    [return: NotNullIfNotNull(nameof(path))]
+    public static string? EnsureUsablePath(string? path)
     {
+        if (string.IsNullOrEmpty(path))
+            return path;
+
         if (!IsWindows)
             return path;
         // Use long paths if we're on Windows and the path is longer than 250
