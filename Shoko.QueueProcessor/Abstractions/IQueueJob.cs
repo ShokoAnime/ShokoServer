@@ -18,7 +18,7 @@ public interface IQueueJob
     string Title { get; }
 
     /// <summary>Key/value pairs surfaced in the queue API for display purposes.</summary>
-    Dictionary<string, object> Details { get; }
+    Dictionary<string, object> Details { get => []; }
 
     /// <summary>
     /// Called once by the worker immediately after the job is resolved from DI and before
@@ -33,7 +33,7 @@ public interface IQueueJob
     /// <c>JobDataJson</c> but before <see cref="Process"/> is invoked. Use to resolve
     /// any state that depends on the populated data.
     /// </summary>
-    void PostInit();
+    void PostInit() { }
 
     /// <summary>Execute the job. Exceptions are caught by the worker and routed to the retry policy.</summary>
     Task Process();
