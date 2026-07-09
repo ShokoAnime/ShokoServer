@@ -627,4 +627,14 @@ public enum TitleLanguage : int
     /// Chinese (Min Nan / Hokkien).
     /// </summary>
     MinNanChinese,
+
+    /// <summary>
+    /// Norwegian (Bokmal).
+    /// </summary>
+    NorwegianBokmal,
+
+    /// <summary>
+    /// Norwegian (Nynorsk).
+    /// </summary>
+    NorwegianNynorsk,
 }

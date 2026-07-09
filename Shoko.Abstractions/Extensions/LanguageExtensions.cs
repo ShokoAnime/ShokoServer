@@ -93,6 +93,8 @@ public static class LanguageExtensions
             "MS" or "MSA" or "MAY" => TitleLanguage.Malaysian,
             "NL" or "NLD" or "DUT" => TitleLanguage.Dutch,
             "NO" or "NOR" => TitleLanguage.Norwegian,
+            "NB" or "NOB" => TitleLanguage.NorwegianBokmal,
+            "NN" or "NNO" => TitleLanguage.NorwegianNynorsk,
             "PL" or "POL" => TitleLanguage.Polish,
             "PT" or "POR" => TitleLanguage.Portuguese,
             "RO" or "RON" or "RUM" => TitleLanguage.Romanian,
@@ -207,6 +209,8 @@ public static class LanguageExtensions
             "CATALAN" or "SPANISH (LATIN AMERICAN)" => TitleLanguage.Spanish,
             "KOREAN (TRANSCRIPTION)" => TitleLanguage.KoreanTranscription,
             "FILIPINO (TAGALOG)" => TitleLanguage.Filipino,
+            "NORWEGIAN (BOKMAL)" => TitleLanguage.NorwegianBokmal,
+            "NORWEGIAN (NYNORSK)" => TitleLanguage.NorwegianNynorsk,
 
             #endregion
 
@@ -252,6 +256,8 @@ public static class LanguageExtensions
             TitleLanguage.MinNanChinese => "Chinese (Min Nan / Hokkien)",
             TitleLanguage.KoreanTranscription => "Korean (Transcription)",
             TitleLanguage.ThaiTranscription => "Thai (Transcription)",
+            TitleLanguage.NorwegianBokmal => "Norwegian (Bokmal)",
+            TitleLanguage.NorwegianNynorsk => "Norwegian (Nynorsk)",
             _ => lang.ToString(),
         };
 
@@ -387,6 +393,8 @@ public static class LanguageExtensions
             TitleLanguage.EnglishCanadian => "en-CA",
             TitleLanguage.EnglishIndia => "en-IN",
             TitleLanguage.EnglishNewZealand => "en-NZ",
+            TitleLanguage.NorwegianBokmal => "nb",
+            TitleLanguage.NorwegianNynorsk => "nn",
             _ => "unk",
         };
 
