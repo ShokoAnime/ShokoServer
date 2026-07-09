@@ -12,7 +12,7 @@ public class TextSubtitles : ISubtitles
 
         var m = MediaInfoUtility.GetMediaInfo(file.FullName);
         var tStreams = m?.TextStreams;
-        if (tStreams == null || tStreams.Count == 0) tStreams = new List<TextStream> { new() };
+        if (tStreams == null || tStreams.Count == 0) tStreams = [new()];
 
         tStreams.ForEach(a =>
         {
@@ -31,8 +31,8 @@ public class TextSubtitles : ISubtitles
         return streams;
     }
 
-    public static readonly List<string> Extensions = new()
-    {
+    public static readonly List<string> Extensions =
+    [
         "utf",
         "utf8",
         "utf-8",
@@ -45,7 +45,7 @@ public class TextSubtitles : ISubtitles
         "ass",
         "txt",
         "psb"
-    };
+    ];
 
     public bool IsSubtitleFile(string path)
     {

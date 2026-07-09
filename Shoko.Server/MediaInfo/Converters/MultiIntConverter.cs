@@ -9,12 +9,12 @@ public class MultiIntConverter : JsonConverter
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
     {
         throw new NotSupportedException();
     }
 
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
     {
         if (!(reader.Value is string existingString))
         {
@@ -23,7 +23,7 @@ public class MultiIntConverter : JsonConverter
 
         try
         {
-            var strings = existingString.Split(new[] { "/", " ", "-" }, StringSplitOptions.RemoveEmptyEntries);
+            var strings = existingString.Split(["/", " ", "-"], StringSplitOptions.RemoveEmptyEntries);
             if (strings.Length == 1)
             {
                 if (int.TryParse(strings[0], out var result))

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Shoko.Abstractions.Utilities;
 using Shoko.Server.Extensions;
 
 // ReSharper disable StringLiteralTypo
@@ -12,20 +11,17 @@ namespace Shoko.Server.MediaInfo.Subtitles;
 
 public static class SubtitleHelper
 {
-    private static List<ISubtitles> SubtitleImplementations;
+    private static List<ISubtitles>? SubtitleImplementations;
 
-    public static List<TextStream> GetSubtitleStreams(string path)
+    public static List<TextStream> GetSubtitleStreams(string? path)
     {
-        SubtitleImplementations ??= InitImplementations();
-
-        if (string.IsNullOrEmpty(path)) return new List<TextStream>();
+        if (string.IsNullOrEmpty(path)) return [];
 
         var directoryName = Path.GetDirectoryName(path);
-        if (string.IsNullOrEmpty(directoryName)) return new List<TextStream>();
+        if (string.IsNullOrEmpty(directoryName)) return [];
+        if (!Directory.Exists(directoryName)) return [];
 
-        directoryName = PlatformUtility.EnsureUsablePath(directoryName);
-        if (!Directory.Exists(directoryName)) return new List<TextStream>();
-
+        SubtitleImplementations ??= InitImplementations();
         var directory = new DirectoryInfo(directoryName);
         var basename = Path.GetFileNameWithoutExtension(path);
         var streams = new List<TextStream>();
@@ -47,23 +43,25 @@ public static class SubtitleHelper
     {
         try
         {
-            return AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes())
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(x => x.GetTypes())
                 .Where(x => typeof(ISubtitles).IsAssignableFrom(x) && !x.IsInterface && !x.IsAbstract)
-                .Select(type => (ISubtitles)Activator.CreateInstance(type)).ToList();
+                .Select(type => (ISubtitles)Activator.CreateInstance(type)!)
+                .ToList();
         }
         catch
         {
-            return new List<ISubtitles>();
+            return [];
         }
     }
 
-    public static string GetLanguageFromFilename(string path)
+    public static string? GetLanguageFromFilename(string path)
     {
         // sub format of filename.eng.srt
-        var lastSeparator = path.Trim(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).LastIndexOfAny(new[]
-        {
+        var lastSeparator = path.Trim(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).LastIndexOfAny(
+        [
             Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar
-        });
+        ]);
         var filename = path[(lastSeparator + 1)..];
         var parts = filename.Split('.');
         // if there aren't 3 parts, then it's not in the format for this to work

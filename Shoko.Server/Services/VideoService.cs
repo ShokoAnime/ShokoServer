@@ -560,17 +560,18 @@ public class VideoService : IVideoService
     {
         _logger.LogInformation("Deleting video local place record and file: {Place}", place.Path ?? place.ID.ToString());
 
-        if (!_fileSystemHelpers.FileExists(place.Path))
+        var filePath = place.Path!;
+        if (!_fileSystemHelpers.FileExists(filePath))
         {
-            _logger.LogInformation("Unable to find file. Removing Record: {Place}", place.Path ?? place.RelativePath);
+            _logger.LogInformation("Unable to find file. Removing Record: {Place}", filePath ?? place.RelativePath);
             await RemoveRecord(place, skipEvents);
             return;
         }
 
         try
         {
-            _fileSystemHelpers.DeleteFile(place.Path);
-            DeleteExternalSubtitles(place.Path);
+            _fileSystemHelpers.DeleteFile(filePath);
+            DeleteExternalSubtitles(filePath);
         }
         catch (FileNotFoundException)
         {
@@ -578,12 +579,12 @@ public class VideoService : IVideoService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unable to delete file \'{Place}\': {Ex}", place.Path, ex);
+            _logger.LogError(ex, "Unable to delete file \'{Place}\': {Ex}", filePath, ex);
             throw;
         }
 
         if (deleteFolder)
-            RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.Path), place.ManagedFolder!.Path);
+            RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(filePath), place.ManagedFolder!.Path);
 
         await RemoveRecord(place, skipEvents);
     }
@@ -594,17 +595,18 @@ public class VideoService : IVideoService
         {
             _logger.LogInformation("Deleting video local place record and file: {Place}", place.Path ?? place.ID.ToString());
 
-            if (!_fileSystemHelpers.FileExists(place.Path))
+            var filePath = place.Path!;
+            if (!_fileSystemHelpers.FileExists(filePath))
             {
-                _logger.LogInformation("Unable to find file. Removing Record: {FullServerPath}", place.Path);
+                _logger.LogInformation("Unable to find file. Removing Record: {FullServerPath}", filePath);
                 await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, skipEvents);
                 return;
             }
 
             try
             {
-                _fileSystemHelpers.DeleteFile(place.Path);
-                DeleteExternalSubtitles(place.Path);
+                _fileSystemHelpers.DeleteFile(filePath);
+                DeleteExternalSubtitles(filePath);
             }
             catch (FileNotFoundException)
             {
@@ -612,12 +614,12 @@ public class VideoService : IVideoService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unable to delete file \'{Place}\': {Ex}", place.Path, ex);
+                _logger.LogError(ex, "Unable to delete file \'{Place}\': {Ex}", filePath, ex);
                 return;
             }
 
             if (deleteFolders)
-                RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(place.Path), place.ManagedFolder!.Path);
+                RecursiveDeleteEmptyDirectories(Path.GetDirectoryName(filePath), place.ManagedFolder!.Path);
 
             await RemoveRecordWithOpenTransaction(session, place, seriesToUpdate, skipEvents);
         }
@@ -627,7 +629,7 @@ public class VideoService : IVideoService
         }
     }
 
-    private void DeleteExternalSubtitles(string originalFileName)
+    private void DeleteExternalSubtitles(string? originalFileName)
     {
         try
         {
@@ -1222,7 +1224,7 @@ public class VideoService : IVideoService
 
             if (mediaInfo is { IsUsable: true })
             {
-                var subs = SubtitleHelper.GetSubtitleStreams(place.Path);
+                var subs = SubtitleHelper.GetSubtitleStreams(path);
                 if (subs.Count > 0)
                     mediaInfo.media.track.AddRange(subs);
 

@@ -334,26 +334,26 @@ public static class MediaInfoUtility
         {"s_image/bmp", "bmp"},
     };
 
-    public static string GetLanguageFromCode(string code)
+    public static string? GetLanguageFromCode(string code)
     {
         if (_languageMapping_1_2_Name.Contains(code)) return _languageMapping_1_2_Name[code].FirstOrDefault()?.Item1;
         return null;
     }
 
-    public static string GetLanguageFromName(string code)
+    public static string? GetLanguageFromName(string code)
     {
         code = code.ToLowerInvariant();
         if (_languageMapping_Name_2_1.Contains(code)) return _languageMapping_Name_2_1[code].FirstOrDefault()?.Item1;
         return null;
     }
 
-    public static Tuple<string, string> GetLanguageMapping(string language)
+    public static Tuple<string, string>? GetLanguageMapping(string language)
     {
         if (_languageMapping_2_1_Name.TryGetValue(language, out var value)) return value;
         return null;
     }
 
-    public static string GetStandardResolution(Tuple<int, int> res)
+    public static string? GetStandardResolution(Tuple<int, int> res)
     {
         if (res == null)
             return null;
@@ -397,7 +397,7 @@ public static class MediaInfoUtility
             Math.Abs(current - value) < Math.Abs(next - value) ? current : next);
     }
 
-    public static string TranslateCodec(Stream stream)
+    public static string? TranslateCodec(Stream stream)
     {
         if (stream?.Codec == null && stream?.CodecID == null)
             return null;
@@ -429,11 +429,13 @@ public static class MediaInfoUtility
 
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    private static MediaContainer GetMediaInfo_Internal(string filename)
+    private static MediaContainer? GetMediaInfo_Internal(string filename)
     {
         try
         {
             var exe = GetMediaInfoPathForOS();
+            if (string.IsNullOrEmpty(exe))
+                return null;
 
             var pProcess = GetProcess(exe, filename);
             pProcess.Start();
@@ -533,10 +535,10 @@ public static class MediaInfoUtility
         return pProcess;
     }
 
-    private static string GetMediaInfoPathForOS()
+    private static string? GetMediaInfoPathForOS()
     {
         var envVar = Environment.GetEnvironmentVariable("MEDIAINFO_PATH");
-        string path;
+        string? path;
         if (!string.IsNullOrEmpty(envVar))
         {
             // Allow specifying an executable name other than "mediainfo"
@@ -570,9 +572,9 @@ public static class MediaInfoUtility
         return appPath;
     }
 
-    public static MediaContainer GetMediaInfo(string filename)
+    public static MediaContainer? GetMediaInfo(string filename)
     {
-        MediaContainer m = null;
+        MediaContainer? m = null;
         var mediaTask = Task.Run(() => GetMediaInfo_Internal(filename));
 
         var timeout = ISettingsProvider.Instance.GetSettings().Import.MediaInfoTimeoutMinutes;
@@ -592,7 +594,7 @@ public static class MediaInfoUtility
         return m;
     }
 
-    public static string GetVersion()
+    public static string? GetVersion()
     {
         try
         {

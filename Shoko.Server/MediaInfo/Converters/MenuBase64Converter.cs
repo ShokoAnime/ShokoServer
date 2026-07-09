@@ -10,10 +10,10 @@ public class MenuBase64Converter : JsonConverter
 {
     public override bool CanConvert(Type objectType)
     {
-        return objectType.IsAssignableFrom(typeof(Dictionary<string, string>));
+        return objectType.IsAssignableFrom(typeof(Dictionary<string, string?>));
     }
 
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
     {
         if (reader.TokenType == JsonToken.Null)
         {
@@ -25,10 +25,10 @@ public class MenuBase64Converter : JsonConverter
         if (reader.Path != "extra")
         {
             return
-                obj.ToObject<Dictionary<string, string>>(); // Only continue if we are changing "extra" object in menu stream. Otherwise return as is.
+                obj.ToObject<Dictionary<string, string?>>(); // Only continue if we are changing "extra" object in menu stream. Otherwise return as is.
         }
 
-        var sanitizedDictionary = new Dictionary<string, string>();
+        var sanitizedDictionary = new Dictionary<string, string?>();
 
         foreach (var (key, value) in obj)
         {
@@ -55,7 +55,7 @@ public class MenuBase64Converter : JsonConverter
 
     public override bool CanRead => true;
 
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
     {
         throw new NotImplementedException();
     }

@@ -10,7 +10,7 @@ public class DateTimeConverter : IsoDateTimeConverter
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
     {
         if (!(reader.Value is string existingString))
         {
@@ -22,7 +22,7 @@ public class DateTimeConverter : IsoDateTimeConverter
             existingString = existingString.Replace("UTC", "");
             existingString = existingString.Replace("T", " ");
             existingString = existingString.Replace("Z", "");
-            var strings = existingString.Split(new[] { " / " }, StringSplitOptions.RemoveEmptyEntries);
+            var strings = existingString.Split([" / "], StringSplitOptions.RemoveEmptyEntries);
             if (strings.Length == 1)
             {
                 return string.IsNullOrEmpty(DateTimeFormat)
