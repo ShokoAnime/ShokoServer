@@ -460,56 +460,75 @@ public static class MediaInfoUtility
                 return null;
             }
 
-            var settings = new JsonSerializerSettings
-            {
-                Converters =
-                [
-                    new StreamJsonConverter(),
-                    new BooleanConverter(),
-                    new StringEnumConverter(),
-                    new DateTimeConverter { DateTimeFormat = "yyyy-MM-dd HH:mm:ss" },
-                    new MultiIntConverter(),
-                    new MenuBase64Converter()
-                ],
-                Error = (_, e) =>
-                {
-                    Logger.Error(e.ErrorContext.Error);
-                    e.ErrorContext.Handled = true;
-                }
-            };
-
-            // assuming json, as it starts with {
-            var m = JsonConvert.DeserializeObject<MediaContainer>(output, settings);
-            if (m == null || m.media == null)
-            {
-                throw new Exception($"Unable to deserialize MediaInfo response: {output}");
-            }
-
-            m.media.track.ForEach(a =>
-            {
-                // Stream should never be null, but here we are
-                if (string.IsNullOrEmpty(a?.Language))
-                {
-                    return;
-                }
-
-                var languages = GetLanguageMapping(a.Language);
-                if (languages == null)
-                {
-                    Logger.Warn($"{filename} had a missing language code: {a.Language}");
-                    return;
-                }
-
-                a.LanguageCode = languages.Item1;
-                a.LanguageName = languages.Item2;
-            });
-            return m;
+            return GetMediaInfoForJson(output, filename);
         }
         catch (Exception e)
         {
             Logger.Error($"MediaInfo threw an error on {filename}: {e}");
             return null;
         }
+    }
+
+    public static MediaContainer? GetMediaInfoForJson(string json)
+    {
+        try
+        {
+            return GetMediaInfoForJson(json, null);
+        }
+        catch
+        {
+            Logger.Error($"MediaInfo threw an error on:\n{json}");
+            return null;
+        }
+    }
+
+    private static MediaContainer? GetMediaInfoForJson(string json, string? filename)
+    {
+        var settings = new JsonSerializerSettings
+        {
+            Converters =
+            [
+                new StreamJsonConverter(),
+                new BooleanConverter(),
+                new StringEnumConverter(),
+                new DateTimeConverter { DateTimeFormat = "yyyy-MM-dd HH:mm:ss" },
+                new MultiIntConverter(),
+                new MenuBase64Converter()
+            ],
+            Error = (_, e) =>
+            {
+                Logger.Error(e.ErrorContext.Error);
+                e.ErrorContext.Handled = true;
+            }
+        };
+
+        // assuming json, as it starts with {
+        var m = JsonConvert.DeserializeObject<MediaContainer>(json, settings);
+        if (m == null || m.media == null)
+        {
+            throw new Exception($"Unable to deserialize MediaInfo response: {json}");
+        }
+
+        m.media.track.ForEach(a =>
+        {
+            // Stream should never be null, but here we are
+            if (string.IsNullOrEmpty(a?.Language))
+            {
+                return;
+            }
+
+            var languages = GetLanguageMapping(a.Language);
+            if (languages is null)
+            {
+                if (!string.IsNullOrEmpty(filename))
+                    Logger.Warn($"{filename} had a missing language code: {a.Language}");
+                return;
+            }
+
+            a.LanguageCode = languages.Item1;
+            a.LanguageName = languages.Item2;
+        });
+        return m;
     }
 
     private static Process GetProcess(string processName, string filename)

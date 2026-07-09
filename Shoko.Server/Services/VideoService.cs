@@ -13,6 +13,7 @@ using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Events;
+using Shoko.Abstractions.Video.Media;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
@@ -1189,8 +1190,52 @@ public class VideoService : IVideoService
 
     #endregion
 
-    #region MediaInfo
+    #region Media Info
 
+    public IMediaInfo? ReadMediaInfoFromPath(string? path)
+    {
+        if (string.IsNullOrEmpty(path))
+            return null;
+
+        var mediaInfo = MediaInfoUtility.GetMediaInfo(path);
+        if (mediaInfo is { GeneralStream: { Duration: 0, Format: "ogg" } })
+            mediaInfo.GeneralStream.Duration = CalculateDurationOggFile(path);
+
+        if (mediaInfo is { IsUsable: true })
+        {
+            var subs = SubtitleHelper.GetSubtitleStreams(path);
+            if (subs.Count > 0)
+                mediaInfo.media.track.AddRange(subs);
+
+            return mediaInfo;
+        }
+
+        return null;
+    }
+
+    public IMediaInfo? ConvertJsonToMediaInfo(string? json)
+        => ConvertMediaInfo(json, null);
+
+    private IMediaInfo? ConvertMediaInfo(string? json, string? path)
+    {
+        if (string.IsNullOrEmpty(json))
+            return null;
+
+        var mediaInfo = MediaInfoUtility.GetMediaInfoForJson(json);
+        if (mediaInfo is { GeneralStream: { Duration: 0, Format: "ogg" } } && !string.IsNullOrEmpty(path))
+            mediaInfo.GeneralStream.Duration = CalculateDurationOggFile(path);
+
+        if (mediaInfo is { IsUsable: true })
+        {
+            var subs = !string.IsNullOrEmpty(path) ? SubtitleHelper.GetSubtitleStreams(path) : [];
+            if (subs.Count > 0)
+                mediaInfo.media.track.AddRange(subs);
+
+            return mediaInfo;
+        }
+
+        return null;
+    }
 
     double CalculateDurationOggFile(string filename)
     {

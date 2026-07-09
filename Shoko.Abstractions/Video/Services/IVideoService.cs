@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Events;
+using Shoko.Abstractions.Video.Media;
 
 namespace Shoko.Abstractions.Video.Services;
 
@@ -558,6 +559,34 @@ public interface IVideoService
     ///   Whether to prioritize this job in the queue.
     /// </param>
     Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipEvents = false, bool? cleanUpStructure = null, bool forceScan = false, bool prioritize = true);
+
+    #endregion
+
+    #region Media Info
+
+    /// <summary>
+    ///   Reads media info from a file.
+    /// </summary>
+    /// <param name="path">
+    ///   The path to the file.
+    /// </param>
+    /// <returns>
+    ///   An <see cref="IMediaInfo"/> object, or <c>null</c> if the file is
+    ///   invalid.
+    /// </returns>
+    IMediaInfo? ReadMediaInfoFromPath(string? path);
+
+    /// <summary>
+    ///   Converts media info from a JSON string.
+    /// </summary>
+    /// <param name="json">
+    ///   The JSON string.
+    /// </param>
+    /// <returns>
+    ///   An <see cref="IMediaInfo"/> object, or <c>null</c> if the JSON string
+    ///   is invalid.
+    /// </returns>
+    IMediaInfo? ConvertJsonToMediaInfo(string? json);
 
     #endregion
 }
