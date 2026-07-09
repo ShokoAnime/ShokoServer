@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.365",
+      "tag": "v6.0.0-dev.365",
+      "commit": "eb6528724207fdb3be8b2e274c00064bbeec4096",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.365/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-09T03:39:32Z",
+      "releaseNotes": "\n`fix`: **Always resolve home path**.\n\n`fix`: **Add default impl. for Details and PostInit for IQueueJob**.\n\n`chore` (`queue`): **Bump queue processor version to v6.0.0-alpha.6**.\n"
+    },
+    {
       "version": "6.0.0.364",
       "tag": "v6.0.0-dev.364",
       "commit": "97e524f1e24245ac3a3dd893c6d529b5140e731f",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.336/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-28T15:46:55Z",
       "releaseNotes": "\n`misc`: **Unify ReleaseSignalType names to simplify UI consumption**.\n"
-    },
-    {
-      "version": "6.0.0.335",
-      "tag": "v6.0.0-dev.335",
-      "commit": "9dbd161475da0643d8993950a6610389c8aee895",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.335/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-28T06:27:37Z",
-      "releaseNotes": "\n`misc`: **Updates to Release Management**.\n"
     }
   ]
 }
