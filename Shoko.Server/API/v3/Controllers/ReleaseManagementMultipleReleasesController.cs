@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NLog;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.QueueProcessor.Abstractions;
@@ -68,8 +66,6 @@ public class ReleaseManagementMultipleReleasesController(
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : AniDB_Anime_TitleRepository.NormalizeForSearch(search);
-        var __log = LogManager.GetCurrentClassLogger();
-        var __sw = Stopwatch.StartNew();
 
         // A series can only have more than one release candidate if some episode has more
         // than one distinct, currently-existing video file — computed once via a single pass
@@ -77,8 +73,6 @@ public class ReleaseManagementMultipleReleasesController(
         // (never under-inclusive) pre-filter that typically cuts the anime library down by
         // more than an order of magnitude before any per-series work runs at all.
         var animeIDsWithMultipleFilesPerEpisode = grouper.GetAnimeIDsWithMultipleFilesPerEpisode();
-        __log.Info($"[PERF] GetAnimeIDsWithMultipleFilesPerEpisode: {__sw.ElapsedMilliseconds}ms, {animeIDsWithMultipleFilesPerEpisode.Count} anime IDs");
-        __sw.Restart();
 
         var allSeries = animeSeries.GetAll()
             .Where(s => animeIDsWithMultipleFilesPerEpisode.Contains(s.AniDB_ID))
@@ -86,8 +80,6 @@ public class ReleaseManagementMultipleReleasesController(
             .Where(s => !onlyFinishedSeries || (s.AniDB_Anime?.GetFinishedAiring() ?? false))
             .Where(s => normalizedSearch == null || anidbTitles.AnimeMatchesSearch(s.AniDB_ID, normalizedSearch))
             .ToList();
-        __log.Info($"[PERF] allSeries filter: {__sw.ElapsedMilliseconds}ms, {allSeries.Count} series");
-        __sw.Restart();
 
         // Cheap-ish qualification pass over every matching series. This still runs
         // grouping/ranking/redundancy per series via ComputeCandidates (needed to know
@@ -130,8 +122,6 @@ public class ReleaseManagementMultipleReleasesController(
             .Select(q => q!.Value)
             .OrderBy(q => q.Series.Title)
             .ToList();
-        __log.Info($"[PERF] qualify pass: {__sw.ElapsedMilliseconds}ms, {qualifying.Count} qualifying series (of {allSeries.Count} candidates)");
-        __sw.Restart();
 
         // Build the full ReleaseCandidate DTOs only for the page being returned. Deliberately
         // sequential (not ToListResult's PLINQ-based overload) — for a handful of items this
@@ -141,7 +131,6 @@ public class ReleaseManagementMultipleReleasesController(
         var results = pageItems
             .Select(q => BuildSeriesWithCandidates(q.Series, q.VideoLookup, includeVariations, includeTracks: false, prefetchedComputation: q.Computation)!)
             .ToList();
-        __log.Info($"[PERF] page build: {__sw.ElapsedMilliseconds}ms, {results.Count} series built");
 
         return new ListResult<SeriesWithCandidates>(qualifying.Count, results);
     }

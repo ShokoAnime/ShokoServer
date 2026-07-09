@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using NLog;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
@@ -225,23 +223,17 @@ public class VideoReleaseGroupingService(
     /// </summary>
     public IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<ResolvedVideoPlace> resolved)
     {
-        var __log = LogManager.GetCurrentClassLogger();
-        var __sw = Stopwatch.StartNew();
-
         var sigs = BuildSignatures(resolved);
-        var __tBuildSignatures = __sw.Elapsed; __sw.Restart();
 
         // Full episode set across all files — used to filter incomplete candidates
         var allEpisodes = sigs.SelectMany(s => s.EpisodeIds).ToHashSet();
 
         var buckets = FuzzyGroup(sigs);
-        var __tFuzzyGroup = __sw.Elapsed; __sw.Restart();
 
         // Merge buckets that share the same release group — quality variation within a group
         // (subtitle count, chaptered vs. unchaptered per episode) is expressed as mixed signals
         // on the combined candidate rather than splitting into separate candidates.
         var mergedBuckets = MergeSameGroupBuckets(buckets);
-        var __tMergeSameGroupBuckets = __sw.Elapsed; __sw.Restart();
 
         // Guard: a series only belongs in the Multiple Releases utility when at least
         // one episode has files from two or more distinct buckets — i.e., there is a
@@ -268,11 +260,9 @@ public class VideoReleaseGroupingService(
             if (!anyOverlap && !mergedBuckets.Any(HasIntraBucketVersionCollision))
                 return [];
         }
-        var __tCoverageGuard = __sw.Elapsed; __sw.Restart();
 
         // Phase 2: version-strategy candidates per merged family
         var specs = mergedBuckets.SelectMany(GenerateVersionStrategyCandidates).ToList();
-        var __tVersionStrategy = __sw.Elapsed; __sw.Restart();
 
         // Phase 2.5: cross-bucket same-group candidates
         // When two buckets from the same release group overlap on at least one episode
@@ -282,12 +272,10 @@ public class VideoReleaseGroupingService(
         // from the same group for the same episode are competing releases regardless of
         // which managed folder they live in.
         specs.AddRange(GenerateCrossBucketCandidates(mergedBuckets));
-        var __tCrossBucket = __sw.Elapsed; __sw.Restart();
 
         // Phase 3: gap-fill candidates — one per partial anchor, greedily filled
         // across as many filler groups as needed to cover all episodes.
         var gapFillSpecs = GenerateGapFillCandidates(specs, allEpisodes).ToList();
-        var __tGapFill = __sw.Elapsed; __sw.Restart();
 
         // Build candidates, dedup by file set.
         // Filter out:
@@ -299,7 +287,6 @@ public class VideoReleaseGroupingService(
         //     always available whenever the individual specs are all partial.
         var seenFileSets = new HashSet<string>();
         var result = new List<VideoReleaseCandidate>();
-        var __buildCandidateCalls = 0;
         foreach (var spec in specs.Concat(gapFillSpecs))
         {
             var specEpisodes = spec.Files.SelectMany(f => f.EpisodeIds).ToHashSet();
@@ -308,19 +295,8 @@ public class VideoReleaseGroupingService(
 
             var fileSetKey = string.Join(",", spec.Files.SelectMany(f => f.Places).Select(p => p.ID).OrderBy(id => id));
             if (seenFileSets.Add(fileSetKey))
-            {
                 result.Add(BuildCandidate(spec, allEpisodes));
-                __buildCandidateCalls++;
-            }
         }
-        var __tBuildCandidates = __sw.Elapsed;
-
-        __log.Info($"[PERF-GROUP] files={sigs.Count} buckets={buckets.Count} specs={specs.Count} gapFillSpecs={gapFillSpecs.Count} " +
-                   $"builtCandidates={__buildCandidateCalls} | BuildSignatures={__tBuildSignatures.TotalMilliseconds:F1}ms " +
-                   $"FuzzyGroup={__tFuzzyGroup.TotalMilliseconds:F1}ms MergeSameGroupBuckets={__tMergeSameGroupBuckets.TotalMilliseconds:F1}ms " +
-                   $"CoverageGuard={__tCoverageGuard.TotalMilliseconds:F1}ms VersionStrategy={__tVersionStrategy.TotalMilliseconds:F1}ms " +
-                   $"CrossBucket={__tCrossBucket.TotalMilliseconds:F1}ms GapFill={__tGapFill.TotalMilliseconds:F1}ms " +
-                   $"BuildCandidates={__tBuildCandidates.TotalMilliseconds:F1}ms");
 
         return result;
     }
