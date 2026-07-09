@@ -83,11 +83,20 @@ public class ReleaseAutoManagementService(
     /// When true and the series is airing, per-file redundancy is used instead of
     /// whole-candidate redundancy. Pass null to use the server setting.
     /// </param>
+    /// <param name="bypassEligibilityGate">
+    /// When true, skip the primary-eligibility check (<see cref="ReleaseComparisonService.GetEligiblePrimaryCoverage"/>)
+    /// and trust <c>ranked[0]</c>'s raw episode coverage instead. Intended for callers where
+    /// the caller (not this method) already knows the primary was explicitly, deliberately
+    /// selected by a user — e.g. a per-series <c>PreferredCandidateKey</c> override — as opposed
+    /// to fully-automatic/unattended redundancy checks (on-import auto-delete, or the default
+    /// candidate-list badges), which must always use the gate.
+    /// </param>
     public IReadOnlyList<VideoLocal_Place> ComputeRedundantPlaces(
         AnimeSeries series,
         IReadOnlyList<VideoReleaseCandidate> ranked,
         Dictionary<int, VideoLocal> videoLookup,
-        bool? preferPerFile = null)
+        bool? preferPerFile = null,
+        bool bypassEligibilityGate = false)
     {
         if (ranked.Count <= 1)
             return [];
@@ -96,21 +105,23 @@ public class ReleaseAutoManagementService(
         // physical file appears as a filler in a secondary gap-fill candidate.
         var primaryPlaceIds = ranked[0].Places.Select(p => p.ID).ToHashSet();
 
+        var eligibleCoverage = bypassEligibilityGate
+            ? ranked[0].EpisodeCoverage
+            : comparer.GetEligiblePrimaryCoverage(ranked[0]);
+        if (eligibleCoverage.Count == 0)
+            return [];
+
         var prefs = settingsProvider.GetSettings().ReleaseComparisonPreferences;
         var usePerFile = (preferPerFile ?? prefs.PerFileDeletionForAiringSeries) && IsSeriesAiring(series);
 
         if (usePerFile)
         {
-            var primary = ranked[0];
-            if (primary.EpisodeCoverage.Count == 0)
-                return [];
-
             var seenIds = new HashSet<int>();
             var result = new List<VideoLocal_Place>();
             foreach (var candidate in ranked.Skip(1))
             {
                 var redundantPlaces = comparer.GetRedundantPlaces(
-                    primary, candidate, p => GetFileEpisodeCoverage(p, videoLookup));
+                    eligibleCoverage, candidate.Places, p => GetFileEpisodeCoverage(p, videoLookup));
                 foreach (var place in redundantPlaces)
                 {
                     if (!primaryPlaceIds.Contains(place.ID) && seenIds.Add(place.ID))
@@ -121,7 +132,7 @@ public class ReleaseAutoManagementService(
         }
         else
         {
-            var redundant = comparer.GetRedundantCandidates(ranked);
+            var redundant = comparer.GetRedundantCandidates(eligibleCoverage, ranked.Skip(1).ToList());
             var seenIds = new HashSet<int>();
             var result = new List<VideoLocal_Place>();
             foreach (var place in redundant.SelectMany(c => c.Places))
@@ -153,23 +164,25 @@ public class ReleaseAutoManagementService(
         // physical file appears as a filler in a secondary gap-fill candidate.
         var primaryPlaceIds = ranked[0].Places.Select(p => p.ID).ToHashSet();
 
+        var eligibleCoverage = comparer.GetEligiblePrimaryCoverage(ranked[0]);
+        if (eligibleCoverage.Count == 0)
+            return;
+
         if (prefs.PerFileDeletionForAiringSeries && IsSeriesAiring(series))
         {
             // Per-file redundancy for airing series: delete individual files from secondary
             // candidates when the primary already covers those specific episodes, while
             // keeping files for episodes the primary hasn't reached yet.
             var primary = ranked[0];
-            if (primary.EpisodeCoverage.Count == 0)
-                return;
 
             var videoLookup = videos.ToDictionary(v => v.VideoLocalID);
             foreach (var candidate in ranked.Skip(1))
-                await ProcessCandidatePerFileAsync(primary, candidate, videoLookup, series, prefs, primaryPlaceIds);
+                await ProcessCandidatePerFileAsync(primary, eligibleCoverage, candidate, videoLookup, series, prefs, primaryPlaceIds);
         }
         else
         {
             // Whole-candidate redundancy: only delete when the entire candidate is covered.
-            var redundant = comparer.GetRedundantCandidates(ranked);
+            var redundant = comparer.GetRedundantCandidates(eligibleCoverage, ranked.Skip(1).ToList());
             if (redundant.Count == 0)
                 return;
 
@@ -186,6 +199,7 @@ public class ReleaseAutoManagementService(
 
     private async Task ProcessCandidatePerFileAsync(
         VideoReleaseCandidate primary,
+        IReadOnlySet<(EpisodeType, int)> eligibleCoverage,
         VideoReleaseCandidate secondary,
         Dictionary<int, VideoLocal> videoLookup,
         AnimeSeries series,
@@ -193,7 +207,7 @@ public class ReleaseAutoManagementService(
         HashSet<int> primaryPlaceIds)
     {
         var redundantPlaces = comparer.GetRedundantPlaces(
-            primary, secondary, p => GetFileEpisodeCoverage(p, videoLookup))
+            eligibleCoverage, secondary.Places, p => GetFileEpisodeCoverage(p, videoLookup))
             .Where(p => !primaryPlaceIds.Contains(p.ID))
             .ToList();
         var keptCount = secondary.Places.Count - redundantPlaces.Count;

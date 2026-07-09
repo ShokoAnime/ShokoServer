@@ -636,9 +636,17 @@ int Compare(VideoReleaseCandidate a, VideoReleaseCandidate b);
 // Best-first; stable on ties (input order preserved)
 IReadOnlyList<VideoReleaseCandidate> Rank(IEnumerable<VideoReleaseCandidate> candidates);
 
-// Returns candidates whose EpisodeCoverage ⊆ primary.EpisodeCoverage and who rank lower.
-// Single-candidate input always returns empty.
-IReadOnlyList<VideoReleaseCandidate> GetRedundantCandidates(IReadOnlyList<VideoReleaseCandidate> ranked);
+// Returns the subset of primary.EpisodeCoverage it is trusted to use for automatic
+// redundancy ("trumping" other candidates) — empty if the primary is a mixed/gap-fill
+// composite, is missing release info, is corrupted, or internally disagrees on
+// chapter/censor/creditless status (evaluated per EpisodeType under BestPerType scope).
+IReadOnlySet<(EpisodeType, int)> GetEligiblePrimaryCoverage(VideoReleaseCandidate primary);
+
+// Returns the candidates (excluding the primary) whose EpisodeCoverage ⊆ primaryCoverage.
+// Callers pass GetEligiblePrimaryCoverage(ranked[0]) for automatic/batch deletion, or a
+// selected candidate's raw EpisodeCoverage for an interactive, ungated preview.
+IReadOnlyList<VideoReleaseCandidate> GetRedundantCandidates(
+    IReadOnlySet<(EpisodeType, int)> primaryCoverage, IReadOnlyList<VideoReleaseCandidate> candidates);
 
 // Like Compare, but also returns which signal decided the outcome and the display
 // values on both sides, for use in UI explanations.

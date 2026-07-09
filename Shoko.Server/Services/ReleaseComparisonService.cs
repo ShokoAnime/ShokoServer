@@ -60,56 +60,102 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
     }
 
     /// <summary>
-    /// Given a ranked list (best-first), returns the secondary candidates whose entire
-    /// episode coverage is already covered by the primary (first) candidate and who rank
-    /// lower than the primary. These are safe to delete without losing any episode.
-    /// A list with only one candidate always returns empty.
+    /// Returns the subset of <paramref name="primary"/>'s episode coverage that it is
+    /// actually trusted to use for automatic redundancy ("trumping" other candidates).
+    /// A primary that is a gap-fill/mixed composite, is missing release info, is marked
+    /// corrupted, or internally disagrees on chapter/censor/creditless status is not
+    /// trustworthy enough to auto-delete other candidates against — this returns an
+    /// empty set in that case (or, under <see cref="EpisodeTypeScope.BestPerType"/>,
+    /// excludes only the episode types where the disqualifying condition applies).
+    /// </summary>
+    public IReadOnlySet<(EpisodeType, int)> GetEligiblePrimaryCoverage(VideoReleaseCandidate primary)
+    {
+        // These disagreement flags have no per-type equivalent, so they always deny
+        // trumping outright regardless of EpisodeTypeScope.
+        if (primary.IsChapteredMixed || primary.IsCensoredMixed || primary.IsCreditlessMixed)
+            return new HashSet<(EpisodeType, int)>();
+
+        if (Prefs.EpisodeTypeScope == EpisodeTypeScope.KeepTogether)
+        {
+            if (primary.IsMixed || !primary.HasReleaseInfo || primary.IsCorrupted)
+                return new HashSet<(EpisodeType, int)>();
+            return primary.EpisodeCoverage;
+        }
+
+        // BestPerType: a primary can be a single, complete, non-corrupted release for
+        // one episode type while being mixed/incomplete/corrupted for another — evaluate
+        // "single release" and "has info" independently per type via EpisodeGroupMap
+        // (guaranteed to have an entry for every covered episode), and reuse the
+        // per-type IsCorrupted signal already computed on TypeSignals.
+        var result = new HashSet<(EpisodeType, int)>();
+        foreach (var typeGroup in primary.EpisodeGroupMap.GroupBy(kv => kv.Key.Item1))
+        {
+            if (primary.TypeSignals.TryGetValue(typeGroup.Key, out var typeSignals) && typeSignals.IsCorrupted)
+                continue;
+
+            var groups = typeGroup.Select(kv => kv.Value).ToList();
+            if (groups.Any(g => g is null))
+                continue;
+            if (groups.Distinct().Count() > 1)
+                continue;
+
+            foreach (var kv in typeGroup)
+                result.Add(kv.Key);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Given the trusted coverage set of a primary candidate, returns the secondary
+    /// candidates from <paramref name="candidates"/> whose entire episode coverage is
+    /// already covered by <paramref name="primaryCoverage"/>. These are safe to delete
+    /// without losing any episode. <paramref name="candidates"/> should not include the
+    /// primary itself.
     /// </summary>
     public IReadOnlyList<VideoReleaseCandidate> GetRedundantCandidates(
-        IReadOnlyList<VideoReleaseCandidate> ranked)
+        IReadOnlySet<(EpisodeType, int)> primaryCoverage,
+        IReadOnlyList<VideoReleaseCandidate> candidates)
     {
-        if (ranked.Count <= 1)
+        if (primaryCoverage.Count == 0)
             return [];
 
-        var primary = ranked[0];
-
         var redundant = new List<VideoReleaseCandidate>();
-        foreach (var candidate in ranked.Skip(1))
+        foreach (var candidate in candidates)
         {
-            // If either side has no episode data we cannot verify coverage overlap —
-            // keep the candidate rather than risk deleting files that may cover
-            // episodes the primary does not.
-            if (primary.EpisodeCoverage.Count == 0 || candidate.EpisodeCoverage.Count == 0)
+            // If the candidate has no episode data we cannot verify coverage overlap —
+            // keep it rather than risk deleting files that may cover episodes the
+            // primary does not.
+            if (candidate.EpisodeCoverage.Count == 0)
                 continue;
 
             // Redundant if the primary covers every episode this candidate covers.
-            if (candidate.EpisodeCoverage.IsSubsetOf(primary.EpisodeCoverage))
+            if (candidate.EpisodeCoverage.IsSubsetOf(primaryCoverage))
                 redundant.Add(candidate);
         }
         return redundant;
     }
 
     /// <summary>
-    /// Returns the places from <paramref name="secondary"/> whose individual episode
+    /// Returns the places from <paramref name="secondaryPlaces"/> whose individual episode
     /// coverage — determined by calling <paramref name="getCoverage"/> per place —
-    /// is a subset of <paramref name="primary"/>'s coverage. These files are
-    /// individually redundant: the primary already provides a higher-ranked
-    /// alternative for every episode they cover.
+    /// is a subset of <paramref name="primaryCoverage"/>. These files are individually
+    /// redundant: the primary already provides a higher-ranked alternative for every
+    /// episode they cover.
     /// Places whose coverage is empty (unknown, no SRI) are always retained.
     /// </summary>
     public IReadOnlyList<VideoLocal_Place> GetRedundantPlaces(
-        VideoReleaseCandidate primary,
-        VideoReleaseCandidate secondary,
+        IReadOnlySet<(EpisodeType, int)> primaryCoverage,
+        IReadOnlyCollection<VideoLocal_Place> secondaryPlaces,
         Func<VideoLocal_Place, IReadOnlySet<(EpisodeType, int)>> getCoverage)
     {
-        if (primary.EpisodeCoverage.Count == 0)
+        if (primaryCoverage.Count == 0)
             return [];
 
         var result = new List<VideoLocal_Place>();
-        foreach (var place in secondary.Places)
+        foreach (var place in secondaryPlaces)
         {
             var coverage = getCoverage(place);
-            if (coverage.Count > 0 && coverage.IsSubsetOf(primary.EpisodeCoverage))
+            if (coverage.Count > 0 && coverage.IsSubsetOf(primaryCoverage))
                 result.Add(place);
         }
         return result;

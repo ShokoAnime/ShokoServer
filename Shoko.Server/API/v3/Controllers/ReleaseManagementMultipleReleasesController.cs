@@ -1,21 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NLog;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Release;
 using Shoko.Server.API.v3.Models.Release.Input;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
@@ -66,36 +68,90 @@ public class ReleaseManagementMultipleReleasesController(
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : AniDB_Anime_TitleRepository.NormalizeForSearch(search);
+        var __log = LogManager.GetCurrentClassLogger();
+        var __sw = Stopwatch.StartNew();
+
+        // A series can only have more than one release candidate if some episode has more
+        // than one distinct, currently-existing video file — computed once via a single pass
+        // over CrossRef_File_Episode rather than per-series repository calls. This is a safe
+        // (never under-inclusive) pre-filter that typically cuts the anime library down by
+        // more than an order of magnitude before any per-series work runs at all.
+        var animeIDsWithMultipleFilesPerEpisode = grouper.GetAnimeIDsWithMultipleFilesPerEpisode();
+        __log.Info($"[PERF] GetAnimeIDsWithMultipleFilesPerEpisode: {__sw.ElapsedMilliseconds}ms, {animeIDsWithMultipleFilesPerEpisode.Count} anime IDs");
+        __sw.Restart();
 
         var allSeries = animeSeries.GetAll()
+            .Where(s => animeIDsWithMultipleFilesPerEpisode.Contains(s.AniDB_ID))
             .Where(s => User.AllowedSeries(s))
             .Where(s => !onlyFinishedSeries || (s.AniDB_Anime?.GetFinishedAiring() ?? false))
             .Where(s => normalizedSearch == null || anidbTitles.AnimeMatchesSearch(s.AniDB_ID, normalizedSearch))
-            .OrderBy(s => s.Title);
+            .ToList();
+        __log.Info($"[PERF] allSeries filter: {__sw.ElapsedMilliseconds}ms, {allSeries.Count} series");
+        __sw.Restart();
 
-        // Pre-filter using only cached SRI group keys before running the full
-        // grouper. MightHaveMultipleCandidates is a cheap check that skips the
-        // expensive grouper for series that clearly have only one release.
-        // The pre-fetched videoLookup is passed into BuildSeriesWithCandidates so
+        // Cheap-ish qualification pass over every matching series. This still runs
+        // grouping/ranking/redundancy per series via ComputeCandidates (needed to know
+        // candidate counts, HasRedundantCandidates, and sort order), but does NOT build
+        // the far more expensive ReleaseCandidate DTOs (name computation with collision
+        // detection across all candidates, per-file quality-signal formatting, episode-
+        // coverage resolution) — those only get built for the page actually returned,
+        // below. Deliberately sequential: with the animeIDsWithMultipleFilesPerEpisode
+        // pre-filter already cutting this down to a small set, PLINQ's per-request thread-
+        // pool scheduling overhead costs far more than it saves here.
+        // MightHaveMultipleCandidates is a cheap pre-check that skips ComputeCandidates
+        // entirely for series that clearly have only one release. The pre-fetched
+        // videoLookup is passed into ComputeCandidates/BuildSeriesWithCandidates so
         // GetByAniDBAnimeID is not called a second time for the same series.
-        var withCandidates = allSeries
+        var qualifying = allSeries
             .Select(series =>
             {
+                QualifyingSeries? none = null;
                 var videoLookup = videoLocals.GetByAniDBAnimeID(series.AniDB_ID)
                     .Where(v => includeVariations || !v.IsVariation)
                     .DistinctBy(v => (v.Hash, v.FileSize))
                     .ToDictionary(v => v.VideoLocalID);
-                if (videoLookup.Count <= 1) return null;
-                if (!grouper.MightHaveMultipleCandidates(videoLookup.Values)) return null;
-                return BuildSeriesWithCandidates(series, videoLookup);
-            })
-            .Where(result => result is not null && result.Candidates.Count > 1)
-            .Select(result => result!)
-            .Where(result => !onlyWithRedundant || result.HasRedundantCandidates)
-            .ToList();
+                if (videoLookup.Count <= 1)
+                    return none;
+                if (!grouper.MightHaveMultipleCandidates(videoLookup.Values))
+                    return none;
 
-        return withCandidates.ToListResult(r => r, page, pageSize);
+                var computation = ComputeCandidates(series, videoLookup, includeVariations,
+                    bypassEligibilityGate: false, preferredCandidateKey: null);
+                if (computation is not { Ranked.Count: > 1 } value)
+                    return none;
+
+                var hasRedundant = value.Ranked.Any(c => c.Places.Count > 0 && c.Places.All(p => value.RedundantPlaceIds.Contains(p.ID)));
+                if (onlyWithRedundant && !hasRedundant)
+                    return none;
+
+                return new QualifyingSeries(series, videoLookup, value);
+            })
+            .Where(q => q is not null)
+            .Select(q => q!.Value)
+            .OrderBy(q => q.Series.Title)
+            .ToList();
+        __log.Info($"[PERF] qualify pass: {__sw.ElapsedMilliseconds}ms, {qualifying.Count} qualifying series (of {allSeries.Count} candidates)");
+        __sw.Restart();
+
+        // Build the full ReleaseCandidate DTOs only for the page being returned. Deliberately
+        // sequential (not ToListResult's PLINQ-based overload) — for a handful of items this
+        // avoids PLINQ's per-request thread-pool scheduling overhead, which otherwise dwarfs
+        // the actual per-series DTO-building cost.
+        var pageItems = pageSize <= 0 ? qualifying : qualifying.Skip(pageSize * (page - 1)).Take(pageSize).ToList();
+        var results = pageItems
+            .Select(q => BuildSeriesWithCandidates(q.Series, q.VideoLookup, includeVariations, includeTracks: false, prefetchedComputation: q.Computation)!)
+            .ToList();
+        __log.Info($"[PERF] page build: {__sw.ElapsedMilliseconds}ms, {results.Count} series built");
+
+        return new ListResult<SeriesWithCandidates>(qualifying.Count, results);
     }
+
+    /// <summary>
+    /// A series that passed the cheap qualification pass, with its video lookup and
+    /// already-computed candidates/redundancy carried along so the page-build step doesn't
+    /// have to re-run grouping/ranking/redundancy from scratch.
+    /// </summary>
+    private readonly record struct QualifyingSeries(AnimeSeries Series, Dictionary<int, VideoLocal> VideoLookup, CandidateComputation Computation);
 
     /// <summary>
     /// Get the ranked release candidates for a specific series. Returns 404
@@ -105,10 +161,18 @@ public class ReleaseManagementMultipleReleasesController(
     /// </summary>
     /// <param name="seriesID">Shoko series ID.</param>
     /// <param name="includeVariations">When true, include files marked as variations in the candidate grouping. Defaults to false.</param>
+    /// <param name="preferredCandidateKey">
+    /// When set to one of the returned candidates' <c>Key</c>, <c>IsRedundant</c>/<c>RedundantFileCount</c>/
+    /// <c>RedundantEpisodes</c> (and <c>HasRedundantCandidates</c>/<c>FilesToAutoDeleteCount</c>) are recomputed
+    /// treating that candidate as the kept selection instead of the natural rank-1 candidate — this is an explicit,
+    /// user-driven choice, so it bypasses the automatic-redundancy eligibility gate that protects unattended
+    /// deletion. Display order/<c>Rank</c> numbers are unaffected. Ignored if the key doesn't match any candidate.
+    /// </param>
     [HttpGet("Series/{seriesID}")]
     public ActionResult<SeriesWithCandidates> GetSeriesCandidates(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery] bool includeVariations = false)
+        [FromQuery] bool includeVariations = false,
+        [FromQuery] string? preferredCandidateKey = null)
     {
         var series = animeSeries.GetByID(seriesID);
         if (series is null)
@@ -117,7 +181,7 @@ public class ReleaseManagementMultipleReleasesController(
         if (!User.AllowedSeries(series))
             return Forbid();
 
-        var result = BuildSeriesWithCandidates(series, includeVariations: includeVariations, includeTracks: true);
+        var result = BuildSeriesWithCandidates(series, includeVariations: includeVariations, includeTracks: true, preferredCandidateKey: preferredCandidateKey);
         if (result is null)
             return NotFound();
 
@@ -281,11 +345,40 @@ public class ReleaseManagementMultipleReleasesController(
 
     // ── Private helpers ──────────────────────────────────────────────────────
 
-    private SeriesWithCandidates? BuildSeriesWithCandidates(
+    /// <summary>
+    /// Shared inputs for building a series' candidate response: computed once and reused
+    /// by both the cheap list-qualification pass and the full per-series DTO builder.
+    /// </summary>
+    private readonly record struct CandidateComputation(
+        Dictionary<int, VideoLocal> VideoLookup,
+        List<VideoLocal_Place> Places,
+        IReadOnlyList<VideoReleaseCandidate> Ranked,
+        HashSet<int> RedundantPlaceIds);
+
+    /// <summary>
+    /// Builds a series' video lookup, grouped/ranked candidates, and redundant-place set —
+    /// the expensive-but-unavoidable part of the pipeline (grouping, ranking, redundancy),
+    /// without building the much more expensive <see cref="ReleaseCandidate"/> DTOs (name
+    /// computation with collision detection, per-file quality-signal formatting, episode
+    /// resolution). Returns null when the series doesn't have enough files/candidates to
+    /// be relevant.
+    /// </summary>
+    /// <param name="series">The series to compute candidates for.</param>
+    /// <param name="prefetchedVideoLookup">Already-built video lookup, if available, to avoid re-querying.</param>
+    /// <param name="includeVariations">When true, include files marked as variations in the candidate grouping.</param>
+    /// <param name="bypassEligibilityGate">
+    /// See <see cref="ReleaseAutoManagementService.ComputeRedundantPlaces"/> — whether the
+    /// natural rank-1 candidate (or the <paramref name="preferredCandidateKey"/> candidate,
+    /// if given) is treated as an explicit selection that bypasses the automatic-redundancy
+    /// eligibility gate.
+    /// </param>
+    /// <param name="preferredCandidateKey">When set, treat this candidate's key as the selected primary instead of the natural rank-1 candidate.</param>
+    private CandidateComputation? ComputeCandidates(
         AnimeSeries series,
-        Dictionary<int, VideoLocal>? prefetchedVideoLookup = null,
-        bool includeVariations = false,
-        bool includeTracks = false)
+        Dictionary<int, VideoLocal>? prefetchedVideoLookup,
+        bool includeVariations,
+        bool bypassEligibilityGate,
+        string? preferredCandidateKey)
     {
         var videoLookup = prefetchedVideoLookup ?? videoLocals.GetByAniDBAnimeID(series.AniDB_ID)
             .Where(v => includeVariations || !v.IsVariation)
@@ -305,11 +398,58 @@ public class ReleaseManagementMultipleReleasesController(
         if (candidates.Count <= 1)
             return null;
 
+        // Display order/Rank numbers always reflect natural quality ranking.
         var ranked = comparer.Rank(candidates);
 
-        var redundantPlaces = autoManagement.ComputeRedundantPlaces(series, ranked, videoLookup)
+        // When the caller explicitly selects a candidate (e.g. "Select as primary" in the
+        // UI), redundancy is computed relative to that selection instead of the natural
+        // rank-1 candidate. This only affects which places are considered redundant, not
+        // the displayed Rank/ordering.
+        var redundancyBasis = ranked;
+        var effectiveBypass = bypassEligibilityGate;
+        if (preferredCandidateKey is not null)
+        {
+            var preferredIdx = ranked.ToList().FindIndex(c => c.Key == preferredCandidateKey);
+            if (preferredIdx >= 0)
+            {
+                var reordered = ranked.ToList();
+                var preferred = reordered[preferredIdx];
+                reordered.RemoveAt(preferredIdx);
+                reordered.Insert(0, preferred);
+                redundancyBasis = reordered;
+                effectiveBypass = true;
+            }
+        }
+
+        var redundantPlaceIds = autoManagement.ComputeRedundantPlaces(series, redundancyBasis, videoLookup, bypassEligibilityGate: effectiveBypass)
             .Select(p => p.ID)
             .ToHashSet();
+
+        return new CandidateComputation(videoLookup, places, ranked, redundantPlaceIds);
+    }
+
+    private SeriesWithCandidates? BuildSeriesWithCandidates(
+        AnimeSeries series,
+        Dictionary<int, VideoLocal>? prefetchedVideoLookup = null,
+        bool includeVariations = false,
+        bool includeTracks = false,
+        string? preferredCandidateKey = null,
+        CandidateComputation? prefetchedComputation = null)
+    {
+        // On the single-series detail view (includeTracks: true), a human is actively
+        // reviewing this series' candidates, so the top-ranked candidate is treated as an
+        // implicit selection by default — bypassing the automatic-eligibility gate, same as
+        // an explicit "Select as primary". The paginated list view (includeTracks: false)
+        // has no such implicit selection and stays gated, matching automatic/batch behavior.
+        // When the caller already ran ComputeCandidates with the exact same parameters (e.g.
+        // the series-list qualification pass), reuse it instead of re-running grouping/ranking/
+        // redundancy from scratch.
+        var computation = prefetchedComputation ?? ComputeCandidates(series, prefetchedVideoLookup, includeVariations,
+            bypassEligibilityGate: includeTracks, preferredCandidateKey: preferredCandidateKey);
+        if (computation is not { } value)
+            return null;
+
+        var (videoLookup, places, ranked, redundantPlaces) = value;
 
         var placeEpisodeCoverage = places.ToDictionary(
             p => p.ID,
@@ -389,11 +529,7 @@ public class ReleaseManagementMultipleReleasesController(
                 .ToList();
         }
 
-        var filesToAutoDeleteCount = ranked
-            .Where(c => c.Places.Count > 0 && c.Places.All(p => redundantPlaces.Contains(p.ID)))
-            .SelectMany(c => c.Places.Select(p => p.ID))
-            .Distinct()
-            .Count();
+        var filesToAutoDeleteCount = redundantPlaces.Count;
 
         return new SeriesWithCandidates
         {
@@ -432,7 +568,13 @@ public class ReleaseManagementMultipleReleasesController(
 
         var ranked = comparer.Rank(candidates).ToList();
 
-        if (overrides.TryGetValue(series.AnimeSeriesID, out var preferredKey))
+        // An explicit per-series override means the user deliberately picked which candidate
+        // to treat as primary — that deliberate choice bypasses the automatic-redundancy
+        // eligibility gate (which exists to protect *unattended* decisions), even when the
+        // chosen candidate is a mixed/gap-fill composite that could never qualify on its own.
+        var isOverridden = overrides.TryGetValue(series.AnimeSeriesID, out var preferredKey)
+                            && ranked.Any(c => c.Key == preferredKey);
+        if (isOverridden)
         {
             var preferredIdx = ranked.FindIndex(c => c.Key == preferredKey);
             if (preferredIdx > 0)
@@ -442,24 +584,16 @@ public class ReleaseManagementMultipleReleasesController(
                 ranked.Insert(0, preferred);
             }
         }
-        var redundantPlaces = autoManagement.ComputeRedundantPlaces(series, ranked, videoLookup);
+        var redundantPlaces = autoManagement.ComputeRedundantPlaces(series, ranked, videoLookup, bypassEligibilityGate: isOverridden);
         if (redundantPlaces.Count == 0)
             return null;
 
-        // Only include places from candidates where ALL places are redundant, matching the IsRedundant semantics.
-        // Per-file deletion for airing series is handled automatically on import; the manual preview only surfaces
-        // whole-candidate redundancy so the UI stays consistent with the "No auto-delete available" / "Would be
-        // deleted" badges shown on the candidates view.
-        var redundantPlaceSet = redundantPlaces.Select(p => p.ID).ToHashSet();
-        var fullyRedundantPlaceIds = ranked
-            .Where(c => c.Places.Count > 0 && c.Places.All(p => redundantPlaceSet.Contains(p.ID)))
-            .SelectMany(c => c.Places.Select(p => p.ID))
-            .ToHashSet();
-        if (fullyRedundantPlaceIds.Count == 0)
-            return null;
-
+        // ComputeRedundantPlaces is already the authoritative source for which places are
+        // redundant (whole-candidate or per-file, per settings) — use it directly. Composite/
+        // gap-fill candidates commonly share most of their files with the primary and differ
+        // in only one or two episodes; requiring every place in a candidate to be redundant
+        // before counting any of them would incorrectly hide those per-file differences.
         var fileLocations = redundantPlaces
-            .Where(p => fullyRedundantPlaceIds.Contains(p.ID))
             .Select(place =>
             {
                 videoLookup.TryGetValue(place.VideoID, out var video);

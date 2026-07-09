@@ -900,6 +900,38 @@ public class VideoReleaseGroupingTests
     }
 
     /// <summary>
+    /// Two distinct manually-linked files (no GroupID/GroupSource — e.g. from
+    /// user-linked or offline-imported releases) covering the *same* episode
+    /// must not be silently merged into one candidate just because neither
+    /// side carries group metadata. A missing key is an absence of proof, not
+    /// proof of sameness — mirrors two real, unrelated groups (which already
+    /// split via strict key equality). Regression test for a real case where a
+    /// primary release and a deliberately-kept "_alternative" cut of the same
+    /// single-episode OVA collapsed into one candidate and vanished from
+    /// Release Management entirely.
+    /// </summary>
+    [Fact]
+    public void ManuallyLinkedFiles_SameEpisode_DoNotMergeWithoutGroupIdentity()
+    {
+        var media = MakeMedia();
+        var resolved = new[]
+        {
+            new ResolvedVideoPlace(
+                MakePlace(1, 1, 1, "Show/Show - 01 - OVA.mkv"),
+                MakeVideo(1, "AAA", 500_000_000, media),
+                MakeSri("AAA", 500_000_000, "", "", "", "", ReleaseSource.Unknown, episodes: ["1"])),
+            new ResolvedVideoPlace(
+                MakePlace(2, 2, 1, "Show/Show - 01 - OVA_alternative.mkv"),
+                MakeVideo(2, "BBB", 520_000_000, media),
+                MakeSri("BBB", 520_000_000, "", "", "", "", ReleaseSource.Unknown, episodes: ["1"])),
+        };
+
+        var candidates = Group(resolved);
+
+        Assert.Equal(2, candidates.Count);
+    }
+
+    /// <summary>
     /// Unrecognized files with different codecs in the same folder produce
     /// separate candidates. MediaInfo is the only signal without release info.
     /// </summary>
@@ -1563,5 +1595,62 @@ public class VideoReleaseGroupingTests
         Assert.True(decision.Result < 0, "gap-fill must beat pure Commie");
         Assert.Equal(ReleaseSignalType.Source, decision.DecidingSignal);
         Assert.Equal(EpisodeType.Special, decision.DecidingType);
+    }
+
+    // ── FuzzyGroup partitioning (multi-folder) ──────────────────────────────────
+
+    /// <summary>
+    /// FuzzyGroup partitions signatures by (ManagedFolderID, ParentDirectory) before
+    /// scanning for compatible buckets, for performance on very large series — those are
+    /// the only unconditional hard separators in AreCompatible, so a signature from one
+    /// folder can never join a bucket seeded from another. This exercises the case
+    /// downstream review flagged as order-sensitive: three same-group files in three
+    /// different folders with non-transitive episode overlap (A∩B=∅, B∩C=∅, A and C both
+    /// cover episode 1). Which specific pairing MergeSameGroupBuckets picks is not
+    /// asserted — partition order is deterministic but not required to match any specific
+    /// interleaving — only that the result is internally consistent (every returned
+    /// candidate has full episode coverage, per Group()'s existing guarantee) and,
+    /// critically, that repeated calls with the same input produce identical output.
+    /// </summary>
+    [Fact]
+    public void FuzzyGroup_NonTransitiveOverlapAcrossFolders_IsDeterministic()
+    {
+        var media = MakeMedia();
+        var resolved = new[]
+        {
+            new ResolvedVideoPlace(
+                MakePlace(1, 1, 1, "FolderA/Show - 01.mkv"),
+                MakeVideo(1, "AAA", 500_000_000, media),
+                MakeSri("AAA", 500_000_000, "999", "AniDB", "Group", "Group", ReleaseSource.Web, episodes: ["1"])),
+            new ResolvedVideoPlace(
+                MakePlace(2, 2, 2, "FolderB/Show - 02.mkv"),
+                MakeVideo(2, "BBB", 500_000_000, media),
+                MakeSri("BBB", 500_000_000, "999", "AniDB", "Group", "Group", ReleaseSource.Web, episodes: ["2"])),
+            new ResolvedVideoPlace(
+                MakePlace(3, 3, 3, "FolderC/Show - 01-03.mkv"),
+                MakeVideo(3, "CCC", 500_000_000, media),
+                MakeSri("CCC", 500_000_000, "999", "AniDB", "Group", "Group", ReleaseSource.Web, episodes: ["1", "3"])),
+        };
+
+        var first = Group(resolved);
+        var second = Group(resolved);
+
+        Assert.NotEmpty(first);
+
+        // Determinism: identical input produces identical output across repeated calls.
+        Assert.Equal(first.Select(c => c.Key), second.Select(c => c.Key));
+        Assert.Equal(
+            first.Select(c => string.Join(",", c.Places.Select(p => p.ID).OrderBy(id => id))),
+            second.Select(c => string.Join(",", c.Places.Select(p => p.ID).OrderBy(id => id))));
+
+        // Every candidate Group() returns already guarantees full coverage of every
+        // episode seen anywhere in the input (episodes 1-3 here) — confirm that still
+        // holds for this multi-folder, non-transitive-overlap shape.
+        var allEpisodes = new HashSet<(EpisodeType, int)>
+        {
+            (EpisodeType.Episode, 1), (EpisodeType.Episode, 2), (EpisodeType.Episode, 3),
+        };
+        Assert.All(first, c => Assert.True(c.EpisodeCoverage.SetEquals(allEpisodes),
+            $"candidate {c.Key} should have full coverage of episodes 1-3"));
     }
 }
