@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.366",
+      "tag": "v6.0.0-dev.366",
+      "commit": "d857f6bd515193bd81373410a425fb2eaf96235e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.366/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-09T04:38:08Z",
+      "releaseNotes": "\n`feat` (`abstractions`): **Add nb/no language codes**.\n\n`fix`: **Expose raw language code to plugins**.\n\n`chore`: **Make media info converters/helpers nullable**.\n\n`misc`: **Allow nullable path into ensure usable path**.\n\n`feat`: **Expose method to get media info obj. from raw json or path**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.72**.\n"
+    },
+    {
       "version": "6.0.0.365",
       "tag": "v6.0.0-dev.365",
       "commit": "eb6528724207fdb3be8b2e274c00064bbeec4096",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.337/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-28T15:47:31Z",
       "releaseNotes": "\n`fix`: **Fix Test**.\n"
-    },
-    {
-      "version": "6.0.0.336",
-      "tag": "v6.0.0-dev.336",
-      "commit": "d2716640198da6184302c1593344e69eb1b9dc7c",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.336/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-28T15:46:55Z",
-      "releaseNotes": "\n`misc`: **Unify ReleaseSignalType names to simplify UI consumption**.\n"
     }
   ]
 }
