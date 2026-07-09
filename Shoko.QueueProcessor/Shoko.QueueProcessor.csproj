@@ -13,7 +13,7 @@
     <RepositoryUrl>https://github.com/ShokoAnime/ShokoServer</RepositoryUrl>
     <PackageTags>queuing, workers, background processing, shoko, anime, plugins</PackageTags>
     <PackageReleaseNotes>Improve Job Chaining</PackageReleaseNotes>
-    <Version>6.0.0-alpha.5</Version>
+    <Version>6.0.0-alpha.6</Version>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
   </PropertyGroup>
