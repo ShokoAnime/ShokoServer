@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.367",
+      "tag": "v6.0.0-dev.367",
+      "commit": "e3f1124e6efc2418370090e663980c754a33e6b0",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.367/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-09T17:18:44Z",
+      "releaseNotes": "\n`misc`: **Work on Release Management**.\n"
+    },
+    {
       "version": "6.0.0.366",
       "tag": "v6.0.0-dev.366",
       "commit": "d857f6bd515193bd81373410a425fb2eaf96235e",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.338/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-28T23:45:19Z",
       "releaseNotes": "\n`repo` (`docker`): **Modernise Dockerfile and build pipeline** ([#1365](https://github.com/ShokoAnime/ShokoServer/pull/1365)): (_Skip CI_)\n\nRewrites Dockerfile as packaging-only, drops aarch64 variant, and\nconsolidates multi-platform builds into a single workflow across daily,\nrelease, and manual pipelines.\n\n`feat` (`tmdb`): **Add daily job to purge orphaned TMDB data** ([#1371](https://github.com/ShokoAnime/ShokoServer/pull/1371)): (_Skip CI_)\n\nAdded a daily recurring job that purges TMDB shows and movies from the\nlocal database when they have no cross-references and have not been\nupdated within the configured threshold period.\n\n- Added `olderThan` parameter to `PurgeAllUnusedShows` and\n  `PurgeAllUnusedMovies` on `ITmdbMetadataService` and\n  `TmdbMetadataService`; the age filter is applied inside those methods\n  so the full cross-reference check (all 9 xref types) is respected\n- `PurgeOrphanedTmdbDataJob` delegates to the service methods rather\n  than reimplementing orphan detection\n\n`fix`: **Fix an edge case that prevented some series from showing in Release Management**.\n"
-    },
-    {
-      "version": "6.0.0.337",
-      "tag": "v6.0.0-dev.337",
-      "commit": "3ee23a3b38f74f88e32e53c694c48099dc187b58",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.337/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-28T15:47:31Z",
-      "releaseNotes": "\n`fix`: **Fix Test**.\n"
     }
   ]
 }
