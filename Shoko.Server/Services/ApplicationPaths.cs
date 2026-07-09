@@ -44,7 +44,7 @@ public class ApplicationPaths : IApplicationPaths
             {
                 if (!Path.IsPathFullyQualified(shokoHome))
                     shokoHome = Path.Combine(defaultHome, shokoHome);
-                return _dataPath = shokoHome;
+                return _dataPath = Path.GetFullPath(shokoHome);
             }
 
             return _dataPath = defaultHome;
