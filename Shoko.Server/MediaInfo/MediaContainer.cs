@@ -290,6 +290,7 @@ public abstract class Stream : IStream
     bool IStream.IsDefault => Default;
     bool IStream.IsForced => Forced;
     TitleLanguage IStream.Language => Language?.GetTitleLanguage() ?? TitleLanguage.None;
+    string IStream.LanguageCode => Language;
     IStreamCodecInfo IStream.Codec => new StreamCodecInfoImpl(this);
     IStreamFormatInfo IStream.Format => new StreamFormatInfoImpl(this);
 

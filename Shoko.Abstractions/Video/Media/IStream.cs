@@ -43,7 +43,7 @@ public interface IStream
     TitleLanguage Language { get; }
 
     /// <summary>
-    /// 3 character language code of the language of the stream.
+    /// Raw ISO639-1 alpha-2 language code for the stream, if available and set.
     /// </summary>
     string? LanguageCode { get; }
 
