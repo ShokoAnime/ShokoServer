@@ -2,13 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Action;
+using Shoko.Abstractions.Action.Enums;
+using Shoko.Abstractions.Action.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.User;
+using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
@@ -23,12 +31,18 @@ using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Server.Scheduling.Jobs.Plex;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Services;
 
-public class ActionService
+/// <summary>
+///   Service for executing Shoko actions (import, metadata refresh, etc.) and
+///   for registering, discovering, and executing plugin-provided actions.
+///   Implements <see cref="IActionService"/> for the plugin action system.
+/// </summary>
+public class ActionService : IActionService
 {
     private readonly ILogger<ActionService> _logger;
 
@@ -52,7 +66,7 @@ public class ActionService
 
     private readonly HttpXmlUtils _xmlUtils;
 
-    private readonly IPluginPackageManager _pluginPackageManager;
+    private readonly IPluginManager _pluginManager;
 
     private readonly VideoLocalRepository _videoLocals;
 
@@ -76,9 +90,18 @@ public class ActionService
 
     private readonly AnimeEpisodeRepository _animeEpisodes;
 
-    private readonly ScheduledUpdateRepository _scheduledUpdates;
-
     private readonly AniDB_Anime_RelationRepository _anidbAnimeRelations;
+
+    private readonly ITmdbLinkingService _tmdbLinkingService;
+
+    private readonly JMMUserRepository _jmmUsers;
+
+    /// <summary>
+    ///   Registered plugin action types and their metadata. Populated once
+    ///   during <see cref="AddParts"/>. A fresh instance is created from the
+    ///   type on each execution via <see cref="IPluginManager.GetExport{T}"/>.
+    /// </summary>
+    private readonly List<(Type ActionType, ExecutableActionInfo Info)> _registeredActions = [];
 
     public ActionService(
         ILogger<ActionService> logger,
@@ -92,7 +115,7 @@ public class ActionService
         TmdbMetadataService tmdbService,
         DatabaseFactory databaseFactory,
         HttpXmlUtils xmlUtils,
-        IPluginPackageManager pluginPackageManager,
+        IPluginManager pluginManager,
         VideoLocalRepository videoLocals,
         VideoLocal_PlaceRepository videoLocalPlaces,
         StoredReleaseInfoRepository storedReleaseInfos,
@@ -104,8 +127,9 @@ public class ActionService
         CrossRef_File_EpisodeRepository crossRefFileEpisodes,
         AnimeSeriesRepository animeSeries,
         AnimeEpisodeRepository animeEpisodes,
-        ScheduledUpdateRepository scheduledUpdates,
-        AniDB_Anime_RelationRepository anidbAnimeRelations
+        AniDB_Anime_RelationRepository anidbAnimeRelations,
+        ITmdbLinkingService tmdbLinkingService,
+        JMMUserRepository jmmUsers
     )
     {
         _logger = logger;
@@ -119,7 +143,7 @@ public class ActionService
         _tmdbService = tmdbService;
         _databaseFactory = databaseFactory;
         _xmlUtils = xmlUtils;
-        _pluginPackageManager = pluginPackageManager;
+        _pluginManager = pluginManager;
         _videoLocals = videoLocals;
         _videoLocalPlaces = videoLocalPlaces;
         _storedReleaseInfos = storedReleaseInfos;
@@ -131,9 +155,336 @@ public class ActionService
         _crossRefFileEpisodes = crossRefFileEpisodes;
         _animeSeries = animeSeries;
         _animeEpisodes = animeEpisodes;
-        _scheduledUpdates = scheduledUpdates;
         _anidbAnimeRelations = anidbAnimeRelations;
+        _tmdbLinkingService = tmdbLinkingService;
+        _jmmUsers = jmmUsers;
     }
+
+    #region IActionService
+
+    /// <inheritdoc />
+    public void AddParts(IEnumerable<IExecutableAction> actions)
+    {
+        if (_registeredActions.Count > 0)
+            return;
+
+        foreach (var action in actions)
+        {
+            var actionType = action.GetType();
+            var pluginInfo = _pluginManager.GetPluginInfo(actionType.Assembly);
+            if (pluginInfo is null)
+                continue;
+
+            var scopes = GetActionScopes(actionType);
+            if (scopes.Count == 0)
+                continue;
+
+            var categoryName = action.Category switch
+            {
+                ActionCategory.PluginInferred => pluginInfo.Name,
+                _ => action.Category.ToString(),
+            };
+
+            var info = new ExecutableActionInfo
+            {
+                ID = UuidUtility.GetV5(actionType.FullName!, pluginInfo.ID),
+                Name = action.Name,
+                Description = action.Description ?? string.Empty,
+                Category = action.Category,
+                CategoryName = categoryName,
+                Scopes = scopes,
+                RequiresConfirmation = action.RequiresConfirmation,
+                PluginInfo = pluginInfo,
+            };
+
+            _registeredActions.Add((actionType, info));
+        }
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<ExecutableActionInfo> GetActions(IEnumerable<ActionScope>? scopes = null, IEnumerable<ActionCategory>? categories = null, IEnumerable<string>? categoryNames = null)
+    {
+        var query = _registeredActions.Select(ra => ra.Info).AsEnumerable();
+
+        if (scopes is not null)
+        {
+            var scopeSet = scopes.ToHashSet();
+            query = query.Where(a => scopeSet.Overlaps(a.Scopes));
+        }
+
+        if (categories is not null)
+        {
+            var categorySet = categories.ToHashSet();
+            query = query.Where(a => categorySet.Contains(a.Category));
+        }
+
+        if (categoryNames is not null)
+        {
+            var categoryNameSet = categoryNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            query = query.Where(a => categoryNameSet.Contains(a.CategoryName));
+        }
+
+        return query
+            .OrderBy(a => a.Category)
+            .ThenBy(a => a.CategoryName)
+            .ThenBy(a => a.Name)
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public ExecutableActionInfo? GetActionById(Guid actionId)
+        => _registeredActions.FirstOrDefault(ra => ra.Info.ID == actionId).Info;
+
+    /// <inheritdoc />
+    public async Task ExecuteGlobalAction(ExecutableActionInfo actionInfo, CancellationToken cancellationToken = default)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.Global))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support global execution.");
+
+        if (ResolveAction(actionInfo) is not IExecutableGlobalAction globalAction)
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableGlobalAction)}.");
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await globalAction.Execute(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public Task ScheduleExecuteOfGlobalAction(ExecutableActionInfo actionInfo, CancellationToken cancellationToken = default, bool prioritize = false)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.Global))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support global execution.");
+
+        return _scheduler.StartJob<ExecuteActionJob>(j => j.ActionID = actionInfo.ID, prioritize: prioritize);
+    }
+
+    /// <inheritdoc />
+    public async Task ExecuteGlobalUserAction(ExecutableActionInfo actionInfo, IUser user, CancellationToken cancellationToken = default)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.GlobalUser))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support global user execution.");
+
+        if (ResolveAction(actionInfo) is not IExecutableGlobalUserAction globalUserAction)
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableGlobalUserAction)}.");
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await globalUserAction.Execute(user, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public Task ScheduleExecuteOfGlobalUserAction(ExecutableActionInfo actionInfo, IUser user, CancellationToken cancellationToken = default, bool prioritize = false)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.GlobalUser))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support global user execution.");
+
+        return _scheduler.StartJob<ExecuteActionJob>(j =>
+        {
+            j.ActionID = actionInfo.ID;
+            j.UserID = user.ID;
+        }, prioritize: prioritize);
+    }
+
+    /// <inheritdoc />
+    public async Task ExecuteSeriesAction(ExecutableActionInfo actionInfo, IShokoSeries series, CancellationToken cancellationToken = default)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.Series))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support series execution.");
+
+        if (ResolveAction(actionInfo) is not IExecutableSeriesAction seriesAction)
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableSeriesAction)}.");
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await seriesAction.Execute(series, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public Task ScheduleExecuteOfSeriesAction(ExecutableActionInfo actionInfo, IShokoSeries series, CancellationToken cancellationToken = default, bool prioritize = false)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.Series))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support series execution.");
+
+        return _scheduler.StartJob<ExecuteActionJob>(j =>
+        {
+            j.ActionID = actionInfo.ID;
+            j.AnimeID = series.AnidbAnimeID;
+        }, prioritize: prioritize);
+    }
+
+    /// <inheritdoc />
+    public async Task ExecuteSeriesUserAction(ExecutableActionInfo actionInfo, IShokoSeries series, IUser user, CancellationToken cancellationToken = default)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.SeriesUser))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support series user execution.");
+
+        if (ResolveAction(actionInfo) is not IExecutableSeriesUserAction seriesUserAction)
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableSeriesUserAction)}.");
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await seriesUserAction.Execute(series, user, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public Task ScheduleExecuteOfSeriesUserAction(ExecutableActionInfo actionInfo, IShokoSeries series, IUser user, CancellationToken cancellationToken = default, bool prioritize = false)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.SeriesUser))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support series user execution.");
+
+        return _scheduler.StartJob<ExecuteActionJob>(j =>
+        {
+            j.ActionID = actionInfo.ID;
+            j.AnimeID = series.AnidbAnimeID;
+            j.UserID = user.ID;
+        }, prioritize: prioritize);
+    }
+
+    /// <inheritdoc />
+    public async Task ExecuteGroupAction(ExecutableActionInfo actionInfo, IShokoGroup group, CancellationToken cancellationToken = default)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.Group))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support group execution.");
+
+        if (ResolveAction(actionInfo) is not IExecutableGroupAction groupAction)
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableGroupAction)}.");
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await groupAction.Execute(group, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public Task ScheduleExecuteOfGroupAction(ExecutableActionInfo actionInfo, IShokoGroup group, CancellationToken cancellationToken = default, bool prioritize = false)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.Group))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support group execution.");
+
+        return _scheduler.StartJob<ExecuteActionJob>(j =>
+        {
+            j.ActionID = actionInfo.ID;
+            j.GroupID = group.ID;
+        }, prioritize: prioritize);
+    }
+
+    /// <inheritdoc />
+    public async Task ExecuteGroupUserAction(ExecutableActionInfo actionInfo, IShokoGroup group, IUser user, CancellationToken cancellationToken = default)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.GroupUser))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support group user execution.");
+
+        if (ResolveAction(actionInfo) is not IExecutableGroupUserAction groupUserAction)
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableGroupUserAction)}.");
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await groupUserAction.Execute(group, user, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public Task ScheduleExecuteOfGroupUserAction(ExecutableActionInfo actionInfo, IShokoGroup group, IUser user, CancellationToken cancellationToken = default, bool prioritize = false)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.GroupUser))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support group user execution.");
+
+        return _scheduler.StartJob<ExecuteActionJob>(j =>
+        {
+            j.ActionID = actionInfo.ID;
+            j.GroupID = group.ID;
+            j.UserID = user.ID;
+        }, prioritize: prioritize);
+    }
+
+    /// <inheritdoc />
+    public async Task ExecuteEpisodeAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, CancellationToken cancellationToken = default)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.Episode))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support episode execution.");
+
+        if (ResolveAction(actionInfo) is not IExecutableEpisodeAction episodeAction)
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableEpisodeAction)}.");
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await episodeAction.Execute(episode, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public Task ScheduleExecuteOfEpisodeAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, CancellationToken cancellationToken = default, bool prioritize = false)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.Episode))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support episode execution.");
+
+        return _scheduler.StartJob<ExecuteActionJob>(j =>
+        {
+            j.ActionID = actionInfo.ID;
+            j.EpisodeID = episode.ID;
+        }, prioritize: prioritize);
+    }
+
+    /// <inheritdoc />
+    public async Task ExecuteEpisodeUserAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, IUser user, CancellationToken cancellationToken = default)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.EpisodeUser))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support episode user execution.");
+
+        if (ResolveAction(actionInfo) is not IExecutableEpisodeUserAction episodeUserAction)
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableEpisodeUserAction)}.");
+
+        cancellationToken.ThrowIfCancellationRequested();
+        await episodeUserAction.Execute(episode, user, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public Task ScheduleExecuteOfEpisodeUserAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, IUser user, CancellationToken cancellationToken = default, bool prioritize = false)
+    {
+        if (!actionInfo.Scopes.Contains(ActionScope.EpisodeUser))
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support episode user execution.");
+
+        return _scheduler.StartJob<ExecuteActionJob>(j =>
+        {
+            j.ActionID = actionInfo.ID;
+            j.EpisodeID = episode.ID;
+            j.UserID = user.ID;
+        }, prioritize: prioritize);
+    }
+
+    /// <summary>
+    ///   Collects all <see cref="ActionScope"/> values that an executable
+    ///   action supports, based on which sub-interfaces its type implements.
+    /// </summary>
+    private static IReadOnlySet<ActionScope> GetActionScopes(Type actionType)
+    {
+        var result = new HashSet<ActionScope>();
+        if (typeof(IExecutableGlobalAction).IsAssignableFrom(actionType))
+            result.Add(ActionScope.Global);
+        if (typeof(IExecutableGlobalUserAction).IsAssignableFrom(actionType))
+            result.Add(ActionScope.GlobalUser);
+
+        if (typeof(IExecutableGroupAction).IsAssignableFrom(actionType))
+            result.Add(ActionScope.Group);
+        if (typeof(IExecutableGroupUserAction).IsAssignableFrom(actionType))
+            result.Add(ActionScope.GroupUser);
+
+        if (typeof(IExecutableSeriesAction).IsAssignableFrom(actionType))
+            result.Add(ActionScope.Series);
+        if (typeof(IExecutableSeriesUserAction).IsAssignableFrom(actionType))
+            result.Add(ActionScope.SeriesUser);
+
+        if (typeof(IExecutableEpisodeAction).IsAssignableFrom(actionType))
+            result.Add(ActionScope.Episode);
+        if (typeof(IExecutableEpisodeUserAction).IsAssignableFrom(actionType))
+            result.Add(ActionScope.EpisodeUser);
+
+        return result;
+    }
+
+    private IExecutableAction ResolveAction(ExecutableActionInfo actionInfo)
+    {
+        var (actionType, _) = _registeredActions.FirstOrDefault(ra => ra.Info.ID == actionInfo.ID);
+        var instance = (
+            actionType is not null
+                ? _pluginManager.GetExport<IExecutableAction>(actionType)
+                : null
+        ) ??
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) is not registered.");
+        return instance;
+    }
+
+    #endregion
 
     public async Task RunImport_IntegrityCheck()
     {
@@ -639,4 +990,57 @@ public class ActionService
         return unverifiedAnimeIDs.Count;
     }
 
+    public Task RunImport_SyncVotes()
+        => _scheduler.StartJob<SyncAniDBVotesJob>(c => (c.UserID, c.Export) = (0, true));
+
+    public Task PurgeAllTmdbLinks()
+    {
+        _tmdbLinkingService.RemoveAllLinks(true, true);
+        _tmdbLinkingService.ResetAutoLinkingState(false);
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateAniDBCalendar()
+        => _scheduler.StartJob<GetAniDBCalendarJob>(c => c.ForceRefresh = true);
+
+    public async Task PlexSyncAll()
+    {
+        foreach (var user in _jmmUsers.GetAll())
+        {
+            if (string.IsNullOrEmpty(user.PlexToken))
+                continue;
+            await _scheduler.StartJob<SyncPlexWatchedStatesJob>(c => c.User = user);
+        }
+    }
+
+    public async Task AddAllManualLinksToMyList()
+    {
+        var files = _videoLocals.GetManuallyLinkedVideos();
+        foreach (var vl in files)
+            await _scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = vl.Hash);
+    }
+
+    public Task GetAniDBNotifications()
+        => _scheduler.StartJob<CheckAniDBNotificationsJob>(c => c.ForceRefresh = true);
+
+    public Task AVDumpMismatchedFiles()
+    {
+        var settings = _settingsProvider.GetSettings();
+        if (string.IsNullOrWhiteSpace(settings.AniDb.AVDumpKey))
+            return Task.CompletedTask;
+
+        var mismatchedFiles = _videoLocals.GetAll()
+            .Where(file => !file.IsEmpty() && file.MediaInfo != null)
+            .Select(file => (Video: file, AniDB: file.ReleaseInfo))
+            .Where(tuple => tuple.AniDB is { ProviderName: "AniDB", IsCorrupted: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
+            .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.Path!, tuple.Video))
+            .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
+            .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);
+
+        foreach (var (fileId, filePath) in mismatchedFiles)
+            _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = new() { { fileId, filePath } });
+
+        _logger.LogInformation("Queued {QueuedAnimeCount} files for avdumping", mismatchedFiles.Count);
+        return Task.CompletedTask;
+    }
 }

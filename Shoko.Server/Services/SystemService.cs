@@ -15,6 +15,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using NLog.Web;
+using Shoko.Abstractions.Action.Services;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Connectivity.Services;
@@ -411,6 +412,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IFuzzySearchService, FuzzySearchService>();
             services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();
+            services.AddSingleton<IActionService>(sp => sp.GetRequiredService<ActionService>());
             services.AddSingleton<AnimeSeriesService>();
             services.AddSingleton<AnimeGroupService>();
             services.AddSingleton<ShokoGroupManager>();

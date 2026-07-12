@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Action;
+using Shoko.Abstractions.Action.Services;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core;
@@ -452,6 +454,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
         var supplementaryMetadataService = ISystemService.StaticServices.GetRequiredService<SupplementaryMetadataService>();
         supplementaryMetadataService.AddParts(GetExports<ISupplementaryMetadataProvider>());
+
+        var actionService = ISystemService.StaticServices.GetRequiredService<IActionService>();
+        actionService.AddParts(GetExports<IExecutableAction>());
     }
 
     private IEnumerable<(string?, string[], bool)> GetPluginDirectories()
