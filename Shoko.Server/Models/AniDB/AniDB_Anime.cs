@@ -211,6 +211,7 @@ public class AniDB_Anime : IAnidbAnime
             foreach (var malId in MalCrossReferences.Select(xref => xref.MALID).Distinct().Where(x => x >= 0))
                 result.Add(new() { Type = ResourceType.CrossReference, Name = "MyAnimeList", Url = $"https://myanimelist.net/anime/{malId}" });
 
+            result.AddRange(ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this));
             return result;
         }
     }

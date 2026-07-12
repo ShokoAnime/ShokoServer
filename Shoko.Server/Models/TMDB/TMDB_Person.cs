@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Stub;
@@ -208,6 +211,7 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
             var list = new List<Resource>();
             if (!string.IsNullOrEmpty(ImdbPersonID))
                 list.Add(new() { Type = ResourceType.CrossReference, Name = "IMDb", Url = $"https://www.imdb.com/name/{ImdbPersonID}/" });
+            list.AddRange(ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this));
             return list;
         }
     }

@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading;
 using System.Text.RegularExpressions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Events;
+using Shoko.Abstractions.Metadata.Resources;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.Models.CrossReference;
@@ -16,11 +19,16 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct.TMDB.Optional;
+using System.Collections.Concurrent;
 
 namespace Shoko.Server.Services.Abstraction;
 
 public partial class AbstractMetadataService : IMetadataService
 {
+    private List<IResourceResolver>? _resolvers;
+
+    private readonly ConcurrentDictionary<IWithResources, bool> _isResolving = new();
+
     private readonly AnimeGroupRepository _groupRepository;
 
     private readonly AnimeSeriesRepository _seriesRepository;
@@ -90,6 +98,43 @@ public partial class AbstractMetadataService : IMetadataService
         ShokoEventHandler.Instance.EpisodeUpdated -= OnEpisodeUpdated;
         ShokoEventHandler.Instance.MovieUpdated -= OnMovieUpdated;
     }
+
+    #region Resource Resolvers
+
+    public IReadOnlyList<IResourceResolver> ResourceResolvers => _resolvers ?? [];
+
+    /// <inheritdoc />
+    public void AddParts(IEnumerable<IResourceResolver> resolvers)
+    {
+        if (_resolvers is not null)
+            return;
+
+        _resolvers = resolvers.ToList();
+    }
+
+    /// <inheritdoc />
+    public IEnumerable<Resource> GatherResourcesForEntity(IWithResources entity)
+    {
+        if (_resolvers is null)
+            return [];
+
+        // Guard against re-entrance: if a resolver (or the entity's Resources
+        // getter that called us) triggers another call to this method, return
+        // empty instead of recursing.
+        if (!_isResolving.TryAdd(entity, true))
+            return [];
+
+        try
+        {
+            return [.. _resolvers.SelectMany(r => r.Resolve(entity))];
+        }
+        finally
+        {
+            _isResolving.TryRemove(entity, out _);
+        }
+    }
+
+    #endregion
 
     #region Movie
 

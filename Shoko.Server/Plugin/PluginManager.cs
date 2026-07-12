@@ -16,6 +16,7 @@ using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Resources;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Events;
@@ -432,6 +433,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
         var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();
         imageManager.AddParts(GetExports<IImageCrossReferenceResolver>());
+
+        var metadataService = ISystemService.StaticServices.GetRequiredService<IMetadataService>();
+        metadataService.AddParts(GetExports<IResourceResolver>());
 
         var videoService = ISystemService.StaticServices.GetRequiredService<IVideoService>();
         videoService.AddParts(GetExports<IManagedFolderIgnoreRule>());

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
@@ -386,6 +388,7 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
             var list = new List<Resource>();
             if (TvdbShowID is > 0)
                 list.Add(new() { Type = ResourceType.CrossReference, Name = "TheTVDB", Url = $"https://www.thetvdb.com/dereferrer/series/{TvdbShowID}" });
+            list.AddRange(ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this));
             return list;
         }
     }

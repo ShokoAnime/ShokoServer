@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
@@ -108,6 +110,7 @@ public class AniDB_Creator : ICreator
                 list.Add(new() { Type = ResourceType.Metadata, Name = "Wikipedia (EN)", Url = EnglishWikiUrl, LanguageCode = "en" });
             if (!string.IsNullOrEmpty(JapaneseWikiUrl))
                 list.Add(new() { Type = ResourceType.Metadata, Name = "Wikipedia (JP)", Url = JapaneseWikiUrl, LanguageCode = "ja" });
+            list.AddRange(ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this));
             return list;
         }
     }

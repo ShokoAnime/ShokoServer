@@ -11,6 +11,7 @@ using Shoko.Abstractions.Metadata.Anilist.CrossReferences;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
@@ -799,6 +800,7 @@ public class AnimeSeries : IShokoSeries
                 list.AddRange(movie.Resources);
             foreach (var show in TmdbShows)
                 list.AddRange(show.Resources);
+            list.AddRange(ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this));
             return list;
         }
     }

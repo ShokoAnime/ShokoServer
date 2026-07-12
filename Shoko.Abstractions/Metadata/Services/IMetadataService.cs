@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Events;
+using Shoko.Abstractions.Metadata.Resources;
 using Shoko.Abstractions.Metadata.Shoko;
 
 namespace Shoko.Abstractions.Metadata.Services;
@@ -12,6 +14,40 @@ namespace Shoko.Abstractions.Metadata.Services;
 /// </summary>
 public interface IMetadataService
 {
+    #region Resource Resolvers
+
+    /// <summary>
+    ///   Gets a read-only list of the resource resolvers registered with the
+    ///   service.
+    /// </summary>
+    IReadOnlyList<IResourceResolver> ResourceResolvers { get; }
+
+    /// <summary>
+    ///   Registers plugin-provided <see cref="IResourceResolver"/> instances.
+    ///   Called during plugin initialization; all resolvers should be added
+    ///   before any entity's <c>Resources</c> property is queried.
+    /// </summary>
+    /// <param name="resolvers">The resolvers to register.</param>
+    void AddParts(IEnumerable<IResourceResolver> resolvers);
+
+    /// <summary>
+    ///   Collects additional <see cref="Resource"/> entries for
+    ///   <paramref name="entity"/> from all registered
+    ///   <see cref="IResourceResolver"/> instances.
+    /// </summary>
+    /// <param name="entity">
+    ///   The entity to gather resources for.  The entity's own
+    ///   <see cref="IWithResources.Resources"/> getter should call this method
+    ///   and append the result to its built-in list.
+    /// </param>
+    /// <returns>
+    ///   A flattened sequence of resources contributed by all applicable
+    ///   resolvers, or an empty sequence if none apply.
+    /// </returns>
+    IEnumerable<Resource> GatherResourcesForEntity(IWithResources entity);
+
+    #endregion
+
     #region Movie
 
     /// <summary>
