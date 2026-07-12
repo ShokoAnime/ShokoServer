@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Action.Enums;
 using Shoko.Abstractions.Action.Services;
 using Shoko.Abstractions.Metadata.Enums;
@@ -35,7 +34,6 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class ActionController : BaseController
 {
-    private readonly ILogger<ActionController> _logger;
     private readonly AnimeGroupCreator _groupCreator;
     private readonly ActionService _actionService;
     private readonly IActionService _actionServiceInterface;
@@ -57,7 +55,6 @@ public class ActionController : BaseController
     private static readonly ActionScope[] _userScopePriority = [ActionScope.GlobalUser, ActionScope.SeriesUser, ActionScope.GroupUser, ActionScope.EpisodeUser];
 
     public ActionController(
-        ILogger<ActionController> logger,
         TmdbMetadataService tmdbMetadataService,
         TmdbLinkingService tmdbLinkingService,
         IQueueScheduler scheduler,
@@ -73,7 +70,6 @@ public class ActionController : BaseController
         AnimeEpisodeRepository animeEpisodes
     ) : base(settingsProvider)
     {
-        _logger = logger;
         _tmdbMetadataService = tmdbMetadataService;
         _tmdbLinkingService = tmdbLinkingService;
         _videoService = videoService;
