@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.369",
+      "tag": "v6.0.0-dev.369",
+      "commit": "d703dcf01019bd2309234f4850f5cf17f88272dc",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.369/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-13T00:36:40Z",
+      "releaseNotes": "\n`feat` (`abstractions`): **Add plugin-registered resource resolver support**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.73**.\n"
+    },
+    {
       "version": "6.0.0.368",
       "tag": "v6.0.0-dev.368",
       "commit": "eb43ada38624daeedd8d2b30ebefbcbd58f0a03e",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.340/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-29T00:02:04Z",
       "releaseNotes": "\n`misc`: **Order images for groups/series/episodes in dedicated image endpoints**.\n\n`revert`: **Revert \"repo(docker): modernise Dockerfile and build pipeline \"** ([#1365](https://github.com/ShokoAnime/ShokoServer/pull/1365)):\n\nThis reverts commit 6b90f00287417338a43ee6da97136e1b7f3127cf for now.\n"
-    },
-    {
-      "version": "6.0.0.339",
-      "tag": "v6.0.0-dev.339",
-      "commit": "bc12050d6bb6f9db99653be9b8aa2780f21f367a",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.339/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-28T23:54:09Z",
-      "releaseNotes": "\n`fix` (`tmdb`): **Guard against null `Translations` in `Populate` for show and movie models** ([#1374](https://github.com/ShokoAnime/ShokoServer/pull/1374)). (_Skip CI_)\n\n`fix`: **Correct web component manifest property name**.\n\n`fix`: **Check mtime of index to determine if we should update it**.\n\n`fix`: **Check if dir exists before enumerating**.\n\n`refactor`: **Cache availability flag in the database**:\n\nReplaced the per-access file-system checks for image availability with a\nstored `IsAvailable` flag on `ShokoImage`, set on download/upload and\nrecomputed during validation, so the hot read paths no longer hit disk.\n\n- Added the stored `IsAvailable` column plus a `RefreshAvailability()`\n  helper on `ShokoImage`, mapped in `ShokoImageMap`\n- `ShokoImage_Entity.IsAvailable` now delegates to the image's cached flag\n  instead of scanning the directory\n- Added `IsPrimaryAvailable` to `IImage`/`IImageCrossReference` (and\n  `ImageStub`) for the primary image in a linked group\n- `DownloadImage`/`UploadImage`/`AddImage` set the flag, and\n  `ValidateAllImages` recomputes and persists it\n- Added `DatabaseFixes.PopulateImageAvailability` (parallel disk scan in\n  batches of 20) and schema migrations for SQLite/MySQL/SQL Server\n\n`repo` (`workflows`): **Use web ui manifest to select version to download**.\n\n`feat`: **Add isAvailable and linkedEntityImages filter params to image entity queries**:\n\nAppended missing optional parameters across the image entity query\nstack — `IImage`, `IWithImages`, `IImageManager`, and all 23 model\nimplementors — and added the corresponding filtering logic to the\nservice layer and controller endpoints.\n\n- `IImage.GetCrossReferences`: added `isAvailable`, `primaryImage`,\n  and changed `includeLinkedImages` from `bool?` to `bool`\n- `IWithImages.GetImages`/`GetImageCrossReferences`: added all\n  missing optional params and updated default implementations\n- `IImageManager.GetAllImages`/`GetAllImageCrossReferences`/`GetImagesForEntity`/`GetImageCrossReferencesForEntity`:\n  added `isAvailable` and `linkedEntityImages` with filtering logic\n- `ImageManager`: filter by `isAvailable` on cross-references\n- `ImageManagementController`: exposed new params as query string\n  arguments on `/api/v3/Image/Management` endpoints\n- All 23 `IWithImages` implementors: corrected `GetImages` and\n  `GetImageCrossReferences` signatures to match the interface,\n  turning them from accidental overloads into proper overrides\n\n`feat`: **Add ImageStub.Wrap static helper**.\n\n`refactor`: **Wrap group images from other entities with ImageStub and add GetPreferredImages**:\n\n- Wrap images returned from mainSeries, group, and default with\n  `ImageStub.Wrap(..., linkedXref: true)` so they carry proper\n  cross-reference metadata\n- Replace bare `return mainSeries.Default*Image` with wrapped\n  null-terminated fallback chain in all five image type getters\n  (primary, backdrop, logo, banner, disc)\n- Standardize variable naming in `*CrossReference` getters:\n  `preferredImage` → `preferredImageCrossReference`,\n  `mainSeriesPreferredImage` → `mainSeriesPreferredImageCrossReference`\n- Add `GetPreferredImages()` to `AnimeGroup` returning one image\n  per type, wired into `Group.cs` API model\n- Update `Group.cs` to use `GetPreferredImages()` instead of the\n  unfiltered `GetImages()` call\n\n`feat`: **Add GetPreferredImages to AnimeSeries and update Series API model**:\n\nAdd `GetPreferredImages()` to `AnimeSeries` returning a curated\none-image-per-type list (primary, backdrop, logo, banner, disc)\nwith fallback logic when the preferred primary is unavailable.\n\nUpdate `Series.cs` API model to use `GetPreferredImages()` instead\nof the unfiltered `GetImages(isEnabled: true, isDesired: true)`.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.65**.\n"
     }
   ]
 }
