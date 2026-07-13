@@ -101,15 +101,13 @@ internal class ExecuteActionJob(
                 if (_userName is not null) details.Add("User", _userName);
                 else details.Add("User ID", UserID);
             if (GroupID.HasValue)
-                if (_entityName is not null && !AnimeID.HasValue) details.Add("Group", _entityName);
-                else if (_entityName is not null) details.Add("Group", _entityName);
+                if (_entityName is not null) details.Add("Group", _entityName);
                 else details.Add("Group ID", GroupID);
             else if (AnimeID.HasValue)
                 if (_entityName is not null) details.Add("Series", _entityName);
                 else details.Add("Anime ID", AnimeID);
             else if (EpisodeID.HasValue)
-                if (_entityName is not null && !AnimeID.HasValue && !GroupID.HasValue) details.Add("Episode", _entityName);
-                else if (_entityName is not null) details.Add("Episode", _entityName);
+                if (_entityName is not null) details.Add("Episode", _entityName);
                 else details.Add("Episode ID", EpisodeID);
             return details;
         }
