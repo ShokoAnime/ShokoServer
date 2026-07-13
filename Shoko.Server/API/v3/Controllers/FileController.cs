@@ -687,6 +687,16 @@ public class FileController(
     public ActionResult GetFileStreamWithDirectory([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string? filename = null, [FromQuery] bool streamPositionScrobbling = false)
         => GetFileStreamInternal(fileID, filename, streamPositionScrobbling);
 
+    /// <summary>
+    /// Checks whether the current user is allowed to view the series the given file is cross-referenced to,
+    /// matching the restriction already enforced on other endpoints via <see cref="JMMUser.AllowedSeries"/>.
+    /// </summary>
+    private bool IsSeriesAllowedForFile(VideoLocal file)
+    {
+        var series = file.EpisodeCrossReferences.FirstOrDefault(xref => xref.AnimeID is not 0)?.AnimeSeries;
+        return series == null || User.AllowedSeries(series);
+    }
+
     [NonAction]
     public ActionResult GetFileStreamInternal(int fileID, string? filename = null, bool streamPositionScrobbling = false)
     {
@@ -696,6 +706,8 @@ public class FileController(
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
+        if (!IsSeriesAllowedForFile(file))
+            return Unauthorized();
 
         var bestLocation = file.Places.FirstOrDefault(a => a.FileName.Equals(filename));
         bestLocation ??= file.FirstValidPlace;
@@ -734,6 +746,8 @@ public class FileController(
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
+        if (!IsSeriesAllowedForFile(file))
+            return Unauthorized();
 
         var routeTemplate = Request.Scheme + "://" + Request.Host + "/api/v3/File/" + fileID + "/StreamDirectory/ExternalSub/";
         return new ObjectResult("<table>" + string.Join(string.Empty,
@@ -753,16 +767,20 @@ public class FileController(
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
 
+        if (filename.IndexOfAny(['/', '\\']) >= 0 || filename is "." or "..")
+            return NotFound();
+
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
+        if (!IsSeriesAllowedForFile(file))
+            return Unauthorized();
 
         foreach (var place in file.Places)
         {
             var path = place.FileInfo?.Directory?.FullName;
             if (path == null) continue;
-            path = Path.Combine(path, filename);
-            var subFile = new FileInfo(path);
+            var subFile = new FileInfo(Path.Combine(path, filename));
             if (!subFile.Exists) continue;
 
             return PhysicalFile(subFile.FullName, ContentTypeHelper.UnknownMimeType);
