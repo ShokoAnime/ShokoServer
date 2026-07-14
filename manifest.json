@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.370",
+      "tag": "v6.0.0-dev.370",
+      "commit": "323db80fad8ff254d38ad81b1d29028e176005d0",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.370/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-14T06:00:32Z",
+      "releaseNotes": "\n`misc`: **Release Management Fixes**.\n"
+    },
+    {
       "version": "6.0.0.369",
       "tag": "v6.0.0-dev.369",
       "commit": "d703dcf01019bd2309234f4850f5cf17f88272dc",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.341/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-29T01:36:48Z",
       "releaseNotes": "\n`refactor`: **Tweak group preferred image lookup internals**.\n"
-    },
-    {
-      "version": "6.0.0.340",
-      "tag": "v6.0.0-dev.340",
-      "commit": "5d29625e89f8110e5082e22f959fc5cbbe804c78",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.340/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-29T00:02:04Z",
-      "releaseNotes": "\n`misc`: **Order images for groups/series/episodes in dedicated image endpoints**.\n\n`revert`: **Revert \"repo(docker): modernise Dockerfile and build pipeline \"** ([#1365](https://github.com/ShokoAnime/ShokoServer/pull/1365)):\n\nThis reverts commit 6b90f00287417338a43ee6da97136e1b7f3127cf for now.\n"
     }
   ]
 }
