@@ -3,8 +3,10 @@
 ## Overview
 
 `IExecutableAction` is the base interface for all plugin-registrable actions.
-A plugin action is a discrete, invokable unit of work that appears in the Shoko
-Actions menu and can be triggered by ID via the API.
+A plugin action is a discrete, invokable unit of work that can be triggered by ID
+via the API. All actions appear in the same listing endpoints regardless of their
+permission level — admins see everything, standard users only see user-facing
+actions.
 
 ## Sub-interfaces
 
@@ -12,20 +14,25 @@ Rather than a single `Execute(CancellationToken)` as proposed by the RFC, this
 implementation defines 8 scope-specific sub-interfaces, each providing exactly
 the context the action needs:
 
-| Interface | Execute Signature | Use Case |
-|-----------|-------------------|----------|
-| `IExecutableGlobalSystemAction` | `Execute(CancellationToken)` | Admin-only global action |
-| `IExecutableGlobalUserAction` | `Execute(IUser, CancellationToken)` | User-facing global action |
-| `IExecutableGroupSystemAction` | `Execute(IShokoGroup, CancellationToken)` | Admin-only group action |
-| `IExecutableGroupUserAction` | `Execute(IShokoGroup, IUser, CancellationToken)` | User-facing group action |
-| `IExecutableSeriesSystemAction` | `Execute(IShokoSeries, CancellationToken)` | Admin-only series action |
-| `IExecutableSeriesUserAction` | `Execute(IShokoSeries, IUser, CancellationToken)` | User-facing series action |
-| `IExecutableEpisodeSystemAction` | `Execute(IShokoEpisode, CancellationToken)` | Admin-only episode action |
-| `IExecutableEpisodeUserAction` | `Execute(IShokoEpisode, IUser, CancellationToken)` | User-facing episode action |
+| Interface | Execute Signature | Description |
+|-----------|-------------------|-------------|
+| `IExecutableGlobalSystemAction` | `Execute(CancellationToken)` | Global scope, system-level (admin). No user context. |
+| `IExecutableGlobalUserAction` | `Execute(IUser, CancellationToken)` | Global scope, user-level (any auth). Operates on behalf of the given user. |
+| `IExecutableGroupSystemAction` | `Execute(IShokoGroup, CancellationToken)` | Group scope, system-level (admin). |
+| `IExecutableGroupUserAction` | `Execute(IShokoGroup, IUser, CancellationToken)` | Group scope, user-level (any auth). |
+| `IExecutableSeriesSystemAction` | `Execute(IShokoSeries, CancellationToken)` | Series scope, system-level (admin). |
+| `IExecutableSeriesUserAction` | `Execute(IShokoSeries, IUser, CancellationToken)` | Series scope, user-level (any auth). |
+| `IExecutableEpisodeSystemAction` | `Execute(IShokoEpisode, CancellationToken)` | Episode scope, system-level (admin). |
+| `IExecutableEpisodeUserAction` | `Execute(IShokoEpisode, IUser, CancellationToken)` | Episode scope, user-level (any auth). |
 
 The interface an action implements is a self-documenting declaration of what it
 needs — no guesswork about whether `Execute` will receive a series, a user, or
 neither.
+
+**Note:** implementing `IExecutableAction` directly without any sub-interface
+will not register a valid action — the service detects scope support only from
+the sub-interfaces. At least one sub-interface must be implemented for the
+action to be registered.
 
 ## Multi-scope actions
 
@@ -85,19 +92,23 @@ framework's.
 
 ## Permission model
 
-The permission level (admin-only vs. any authenticated user) is encoded in
-which sub-interface you implement:
+The permission level is encoded in which sub-interface you implement. The API
+layer enforces access before the action ever runs:
 
-- **`*SystemAction`** — requires admin privileges. Only users with `IsAdmin = 1`
-  can list or invoke this action.
-- **`*UserAction`** — any authenticated user can list and invoke this action.
+- **`*SystemAction`** — the API layer rejects non-admin callers before
+  the action is scheduled.
+- **`*UserAction`** — any authenticated user may invoke. The API layer ties
+  the invocation to the caller's API token. The `IUser` parameter identifies
+  the user on whose behalf the action runs.
 
 See `ActionScope.md` for details on how `System` and `User` flags work
 under the hood.
 
 ## Execution
 
-Actions always run through the job queue. The API schedules execution via
-`ScheduleExecuteOf*` methods — there is no direct/immediate execution path
-exposed to API consumers. This ensures progress/status is visible through the
-standard queue UI and error logging.
+Actions triggered through the API always run via the job queue system — the API
+schedules execution through `ScheduleExecuteOf*` methods, ensuring progress and
+status are visible through the standard queue UI and error logging.
+
+Plugins may use the `IActionService.Execute*` methods directly to run an action
+immediate in-process without going through the queue system, if needed.
