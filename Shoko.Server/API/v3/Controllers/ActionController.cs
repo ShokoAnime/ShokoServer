@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -7,10 +8,9 @@ using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Action.Enums;
 using Shoko.Abstractions.Action.Services;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Web.Attributes;
 using Shoko.Abstractions.Metadata.Services;
-using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video.Services;
+using Shoko.Abstractions.Web.Attributes;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
@@ -98,24 +98,28 @@ public class ActionController : BaseController
     /// <summary>
     ///   Execute a global or user-scoped action by its ID.
     /// </summary>
-    /// <param name="id">The action ID.</param>
+    /// <param name="actionID">The action ID.</param>
     /// <param name="scope">
-    ///   Optional scope override. When omitted, the server picks the highest
-    ///   priority scope available to the user (Global for admins, User for
-    ///   standard users).
+    ///   Optional scope override. Only <see cref="ActionScope.System"/> or
+    ///   <see cref="ActionScope.User"/> are valid. When omitted, the server
+    ///   picks the highest priority scope available to the user (System for
+    ///   admins, User for standard users).
     /// </param>
-    [HttpPost("{id}/Execute")]
-    public async Task<ActionResult> ExecuteGlobalAction(Guid id, [FromQuery] ActionScope? scope = null)
+    [HttpPost("{actionId}/Execute")]
+    public async Task<ActionResult> ExecuteGlobalAction(
+        [FromRoute] Guid actionID,
+        [FromQuery, AllowedValues(ActionScope.System, ActionScope.User, ErrorMessage = "Execution scope must be 'System' or 'User' when specified.")] ActionScope? scope = null
+    )
     {
-        var actionInfo = _actionServiceInterface.GetActionById(id);
+        var actionInfo = _actionServiceInterface.GetActionById(actionID);
         if (actionInfo is null)
             return NotFound();
 
-        var resolvedScope = scope ?? ResolveDefaultScope(actionInfo.Scopes, ActionScope.Global);
-        if (!actionInfo.Scopes.Contains(resolvedScope))
+        var resolvedScope = ResolveDefaultScope(actionInfo.Scopes, ActionScope.Global, scope);
+        if (!resolvedScope.HasValue || !actionInfo.Scopes.Contains(resolvedScope.Value))
             return BadRequest(string.Format(UnsupportedScope, resolvedScope));
 
-        if (resolvedScope.HasFlag(ActionScope.System) && User.IsAdmin != 1)
+        if (resolvedScope.Value.HasFlag(ActionScope.System) && User.IsAdmin != 1)
             return Forbid(RequiresAdmin);
 
         switch (resolvedScope)
@@ -148,24 +152,29 @@ public class ActionController : BaseController
     ///   Execute a group-scoped action by its ID for the specified group.
     /// </summary>
     /// <param name="groupID">The group ID.</param>
-    /// <param name="id">The action ID.</param>
+    /// <param name="actionID">The action ID.</param>
     /// <param name="scope">
-    ///   Optional scope override. When omitted, the server picks the highest
-    ///   priority scope available to the user (Group for admins, GroupUser
-    ///   for standard users).
+    ///   Optional scope override. Only <see cref="ActionScope.System"/> or
+    ///   <see cref="ActionScope.User"/> are valid. When omitted, the server
+    ///   picks the highest priority scope available to the user (System for
+    ///   admins, User for standard users).
     /// </param>
-    [HttpPost("Group/{groupID}/Action/{id}/Execute")]
-    public async Task<ActionResult> ExecuteGroupAction([FromRoute] int groupID, [FromRoute] Guid id, [FromQuery] ActionScope? scope = null)
+    [HttpPost("Group/{groupID}/Action/{actionID}/Execute")]
+    public async Task<ActionResult> ExecuteGroupAction(
+        [FromRoute] int groupID,
+        [FromRoute] Guid actionID,
+        [FromQuery, AllowedValues(ActionScope.System, ActionScope.User, ErrorMessage = "Execution scope must be 'System' or 'User' when specified.")] ActionScope? scope = null
+    )
     {
-        var actionInfo = _actionServiceInterface.GetActionById(id);
+        var actionInfo = _actionServiceInterface.GetActionById(actionID);
         if (actionInfo is null)
             return NotFound();
 
-        var resolvedScope = scope ?? ResolveDefaultScope(actionInfo.Scopes, ActionScope.Group);
-        if (!actionInfo.Scopes.Contains(resolvedScope))
+        var resolvedScope = ResolveDefaultScope(actionInfo.Scopes, ActionScope.Group, scope);
+        if (!resolvedScope.HasValue || !actionInfo.Scopes.Contains(resolvedScope.Value))
             return BadRequest(string.Format(UnsupportedScope, resolvedScope));
 
-        if (resolvedScope.HasFlag(ActionScope.System) && User.IsAdmin != 1)
+        if (resolvedScope.Value.HasFlag(ActionScope.System) && User.IsAdmin != 1)
             return Forbid(RequiresAdmin);
 
         var group = _animeGroups.GetByID(groupID);
@@ -202,24 +211,29 @@ public class ActionController : BaseController
     ///   Execute a series-scoped action by its ID for the specified series.
     /// </summary>
     /// <param name="seriesID">The AniDB anime ID of the series.</param>
-    /// <param name="id">The action ID.</param>
+    /// <param name="actionID">The action ID.</param>
     /// <param name="scope">
-    ///   Optional scope override. When omitted, the server picks the highest
-    ///   priority scope available to the user (Series for admins, SeriesUser
-    ///   for standard users).
+    ///   Optional scope override. Only <see cref="ActionScope.System"/> or
+    ///   <see cref="ActionScope.User"/> are valid. When omitted, the server
+    ///   picks the highest priority scope available to the user (System for
+    ///   admins, User for standard users).
     /// </param>
-    [HttpPost("Series/{seriesID}/Action/{id}/Execute")]
-    public async Task<ActionResult> ExecuteSeriesAction([FromRoute] int seriesID, [FromRoute] Guid id, [FromQuery] ActionScope? scope = null)
+    [HttpPost("Series/{seriesID}/Action/{actionID}/Execute")]
+    public async Task<ActionResult> ExecuteSeriesAction(
+        [FromRoute] int seriesID,
+        [FromRoute] Guid actionID,
+        [FromQuery, AllowedValues(ActionScope.System, ActionScope.User, ErrorMessage = "Execution scope must be 'System' or 'User' when specified.")] ActionScope? scope = null
+    )
     {
-        var actionInfo = _actionServiceInterface.GetActionById(id);
+        var actionInfo = _actionServiceInterface.GetActionById(actionID);
         if (actionInfo is null)
             return NotFound();
 
-        var resolvedScope = scope ?? ResolveDefaultScope(actionInfo.Scopes, ActionScope.Series);
-        if (!actionInfo.Scopes.Contains(resolvedScope))
+        var resolvedScope = ResolveDefaultScope(actionInfo.Scopes, ActionScope.Series, scope);
+        if (!resolvedScope.HasValue || !actionInfo.Scopes.Contains(resolvedScope.Value))
             return BadRequest(string.Format(UnsupportedScope, resolvedScope));
 
-        if (resolvedScope.HasFlag(ActionScope.System) && User.IsAdmin != 1)
+        if (resolvedScope.Value.HasFlag(ActionScope.System) && User.IsAdmin != 1)
             return Forbid(RequiresAdmin);
 
         var series = _animeSeries.GetByAnimeID(seriesID);
@@ -256,24 +270,29 @@ public class ActionController : BaseController
     ///   Execute an episode-scoped action by its ID for the specified episode.
     /// </summary>
     /// <param name="episodeID">The episode ID.</param>
-    /// <param name="id">The action ID.</param>
+    /// <param name="actionID">The action ID.</param>
     /// <param name="scope">
-    ///   Optional scope override. When omitted, the server picks the highest
-    ///   priority scope available to the user (Episode for admins, EpisodeUser
-    ///   for standard users).
+    ///   Optional scope override. Only <see cref="ActionScope.System"/> or
+    ///   <see cref="ActionScope.User"/> are valid. When omitted, the server
+    ///   picks the highest priority scope available to the user (System for
+    ///   admins, User for standard users).
     /// </param>
-    [HttpPost("Episode/{episodeID}/Action/{id}/Execute")]
-    public async Task<ActionResult> ExecuteEpisodeAction([FromRoute] int episodeID, [FromRoute] Guid id, [FromQuery] ActionScope? scope = null)
+    [HttpPost("Episode/{episodeID}/Action/{actionID}/Execute")]
+    public async Task<ActionResult> ExecuteEpisodeAction(
+        [FromRoute] int episodeID,
+        [FromRoute] Guid actionID,
+        [FromQuery, AllowedValues(ActionScope.System, ActionScope.User, ErrorMessage = "Execution scope must be 'System' or 'User' when specified.")] ActionScope? scope = null
+    )
     {
-        var actionInfo = _actionServiceInterface.GetActionById(id);
+        var actionInfo = _actionServiceInterface.GetActionById(actionID);
         if (actionInfo is null)
             return NotFound();
 
-        var resolvedScope = scope ?? ResolveDefaultScope(actionInfo.Scopes, ActionScope.Episode);
-        if (!actionInfo.Scopes.Contains(resolvedScope))
+        var resolvedScope = ResolveDefaultScope(actionInfo.Scopes, ActionScope.Episode, scope);
+        if (!resolvedScope.HasValue || !actionInfo.Scopes.Contains(resolvedScope.Value))
             return BadRequest(string.Format(UnsupportedScope, resolvedScope));
 
-        if (resolvedScope.HasFlag(ActionScope.System) && User.IsAdmin != 1)
+        if (resolvedScope.Value.HasFlag(ActionScope.System) && User.IsAdmin != 1)
             return Forbid(RequiresAdmin);
 
         var episode = _animeEpisodes.GetByID(episodeID);
@@ -327,12 +346,12 @@ public class ActionController : BaseController
     ///   Resolves the default scope from a set of available scopes based on
     ///   user role priority.
     /// </summary>
-    private ActionScope ResolveDefaultScope(IReadOnlySet<ActionScope> available, ActionScope scope)
+    private ActionScope? ResolveDefaultScope(IReadOnlySet<ActionScope> available, ActionScope scope, ActionScope? baseScope)
     {
-        if (User.IsAdmin == 1 && available.Contains(ActionScope.System | scope))
+        if (((baseScope is null && User.IsAdmin == 1) || baseScope is ActionScope.System) && available.Contains(ActionScope.System | scope))
             return ActionScope.System | scope;
 
-        if (available.Contains(ActionScope.User | scope))
+        if (baseScope is null or ActionScope.User && available.Contains(ActionScope.User | scope))
             return ActionScope.User | scope;
 
         return 0;
