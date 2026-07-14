@@ -10,7 +10,7 @@ namespace Shoko.Server.Services.Actions.Tmdb.Series;
 /// <summary>
 ///   Automatically match TMDB episodes for the series.
 /// </summary>
-internal sealed class AutoMatchTmdbEpisodesSeriesAction(TmdbLinkingService linkingService) : IExecutableSeriesSystemAction
+public sealed class AutoMatchTmdbEpisodesSeriesAction(TmdbLinkingService linkingService) : IExecutableSeriesSystemAction
 {
     public string Name => "Auto-Match TMDB Episodes";
     public string? Description => "Automatically matches Shoko episodes with TMDB episodes.";

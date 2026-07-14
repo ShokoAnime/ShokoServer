@@ -14,7 +14,7 @@ namespace Shoko.Server.Services.Actions.Import.Group;
 /// <summary>
 ///   Rehash all files for the group.
 /// </summary>
-internal sealed class RehashGroupFilesAction(
+public sealed class RehashGroupFilesAction(
     AnimeGroupRepository groupRepo,
     IQueueScheduler scheduler
 ) : IExecutableGroupSystemAction

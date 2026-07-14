@@ -11,7 +11,7 @@ namespace Shoko.Server.Services.Actions.Tmdb.Series;
 /// <summary>
 ///   Download images for all TMDB movies linked to the series.
 /// </summary>
-internal sealed class DownloadTmdbMovieImagesSeriesAction(IJobFactory jobFactory) : IExecutableSeriesSystemAction
+public sealed class DownloadTmdbMovieImagesSeriesAction(IJobFactory jobFactory) : IExecutableSeriesSystemAction
 {
     public string Name => "Download TMDB Movie Images";
     public string? Description => "Download any missing images for linked TMDB movies.";

@@ -10,7 +10,7 @@ namespace Shoko.Server.Services.Actions.Import;
 ///   Scan managed folders for new files and import them without running the
 ///   full metadata/image pipeline.
 /// </summary>
-internal sealed class ImportNewFilesAction(IVideoService videoService) : IExecutableGlobalSystemAction
+public sealed class ImportNewFilesAction(IVideoService videoService) : IExecutableGlobalSystemAction
 {
     public string Name => "Import New Files";
     public string? Description => "Scan managed folders for new files, hash them, and find releases.";

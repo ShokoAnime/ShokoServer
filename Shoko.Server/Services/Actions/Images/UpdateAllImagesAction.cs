@@ -9,7 +9,7 @@ namespace Shoko.Server.Services.Actions.Images;
 /// <summary>
 ///   Schedule auto-downloads for all missing images across all entities.
 /// </summary>
-internal sealed class UpdateAllImagesAction(IImageManager imageManager) : IExecutableGlobalSystemAction
+public sealed class UpdateAllImagesAction(IImageManager imageManager) : IExecutableGlobalSystemAction
 {
     public string Name => "Update All Images";
     public string? Description => "Schedule downloads for all missing images across all entities.";

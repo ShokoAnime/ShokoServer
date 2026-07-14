@@ -11,7 +11,7 @@ namespace Shoko.Server.Services.Actions.Import.Series;
 /// <summary>
 ///   Relocate all files for the series.
 /// </summary>
-internal sealed class RelocateSeriesFilesAction(
+public sealed class RelocateSeriesFilesAction(
     AnimeSeriesRepository seriesRepo,
     IVideoRelocationService relocationService
 ) : IExecutableSeriesSystemAction

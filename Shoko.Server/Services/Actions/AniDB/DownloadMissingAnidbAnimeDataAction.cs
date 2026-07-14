@@ -9,7 +9,7 @@ namespace Shoko.Server.Services.Actions.AniDB;
 ///   Download missing AniDB XML data for anime, and fix cross-references with
 ///   incomplete data.
 /// </summary>
-internal sealed class DownloadMissingAnidbAnimeDataAction(ActionService actionService) : IExecutableGlobalSystemAction
+public sealed class DownloadMissingAnidbAnimeDataAction(ActionService actionService) : IExecutableGlobalSystemAction
 {
     public string Name => "Download Missing AniDB Anime Data";
     public string? Description => "Download missing AniDB XML data and fix cross-references with incomplete data.";

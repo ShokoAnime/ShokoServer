@@ -12,7 +12,7 @@ namespace Shoko.Server.Services.Actions.Import.Group;
 /// <summary>
 ///   Rescan all files for the group, re-running release matching.
 /// </summary>
-internal sealed class RescanGroupFilesAction(
+public sealed class RescanGroupFilesAction(
     AnimeGroupRepository groupRepo,
     IVideoReleaseService releaseService
 ) : IExecutableGroupSystemAction

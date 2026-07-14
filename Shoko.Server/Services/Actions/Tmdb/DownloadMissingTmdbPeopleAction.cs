@@ -9,7 +9,7 @@ namespace Shoko.Server.Services.Actions.Tmdb;
 /// <summary>
 ///   Download any missing TMDB person (cast/crew) data.
 /// </summary>
-internal sealed class DownloadMissingTmdbPeopleAction(TmdbMetadataService tmdbService) : IExecutableGlobalSystemAction
+public sealed class DownloadMissingTmdbPeopleAction(TmdbMetadataService tmdbService) : IExecutableGlobalSystemAction
 {
     public string Name => "Download Missing TMDB People";
     public string? Description => "Download any missing TMDB person (cast and crew) data.";

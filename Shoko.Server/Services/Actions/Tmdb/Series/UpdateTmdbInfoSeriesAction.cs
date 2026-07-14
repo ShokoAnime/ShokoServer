@@ -11,7 +11,7 @@ namespace Shoko.Server.Services.Actions.Tmdb.Series;
 /// <summary>
 ///   Update all TMDB shows linked to the series.
 /// </summary>
-internal sealed class UpdateTmdbInfoSeriesAction(
+public sealed class UpdateTmdbInfoSeriesAction(
     IJobFactory jobFactory
 ) : IExecutableSeriesSystemAction
 {

@@ -8,7 +8,7 @@ namespace Shoko.Server.Services.Actions.AniDB;
 /// <summary>
 ///   Process any pending AniDB file-moved notifications.
 /// </summary>
-internal sealed class RefreshAnidbMovedFilesAction(ActionService actionService) : IExecutableGlobalSystemAction
+public sealed class RefreshAnidbMovedFilesAction(ActionService actionService) : IExecutableGlobalSystemAction
 {
     public string Name => "Refresh AniDB Moved Files";
     public string? Description => "Process pending AniDB file-moved notifications and update affected files.";

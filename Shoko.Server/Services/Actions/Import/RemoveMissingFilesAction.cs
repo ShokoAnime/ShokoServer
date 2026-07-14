@@ -8,7 +8,7 @@ namespace Shoko.Server.Services.Actions.Import;
 /// <summary>
 ///   Remove database records for files that are no longer accessible on disk.
 /// </summary>
-internal sealed class RemoveMissingFilesAction(ActionService actionService) : IExecutableGlobalSystemAction
+public sealed class RemoveMissingFilesAction(ActionService actionService) : IExecutableGlobalSystemAction
 {
     public string Name => "Remove Missing Files";
     public string? Description => "Remove database records for files that are no longer accessible on disk.";

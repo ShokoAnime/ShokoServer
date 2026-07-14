@@ -11,7 +11,7 @@ namespace Shoko.Server.Services.Actions.AniDB.Series;
 /// <summary>
 ///   Update AniDB info for the series using only locally cached XML data.
 /// </summary>
-internal sealed class UpdateAnidbInfoXmlCacheSeriesAction(IAnidbService anidbService) : IExecutableSeriesSystemAction
+public sealed class UpdateAnidbInfoXmlCacheSeriesAction(IAnidbService anidbService) : IExecutableSeriesSystemAction
 {
     public string Name => "Update AniDB Info - XML Cache";
     public string? Description => "Updates AniDB data using information from local XML cache.";

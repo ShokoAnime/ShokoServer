@@ -10,7 +10,7 @@ namespace Shoko.Server.Services.Actions.Tmdb;
 ///   Update all TMDB shows in the local database from the remote API,
 ///   including downloading any missing images.
 /// </summary>
-internal sealed class UpdateAllTmdbShowsWithImagesAction(TmdbMetadataService tmdbService) : IExecutableGlobalSystemAction
+public sealed class UpdateAllTmdbShowsWithImagesAction(TmdbMetadataService tmdbService) : IExecutableGlobalSystemAction
 {
     public string Name => "Update All TMDB Shows (with Images)";
     public string? Description => "Update all TMDB show metadata and download any missing images.";

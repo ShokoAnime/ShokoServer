@@ -12,7 +12,7 @@ namespace Shoko.Server.Services.Actions.AniDB.Series;
 ///   Force a complete update of AniDB info for the series, bypassing time
 ///   checks and HTTP bans. Requires user confirmation.
 /// </summary>
-internal sealed class UpdateAnidbInfoForceSeriesAction(IAnidbService anidbService) : IExecutableSeriesSystemAction
+public sealed class UpdateAnidbInfoForceSeriesAction(IAnidbService anidbService) : IExecutableSeriesSystemAction
 {
     public string Name => "Update AniDB Info - Force";
     public string? Description => "Forces a complete update from AniDB, bypassing usual checks and bans.";

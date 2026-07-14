@@ -11,7 +11,7 @@ namespace Shoko.Server.Services.Actions.Destructive.Series;
 /// <summary>
 ///   Delete the series along with its files from disk.
 /// </summary>
-internal sealed class DeleteSeriesRemoveFilesAction(
+public sealed class DeleteSeriesRemoveFilesAction(
     AnimeSeriesRepository seriesRepo,
     AnimeSeriesService seriesService
 ) : IExecutableSeriesSystemAction

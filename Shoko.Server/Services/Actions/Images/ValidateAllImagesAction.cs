@@ -9,7 +9,7 @@ namespace Shoko.Server.Services.Actions.Images;
 /// <summary>
 ///   Validate all images and re-download any that are corrupted or invalid.
 /// </summary>
-internal sealed class ValidateAllImagesAction(IImageManager imageManager) : IExecutableGlobalSystemAction
+public sealed class ValidateAllImagesAction(IImageManager imageManager) : IExecutableGlobalSystemAction
 {
     public string Name => "Validate All Images";
     public string? Description => "Validate all images and re-download any that are corrupted or invalid.";

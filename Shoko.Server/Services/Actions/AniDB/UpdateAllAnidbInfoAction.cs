@@ -8,7 +8,7 @@ namespace Shoko.Server.Services.Actions.AniDB;
 /// <summary>
 ///   Refresh all AniDB anime info from the remote API.
 /// </summary>
-internal sealed class UpdateAllAnidbInfoAction(ActionService actionService) : IExecutableGlobalSystemAction
+public sealed class UpdateAllAnidbInfoAction(ActionService actionService) : IExecutableGlobalSystemAction
 {
     public string Name => "Update All AniDB Info";
     public string? Description => "Refresh all AniDB anime information from the remote API.";

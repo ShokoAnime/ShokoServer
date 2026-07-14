@@ -9,7 +9,7 @@ namespace Shoko.Server.Services.Actions.Tmdb;
 /// <summary>
 ///   Scan for TMDB matches for all AniDB anime that are not yet linked.
 /// </summary>
-internal sealed class SearchForTmdbMatchesAction(TmdbMetadataService tmdbService) : IExecutableGlobalSystemAction
+public sealed class SearchForTmdbMatchesAction(TmdbMetadataService tmdbService) : IExecutableGlobalSystemAction
 {
     public string Name => "Search for TMDB Matches";
     public string? Description => "Scan for TMDB show and movie matches for all unlinked AniDB anime.";

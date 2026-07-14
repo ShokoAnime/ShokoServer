@@ -9,7 +9,7 @@ namespace Shoko.Server.Services.Actions.Tmdb;
 /// <summary>
 ///   Purge all TMDB movie collections from the local database.
 /// </summary>
-internal sealed class PurgeAllTmdbMovieCollectionsAction(TmdbMetadataService tmdbService) : IExecutableGlobalSystemAction
+public sealed class PurgeAllTmdbMovieCollectionsAction(TmdbMetadataService tmdbService) : IExecutableGlobalSystemAction
 {
     public string Name => "Purge TMDB Movie Collections";
     public string? Description => "Remove all TMDB movie collections from the local database.";

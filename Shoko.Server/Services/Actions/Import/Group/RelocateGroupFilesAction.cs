@@ -12,7 +12,7 @@ namespace Shoko.Server.Services.Actions.Import.Group;
 /// <summary>
 ///   Relocate all files for the group.
 /// </summary>
-internal sealed class RelocateGroupFilesAction(
+public sealed class RelocateGroupFilesAction(
     AnimeGroupRepository groupRepo,
     IVideoRelocationService relocationService
 ) : IExecutableGroupSystemAction

@@ -11,7 +11,7 @@ namespace Shoko.Server.Services.Actions.Tmdb.Series;
 /// <summary>
 ///   Refresh all TMDB movies linked to the series.
 /// </summary>
-internal sealed class RefreshTmdbMoviesSeriesAction(IJobFactory jobFactory) : IExecutableSeriesSystemAction
+public sealed class RefreshTmdbMoviesSeriesAction(IJobFactory jobFactory) : IExecutableSeriesSystemAction
 {
     public string Name => "Refresh TMDB Movies";
     public string? Description => "Refresh all linked TMDB movie metadata.";

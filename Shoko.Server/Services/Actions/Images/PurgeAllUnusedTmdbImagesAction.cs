@@ -10,7 +10,7 @@ namespace Shoko.Server.Services.Actions.Images;
 /// <summary>
 ///   Purge all unused TMDB images that are not linked to any entity.
 /// </summary>
-internal sealed class PurgeAllUnusedTmdbImagesAction(IImageManager imageManager) : IExecutableGlobalSystemAction
+public sealed class PurgeAllUnusedTmdbImagesAction(IImageManager imageManager) : IExecutableGlobalSystemAction
 {
     public string Name => "Purge Unused TMDB Images";
     public string? Description => "Remove all TMDB images that are not linked to any entity.";
