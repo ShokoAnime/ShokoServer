@@ -26,6 +26,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Providers.TMDB;
+using Shoko.Server.Plugin;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
@@ -188,7 +189,7 @@ public class ActionService : IActionService
             var info = new ExecutableActionInfo
             {
                 ID = UuidUtility.GetV5(actionType.FullName!, pluginInfo.ID),
-                Name = action.Name,
+                Name = action.Name ?? actionType.GetDisplayName(name => name.TrimEnd(" Action")),
                 Description = action.Description ?? string.Empty,
                 Category = action.Category,
                 CategoryName = categoryName,

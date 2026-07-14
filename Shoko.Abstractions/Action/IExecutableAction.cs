@@ -29,9 +29,10 @@ namespace Shoko.Abstractions.Action;
 public interface IExecutableAction
 {
     /// <summary>
-    ///   The name of the action.
+    ///   The name of the action. When <c>null</c>, the service derives a
+    ///   display name from the implementing class's name automatically.
     /// </summary>
-    public string Name { get; }
+    public string? Name { get => null; }
 
     /// <summary>
     ///   The description of the action.

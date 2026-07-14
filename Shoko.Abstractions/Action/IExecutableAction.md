@@ -48,14 +48,11 @@ internal sealed class MyAction : IExecutableGlobalSystemAction, IExecutableSerie
 `ExecutableActionInfo.Scopes`. The action then appears in both the global and
 series listing endpoints.
 
-## Required members
-
-- **`Name`** — the display name shown in the Actions menu.
-
 ## Optional defaults
 
 | Member | Default | Description |
 |--------|---------|-------------|
+| `Name` | Inferred from class name | When `null`, the service derives a display name from the implementing class (splits PascalCase, strips "Action" suffix). |
 | `Description` | `null` | Longer description of what the action does. |
 | `Category` | `ActionCategory.Mischievous` | Groups the action into a named category in the UI. See `ActionCategory.md` for available values. |
 | `RequiresConfirmation` | `false` | Set to `true` for destructive or irreversible actions so the UI prompts for confirmation before invoking. |

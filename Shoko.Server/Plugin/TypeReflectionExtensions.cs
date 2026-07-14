@@ -13,8 +13,9 @@ public static partial class TypeReflectionExtensions
     /// Gets the display name for a type.
     /// </summary>
     /// <param name="type">The type.</param>
-    public static string GetDisplayName(this Type type)
-        => GetDisplayName(type.ToContextualType());
+    /// <param name="transform">The transform function.</param>
+    public static string GetDisplayName(this Type type, Func<string, string>? transform = null)
+        => GetDisplayName(type.ToContextualType(), transform);
 
     /// <summary>
     /// Gets the display name for a member.
