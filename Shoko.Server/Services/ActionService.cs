@@ -209,7 +209,7 @@ public class ActionService : IActionService
         if (scopes is not null)
         {
             var scopeSet = scopes.ToHashSet();
-            query = query.Where(a => scopeSet.Overlaps(a.Scopes));
+            query = query.Where(a => a.Scopes.Any(actionScope => scopeSet.Any(filterScope => actionScope.HasFlag(filterScope))));
         }
 
         if (categories is not null)

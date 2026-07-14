@@ -317,7 +317,7 @@ public class ActionController : BaseController
     }
 
     private IReadOnlyList<ActionCategoryGroup> GetActionCategories(ActionScope scope, bool isAdmin)
-        => _actionServiceInterface.GetActions(scopes: [ActionScope.System | scope, ActionScope.User | scope])
+        => _actionServiceInterface.GetActions(scopes: [scope])
             .Select(info =>
             {
                 var permittedScopes = isAdmin
