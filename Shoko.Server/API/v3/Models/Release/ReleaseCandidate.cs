@@ -178,7 +178,6 @@ public class ReleaseCandidate
         HashSet<int>? redundantPlaceIDs = null,
         ReleaseComparisonService.CompareDecision? decision = null,
         Dictionary<int, IReadOnlySet<(EpisodeType, int)>>? placeEpisodeCoverage = null,
-        Dictionary<int, (EpisodeType Type, int Number)>? episodeLookup = null,
         bool includeResolution = true,
         bool includeSource = true,
         bool includeVersion = true,
@@ -189,7 +188,7 @@ public class ReleaseCandidate
             {
                 videoLookup.TryGetValue(place.VideoID, out var video);
                 var episodes = placeEpisodeCoverage?.TryGetValue(place.ID, out var cov) == true
-                    ? cov.Select(e => ResolveEpisode(e.Item1, e.Item2, episodeLookup))
+                    ? cov.Select(e => new EpisodeCoverage { Type = e.Item1, Number = e.Item2 })
                           .OrderBy(e => e.Type).ThenBy(e => e.Number)
                           .ToList()
                     : (IReadOnlyList<EpisodeCoverage>)[];
@@ -238,7 +237,7 @@ public class ReleaseCandidate
             .Select(e =>
             {
                 candidate.EpisodeGroupMap.TryGetValue(e, out var groupShortName);
-                return ResolveEpisode(e.Type, e.EpisodeID, episodeLookup, groupShortName);
+                return new EpisodeCoverage { Type = e.Type, Number = e.Number, GroupShortName = groupShortName };
             })
             .OrderBy(e => e.Type)
             .ThenBy(e => e.Number)
@@ -411,8 +410,7 @@ public class ReleaseCandidate
     /// </summary>
     public static string ComputeName(
         VideoReleaseCandidate candidate,
-        bool includeResolution, bool includeSource, bool includeVersion,
-        Dictionary<int, (EpisodeType Type, int Number)>? episodeLookup = null)
+        bool includeResolution, bool includeSource, bool includeVersion)
     {
         var source = candidate.Source switch
         {
@@ -432,7 +430,7 @@ public class ReleaseCandidate
             .Select(e =>
             {
                 candidate.EpisodeGroupMap.TryGetValue(e, out var groupShortName);
-                return ResolveEpisode(e.Type, e.EpisodeID, episodeLookup, groupShortName);
+                return new EpisodeCoverage { Type = e.Type, Number = e.Number, GroupShortName = groupShortName };
             })
             .OrderBy(e => e.Type)
             .ThenBy(e => e.Number)
@@ -465,16 +463,6 @@ public class ReleaseCandidate
             start = prev = cur;
         }
         return sb.ToString();
-    }
-
-    private static EpisodeCoverage ResolveEpisode(
-        EpisodeType type, int anidbEpisodeID,
-        Dictionary<int, (EpisodeType Type, int Number)>? episodeLookup,
-        string? groupShortName = null)
-    {
-        if (episodeLookup is not null && episodeLookup.TryGetValue(anidbEpisodeID, out var resolved))
-            return new EpisodeCoverage { Type = resolved.Type, Number = resolved.Number, GroupShortName = groupShortName };
-        return new EpisodeCoverage { Type = type, Number = anidbEpisodeID, GroupShortName = groupShortName };
     }
 
     /// <summary>

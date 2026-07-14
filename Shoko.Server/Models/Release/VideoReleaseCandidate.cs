@@ -11,15 +11,22 @@ namespace Shoko.Server.Models.Release;
 /// </summary>
 /// <remarks>
 /// The <see cref="Key"/> is a SHA-256 hash of the quality signals (group,
-/// source, languages, codec, resolution, stream counts, flags, version). It
-/// does not encode folder location, so two candidates with identical quality
-/// profiles produce the same key regardless of where the files live.
+/// source, languages, codec, resolution, stream counts, flags, version). For
+/// non-mixed (single, homogeneous) candidates it does not encode folder
+/// location, so two pure candidates with identical quality profiles produce
+/// the same key regardless of where the files live — they represent the same
+/// kind of release. For mixed (<see cref="IsMixed"/>) gap-fill composites, the
+/// key additionally folds in the underlying file/place composition, since two
+/// different combinations of releases stitched together to reach full episode
+/// coverage can otherwise majority-vote to an identical aggregate profile
+/// while covering the same episodes with genuinely different files.
 /// </remarks>
 public class VideoReleaseCandidate
 {
     /// <summary>
-    /// SHA-256 hex fingerprint of this candidate's quality signals.
-    /// Identical keys mean identical quality profiles.
+    /// SHA-256 hex fingerprint of this candidate. For non-mixed candidates,
+    /// identical keys mean identical quality profiles. For mixed candidates,
+    /// the key is additionally unique per underlying file composition.
     /// </summary>
     public string Key { get; init; } = string.Empty;
 
@@ -167,14 +174,17 @@ public class VideoReleaseCandidate
         = new Dictionary<int, PlaceQualitySignals>();
 
     /// <summary>
-    /// All (EpisodeType, AniDB_EpisodeID) pairs covered by any file in this candidate.
-    /// Empty when no file has cross-reference data.
+    /// All (EpisodeType, EpisodeNumber) pairs covered by any file in this candidate.
+    /// Empty when no file has cross-reference data. Cross-references to a different
+    /// anime (crossover/tie-in releases) and cross-references whose episode metadata
+    /// isn't cached locally are excluded — see
+    /// <c>VideoReleaseGroupingService.GetEpisodeCoverageForAnime</c>.
     /// </summary>
-    public IReadOnlySet<(EpisodeType Type, int EpisodeID)> EpisodeCoverage { get; init; }
+    public IReadOnlySet<(EpisodeType Type, int Number)> EpisodeCoverage { get; init; }
         = new HashSet<(EpisodeType, int)>();
 
     /// <summary>
-    /// Maps each covered (EpisodeType, AniDB_EpisodeID) to the short name of the
+    /// Maps each covered (EpisodeType, EpisodeNumber) to the short name of the
     /// release group that provides that episode in this candidate. Null values mean
     /// the file has no <see cref="StoredReleaseInfo"/> (manually linked or unrecognised).
     /// For pure candidates every episode maps to the same group; for gap-fill candidates

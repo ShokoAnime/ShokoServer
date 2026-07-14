@@ -12,6 +12,14 @@ namespace Shoko.Server.Models.Release;
 /// </summary>
 public class VideoReleaseOverride
 {
+    /// <summary>
+    /// Stable identifier for this override group, derived from its quality profile and
+    /// file composition. Unlike <see cref="VideoReleaseCandidate.Key"/>, this is always
+    /// unique per distinct file set within a series' override list, since overrides are
+    /// single merged-group buckets rather than composites.
+    /// </summary>
+    public required string Key { get; init; }
+
     public string? GroupID { get; init; }
     public string? GroupSource { get; init; }
     public string? GroupName { get; init; }
@@ -39,6 +47,6 @@ public class VideoReleaseOverrideFile
     public int Version { get; init; }
     public bool? IsChaptered { get; init; }
     public int SubtitleStreamCount { get; init; }
-    public IReadOnlySet<(EpisodeType Type, int AnidbEpisodeID)> EpisodeIds { get; init; }
+    public IReadOnlySet<(EpisodeType Type, int Number)> Episodes { get; init; }
         = new HashSet<(EpisodeType, int)>();
 }

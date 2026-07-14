@@ -1051,7 +1051,7 @@ public class EpisodeController : BaseController
 
         // Group into release candidates and filter to those covering this episode.
         var episodeKey = (anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber);
-        var covering = _releaseGrouper.Group(places)
+        var covering = _releaseGrouper.Group(places, series.AniDB_ID)
             .Where(c => c.EpisodeCoverage.Contains(episodeKey))
             .ToList();
 

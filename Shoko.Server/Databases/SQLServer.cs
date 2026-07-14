@@ -1030,6 +1030,30 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(177,  2, "UPDATE AniDB_Anime_Relation SET Verified = 0 WHERE RelationType IN ('alternative setting', 'alternative version');"),
         new(178,  1, "ALTER TABLE TMDB_Show ALTER COLUMN Genres NVARCHAR(MAX) NOT NULL;"),
         new(178,  2, "ALTER TABLE TMDB_Movie ALTER COLUMN Genres NVARCHAR(MAX) NOT NULL;"),
+        // Re-run of the 172.2 CrossReferences fixup: some databases still carry
+        // StoredReleaseInfo rows in the legacy flat shape (e.g. restored from a
+        // backup taken before 172.2 first ran), which desync AnidbEpisodeID from
+        // the ProviderIDs-based lookup every current reader expects.
+        new(179,  1, """
+                     UPDATE sri
+                     SET CrossReferences = (
+                         SELECT
+                             JSON_QUERY(
+                                 '{"AniDB_Episode":"' + JSON_VALUE(x.value, '$.AnidbEpisodeID') + '"' +
+                                 CASE
+                                     WHEN ISNULL(TRY_CAST(JSON_VALUE(x.value, '$.AnidbAnimeID') AS int), 0) > 0
+                                     THEN ',"AniDB_Anime":"' + JSON_VALUE(x.value, '$.AnidbAnimeID') + '"'
+                                     ELSE ''
+                                 END + '}'
+                             ) AS ProviderIDs,
+                             CAST(JSON_VALUE(x.value, '$.PercentageStart') AS int) AS PercentageStart,
+                             CAST(JSON_VALUE(x.value, '$.PercentageEnd') AS int) AS PercentageEnd
+                         FROM OPENJSON(sri.CrossReferences) AS x
+                         FOR JSON PATH
+                     )
+                     FROM StoredReleaseInfo sri
+                     WHERE sri.CrossReferences LIKE '%AnidbEpisodeID%'
+                     """),
     ];
 
     #endregion

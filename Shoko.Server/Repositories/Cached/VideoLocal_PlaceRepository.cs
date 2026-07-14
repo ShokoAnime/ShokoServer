@@ -88,6 +88,6 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place,
             ? _paths!.GetMultiple(PlatformUtility.NormalizePath(relativePath, stripLeadingSlash: true)).FirstOrDefault(a => a.ManagedFolderID == managedFolderID)
             : null;
 
-    public IReadOnlyList<VideoLocal_Place> GetByVideoLocal(int videoLocalID)
+    public virtual IReadOnlyList<VideoLocal_Place> GetByVideoLocal(int videoLocalID)
         => _videoLocalIDs!.GetMultiple(videoLocalID);
 }

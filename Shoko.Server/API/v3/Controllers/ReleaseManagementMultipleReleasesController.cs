@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
@@ -35,7 +34,6 @@ public class ReleaseManagementMultipleReleasesController(
     AnimeSeriesRepository animeSeries,
     VideoLocalRepository videoLocals,
     VideoLocal_PlaceRepository videoLocalPlaces,
-    AniDB_EpisodeRepository anidbEpisodes,
     AniDB_Anime_TitleRepository anidbTitles,
     VideoReleaseGroupingService grouper,
     ReleaseComparisonService comparer,
@@ -104,7 +102,7 @@ public class ReleaseManagementMultipleReleasesController(
                     .ToDictionary(v => v.VideoLocalID);
                 if (videoLookup.Count <= 1)
                     return none;
-                if (!grouper.MightHaveMultipleCandidates(videoLookup.Values))
+                if (!grouper.MightHaveMultipleCandidates(videoLookup.Values, series.AniDB_ID))
                     return none;
 
                 var computation = ComputeCandidates(series, videoLookup, includeVariations,
@@ -222,7 +220,7 @@ public class ReleaseManagementMultipleReleasesController(
 
         var placeEpisodeCoverage = places.ToDictionary(
             p => p.ID,
-            p => autoManagement.GetFileEpisodeCoverage(p, videoLookup));
+            p => autoManagement.GetFileEpisodeCoverage(p, videoLookup, series.AniDB_ID));
 
         var allCoveredEpisodes = placeEpisodeCoverage.Values.SelectMany(x => x).ToHashSet();
         var selectionCoveredEpisodes = selectedPlaceIds
@@ -383,7 +381,7 @@ public class ReleaseManagementMultipleReleasesController(
         if (places.Count == 0)
             return null;
 
-        var candidates = grouper.Group(places);
+        var candidates = grouper.Group(places, series.AniDB_ID);
         if (candidates.Count <= 1)
             return null;
 
@@ -442,19 +440,7 @@ public class ReleaseManagementMultipleReleasesController(
 
         var placeEpisodeCoverage = places.ToDictionary(
             p => p.ID,
-            p => autoManagement.GetFileEpisodeCoverage(p, videoLookup));
-
-        // When including tracks we need episode IDs for all places (including partial-coverage
-        // groups not represented in any full candidate). Otherwise the candidates alone suffice.
-        IEnumerable<int> episodeIdSource = includeTracks
-            ? placeEpisodeCoverage.Values.SelectMany(cov => cov.Select(e => e.Item2))
-            : ranked.SelectMany(c => c.EpisodeCoverage).Select(e => e.EpisodeID);
-
-        var episodeLookup = episodeIdSource
-            .Distinct()
-            .Select(id => anidbEpisodes.GetByEpisodeID(id))
-            .WhereNotNull()
-            .ToDictionary(e => e.EpisodeID, e => (e.EpisodeType, e.EpisodeNumber));
+            p => autoManagement.GetFileEpisodeCoverage(p, videoLookup, series.AniDB_ID));
 
         // Compute which signals actually vary across candidates so names only include
         // the qualifiers that distinguish one candidate from another.
@@ -467,10 +453,11 @@ public class ReleaseManagementMultipleReleasesController(
 
         // Pre-compute candidate names and detect collisions. When two candidates
         // would render with the same name (e.g., two unrecognised files from
-        // different folders both named "Unknown"), append the first file's parent
-        // folder (or filename when folders also match) as a disambiguation suffix.
+        // different parent directories both named "Unknown"), append the first
+        // file's parent directory (or filename when directories also match) as
+        // a disambiguation suffix.
         var precomputedNames = ranked
-            .Select(c => ReleaseCandidate.ComputeName(c, candidateIncludeResolution, candidateIncludeSource, candidateIncludeVersion, episodeLookup))
+            .Select(c => ReleaseCandidate.ComputeName(c, candidateIncludeResolution, candidateIncludeSource, candidateIncludeVersion))
             .ToList();
         var usedNames = new HashSet<string>(StringComparer.Ordinal);
         for (var i = 0; i < precomputedNames.Count; i++)
@@ -502,7 +489,7 @@ public class ReleaseManagementMultipleReleasesController(
 
             candidateDTOs.Add(ReleaseCandidate.FromCandidate(
                 candidate, rank: i + 1, isRedundant, videoLookup, redundantPlaces, decision,
-                placeEpisodeCoverage, episodeLookup,
+                placeEpisodeCoverage,
                 candidateIncludeResolution, candidateIncludeSource, candidateIncludeVersion,
                 nameOverride: precomputedNames[i]));
         }
@@ -510,11 +497,11 @@ public class ReleaseManagementMultipleReleasesController(
         IReadOnlyList<ReleaseOverride> overrideDTOs = [];
         if (includeTracks)
         {
-            var releaseOverrides = grouper.GetOverrides(places);
+            var releaseOverrides = grouper.GetOverrides(places, series.AniDB_ID);
             var overrideIncludeResolution = releaseOverrides.Select(o => o.Resolution).Where(r => r is not null).Distinct().Count() > 1;
             var overrideIncludeSource = releaseOverrides.Select(o => o.Source).Where(s => s != ReleaseSource.Unknown).Distinct().Count() > 1;
             overrideDTOs = releaseOverrides
-                .Select(o => ReleaseOverride.FromOverride(o, videoLookup, episodeLookup, overrideIncludeResolution, overrideIncludeSource))
+                .Select(o => ReleaseOverride.FromOverride(o, videoLookup, overrideIncludeResolution, overrideIncludeSource))
                 .ToList();
         }
 
@@ -551,7 +538,7 @@ public class ReleaseManagementMultipleReleasesController(
         if (places.Count == 0)
             return null;
 
-        var candidates = grouper.Group(places);
+        var candidates = grouper.Group(places, series.AniDB_ID);
         if (candidates.Count <= 1)
             return null;
 

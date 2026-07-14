@@ -40,13 +40,15 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
     /// <summary>
     /// Sorts <paramref name="videos"/> by release rank (rank 1 first). Videos not
     /// captured by any candidate are appended at the end in their original order.
+    /// <paramref name="animeId"/> scopes episode resolution — callers always operate
+    /// on files belonging to a single anime.
     /// </summary>
-    public List<VideoLocal> SortByRank(IEnumerable<VideoLocal> videos)
+    public List<VideoLocal> SortByRank(IEnumerable<VideoLocal> videos, int animeId)
     {
         var list = videos.ToList();
         var byId = list.ToDictionary(v => v.VideoLocalID);
         var places = list.Select(v => v.Places.FirstOrDefault()).OfType<VideoLocal_Place>().ToList();
-        var ranked = Rank(groupingService.Group(places));
+        var ranked = Rank(groupingService.Group(places, animeId));
         var seen = new HashSet<int>();
         var sorted = new List<VideoLocal>(list.Count);
         foreach (var candidate in ranked)

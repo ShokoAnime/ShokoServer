@@ -18,7 +18,7 @@ namespace Shoko.Server.Services;
 /// <summary>
 /// A <see cref="VideoLocal_Place"/> with its associated video and optional
 /// release info already loaded, ready to pass to
-/// <see cref="VideoReleaseGroupingService.Group(System.Collections.Generic.IEnumerable{Shoko.Server.Services.ResolvedVideoPlace})"/>.
+/// <see cref="VideoReleaseGroupingService.Group(System.Collections.Generic.IEnumerable{Shoko.Server.Services.ResolvedVideoPlace}, int)"/>.
 /// </summary>
 public record ResolvedVideoPlace(VideoLocal_Place Place, VideoLocal Video, StoredReleaseInfo? ReleaseInfo);
 
@@ -50,7 +50,8 @@ public class VideoReleaseGroupingService(
     VideoLocalRepository videoLocalRepository,
     AniDB_EpisodeRepository anidbEpisodeRepository,
     StoredReleaseInfoRepository releaseInfoRepository,
-    CrossRef_File_EpisodeRepository crossRefRepository)
+    CrossRef_File_EpisodeRepository crossRefRepository,
+    VideoLocal_PlaceRepository placeRepository)
 {
     /// <summary>
     /// Fast heuristic that checks whether a series is likely to produce more than
@@ -60,12 +61,18 @@ public class VideoReleaseGroupingService(
     /// same version without running the full grouper.
     /// <para>
     /// Returns <c>false</c> only when every file has an identified SRI with the
-    /// same release-group key, source, codec, resolution, and bit depth, and there
-    /// are no per-episode version collisions — meaning a single-candidate result is
-    /// certain. Returns <c>true</c> when in doubt, so false negatives are avoided.
+    /// same release-group key, source, codec, resolution, and bit depth, there are
+    /// no per-episode version collisions, and no episode is covered by files from
+    /// more than one <c>(ManagedFolderID, ParentDirectory)</c> partition — the
+    /// latter is a guaranteed hard separator in <c>FuzzyGroup</c>/<c>AreCompatible</c>
+    /// regardless of how well every other signal matches, so two otherwise-identical
+    /// copies of the same episode living in different folders always produce two
+    /// candidates in the full grouper. Only when all of the above hold is a
+    /// single-candidate result certain. Returns <c>true</c> when in doubt, so false
+    /// negatives are avoided.
     /// </para>
     /// </summary>
-    public bool MightHaveMultipleCandidates(IEnumerable<VideoLocal> videos)
+    public bool MightHaveMultipleCandidates(IEnumerable<VideoLocal> videos, int animeId)
     {
         var groupKey = (string?)null;
         var source = (ReleaseSource?)null;
@@ -73,6 +80,7 @@ public class VideoReleaseGroupingService(
         var videoCodec = (string?)null;
         var bitDepth = (int?)null;
         var episodeVersions = new Dictionary<int, int>();
+        var episodeLocations = new Dictionary<int, (int ManagedFolderID, string ParentDirectory)>();
 
         foreach (var video in videos)
         {
@@ -117,17 +125,49 @@ public class VideoReleaseGroupingService(
                 }
             }
 
-            // Version collision within the same group → GenerateVersionStrategyCandidates
-            // would produce BestAvailable + Consistent variants.
+            // Representative place for this video — mirrors BuildSignature, which uses
+            // the first place of each VideoLocalID group for folder/parent-directory purposes.
+            var place = placeRepository.GetByVideoLocal(video.VideoLocalID).FirstOrDefault();
+            var location = place is null
+                ? ((int ManagedFolderID, string ParentDirectory)?)null
+                : (place.ManagedFolderID, GetParentDirectory(place.RelativePath));
+
             foreach (var xref in sri.CrossReferences)
             {
-                if (episodeVersions.TryGetValue(xref.AnidbEpisodeID, out var existing))
+                // Cross-references to a different anime (crossover/tie-in releases), or whose
+                // episode can't be resolved locally at all, must not participate in this anime's
+                // version-collision/folder-separation checks.
+                if (xref.AnidbEpisodeID <= 0)
+                    continue;
+                var episode = anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID);
+                if (episode is null || episode.AnimeID != animeId)
+                    continue;
+
+                // Version collision within the same group → GenerateVersionStrategyCandidates
+                // would produce BestAvailable + Consistent variants.
+                if (episodeVersions.TryGetValue(xref.AnidbEpisodeID, out var existingVersion))
                 {
-                    if (existing != sri.Version) return true;
+                    if (existingVersion != sri.Version) return true;
                 }
                 else
                 {
                     episodeVersions[xref.AnidbEpisodeID] = sri.Version;
+                }
+
+                // Folder hard separator: the same episode covered by files from two different
+                // (ManagedFolderID, ParentDirectory) partitions is always split into separate
+                // FuzzyGroup buckets, independent of every other signal matching.
+                if (location is { } loc)
+                {
+                    if (episodeLocations.TryGetValue(xref.AnidbEpisodeID, out var existingLocation))
+                    {
+                        if (existingLocation.ManagedFolderID != loc.ManagedFolderID || existingLocation.ParentDirectory != loc.ParentDirectory)
+                            return true;
+                    }
+                    else
+                    {
+                        episodeLocations[xref.AnidbEpisodeID] = loc;
+                    }
                 }
             }
         }
@@ -135,9 +175,61 @@ public class VideoReleaseGroupingService(
     }
 
     /// <summary>
+    /// Resolves the set of (EpisodeType, EpisodeNumber) pairs <paramref name="video"/> covers,
+    /// scoped strictly to <paramref name="animeId"/>. A single <see cref="StoredReleaseInfo"/> can
+    /// legitimately cross-reference episodes from a <em>different</em> anime entirely — e.g. a
+    /// crossover/tie-in release covering one episode of each of two distinct shows. Those
+    /// foreign-anime cross-references must never leak into this anime's episode coverage,
+    /// grouping, or display; every caller that resolves per-file episode coverage for one
+    /// series must go through this method rather than reading <c>CrossReferences</c> directly.
+    /// <para>
+    /// A cross-reference whose episode can't be resolved locally (metadata not yet synced) is
+    /// excluded outright rather than kept with a placeholder — coverage is only ever meaningful
+    /// once it has a real episode number to compare/display/dedup with, and every downstream
+    /// consumer (ranking, redundancy, DTOs) needs that number anyway, so a partially-resolved
+    /// entry has no legitimate use and would only produce confusing nonsense downstream (e.g. a
+    /// six-digit AniDB episode ID rendered as if it were an episode number).
+    /// </para>
+    /// </summary>
+    public IReadOnlySet<(EpisodeType Type, int Number)> GetEpisodeCoverageForAnime(VideoLocal video, int animeId)
+        => GetEpisodeCoverageForAnime(video, releaseInfoRepository.GetByEd2kAndFileSize(video.Hash, video.FileSize), animeId);
+
+    /// <summary>
+    /// Same as <see cref="GetEpisodeCoverageForAnime(VideoLocal, int)"/>, but takes an
+    /// already-resolved <paramref name="sri"/> to avoid a redundant repository lookup when the
+    /// caller (e.g. <see cref="BuildSignature"/>) already has it in hand.
+    /// </summary>
+    private IReadOnlySet<(EpisodeType Type, int Number)> GetEpisodeCoverageForAnime(
+        VideoLocal video, StoredReleaseInfo? sri, int animeId)
+    {
+        var result = new HashSet<(EpisodeType, int)>();
+        if (sri is not null)
+        {
+            foreach (var x in sri.CrossReferences)
+            {
+                if (x.AnidbEpisodeID <= 0) continue;
+                var episode = anidbEpisodeRepository.GetByEpisodeID(x.AnidbEpisodeID);
+                if (episode is null || episode.AnimeID != animeId) continue;
+                result.Add((episode.EpisodeType, episode.EpisodeNumber));
+            }
+        }
+        else
+        {
+            foreach (var x in crossRefRepository.GetByEd2k(video.Hash))
+            {
+                if (x.EpisodeID <= 0 || x.AnimeID != animeId) continue;
+                var episode = anidbEpisodeRepository.GetByEpisodeID(x.EpisodeID);
+                if (episode is null) continue;
+                result.Add((episode.EpisodeType, episode.EpisodeNumber));
+            }
+        }
+        return result;
+    }
+
+    /// <summary>
     /// Returns the AniDB anime IDs where at least one episode has more than one distinct,
     /// currently-existing video file mapped to it. A series can only produce more than one
-    /// release candidate (<see cref="Group"/> returning more than one entry) if some episode
+    /// release candidate (<see cref="Group(System.Collections.Generic.IEnumerable{Shoko.Server.Models.Shoko.VideoLocal_Place}, int)"/> returning more than one entry) if some episode
     /// is coverable by more than one file — grouping/gap-fill always collapses a series where
     /// every episode has exactly one file down to a single candidate. This is therefore a safe
     /// (never under-inclusive) pre-filter, computed in one pass over <c>CrossRef_File_Episode</c>
@@ -177,9 +269,12 @@ public class VideoReleaseGroupingService(
 
     /// <summary>
     /// Groups the given places into release candidates, resolving the
-    /// associated video and release info from the repositories.
+    /// associated video and release info from the repositories. <paramref name="animeId"/>
+    /// scopes episode resolution to this anime — see <see cref="GetEpisodeCoverageForAnime(VideoLocal, int)"/>.
+    /// Every place passed in is expected to already belong to this anime; callers are
+    /// always single-anime-scoped (there is no code path that groups files across series).
     /// </summary>
-    public IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<VideoLocal_Place> places)
+    public IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<VideoLocal_Place> places, int animeId)
         => Group(places.Select(p =>
         {
             var video = videoLocalRepository.GetByID(p.VideoID);
@@ -187,15 +282,15 @@ public class VideoReleaseGroupingService(
                 return null;
             var sri = releaseInfoRepository.GetByEd2kAndFileSize(video.Hash, video.FileSize);
             return new ResolvedVideoPlace(p, video, sri);
-        }).OfType<ResolvedVideoPlace>());
+        }).OfType<ResolvedVideoPlace>(), animeId);
 
     /// <summary>
     /// Returns one <see cref="VideoReleaseOverride"/> per merged release-group bucket —
-    /// the same FuzzyGroup + same-group-merge passes as <see cref="Group(IEnumerable{VideoLocal_Place})"/>
+    /// the same FuzzyGroup + same-group-merge passes as <see cref="Group(IEnumerable{VideoLocal_Place}, int)"/>
     /// but without the coverage filter or version-strategy split. Used as the data
     /// source for the release override (Mix &amp; Match) view.
     /// </summary>
-    public IReadOnlyList<VideoReleaseOverride> GetOverrides(IEnumerable<VideoLocal_Place> places)
+    public IReadOnlyList<VideoReleaseOverride> GetOverrides(IEnumerable<VideoLocal_Place> places, int animeId)
         => GetOverrides(places.Select(p =>
         {
             var video = videoLocalRepository.GetByID(p.VideoID);
@@ -203,16 +298,16 @@ public class VideoReleaseGroupingService(
                 return null;
             var sri = releaseInfoRepository.GetByEd2kAndFileSize(video.Hash, video.FileSize);
             return new ResolvedVideoPlace(p, video, sri);
-        }).OfType<ResolvedVideoPlace>());
+        }).OfType<ResolvedVideoPlace>(), animeId);
 
     /// <summary>
     /// Returns one <see cref="VideoReleaseOverride"/> per merged release-group bucket
     /// from pre-resolved place records.
     /// </summary>
-    public IReadOnlyList<VideoReleaseOverride> GetOverrides(IEnumerable<ResolvedVideoPlace> resolved)
+    public IReadOnlyList<VideoReleaseOverride> GetOverrides(IEnumerable<ResolvedVideoPlace> resolved, int animeId)
     {
-        var sigs = BuildSignatures(resolved);
-        var allEpisodes = (IReadOnlySet<(EpisodeType, int)>)sigs.SelectMany(s => s.EpisodeIds).ToHashSet();
+        var sigs = BuildSignatures(resolved, animeId);
+        var allEpisodes = (IReadOnlySet<(EpisodeType, int)>)sigs.SelectMany(s => s.Episodes).ToHashSet();
         var buckets = FuzzyGroup(sigs);
         var mergedBuckets = MergeSameGroupBuckets(buckets);
         return mergedBuckets.Select(b => BuildOverride(b, allEpisodes)).ToList();
@@ -221,12 +316,12 @@ public class VideoReleaseGroupingService(
     /// <summary>
     /// Groups pre-resolved place records into release candidates.
     /// </summary>
-    public IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<ResolvedVideoPlace> resolved)
+    public IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<ResolvedVideoPlace> resolved, int animeId)
     {
-        var sigs = BuildSignatures(resolved);
+        var sigs = BuildSignatures(resolved, animeId);
 
         // Full episode set across all files — used to filter incomplete candidates
-        var allEpisodes = sigs.SelectMany(s => s.EpisodeIds).ToHashSet();
+        var allEpisodes = sigs.SelectMany(s => s.Episodes).ToHashSet();
 
         var buckets = FuzzyGroup(sigs);
 
@@ -244,7 +339,7 @@ public class VideoReleaseGroupingService(
         // version numbers) are also a valid reason to surface a series — the version-strategy
         // pass will split those into BestAvailable + Consistent candidates.
         var bucketEpSets = mergedBuckets
-            .Select(b => b.SelectMany(s => s.EpisodeIds).ToHashSet())
+            .Select(b => b.SelectMany(s => s.Episodes).ToHashSet())
             .Where(eps => eps.Count > 0)
             .ToList();
         if (bucketEpSets.Count >= 2)
@@ -266,11 +361,11 @@ public class VideoReleaseGroupingService(
 
         // Phase 2.5: cross-bucket same-group candidates
         // When two buckets from the same release group overlap on at least one episode
-        // (i.e. FuzzyGroup placed the same-group files in separate managed-folder buckets),
-        // generate one candidate per bucket's "take" on those episodes. This is the
-        // cross-folder analogue of the intra-bucket version split: two different files
-        // from the same group for the same episode are competing releases regardless of
-        // which managed folder they live in.
+        // (i.e. FuzzyGroup split the same-group files into separate (ManagedFolderID,
+        // ParentDirectory) partitions), generate one candidate per bucket's "take" on
+        // those episodes. This is the cross-partition analogue of the intra-bucket
+        // version split: two different files from the same group for the same episode
+        // are competing releases regardless of which managed folder or directory they live in.
         specs.AddRange(GenerateCrossBucketCandidates(mergedBuckets));
 
         // Phase 3: gap-fill candidates — one per partial anchor, greedily filled
@@ -289,7 +384,7 @@ public class VideoReleaseGroupingService(
         var result = new List<VideoReleaseCandidate>();
         foreach (var spec in specs.Concat(gapFillSpecs))
         {
-            var specEpisodes = spec.Files.SelectMany(f => f.EpisodeIds).ToHashSet();
+            var specEpisodes = spec.Files.SelectMany(f => f.Episodes).ToHashSet();
             if (specEpisodes.Count == 0 && allEpisodes.Count > 0) continue;
             if (allEpisodes.Count > 0 && !specEpisodes.IsSupersetOf(allEpisodes)) continue;
 
@@ -308,13 +403,13 @@ public class VideoReleaseGroupingService(
     /// are never split into different fuzzy-group buckets or candidates — they are always ranked,
     /// kept, and deleted together.
     /// </summary>
-    private List<FileSignature> BuildSignatures(IEnumerable<ResolvedVideoPlace> resolved)
+    private List<FileSignature> BuildSignatures(IEnumerable<ResolvedVideoPlace> resolved, int animeId)
         => resolved
             .GroupBy(r => r.Video.VideoLocalID)
-            .Select(g => BuildSignature(g.ToList()))
+            .Select(g => BuildSignature(g.ToList(), animeId))
             .ToList();
 
-    private FileSignature BuildSignature(IReadOnlyList<ResolvedVideoPlace> group)
+    private FileSignature BuildSignature(IReadOnlyList<ResolvedVideoPlace> group, int animeId)
     {
         var (place, video, sri) = group[0];
         var places = group.Select(g => g.Place).ToList();
@@ -366,23 +461,7 @@ public class VideoReleaseGroupingService(
         if (isChaptered is null && (media as IMediaInfo)?.Chapters.Count > 0)
             isChaptered = true;
 
-        var episodeIds = sri is not null
-            ? sri.CrossReferences
-                .Select(x => (
-                    anidbEpisodeRepository.GetByEpisodeID(x.AnidbEpisodeID) is { } episode
-                        ? episode.EpisodeType
-                        : EpisodeType.Episode,
-                    x.AnidbEpisodeID))
-                .Where(k => k.Item2 > 0)
-                .ToHashSet()
-            : crossRefRepository.GetByEd2k(video.Hash)
-                .Select(x => (
-                    anidbEpisodeRepository.GetByEpisodeID(x.EpisodeID) is { } episode
-                        ? episode.EpisodeType
-                        : EpisodeType.Episode,
-                    x.EpisodeID))
-                .Where(k => k.Item2 > 0)
-                .ToHashSet();
+        var episodes = GetEpisodeCoverageForAnime(video, sri, animeId);
 
         var parentDirectory = GetParentDirectory(place.RelativePath);
         return new FileSignature
@@ -404,7 +483,7 @@ public class VideoReleaseGroupingService(
             AudioStreamCount = audioStreamCount,
             SubtitleStreamCount = subtitleStreamCount,
             IsChaptered = isChaptered,
-            EpisodeIds = episodeIds,
+            Episodes = episodes,
         };
     }
 
@@ -415,12 +494,12 @@ public class VideoReleaseGroupingService(
     /// <para>
     /// Partitions by (ManagedFolderID, ParentDirectory) first — the only two
     /// unconditional hard separators in <see cref="AreCompatible"/> (checked before any
-    /// wildcard-tolerant signal), so a signature from one folder can never be compatible
-    /// with a bucket seeded from a different folder. Scanning each folder's signatures
-    /// against only that folder's own buckets — instead of every bucket in the whole
+    /// wildcard-tolerant signal), so a signature from one partition can never be compatible
+    /// with a bucket seeded from a different partition. Scanning each partition's signatures
+    /// against only that partition's own buckets — instead of every bucket in the whole
     /// series — turns an O(files × totalBuckets) scan into many much smaller independent
     /// scans, which matters for series with hundreds to thousands of files spread across
-    /// many folders (e.g. very long-running shows). LINQ's <c>GroupBy</c> preserves
+    /// many managed folders and directories (e.g. very long-running shows). LINQ's <c>GroupBy</c> preserves
     /// deterministic ordering (groups in first-occurrence order, elements within a group
     /// in source order), so the result is deterministic for a given input even though
     /// bucket order may no longer exactly match a single global scan.
@@ -473,7 +552,7 @@ public class VideoReleaseGroupingService(
         // same group that lack group metadata on a subset of episodes still merge correctly.
         var aKey = a.GroupKeyValue;
         var bKey = b.GroupKeyValue;
-        var episodesOverlap = a.EpisodeIds.Count > 0 && b.EpisodeIds.Count > 0 && a.EpisodeIds.Overlaps(b.EpisodeIds);
+        var episodesOverlap = a.Episodes.Count > 0 && b.Episodes.Count > 0 && a.Episodes.Overlaps(b.Episodes);
         if (episodesOverlap ? aKey is null || bKey is null || aKey != bKey : !NullOrCompatible(aKey, bKey)) return false;
 
         // Source — only conflicts when both are explicitly set and differ
@@ -516,7 +595,7 @@ public class VideoReleaseGroupingService(
                 continue;
             }
 
-            var bucketEps = bucket.SelectMany(s => s.EpisodeIds).ToHashSet();
+            var bucketEps = bucket.SelectMany(s => s.Episodes).ToHashSet();
 
             // Without episode data we cannot verify that the episodes don't overlap — keep separate.
             if (bucketEps.Count > 0)
@@ -525,7 +604,7 @@ public class VideoReleaseGroupingService(
                 {
                     var rKey = r.Select(s => s.GroupKeyValue).FirstOrDefault(k => k is not null);
                     if (rKey != groupKey) return false;
-                    var rEps = r.SelectMany(s => s.EpisodeIds).ToHashSet();
+                    var rEps = r.SelectMany(s => s.Episodes).ToHashSet();
                     return rEps.Count > 0 && !rEps.Overlaps(bucketEps);
                 });
 
@@ -561,14 +640,14 @@ public class VideoReleaseGroupingService(
         {
             var keyI = mergedBuckets[i].Select(s => s.GroupKeyValue).FirstOrDefault(k => k is not null);
             if (keyI is null) continue;
-            var epsI = mergedBuckets[i].SelectMany(s => s.EpisodeIds).ToHashSet();
+            var epsI = mergedBuckets[i].SelectMany(s => s.Episodes).ToHashSet();
             if (epsI.Count == 0) continue;
 
             for (var j = i + 1; j < mergedBuckets.Count; j++)
             {
                 var keyJ = mergedBuckets[j].Select(s => s.GroupKeyValue).FirstOrDefault(k => k is not null);
                 if (keyJ != keyI) continue;
-                var epsJ = mergedBuckets[j].SelectMany(s => s.EpisodeIds).ToHashSet();
+                var epsJ = mergedBuckets[j].SelectMany(s => s.Episodes).ToHashSet();
                 if (epsJ.Count == 0 || !epsI.Overlaps(epsJ)) continue;
 
                 // "Prefer j for the overlapping episodes":
@@ -576,7 +655,7 @@ public class VideoReleaseGroupingService(
                 // This produces a candidate where j's file is used for the contest and i supplies
                 // the rest — the counterpart to i's existing BestAvailable spec.
                 var iNonOverlap = mergedBuckets[i]
-                    .Where(s => !s.EpisodeIds.Any(ep => epsJ.Contains(ep)))
+                    .Where(s => !s.Episodes.Any(ep => epsJ.Contains(ep)))
                     .ToList();
                 var preferJFiles = mergedBuckets[j].Concat(iNonOverlap).ToList();
                 if (preferJFiles.Count > 0)
@@ -587,7 +666,7 @@ public class VideoReleaseGroupingService(
                 // Only needed when j has files outside the overlap; otherwise it is
                 // identical to i's existing version-strategy spec.
                 var jNonOverlap = mergedBuckets[j]
-                    .Where(s => !s.EpisodeIds.Any(ep => epsI.Contains(ep)))
+                    .Where(s => !s.Episodes.Any(ep => epsI.Contains(ep)))
                     .ToList();
                 if (jNonOverlap.Count == 0) continue;
                 var preferIFiles = mergedBuckets[i].Concat(jNonOverlap).ToList();
@@ -607,8 +686,8 @@ public class VideoReleaseGroupingService(
         // Separate SRI-backed files from unidentified ones. Unidentified files cannot
         // participate in version-collision detection, but are carried along with every
         // generated candidate since we cannot determine which version they belong to.
-        var sriSigs = signatures.Where(s => s.ReleaseInfo is not null && s.EpisodeIds.Count > 0).ToList();
-        var noSriSigs = signatures.Where(s => s.ReleaseInfo is null || s.EpisodeIds.Count == 0).ToList();
+        var sriSigs = signatures.Where(s => s.ReleaseInfo is not null && s.Episodes.Count > 0).ToList();
+        var noSriSigs = signatures.Where(s => s.ReleaseInfo is null || s.Episodes.Count == 0).ToList();
 
         if (sriSigs.Count == 0)
         {
@@ -618,7 +697,7 @@ public class VideoReleaseGroupingService(
 
         // Map each episode to the set of (version, sig) pairs covering it
         var episodeToVersionedFiles = sriSigs
-            .SelectMany(s => s.EpisodeIds.Select(ep => (ep, Version: s.ReleaseInfo!.Version, Sig: s)))
+            .SelectMany(s => s.Episodes.Select(ep => (ep, Version: s.ReleaseInfo!.Version, Sig: s)))
             .GroupBy(x => x.ep)
             .ToDictionary(
                 g => g.Key,
@@ -691,7 +770,7 @@ public class VideoReleaseGroupingService(
 
         foreach (var anchor in specs)
         {
-            var anchorEps = anchor.Files.SelectMany(f => f.EpisodeIds).ToHashSet();
+            var anchorEps = anchor.Files.SelectMany(f => f.Episodes).ToHashSet();
             if (anchorEps.Count == 0 || anchorEps.IsSupersetOf(allEpisodes)) continue;
 
             var anchorKey = GetFillerKey(anchor);
@@ -704,11 +783,11 @@ public class VideoReleaseGroupingService(
                 if (key == anchorKey) continue;
 
                 var fillerFiles = fillerSpec.Files
-                    .Where(f => f.EpisodeIds.Any(ep => uncoveredBase.Contains(ep)))
+                    .Where(f => f.Episodes.Any(ep => uncoveredBase.Contains(ep)))
                     .ToList();
                 if (fillerFiles.Count == 0) continue;
 
-                var fillerEps = fillerFiles.SelectMany(f => f.EpisodeIds).ToHashSet();
+                var fillerEps = fillerFiles.SelectMany(f => f.Episodes).ToHashSet();
                 if (!fillerEps.IsSupersetOf(uncoveredBase)) continue;
 
                 singleFillerFound = true;
@@ -745,12 +824,12 @@ public class VideoReleaseGroupingService(
                     if (usedKeys.Contains(key)) continue;
 
                     var contribution = fillerSpec.Files
-                        .Where(f => f.EpisodeIds.Any(ep => uncovered.Contains(ep)))
+                        .Where(f => f.Episodes.Any(ep => uncovered.Contains(ep)))
                         .ToList();
                     if (contribution.Count == 0) continue;
 
                     var coverCount = contribution
-                        .SelectMany(f => f.EpisodeIds)
+                        .SelectMany(f => f.Episodes)
                         .Count(ep => uncovered.Contains(ep));
                     if (coverCount > bestCoverCount)
                     {
@@ -762,7 +841,7 @@ public class VideoReleaseGroupingService(
 
                 if (bestFiles is null) break; // no filler can contribute anything further
 
-                foreach (var ep in bestFiles.SelectMany(f => f.EpisodeIds))
+                foreach (var ep in bestFiles.SelectMany(f => f.Episodes))
                     uncovered.Remove(ep);
 
                 multiFillerFiles.AddRange(bestFiles);
@@ -804,7 +883,7 @@ public class VideoReleaseGroupingService(
         if (named is null)
             return "__anon__" + string.Join(",", spec.Files.SelectMany(f => f.Places).Select(p => p.ID).OrderBy(id => id));
         var epsKey = string.Join(",", spec.Files
-            .SelectMany(f => f.EpisodeIds)
+            .SelectMany(f => f.Episodes)
             .Select(e => $"{(int)e.Item1}:{e.Item2}")
             .Distinct()
             .OrderBy(k => k));
@@ -869,7 +948,7 @@ public class VideoReleaseGroupingService(
             s.ReleaseInfo?.Source is { } src and not ReleaseSource.Unknown ? (ReleaseSource?)src : null))
             ?? ReleaseSource.Unknown;
 
-        var bucketEps = signatures.SelectMany(s => s.EpisodeIds).ToHashSet();
+        var bucketEps = signatures.SelectMany(s => s.Episodes).ToHashSet();
 
         var files = signatures
             .SelectMany(s => s.Places.Select(p => new VideoReleaseOverrideFile
@@ -878,26 +957,57 @@ public class VideoReleaseGroupingService(
                 Version = s.ReleaseInfo?.Version ?? 0,
                 IsChaptered = s.IsChaptered,
                 SubtitleStreamCount = s.SubtitleStreamCount,
-                EpisodeIds = s.EpisodeIds,
+                Episodes = s.Episodes,
             }))
             .ToList();
 
+        var resolution          = MajorityRef(signatures.Select(s => s.Resolution));
+        var videoCodec          = MajorityRef(signatures.Select(s => s.VideoCodec));
+        var bitDepth            = Majority(signatures.Select(s => s.BitDepth > 0 ? (int?)s.BitDepth : null)) ?? 0;
+        var audioCodec          = MajorityRef(signatures.Select(s => s.AudioCodec));
+        var audioStreamCount    = Majority(signatures.Select(s => s.AudioStreamCount > 0 ? (int?)s.AudioStreamCount : null)) ?? 0;
+        var subtitleStreamCount = Majority(signatures.Select(s => s.SubtitleStreamCount > 0 ? (int?)s.SubtitleStreamCount : null)) ?? 0;
+        var audioLanguages      = MajorityLanguageSet(signatures.Select(s => s.AudioLanguages));
+        var subtitleLanguages   = MajorityLanguageSet(signatures.Select(s => s.SubtitleLanguages));
+        var hasPartialCoverage  = allEpisodes.Count > 0 && !bucketEps.IsSupersetOf(allEpisodes);
+
+        // Unlike VideoReleaseCandidate.Key, overrides are always single merged-group buckets
+        // (GetOverrides skips the version-strategy/gap-fill passes) rather than composites, so
+        // there's no "same aggregate profile, different recipe" ambiguity to guard against —
+        // but unlike candidates, overrides had no Key at all, so two unnamed/unidentified
+        // buckets in the same series (e.g. two GroupID-null groups) were indistinguishable to
+        // any consumer. Always folding in the file composition guarantees uniqueness.
+        var compositionKey = string.Join(",", signatures.SelectMany(s => s.Places).Select(p => p.ID).OrderBy(id => id));
+        var key = ComputeKey(
+            sri?.GroupID, sri?.GroupSource,
+            source,
+            string.Join(",", audioLanguages.Select(l => l.GetString()).Order()),
+            string.Join(",", subtitleLanguages.Select(l => l.GetString()).Order()),
+            videoCodec, bitDepth, resolution,
+            audioCodec, (string?)null,
+            audioStreamCount, subtitleStreamCount,
+            (bool?)null, (bool?)null, (bool?)null,
+            false, 0,
+            ReleaseVersionStrategy.BestAvailable, false, string.Empty,
+            compositionKey);
+
         return new VideoReleaseOverride
         {
+            Key = key,
             GroupID = sri?.GroupID,
             GroupSource = sri?.GroupSource,
             GroupName = sri?.GroupName,
             GroupShortName = sri?.GroupShortName,
             Source = source,
-            Resolution = MajorityRef(signatures.Select(s => s.Resolution)),
-            VideoCodec = MajorityRef(signatures.Select(s => s.VideoCodec)),
-            BitDepth = Majority(signatures.Select(s => s.BitDepth > 0 ? (int?)s.BitDepth : null)) ?? 0,
-            AudioCodec = MajorityRef(signatures.Select(s => s.AudioCodec)),
-            AudioStreamCount = Majority(signatures.Select(s => s.AudioStreamCount > 0 ? (int?)s.AudioStreamCount : null)) ?? 0,
-            SubtitleStreamCount = Majority(signatures.Select(s => s.SubtitleStreamCount > 0 ? (int?)s.SubtitleStreamCount : null)) ?? 0,
-            AudioLanguages = MajorityLanguageSet(signatures.Select(s => s.AudioLanguages)),
-            SubtitleLanguages = MajorityLanguageSet(signatures.Select(s => s.SubtitleLanguages)),
-            HasPartialCoverage = allEpisodes.Count > 0 && !bucketEps.IsSupersetOf(allEpisodes),
+            Resolution = resolution,
+            VideoCodec = videoCodec,
+            BitDepth = bitDepth,
+            AudioCodec = audioCodec,
+            AudioStreamCount = audioStreamCount,
+            SubtitleStreamCount = subtitleStreamCount,
+            AudioLanguages = audioLanguages,
+            SubtitleLanguages = subtitleLanguages,
+            HasPartialCoverage = hasPartialCoverage,
             Files = files,
         };
     }
@@ -936,13 +1046,13 @@ public class VideoReleaseGroupingService(
             .Count();
         var isHomogeneous = distinctGroupKeys <= 1;
 
-        var episodeCoverage = signatures.SelectMany(s => s.EpisodeIds).ToHashSet();
+        var episodeCoverage = signatures.SelectMany(s => s.Episodes).ToHashSet();
 
         var episodeGroupMap = new Dictionary<(EpisodeType, int), string?>();
         foreach (var sig in signatures)
         {
             var groupShortName = sig.ReleaseInfo?.GroupShortName;
-            foreach (var epId in sig.EpisodeIds)
+            foreach (var epId in sig.Episodes)
                 episodeGroupMap.TryAdd(epId, groupShortName);
         }
 
@@ -952,7 +1062,7 @@ public class VideoReleaseGroupingService(
         var typeToSigs = new Dictionary<EpisodeType, List<FileSignature>>();
         foreach (var sig in signatures)
         {
-            foreach (var (type, _) in sig.EpisodeIds)
+            foreach (var (type, _) in sig.Episodes)
             {
                 if (!typeToSigs.TryGetValue(type, out var bucket))
                     typeToSigs[type] = bucket = [];
@@ -990,6 +1100,20 @@ public class VideoReleaseGroupingService(
         var sortedSubs           = string.Join(",", subtitleLanguages.Select(l => l.GetString()).Order());
         var sortedSecondaryGroups = string.Join(",", spec.SecondaryGroupShortNames.Order());
 
+        // For non-mixed (single, homogeneous) candidates, the aggregate quality profile
+        // alone fully determines the release's composition — two pure candidates with the
+        // same profile represent "the same kind of release" even across different shows/
+        // folders, so the key is intentionally location/file-independent there (see
+        // VideoReleaseGroupingTests.IdenticalQualityProfiles_ProduceSameKey).
+        // For mixed (gap-fill) composites this breaks down: two different combinations of
+        // releases stitched together to reach full coverage can majority-vote to the exact
+        // same aggregate profile while covering the same episodes with genuinely different
+        // underlying files. Folding in the file composition (mirrors Group()'s fileSetKey)
+        // for mixed candidates only guarantees Key uniqueness matches candidate uniqueness.
+        var compositionKey = spec.IsMixed
+            ? string.Join(",", signatures.SelectMany(s => s.Places).Select(p => p.ID).OrderBy(id => id))
+            : string.Empty;
+
         var key = ComputeKey(
             sri?.GroupID, sri?.GroupSource,
             source, sortedAudio, sortedSubs,
@@ -998,7 +1122,7 @@ public class VideoReleaseGroupingService(
             audioStreamCount, subtitleStreamCount,
             isChaptered, isCensored, isCreditless,
             isCorrupted, spec.Version,
-            spec.Strategy, spec.IsMixed, sortedSecondaryGroups);
+            spec.Strategy, spec.IsMixed, sortedSecondaryGroups, compositionKey);
 
         // Every place sharing a signature (i.e. the same VideoLocalID) gets the same
         // signals — they are the same physical video, just present in multiple locations.
@@ -1065,7 +1189,7 @@ public class VideoReleaseGroupingService(
         foreach (var sig in bucket)
         {
             if (sig.ReleaseInfo is null) continue;
-            foreach (var ep in sig.EpisodeIds)
+            foreach (var ep in sig.Episodes)
             {
                 if (episodeVersions.TryGetValue(ep, out var existing) && existing != sig.ReleaseInfo.Version)
                     return true;
@@ -1118,7 +1242,8 @@ public class VideoReleaseGroupingService(
         int audioStreamCount, int subtitleStreamCount,
         bool? isChaptered, bool? isCensored, bool? isCreditless,
         bool isCorrupted, int version,
-        ReleaseVersionStrategy strategy, bool isMixed, string sortedSecondaryGroups)
+        ReleaseVersionStrategy strategy, bool isMixed, string sortedSecondaryGroups,
+        string compositionKey = "")
     {
         static string Tri(bool? v) => v is null ? "?" : v.Value ? "1" : "0";
 
@@ -1142,7 +1267,8 @@ public class VideoReleaseGroupingService(
             version,
             (int)strategy,
             isMixed ? "1" : "0",
-            sortedSecondaryGroups
+            sortedSecondaryGroups,
+            compositionKey
         );
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(signal));
         return Convert.ToHexStringLower(hash);
@@ -1209,7 +1335,7 @@ public class VideoReleaseGroupingService(
         public int AudioStreamCount { get; init; }
         public int SubtitleStreamCount { get; init; }
         public bool? IsChaptered { get; init; }
-        public IReadOnlySet<(EpisodeType Type, int Number)> EpisodeIds { get; init; } = new HashSet<(EpisodeType, int)>();
+        public IReadOnlySet<(EpisodeType Type, int Number)> Episodes { get; init; } = new HashSet<(EpisodeType, int)>();
 
         /// <summary>
         /// Precomputed <see cref="GroupKey(StoredReleaseInfo?)"/> for <see cref="ReleaseInfo"/>.

@@ -128,7 +128,7 @@ public class ReleaseCandidateSummary
         FileCount = c.Places.Count;
         EpisodeCoverage = c.EpisodeCoverage
             .OrderBy(e => e.Type)
-            .ThenBy(e => e.EpisodeID)
+            .ThenBy(e => e.Number)
             .Select(EpisodeKeyToString)
             .ToList();
         AudioLanguages = c.AudioLanguages.Select(l => l.GetString()).ToList();

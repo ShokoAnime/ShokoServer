@@ -1119,6 +1119,31 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(181,  2, "UPDATE `AniDB_Anime_Relation` SET `Verified` = 0 WHERE `RelationType` IN ('alternative setting', 'alternative version');"),
         new(182,  1, "ALTER TABLE `TMDB_Show` MODIFY COLUMN `Genres` LONGTEXT NOT NULL;"),
         new(182,  2, "ALTER TABLE `TMDB_Movie` MODIFY COLUMN `Genres` LONGTEXT NOT NULL;"),
+        // Re-run of the 176.1 CrossReferences fixup: some databases still carry
+        // StoredReleaseInfo rows in the legacy flat shape (e.g. restored from a
+        // backup taken before 176.1 first ran), which desync AnidbEpisodeID from
+        // the ProviderIDs-based lookup every current reader expects.
+        new(183,  1, """
+                     UPDATE `StoredReleaseInfo` sri
+                     SET sri.`CrossReferences` = (
+                         SELECT JSON_ARRAYAGG(
+                             JSON_OBJECT(
+                                 'ProviderIDs', CASE
+                                     WHEN CAST(JSON_UNQUOTE(JSON_EXTRACT(x.val, '$.AnidbAnimeID')) AS UNSIGNED) > 0
+                                     THEN JSON_OBJECT(
+                                         'AniDB_Episode', CAST(JSON_UNQUOTE(JSON_EXTRACT(x.val, '$.AnidbEpisodeID')) AS CHAR),
+                                         'AniDB_Anime', CAST(JSON_UNQUOTE(JSON_EXTRACT(x.val, '$.AnidbAnimeID')) AS CHAR))
+                                     ELSE JSON_OBJECT(
+                                         'AniDB_Episode', CAST(JSON_UNQUOTE(JSON_EXTRACT(x.val, '$.AnidbEpisodeID')) AS CHAR))
+                                 END,
+                                 'PercentageStart', JSON_EXTRACT(x.val, '$.PercentageStart') + 0,
+                                 'PercentageEnd', JSON_EXTRACT(x.val, '$.PercentageEnd') + 0
+                             )
+                         )
+                         FROM JSON_TABLE(sri.`CrossReferences`, '$[*]' COLUMNS (val JSON PATH '$')) AS x
+                     )
+                     WHERE sri.`CrossReferences` LIKE '%AnidbEpisodeID%'
+                     """),
     ];
 
     #endregion

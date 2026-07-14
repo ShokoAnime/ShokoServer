@@ -29,21 +29,35 @@ public class VideoReleaseGroupingTests
 {
     // ── helpers ──────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// AniDB anime ID implicitly shared by every episode in this test file's default
+    /// grouper/episode-repo mock, except where a test explicitly builds its own mocks
+    /// to exercise cross-anime behaviour (see the "cross-anime episode leakage" region).
+    /// </summary>
+    private const int DefaultAnimeId = 1;
+
     private static readonly VideoReleaseGroupingService _grouper = CreateGrouper();
 
-    private static VideoReleaseGroupingService CreateGrouper()
+    private static VideoReleaseGroupingService CreateGrouper(
+        Mock<StoredReleaseInfoRepository>? releaseInfoRepo = null,
+        Mock<VideoLocal_PlaceRepository>? placeRepo = null)
     {
-        // AniDB_Episode lookups: decode episode type from the test-convention ID offset
-        // (0-999 = Episode, 1000-1999 = Special, 2000-2999 = Credits, …).
+        // AniDB_Episode lookups: decode episode type and number from the test-convention ID
+        // offset (0-999 = Episode, 1000-1999 = Special, 2000-2999 = Credits, …) — mirrors
+        // ParseEpisode's encoding below. Every episode belongs to DefaultAnimeId here — tests
+        // that need a different/foreign anime ID build their own AniDB_EpisodeRepository mock
+        // directly instead of using this helper.
         var episodeRepo = new Mock<AniDB_EpisodeRepository>((DatabaseFactory)null!);
         episodeRepo.Setup(r => r.GetByEpisodeID(It.IsAny<int>()))
             .Returns((int id) => id <= 0 ? null : new AniDB_Episode
             {
+                AnimeID = DefaultAnimeId,
                 EpisodeType = id >= 5000 ? EpisodeType.Other :
                               id >= 4000 ? EpisodeType.Parody :
                               id >= 3000 ? EpisodeType.Trailer :
                               id >= 2000 ? EpisodeType.Credits :
                               id >= 1000 ? EpisodeType.Special : EpisodeType.Episode,
+                EpisodeNumber = id % 1000,
             });
 
         // CrossRef lookups: no manually linked files in unit tests.
@@ -53,11 +67,19 @@ public class VideoReleaseGroupingTests
             (DatabaseFactory)null!);
         crossRefRepo.Setup(r => r.GetByEd2k(It.IsAny<string>())).Returns([]);
 
-        return new VideoReleaseGroupingService(null!, episodeRepo.Object, null!, crossRefRepo.Object);
+        var places = placeRepo ?? new Mock<VideoLocal_PlaceRepository>((DatabaseFactory)null!);
+        if (placeRepo is null)
+            places.Setup(r => r.GetByVideoLocal(It.IsAny<int>())).Returns([]);
+
+        return new VideoReleaseGroupingService(
+            null!, episodeRepo.Object, releaseInfoRepo?.Object!, crossRefRepo.Object, places.Object);
     }
 
-    private static IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<ResolvedVideoPlace> places)
-        => _grouper.Group(places);
+    private static IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<ResolvedVideoPlace> places, int animeId = DefaultAnimeId)
+        => _grouper.Group(places, animeId);
+
+    private static IReadOnlyList<VideoReleaseOverride> GetOverrides(IEnumerable<ResolvedVideoPlace> places, int animeId = DefaultAnimeId)
+        => _grouper.GetOverrides(places, animeId);
 
     private static VideoLocal_Place MakePlace(int placeId, int videoId, int folderId, string relativePath)
         => new() { ID = placeId, VideoID = videoId, ManagedFolderID = folderId, RelativePath = relativePath };
@@ -1652,5 +1674,259 @@ public class VideoReleaseGroupingTests
         };
         Assert.All(first, c => Assert.True(c.EpisodeCoverage.SetEquals(allEpisodes),
             $"candidate {c.Key} should have full coverage of episodes 1-3"));
+    }
+
+    // ── mixed-candidate key uniqueness (regression) ───────────────────────────
+
+    /// <summary>
+    /// Real-world regression: two anonymous (no group/SRI identity) fillers that each
+    /// independently complete an anchor's coverage gap produce two distinct gap-fill
+    /// composites — different underlying files, but since both fillers carry identical
+    /// technical signals (same codec/resolution/etc., no group name), the composites'
+    /// majority-voted aggregate quality profile is identical too. Before the fix,
+    /// <see cref="VideoReleaseCandidate.Key"/> was computed purely from that aggregate
+    /// profile, so both composites collided on the same key — observed live as "same
+    /// release listed twice" (Isekai Office Worker) and as ambiguous candidate selection
+    /// silently resolving to the wrong composite when picking a non-default rank
+    /// (Kujima, MF Ghost 3rd Season "selecting release 5/6 would delete v2s").
+    /// </summary>
+    [Fact]
+    public void MixedCandidatesWithIdenticalAggregateSignals_ProduceDistinctKeys()
+    {
+        var media = MakeMedia();
+
+        // Anchor: anonymous file for episode 1 only (its own folder)
+        var anchor = new ResolvedVideoPlace(
+            MakePlace(1, 1, 1, "Show/A - 01.mkv"),
+            MakeVideo(1, "ANCH", 500_000_000, media),
+            new StoredReleaseInfo
+            {
+                ED2K = "ANCH", FileSize = 500_000_000, Source = ReleaseSource.Web,
+                CrossReferences = [ParseEpisode("1")],
+            });
+
+        // Filler option 1: anonymous file for episode 2 (different folder, different physical file)
+        var filler1 = new ResolvedVideoPlace(
+            MakePlace(2, 2, 2, "Show2/B - 02.mkv"),
+            MakeVideo(2, "FIL1", 500_000_000, media),
+            new StoredReleaseInfo
+            {
+                ED2K = "FIL1", FileSize = 500_000_000, Source = ReleaseSource.Web,
+                CrossReferences = [ParseEpisode("2")],
+            });
+
+        // Filler option 2: a DIFFERENT anonymous file for episode 2 (yet another folder),
+        // with identical technical signals to filler 1 — only the underlying file differs.
+        var filler2 = new ResolvedVideoPlace(
+            MakePlace(3, 3, 3, "Show3/C - 02.mkv"),
+            MakeVideo(3, "FIL2", 500_000_000, media),
+            new StoredReleaseInfo
+            {
+                ED2K = "FIL2", FileSize = 500_000_000, Source = ReleaseSource.Web,
+                CrossReferences = [ParseEpisode("2")],
+            });
+
+        var candidates = Group([anchor, filler1, filler2]);
+
+        var mixed = candidates.Where(c => c.IsMixed).ToList();
+        Assert.True(mixed.Count >= 2,
+            $"expected at least 2 mixed candidates (anchor+filler1, anchor+filler2); got {mixed.Count}");
+        Assert.Equal(mixed.Count, mixed.Select(c => c.Key).Distinct().Count());
+
+        // Determinism: repeated calls with the same input must produce the same keys.
+        var second = Group([anchor, filler1, filler2]);
+        Assert.Equal(
+            candidates.OrderBy(c => c.Key).Select(c => c.Key),
+            second.OrderBy(c => c.Key).Select(c => c.Key));
+    }
+
+    /// <summary>
+    /// Non-mixed candidates keep the pre-existing, intentionally location-independent
+    /// key behaviour (see <see cref="IdenticalQualityProfiles_ProduceSameKey"/>) — the
+    /// mixed-candidate fix above must not regress this documented contract.
+    /// </summary>
+    [Fact]
+    public void IdenticalQualityProfiles_ProduceSameKey_StillHoldsAfterMixedKeyFix()
+    {
+        var media = MakeMedia();
+        var resolved = new[]
+        {
+            new ResolvedVideoPlace(
+                MakePlace(1, 1, 8, "One Piece/[SubsPlease] One Piece - 01 [1080p].mkv"),
+                MakeVideo(1, "AAA", 700_000_000, media),
+                MakeSri("AAA", 700_000_000, "1337", "AniDB", "SubsPlease", "SubsPlease", ReleaseSource.Web, episodes: ["1"])),
+            new ResolvedVideoPlace(
+                MakePlace(2, 2, 8, "Naruto/[SubsPlease] Naruto - 01 [1080p].mkv"),
+                MakeVideo(2, "BBB", 700_000_000, media),
+                MakeSri("BBB", 700_000_000, "1337", "AniDB", "SubsPlease", "SubsPlease", ReleaseSource.Web, episodes: ["1"])),
+        };
+
+        var candidates = Group(resolved);
+
+        Assert.Equal(2, candidates.Count);
+        Assert.All(candidates, c => Assert.False(c.IsMixed));
+        Assert.Equal(candidates[0].Key, candidates[1].Key);
+    }
+
+    // ── override (Mix & Match) key uniqueness (regression) ────────────────────
+
+    /// <summary>
+    /// Real-world regression: <see cref="VideoReleaseOverride"/> previously had no
+    /// Key field at all, so two unnamed/unidentified override groups (both
+    /// <c>GroupID == null</c>) in the same series were indistinguishable to any
+    /// consumer — observed live as "1080p variant not offered in mix &amp; match"
+    /// (Misanthrope, Always a Catch, Kirio Fan Club) and "2x 1080p releases listed,
+    /// only one selectable" (Pardon the Intrusion). Two anonymous groups with
+    /// different codecs (forcing FuzzyGroup to split them) must get distinct keys.
+    /// </summary>
+    [Fact]
+    public void TwoUnnamedOverrideGroups_ProduceDistinctKeys()
+    {
+        var h264Media = MakeMedia(videoFormat: "AVC", videoCodecId: "V_MPEG4/ISO/AVC");
+        var hevcMedia = MakeMedia(videoFormat: "HEVC", videoCodecId: "V_MPEGH/ISO/HEVC");
+
+        var resolved = new[]
+        {
+            new ResolvedVideoPlace(
+                MakePlace(1, 1, 8, "Mixed/[OldGroup] Show - 01 [h264].mkv"),
+                MakeVideo(1, "AAA", 500_000_000, h264Media), null),
+            new ResolvedVideoPlace(
+                MakePlace(2, 2, 8, "Mixed/[NewGroup] Show - 01 [hevc].mkv"),
+                MakeVideo(2, "BBB", 300_000_000, hevcMedia), null),
+        };
+
+        var overrides = GetOverrides(resolved);
+
+        Assert.Equal(2, overrides.Count);
+        Assert.All(overrides, o => Assert.Null(o.GroupID));
+        Assert.All(overrides, o => Assert.False(string.IsNullOrEmpty(o.Key)));
+        Assert.Equal(2, overrides.Select(o => o.Key).Distinct().Count());
+    }
+
+    // ── MightHaveMultipleCandidates folder blindness (regression) ─────────────
+
+    /// <summary>
+    /// Real-world regression: the same episode covered by two files with identical
+    /// group/source/codec/resolution/bit-depth/version, but living in two different
+    /// <c>(ManagedFolderID, ParentDirectory)</c> locations, is always split into two
+    /// separate candidates by the real grouper (folder is an unconditional hard
+    /// separator in <c>AreCompatible</c>) — regardless of how well every other signal
+    /// matches. The pre-filter must catch this and return true, even though every
+    /// group/source/codec/resolution/bit-depth/version check would otherwise pass.
+    /// Observed live as series missing entirely from the paginated Multiple Releases
+    /// list despite having 2 real candidates when fetched directly (Elegy for the
+    /// Henchmen: Fist of the North Star (2026), Kamui: He's Behind You).
+    /// </summary>
+    [Fact]
+    public void SameEpisodeDifferentFolders_ReturnsTrue()
+    {
+        var media = MakeMedia();
+        var sriA = MakeSri("AAA", 500_000_000, "999", "AniDB", "ToonsHub", "TH", ReleaseSource.Web, episodes: ["1"]);
+        var sriB = MakeSri("BBB", 500_000_000, "999", "AniDB", "ToonsHub", "TH", ReleaseSource.Web, episodes: ["1"]);
+        var videoA = MakeVideo(1, "AAA", 500_000_000, media);
+        var videoB = MakeVideo(2, "BBB", 500_000_000, media);
+        var placeA = MakePlace(1, 1, folderId: 4, "Show/TH - 01.mkv");
+        var placeB = MakePlace(2, 2, folderId: 5, "Show (manual)/TH - 01.mkv");
+
+        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>((DatabaseFactory)null!, (IServiceProvider)null!);
+        releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("AAA", 500_000_000)).Returns(sriA);
+        releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("BBB", 500_000_000)).Returns(sriB);
+
+        var placeRepo = new Mock<VideoLocal_PlaceRepository>((DatabaseFactory)null!);
+        placeRepo.Setup(r => r.GetByVideoLocal(1)).Returns([placeA]);
+        placeRepo.Setup(r => r.GetByVideoLocal(2)).Returns([placeB]);
+
+        var grouper = CreateGrouper(releaseInfoRepo, placeRepo);
+
+        Assert.True(grouper.MightHaveMultipleCandidates([videoA, videoB], DefaultAnimeId));
+    }
+
+    /// <summary>
+    /// Companion case: the same setup but both files in the same folder must still
+    /// return false — the folder-hard-separation check must not introduce false
+    /// positives for the common single-candidate case.
+    /// </summary>
+    [Fact]
+    public void SameEpisodeSameFolder_ReturnsFalse()
+    {
+        var media = MakeMedia();
+        var sriA = MakeSri("AAA", 500_000_000, "999", "AniDB", "ToonsHub", "TH", ReleaseSource.Web, episodes: ["1"]);
+        var videoA = MakeVideo(1, "AAA", 500_000_000, media);
+        var placeA = MakePlace(1, 1, folderId: 4, "Show/TH - 01.mkv");
+
+        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>((DatabaseFactory)null!, (IServiceProvider)null!);
+        releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("AAA", 500_000_000)).Returns(sriA);
+
+        var placeRepo = new Mock<VideoLocal_PlaceRepository>((DatabaseFactory)null!);
+        placeRepo.Setup(r => r.GetByVideoLocal(1)).Returns([placeA]);
+
+        var grouper = CreateGrouper(releaseInfoRepo, placeRepo);
+
+        Assert.False(grouper.MightHaveMultipleCandidates([videoA], DefaultAnimeId));
+    }
+
+    // ── cross-anime episode leakage (regression) ───────────────────────────────
+
+    /// <summary>
+    /// Real-world regression: a single file can legitimately cross-reference episodes
+    /// from a <em>different</em> anime entirely — e.g. a crossover/tie-in release that
+    /// covers one episode of each of two distinct shows (observed live: a Toriko/One
+    /// Piece tie-in episode, cross-referenced to both Toriko's own episode 1 and One
+    /// Piece's episode 492). When resolving coverage for one of those two anime, the
+    /// file's cross-reference to the <em>other</em> anime must be excluded — otherwise
+    /// the foreign episode leaks in, and if it happens to share a display number with a
+    /// real episode of the target anime (both resolve to e.g. <c>(Episode, 1)</c>), the
+    /// crossover file gets attributed to an episode it has nothing to do with.
+    /// <para>
+    /// Asserted directly against <see cref="VideoReleaseGroupingService.GetEpisodeCoverageForAnime(VideoLocal, int)"/>
+    /// rather than through <c>Group()</c>: a set-union check on the final candidate can't
+    /// distinguish "correctly contains (Episode, 1) from the real target-anime file" from
+    /// "incorrectly contains (Episode, 1) leaked from the foreign-anime cross-reference"
+    /// when — as here — both anime happen to share that episode number.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void CrossoverFile_ForeignAnimeCrossReference_ExcludedFromCoverage()
+    {
+        const int targetAnimeId = 1;
+        const int foreignAnimeId = 999;
+        const int foreignEpisodeId = 500;  // foreign anime's own episode 1
+        const int targetEpisodeId = 501;   // target anime's episode 2
+
+        var episodeRepo = new Mock<AniDB_EpisodeRepository>((DatabaseFactory)null!);
+        // Deliberately give the foreign episode the SAME display number as a real target-anime
+        // episode (1) — the exact collision shape that would leak a crossover file into the
+        // wrong series' episode row if the foreign cross-reference weren't excluded by anime.
+        episodeRepo.Setup(r => r.GetByEpisodeID(foreignEpisodeId))
+            .Returns(new AniDB_Episode { AnimeID = foreignAnimeId, EpisodeType = EpisodeType.Episode, EpisodeNumber = 1 });
+        episodeRepo.Setup(r => r.GetByEpisodeID(targetEpisodeId))
+            .Returns(new AniDB_Episode { AnimeID = targetAnimeId, EpisodeType = EpisodeType.Episode, EpisodeNumber = 2 });
+
+        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>((DatabaseFactory)null!, (IServiceProvider)null!);
+        var crossoverSri = new StoredReleaseInfo
+        {
+            ED2K = "XOVER", FileSize = 500_000_000, Source = ReleaseSource.Web,
+            CrossReferences = [ParseEpisode(foreignEpisodeId.ToString()), ParseEpisode(targetEpisodeId.ToString())],
+        };
+        releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("XOVER", 500_000_000)).Returns(crossoverSri);
+
+        var crossRefRepo = new Mock<CrossRef_File_EpisodeRepository>(
+            (ILogger<CrossRef_File_EpisodeRepository>)null!,
+            (IServiceProvider)null!,
+            (DatabaseFactory)null!);
+        crossRefRepo.Setup(r => r.GetByEd2k(It.IsAny<string>())).Returns([]);
+
+        var placeRepoMock = new Mock<VideoLocal_PlaceRepository>((DatabaseFactory)null!);
+        placeRepoMock.Setup(r => r.GetByVideoLocal(It.IsAny<int>())).Returns([]);
+
+        var grouper = new VideoReleaseGroupingService(
+            null!, episodeRepo.Object, releaseInfoRepo.Object, crossRefRepo.Object, placeRepoMock.Object);
+
+        var video = MakeVideo(1, "XOVER", 500_000_000, MakeMedia());
+
+        var coverage = grouper.GetEpisodeCoverageForAnime(video, targetAnimeId);
+
+        var covered = Assert.Single(coverage);
+        Assert.Equal((EpisodeType.Episode, 2), covered);
     }
 }

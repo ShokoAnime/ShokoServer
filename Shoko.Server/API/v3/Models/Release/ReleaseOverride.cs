@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
@@ -15,6 +14,15 @@ namespace Shoko.Server.API.v3.Models.Release;
 /// </summary>
 public class ReleaseOverride
 {
+    /// <summary>
+    /// Stable identifier for this override group, unique per distinct file set within
+    /// a series' override list — use this (not <see cref="GroupID"/>, which is null for
+    /// unnamed/unidentified groups and can collide across multiple distinct groups) to
+    /// distinguish and select between entries in <c>tracks</c>/Mix &amp; Match.
+    /// </summary>
+    [Required]
+    public required string Key { get; init; }
+
     public string? GroupID { get; init; }
 
     public string? GroupName { get; init; }
@@ -63,7 +71,6 @@ public class ReleaseOverride
     public static ReleaseOverride FromOverride(
         VideoReleaseOverride releaseOverride,
         Dictionary<int, VideoLocal> videoLookup,
-        Dictionary<int, (EpisodeType Type, int Number)> episodeLookup,
         bool includeResolution = true,
         bool includeSource = true)
     {
@@ -85,8 +92,8 @@ public class ReleaseOverride
             .Select(f =>
             {
                 videoLookup.TryGetValue(f.Place.VideoID, out var video);
-                var episodes = f.EpisodeIds
-                    .Select(e => ResolveEpisode(e.Type, e.AnidbEpisodeID, episodeLookup))
+                var episodes = f.Episodes
+                    .Select(e => new ReleaseCandidate.EpisodeCoverage { Type = e.Type, Number = e.Number })
                     .OrderBy(e => e.Type).ThenBy(e => e.Number)
                     .ToList();
                 return new OverrideFile
@@ -109,6 +116,7 @@ public class ReleaseOverride
 
         return new ReleaseOverride
         {
+            Key = releaseOverride.Key,
             GroupID = releaseOverride.GroupID,
             GroupName = releaseOverride.GroupName,
             GroupShortName = releaseOverride.GroupShortName,
@@ -158,15 +166,6 @@ public class ReleaseOverride
             parts.Add("Multi-Audio");
 
         return string.Join(" ", parts);
-    }
-
-    private static ReleaseCandidate.EpisodeCoverage ResolveEpisode(
-        EpisodeType type, int anidbEpisodeID,
-        Dictionary<int, (EpisodeType Type, int Number)> episodeLookup)
-    {
-        if (episodeLookup.TryGetValue(anidbEpisodeID, out var resolved))
-            return new ReleaseCandidate.EpisodeCoverage { Type = resolved.Type, Number = resolved.Number };
-        return new ReleaseCandidate.EpisodeCoverage { Type = type, Number = anidbEpisodeID };
     }
 
     /// <summary>A single file location within a release override group.</summary>

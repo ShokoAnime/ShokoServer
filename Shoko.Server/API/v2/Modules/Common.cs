@@ -38,7 +38,6 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-
 using APIFilters = Shoko.Server.API.v2.Models.common.Filters;
 
 #pragma warning disable IDE1006
@@ -892,7 +891,7 @@ public class Common : BaseController
                 }
 
                 episode.files = new List<RawFile>();
-                var sorted = _releaseComparisonService.SortByRank(vls);
+                var sorted = _releaseComparisonService.SortByRank(vls, series.AniDB_ID);
                 var first = true;
                 episode.files.AddRange(sorted.Select(vl =>
                 {

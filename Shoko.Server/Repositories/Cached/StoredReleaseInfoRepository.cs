@@ -54,7 +54,7 @@ public class StoredReleaseInfoRepository : BaseCachedRepository<StoredReleaseInf
             ? _ed2k!.GetMultiple(ed2k)
             : [];
 
-    public StoredReleaseInfo? GetByEd2kAndFileSize(string ed2k, long fileSize)
+    public virtual StoredReleaseInfo? GetByEd2kAndFileSize(string ed2k, long fileSize)
         => GetByEd2k(ed2k).FirstOrDefault(a => a.FileSize == fileSize);
 
     public IReadOnlyList<StoredReleaseInfo> GetByGroupAndProviderIDs(string groupId, string source)

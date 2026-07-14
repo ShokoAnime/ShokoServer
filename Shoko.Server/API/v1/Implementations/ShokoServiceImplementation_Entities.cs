@@ -726,7 +726,7 @@ public partial class ShokoServiceImplementation
             // Try sorted first, then try unsorted if failed
             var list = _releaseComparisonService.SortByRank(RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID).Where(a =>
                     a?.Places?.FirstOrDefault(b => !string.IsNullOrEmpty(b.Path))?.Path != null)
-                .DistinctBy(a => a?.Places?.FirstOrDefault()?.Path));
+                .DistinctBy(a => a?.Places?.FirstOrDefault()?.Path), animeID);
             return list.Select(a => _legacyV1Service.GetV1Contract(a, userID)).ToList();
         }
         catch (Exception ex)
@@ -906,7 +906,7 @@ public partial class ShokoServiceImplementation
             var ep = RepoFactory.AnimeEpisode.GetByID(episodeID);
             if (ep != null)
             {
-                var files = _releaseComparisonService.SortByRank(ep.VideoLocals);
+                var files = _releaseComparisonService.SortByRank(ep.VideoLocals, ep.AniDB_Episode?.AnimeID ?? 0);
                 return files.Select(a => _legacyV1Service.GetV1DetailedContract(a, userID)).ToList();
             }
 

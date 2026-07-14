@@ -918,6 +918,32 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(160,  1, "ALTER TABLE TMDB_Person ADD COLUMN ImdbPersonID TEXT NULL DEFAULT NULL;"),
         new(161,  1, "ALTER TABLE AniDB_Anime_Relation ADD COLUMN Verified INTEGER NOT NULL DEFAULT 1;"),
         new(161,  2, "UPDATE AniDB_Anime_Relation SET Verified = 0 WHERE RelationType IN ('alternative setting', 'alternative version');"),
+        // Re-run of the 156.1 CrossReferences fixup: some databases still carry
+        // StoredReleaseInfo rows in the legacy flat shape (e.g. restored from a
+        // backup taken before 156.1 first ran), which desync AnidbEpisodeID from
+        // the ProviderIDs-based lookup every current reader expects.
+        new(162,  1, """
+                     UPDATE StoredReleaseInfo
+                     SET CrossReferences = (
+                         SELECT json_group_array(
+                             json_object(
+                                 'ProviderIDs', CASE
+                                     WHEN json_extract(x.value, '$.AnidbAnimeID') IS NOT NULL
+                                          AND json_extract(x.value, '$.AnidbAnimeID') > 0
+                                     THEN json_object(
+                                         'AniDB_Episode', CAST(json_extract(x.value, '$.AnidbEpisodeID') AS TEXT),
+                                         'AniDB_Anime', CAST(json_extract(x.value, '$.AnidbAnimeID') AS TEXT))
+                                     ELSE json_object(
+                                         'AniDB_Episode', CAST(json_extract(x.value, '$.AnidbEpisodeID') AS TEXT))
+                                 END,
+                                 'PercentageStart', CAST(json_extract(x.value, '$.PercentageStart') AS INTEGER),
+                                 'PercentageEnd', CAST(json_extract(x.value, '$.PercentageEnd') AS INTEGER)
+                             )
+                         )
+                         FROM json_each(CrossReferences) AS x
+                     )
+                     WHERE CrossReferences LIKE '%AnidbEpisodeID%'
+                     """),
     ];
 
     #endregion

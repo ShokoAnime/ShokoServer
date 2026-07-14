@@ -929,7 +929,7 @@ public partial class ShokoServiceImplementation
     {
         var vidQuals = new List<CL_GroupVideoQuality>();
 
-        var files = _releaseComparisonService.SortByRank(RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID));
+        var files = _releaseComparisonService.SortByRank(RepoFactory.VideoLocal.GetByAniDBAnimeID(animeID), animeID);
         var lookup = files.ToLookup(a =>
         {
             // Fallback on groupID, this will make it easier to distinguish for deletion and grouping

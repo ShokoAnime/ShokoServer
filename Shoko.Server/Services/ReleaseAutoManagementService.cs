@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Services;
@@ -29,8 +28,6 @@ public class ReleaseAutoManagementService(
     CrossRef_File_EpisodeRepository crossRefs,
     AnimeSeriesRepository animeSeries,
     AniDB_AnimeRepository anidbAnime,
-    AniDB_EpisodeRepository anidbEpisodes,
-    StoredReleaseInfoRepository releaseInfoRepository,
     IVideoService videoService,
     ILogger<ReleaseAutoManagementService> logger)
 {
@@ -121,7 +118,7 @@ public class ReleaseAutoManagementService(
             foreach (var candidate in ranked.Skip(1))
             {
                 var redundantPlaces = comparer.GetRedundantPlaces(
-                    eligibleCoverage, candidate.Places, p => GetFileEpisodeCoverage(p, videoLookup));
+                    eligibleCoverage, candidate.Places, p => GetFileEpisodeCoverage(p, videoLookup, series.AniDB_ID));
                 foreach (var place in redundantPlaces)
                 {
                     if (!primaryPlaceIds.Contains(place.ID) && seenIds.Add(place.ID))
@@ -153,7 +150,7 @@ public class ReleaseAutoManagementService(
         if (places.Count == 0)
             return;
 
-        var candidates = grouper.Group(places);
+        var candidates = grouper.Group(places, series.AniDB_ID);
         if (candidates.Count <= 1)
             return;
 
@@ -207,7 +204,7 @@ public class ReleaseAutoManagementService(
         HashSet<int> primaryPlaceIds)
     {
         var redundantPlaces = comparer.GetRedundantPlaces(
-            eligibleCoverage, secondary.Places, p => GetFileEpisodeCoverage(p, videoLookup))
+            eligibleCoverage, secondary.Places, p => GetFileEpisodeCoverage(p, videoLookup, series.AniDB_ID))
             .Where(p => !primaryPlaceIds.Contains(p.ID))
             .ToList();
         var keptCount = secondary.Places.Count - redundantPlaces.Count;
@@ -252,30 +249,16 @@ public class ReleaseAutoManagementService(
         return anime.EndDate is null || anime.EndDate > DateTime.Now;
     }
 
+    /// <summary>
+    /// <paramref name="animeId"/> scopes episode resolution to this anime — see
+    /// <see cref="VideoReleaseGroupingService.GetEpisodeCoverageForAnime(VideoLocal, int)"/>.
+    /// Callers always operate on a single series/anime at a time.
+    /// </summary>
     public IReadOnlySet<(EpisodeType, int)> GetFileEpisodeCoverage(
-        VideoLocal_Place place, Dictionary<int, VideoLocal> videoLookup)
-    {
-        if (!videoLookup.TryGetValue(place.VideoID, out var video))
-            return new HashSet<(EpisodeType, int)>();
-        var sri = releaseInfoRepository.GetByEd2kAndFileSize(video.Hash, video.FileSize);
-        if (sri is null)
-            return crossRefs.GetByEd2k(video.Hash)
-                .Select(x => (
-                    anidbEpisodes.GetByEpisodeID(x.EpisodeID) is { } episode
-                        ? episode.EpisodeType
-                        : EpisodeType.Episode,
-                    x.EpisodeID))
-                .Where(k => k.Item2 > 0)
-                .ToHashSet();
-        return sri.CrossReferences
-            .Select(x => (
-                anidbEpisodes.GetByEpisodeID(x.AnidbEpisodeID) is { } episode
-                    ? episode.EpisodeType
-                    : EpisodeType.Episode,
-                x.AnidbEpisodeID))
-            .Where(k => k.Item2 > 0)
-            .ToHashSet();
-    }
+        VideoLocal_Place place, Dictionary<int, VideoLocal> videoLookup, int animeId)
+        => videoLookup.TryGetValue(place.VideoID, out var video)
+            ? grouper.GetEpisodeCoverageForAnime(video, animeId)
+            : new HashSet<(EpisodeType, int)>();
 
     private void LogRedundant(AnimeSeries series, VideoReleaseCandidate primary,
         IReadOnlyList<VideoReleaseCandidate> redundant)
@@ -290,7 +273,7 @@ public class ReleaseAutoManagementService(
                 "  Redundant candidate {Key} covers {EpCount} episode(s): {Episodes}",
                 c.Key,
                 c.EpisodeCoverage.Count,
-                string.Join(", ", c.EpisodeCoverage.Select(e => $"{e.Type}:{e.EpisodeID}")));
+                string.Join(", ", c.EpisodeCoverage.Select(e => $"{e.Type}:{e.Number}")));
     }
 
     private async Task DeleteCandidateAsync(VideoReleaseCandidate candidate, HashSet<int> primaryPlaceIds)

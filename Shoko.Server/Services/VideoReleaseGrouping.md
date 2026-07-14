@@ -28,12 +28,60 @@ different release, even though it came from the same group.
 
 ---
 
+## Anime scoping
+
+Every grouping/coverage operation (`Group`, `GetOverrides`, `MightHaveMultipleCandidates`,
+`GetEpisodeCoverageForAnime`) takes an explicit `animeId` and is scoped to exactly
+that one AniDB anime. There is no code path that groups files across series —
+callers always already know which series they're working with (the series page,
+the auto-management pass for one `AnimeSeries`, etc.) — so the anime ID is always
+available to pass in.
+
+This matters because a single file's `StoredReleaseInfo.CrossReferences` can
+legitimately span **more than one anime**. A crossover/tie-in episode — e.g. a
+Toriko episode that doubles as a One Piece episode, one AniDB Anime/Episode ID
+pair per show — is one file with two valid, unrelated cross-references. When
+resolving coverage for One Piece, the Toriko-side cross-reference must never
+leak in; when resolving coverage for Toriko, the reverse.
+
+`GetEpisodeCoverageForAnime` (and everything built on it — `BuildSignature`,
+`MightHaveMultipleCandidates`) enforces this by resolving each cross-reference's
+episode via the local `AniDB_Episode` cache and keeping it only when
+`episode.AnimeID` matches the anime being grouped for. A cross-reference is
+**excluded outright**, not kept with a fallback, when:
+
+- its episode belongs to a different anime, or
+- its episode isn't cached locally at all (metadata not yet synced).
+
+The second case is deliberate, not just a missing-data shrug: coverage is only
+ever useful once it has a real episode number to compare, rank, or display —
+every downstream consumer needs that number anyway — so a cross-reference with
+no resolvable number has no legitimate use. Keeping it under a placeholder (e.g.
+the raw six-digit AniDB episode ID rendered as if it were an episode number, or
+a "trust it belongs" fallback) previously caused a foreign-anime cross-reference
+to surface as a candidate for an episode it had nothing to do with, and made an
+unrelated correctness bug — comparing coverage against the wrong field entirely
+— easy to write and hard to notice. See [Episode coverage](#episode-coverage)
+and the [crossover scenario](#crossover-episode-spanning-two-anime--foreign-cross-reference-excluded) below.
+
+---
+
 ## Grouping signals
 
 Files are compared on the following signals. The critical distinction is between
 **hard separators** (always cause a split, even if one side has no data) and
 **soft separators** (only cause a split when *both* sides have a known,
 non-default value *and* those values differ).
+
+**Import folder** and **parent directory** are two distinct signals below —
+don't conflate them. Import folder is `VideoLocal_Place.ManagedFolderID`, a
+library root (e.g. an entire `/anime` mount). Parent directory is the literal
+path segment immediately before the filename in `RelativePath` (e.g. `Air/`).
+A file's parent directory only coincides with an import folder's root when
+the file happens to sit directly at that root with no subfolder — that's an
+edge case, not the general rule. Elsewhere in this document, unqualified
+"folder"/"directory" always means parent directory; "import folder" is always
+spelled out explicitly.
 
 | Signal | Source | Type | Notes |
 |--------|--------|------|-------|
@@ -78,8 +126,8 @@ value that differs is a conflict declared and a separate candidate created.
 
 This means a file whose AniDB entry lacks a language tag will still join the
 release group that has the tag. Likewise, a file with no `StoredReleaseInfo`
-at all will join the first compatible bucket in the same folder rather than
-always forming its own candidate.
+at all will join the first compatible bucket in the same parent directory
+rather than always forming its own candidate.
 
 ### Processing order
 
@@ -141,11 +189,63 @@ a bonus H264 OVA in an otherwise HEVC release).
 
 ---
 
+## Candidate and override keys
+
+`VideoReleaseCandidate.Key` and `VideoReleaseOverride.Key` are SHA-256 hex
+fingerprints, computed from the same aggregate quality-signal fields listed
+above (group, source, languages, codec, resolution, stream counts, flags,
+version). They are what the API's `preferredCandidateKey` parameter and the
+Mix & Match UI use to identify and select a specific candidate/override within
+one series' response — so **uniqueness within that response is the whole
+point**, not an incidental property.
+
+**Non-mixed candidates** (`IsMixed == false`, a single homogeneous release, no
+gap-fill): the key is intentionally **location/file-independent**. Two pure
+candidates with an identical quality profile represent the same *kind* of
+release and get the same key even across completely different shows/folders —
+this is safe because a pure candidate's composition is fully determined by its
+group + quality signals; there's nothing else that could differ.
+
+**Mixed (gap-fill) candidates** (`IsMixed == true`): that assumption breaks
+down. A gap-fill composite stitches multiple releases together to reach full
+episode coverage, and two *different* stitchings — different underlying files,
+assembled from different combinations of releases — can majority-vote to an
+identical aggregate profile while covering the same episodes with genuinely
+different files. For these, the key additionally folds in the underlying
+file/place composition (the same sorted place-ID list `Group()` uses internally
+to dedup candidates), so two different mixes can never collide. This was a real
+bug: two composites with colliding keys made `preferredCandidateKey` resolve
+ambiguously (always to whichever ranked first), silently selecting the wrong
+candidate and computing redundancy — and therefore auto-deletion — against the
+wrong file set.
+
+**Overrides** (`VideoReleaseOverride.Key`, Mix & Match) are simpler — they're
+always single merged-group buckets, never gap-fill composites (`GetOverrides`
+skips the version-strategy/gap-fill passes) — so the key always folds in the
+file/place composition unconditionally. This exists because overrides have no
+other reliable identity: two unnamed/unidentified groups (`GroupID == null`,
+common for manually-linked or not-yet-recognised releases) are otherwise
+indistinguishable to any consumer, which previously made a second same-shaped
+group in the same series either not render or silently overwrite the first
+one's selection state in the UI.
+
+---
+
 ## Episode coverage
 
-`VideoReleaseCandidate.EpisodeCoverage` is the union of all `(EpisodeType, int)`
-pairs covered by any file in the candidate. It is used by the comparison system
-to determine whether one candidate's episodes are a subset of another's.
+`VideoReleaseCandidate.EpisodeCoverage` is the union of all `(EpisodeType,
+EpisodeNumber)` pairs covered by any file in the candidate. It is used by the
+comparison system to determine whether one candidate's episodes are a subset of
+another's, and is what gets displayed to the user (episode numbers, not AniDB's
+internal IDs).
+
+**The tuple holds the per-anime episode *number*, not the global AniDB episode
+ID**, and is only ever populated once [anime scoping](#anime-scoping) has
+resolved a cross-reference to a real, locally-cached episode — see that section
+for what happens to cross-references that don't resolve (excluded, not kept
+under a placeholder). `FileSignature.Episodes` (per-file, pre-aggregation) and
+`VideoReleaseOverrideFile.Episodes` (Mix & Match) use the same
+`(EpisodeType, EpisodeNumber)` shape for the same reason.
 
 Episode identifiers follow the AniDB / Shoko convention: a bare number for normal
 episodes (`1`, `12`), and a letter prefix for other types:
@@ -160,7 +260,52 @@ episodes (`1`, `12`), and a letter prefix for other types:
 | Other | `O` | `O1` |
 
 `(Special, 1)` and `(Episode, 1)` are distinct keys, so a specials-only release
-is never considered to cover a regular-episode release and vice versa.
+is never considered to cover a regular-episode release and vice versa. Likewise
+`(Episode, 1)` for one anime and `(Episode, 1)` for a different anime are never
+compared against each other in the first place — coverage is always computed
+for one anime at a time (see [Anime scoping](#anime-scoping)), so there is no
+tuple-level way to tell them apart and no need to.
+
+---
+
+## Multiple-releases pre-filters
+
+The paginated "series with multiple releases" list can't afford to run the full
+grouper (`Group`) against every series in the library on every request, so it
+runs two progressively more expensive, **never under-inclusive** pre-filters
+first — each one is allowed to produce false positives (say "maybe" when the
+answer is actually "no"), but must never produce a false negative (say "no"
+when the full grouper would actually find multiple candidates), or a series
+with a genuine choice silently disappears from the list.
+
+1. **`GetAnimeIDsWithMultipleFilesPerEpisode()`** — one pass over
+   `CrossRef_File_Episode`, filtered to currently-existing files (orphaned
+   cross-references to since-removed files don't count). Returns every anime
+   ID where at least one episode has more than one distinct file. This is safe
+   because `Group`/gap-fill always collapses a series where every episode has
+   exactly one file down to a single candidate — coverable-by-more-than-one-file
+   is a hard prerequisite for `Group` ever returning more than one entry.
+
+2. **`MightHaveMultipleCandidates(videos, animeId)`** — for series that pass
+   filter 1, a cheap single-pass heuristic over each video's `StoredReleaseInfo`
+   that checks group key, source, codec/resolution/bit-depth, per-episode
+   version collisions, **and** — this was a real bug, fixed alongside the
+   [folder vs. import folder](#grouping-signals) distinction — whether the same
+   episode is covered by files living in more than one
+   `(ManagedFolderID, ParentDirectory)` partition. That last check matters
+   because folder/directory is an *unconditional* hard separator in
+   `AreCompatible`: two otherwise-identical copies of the same episode in
+   different folders are **always** split into two candidates by the real
+   grouper, regardless of how well every other signal matches. Before this was
+   checked, a series where two folders held an identical release (e.g. the same
+   ToonsHub episode duplicated under an old and a renamed series folder) could
+   pass every other check and get reported as "certainly one candidate," even
+   though `Group()` would find two — silently dropping the series from the
+   paginated list while `GET Series/{id}` (which skips this pre-filter and
+   always runs the full grouper) still found it.
+
+Only series that pass *both* pre-filters have the expensive `Group`/rank/
+redundancy pipeline run against them at all.
 
 ---
 
@@ -262,9 +407,9 @@ type. *(Not yet implemented in the current release.)*
 
 ## Scenarios
 
-### Standard release — same group, source, folder
+### Standard release — same group, source, directory
 
-> Doki's BD encode of 30-sai no Hoken Taiiku (12 episodes, all in the same folder)
+> Doki's BD encode of 30-sai no Hoken Taiiku (12 episodes, all in the same parent directory)
 
 All 12 files share `GroupID=584 / GroupSource=AniDB / Source=BluRay / Audio=ja / Sub=en / 1080p Hi10P FLAC / Matroska` and the same parent directory. They produce **one candidate**.
 
@@ -341,7 +486,7 @@ Air/[Doki] Air - 13  (720x480 h264 DVD AC3)   ...  ← Source = DVD       candid
 
 ---
 
-### Different series folders → two candidates
+### Different series directories → two candidates
 
 > SubsPlease releasing both One Piece and Naruto
 
@@ -356,7 +501,7 @@ different parent directory means two candidates.
 
 ---
 
-### Different groups in the same folder → two candidates
+### Different groups in the same directory → two candidates
 
 > Both Doki and Coalgirls have BD encodes of Clannad in the same directory
 
@@ -511,7 +656,7 @@ Doki bucket. A missing group field is a wildcard, so it joins the bucket.
 
 ### Unrecognized file, different codec — stays separate
 
-> The same folder contains a recognised H264 release and an unrecognised HEVC file
+> The same parent directory contains a recognised H264 release and an unrecognised HEVC file
 
 ```
 Show/[Group] Show - 01 (h264).mkv  ← SRI, H264  ┐ candidate A (H264)
@@ -527,11 +672,12 @@ with the existing bucket means a new bucket is created.
 
 ### Unrecognized files — MediaInfo fallback
 
-> A folder of files that were never submitted to AniDB
+> A directory of files that were never submitted to AniDB
 
 When there is no `StoredReleaseInfo`, group and source are treated as empty
-strings and language is read from the MediaInfo streams. Files in the same folder
-with the same codec / resolution / audio codec are still grouped together:
+strings and language is read from the MediaInfo streams. Files in the same
+parent directory with the same codec / resolution / audio codec are still
+grouped together:
 
 ```
 Unknown Show/episode01.mkv   (AVC 1080p 10-bit FLAC Matroska)  ┐
@@ -542,7 +688,7 @@ HasReleaseInfo = false
 
 ---
 
-### Mixed codec folder — two unrecognized candidates
+### Mixed codec directory — two unrecognized candidates
 
 > A directory that contains files from two different encode tools
 
@@ -555,7 +701,7 @@ Even without provider metadata, the codec difference splits them.
 
 ---
 
-### Partially recognized folder — merges into one candidate
+### Partially recognized directory — merges into one candidate
 
 > A group whose episode 03 was never submitted to AniDB, so only episodes 01–02 have a StoredReleaseInfo
 
@@ -596,6 +742,31 @@ included in the key.
 
 ---
 
+### Crossover episode spanning two anime — foreign cross-reference excluded
+
+> A Toriko episode that's also a One Piece tie-in: one file, two AniDB
+> Anime/Episode ID pairs
+
+```
+Toriko - E001E492 - Landing, Gourmet Island! / The Strongest Tag-Team!.mp4
+  CrossReferences: [ (Toriko, ep 1), (One Piece, ep 492) ]
+```
+
+When grouping **One Piece**, `GetEpisodeCoverageForAnime` resolves this file's
+cross-references and keeps only the one whose episode's `AnimeID` matches One
+Piece — the file contributes `(Episode, 492)` and nothing else. The Toriko-side
+cross-reference is dropped entirely, not merged or aliased. Symmetrically,
+grouping **Toriko** would keep only `(Episode, 1)` from the same file.
+
+This matters even when the two anime's episode numbers happen to collide (e.g.
+if Toriko's episode 1 and some other One Piece episode were both numbered `1`):
+without anime scoping, resolving the file for One Piece would produce a display
+key indistinguishable from One Piece's own episode 1, and the crossover file
+would show up as a file option for an episode it has nothing to do with. See
+[Anime scoping](#anime-scoping).
+
+---
+
 ## `HasReleaseInfo`
 
 `VideoReleaseCandidate.HasReleaseInfo` is `true` only when **every** file in the
@@ -613,12 +784,30 @@ are populated from the **first SRI-backed file** in the candidate, or are
 
 ### Grouping service
 
+Every method takes `animeId` explicitly — see [Anime scoping](#anime-scoping).
+
 ```csharp
 // Standard path — resolves from repositories internally
-IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<VideoLocal_Place> places);
+IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<VideoLocal_Place> places, int animeId);
 
 // Pre-resolved path — useful when data is already loaded (e.g. in tests)
-IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<ResolvedVideoPlace> resolved);
+IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<ResolvedVideoPlace> resolved, int animeId);
+
+// Mix & Match data source — same FuzzyGroup + same-group-merge passes as Group(),
+// but without the coverage filter or version-strategy/gap-fill split. One entry
+// per merged release-group bucket, including partial-coverage groups Group()
+// would exclude.
+IReadOnlyList<VideoReleaseOverride> GetOverrides(IEnumerable<VideoLocal_Place> places, int animeId);
+IReadOnlyList<VideoReleaseOverride> GetOverrides(IEnumerable<ResolvedVideoPlace> resolved, int animeId);
+
+// See "Episode coverage" — excludes cross-references to a different anime, and
+// cross-references whose episode isn't cached locally, rather than falling back
+// to a placeholder.
+IReadOnlySet<(EpisodeType, int)> GetEpisodeCoverageForAnime(VideoLocal video, int animeId);
+
+// See "Multiple-releases pre-filters".
+bool MightHaveMultipleCandidates(IEnumerable<VideoLocal> videos, int animeId);
+IReadOnlySet<int> GetAnimeIDsWithMultipleFilesPerEpisode();
 ```
 
 `ResolvedVideoPlace` is a plain record:
@@ -665,9 +854,13 @@ record CompareDecision(
 GET /api/v3/Episode/{episodeID}/PrimaryRelease
 ```
 
-Groups all files for the episode's series, filters to candidates that cover the
-given episode, ranks them, and returns the primary with a human-readable
-explanation.
+Groups all files for the episode's series (`Group(places, series.AniDB_ID)`),
+filters to candidates that cover the given episode by matching
+`(anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber)` against
+`EpisodeCoverage`, ranks them, and returns the primary with a human-readable
+explanation. (Matching on `EpisodeNumber` — not the episode's own AniDB ID — is
+required precisely because `EpisodeCoverage` holds numbers now; see
+[Episode coverage](#episode-coverage).)
 
 **Response (`200 OK`):**
 
