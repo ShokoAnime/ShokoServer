@@ -8,7 +8,7 @@ namespace Shoko.Server.Services.Actions.AniDB;
 /// <summary>
 ///   Forcibly runs AddToMyList commands for all manually linked files.
 /// </summary>
-internal sealed class AddAllManualLinksToMyListAction(ActionService actionService) : IExecutableGlobalAction
+internal sealed class AddAllManualLinksToMyListAction(ActionService actionService) : IExecutableGlobalSystemAction
 {
     public string Name => "Add All Manual Links to MyList";
     public string? Description => "Forcibly run AddToMyList commands for all files with manual links.";

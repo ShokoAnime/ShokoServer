@@ -15,7 +15,7 @@ namespace Shoko.Server.Services.Actions.Import.Group;
 internal sealed class RelocateGroupFilesAction(
     AnimeGroupRepository groupRepo,
     IVideoRelocationService relocationService
-) : IExecutableGroupAction
+) : IExecutableGroupSystemAction
 {
     public string Name => "Relocate Files";
     public string? Description => "Renames and/or moves every file associated with the group.";

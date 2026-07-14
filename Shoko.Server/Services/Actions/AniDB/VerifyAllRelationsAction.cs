@@ -8,7 +8,7 @@ namespace Shoko.Server.Services.Actions.AniDB;
 /// <summary>
 ///   Verify all unverified AniDB relations by fetching current data via the UDP API.
 /// </summary>
-internal sealed class VerifyAllRelationsAction(ActionService actionService) : IExecutableGlobalAction
+internal sealed class VerifyAllRelationsAction(ActionService actionService) : IExecutableGlobalSystemAction
 {
     public string Name => "Verify All Relations";
     public string? Description => "Verify all unverified AniDB relations by fetching current data via the UDP API.";

@@ -16,7 +16,7 @@ namespace Shoko.Server.Services.Actions.Import.Series;
 internal sealed class RehashSeriesFilesAction(
     AnimeSeriesRepository seriesRepo,
     IQueueScheduler scheduler
-) : IExecutableSeriesAction
+) : IExecutableSeriesSystemAction
 {
     public string Name => "Rehash Files";
     public string? Description => "Rehashes every file associated with the series.";

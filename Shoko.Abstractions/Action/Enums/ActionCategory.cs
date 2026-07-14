@@ -47,9 +47,10 @@ public enum ActionCategory : byte
     Maintenance = 0xF1,
 
     /// <summary>
-    ///   Uncategorized or miscellaneous actions.
+    ///   Uncategorized or miscellaneous actions. Actions which does not set
+    ///   their own category will be placed in this category by default.
     /// </summary>
-    Mischievous =0xF2,
+    Mischievous = 0xF2,
 
     /// <summary>
     ///   Destructive operations such as purging data.

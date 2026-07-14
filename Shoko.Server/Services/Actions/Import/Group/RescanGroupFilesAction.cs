@@ -15,7 +15,7 @@ namespace Shoko.Server.Services.Actions.Import.Group;
 internal sealed class RescanGroupFilesAction(
     AnimeGroupRepository groupRepo,
     IVideoReleaseService releaseService
-) : IExecutableGroupAction
+) : IExecutableGroupSystemAction
 {
     public string Name => "Rescan Files";
     public string? Description => "Rescans every file associated with the group.";

@@ -13,7 +13,7 @@ namespace Shoko.Server.Services.Actions.Tmdb.Series;
 /// </summary>
 internal sealed class UpdateTmdbInfoSeriesAction(
     IJobFactory jobFactory
-) : IExecutableSeriesAction
+) : IExecutableSeriesSystemAction
 {
     public string Name => "Update TMDB Info";
     public string? Description => "Gets the latest series information from TMDB.";

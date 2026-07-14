@@ -8,7 +8,7 @@ namespace Shoko.Server.Services.Actions.Maintenance;
 /// <summary>
 ///   Recalculate stats for all series and re-apply group filters.
 /// </summary>
-internal sealed class UpdateSeriesStatsAction(ActionService actionService) : IExecutableGlobalAction
+internal sealed class UpdateSeriesStatsAction(ActionService actionService) : IExecutableGlobalSystemAction
 {
     public string Name => "Update Series Stats";
     public string? Description => "Recalculate statistics for all series and re-apply group filters.";

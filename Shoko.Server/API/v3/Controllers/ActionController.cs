@@ -34,6 +34,11 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class ActionController : BaseController
 {
+    private const string ObsoleteMessage = "Use the new action system instead.";
+    private const string UnsupportedScope = "The action does not support the '{0}' scope.";
+    private const string UnexpectedScope = "Unexpected scope '{0}' on this endpoint.";
+    private const string RequiresAdmin = "Administrator privileges are required for this action scope.";
+
     private readonly AnimeGroupCreator _groupCreator;
     private readonly ActionService _actionService;
     private readonly IActionService _actionServiceInterface;
@@ -47,12 +52,6 @@ public class ActionController : BaseController
     private readonly AnimeSeriesRepository _animeSeries;
     private readonly AnimeGroupRepository _animeGroups;
     private readonly AnimeEpisodeRepository _animeEpisodes;
-
-    /// <summary>Priority-ordered scopes for admins when no scope is specified.</summary>
-    private static readonly ActionScope[] _adminScopePriority = [ActionScope.Global, ActionScope.GlobalUser, ActionScope.Series, ActionScope.SeriesUser, ActionScope.Group, ActionScope.GroupUser, ActionScope.Episode, ActionScope.EpisodeUser];
-
-    /// <summary>Priority-ordered scopes for standard users when no scope is specified.</summary>
-    private static readonly ActionScope[] _userScopePriority = [ActionScope.GlobalUser, ActionScope.SeriesUser, ActionScope.GroupUser, ActionScope.EpisodeUser];
 
     public ActionController(
         TmdbMetadataService tmdbMetadataService,
@@ -91,39 +90,10 @@ public class ActionController : BaseController
     ///   List all registered global/user-scoped actions, grouped by category,
     ///   filtered to scopes the current user can execute.
     /// </summary>
-    [HttpGet]
+    [HttpGet("Actions")]
     [InitFriendly]
-    public ActionResult<IReadOnlyList<ActionCategoryGroup>> GetActions()
-    {
-        var actions = _actionServiceInterface.GetActions(scopes: [ActionScope.Global, ActionScope.GlobalUser]);
-        var isAdmin = User.IsAdmin == 1;
-        var result = actions
-            .Select(info =>
-            {
-                var permittedScopes = isAdmin
-                    ? info.Scopes.Where(s => s is ActionScope.Global or ActionScope.GlobalUser).ToHashSet()
-                    : info.Scopes.Where(s => s is ActionScope.GlobalUser).ToHashSet();
-                return (Info: info, PermittedScopes: permittedScopes);
-            })
-            .Where(t => t.PermittedScopes.Count > 0)
-            .GroupBy(t => t.Info.CategoryName)
-            .Select(g => new ActionCategoryGroup
-            {
-                Name = g.Key,
-                Actions = g.Select(t => new ActionInfo
-                {
-                    ID = t.Info.ID,
-                    Name = t.Info.Name,
-                    Description = t.Info.Description,
-                    RequiresConfirmation = t.Info.RequiresConfirmation,
-                    Scopes = t.PermittedScopes,
-                    Plugin = new PluginInfo(t.Info.PluginInfo),
-                }).ToList(),
-            })
-            .ToList();
-
-        return Ok(result);
-    }
+    public IReadOnlyList<ActionCategoryGroup> GetActions()
+         => GetActionCategories(ActionScope.Global, User.IsAdmin == 1);
 
     /// <summary>
     ///   Execute a global or user-scoped action by its ID.
@@ -141,23 +111,25 @@ public class ActionController : BaseController
         if (actionInfo is null)
             return NotFound();
 
-        var resolvedScope = scope ?? ResolveDefaultScope(actionInfo.Scopes);
+        var resolvedScope = scope ?? ResolveDefaultScope(actionInfo.Scopes, ActionScope.Global);
         if (!actionInfo.Scopes.Contains(resolvedScope))
-            return BadRequest($"The action does not support the '{resolvedScope}' scope.");
+            return BadRequest(string.Format(UnsupportedScope, resolvedScope));
 
-        if (resolvedScope is ActionScope.Global or ActionScope.Series && User.IsAdmin != 1)
-            return Forbid("Admin privileges are required for this action scope.");
+        if (resolvedScope.HasFlag(ActionScope.System) && User.IsAdmin != 1)
+            return Forbid(RequiresAdmin);
 
         switch (resolvedScope)
         {
-            case ActionScope.Global:
-                await _actionServiceInterface.ScheduleExecuteOfGlobalAction(actionInfo);
+            case ActionScope.SystemAndGlobal:
+                await _actionServiceInterface.ScheduleExecuteOfGlobalSystemAction(actionInfo);
                 break;
-            case ActionScope.GlobalUser:
-                await _actionServiceInterface.ScheduleExecuteOfGlobalUserAction(actionInfo, (IUser)User);
+
+            case ActionScope.UserAndGlobal:
+                await _actionServiceInterface.ScheduleExecuteOfGlobalUserAction(actionInfo, User);
                 break;
+
             default:
-                return BadRequest($"Unexpected scope '{resolvedScope}' on this endpoint.");
+                return BadRequest(string.Format(UnexpectedScope, resolvedScope));
         }
 
         return Ok();
@@ -167,40 +139,10 @@ public class ActionController : BaseController
     ///   List all registered group-scoped actions, grouped by category,
     ///   filtered to scopes the current user can execute.
     /// </summary>
-    [HttpGet("Group/{groupID}/Action")]
+    [HttpGet("Group/Actions")]
     [InitFriendly]
-    public ActionResult<IReadOnlyList<ActionCategoryGroup>> GetGroupActions([FromRoute] int groupID)
-    {
-        var actions = _actionServiceInterface.GetActions(scopes: [ActionScope.Group, ActionScope.GroupUser]);
-        var isAdmin = User.IsAdmin == 1;
-
-        var result = actions
-            .Select(info =>
-            {
-                var permittedScopes = isAdmin
-                    ? info.Scopes
-                    : info.Scopes.Where(s => s is ActionScope.GroupUser).ToHashSet();
-                return (Info: info, PermittedScopes: permittedScopes);
-            })
-            .Where(t => t.PermittedScopes.Count > 0)
-            .GroupBy(t => t.Info.CategoryName)
-            .Select(g => new ActionCategoryGroup
-            {
-                Name = g.Key,
-                Actions = g.Select(t => new ActionInfo
-                {
-                    ID = t.Info.ID,
-                    Name = t.Info.Name,
-                    Description = t.Info.Description,
-                    RequiresConfirmation = t.Info.RequiresConfirmation,
-                    Scopes = t.PermittedScopes,
-                    Plugin = new PluginInfo(t.Info.PluginInfo),
-                }).ToList(),
-            })
-            .ToList();
-
-        return Ok(result);
-    }
+    public IReadOnlyList<ActionCategoryGroup> GetGroupActions()
+         => GetActionCategories(ActionScope.Group, User.IsAdmin == 1);
 
     /// <summary>
     ///   Execute a group-scoped action by its ID for the specified group.
@@ -219,12 +161,12 @@ public class ActionController : BaseController
         if (actionInfo is null)
             return NotFound();
 
-        var resolvedScope = scope ?? ResolveDefaultScope(actionInfo.Scopes);
+        var resolvedScope = scope ?? ResolveDefaultScope(actionInfo.Scopes, ActionScope.Group);
         if (!actionInfo.Scopes.Contains(resolvedScope))
-            return BadRequest($"The action does not support the '{resolvedScope}' scope.");
+            return BadRequest(string.Format(UnsupportedScope, resolvedScope));
 
-        if (resolvedScope is ActionScope.Group && User.IsAdmin != 1)
-            return Forbid("Admin privileges are required for this action scope.");
+        if (resolvedScope.HasFlag(ActionScope.System) && User.IsAdmin != 1)
+            return Forbid(RequiresAdmin);
 
         var group = _animeGroups.GetByID(groupID);
         if (group is null)
@@ -233,13 +175,15 @@ public class ActionController : BaseController
         switch (resolvedScope)
         {
             case ActionScope.Group:
-                await _actionServiceInterface.ScheduleExecuteOfGroupAction(actionInfo, group);
+                await _actionServiceInterface.ScheduleExecuteOfGroupSystemAction(actionInfo, group);
                 break;
-            case ActionScope.GroupUser:
-                await _actionServiceInterface.ScheduleExecuteOfGroupUserAction(actionInfo, group, (IUser)User);
+
+            case ActionScope.UserAndGroup:
+                await _actionServiceInterface.ScheduleExecuteOfGroupUserAction(actionInfo, group, User);
                 break;
+
             default:
-                return BadRequest($"Unexpected scope '{resolvedScope}' on this endpoint.");
+                return BadRequest(string.Format(UnexpectedScope, resolvedScope));
         }
 
         return Ok();
@@ -249,40 +193,10 @@ public class ActionController : BaseController
     ///   List all registered series-scoped actions, grouped by category,
     ///   filtered to scopes the current user can execute.
     /// </summary>
-    [HttpGet("Series/{seriesID}/Action")]
+    [HttpGet("Series/Actions")]
     [InitFriendly]
-    public ActionResult<IReadOnlyList<ActionCategoryGroup>> GetSeriesActions([FromRoute] int seriesID)
-    {
-        var actions = _actionServiceInterface.GetActions(scopes: [ActionScope.Series, ActionScope.SeriesUser]);
-        var isAdmin = User.IsAdmin == 1;
-
-        var result = actions
-            .Select(info =>
-            {
-                var permittedScopes = isAdmin
-                    ? info.Scopes.Where(s => s is ActionScope.Series or ActionScope.SeriesUser).ToHashSet()
-                    : info.Scopes.Where(s => s is ActionScope.SeriesUser).ToHashSet();
-                return (Info: info, PermittedScopes: permittedScopes);
-            })
-            .Where(t => t.PermittedScopes.Count > 0)
-            .GroupBy(t => t.Info.CategoryName)
-            .Select(g => new ActionCategoryGroup
-            {
-                Name = g.Key,
-                Actions = g.Select(t => new ActionInfo
-                {
-                    ID = t.Info.ID,
-                    Name = t.Info.Name,
-                    Description = t.Info.Description,
-                    RequiresConfirmation = t.Info.RequiresConfirmation,
-                    Scopes = t.PermittedScopes,
-                    Plugin = new PluginInfo(t.Info.PluginInfo),
-                }).ToList(),
-            })
-            .ToList();
-
-        return Ok(result);
-    }
+    public IReadOnlyList<ActionCategoryGroup> GetSeriesActions()
+         => GetActionCategories(ActionScope.Series, User.IsAdmin == 1);
 
     /// <summary>
     ///   Execute a series-scoped action by its ID for the specified series.
@@ -301,12 +215,12 @@ public class ActionController : BaseController
         if (actionInfo is null)
             return NotFound();
 
-        var resolvedScope = scope ?? ResolveDefaultScope(actionInfo.Scopes);
+        var resolvedScope = scope ?? ResolveDefaultScope(actionInfo.Scopes, ActionScope.Series);
         if (!actionInfo.Scopes.Contains(resolvedScope))
-            return BadRequest($"The action does not support the '{resolvedScope}' scope.");
+            return BadRequest(string.Format(UnsupportedScope, resolvedScope));
 
-        if (resolvedScope is ActionScope.Series && User.IsAdmin != 1)
-            return Forbid("Admin privileges are required for this action scope.");
+        if (resolvedScope.HasFlag(ActionScope.System) && User.IsAdmin != 1)
+            return Forbid(RequiresAdmin);
 
         var series = _animeSeries.GetByAnimeID(seriesID);
         if (series is null)
@@ -315,13 +229,15 @@ public class ActionController : BaseController
         switch (resolvedScope)
         {
             case ActionScope.Series:
-                await _actionServiceInterface.ScheduleExecuteOfSeriesAction(actionInfo, series);
+                await _actionServiceInterface.ScheduleExecuteOfSeriesSystemAction(actionInfo, series);
                 break;
-            case ActionScope.SeriesUser:
-                await _actionServiceInterface.ScheduleExecuteOfSeriesUserAction(actionInfo, series, (IUser)User);
+
+            case ActionScope.UserAndSeries:
+                await _actionServiceInterface.ScheduleExecuteOfSeriesUserAction(actionInfo, series, User);
                 break;
+
             default:
-                return BadRequest($"Unexpected scope '{resolvedScope}' on this endpoint.");
+                return BadRequest(string.Format(UnexpectedScope, resolvedScope));
         }
 
         return Ok();
@@ -331,19 +247,63 @@ public class ActionController : BaseController
     ///   List all registered episode-scoped actions, grouped by category,
     ///   filtered to scopes the current user can execute.
     /// </summary>
-    [HttpGet("Episode/{episodeID}/Action")]
+    [HttpGet("Episode/Actions")]
     [InitFriendly]
-    public ActionResult<IReadOnlyList<ActionCategoryGroup>> GetEpisodeActions([FromRoute] int episodeID)
-    {
-        var actions = _actionServiceInterface.GetActions(scopes: [ActionScope.Episode, ActionScope.EpisodeUser]);
-        var isAdmin = User.IsAdmin == 1;
+    public IReadOnlyList<ActionCategoryGroup> GetEpisodeActions()
+        => GetActionCategories(ActionScope.Episode, User.IsAdmin == 1);
 
-        var result = actions
+    /// <summary>
+    ///   Execute an episode-scoped action by its ID for the specified episode.
+    /// </summary>
+    /// <param name="episodeID">The episode ID.</param>
+    /// <param name="id">The action ID.</param>
+    /// <param name="scope">
+    ///   Optional scope override. When omitted, the server picks the highest
+    ///   priority scope available to the user (Episode for admins, EpisodeUser
+    ///   for standard users).
+    /// </param>
+    [HttpPost("Episode/{episodeID}/Action/{id}/Execute")]
+    public async Task<ActionResult> ExecuteEpisodeAction([FromRoute] int episodeID, [FromRoute] Guid id, [FromQuery] ActionScope? scope = null)
+    {
+        var actionInfo = _actionServiceInterface.GetActionById(id);
+        if (actionInfo is null)
+            return NotFound();
+
+        var resolvedScope = scope ?? ResolveDefaultScope(actionInfo.Scopes, ActionScope.Episode);
+        if (!actionInfo.Scopes.Contains(resolvedScope))
+            return BadRequest(string.Format(UnsupportedScope, resolvedScope));
+
+        if (resolvedScope.HasFlag(ActionScope.System) && User.IsAdmin != 1)
+            return Forbid(RequiresAdmin);
+
+        var episode = _animeEpisodes.GetByID(episodeID);
+        if (episode is null)
+            return NotFound("Episode not found.");
+
+        switch (resolvedScope)
+        {
+            case ActionScope.Episode:
+                await _actionServiceInterface.ScheduleExecuteOfEpisodeSystemAction(actionInfo, episode);
+                break;
+
+            case ActionScope.UserAndEpisode:
+                await _actionServiceInterface.ScheduleExecuteOfEpisodeUserAction(actionInfo, episode, User);
+                break;
+
+            default:
+                return BadRequest(string.Format(UnexpectedScope, resolvedScope));
+        }
+
+        return Ok();
+    }
+
+    private IReadOnlyList<ActionCategoryGroup> GetActionCategories(ActionScope scope, bool isAdmin)
+        => _actionServiceInterface.GetActions(scopes: [ActionScope.System | scope, ActionScope.User | scope])
             .Select(info =>
             {
                 var permittedScopes = isAdmin
-                    ? info.Scopes
-                    : info.Scopes.Where(s => s is ActionScope.EpisodeUser).ToHashSet();
+                    ? info.Scopes.Where(s => s.HasFlag(scope)).ToHashSet()
+                    : info.Scopes.Where(s => s.HasFlag(ActionScope.User | scope)).ToHashSet();
                 return (Info: info, PermittedScopes: permittedScopes);
             })
             .Where(t => t.PermittedScopes.Count > 0)
@@ -363,63 +323,19 @@ public class ActionController : BaseController
             })
             .ToList();
 
-        return Ok(result);
-    }
-
-    /// <summary>
-    ///   Execute an episode-scoped action by its ID for the specified episode.
-    /// </summary>
-    /// <param name="episodeID">The episode ID.</param>
-    /// <param name="id">The action ID.</param>
-    /// <param name="scope">
-    ///   Optional scope override. When omitted, the server picks the highest
-    ///   priority scope available to the user (Episode for admins, EpisodeUser
-    ///   for standard users).
-    /// </param>
-    [HttpPost("Episode/{episodeID}/Action/{id}/Execute")]
-    public async Task<ActionResult> ExecuteEpisodeAction([FromRoute] int episodeID, [FromRoute] Guid id, [FromQuery] ActionScope? scope = null)
-    {
-        var actionInfo = _actionServiceInterface.GetActionById(id);
-        if (actionInfo is null)
-            return NotFound();
-
-        var resolvedScope = scope ?? ResolveDefaultScope(actionInfo.Scopes);
-        if (!actionInfo.Scopes.Contains(resolvedScope))
-            return BadRequest($"The action does not support the '{resolvedScope}' scope.");
-
-        if (resolvedScope is ActionScope.Episode && User.IsAdmin != 1)
-            return Forbid("Admin privileges are required for this action scope.");
-
-        var episode = _animeEpisodes.GetByID(episodeID);
-        if (episode is null)
-            return NotFound("Episode not found.");
-
-        switch (resolvedScope)
-        {
-            case ActionScope.Episode:
-                await _actionServiceInterface.ScheduleExecuteOfEpisodeAction(actionInfo, episode);
-                break;
-            case ActionScope.EpisodeUser:
-                await _actionServiceInterface.ScheduleExecuteOfEpisodeUserAction(actionInfo, episode, (IUser)User);
-                break;
-            default:
-                return BadRequest($"Unexpected scope '{resolvedScope}' on this endpoint.");
-        }
-
-        return Ok();
-    }
-
     /// <summary>
     ///   Resolves the default scope from a set of available scopes based on
     ///   user role priority.
     /// </summary>
-    private ActionScope ResolveDefaultScope(IReadOnlySet<ActionScope> available)
+    private ActionScope ResolveDefaultScope(IReadOnlySet<ActionScope> available, ActionScope scope)
     {
-        var priority = User.IsAdmin == 1 ? _adminScopePriority : _userScopePriority;
-        foreach (var s in priority)
-            if (available.Contains(s))
-                return s;
-        return available.First();
+        if (User.IsAdmin == 1 && available.Contains(ActionScope.System | scope))
+            return ActionScope.System | scope;
+
+        if (available.Contains(ActionScope.User | scope))
+            return ActionScope.User | scope;
+
+        return 0;
     }
 
     #endregion
@@ -430,7 +346,7 @@ public class ActionController : BaseController
     /// Run Import. This checks for new files, hashes them etc, scans Drop Folders, checks and scans for community site links (tmdb, etc), and downloads missing images.
     /// </summary>
     /// <returns></returns>
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("RunImport")]
     public async Task<ActionResult> RunImport()
     {
@@ -442,7 +358,7 @@ public class ActionController : BaseController
     /// Queues a task to import only new files found in the managed folders
     /// </summary>
     /// <returns></returns>
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("ImportNewFiles")]
     public async Task<ActionResult> ImportNewFiles()
     {
@@ -454,7 +370,7 @@ public class ActionController : BaseController
     /// This was for web cache hash syncing, and will be for perceptual hashing maybe eventually.
     /// </summary>
     /// <returns></returns>
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("SyncHashes")]
     public ActionResult SyncHashes()
     {
@@ -465,7 +381,7 @@ public class ActionController : BaseController
     /// Sync the votes from Shoko to AniDB.
     /// </summary>
     /// <returns></returns>
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("SyncVotes")]
     public async Task<ActionResult> SyncVotes([FromQuery] bool export = false, [FromQuery] bool import = false)
     {
@@ -482,7 +398,7 @@ public class ActionController : BaseController
     /// Remove Entries in the Shoko Database for Files that are no longer accessible
     /// </summary>
     /// <returns></returns>
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("RemoveMissingFiles/{removeFromMyList:bool?}")]
     public async Task<ActionResult> RemoveMissingFiles(bool removeFromMyList = true)
     {
@@ -494,7 +410,7 @@ public class ActionController : BaseController
     /// Updates and Downloads Missing Images
     /// </summary>
     /// <returns></returns>
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateAllImages")]
     public ActionResult UpdateAllImages()
     {
@@ -511,7 +427,7 @@ public class ActionController : BaseController
     /// <param name="xrefSource">Optional. Filter to a specific cross-reference source.</param>
     /// <param name="force">Optional. Re-download even if images already exist locally.</param>
     /// <returns></returns>
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("DownloadAllImages")]
     public ActionResult DownloadAllImages(
         [FromQuery] DataSource? imageSource = null,
@@ -528,7 +444,7 @@ public class ActionController : BaseController
     /// Scan for TMDB matches for all unlinked AniDB anime.
     /// </summary>
     /// <returns></returns>
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("SearchForTmdbMatches")]
     public ActionResult SearchForTmdbMatches()
     {
@@ -540,7 +456,7 @@ public class ActionController : BaseController
     /// Updates all TMDB Movies in the local database.
     /// </summary>
     /// <returns></returns>
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateAllTmdbMovies")]
     public ActionResult UpdateAllTmdbMovies()
     {
@@ -553,7 +469,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllUnusedTmdbMovies")]
     public ActionResult PurgeAllUnusedTmdbMovies()
     {
@@ -566,7 +482,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllTmdbMovieCollections")]
     public ActionResult PurgeAllTmdbMovieCollections()
     {
@@ -578,7 +494,7 @@ public class ActionController : BaseController
     /// Update all TMDB Shows in the local database.
     /// </summary>
     /// <returns></returns>
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateAllTmdbShows")]
     public ActionResult UpdateAllTmdbShows()
     {
@@ -589,7 +505,7 @@ public class ActionController : BaseController
     /// <summary>
     /// Download any missing TMDB People.
     /// </summary>
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("DownloadMissingTmdbPeople")]
     public ActionResult DownloadMissingTmdbPeople()
     {
@@ -602,7 +518,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllUnusedTmdbImages")]
     public ActionResult PurgeAllUnusedTmdbImages()
     {
@@ -615,7 +531,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllUnusedTmdbShows")]
     public ActionResult PurgeAllUnusedTmdbShows()
     {
@@ -628,7 +544,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllTmdbShowAlternateOrderings")]
     public ActionResult PurgeAllTmdbShowAlternateOrderings()
     {
@@ -644,7 +560,7 @@ public class ActionController : BaseController
     /// <param name="resetAutoLinkingState">Whether to reset the auto-linking state.</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllTmdbLinks")]
     public ActionResult PurgeAllTmdbLinks([FromQuery] bool removeShowLinks = true, [FromQuery] bool removeMovieLinks = true, [FromQuery] bool? resetAutoLinkingState = null)
     {
@@ -669,7 +585,7 @@ public class ActionController : BaseController
     /// </param>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllUsedReleases")]
     public ActionResult PurgeAllUsedReleases(
         [FromQuery] bool skipEvents = false,
@@ -691,7 +607,7 @@ public class ActionController : BaseController
     /// </param>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllUnusedReleases")]
     public ActionResult PurgeAllUnusedReleases(
         [FromQuery] bool skipEvents = false,
@@ -706,7 +622,7 @@ public class ActionController : BaseController
     /// Validates invalid images and re-downloads them
     /// </summary>
     /// <returns></returns>
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("ValidateAllImages")]
     public async Task<ActionResult> ValidateAllImages()
     {
@@ -723,7 +639,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("AVDumpMismatchedFiles")]
     public async Task<ActionResult> AVDumpMismatchedFiles()
     {
@@ -739,7 +655,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("DownloadMissingAniDBAnimeData")]
     public ActionResult UpdateMissingAnidbXml()
     {
@@ -756,7 +672,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("DownloadMissingAniDBCreators")]
     public ActionResult ScheduleMissingAniDBCreators()
     {
@@ -771,7 +687,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("SyncMyList")]
     public async Task<ActionResult> SyncMyList()
     {
@@ -784,7 +700,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateAllAniDBInfo")]
     public async Task<ActionResult> UpdateAllAniDBInfo()
     {
@@ -797,7 +713,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateAllMediaInfo")]
     public async Task<ActionResult> UpdateAllMediaInfo()
     {
@@ -810,7 +726,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateSeriesStats")]
     public async Task<ActionResult> UpdateSeriesStats()
     {
@@ -824,7 +740,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateMissingAniDBFileInfo")]
     public async Task<ActionResult> UpdateMissingAniDBFileInfo()
     {
@@ -837,7 +753,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateAniDBCalendar")]
     public async Task<ActionResult> UpdateAniDBCalendarData()
     {
@@ -853,7 +769,7 @@ public class ActionController : BaseController
     /// </remarks>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("RecreateAllGroups")]
     public ActionResult RecreateAllGroups()
     {
@@ -870,7 +786,7 @@ public class ActionController : BaseController
     /// This action requires an admin account because it affects all groups.
     /// </remarks>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("RenameAllGroups")]
     public ActionResult RenameAllGroups()
     {
@@ -885,7 +801,7 @@ public class ActionController : BaseController
     /// This action requires an admin account because it affects the collection.
     /// </remarks>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("CreateMissingSeries")]
     public async Task<ActionResult> CreateMissingSeries()
     {
@@ -898,7 +814,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PlexSyncAll")]
     public async Task<ActionResult> PlexSyncAll()
     {
@@ -911,7 +827,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("AddAllManualLinksToMyList")]
     public async Task<ActionResult> AddAllManualLinksToMyList()
     {
@@ -924,7 +840,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("GetAniDBNotifications")]
     public async Task<ActionResult> GetAniDBNotifications()
     {
@@ -937,7 +853,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("RefreshAniDBMovedFiles")]
     public async Task<ActionResult> RefreshAniDBMovedFiles()
     {
@@ -950,7 +866,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
-    [Obsolete("Use the new action system instead.")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("VerifyAllRelations")]
     public async Task<ActionResult> VerifyAllRelations()
     {

@@ -10,7 +10,7 @@ namespace Shoko.Server.Services.Actions.Tmdb.Series;
 /// <summary>
 ///   Reset all TMDB episode mappings for the series.
 /// </summary>
-internal sealed class ResetTmdbEpisodeMappingsSeriesAction(TmdbLinkingService linkingService) : IExecutableSeriesAction
+internal sealed class ResetTmdbEpisodeMappingsSeriesAction(TmdbLinkingService linkingService) : IExecutableSeriesSystemAction
 {
     public string Name => "Reset TMDB Episode Mappings";
     public string? Description => "Reset all TMDB episode mappings for the series.";

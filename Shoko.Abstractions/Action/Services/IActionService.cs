@@ -52,19 +52,21 @@ public interface IActionService
     #region Global
 
     /// <summary>
-    ///   Executes a global action immediately and awaits completion.
+    ///   Executes a global-scoped system-level administrative action
+    ///   immediately and awaits completion.
     /// </summary>
     /// <param name="actionInfo">The action to execute.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support global scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.Global"/>).
+    ///   <see cref="ActionScope.SystemAndGlobal"/>).
     /// </exception>
-    Task ExecuteGlobalAction(ExecutableActionInfo actionInfo, CancellationToken cancellationToken = default);
+    Task ExecuteGlobalSystemAction(ExecutableActionInfo actionInfo, CancellationToken cancellationToken = default);
 
     /// <summary>
-    ///   Schedules a global action for later execution through the job queue.
+    ///   Schedules a global-scoped system-level administrative action for later
+    ///   execution through the job queue system.
     /// </summary>
     /// <param name="actionInfo">The action to schedule.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -72,12 +74,13 @@ public interface IActionService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support global scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.Global"/>).
+    ///   <see cref="ActionScope.SystemAndGlobal"/>).
     /// </exception>
-    Task ScheduleExecuteOfGlobalAction(ExecutableActionInfo actionInfo, CancellationToken cancellationToken = default, bool prioritize = false);
+    Task ScheduleExecuteOfGlobalSystemAction(ExecutableActionInfo actionInfo, CancellationToken cancellationToken = default, bool prioritize = false);
 
     /// <summary>
-    ///   Executes a global user action immediately for the specified user and awaits completion.
+    ///   Executes a global-scoped user-level user action immediately for the
+    ///   specified user and awaits completion.
     /// </summary>
     /// <param name="actionInfo">The action to execute.</param>
     /// <param name="user">The user to run the action for.</param>
@@ -85,12 +88,13 @@ public interface IActionService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support user scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.GlobalUser"/>).
+    ///   <see cref="ActionScope.UserAndGlobal"/>).
     /// </exception>
     Task ExecuteGlobalUserAction(ExecutableActionInfo actionInfo, IUser user, CancellationToken cancellationToken = default);
 
     /// <summary>
-    ///   Schedules a global user action for later execution through the job queue.
+    ///   Schedules a global-scoped user-level user action for later execution
+    ///   through the job queue system.
     /// </summary>
     /// <param name="actionInfo">The action to schedule.</param>
     /// <param name="user">The user to run the action for.</param>
@@ -99,7 +103,7 @@ public interface IActionService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support user scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.GlobalUser"/>).
+    ///   <see cref="ActionScope.UserAndGlobal"/>).
     /// </exception>
     Task ScheduleExecuteOfGlobalUserAction(ExecutableActionInfo actionInfo, IUser user, CancellationToken cancellationToken = default, bool prioritize = false);
 
@@ -108,7 +112,8 @@ public interface IActionService
     #region Group
 
     /// <summary>
-    ///   Executes a group action immediately for the specified group and awaits completion.
+    ///   Executes a group-scoped system-level administrative action immediately
+    ///   for the specified group and awaits completion.
     /// </summary>
     /// <param name="actionInfo">The action to execute.</param>
     /// <param name="group">The group to run the action on.</param>
@@ -116,12 +121,13 @@ public interface IActionService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support group scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.Group"/>).
+    ///   <see cref="ActionScope.SystemAndGroup"/>).
     /// </exception>
-    Task ExecuteGroupAction(ExecutableActionInfo actionInfo, IShokoGroup group, CancellationToken cancellationToken = default);
+    Task ExecuteGroupSystemAction(ExecutableActionInfo actionInfo, IShokoGroup group, CancellationToken cancellationToken = default);
 
     /// <summary>
-    ///   Schedules a group action for later execution through the job queue.
+    ///   Schedules a group-scoped system-level administrative action for later
+    ///   execution through the job queue system.
     /// </summary>
     /// <param name="actionInfo">The action to schedule.</param>
     /// <param name="group">The group to run the action on.</param>
@@ -130,12 +136,13 @@ public interface IActionService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support group scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.Group"/>).
+    ///   <see cref="ActionScope.SystemAndGroup"/>).
     /// </exception>
-    Task ScheduleExecuteOfGroupAction(ExecutableActionInfo actionInfo, IShokoGroup group, CancellationToken cancellationToken = default, bool prioritize = false);
+    Task ScheduleExecuteOfGroupSystemAction(ExecutableActionInfo actionInfo, IShokoGroup group, CancellationToken cancellationToken = default, bool prioritize = false);
 
     /// <summary>
-    ///   Executes a group user action immediately for the specified group and user, and awaits completion.
+    ///   Executes a group-scoped user-level user action immediately for the
+    ///   specified group and user, and awaits completion.
     /// </summary>
     /// <param name="actionInfo">The action to execute.</param>
     /// <param name="group">The group to run the action on.</param>
@@ -144,12 +151,13 @@ public interface IActionService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support group user scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.GroupUser"/>).
+    ///   <see cref="ActionScope.UserAndGroup"/>).
     /// </exception>
     Task ExecuteGroupUserAction(ExecutableActionInfo actionInfo, IShokoGroup group, IUser user, CancellationToken cancellationToken = default);
 
     /// <summary>
-    ///   Schedules a group user action for later execution through the job queue.
+    ///   Schedules a group-scoped user action for later execution through the
+    ///   job queue.
     /// </summary>
     /// <param name="actionInfo">The action to schedule.</param>
     /// <param name="group">The group to run the action on.</param>
@@ -159,7 +167,7 @@ public interface IActionService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support group user scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.GroupUser"/>).
+    ///   <see cref="ActionScope.UserAndGroup"/>).
     /// </exception>
     Task ScheduleExecuteOfGroupUserAction(ExecutableActionInfo actionInfo, IShokoGroup group, IUser user, CancellationToken cancellationToken = default, bool prioritize = false);
 
@@ -168,7 +176,8 @@ public interface IActionService
     #region Series
 
     /// <summary>
-    ///   Executes a series action immediately for the specified series and awaits completion.
+    ///   Executes a series-scoped system-level administrative action
+    ///   immediately for the specified series and awaits completion.
     /// </summary>
     /// <param name="actionInfo">The action to execute.</param>
     /// <param name="series">The series to run the action on.</param>
@@ -176,12 +185,13 @@ public interface IActionService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support series scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.Series"/>).
+    ///   <see cref="ActionScope.SystemAndSeries"/>).
     /// </exception>
-    Task ExecuteSeriesAction(ExecutableActionInfo actionInfo, IShokoSeries series, CancellationToken cancellationToken = default);
+    Task ExecuteSeriesSystemAction(ExecutableActionInfo actionInfo, IShokoSeries series, CancellationToken cancellationToken = default);
 
     /// <summary>
-    ///   Schedules a series action for later execution through the job queue.
+    ///   Schedules a series-scoped system-level administrative action for later
+    ///   execution through the job queue system.
     /// </summary>
     /// <param name="actionInfo">The action to schedule.</param>
     /// <param name="series">The series to run the action on.</param>
@@ -190,12 +200,13 @@ public interface IActionService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support series scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.Series"/>).
+    ///   <see cref="ActionScope.SystemAndSeries"/>).
     /// </exception>
-    Task ScheduleExecuteOfSeriesAction(ExecutableActionInfo actionInfo, IShokoSeries series, CancellationToken cancellationToken = default, bool prioritize = false);
+    Task ScheduleExecuteOfSeriesSystemAction(ExecutableActionInfo actionInfo, IShokoSeries series, CancellationToken cancellationToken = default, bool prioritize = false);
 
     /// <summary>
-    ///   Executes a series user action immediately for the specified series and user, and awaits completion.
+    ///   Executes a series-scoped user-level user action immediately for the
+    ///   specified series and user, and awaits completion.
     /// </summary>
     /// <param name="actionInfo">The action to execute.</param>
     /// <param name="series">The series to run the action on.</param>
@@ -204,12 +215,13 @@ public interface IActionService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support series user scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.SeriesUser"/>).
+    ///   <see cref="ActionScope.UserAndSeries"/>).
     /// </exception>
     Task ExecuteSeriesUserAction(ExecutableActionInfo actionInfo, IShokoSeries series, IUser user, CancellationToken cancellationToken = default);
 
     /// <summary>
-    ///   Schedules a series user action for later execution through the job queue.
+    ///   Schedules a series-scoped user-level user action for later execution
+    ///   through the job queue system.
     /// </summary>
     /// <param name="actionInfo">The action to schedule.</param>
     /// <param name="series">The series to run the action on.</param>
@@ -219,7 +231,7 @@ public interface IActionService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support series user scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.SeriesUser"/>).
+    ///   <see cref="ActionScope.UserAndSeries"/>).
     /// </exception>
     Task ScheduleExecuteOfSeriesUserAction(ExecutableActionInfo actionInfo, IShokoSeries series, IUser user, CancellationToken cancellationToken = default, bool prioritize = false);
 
@@ -228,7 +240,8 @@ public interface IActionService
     #region Episode
 
     /// <summary>
-    ///   Executes an episode action immediately for the specified episode and awaits completion.
+    ///   Executes an episode-scoped system-level administrative action
+    ///   immediately for the specified episode and awaits completion.
     /// </summary>
     /// <param name="actionInfo">The action to execute.</param>
     /// <param name="episode">The episode to run the action on.</param>
@@ -238,10 +251,11 @@ public interface IActionService
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
     ///   <see cref="ActionScope.Episode"/>).
     /// </exception>
-    Task ExecuteEpisodeAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, CancellationToken cancellationToken = default);
+    Task ExecuteEpisodeSystemAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, CancellationToken cancellationToken = default);
 
     /// <summary>
-    ///   Schedules an episode action for later execution through the job queue.
+    ///   Schedules an episode-scoped system-level administrative action for
+    ///   later execution through the job queue.
     /// </summary>
     /// <param name="actionInfo">The action to schedule.</param>
     /// <param name="episode">The episode to run the action on.</param>
@@ -252,10 +266,11 @@ public interface IActionService
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
     ///   <see cref="ActionScope.Episode"/>).
     /// </exception>
-    Task ScheduleExecuteOfEpisodeAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, CancellationToken cancellationToken = default, bool prioritize = false);
+    Task ScheduleExecuteOfEpisodeSystemAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, CancellationToken cancellationToken = default, bool prioritize = false);
 
     /// <summary>
-    ///   Executes an episode user action immediately for the specified episode and user, and awaits completion.
+    ///   Executes an episode-scoped user-level user action immediately for the
+    ///   specified episode and user, and awaits completion.
     /// </summary>
     /// <param name="actionInfo">The action to execute.</param>
     /// <param name="episode">The episode to run the action on.</param>
@@ -264,12 +279,13 @@ public interface IActionService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support episode user scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.EpisodeUser"/>).
+    ///   <see cref="ActionScope.UserAndEpisode"/>).
     /// </exception>
     Task ExecuteEpisodeUserAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, IUser user, CancellationToken cancellationToken = default);
 
     /// <summary>
-    ///   Schedules an episode user action for later execution through the job queue.
+    ///   Schedules an episode-scoped user-level user action for later execution
+    ///   through the job queue system.
     /// </summary>
     /// <param name="actionInfo">The action to schedule.</param>
     /// <param name="episode">The episode to run the action on.</param>
@@ -279,7 +295,7 @@ public interface IActionService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when <paramref name="actionInfo"/> does not support episode user scope
     ///   (its <see cref="ExecutableActionInfo.Scopes"/> set does not contain
-    ///   <see cref="ActionScope.EpisodeUser"/>).
+    ///   <see cref="ActionScope.UserAndEpisode"/>).
     /// </exception>
     Task ScheduleExecuteOfEpisodeUserAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, IUser user, CancellationToken cancellationToken = default, bool prioritize = false);
 

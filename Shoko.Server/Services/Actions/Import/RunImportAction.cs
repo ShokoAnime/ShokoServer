@@ -11,7 +11,7 @@ namespace Shoko.Server.Services.Actions.Import;
 ///   Run the full import pipeline: scan for new files, hash them, find releases,
 ///   update metadata, and download missing images.
 /// </summary>
-internal sealed class RunImportAction(IJobFactory jobFactory) : IExecutableGlobalAction
+internal sealed class RunImportAction(IJobFactory jobFactory) : IExecutableGlobalSystemAction
 {
     public string Name => "Run Import";
     public string? Description => "Check for new files, hash them, scan for metadata matches, and download missing images.";

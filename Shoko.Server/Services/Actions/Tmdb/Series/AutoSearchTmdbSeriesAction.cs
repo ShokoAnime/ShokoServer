@@ -10,7 +10,7 @@ namespace Shoko.Server.Services.Actions.Tmdb.Series;
 /// <summary>
 ///   Automatically search for a TMDB match for the series.
 /// </summary>
-internal sealed class AutoSearchTmdbSeriesAction(TmdbMetadataService tmdbService) : IExecutableSeriesAction
+internal sealed class AutoSearchTmdbSeriesAction(TmdbMetadataService tmdbService) : IExecutableSeriesSystemAction
 {
     public string Name => "Auto-Search TMDB Match";
     public string? Description => "Automatically searches for a TMDB match.";

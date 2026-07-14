@@ -8,7 +8,7 @@ namespace Shoko.Server.Services.Actions.AniDB;
 /// <summary>
 ///   Fetch unread notifications and messages from AniDB.
 /// </summary>
-internal sealed class GetAnidbNotificationsAction(ActionService actionService) : IExecutableGlobalAction
+internal sealed class GetAnidbNotificationsAction(ActionService actionService) : IExecutableGlobalSystemAction
 {
     public string Name => "Get AniDB Notifications";
     public string? Description => "Fetch unread notifications and messages from AniDB.";

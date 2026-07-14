@@ -12,7 +12,7 @@ namespace Shoko.Server.Services.Actions.AniDB.Series;
 ///   Update AniDB info for the series, using cached data if available and
 ///   falling back to the remote API.
 /// </summary>
-internal sealed class UpdateAnidbInfoSeriesAction(IAnidbService anidbService) : IExecutableSeriesAction
+internal sealed class UpdateAnidbInfoSeriesAction(IAnidbService anidbService) : IExecutableSeriesSystemAction
 {
     public string Name => "Update AniDB Info";
     public string? Description => "Gets the latest series information from the AniDB database.";

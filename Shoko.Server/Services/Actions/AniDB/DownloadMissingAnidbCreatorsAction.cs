@@ -8,7 +8,7 @@ namespace Shoko.Server.Services.Actions.AniDB;
 /// <summary>
 ///   Download all missing AniDB creator data via the UDP API.
 /// </summary>
-internal sealed class DownloadMissingAnidbCreatorsAction(ActionService actionService) : IExecutableGlobalAction
+internal sealed class DownloadMissingAnidbCreatorsAction(ActionService actionService) : IExecutableGlobalSystemAction
 {
     public string Name => "Download Missing AniDB Creators";
     public string? Description => "Download all missing or incomplete AniDB creator data via the UDP API.";

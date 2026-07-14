@@ -9,7 +9,7 @@ namespace Shoko.Server.Services.Actions.Tmdb;
 /// <summary>
 ///   Purge all TMDB movies that are not linked to any AniDB anime.
 /// </summary>
-internal sealed class PurgeAllUnusedTmdbMoviesAction(TmdbMetadataService tmdbService) : IExecutableGlobalAction
+internal sealed class PurgeAllUnusedTmdbMoviesAction(TmdbMetadataService tmdbService) : IExecutableGlobalSystemAction
 {
     public string Name => "Purge Unused TMDB Movies";
     public string? Description => "Remove all TMDB movies that are not linked to any AniDB anime.";

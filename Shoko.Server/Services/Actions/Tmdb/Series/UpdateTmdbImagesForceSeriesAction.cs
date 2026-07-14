@@ -11,7 +11,7 @@ namespace Shoko.Server.Services.Actions.Tmdb.Series;
 /// <summary>
 ///   Force a complete redownload of TMDB images for the series.
 /// </summary>
-internal sealed class UpdateTmdbImagesForceSeriesAction(IJobFactory jobFactory) : IExecutableSeriesAction
+internal sealed class UpdateTmdbImagesForceSeriesAction(IJobFactory jobFactory) : IExecutableSeriesSystemAction
 {
     public string Name => "Update TMDB Images - Force";
     public string? Description => "Forces a complete redownload of images from TMDB.";

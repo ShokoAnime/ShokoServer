@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json.Converters;
 
@@ -6,47 +7,83 @@ namespace Shoko.Abstractions.Action.Enums;
 /// <summary>
 ///   The scope of an action.
 /// </summary>
+[Flags]
 [JsonConverter(typeof(JsonStringEnumConverter))]
 [Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
 public enum ActionScope : byte
 {
     /// <summary>
-    ///   Global administrative action. Requires administrator privileges.
+    ///   Indicates the scope is ran at the system-level.
     /// </summary>
-    Global = 1,
+    System = 1 << 0,
 
     /// <summary>
-    ///   Global user action. Can be ran by any user.
+    ///   Indicates the scope is ran at the user-level, per user.
     /// </summary>
-    GlobalUser = 2,
+    User = 1 << 1,
 
     /// <summary>
-    ///   Group-level action. Requires administrator privileges.
+    ///   Global-scoped action. The scoped action is not particularly tied to
+    ///   any particular group, series or episode.
     /// </summary>
-    Group = 3,
+    Global = 1 << 2,
 
     /// <summary>
-    ///   Group-level user action. Can be ran by any user.
+    ///   Global system-level administrative action. Requires administrator
+    ///   privileges to run.
     /// </summary>
-    GroupUser = 4,
+    SystemAndGlobal = Global | System,
 
     /// <summary>
-    ///   Series-level action. Requires administrator privileges.
+    ///   Global user-level user action. Can be ran by any user.
     /// </summary>
-    Series = 5,
+    UserAndGlobal = Global | User,
 
     /// <summary>
-    ///   Series-level user action. Can be ran by any user.
+    ///   Group-scoped action. The action is scope to run on a group.
     /// </summary>
-    SeriesUser = 6,
+    Group = 1 << 3,
 
     /// <summary>
-    ///   Episode-level action. Requires administrator privileges.
+    ///   Group-scoped system-level administrative action. Requires
+    ///   administrator privileges to run.
     /// </summary>
-    Episode = 7,
+    SystemAndGroup = System | Group,
 
     /// <summary>
-    ///   Episode-level user action. Can be ran by any user.
+    ///   Group-scoped user-level user action. Can be ran by any user.
     /// </summary>
-    EpisodeUser = 8,
+    UserAndGroup = User | Group,
+
+    /// <summary>
+    ///   Series-scoped action. The action is scope to run on a series.
+    /// </summary>
+    Series = 1 << 4,
+
+    /// <summary>
+    ///   Series-scoped system-level administrative action. Requires
+    ///   administrator privileges to run.
+    /// </summary>
+    SystemAndSeries = System | Series,
+
+    /// <summary>
+    ///   Series-scoped user-level user action. Can be ran by any user.
+    /// </summary>
+    UserAndSeries = User | Series,
+
+    /// <summary>
+    ///   Episode-scoped action. The action is scope to run on an episode.
+    /// </summary>
+    Episode = 1 << 5,
+
+    /// <summary>
+    ///   Episode-scoped system-level administrative action. Requires
+    ///   administrator privileges to run.
+    /// </summary>
+    SystemAndEpisode = System | Episode,
+
+    /// <summary>
+    ///   Episode-scoped user-level user action. Can be ran by any user.
+    /// </summary>
+    UserAndEpisode = User | Episode,
 }

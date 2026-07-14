@@ -8,7 +8,7 @@ namespace Shoko.Server.Services.Actions.AniDB;
 /// <summary>
 ///   Sync local votes to AniDB.
 /// </summary>
-internal sealed class SyncAnidbVotesAction(ActionService actionService) : IExecutableGlobalAction
+internal sealed class SyncAnidbVotesAction(ActionService actionService) : IExecutableGlobalSystemAction
 {
     public string Name => "Sync AniDB Votes";
     public string? Description => "Export local votes to AniDB.";

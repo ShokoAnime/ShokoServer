@@ -8,7 +8,7 @@ namespace Shoko.Server.Services.Actions.Tmdb;
 /// <summary>
 ///   Remove all AniDB-TMDB links and reset the auto-linking state.
 /// </summary>
-internal sealed class PurgeAllTmdbLinksAction(ActionService actionService) : IExecutableGlobalAction
+internal sealed class PurgeAllTmdbLinksAction(ActionService actionService) : IExecutableGlobalSystemAction
 {
     public string Name => "Purge All TMDB Links";
     public string? Description => "Remove all AniDB-TMDB links and reset the auto-linking state.";

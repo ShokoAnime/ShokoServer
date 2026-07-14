@@ -14,7 +14,7 @@ namespace Shoko.Server.Services.Actions.Import.Series;
 internal sealed class RescanSeriesFilesAction(
     AnimeSeriesRepository seriesRepo,
     IVideoReleaseService releaseService
-) : IExecutableSeriesAction
+) : IExecutableSeriesSystemAction
 {
     public string Name => "Rescan Files";
     public string? Description => "Rescans every file associated with the series.";

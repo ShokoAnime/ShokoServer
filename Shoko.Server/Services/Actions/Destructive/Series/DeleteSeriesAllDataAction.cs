@@ -14,7 +14,7 @@ namespace Shoko.Server.Services.Actions.Destructive.Series;
 internal sealed class DeleteSeriesAllDataAction(
     AnimeSeriesRepository seriesRepo,
     AnimeSeriesService seriesService
-) : IExecutableSeriesAction
+) : IExecutableSeriesSystemAction
 {
     public string Name => "Delete Series - All Series Data and Files";
     public string? Description => "Removes ALL DATA AND FILES relating to the series. Use with caution, as you may get temp banned from AniDB if it's abused.";

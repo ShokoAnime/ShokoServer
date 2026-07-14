@@ -9,7 +9,7 @@ namespace Shoko.Server.Services.Actions.Maintenance;
 ///   Create anime series entries for files that have release info but no
 ///   corresponding series.
 /// </summary>
-internal sealed class CreateMissingSeriesAction(ActionService actionService) : IExecutableGlobalAction
+internal sealed class CreateMissingSeriesAction(ActionService actionService) : IExecutableGlobalSystemAction
 {
     public string Name => "Create Missing Series";
     public string? Description => "Create series entries for files that have release info but no corresponding series.";

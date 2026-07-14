@@ -14,7 +14,7 @@ namespace Shoko.Server.Services.Actions.Destructive.Series;
 internal sealed class DeleteSeriesKeepFilesAction(
     AnimeSeriesRepository seriesRepo,
     AnimeSeriesService seriesService
-) : IExecutableSeriesAction
+) : IExecutableSeriesSystemAction
 {
     public string Name => "Delete Series - Keep Files";
     public string? Description => "Deletes the series from Shoko but does not delete the files. Cached AniDB data is preserved.";

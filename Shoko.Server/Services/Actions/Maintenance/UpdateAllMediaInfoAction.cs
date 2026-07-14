@@ -11,7 +11,7 @@ namespace Shoko.Server.Services.Actions.Maintenance;
 /// <summary>
 ///   Update media info for all files in the collection.
 /// </summary>
-internal sealed class UpdateAllMediaInfoAction(IQueueScheduler scheduler) : IExecutableGlobalAction
+internal sealed class UpdateAllMediaInfoAction(IQueueScheduler scheduler) : IExecutableGlobalSystemAction
 {
     public string Name => "Update All Media Info";
     public string? Description => "Re-read and update media info for all files in the collection.";

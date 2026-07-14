@@ -10,7 +10,7 @@ namespace Shoko.Server.Services.Actions.Tmdb;
 ///   Update all TMDB movies in the local database from the remote API.
 ///   Only refreshes metadata; does not download images.
 /// </summary>
-internal sealed class UpdateAllTmdbMoviesAction(TmdbMetadataService tmdbService) : IExecutableGlobalAction
+internal sealed class UpdateAllTmdbMoviesAction(TmdbMetadataService tmdbService) : IExecutableGlobalSystemAction
 {
     public string Name => "Update All TMDB Movies";
     public string? Description => "Update all TMDB movie metadata in the local database without downloading images.";

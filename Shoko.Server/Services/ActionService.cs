@@ -236,22 +236,22 @@ public class ActionService : IActionService
         => _registeredActions.FirstOrDefault(ra => ra.Info.ID == actionId).Info;
 
     /// <inheritdoc />
-    public async Task ExecuteGlobalAction(ExecutableActionInfo actionInfo, CancellationToken cancellationToken = default)
+    public async Task ExecuteGlobalSystemAction(ExecutableActionInfo actionInfo, CancellationToken cancellationToken = default)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.Global))
+        if (!actionInfo.Scopes.Contains(ActionScope.SystemAndGlobal))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support global execution.");
 
-        if (ResolveAction(actionInfo) is not IExecutableGlobalAction globalAction)
-            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableGlobalAction)}.");
+        if (ResolveAction(actionInfo) is not IExecutableGlobalSystemAction globalAction)
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableGlobalSystemAction)}.");
 
         cancellationToken.ThrowIfCancellationRequested();
         await globalAction.Execute(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public Task ScheduleExecuteOfGlobalAction(ExecutableActionInfo actionInfo, CancellationToken cancellationToken = default, bool prioritize = false)
+    public Task ScheduleExecuteOfGlobalSystemAction(ExecutableActionInfo actionInfo, CancellationToken cancellationToken = default, bool prioritize = false)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.Global))
+        if (!actionInfo.Scopes.Contains(ActionScope.SystemAndGlobal))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support global execution.");
 
         return _scheduler.StartJob<ExecuteActionJob>(j => j.ActionID = actionInfo.ID, prioritize: prioritize);
@@ -260,7 +260,7 @@ public class ActionService : IActionService
     /// <inheritdoc />
     public async Task ExecuteGlobalUserAction(ExecutableActionInfo actionInfo, IUser user, CancellationToken cancellationToken = default)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.GlobalUser))
+        if (!actionInfo.Scopes.Contains(ActionScope.UserAndGlobal))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support global user execution.");
 
         if (ResolveAction(actionInfo) is not IExecutableGlobalUserAction globalUserAction)
@@ -273,7 +273,7 @@ public class ActionService : IActionService
     /// <inheritdoc />
     public Task ScheduleExecuteOfGlobalUserAction(ExecutableActionInfo actionInfo, IUser user, CancellationToken cancellationToken = default, bool prioritize = false)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.GlobalUser))
+        if (!actionInfo.Scopes.Contains(ActionScope.UserAndGlobal))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support global user execution.");
 
         return _scheduler.StartJob<ExecuteActionJob>(j =>
@@ -284,22 +284,22 @@ public class ActionService : IActionService
     }
 
     /// <inheritdoc />
-    public async Task ExecuteSeriesAction(ExecutableActionInfo actionInfo, IShokoSeries series, CancellationToken cancellationToken = default)
+    public async Task ExecuteSeriesSystemAction(ExecutableActionInfo actionInfo, IShokoSeries series, CancellationToken cancellationToken = default)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.Series))
+        if (!actionInfo.Scopes.Contains(ActionScope.SystemAndSeries))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support series execution.");
 
-        if (ResolveAction(actionInfo) is not IExecutableSeriesAction seriesAction)
-            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableSeriesAction)}.");
+        if (ResolveAction(actionInfo) is not IExecutableSeriesSystemAction seriesAction)
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableSeriesSystemAction)}.");
 
         cancellationToken.ThrowIfCancellationRequested();
         await seriesAction.Execute(series, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public Task ScheduleExecuteOfSeriesAction(ExecutableActionInfo actionInfo, IShokoSeries series, CancellationToken cancellationToken = default, bool prioritize = false)
+    public Task ScheduleExecuteOfSeriesSystemAction(ExecutableActionInfo actionInfo, IShokoSeries series, CancellationToken cancellationToken = default, bool prioritize = false)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.Series))
+        if (!actionInfo.Scopes.Contains(ActionScope.SystemAndSeries))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support series execution.");
 
         return _scheduler.StartJob<ExecuteActionJob>(j =>
@@ -312,7 +312,7 @@ public class ActionService : IActionService
     /// <inheritdoc />
     public async Task ExecuteSeriesUserAction(ExecutableActionInfo actionInfo, IShokoSeries series, IUser user, CancellationToken cancellationToken = default)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.SeriesUser))
+        if (!actionInfo.Scopes.Contains(ActionScope.UserAndSeries))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support series user execution.");
 
         if (ResolveAction(actionInfo) is not IExecutableSeriesUserAction seriesUserAction)
@@ -325,7 +325,7 @@ public class ActionService : IActionService
     /// <inheritdoc />
     public Task ScheduleExecuteOfSeriesUserAction(ExecutableActionInfo actionInfo, IShokoSeries series, IUser user, CancellationToken cancellationToken = default, bool prioritize = false)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.SeriesUser))
+        if (!actionInfo.Scopes.Contains(ActionScope.UserAndSeries))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support series user execution.");
 
         return _scheduler.StartJob<ExecuteActionJob>(j =>
@@ -337,22 +337,22 @@ public class ActionService : IActionService
     }
 
     /// <inheritdoc />
-    public async Task ExecuteGroupAction(ExecutableActionInfo actionInfo, IShokoGroup group, CancellationToken cancellationToken = default)
+    public async Task ExecuteGroupSystemAction(ExecutableActionInfo actionInfo, IShokoGroup group, CancellationToken cancellationToken = default)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.Group))
+        if (!actionInfo.Scopes.Contains(ActionScope.SystemAndGroup))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support group execution.");
 
-        if (ResolveAction(actionInfo) is not IExecutableGroupAction groupAction)
-            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableGroupAction)}.");
+        if (ResolveAction(actionInfo) is not IExecutableGroupSystemAction groupAction)
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableGroupSystemAction)}.");
 
         cancellationToken.ThrowIfCancellationRequested();
         await groupAction.Execute(group, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public Task ScheduleExecuteOfGroupAction(ExecutableActionInfo actionInfo, IShokoGroup group, CancellationToken cancellationToken = default, bool prioritize = false)
+    public Task ScheduleExecuteOfGroupSystemAction(ExecutableActionInfo actionInfo, IShokoGroup group, CancellationToken cancellationToken = default, bool prioritize = false)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.Group))
+        if (!actionInfo.Scopes.Contains(ActionScope.SystemAndGroup))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support group execution.");
 
         return _scheduler.StartJob<ExecuteActionJob>(j =>
@@ -365,7 +365,7 @@ public class ActionService : IActionService
     /// <inheritdoc />
     public async Task ExecuteGroupUserAction(ExecutableActionInfo actionInfo, IShokoGroup group, IUser user, CancellationToken cancellationToken = default)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.GroupUser))
+        if (!actionInfo.Scopes.Contains(ActionScope.UserAndGroup))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support group user execution.");
 
         if (ResolveAction(actionInfo) is not IExecutableGroupUserAction groupUserAction)
@@ -378,7 +378,7 @@ public class ActionService : IActionService
     /// <inheritdoc />
     public Task ScheduleExecuteOfGroupUserAction(ExecutableActionInfo actionInfo, IShokoGroup group, IUser user, CancellationToken cancellationToken = default, bool prioritize = false)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.GroupUser))
+        if (!actionInfo.Scopes.Contains(ActionScope.UserAndGroup))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support group user execution.");
 
         return _scheduler.StartJob<ExecuteActionJob>(j =>
@@ -390,22 +390,22 @@ public class ActionService : IActionService
     }
 
     /// <inheritdoc />
-    public async Task ExecuteEpisodeAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, CancellationToken cancellationToken = default)
+    public async Task ExecuteEpisodeSystemAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, CancellationToken cancellationToken = default)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.Episode))
+        if (!actionInfo.Scopes.Contains(ActionScope.SystemAndEpisode))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support episode execution.");
 
-        if (ResolveAction(actionInfo) is not IExecutableEpisodeAction episodeAction)
-            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableEpisodeAction)}.");
+        if (ResolveAction(actionInfo) is not IExecutableEpisodeSystemAction episodeAction)
+            throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not implement {nameof(IExecutableEpisodeSystemAction)}.");
 
         cancellationToken.ThrowIfCancellationRequested();
         await episodeAction.Execute(episode, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public Task ScheduleExecuteOfEpisodeAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, CancellationToken cancellationToken = default, bool prioritize = false)
+    public Task ScheduleExecuteOfEpisodeSystemAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, CancellationToken cancellationToken = default, bool prioritize = false)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.Episode))
+        if (!actionInfo.Scopes.Contains(ActionScope.SystemAndEpisode))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support episode execution.");
 
         return _scheduler.StartJob<ExecuteActionJob>(j =>
@@ -418,7 +418,7 @@ public class ActionService : IActionService
     /// <inheritdoc />
     public async Task ExecuteEpisodeUserAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, IUser user, CancellationToken cancellationToken = default)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.EpisodeUser))
+        if (!actionInfo.Scopes.Contains(ActionScope.UserAndEpisode))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support episode user execution.");
 
         if (ResolveAction(actionInfo) is not IExecutableEpisodeUserAction episodeUserAction)
@@ -431,7 +431,7 @@ public class ActionService : IActionService
     /// <inheritdoc />
     public Task ScheduleExecuteOfEpisodeUserAction(ExecutableActionInfo actionInfo, IShokoEpisode episode, IUser user, CancellationToken cancellationToken = default, bool prioritize = false)
     {
-        if (!actionInfo.Scopes.Contains(ActionScope.EpisodeUser))
+        if (!actionInfo.Scopes.Contains(ActionScope.UserAndEpisode))
             throw new InvalidOperationException($"The action '{actionInfo.Name}' ({actionInfo.ID}) does not support episode user execution.");
 
         return _scheduler.StartJob<ExecuteActionJob>(j =>
@@ -449,25 +449,25 @@ public class ActionService : IActionService
     private static IReadOnlySet<ActionScope> GetActionScopes(Type actionType)
     {
         var result = new HashSet<ActionScope>();
-        if (typeof(IExecutableGlobalAction).IsAssignableFrom(actionType))
-            result.Add(ActionScope.Global);
+        if (typeof(IExecutableGlobalSystemAction).IsAssignableFrom(actionType))
+            result.Add(ActionScope.SystemAndGlobal);
         if (typeof(IExecutableGlobalUserAction).IsAssignableFrom(actionType))
-            result.Add(ActionScope.GlobalUser);
+            result.Add(ActionScope.UserAndGlobal);
 
-        if (typeof(IExecutableGroupAction).IsAssignableFrom(actionType))
-            result.Add(ActionScope.Group);
+        if (typeof(IExecutableGroupSystemAction).IsAssignableFrom(actionType))
+            result.Add(ActionScope.SystemAndGroup);
         if (typeof(IExecutableGroupUserAction).IsAssignableFrom(actionType))
-            result.Add(ActionScope.GroupUser);
+            result.Add(ActionScope.UserAndGroup);
 
-        if (typeof(IExecutableSeriesAction).IsAssignableFrom(actionType))
-            result.Add(ActionScope.Series);
+        if (typeof(IExecutableSeriesSystemAction).IsAssignableFrom(actionType))
+            result.Add(ActionScope.SystemAndSeries);
         if (typeof(IExecutableSeriesUserAction).IsAssignableFrom(actionType))
-            result.Add(ActionScope.SeriesUser);
+            result.Add(ActionScope.UserAndSeries);
 
-        if (typeof(IExecutableEpisodeAction).IsAssignableFrom(actionType))
-            result.Add(ActionScope.Episode);
+        if (typeof(IExecutableEpisodeSystemAction).IsAssignableFrom(actionType))
+            result.Add(ActionScope.SystemAndEpisode);
         if (typeof(IExecutableEpisodeUserAction).IsAssignableFrom(actionType))
-            result.Add(ActionScope.EpisodeUser);
+            result.Add(ActionScope.UserAndEpisode);
 
         return result;
     }

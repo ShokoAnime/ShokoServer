@@ -10,7 +10,7 @@ namespace Shoko.Server.Services.Actions.Maintenance;
 ///   Delete all existing groups and recreate them from scratch based on
 ///   current settings.
 /// </summary>
-internal sealed class RecreateAllGroupsAction(AnimeGroupCreator groupCreator) : IExecutableGlobalAction
+internal sealed class RecreateAllGroupsAction(AnimeGroupCreator groupCreator) : IExecutableGlobalSystemAction
 {
     public string Name => "Recreate All Groups";
     public string? Description => "Delete all groups and recreate them from scratch based on current settings.";

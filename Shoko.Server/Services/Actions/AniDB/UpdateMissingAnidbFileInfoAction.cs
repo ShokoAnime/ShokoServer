@@ -8,7 +8,7 @@ namespace Shoko.Server.Services.Actions.AniDB;
 /// <summary>
 ///   Update AniDB release info for files with missing or incomplete group data.
 /// </summary>
-internal sealed class UpdateMissingAnidbFileInfoAction(ActionService actionService) : IExecutableGlobalAction
+internal sealed class UpdateMissingAnidbFileInfoAction(ActionService actionService) : IExecutableGlobalSystemAction
 {
     public string Name => "Update Missing AniDB File Info";
     public string? Description => "Update AniDB release info for files with missing or incomplete group information.";

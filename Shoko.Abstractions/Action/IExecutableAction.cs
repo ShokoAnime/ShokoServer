@@ -41,7 +41,7 @@ public interface IExecutableAction
     /// <summary>
     ///   The category of the action.
     /// </summary>
-    public ActionCategory Category { get => ActionCategory.PluginInferred; }
+    public ActionCategory Category { get => ActionCategory.Mischievous; }
 
     /// <summary>
     ///   Indicates whether the action requires explicit user confirmation
@@ -52,12 +52,12 @@ public interface IExecutableAction
 }
 
 /// <summary>
-///   A global administrative action.
+///   A global-scoped system-level administrative action.
 /// </summary>
-public interface IExecutableGlobalAction : IExecutableAction
+public interface IExecutableGlobalSystemAction : IExecutableAction
 {
     /// <summary>
-    ///   Execute the global administrative action.
+    ///   Execute the global-scoped system-level administrative action.
     /// </summary>
     /// <param name="cancellationToken">
     ///   The cancellation token.
@@ -69,12 +69,12 @@ public interface IExecutableGlobalAction : IExecutableAction
 }
 
 /// <summary>
-///   A global user action.
+///   A global-scoped user-level user action.
 /// </summary>
 public interface IExecutableGlobalUserAction : IExecutableAction
 {
     /// <summary>
-    ///   Execute the global user action.
+    ///   Execute the global-scoped user-level user action.
     /// </summary>
     /// <param name="user">
     ///   The user to run the action for.
@@ -89,12 +89,12 @@ public interface IExecutableGlobalUserAction : IExecutableAction
 }
 
 /// <summary>
-///   A group-level administrative action.
+///   A group-scoped system-level administrative action.
 /// </summary>
-public interface IExecutableGroupAction : IExecutableAction
+public interface IExecutableGroupSystemAction : IExecutableAction
 {
     /// <summary>
-    ///   Execute the group-level administrative action.
+    ///   Execute the group-scoped system-level administrative action.
     /// </summary>
     /// <param name="group">
     ///   The group to run the action on.
@@ -109,12 +109,12 @@ public interface IExecutableGroupAction : IExecutableAction
 }
 
 /// <summary>
-///   A group-level user action.
+///   A group-scoped user-level user action.
 /// </summary>
 public interface IExecutableGroupUserAction : IExecutableAction
 {
     /// <summary>
-    ///   Execute the group-level user action.
+    ///   Execute the group-scoped user-level user action.
     /// </summary>
     /// <param name="group">
     ///   The group to run the action on.
@@ -132,12 +132,12 @@ public interface IExecutableGroupUserAction : IExecutableAction
 }
 
 /// <summary>
-///   A series-level administrative action.
+///   A series-scoped system-level administrative action.
 /// </summary>
-public interface IExecutableSeriesAction : IExecutableAction
+public interface IExecutableSeriesSystemAction : IExecutableAction
 {
     /// <summary>
-    ///   Execute the series-level administrative action.
+    ///   Execute the series-scoped system-level administrative action.
     /// </summary>
     /// <param name="series">
     ///   The series to run the action on.
@@ -152,12 +152,12 @@ public interface IExecutableSeriesAction : IExecutableAction
 }
 
 /// <summary>
-///   A series-level user action.
+///   A series-scoped user-level user action.
 /// </summary>
 public interface IExecutableSeriesUserAction : IExecutableAction
 {
     /// <summary>
-    ///   Execute the series-level user action.
+    ///   Execute the series-scoped user-level user action.
     /// </summary>
     /// <param name="series">
     ///   The series to run the action on.
@@ -175,12 +175,12 @@ public interface IExecutableSeriesUserAction : IExecutableAction
 }
 
 /// <summary>
-///   An episode-level administrative action.
+///   An episode-scoped system-level administrative action.
 /// </summary>
-public interface IExecutableEpisodeAction : IExecutableAction
+public interface IExecutableEpisodeSystemAction : IExecutableAction
 {
     /// <summary>
-    ///   Execute the episode-level administrative action.
+    ///   Execute the episode-scoped system-level administrative action.
     /// </summary>
     /// <param name="episode">
     ///   The episode to run the action on.
@@ -195,12 +195,12 @@ public interface IExecutableEpisodeAction : IExecutableAction
 }
 
 /// <summary>
-///   An episode-level user action.
+///   An episode-scoped user-level user action.
 /// </summary>
 public interface IExecutableEpisodeUserAction : IExecutableAction
 {
     /// <summary>
-    ///   Execute the episode-level user action.
+    ///   Execute the episode-scoped user-level user action.
     /// </summary>
     /// <param name="episode">
     ///   The episode to run the action on.

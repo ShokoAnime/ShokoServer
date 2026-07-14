@@ -15,7 +15,7 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 ///   Job that executes a registered plugin action by its identifier,
 ///   optionally scoped to a specific user and/or entity (series, group,
 ///   episode).
-///   Enqueued by <see cref="IActionService.ScheduleExecuteOfGlobalAction"/>
+///   Enqueued by <see cref="IActionService.ScheduleExecuteOfGlobalSystemAction"/>
 ///   and its overloads.
 /// </summary>
 [DatabaseRequired]
@@ -132,7 +132,7 @@ internal class ExecuteActionJob(
             if (series is not null && user is not null)
                 await actionService.ExecuteSeriesUserAction(action, series, user);
             else if (series is not null)
-                await actionService.ExecuteSeriesAction(action, series);
+                await actionService.ExecuteSeriesSystemAction(action, series);
         }
         else if (GroupID.HasValue)
         {
@@ -140,7 +140,7 @@ internal class ExecuteActionJob(
             if (group is not null && user is not null)
                 await actionService.ExecuteGroupUserAction(action, group, user);
             else if (group is not null)
-                await actionService.ExecuteGroupAction(action, group);
+                await actionService.ExecuteGroupSystemAction(action, group);
         }
         else if (EpisodeID.HasValue)
         {
@@ -148,7 +148,7 @@ internal class ExecuteActionJob(
             if (episode is not null && user is not null)
                 await actionService.ExecuteEpisodeUserAction(action, episode, user);
             else if (episode is not null)
-                await actionService.ExecuteEpisodeAction(action, episode);
+                await actionService.ExecuteEpisodeSystemAction(action, episode);
         }
         else if (user is not null)
         {
@@ -156,7 +156,7 @@ internal class ExecuteActionJob(
         }
         else
         {
-            await actionService.ExecuteGlobalAction(action);
+            await actionService.ExecuteGlobalSystemAction(action);
         }
 
         _logger.LogInformation("Finished executing action \"{Action}\"", _actionName ?? ActionID.ToString());

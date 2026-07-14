@@ -10,7 +10,7 @@ namespace Shoko.Server.Services.Actions.AniDB;
 /// <summary>
 ///   Sync all local state to the AniDB MyList. This overwrites AniDB data.
 /// </summary>
-internal sealed class SyncAnidbMyListAction(IJobFactory jobFactory) : IExecutableGlobalAction
+internal sealed class SyncAnidbMyListAction(IJobFactory jobFactory) : IExecutableGlobalSystemAction
 {
     public string Name => "Sync AniDB MyList";
     public string? Description => "Sync all local state to the AniDB MyList. This can overwrite AniDB data irreversibly.";

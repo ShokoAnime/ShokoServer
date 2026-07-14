@@ -10,7 +10,7 @@ namespace Shoko.Server.Services.Actions.Maintenance;
 ///   Rename all groups that do not have a custom name set, using the current
 ///   language preferences.
 /// </summary>
-internal sealed class RenameAllGroupsAction(IShokoGroupManager groupManager) : IExecutableGlobalAction
+internal sealed class RenameAllGroupsAction(IShokoGroupManager groupManager) : IExecutableGlobalSystemAction
 {
     public string Name => "Rename All Groups";
     public string? Description => "Rename all groups without a custom name using the current language preferences.";

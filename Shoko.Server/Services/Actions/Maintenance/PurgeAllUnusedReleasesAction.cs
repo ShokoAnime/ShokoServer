@@ -10,7 +10,7 @@ namespace Shoko.Server.Services.Actions.Maintenance;
 ///   Purge all unused (unlinked) releases from the database, optionally
 ///   filtered by provider.
 /// </summary>
-internal sealed class PurgeAllUnusedReleasesAction(IVideoReleaseService releaseService) : IExecutableGlobalAction
+internal sealed class PurgeAllUnusedReleasesAction(IVideoReleaseService releaseService) : IExecutableGlobalSystemAction
 {
     public string Name => "Purge Unused Releases";
     public string? Description => "Remove all unused (unlinked) releases from the database, optionally filtered by provider.";
