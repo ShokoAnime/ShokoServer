@@ -87,4 +87,10 @@ public class TestFilterable : IFilterableInfo
     public IReadOnlyDictionary<CrewRoleType, IReadOnlySet<string>> CreatorRoles { get; init; }
     public IReadOnlySet<string> ReleaseGroupNames { get; init; }
     public IReadOnlySet<string> ReleaseProviderNames { get; init; }
+    public IReadOnlySet<string> TmdbMovieKeywords { get; init; }
+    public IReadOnlySet<string> TmdbMovieGenres { get; init; }
+    public IReadOnlySet<string> TmdbShowKeywords { get; init; }
+    public IReadOnlySet<string> TmdbShowGenres { get; init; }
+    public IReadOnlySet<string> TmdbKeywords { get; init; }
+    public IReadOnlySet<string> TmdbGenres { get; init; }
 }

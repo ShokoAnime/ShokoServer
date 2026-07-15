@@ -154,6 +154,54 @@ internal static class ExpressionDiscovery
                 null
             ),
 
+            nameof(HasTmdbMovieKeywordExpression) =>
+            (
+                RepoFactory.TMDB_Movie.GetAllKeywords().ToArray(),
+                null,
+                null
+            ),
+
+            nameof(HasTmdbMovieGenreExpression) =>
+            (
+                RepoFactory.TMDB_Movie.GetAllGenres().ToArray(),
+                null,
+                null
+            ),
+
+            nameof(HasTmdbShowKeywordExpression) =>
+            (
+                RepoFactory.TMDB_Show.GetAllKeywords().ToArray(),
+                null,
+                null
+            ),
+
+            nameof(HasTmdbShowGenreExpression) =>
+            (
+                RepoFactory.TMDB_Show.GetAllGenres().ToArray(),
+                null,
+                null
+            ),
+
+            nameof(HasTmdbKeywordExpression) =>
+            (
+                RepoFactory.TMDB_Movie.GetAllKeywords()
+                    .Concat(RepoFactory.TMDB_Show.GetAllKeywords())
+                    .ToHashSet(StringComparer.InvariantCultureIgnoreCase)
+                    .ToArray(),
+                null,
+                null
+            ),
+
+            nameof(HasTmdbGenreExpression) =>
+            (
+                RepoFactory.TMDB_Movie.GetAllGenres()
+                    .Concat(RepoFactory.TMDB_Show.GetAllGenres())
+                    .ToHashSet(StringComparer.InvariantCultureIgnoreCase)
+                    .ToArray(),
+                null,
+                null
+            ),
+
             _ => (null, null, null),
         };
 

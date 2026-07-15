@@ -205,6 +205,38 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
         return acc + ser.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
     });
 
+    public IReadOnlySet<string> TmdbMovieKeywords =>
+        AllSeries.SelectMany(s => s.TmdbMovies)
+            .DistinctBy(m => m.TmdbMovieID)
+            .SelectMany(m => m.Keywords)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public IReadOnlySet<string> TmdbMovieGenres =>
+        AllSeries.SelectMany(s => s.TmdbMovies)
+            .DistinctBy(m => m.TmdbMovieID)
+            .SelectMany(m => m.Genres)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public IReadOnlySet<string> TmdbShowKeywords =>
+        AllSeries.SelectMany(s => s.TmdbShows)
+            .DistinctBy(s => s.TmdbShowID)
+            .SelectMany(s => s.Keywords)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public IReadOnlySet<string> TmdbShowGenres =>
+        AllSeries.SelectMany(s => s.TmdbShows)
+            .DistinctBy(s => s.TmdbShowID)
+            .SelectMany(s => s.Genres)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public IReadOnlySet<string> TmdbKeywords =>
+        TmdbMovieKeywords.Union(TmdbShowKeywords)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public IReadOnlySet<string> TmdbGenres =>
+        TmdbMovieGenres.Union(TmdbShowGenres)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
     public bool HasAnilistLink => false;
 
     public bool HasAnilistAutoLinkingDisabled =>
@@ -291,6 +323,7 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
         AllVideoLocals
             .Where(a => a.MediaInfo?.VideoStream is not null)
             .Select(a => MediaInfoUtility.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
+            .WhereNotNull()
             .ToHashSet();
 
     public IReadOnlySet<string> ManagedFolderIDs =>

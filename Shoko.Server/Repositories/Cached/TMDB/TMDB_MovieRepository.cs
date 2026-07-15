@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NutzCode.InMemoryIndex;
@@ -28,6 +29,30 @@ public class TMDB_MovieRepository : BaseCachedRepository<TMDB_Movie, int>
         return _collectionIDs.GetMultiple(tmdbCollectionId).OrderBy(a => a.EnglishTitle)
             .ThenBy(a => a.TmdbMovieID)
             .ToList();
+    }
+
+    public IReadOnlySet<string> GetAllKeywords()
+    {
+        var localMovieIds = RepoFactory.AnimeSeries.GetAll()
+            .SelectMany(s => s.TmdbMovieCrossReferences)
+            .Select(xref => xref.TmdbMovieID)
+            .ToHashSet();
+        return Cache.GetAll()
+            .Where(m => localMovieIds.Contains(m.TmdbMovieID))
+            .SelectMany(m => m.Keywords)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+    }
+
+    public IReadOnlySet<string> GetAllGenres()
+    {
+        var localMovieIds = RepoFactory.AnimeSeries.GetAll()
+            .SelectMany(s => s.TmdbMovieCrossReferences)
+            .Select(xref => xref.TmdbMovieID)
+            .ToHashSet();
+        return Cache.GetAll()
+            .Where(m => localMovieIds.Contains(m.TmdbMovieID))
+            .SelectMany(m => m.Genres)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
     }
 
     public TMDB_MovieRepository(DatabaseFactory databaseFactory) : base(databaseFactory)

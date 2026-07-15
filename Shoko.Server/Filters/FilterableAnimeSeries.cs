@@ -190,6 +190,30 @@ public sealed class FilterableAnimeSeries(AnimeSeries series, DateTime now) : IF
         }
     }
 
+    public IReadOnlySet<string> TmdbMovieKeywords =>
+        series.TmdbMovies.SelectMany(m => m.Keywords)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public IReadOnlySet<string> TmdbMovieGenres =>
+        series.TmdbMovies.SelectMany(m => m.Genres)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public IReadOnlySet<string> TmdbShowKeywords =>
+        series.TmdbShows.SelectMany(s => s.Keywords)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public IReadOnlySet<string> TmdbShowGenres =>
+        series.TmdbShows.SelectMany(s => s.Genres)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public IReadOnlySet<string> TmdbKeywords =>
+        TmdbMovieKeywords.Union(TmdbShowKeywords)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public IReadOnlySet<string> TmdbGenres =>
+        TmdbMovieGenres.Union(TmdbShowGenres)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
     public bool HasAnilistLink => false;
 
     public bool HasAnilistAutoLinkingDisabled => series.IsAnilistAutoMatchingDisabled;
@@ -270,6 +294,7 @@ public sealed class FilterableAnimeSeries(AnimeSeries series, DateTime now) : IF
         VideoLocals
             .Where(a => a.MediaInfo?.VideoStream is not null)
             .Select(a => MediaInfoUtility.GetStandardResolution(Tuple.Create(a.MediaInfo!.VideoStream!.Width, a.MediaInfo!.VideoStream!.Height)))
+            .WhereNotNull()
             .ToHashSet();
 
     public IReadOnlySet<string> ManagedFolderIDs =>

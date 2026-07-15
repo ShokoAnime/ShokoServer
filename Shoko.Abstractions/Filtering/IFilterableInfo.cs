@@ -179,6 +179,36 @@ public interface IFilterableInfo
     int MissingTmdbEpisodeLinks { get; }
 
     /// <summary>
+    /// All TMDB movie keywords for the filterable.
+    /// </summary>
+    IReadOnlySet<string> TmdbMovieKeywords { get; }
+
+    /// <summary>
+    /// All TMDB movie genres for the filterable.
+    /// </summary>
+    IReadOnlySet<string> TmdbMovieGenres { get; }
+
+    /// <summary>
+    /// All TMDB show keywords for the filterable.
+    /// </summary>
+    IReadOnlySet<string> TmdbShowKeywords { get; }
+
+    /// <summary>
+    /// All TMDB show genres for the filterable.
+    /// </summary>
+    IReadOnlySet<string> TmdbShowGenres { get; }
+
+    /// <summary>
+    /// All TMDB keywords (movie + show combined) for the filterable.
+    /// </summary>
+    IReadOnlySet<string> TmdbKeywords { get; }
+
+    /// <summary>
+    /// All TMDB genres (movie + show combined) for the filterable.
+    /// </summary>
+    IReadOnlySet<string> TmdbGenres { get; }
+
+    /// <summary>
     /// Has at least one AniList Link
     /// </summary>
     bool HasAnilistLink { get; }
