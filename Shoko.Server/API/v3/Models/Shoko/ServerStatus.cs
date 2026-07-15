@@ -19,6 +19,13 @@ public class ServerStatus
     public string? StartupMessage { get; set; }
 
     /// <summary>
+    /// Whether OIDC single sign-on is configured and available as a login
+    /// option. Does not reveal the provider or any other details — just
+    /// whether the button should be shown.
+    /// </summary>
+    public bool OidcEnabled { get; set; }
+
+    /// <summary>
     /// Indicates that we can perform a controlled shutdown.
     /// </summary>
     /// <remarks>
