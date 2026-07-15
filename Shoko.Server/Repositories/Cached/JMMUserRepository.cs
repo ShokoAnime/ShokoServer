@@ -18,6 +18,11 @@ public class JMMUserRepository(DatabaseFactory databaseFactory) : BaseCachedRepo
     public JMMUser? GetAniDBUser()
         => Cache.GetAll().FirstOrDefault(a => a.IsAniDBUser == 1);
 
+    public JMMUser? GetByExternalAuthID(string? externalAuthID)
+        => !string.IsNullOrWhiteSpace(externalAuthID)
+            ? Cache.GetAll().FirstOrDefault(user => string.Equals(user.ExternalAuthID, externalAuthID, StringComparison.Ordinal))
+            : null;
+
     public JMMUser? AuthenticateUser(string userName, string? password)
     {
         password ??= string.Empty;
