@@ -123,6 +123,12 @@ public interface IServerSettings
     WebSettings Web { get; set; }
 
     /// <summary>
+    /// Configure optional OpenID Connect single sign-on, additive to local
+    /// username/password login.
+    /// </summary>
+    OidcSettings Oidc { get; set; }
+
+    /// <summary>
     /// The web UI settings, as a stringified JSON object.
     /// </summary>
     string WebUI_Settings { get; set; }
