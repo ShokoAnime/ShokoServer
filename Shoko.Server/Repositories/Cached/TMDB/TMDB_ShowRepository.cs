@@ -22,7 +22,7 @@ public class TMDB_ShowRepository : BaseCachedRepository<TMDB_Show, int>
         return _showIDs.GetOne(tmdbShowId);
     }
 
-    public IReadOnlySet<string> GetAllKeywords()
+    public IReadOnlyList<string> GetAllKeywords()
     {
         var localShowIds = RepoFactory.AnimeSeries.GetAll()
             .SelectMany(s => s.TmdbShowCrossReferences)
@@ -31,10 +31,13 @@ public class TMDB_ShowRepository : BaseCachedRepository<TMDB_Show, int>
         return Cache.GetAll()
             .Where(s => localShowIds.Contains(s.TmdbShowID))
             .SelectMany(s => s.Keywords)
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+            .Distinct(StringComparer.InvariantCultureIgnoreCase)
+            .Except([""])
+            .Order()
+            .ToList();
     }
 
-    public IReadOnlySet<string> GetAllGenres()
+    public IReadOnlyList<string> GetAllGenres()
     {
         var localShowIds = RepoFactory.AnimeSeries.GetAll()
             .SelectMany(s => s.TmdbShowCrossReferences)
@@ -43,7 +46,10 @@ public class TMDB_ShowRepository : BaseCachedRepository<TMDB_Show, int>
         return Cache.GetAll()
             .Where(s => localShowIds.Contains(s.TmdbShowID))
             .SelectMany(s => s.Genres)
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+            .Distinct(StringComparer.InvariantCultureIgnoreCase)
+            .Except([""])
+            .Order()
+            .ToList();
     }
 
     public TMDB_ShowRepository(DatabaseFactory databaseFactory) : base(databaseFactory)

@@ -31,7 +31,7 @@ public class TMDB_MovieRepository : BaseCachedRepository<TMDB_Movie, int>
             .ToList();
     }
 
-    public IReadOnlySet<string> GetAllKeywords()
+    public IReadOnlyList<string> GetAllKeywords()
     {
         var localMovieIds = RepoFactory.AnimeSeries.GetAll()
             .SelectMany(s => s.TmdbMovieCrossReferences)
@@ -40,10 +40,13 @@ public class TMDB_MovieRepository : BaseCachedRepository<TMDB_Movie, int>
         return Cache.GetAll()
             .Where(m => localMovieIds.Contains(m.TmdbMovieID))
             .SelectMany(m => m.Keywords)
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+            .Distinct(StringComparer.InvariantCultureIgnoreCase)
+            .Except([""])
+            .Order()
+            .ToList();
     }
 
-    public IReadOnlySet<string> GetAllGenres()
+    public IReadOnlyList<string> GetAllGenres()
     {
         var localMovieIds = RepoFactory.AnimeSeries.GetAll()
             .SelectMany(s => s.TmdbMovieCrossReferences)
@@ -52,7 +55,10 @@ public class TMDB_MovieRepository : BaseCachedRepository<TMDB_Movie, int>
         return Cache.GetAll()
             .Where(m => localMovieIds.Contains(m.TmdbMovieID))
             .SelectMany(m => m.Genres)
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+            .Distinct(StringComparer.InvariantCultureIgnoreCase)
+            .Except([""])
+            .Order()
+            .ToList();
     }
 
     public TMDB_MovieRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
