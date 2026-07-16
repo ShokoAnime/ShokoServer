@@ -17,6 +17,7 @@ using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Shoko.Abstractions.User.Services;
+using Shoko.Server.API;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
@@ -26,9 +27,10 @@ namespace Shoko.Server.API.v3.Controllers;
 
 /// <summary>
 /// Optional OpenID Connect single sign-on. Disabled unless configured in
-/// Settings.Oidc. Never creates local accounts — a matching local account
-/// (by username or email) must already exist; SSO only links to it and
-/// mints the same kind of API token the local sign-in endpoint issues.
+/// Settings.Oidc. Never creates or auto-matches local accounts by username
+/// or email — an already-authenticated user must explicitly link their
+/// account via <see cref="Link"/>. Sign-in only succeeds for a subject that
+/// has already been linked.
 /// </summary>
 [ApiController]
 [Route("/api/v{version:apiVersion}/Auth/Oidc")]
@@ -44,9 +46,14 @@ public class OidcAuthController(
     private const string ProtectorPurpose = "Shoko.Server.OidcAuth.State";
     private static readonly TimeSpan StateLifetime = TimeSpan.FromMinutes(10);
 
+    // Override Controller.User to be the JMMUser, matching BaseController's convention.
+    protected new JMMUser? User => HttpContext.User.Identity?.IsAuthenticated == true ? HttpContext.GetUser() : null;
+
     private OidcSettings Settings => settingsProvider.GetSettings().Oidc;
 
-    private sealed record StatePayload(string Nonce, string? ReturnUrl, DateTime CreatedAt);
+    // LinkUserID is only ever populated by the authenticated Link endpoint, never
+    // attacker-controlled — the payload is signed/encrypted by IDataProtector.
+    private sealed record StatePayload(string Nonce, string? ReturnUrl, DateTime CreatedAt, int? LinkUserID = null);
 
     /// <summary>
     /// Redirects the browser to the configured OIDC provider's authorization
@@ -57,6 +64,39 @@ public class OidcAuthController(
     public async Task<ActionResult> Challenge(
         [FromQuery] string? returnUrl = null,
         [FromHeader(Name = "X-Forwarded-Proto")] string? forwardedProto = null)
+        => await StartAuthorizeAsync(returnUrl, linkUserID: null, forwardedProto);
+
+    /// <summary>
+    /// Starts the OIDC flow to link the currently signed-in local account to
+    /// an external identity. Unlike <see cref="Challenge"/>, this requires an
+    /// authenticated session and never signs in as a different user — the
+    /// callback only ever links to the account that started this flow.
+    /// </summary>
+    [HttpGet("Link")]
+    [Authorize]
+    public async Task<ActionResult> Link(
+        [FromQuery] string? returnUrl = null,
+        [FromHeader(Name = "X-Forwarded-Proto")] string? forwardedProto = null)
+        => await StartAuthorizeAsync(returnUrl, linkUserID: User!.JMMUserID, forwardedProto);
+
+    /// <summary>
+    /// Removes the external identity link from the currently signed-in
+    /// local account, if any.
+    /// </summary>
+    [HttpPost("Unlink")]
+    [Authorize]
+    public ActionResult Unlink()
+    {
+        var user = User!;
+        if (user.ExternalAuthID is null)
+            return NoContent();
+
+        user.ExternalAuthID = null;
+        userRepository.Save(user);
+        return NoContent();
+    }
+
+    private async Task<ActionResult> StartAuthorizeAsync(string? returnUrl, int? linkUserID, string? forwardedProto)
     {
         var settings = Settings;
         if (!settings.Enabled || string.IsNullOrWhiteSpace(settings.Authority) || string.IsNullOrWhiteSpace(settings.ClientID))
@@ -73,7 +113,7 @@ public class OidcAuthController(
         }
 
         var nonce = Guid.NewGuid().ToString("N");
-        var state = ProtectState(new StatePayload(nonce, returnUrl, DateTime.UtcNow));
+        var state = ProtectState(new StatePayload(nonce, returnUrl, DateTime.UtcNow, linkUserID));
 
         var authorizeUrl = QueryHelpers.AddQueryString(configuration.AuthorizationEndpoint, new Dictionary<string, string?>
         {
@@ -132,16 +172,28 @@ public class OidcAuthController(
         if (validationError is not null)
             return RedirectToWebUiWithError(validationError);
 
-        var subject = claims!.FindFirst("sub")?.Value;
-        if (string.IsNullOrEmpty(subject))
+        var rawSubject = claims!.FindFirst("sub")?.Value;
+        if (string.IsNullOrEmpty(rawSubject))
             return RedirectToWebUiWithError("ID token is missing a subject claim.");
 
-        var (user, userError) = ResolveUser(claims, subject);
+        // Prefix with the authority so switching Settings.Oidc.Authority can never make an
+        // identity minted by a different provider resolve to the same external auth ID.
+        var externalAuthID = $"{settings.Authority}::{rawSubject}";
+
+        var (user, userError) = statePayload.LinkUserID is { } linkUserID
+            ? LinkUser(linkUserID, externalAuthID)
+            : ResolveUser(externalAuthID);
         if (userError is not null)
             return RedirectToWebUiWithError(userError);
 
-        var apiToken = await userService.GenerateApiTokenForUser(user!, "OIDC");
-        return RedirectToWebUiWithToken(apiToken.Token, user!.Username, statePayload.ReturnUrl);
+        // Match the Shoko token's lifetime to the OIDC token's own expiry rather than a
+        // fixed value — a fresh login always mints a new token, so several can coexist
+        // with different expirations without any one of them ever being non-expiring.
+        if (GetExpiration(claims!) is not { } expiresAt || expiresAt <= DateTime.UtcNow.AddMinutes(1))
+            return RedirectToWebUiWithError("ID token is missing a valid expiration.");
+
+        var apiToken = await userService.GenerateApiTokenForUser(user!, $"OIDC — {settings.Authority}", expiresAt);
+        return RedirectToWebUiWithToken(apiToken.Token, statePayload.ReturnUrl);
     }
 
     private async Task<(string? IdToken, string? Error)> ExchangeCodeForIdTokenAsync(OpenIdConnectConfiguration configuration, OidcSettings settings, string code, string? forwardedProto)
@@ -188,28 +240,36 @@ public class OidcAuthController(
         return (claims, null);
     }
 
-    private (JMMUser? User, string? Error) ResolveUser(ClaimsIdentity claims, string subject)
+    private static DateTime? GetExpiration(ClaimsIdentity claims)
+        => claims.FindFirst("exp")?.Value is { } expClaim && long.TryParse(expClaim, out var expSeconds)
+            ? DateTimeOffset.FromUnixTimeSeconds(expSeconds).UtcDateTime
+            : null;
+
+    // Sign-in only ever resolves a user that was already explicitly linked via Link() —
+    // never matches by username or email, which would let anyone controlling (or
+    // impersonating) the IdP take over a same-named local account.
+    private (JMMUser? User, string? Error) ResolveUser(string externalAuthID)
     {
-        var user = userRepository.GetByExternalAuthID(subject);
-        if (user is not null)
-            return (user, null);
+        var user = userRepository.GetByExternalAuthID(externalAuthID);
+        return user is not null
+            ? (user, null)
+            : (null, "No local Shoko account is linked to this SSO identity. Sign in locally and link your account first.");
+    }
 
-        // First SSO login for this external identity — link to a
-        // pre-existing local account by username or email, never create one.
-        // Only trust the email claim for matching if the provider marked it
-        // verified; an unverified email lets any IdP user claim someone else's.
-        var emailVerified = bool.TryParse(claims.FindFirst("email_verified")?.Value, out var verified) && verified;
-        var candidateNames = new[]
-        {
-            claims.FindFirst("preferred_username")?.Value,
-            emailVerified ? claims.FindFirst("email")?.Value : null,
-        }.Where(name => !string.IsNullOrWhiteSpace(name));
-
-        user = candidateNames.Select(userRepository.GetByUsername).FirstOrDefault(u => u is not null);
+    private (JMMUser? User, string? Error) LinkUser(int linkUserID, string externalAuthID)
+    {
+        var user = userRepository.GetByID(linkUserID);
         if (user is null)
-            return (null, "No local Shoko account matches your SSO identity. Ask an admin to check your username/email.");
+            return (null, "The account that started this link no longer exists.");
 
-        user.ExternalAuthID = subject;
+        var existingLink = userRepository.GetByExternalAuthID(externalAuthID);
+        if (existingLink is not null && existingLink.JMMUserID != user.JMMUserID)
+            return (null, "This SSO identity is already linked to a different local account.");
+
+        if (user.ExternalAuthID is not null && user.ExternalAuthID != externalAuthID)
+            return (null, "This local account is already linked to a different SSO identity. Unlink it first.");
+
+        user.ExternalAuthID = externalAuthID;
         userRepository.Save(user);
         return (user, null);
     }
@@ -249,16 +309,15 @@ public class OidcAuthController(
         }
     }
 
-    private ActionResult RedirectToWebUiWithToken(string token, string username, string? returnUrl)
+    private ActionResult RedirectToWebUiWithToken(string token, string? returnUrl)
     {
-        var basePath = settingsProvider.GetSettings().Web.WebUIPublicPath.TrimEnd('/');
-        var target = string.IsNullOrWhiteSpace(returnUrl) ? basePath : returnUrl;
-        return Redirect($"{target}#oidcToken={Uri.EscapeDataString(token)}&oidcUsername={Uri.EscapeDataString(username)}");
+        returnUrl ??= settingsProvider.GetSettings().Web.WebUIPublicPath;
+        return Redirect($"{returnUrl}#oidcToken={Uri.EscapeDataString(token)}");
     }
 
     private ActionResult RedirectToWebUiWithError(string message)
     {
-        var basePath = settingsProvider.GetSettings().Web.WebUIPublicPath.TrimEnd('/');
-        return Redirect($"{basePath}#oidcError={Uri.EscapeDataString(message)}");
+        var returnUrl = settingsProvider.GetSettings().Web.WebUIPublicPath;
+        return Redirect($"{returnUrl}#oidcError={Uri.EscapeDataString(message)}");
     }
 }
