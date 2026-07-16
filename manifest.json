@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.372",
+      "tag": "v6.0.0-dev.372",
+      "commit": "e6122b99f95c0ad3a74b58727027c1ac61007ec1",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.372/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-16T23:08:49Z",
+      "releaseNotes": "\n`feat` (`filters`): **Add GetAllFilteredGroupsWithChains and topLevelOnly query param**:\n\nAdds a new  method to the metadata\nfiltering service that returns groups with hierarchy chain information.\nThe filter controller exposes this via a  query parameter\n(default ) — when , sub-groups are returned instead of only\ntop-level groups.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.75**.\n"
+    },
+    {
       "version": "6.0.0.371",
       "tag": "v6.0.0-dev.371",
       "commit": "345206bd1f1bcb0b70c3c9aa65d31adf5446f219",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.343/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-30T22:02:14Z",
       "releaseNotes": "\n`fix`: **Fix a case of multiple releases in the same group not showing**.\n"
-    },
-    {
-      "version": "6.0.0.342",
-      "tag": "v6.0.0-dev.342",
-      "commit": "e28f1ee6b2c334d09d1c254ed0b9ae68dde75607",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.342/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-29T06:29:26Z",
-      "releaseNotes": "\n`fix`: **Correct distinct by for primary images**.\n"
     }
   ]
 }
