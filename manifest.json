@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.373",
+      "tag": "v6.0.0-dev.373",
+      "commit": "70c1a0d470978c54214d6b7cd1d1164bed4897db",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.373/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-16T23:21:09Z",
+      "releaseNotes": "\n`refactor` (`repos`): **Return ordered lists for tmdb keywords and genres**:\n\nChange GetAllKeywords and GetAllGenres in TMDB_MovieRepository and\nTMDB_ShowRepository to return IReadOnlyList<string> instead of\nIReadOnlySet<string>. The results are now deduplicated, filtered of\nempty strings, and ordered.\n"
+    },
+    {
       "version": "6.0.0.372",
       "tag": "v6.0.0-dev.372",
       "commit": "e6122b99f95c0ad3a74b58727027c1ac61007ec1",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.344/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-30T22:09:30Z",
       "releaseNotes": "\n`misc`: **Sort the Deletion Preview**.\n"
-    },
-    {
-      "version": "6.0.0.343",
-      "tag": "v6.0.0-dev.343",
-      "commit": "f8f2ccd6dbf7c268b317789497bfebca97661001",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.343/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-30T22:02:14Z",
-      "releaseNotes": "\n`fix`: **Fix a case of multiple releases in the same group not showing**.\n"
     }
   ]
 }
