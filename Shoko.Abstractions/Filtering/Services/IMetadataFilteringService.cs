@@ -39,6 +39,28 @@ public interface IMetadataFilteringService
         bool skipSorting = false,
         CancellationToken cancellationToken = default
     );
+    /// <summary>
+    ///   Evaluate the filter and return matching groups with hierarchy chain
+    ///   information. Each result contains the group, the chain of group IDs
+    ///   from top to itself, and the set of series IDs that matched within
+    ///   that scope.
+    /// </summary>
+    /// <param name="filter">The filter to evaluate.</param>
+    /// <param name="user">The user. Needed if the filter is user-specific.</param>
+    /// <param name="time">The time. Needed if the filter is time-specific.</param>
+    /// <param name="skipSorting">Skip sorting the results.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <exception cref="OperationCanceledException">
+    ///   Thrown when <paramref name="cancellationToken"/> is cancelled.
+    /// </exception>
+    /// <returns>A list of filtered group results with hierarchy chain information.</returns>
+    IReadOnlyList<FilteredGroupResult> GetAllFilteredGroupsWithChains(
+        IFilter filter,
+        IUser? user = null,
+        DateTime? time = null,
+        bool skipSorting = false,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     ///   Evaluate the filter and return groups resolved to their top-level

@@ -177,6 +177,43 @@ public class MetadataFilteringService(
         );
     }
 
+    public IReadOnlyList<FilteredGroupResult> GetAllFilteredGroupsWithChains(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default)
+    {
+        EnsureValidFilter(filter, user);
+        if (filter is IFilterPreset { IsDirectory: true })
+            return [];
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var results = engine.EvaluateFilterWithTuples(filter, user, time, skipSorting);
+        if (results.Count is 0)
+            return [];
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Pre-group to avoid O(N²) per-group scans of chains and results.
+        var chainsByBottomGroup = BuildGroupIDChains(results).ToDictionary(g => g[^1], g => g);
+        var seriesByGroupID = results.ToLookup(t => t.GroupID, t => t.SeriesID);
+
+        var items = chainsByBottomGroup.Keys
+            .Select(groupRepository.GetByID)
+            .WhereNotNull()
+            .Select(group =>
+            {
+                var groupIDChain = chainsByBottomGroup[group.AnimeGroupID];
+                var groupIds = groupIDChain.ToHashSet();
+                var seriesIDs = groupIds.SelectMany(id => seriesByGroupID[id]).ToHashSet();
+                return new FilteredGroupResult
+                {
+                    Group = group,
+                    GroupIDChains = [groupIDChain],
+                    SeriesIDs = seriesIDs,
+                };
+            });
+        return OrderByGroup(filter, items, r => (AnimeGroup)r.Group, user, time, skipSorting, cancellationToken)
+            .ToArray();
+    }
+
     public IReadOnlyList<FilteredGroupResult> GetTopLevelFilteredGroups(IFilter filter, IUser? user = null, DateTime? time = null, bool skipSorting = false, CancellationToken cancellationToken = default)
     {
         EnsureValidFilter(filter, user);

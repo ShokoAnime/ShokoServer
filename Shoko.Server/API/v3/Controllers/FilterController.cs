@@ -240,6 +240,7 @@ public class FilterController(
     /// <param name="filterID"><see cref="Filter"/> ID</param>
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
+    /// <param name="topLevelOnly">Only list the top level groups if set.</param>
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
     /// <param name="randomImages">Randomize images shown for the <see cref="Group"/>.</param>
     /// <returns></returns>
@@ -248,6 +249,7 @@ public class FilterController(
         [FromRoute, Range(0, int.MaxValue)] int filterID,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] bool topLevelOnly = true,
         [FromQuery] bool includeEmpty = true,
         [FromQuery] bool randomImages = false
     )
@@ -258,7 +260,7 @@ public class FilterController(
             var user = User;
             return animeGroupRepository.GetAll()
                 .Where(group =>
-                    group is { AnimeGroupParentID: null } &&
+                    (!topLevelOnly || group is { AnimeGroupParentID: null }) &&
                     user.AllowedGroup(group) &&
                     (includeEmpty || group.AllSeries.Any(s => s.VideoLocals.Count > 0))
                 )
@@ -273,13 +275,17 @@ public class FilterController(
         if (filterPreset.IsDirectory)
             return new ListResult<Group>();
 
-        return GetFilteredGroups(filterPreset, pageSize, page, includeEmpty, randomImages);
+        return GetFilteredGroups(filterPreset, pageSize, page, topLevelOnly, includeEmpty, randomImages);
     }
 
-    private ListResult<Group> GetFilteredGroups(FilterPreset filterPreset, int pageSize, int page, bool includeEmpty, bool randomImages)
+    private ListResult<Group> GetFilteredGroups(FilterPreset filterPreset, int pageSize, int page, bool topLevelOnly, bool includeEmpty, bool randomImages)
     {
         var user = User;
-        return filteringService.GetTopLevelFilteredGroups(filterPreset, user, cancellationToken: HttpContext.RequestAborted)
+        return (
+            topLevelOnly
+                ? filteringService.GetTopLevelFilteredGroups(filterPreset, user, cancellationToken: HttpContext.RequestAborted)
+                : filteringService.GetAllFilteredGroupsWithChains(filterPreset, user, cancellationToken: HttpContext.RequestAborted)
+        )
             .Select(r => (r, group: (AnimeGroup)r.Group))
             .Where(t => includeEmpty || t.group.AllSeries.Any(s => s.VideoLocals.Count > 0))
             .ToListResult(t => new Group(t.group, user.JMMUserID, randomImages, t.r.GroupIDChains, t.r.SeriesIDs), page, pageSize);
@@ -501,6 +507,7 @@ public class FilterController(
     /// <param name="filter">The filter to preview</param>
     /// <param name="pageSize">The page size. Set to <code>0</code> to disable pagination.</param>
     /// <param name="page">The page index.</param>
+    /// <param name="topLevelOnly">Only list the top level groups if set.</param>
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
     /// <param name="randomImages">Randomize images shown for the <see cref="Group"/>.</param>
     /// <returns></returns>
@@ -509,6 +516,7 @@ public class FilterController(
         [FromBody] Filter.Input.CreateOrUpdateFilterBody filter,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] bool topLevelOnly = true,
         [FromQuery] bool includeEmpty = true,
         [FromQuery] bool randomImages = false
     )
@@ -522,7 +530,7 @@ public class FilterController(
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        return GetFilteredGroups(filterPreset, pageSize, page, includeEmpty, randomImages);
+        return GetFilteredGroups(filterPreset, pageSize, page, topLevelOnly, includeEmpty, randomImages);
     }
 
     /// <summary>
