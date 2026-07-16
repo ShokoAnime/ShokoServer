@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.371",
+      "tag": "v6.0.0-dev.371",
+      "commit": "345206bd1f1bcb0b70c3c9aa65d31adf5446f219",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.371/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-15T23:50:45Z",
+      "releaseNotes": "\n`feat` (`filters`): **Expose tmdb keywords and genres as filterable info**:\n\nAdded Tmdb{Show,Movie}{Keywords,Genres} and combined\nTmdb{Keywords,Genres} sets to IFilterableInfo with\nimplementations in both FilterableAnimeSeries and\nFilterableAnimeGroup.\n\nSix new expressions:\n- HasTmdb{Movie,Show}{Keyword,Genre}Expression — per-type\n- HasTmdb{Keyword,Genre}Expression — combined\n\nSix new string-set selectors matching each set.\n\nAdded GetAllKeywords() / GetAllGenres() to both\nTMDB_ShowRepository and TMDB_MovieRepository, filtering\nto locally-cross-referenced entities. Wired into\nExpressionDiscovery for help parameter population.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.74**.\n"
+    },
+    {
       "version": "6.0.0.370",
       "tag": "v6.0.0-dev.370",
       "commit": "323db80fad8ff254d38ad81b1d29028e176005d0",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.342/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-06-29T06:29:26Z",
       "releaseNotes": "\n`fix`: **Correct distinct by for primary images**.\n"
-    },
-    {
-      "version": "6.0.0.341",
-      "tag": "v6.0.0-dev.341",
-      "commit": "22c2ff9c76bd8be9ff8cccc199060e09d628ed38",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.341/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-29T01:36:48Z",
-      "releaseNotes": "\n`refactor`: **Tweak group preferred image lookup internals**.\n"
     }
   ]
 }
