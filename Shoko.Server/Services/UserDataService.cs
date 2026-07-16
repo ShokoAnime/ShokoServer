@@ -341,6 +341,19 @@ public class UserDataService(
             }
         }
 
+        // Even without a watched status change, other video user data updates
+        // (progress, stream index, client data, etc.) should still trigger a
+        // stats update so LastVideoUpdate is kept in sync.
+        if (shouldSave && !watchedStatusChanged && updateStatsNow)
+        {
+            var xrefs = video.CrossReferences;
+            foreach (var episodeXref in xrefs)
+            {
+                if (episodeXref.ShokoEpisode?.Series is AnimeSeries series)
+                    toUpdateSeries.TryAdd(series.AnimeSeriesID, series);
+            }
+        }
+
         // We run these events _after_ invoking the above event(s) so the series event(s) are fired after the episode and video event(s).
         if (updateStatsNow && toUpdateSeries.Count > 0)
         {
