@@ -17,7 +17,6 @@ using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Shoko.Abstractions.User.Services;
-using Shoko.Server.API;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
@@ -41,13 +40,10 @@ public class OidcAuthController(
     IUserService userService,
     IHttpClientFactory httpClientFactory,
     IDataProtectionProvider dataProtectionProvider
-) : ControllerBase
+) : BaseController(settingsProvider)
 {
     private const string ProtectorPurpose = "Shoko.Server.OidcAuth.State";
     private static readonly TimeSpan StateLifetime = TimeSpan.FromMinutes(10);
-
-    // Override Controller.User to be the JMMUser, matching BaseController's convention.
-    protected new JMMUser? User => HttpContext.User.Identity?.IsAuthenticated == true ? HttpContext.GetUser() : null;
 
     private OidcSettings Settings => settingsProvider.GetSettings().Oidc;
 
@@ -77,7 +73,7 @@ public class OidcAuthController(
     public async Task<ActionResult> Link(
         [FromQuery] string? returnUrl = null,
         [FromHeader(Name = "X-Forwarded-Proto")] string? forwardedProto = null)
-        => await StartAuthorizeAsync(returnUrl, linkUserID: User!.JMMUserID, forwardedProto);
+        => await StartAuthorizeAsync(returnUrl, linkUserID: User.JMMUserID, forwardedProto);
 
     /// <summary>
     /// Removes the external identity link from the currently signed-in
@@ -87,30 +83,19 @@ public class OidcAuthController(
     [Authorize]
     public ActionResult Unlink()
     {
-        var user = User!;
-        if (user.ExternalAuthID is null)
+        if (User.ExternalAuthID is null)
             return NoContent();
 
-        user.ExternalAuthID = null;
-        userRepository.Save(user);
+        User.ExternalAuthID = null;
+        userRepository.Save(User);
         return NoContent();
     }
 
     private async Task<ActionResult> StartAuthorizeAsync(string? returnUrl, int? linkUserID, string? forwardedProto)
     {
-        var settings = Settings;
-        if (!settings.Enabled || string.IsNullOrWhiteSpace(settings.Authority) || string.IsNullOrWhiteSpace(settings.ClientID))
-            return NotFound("OIDC sign-in is not enabled.");
-
-        OpenIdConnectConfiguration configuration;
-        try
-        {
-            configuration = await GetProviderConfigurationAsync(settings.Authority);
-        }
-        catch (Exception)
-        {
-            return RedirectToWebUiWithError("Could not reach the OIDC provider. Please try again later.");
-        }
+        var (settings, configuration, error) = await GetEnabledConfigurationAsync();
+        if (error is not null)
+            return error;
 
         var nonce = Guid.NewGuid().ToString("N");
         var state = ProtectState(new StatePayload(nonce, returnUrl, DateTime.UtcNow, linkUserID));
@@ -141,10 +126,6 @@ public class OidcAuthController(
         [FromQuery] string? error,
         [FromHeader(Name = "X-Forwarded-Proto")] string? forwardedProto = null)
     {
-        var settings = Settings;
-        if (!settings.Enabled || string.IsNullOrWhiteSpace(settings.Authority) || string.IsNullOrWhiteSpace(settings.ClientID))
-            return NotFound("OIDC sign-in is not enabled.");
-
         if (!string.IsNullOrEmpty(error))
             return RedirectToWebUiWithError($"OIDC provider returned an error: {error}");
 
@@ -154,15 +135,9 @@ public class OidcAuthController(
         if (UnprotectState(state) is not { } statePayload || DateTime.UtcNow - statePayload.CreatedAt > StateLifetime)
             return BadRequest("Invalid or expired sign-in attempt. Please try again.");
 
-        OpenIdConnectConfiguration configuration;
-        try
-        {
-            configuration = await GetProviderConfigurationAsync(settings.Authority);
-        }
-        catch (Exception)
-        {
-            return RedirectToWebUiWithError("Could not reach the OIDC provider. Please try again later.");
-        }
+        var (settings, configuration, configError) = await GetEnabledConfigurationAsync();
+        if (configError is not null)
+            return configError;
 
         var (idToken, exchangeError) = await ExchangeCodeForIdTokenAsync(configuration, settings, code, forwardedProto);
         if (exchangeError is not null)
@@ -272,6 +247,22 @@ public class OidcAuthController(
         user.ExternalAuthID = externalAuthID;
         userRepository.Save(user);
         return (user, null);
+    }
+
+    private async Task<(OidcSettings Settings, OpenIdConnectConfiguration Configuration, ActionResult? Error)> GetEnabledConfigurationAsync()
+    {
+        var settings = Settings;
+        if (!settings.Enabled || string.IsNullOrWhiteSpace(settings.Authority) || string.IsNullOrWhiteSpace(settings.ClientID))
+            return (settings, null!, NotFound("OIDC sign-in is not enabled."));
+
+        try
+        {
+            return (settings, await GetProviderConfigurationAsync(settings.Authority), null);
+        }
+        catch (Exception)
+        {
+            return (settings, null!, RedirectToWebUiWithError("Could not reach the OIDC provider. Please try again later."));
+        }
     }
 
     private static async Task<OpenIdConnectConfiguration> GetProviderConfigurationAsync(string authority)
