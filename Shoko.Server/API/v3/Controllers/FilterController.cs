@@ -445,44 +445,6 @@ public class FilterController(
     }
 
     /// <summary>
-    ///   Get a list of all (GroupID, SeriesID) tuples for the <see cref="Filter"/>
-    ///   with the given <paramref name="filterID"/> for client-side filtering.
-    /// </summary>
-    /// <param name="filterID"><see cref="Filter"/> ID</param>
-    /// <returns></returns>
-    [HttpGet("{filterID}/TupleIDs")]
-    public ActionResult<List<GroupSeriesTuple>> GetFilteredTuples([FromRoute, Range(0, int.MaxValue)] int filterID)
-    {
-        var user = User;
-        if (filterID is 0)
-        {
-            return animeSeriesRepository.GetAll()
-                .Select(series => new GroupSeriesTuple
-                {
-                    GroupID = series.AnimeGroupID,
-                    SeriesID = series.AnimeSeriesID,
-                })
-                .ToList();
-        }
-
-        if (filterPresetRepository.GetByID(filterID) is not { } filterPreset)
-            return NotFound(FilterNotFound);
-
-        // Directories should only contain sub-filters, not groups and series.
-        if (filterPreset.IsDirectory)
-            return new List<GroupSeriesTuple>();
-
-        var results = filteringService.Engine.EvaluateFilterWithTuples(filterPreset, user, cancellationToken: HttpContext.RequestAborted);
-        return results
-            .Select(tuple => new GroupSeriesTuple
-            {
-                GroupID = tuple.GroupID,
-                SeriesID = tuple.SeriesID,
-            })
-            .ToList();
-    }
-
-    /// <summary>
     /// Get a list of all the sub-<see cref="Group"/>s belonging to the <see cref="Group"/> with the given <paramref name="groupID"/> and which are present within the <see cref="Filter"/> with the given <paramref name="filterID"/>.
     /// </summary>
     /// <remarks>
@@ -782,32 +744,6 @@ public class FilterController(
         var results = filteringService.Engine.EvaluateFilterWithTuples(filterPreset, User, cancellationToken: HttpContext.RequestAborted);
         return results
             .Select(tuple => tuple.SeriesID)
-            .ToList();
-    }
-
-    /// <summary>
-    ///   Get a list of all (GroupID, SeriesID) tuples for the live filter
-    ///   for client-side filtering.
-    /// </summary>
-    /// <param name="filter">The filter to preview</param>
-    /// <returns></returns>
-    [HttpPost("Preview/TupleIDs")]
-    public ActionResult<List<GroupSeriesTuple>> GetPreviewFilteredTuples([FromBody] Filter.Input.CreateOrUpdateFilterBody filter)
-    {
-        if (filter.IsDirectory)
-            return new List<GroupSeriesTuple>();
-
-        var filterPreset = factory.GetFilterPreset(filter, ModelState);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        var results = filteringService.Engine.EvaluateFilterWithTuples(filterPreset, User, cancellationToken: HttpContext.RequestAborted);
-        return results
-            .Select(tuple => new GroupSeriesTuple
-            {
-                GroupID = tuple.GroupID,
-                SeriesID = tuple.SeriesID,
-            })
             .ToList();
     }
 
