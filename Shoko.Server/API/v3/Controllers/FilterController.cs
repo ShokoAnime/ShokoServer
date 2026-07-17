@@ -292,69 +292,6 @@ public class FilterController(
     }
 
     /// <summary>
-    ///   Get a list of filtered group IDs with hierarchy chain information for
-    ///   the <see cref="Filter"/> with the given <paramref name="filterID"/>.
-    /// </summary>
-    /// <param name="filterID"><see cref="Filter"/> ID</param>
-    /// <param name="topLevelOnly">Only list the top level groups if set.</param>
-    /// <param name="includeEmpty">Include <see cref="Group"/>s with no <see cref="Series"/>.</param>
-    /// <returns></returns>
-    [HttpGet("{filterID}/FilteredIDs")]
-    public ActionResult<List<FilteredGroupIDs>> GetFilteredGroupIDs(
-        [FromRoute, Range(0, int.MaxValue)] int filterID,
-        [FromQuery] bool topLevelOnly = true,
-        [FromQuery] bool includeEmpty = true
-    )
-    {
-        // Return all groups with no filter.
-        if (filterID is 0)
-        {
-            var user = User;
-            return animeGroupRepository.GetAll()
-                .Where(group =>
-                    (!topLevelOnly || group is { AnimeGroupParentID: null }) &&
-                    user.AllowedGroup(group) &&
-                    (includeEmpty || group.AllSeries.Any(s => s.VideoLocals.Count > 0))
-                )
-                .Select(group => new FilteredGroupIDs
-                {
-                    GroupID = group.AnimeGroupID,
-                    GroupIDChains = [[group.AnimeGroupID]],
-                    SeriesIDs = group.AllSeries.Select(s => s.AnimeSeriesID).ToHashSet(),
-                })
-                .ToList();
-        }
-
-        if (filterPresetRepository.GetByID(filterID) is not { } filterPreset)
-            return NotFound(FilterNotFound);
-
-        // Directories should only contain sub-filters, not groups and series.
-        if (filterPreset.IsDirectory)
-            return new List<FilteredGroupIDs>();
-
-        return GetFilteredGroupIDs(filterPreset, topLevelOnly, includeEmpty);
-    }
-
-    private List<FilteredGroupIDs> GetFilteredGroupIDs(FilterPreset filterPreset, bool topLevelOnly, bool includeEmpty)
-    {
-        var user = User;
-        return (
-            topLevelOnly
-                ? filteringService.GetTopLevelFilteredGroups(filterPreset, user, cancellationToken: HttpContext.RequestAborted)
-                : filteringService.GetAllFilteredGroupsWithChains(filterPreset, user, cancellationToken: HttpContext.RequestAborted)
-        )
-            .Select(r => (r, group: (AnimeGroup)r.Group))
-            .Where(t => includeEmpty || t.group.AllSeries.Any(s => s.VideoLocals.Count > 0))
-            .Select(t => new FilteredGroupIDs
-            {
-                GroupID = t.group.AnimeGroupID,
-                GroupIDChains = t.r.GroupIDChains,
-                SeriesIDs = t.r.SeriesIDs,
-            })
-            .ToList();
-    }
-
-    /// <summary>
     /// Get a paginated list of all the <see cref="Series"/> within a <see cref="Filter"/>.
     /// </summary>
     /// <remarks>
@@ -496,77 +433,6 @@ public class FilterController(
     }
 
     /// <summary>
-    ///   Get a list of filtered sub-group IDs with hierarchy chain information
-    ///   for the <see cref="Group"/> within the <see cref="Filter"/>.
-    /// </summary>
-    /// <param name="filterID"><see cref="Filter"/> ID</param>
-    /// <param name="groupID"><see cref="Group"/> ID</param>
-    /// <param name="includeEmpty">Include <see cref="Group"/>s with no <see cref="Series"/>.</param>
-    /// <returns></returns>
-    [HttpGet("{filterID}/Group/{groupID}/FilteredIDs")]
-    public ActionResult<List<FilteredGroupIDs>> GetFilteredSubGroupIDs(
-        [FromRoute, Range(0, int.MaxValue)] int filterID,
-        [FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromQuery] bool includeEmpty = true
-    )
-    {
-        // Return sub-groups with no filter applied.
-        if (filterID is 0)
-        {
-            if (animeGroupRepository.GetByID(groupID) is not { } rootGroup)
-                return NotFound(GroupController.GroupNotFound);
-
-            var currentUser = User;
-            if (!currentUser.AllowedGroup(rootGroup))
-                return Forbid(GroupController.GroupForbiddenForUser);
-
-            return rootGroup.Children
-                .Where(child =>
-                    currentUser.AllowedGroup(child) &&
-                    (includeEmpty || child.AllSeries.Any(s => s.VideoLocals.Count > 0))
-                )
-                .Select(child => new FilteredGroupIDs
-                {
-                    GroupID = child.AnimeGroupID,
-                    GroupIDChains = [[rootGroup.AnimeGroupID, child.AnimeGroupID]],
-                    SeriesIDs = child.AllSeries.Select(s => s.AnimeSeriesID).ToHashSet(),
-                })
-                .ToList();
-        }
-
-        if (filterPresetRepository.GetByID(filterID) is not { } filterPreset)
-            return NotFound(FilterNotFound);
-
-        if (animeGroupRepository.GetByID(groupID) is not { } group)
-            return NotFound(GroupController.GroupNotFound);
-
-        var user = User;
-        if (!user.AllowedGroup(group))
-            return Forbid(GroupController.GroupForbiddenForUser);
-
-        // Directories should only contain sub-filters, not groups and series.
-        if (filterPreset.IsDirectory)
-            return new List<FilteredGroupIDs>();
-
-        return GetFilteredSubGroupIDs(group, filterPreset, includeEmpty);
-    }
-
-    private List<FilteredGroupIDs> GetFilteredSubGroupIDs(AnimeGroup group, FilterPreset filterPreset, bool includeEmpty)
-    {
-        var user = User;
-        return filteringService.GetFilteredSubGroups(filterPreset, group, user, cancellationToken: HttpContext.RequestAborted)
-            .Select(r => (r, group: (AnimeGroup)r.Group))
-            .Where(t => includeEmpty || t.group.AllSeries.Any(s => s.VideoLocals.Count > 0))
-            .Select(t => new FilteredGroupIDs
-            {
-                GroupID = t.group.AnimeGroupID,
-                GroupIDChains = t.r.GroupIDChains,
-                SeriesIDs = t.r.SeriesIDs,
-            })
-            .ToList();
-    }
-
-    /// <summary>
     /// Get a list of all the <see cref="Series"/> for the <see cref="Group"/> within the <see cref="Filter"/>.
     /// </summary>
     /// <remarks>
@@ -668,32 +534,6 @@ public class FilterController(
     }
 
     /// <summary>
-    ///   Get a list of filtered group IDs with hierarchy chain information for
-    ///   the live filter.
-    /// </summary>
-    /// <param name="filter">The filter to preview</param>
-    /// <param name="topLevelOnly">Only list the top level groups if set.</param>
-    /// <param name="includeEmpty">Include <see cref="Group"/>s with no <see cref="Series"/>.</param>
-    /// <returns></returns>
-    [HttpPost("Preview/FilteredIDs")]
-    public ActionResult<List<FilteredGroupIDs>> GetPreviewFilteredGroupIDs(
-        [FromBody] Filter.Input.CreateOrUpdateFilterBody filter,
-        [FromQuery] bool topLevelOnly = true,
-        [FromQuery] bool includeEmpty = true
-    )
-    {
-        // Directories should only contain sub-filters, not groups and series.
-        if (filter.IsDirectory)
-            return new List<FilteredGroupIDs>();
-
-        var filterPreset = factory.GetFilterPreset(filter, ModelState);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        return GetFilteredGroupIDs(filterPreset, topLevelOnly, includeEmpty);
-    }
-
-    /// <summary>
     /// Get a paginated list of all the <see cref="Series"/> within the live filter.
     /// </summary>
     /// <param name="filter">The filter to preview</param>
@@ -771,35 +611,6 @@ public class FilterController(
             return Forbid(GroupController.GroupForbiddenForUser);
 
         return GetFilteredSubGroups(group, filterPreset, randomImages, includeEmpty);
-    }
-
-    /// <summary>
-    ///   Get a list of filtered sub-group IDs with hierarchy chain information
-    ///   for the <see cref="Group"/> within the live filter.
-    /// </summary>
-    /// <param name="filter">The filter to preview</param>
-    /// <param name="groupID"><see cref="Group"/> ID</param>
-    /// <param name="includeEmpty">Include <see cref="Group"/>s with no <see cref="Series"/>.</param>
-    /// <returns></returns>
-    [HttpPost("Preview/Group/{groupID}/FilteredIDs")]
-    public ActionResult<List<FilteredGroupIDs>> GetPreviewFilteredSubGroupIDs(
-        [FromBody] Filter.Input.CreateOrUpdateFilterBody filter,
-        [FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromQuery] bool includeEmpty = true
-    )
-    {
-        var filterPreset = factory.GetFilterPreset(filter, ModelState);
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        if (animeGroupRepository.GetByID(groupID) is not { } group)
-            return NotFound(GroupController.GroupNotFound);
-
-        var user = User;
-        if (!user.AllowedGroup(group))
-            return Forbid(GroupController.GroupForbiddenForUser);
-
-        return GetFilteredSubGroupIDs(group, filterPreset, includeEmpty);
     }
 
     /// <summary>
