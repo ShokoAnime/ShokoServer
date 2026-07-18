@@ -84,7 +84,7 @@ public class FileController(
 
     internal const string FileForbiddenForUser = "Accessing File is not allowed for the current user";
 
-    private static readonly Regex PathTraversalPattern = new(@"(^|(?<=[\\/]))\.\.?[\\/]", RegexOptions.Compiled);
+    private static readonly Regex PathTraversalPattern = new(@"(^|(?<=[\\/]))\.\.?[\\/]", RegexOptions.Compiled, TimeSpan.FromMilliseconds(250));
 
     /// <summary>
     /// Get or search through the files accessible to the current user.
