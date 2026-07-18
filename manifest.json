@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.376",
+      "tag": "v6.0.0-dev.376",
+      "commit": "c9a813592d6d73ace19d053396c244191550149a",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.376/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-18T17:57:38Z",
+      "releaseNotes": "\n`docs` (`api`): **Correct DELETE File/{fileID} parameter documentation** ([#1388](https://github.com/ShokoAnime/ShokoServer/pull/1388)):\n\nCo-authored-by: Oghara <18651071+Oghara@users.noreply.github.com>\n"
+    },
+    {
       "version": "6.0.0.375",
       "tag": "v6.0.0-dev.375",
       "commit": "5352ab86d1e8af5135eee6f41f6cb01923d10e66",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.347/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-01T01:32:05Z",
       "releaseNotes": "\n`misc`: **Include Files to Delete in Release Candidates**.\n"
-    },
-    {
-      "version": "6.0.0.346",
-      "tag": "v6.0.0-dev.346",
-      "commit": "590c67b913863cf685664d542a0ff0b52daf22c9",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.346/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-06-30T22:50:24Z",
-      "releaseNotes": "\n`fix` (`tmdb`): **Try movie search first for short OVA/Web entries** ([#1376](https://github.com/ShokoAnime/ShokoServer/pull/1376)):\n\nShort OVA and Web anime (≤4 main episodes) were routed exclusively to\nshow search, causing mis-links to the parent franchise's TMDB show when\nthe correct TMDB representation is standalone movies (e.g. a two-part\nfilm that AniDB models as an OVA series).\n\nAdded `IsShortFormAnime` heuristic: for `AnimeType.OVA` and\n`AnimeType.Web` with ≤4 `EpisodeType.Episode` entries, movie search\nruns first. If it finds matches, each episode is linked independently to\nits corresponding TMDB movie via the existing per-episode\n`AutoSearchForMovies` path. If movie search returns nothing, the call\nfalls through to the normal show search so well-formed OVA seasons still\nlink correctly.\n"
     }
   ]
 }
