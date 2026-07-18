@@ -17,8 +17,8 @@
 #
 # To build locally:
 #   dotnet publish -c Release -r linux-x64 -f net10.0 --no-self-contained Shoko.CLI \
-#     /p:Version="0.0.0.0" \
-#     /p:InformationalVersion="channel=dev,commit=local,tag=v0,date=$(date -u +%Y-%m-%dT%H:%M:%SZ),"
+#     /p:Version="0.0.0.1" \
+#     /p:InformationalVersion="\"channel=dev,commit=local,tag=v0,date=$(date -u +%Y-%m-%dT%H:%M:%SZ),\""
 #   mkdir -p publish/amd64
 #   cp -r Shoko.Server/bin/Release/net10.0/linux-x64/publish/. ./publish/amd64/
 #   docker build --build-arg TARGETARCH=amd64 -t shoko:local .
