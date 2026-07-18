@@ -337,7 +337,8 @@ public class FileController(
     /// <summary>
     /// Delete a file.
     /// </summary>
-    /// <param name="fileID">The VideoLocal_Place ID. This cares about which location we are deleting from.</param>
+    /// <param name="fileID">The Shoko VideoLocalID. This deletes the file across all its locations.
+    /// To delete a single location, use DELETE /File/Location/{locationID} instead.</param>
     /// <param name="removeFiles">Remove all physical file locations.</param>
     /// <param name="removeFolder">This causes the empty folder removal to skipped if set to false.
     /// This significantly speeds up batch deleting if you are deleting many files in the same folder.
