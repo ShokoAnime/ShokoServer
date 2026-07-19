@@ -27,7 +27,6 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     /// <param name="imageID">The image ID.</param>
     /// <returns>200 on found, 400/404 if the type or source are invalid, and 404 if the id is not found</returns>
     [HttpGet("{imageID}")]
-    [ResponseCache(Duration = 3600 /* 1 hour in seconds */)]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(404)]
     public ActionResult GetImage(
@@ -38,6 +37,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
         if (metadata is null || metadata.GetStream() is not { } stream)
             return NotFound(ImageNotFound);
 
+        Response.Headers["Cache-Control"] = "public, max-age=3600";
         return File(stream, metadata.ContentType);
     }
 
@@ -45,7 +45,6 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     /// Returns the image for the given <paramref name="source"/> and <paramref name="resourceID"/>.
     /// </summary>
     [HttpGet("Remote/{source}/{*resourceID}")]
-    [ResponseCache(Duration = 3600 /* 1 hour in seconds */)]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(404)]
     public ActionResult GetRemoteImage(
@@ -66,7 +65,6 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     /// <param name="value">The image ID.</param>
     /// <returns>200 on found, 400/404 if the type or source are invalid, and 404 if the id is not found</returns>
     [HttpGet("{source}/{type}/{value}")]
-    [ResponseCache(Duration = 3600 /* 1 hour in seconds */)]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(404)]
     [Obsolete("Legacy endpoint for backwards compatibility only. Clients are advised to switch to using {imageID} instead.")]
@@ -80,6 +78,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
         if (metadata is null || metadata.GetStream() is not { } stream)
             return NotFound(ImageNotFound);
 
+        Response.Headers["Cache-Control"] = "public, max-age=3600";
         return File(stream, metadata.ContentType);
     }
 
