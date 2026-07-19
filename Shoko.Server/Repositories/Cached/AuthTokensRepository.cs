@@ -66,6 +66,13 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
     public IReadOnlyList<AuthTokens> GetByUserID(int userID)
         => _userIDs!.GetMultiple(userID);
 
+    public bool DeleteWithUserIDAndDevicePrefix(int userID, string devicePrefix)
+    {
+        var tokens = _userIDs!.GetMultiple(userID).Where(a => a.DeviceName.StartsWith(devicePrefix, StringComparison.Ordinal)).ToList();
+        Delete(tokens);
+        return tokens.Count > 0;
+    }
+
     public AuthTokens CreateNewApiKey(JMMUser user, string device)
     {
         var allTokensForUser = _userIDs!.GetMultiple(user.JMMUserID);
