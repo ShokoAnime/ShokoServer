@@ -16,7 +16,9 @@ using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.User.Services;
+using Shoko.Abstractions.User.Update;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
@@ -37,6 +39,7 @@ namespace Shoko.Server.API.v3.Controllers;
 public class OidcAuthController(
     ISettingsProvider settingsProvider,
     JMMUserRepository userRepository,
+    AuthTokensRepository authTokensRepository,
     IUserService userService,
     IHttpClientFactory httpClientFactory,
     IDataProtectionProvider dataProtectionProvider
@@ -86,9 +89,19 @@ public class OidcAuthController(
         if (User.ExternalAuthID is null)
             return NoContent();
 
+        InvalidateProviderTokens(User.JMMUserID, User.ExternalAuthID);
         User.ExternalAuthID = null;
         userRepository.Save(User);
         return NoContent();
+    }
+
+    // Tokens are keyed by device name "OIDC — {authority} — {subject}", so a provider-scoped
+    // prefix match invalidates every token minted for this user under the given authority
+    // without needing to look up the OIDC settings, which may have already changed.
+    private void InvalidateProviderTokens(int userID, string externalAuthID)
+    {
+        var authority = externalAuthID.Split("::", 2)[0];
+        authTokensRepository.DeleteWithUserIDAndDevicePrefix(userID, $"OIDC — {authority}");
     }
 
     private async Task<ActionResult> StartAuthorizeAsync(string? returnUrl, int? linkUserID, string? forwardedProto)
@@ -130,10 +143,10 @@ public class OidcAuthController(
             return RedirectToWebUiWithError($"OIDC provider returned an error: {error}");
 
         if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
-            return BadRequest("Missing code or state.");
+            return RedirectToWebUiWithError("Missing code or state.");
 
         if (UnprotectState(state) is not { } statePayload || DateTime.UtcNow - statePayload.CreatedAt > StateLifetime)
-            return BadRequest("Invalid or expired sign-in attempt. Please try again.");
+            return RedirectToWebUiWithError("Invalid or expired sign-in attempt. Please try again.");
 
         var (settings, configuration, configError) = await GetEnabledConfigurationAsync();
         if (configError is not null)
@@ -144,10 +157,10 @@ public class OidcAuthController(
             return RedirectToWebUiWithError(exchangeError);
 
         var (claims, validationError) = await ValidateIdTokenAsync(configuration, settings, idToken!, statePayload.Nonce);
-        if (validationError is not null)
-            return RedirectToWebUiWithError(validationError);
+        if (validationError is not null || claims is null)
+            return RedirectToWebUiWithError(validationError ?? "ID token validation failed.");
 
-        var rawSubject = claims!.FindFirst("sub")?.Value;
+        var rawSubject = claims.FindFirst("sub")?.Value;
         if (string.IsNullOrEmpty(rawSubject))
             return RedirectToWebUiWithError("ID token is missing a subject claim.");
 
@@ -157,17 +170,19 @@ public class OidcAuthController(
 
         var (user, userError) = statePayload.LinkUserID is { } linkUserID
             ? LinkUser(linkUserID, externalAuthID)
-            : ResolveUser(externalAuthID);
+            : await ResolveUserAsync(externalAuthID, rawSubject, settings);
         if (userError is not null)
             return RedirectToWebUiWithError(userError);
 
         // Match the Shoko token's lifetime to the OIDC token's own expiry rather than a
         // fixed value — a fresh login always mints a new token, so several can coexist
         // with different expirations without any one of them ever being non-expiring.
-        if (GetExpiration(claims!) is not { } expiresAt || expiresAt <= DateTime.UtcNow.AddMinutes(1))
+        if (GetExpiration(claims) is not { } expiresAt || expiresAt <= DateTime.UtcNow.AddMinutes(1))
             return RedirectToWebUiWithError("ID token is missing a valid expiration.");
 
-        var apiToken = await userService.GenerateApiTokenForUser(user!, $"OIDC — {settings.Authority}", expiresAt);
+        // Subject is part of the device name (not just externalAuthID) so a provider-scoped
+        // Unlink() can target exactly the tokens minted for this identity via prefix match.
+        var apiToken = await userService.GenerateApiTokenForUser(user!, $"OIDC — {settings.Authority} — {rawSubject}", expiresAt);
         return RedirectToWebUiWithToken(apiToken.Token, statePayload.ReturnUrl);
     }
 
@@ -222,13 +237,36 @@ public class OidcAuthController(
 
     // Sign-in only ever resolves a user that was already explicitly linked via Link() —
     // never matches by username or email, which would let anyone controlling (or
-    // impersonating) the IdP take over a same-named local account.
-    private (JMMUser? User, string? Error) ResolveUser(string externalAuthID)
+    // impersonating) the IdP take over a same-named local account. The one opt-in exception
+    // is AutoCreateUsers, which provisions a brand new account rather than linking an
+    // existing one, so it can't be used to take over anything.
+    private async Task<(JMMUser? User, string? Error)> ResolveUserAsync(string externalAuthID, string rawSubject, OidcSettings settings)
     {
         var user = userRepository.GetByExternalAuthID(externalAuthID);
-        return user is not null
-            ? (user, null)
-            : (null, "No local Shoko account is linked to this SSO identity. Sign in locally and link your account first.");
+        if (user is not null)
+            return (user, null);
+
+        if (!settings.AutoCreateUsers)
+            return (null, "No local Shoko account is linked to this SSO identity. Sign in locally and link your account first.");
+
+        if (userRepository.GetByUsername(rawSubject) is not null)
+            return (null, $"Cannot auto-create a user for subject \"{rawSubject}\" — that username is already taken.");
+
+        try
+        {
+            var created = (JMMUser)await userService.CreateUser(new UserUpdate
+            {
+                Username = rawSubject,
+                Password = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)),
+            });
+            created.ExternalAuthID = externalAuthID;
+            userRepository.Save(created);
+            return (created, null);
+        }
+        catch (GenericValidationException ex)
+        {
+            return (null, $"Could not auto-create a user for subject \"{rawSubject}\": {ex.Message}");
+        }
     }
 
     private (JMMUser? User, string? Error) LinkUser(int linkUserID, string externalAuthID)

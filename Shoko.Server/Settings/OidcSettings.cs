@@ -9,7 +9,7 @@ namespace Shoko.Server.Settings;
 /// independent of local username/password login — enabling this adds an
 /// additional sign-in option on top of local accounts, it never replaces
 /// them. SSO only ever links to a pre-existing local account matched by
-/// username/email; it never creates new accounts.
+/// username/email, unless <see cref="AutoCreateUsers"/> is enabled.
 /// </summary>
 public class OidcSettings
 {
@@ -46,4 +46,15 @@ public class OidcSettings
     [Display(Name = "Client Secret")]
     [DataType(DataType.Password)]
     public string? ClientSecret { get; set; }
+
+    /// <summary>
+    /// Automatically create a new local account for a subject that signs in
+    /// without having been explicitly linked first, using the subject claim
+    /// as the username and a randomly generated password. Disabled by
+    /// default — sign-in normally only succeeds for an already-linked
+    /// account.
+    /// </summary>
+    [Display(Name = "Auto-Create Users")]
+    [DefaultValue(false)]
+    public bool AutoCreateUsers { get; set; }
 }
