@@ -53,4 +53,9 @@ public enum MatchRating : byte
     ///   Date and Title are close, but not exact.
     /// </summary>
     DateAndTitleKindaMatches = 8,
+
+    /// <summary>
+    ///   No title or in-window date evidence; matched to the closest available air date as a last resort.
+    /// </summary>
+    NearestDateMatches = 9,
 }
