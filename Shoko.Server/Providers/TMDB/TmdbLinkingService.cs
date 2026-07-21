@@ -472,6 +472,17 @@ public class TmdbLinkingService : ITmdbLinkingService
         var toSkip = new HashSet<int>();
         var toAdd = new List<CrossRef_AniDB_TMDB_Episode>();
         var crossReferences = new List<CrossRef_AniDB_TMDB_Episode>();
+        // Kept alongside crossReferences (not derived from it) so ResolveAnchorSeason can look up a
+        // neighbor's primary (Ordering == 0) link in O(1) instead of rescanning the whole list, which
+        // would otherwise get quadratically slower as crossReferences grows across passes.
+        var primaryLinkByAnidbEpisodeId = new Dictionary<int, CrossRef_AniDB_TMDB_Episode>();
+
+        void AddCrossReference(CrossRef_AniDB_TMDB_Episode xref)
+        {
+            crossReferences.Add(xref);
+            if (xref.TmdbEpisodeID != 0 && xref.Ordering == 0)
+                primaryLinkByAnidbEpisodeId[xref.AnidbEpisodeID] = xref;
+        }
         var secondPass = new List<AniDB_Episode>();
         var fourthPass = new List<AniDB_Episode>();
         var thirdPass = new List<AniDB_Episode>();
@@ -483,6 +494,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             .OrderBy(episode => episode.EpisodeType)
             .ThenBy(episode => episode.EpisodeNumber)
             .ToDictionary(episode => episode.EpisodeID);
+        var anidbEpisodesByTypeNumber = anidbEpisodes.Values.ToDictionary(episode => (episode.EpisodeType, episode.EpisodeNumber));
         var tmdbEpisodeDict = _tmdbEpisodes.GetByTmdbShowID(tmdbShowId)
             .ToDictionary(episode => episode.TmdbEpisodeID);
         var tmdbEpisodes = tmdbEpisodeDict.Values
@@ -516,30 +528,80 @@ public class TmdbLinkingService : ITmdbLinkingService
 
         List<TMDB_Episode> GetEpisodeList(AniDB_Episode ep) => IsSpecialEpisode(ep) ? tmdbSpecialEpisodes : tmdbNormalEpisodes;
 
+        // Finds the TMDB season an episode's adjacent AniDB neighbor (previous and next) already linked
+        // to, so the nearest-air-date fallback in TryFindAnidbAndTmdbMatch can be scoped to that season
+        // instead of searching across all seasons. Without this, a back-to-back multi-cour release (e.g.
+        // season 1 ending in March, season 2 starting in June) can have less than the fallback's date
+        // tolerance between season boundaries, letting an unresolved season-1 episode get pulled onto a
+        // season-2 episode instead of staying unlinked. Returns null for OVAs, where there's only one pool.
+        // Looks up primaryLinkByAnidbEpisodeId (O(1), Ordering == 0 only) rather than crossReferences
+        // directly, so a multi-part neighbor's secondary/duplicate link can't be picked up by mistake.
+        int? ResolveAnchorSeason(AniDB_Episode episode)
+        {
+            if (isOVA)
+                return null;
+
+            (int Season, DateOnly? AiredAt)? SeasonOfNeighbor(int neighborEpisodeNumber)
+            {
+                if (!anidbEpisodesByTypeNumber.TryGetValue((episode.EpisodeType, neighborEpisodeNumber), out var neighbor))
+                    return null;
+                if (!primaryLinkByAnidbEpisodeId.TryGetValue(neighbor.EpisodeID, out var xref))
+                    return null;
+                if (!tmdbEpisodeDict.TryGetValue(xref.TmdbEpisodeID, out var tmdbEpisode))
+                    return null;
+
+                return (tmdbEpisode.SeasonNumber, tmdbEpisode.AiredAt);
+            }
+
+            var previous = SeasonOfNeighbor(episode.EpisodeNumber - 1);
+            var next = SeasonOfNeighbor(episode.EpisodeNumber + 1);
+            if (previous is null)
+                return next?.Season;
+            if (next is null || previous.Value.Season == next.Value.Season)
+                return previous.Value.Season;
+
+            // The neighbors disagree on season — a season boundary sits between them. Trust whichever
+            // neighbor's air date is actually closer to this episode's own, rather than always preferring
+            // the previous episode, so the first episode of a new season anchors to the new season
+            // instead of inheriting the one that just ended.
+            var anidbDate = episode.GetAirDateAsDate()?.ToDateOnly();
+            if (anidbDate is null)
+                return previous.Value.Season;
+
+            var previousDistance = CalculateAirDateDistance(anidbDate, previous.Value.AiredAt) ?? int.MaxValue;
+            var nextDistance = CalculateAirDateDistance(anidbDate, next.Value.AiredAt) ?? int.MaxValue;
+            return nextDistance < previousDistance ? next.Value.Season : previous.Value.Season;
+        }
+
         // Ranks episodes by their best candidate match without consuming it, so passes can process the
         // strongest matches first and let weaker duplicate claims fall back to their next-best candidate
         // instead of losing a shared TMDB episode purely by AniDB episode order. The match found here is
         // cached and handed back to the caller so the loop that actually consumes candidates doesn't have
         // to run the same title-search/air-date computation a second time for every episode.
-        List<(AniDB_Episode Episode, CrossRef_AniDB_TMDB_Episode CrossRef)> RankByConfidence(IEnumerable<AniDB_Episode> episodes) =>
+        List<(AniDB_Episode Episode, CrossRef_AniDB_TMDB_Episode CrossRef, int? AnchorSeasonNumber)> RankByConfidence(IEnumerable<AniDB_Episode> episodes) =>
             episodes
                 .Select(ep =>
                 {
-                    var crossRef = TryFindAnidbAndTmdbMatch(anime, ep, GetEpisodeList(ep), IsSpecialEpisode(ep) && !isOVA, show.OriginalLanguageCode, out var confidence);
-                    return (Episode: ep, CrossRef: crossRef, Confidence: confidence);
+                    var anchorSeasonNumber = ResolveAnchorSeason(ep);
+                    var crossRef = TryFindAnidbAndTmdbMatch(anime, ep, GetEpisodeList(ep), IsSpecialEpisode(ep) && !isOVA, show.OriginalLanguageCode, anchorSeasonNumber, out var confidence);
+                    return (Episode: ep, CrossRef: crossRef, Confidence: confidence, AnchorSeasonNumber: anchorSeasonNumber);
                 })
                 .OrderByDescending(ranked => ranked.Confidence)
-                .Select(ranked => (ranked.Episode, ranked.CrossRef))
+                .Select(ranked => (ranked.Episode, ranked.CrossRef, ranked.AnchorSeasonNumber))
                 .ToList();
 
         // Re-finds a match for an episode, reusing the cached match from RankByConfidence when its chosen
-        // TMDB candidate hasn't since been claimed by an earlier (stronger) episode in the same pass —
-        // in that case re-running the deterministic match against the unchanged remaining pool is
-        // guaranteed to produce the same result, so the recompute is skipped.
-        CrossRef_AniDB_TMDB_Episode ResolveRankedMatch(AniDB_Episode episode, CrossRef_AniDB_TMDB_Episode cached, List<TMDB_Episode> episodeList) =>
-            cached.TmdbEpisodeID != 0 && episodeList.Any(candidate => candidate.TmdbEpisodeID == cached.TmdbEpisodeID)
+        // TMDB candidate hasn't since been claimed by an earlier (stronger) episode in the same pass AND
+        // the episode's anchor season hasn't changed since — a same-pass neighbor getting linked earlier
+        // in this same loop can newly resolve an anchor that didn't exist when RankByConfidence ran, so
+        // pool-membership alone isn't enough to prove the cached match is still correct.
+        CrossRef_AniDB_TMDB_Episode ResolveRankedMatch(AniDB_Episode episode, CrossRef_AniDB_TMDB_Episode cached, int? cachedAnchorSeasonNumber, List<TMDB_Episode> episodeList)
+        {
+            var anchorSeasonNumber = ResolveAnchorSeason(episode);
+            return cached.TmdbEpisodeID != 0 && anchorSeasonNumber == cachedAnchorSeasonNumber && episodeList.Any(candidate => candidate.TmdbEpisodeID == cached.TmdbEpisodeID)
                 ? cached
-                : TryFindAnidbAndTmdbMatch(anime, episode, episodeList, IsSpecialEpisode(episode) && !isOVA, show.OriginalLanguageCode);
+                : TryFindAnidbAndTmdbMatch(anime, episode, episodeList, IsSpecialEpisode(episode) && !isOVA, show.OriginalLanguageCode, anchorSeasonNumber);
+        }
 
         // Narrows the TMDB candidate pool to seasons already established by an existing/new OV/DT
         // link, so later passes can't stray into an unrelated season once one has been established.
@@ -576,19 +638,19 @@ public class TmdbLinkingService : ITmdbLinkingService
             FilterToCurrentSeasons(passNumber);
 
             var passCurrent = 0;
-            foreach (var (episode, cachedCrossRef) in RankByConfidence(episodes))
+            foreach (var (episode, cachedCrossRef, cachedAnchorSeasonNumber) in RankByConfidence(episodes))
             {
                 passCurrent++;
                 _logger.LogTrace("Linking episode {EpisodeType} {EpisodeNumber}. (AniDB ID: {EpisodeID}, Progress: {Current}/{Total}, Pass: {PassNumber}/4)", episode.EpisodeType, episode.EpisodeNumber, episode.EpisodeID, passCurrent, episodes.Count, passNumber);
                 var episodeList = GetEpisodeList(episode);
-                var crossRef = ResolveRankedMatch(episode, cachedCrossRef, episodeList);
+                var crossRef = ResolveRankedMatch(episode, cachedCrossRef, cachedAnchorSeasonNumber, episodeList);
                 if (accepts(crossRef.MatchRating))
                 {
                     var index = episodeList.FindIndex(episode => episode.TmdbEpisodeID == crossRef.TmdbEpisodeID);
                     if (index != -1)
                         episodeList.RemoveAt(index);
 
-                    crossReferences.Add(crossRef);
+                    AddCrossReference(crossRef);
                     toAdd.Add(crossRef);
                     _logger.LogTrace("Adding new link for episode. (AniDB ID: {AnidbEpisodeID}, TMDB ID: {TMDbEpisodeID}, Rating: {MatchRating}, Pass: {PassNumber}/4)", episode.EpisodeID, crossRef.TmdbEpisodeID, crossRef.MatchRating, passNumber);
                 }
@@ -601,7 +663,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         }
 
         var current = 0;
-        foreach (var (episode, cachedCrossRef) in RankByConfidence(anidbEpisodes.Values))
+        foreach (var (episode, cachedCrossRef, cachedAnchorSeasonNumber) in RankByConfidence(anidbEpisodes.Values))
         {
             current++;
             _logger.LogTrace("Checking episode {EpisodeType} {EpisodeNumber}. (AniDB ID: {AnidbEpisodeID}, Progress: {Current}/{Total}, Pass: 1/4)", episode.EpisodeType, episode.EpisodeNumber, episode.EpisodeID, current, anidbEpisodes.Count);
@@ -628,12 +690,12 @@ public class TmdbLinkingService : ITmdbLinkingService
                     var link = existingLinks[0];
                     if (link.TmdbEpisodeID is 0 && link.TmdbShowID is 0)
                     {
-                        crossReferences.Add(link);
+                        AddCrossReference(link);
                         toSkip.Add(link.CrossRef_AniDB_TMDB_EpisodeID);
                     }
                     else
                     {
-                        crossReferences.Add(new(episode.EpisodeID, anidbAnimeId, 0, 0, MatchRating.None, 0));
+                        AddCrossReference(new(episode.EpisodeID, anidbAnimeId, 0, 0, MatchRating.None, 0));
                     }
                     continue;
                 }
@@ -642,7 +704,7 @@ public class TmdbLinkingService : ITmdbLinkingService
                 foreach (var link in existingLinks)
                 {
                     _logger.LogTrace("Skipping existing link for episode. (AniDB ID: {AnidbEpisodeID}, TMDB ID: {TmdbEpisodeID}, Rating: {MatchRating})", episode.EpisodeID, link.TmdbEpisodeID, link.MatchRating);
-                    crossReferences.Add(link);
+                    AddCrossReference(link);
                     toSkip.Add(link.CrossRef_AniDB_TMDB_EpisodeID);
 
                     // Exclude the linked episodes from the auto-match candidates.
@@ -665,21 +727,21 @@ public class TmdbLinkingService : ITmdbLinkingService
                 if (episode.AnimeEpisode?.IsHidden ?? false)
                 {
                     _logger.LogTrace("Skipping hidden episode. (AniDB ID: {AnidbEpisodeID})", episode.EpisodeID);
-                    crossReferences.Add(new(episode.EpisodeID, anidbAnimeId, 0, 0, MatchRating.None, 0));
+                    AddCrossReference(new(episode.EpisodeID, anidbAnimeId, 0, 0, MatchRating.None, 0));
                     continue;
                 }
 
                 // Else try find a match.
                 _logger.LogTrace("Linking episode. (AniDB ID: {AnidbEpisodeID}, Pass: 1/4)", episode.EpisodeID);
                 var episodeList = GetEpisodeList(episode);
-                var crossRef = ResolveRankedMatch(episode, cachedCrossRef, episodeList);
+                var crossRef = ResolveRankedMatch(episode, cachedCrossRef, cachedAnchorSeasonNumber, episodeList);
                 if (crossRef.MatchRating is MatchRating.DateAndTitleMatches)
                 {
                     var index = episodeList.FindIndex(episode => episode.TmdbEpisodeID == crossRef.TmdbEpisodeID);
                     if (index != -1)
                         episodeList.RemoveAt(index);
 
-                    crossReferences.Add(crossRef);
+                    AddCrossReference(crossRef);
                     toAdd.Add(crossRef);
                     _logger.LogTrace("Adding new link for episode. (AniDB ID: {AnidbEpisodeID}, TMDB ID: {TMDbEpisodeID}, Rating: {MatchRating}, Pass: 1/4)", episode.EpisodeID, crossRef.TmdbEpisodeID, crossRef.MatchRating);
                 }
@@ -742,13 +804,14 @@ public class TmdbLinkingService : ITmdbLinkingService
         int NormalEpisodeSeasonNumberSelector(CrossRef_AniDB_TMDB_Episode xref) => xref.TmdbEpisodeID is not 0 && (isOVA || anidbEpisodes[xref.AnidbEpisodeID].EpisodeType is EpisodeType.Episode) && tmdbEpisodeDict.TryGetValue(xref.TmdbEpisodeID, out var tmdbEpisode) ? tmdbEpisode.SeasonNumber : -1;
     }
 
-    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(AniDB_Anime anime, AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial, string originalLanguageCode) =>
-        TryFindAnidbAndTmdbMatch(anime, anidbEpisode, tmdbEpisodes, isSpecial, originalLanguageCode, out _);
+    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(AniDB_Anime anime, AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial, string originalLanguageCode, int? anchorSeasonNumber) =>
+        TryFindAnidbAndTmdbMatch(anime, anidbEpisode, tmdbEpisodes, isSpecial, originalLanguageCode, anchorSeasonNumber, out _);
 
     // The out confidence score lets callers rank multiple AniDB episodes contending for the same
     // TMDB episode within a pass, so the strongest match claims it instead of whichever AniDB
-    // episode happened to be processed first.
-    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(AniDB_Anime anime, AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial, string originalLanguageCode, out double confidence)
+    // episode happened to be processed first. anchorSeasonNumber scopes the nearest-air-date fallback
+    // to a season a neighboring episode already confirmed, so it can't cross a season boundary.
+    private CrossRef_AniDB_TMDB_Episode TryFindAnidbAndTmdbMatch(AniDB_Anime anime, AniDB_Episode anidbEpisode, IReadOnlyList<TMDB_Episode> tmdbEpisodes, bool isSpecial, string originalLanguageCode, int? anchorSeasonNumber, out double confidence)
     {
         confidence = 0;
 
@@ -771,12 +834,31 @@ public class TmdbLinkingService : ITmdbLinkingService
             .ThenBy(result => result.episode.SeasonNumber)
             .ThenBy(result => result.episode.EpisodeNumber)
             .ToList();
+        // No candidate within the strict ±2-day window (e.g. a delayed/compressed episode) — fall back to
+        // the closest air date available instead of dropping straight to a blind positional/title guess,
+        // which is what let e.g. AniDB episode 2 grab whatever TMDB episode happened to be next in the
+        // list (episode 5) instead of the episode actually nearest in air date. Scoped to anchorSeasonNumber
+        // (the season a neighboring episode already confirmed) when known, so a multi-cour show with less
+        // than the fallback's tolerance between season boundaries can't have this pull an episode across
+        // seasons — it can only widen within the season it already belongs to.
+        var nearestAirdate = airdateProbability.Count > 0 || anidbDate is null
+            ? new List<(TMDB_Episode episode, int distance)>()
+            : tmdbEpisodes
+                .Where(episode => anchorSeasonNumber is null || episode.SeasonNumber == anchorSeasonNumber.Value)
+                .Select(episode => (episode, distance: CalculateAirDateDistance(anidbDate, episode.AiredAt)))
+                .Where(result => result.distance is not null)
+                .Select(result => (result.episode, distance: result.distance!.Value))
+                .OrderBy(result => result.distance)
+                .ThenBy(result => result.episode.SeasonNumber == 0)
+                .ThenBy(result => result.episode.SeasonNumber)
+                .ThenBy(result => result.episode.EpisodeNumber)
+                .ToList();
         var titleSearchResults = !string.IsNullOrEmpty(anidbTitle) ? tmdbEpisodes
             .Search(anidbTitle, episode => GetEpisodeTitleCandidates(episode, originalLanguageCode), true)
             .OrderBy(result => result)
             .ToList() : [];
 
-        var crossRef = SelectBestEpisodeMatch(anidbEpisode, tmdbEpisodes, isSpecial, titleSearchResults, airdateProbability, out confidence);
+        var crossRef = SelectBestEpisodeMatch(anidbEpisode, tmdbEpisodes, isSpecial, titleSearchResults, airdateProbability, nearestAirdate, out confidence);
         return crossRef;
     }
 
@@ -831,6 +913,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         bool isSpecial,
         List<SeriesSearch.SearchResult<TMDB_Episode>> titleSearchResults,
         List<(TMDB_Episode episode, double probability)> airdateProbability,
+        List<(TMDB_Episode episode, int distance)> nearestAirdate,
         out double confidence)
     {
         if (TryExactTitleMatch(anidbEpisode, titleSearchResults, airdateProbability, out var crossRef, out confidence))
@@ -843,6 +926,9 @@ public class TmdbLinkingService : ITmdbLinkingService
             return crossRef;
 
         if (TryAnyTitleMatch(anidbEpisode, titleSearchResults, out crossRef, out confidence))
+            return crossRef;
+
+        if (TryNearestAirDateMatch(anidbEpisode, nearestAirdate, out crossRef, out confidence))
             return crossRef;
 
         confidence = 0;
@@ -939,20 +1025,55 @@ public class TmdbLinkingService : ITmdbLinkingService
         return true;
     }
 
+    // Last-resort tier: no title evidence and no candidate within the strict ±2-day window. Picks the
+    // closest remaining episode by air date instead of grabbing whatever's positionally next (the old
+    // FirstAvailable behavior), which is what mismatched delayed/compressed episodes onto the wrong slot.
+    // Confidence is kept low (and decays with distance) so a genuine close match elsewhere always outranks it.
+    // Bounded to MaxFallbackDifferenceInDays so an anime with a long hiatus (or a special dated months/years
+    // from anything on TMDB) doesn't get confidently linked to a wildly unrelated episode.
+    private const int MaxFallbackDifferenceInDays = 120;
+
+    private static bool TryNearestAirDateMatch(
+        AniDB_Episode anidbEpisode,
+        List<(TMDB_Episode episode, int distance)> nearestAirdate,
+        out CrossRef_AniDB_TMDB_Episode crossRef,
+        out double confidence)
+    {
+        crossRef = null!;
+        confidence = 0;
+        if (nearestAirdate.Count == 0)
+            return false;
+
+        var (tmdbEpisode, distance) = nearestAirdate[0];
+        if (distance > MaxFallbackDifferenceInDays)
+            return false;
+
+        confidence = 0.5 / (1 + distance);
+        crossRef = new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, MatchRating.NearestDateMatches);
+        return true;
+    }
+
     private static double CalculateAirDateProbability(DateOnly? firstDate, DateOnly? secondDate, int maxDifferenceInDays = 2)
     {
-        if (!firstDate.HasValue || !secondDate.HasValue)
+        var difference = CalculateAirDateDistance(firstDate, secondDate);
+        if (difference is null)
             return 0;
 
-        var difference = Math.Abs(secondDate.Value.DayNumber - firstDate.Value.DayNumber);
         if (difference == 0)
             return 1;
 
         if (difference <= maxDifferenceInDays)
-            return (maxDifferenceInDays - difference) / (double)maxDifferenceInDays;
+            return (maxDifferenceInDays - difference.Value) / (double)maxDifferenceInDays;
 
         return 0;
     }
+
+    // Unbounded companion to CalculateAirDateProbability, used only as a last-resort fallback once the
+    // strict ±2-day window finds nothing — e.g. a delayed or compressed episode whose TMDB entry aired
+    // weeks later. Returns the raw day distance so the caller can pick the closest candidate instead of
+    // falling through to a blind positional/title guess.
+    private static int? CalculateAirDateDistance(DateOnly? firstDate, DateOnly? secondDate) =>
+        !firstDate.HasValue || !secondDate.HasValue ? null : Math.Abs(secondDate.Value.DayNumber - firstDate.Value.DayNumber);
 
     private static IReadOnlyList<string> GetEpisodeTitleCandidates(TMDB_Episode episode, string originalLanguageCode) =>
         episode.GetAllTitles()
@@ -970,7 +1091,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         title.Trim().Equals($"Episode {episodeType.Prefix}{episodeNumber}", StringComparison.InvariantCultureIgnoreCase);
 
     // Ratings assigned with zero title evidence — the only ones a coincidental air-date mismatch can put out of order.
-    private static readonly HashSet<MatchRating> _weakOrderRatings = [MatchRating.DateMatches, MatchRating.FirstAvailable];
+    private static readonly HashSet<MatchRating> _weakOrderRatings = [MatchRating.DateMatches, MatchRating.NearestDateMatches, MatchRating.FirstAvailable];
 
     // Swaps adjacent weak TMDB matches into AniDB order; strong matches stay in the ordering (true adjacency) but are never swapped.
     internal static void ReconcileEpisodeOrderInversions(
