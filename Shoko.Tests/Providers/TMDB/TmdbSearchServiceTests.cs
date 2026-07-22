@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using System.Reflection;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Filters;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Utilities;
+using TMDbLib.Objects.Search;
 using Xunit;
 
 // ReSharper disable StringLiteralTypo
@@ -225,5 +227,64 @@ public class TmdbSearchServiceTests
     public void IsAcceptableAutoMatch_RejectsOnlyFirstAvailable(MatchRating rating, bool expectedAcceptable)
     {
         Assert.Equal(expectedAcceptable, TmdbSearchService.IsAcceptableAutoMatch(rating));
+    }
+
+    // ── CollectCandidates / CollectMovieCandidates: restricted genre bypass ────
+    // TMDB's community-maintained genre metadata is disproportionately sparse for R18 content, so
+    // requiring the "Animation" tag would discard an otherwise-correct restricted-anime match before
+    // scoring ever runs. Non-restricted search must still require it to avoid matching unrelated
+    // live-action/non-anime entries. (TmdbMetadataService.Instance is unset in this test host, so
+    // GetGenres() naturally returns an empty list here — equivalent to an untagged TMDB result.)
+
+    private static void InvokeCollectCandidates(List<SearchTv> candidates, List<SearchTv> results, HashSet<int> seen, int candidateCount, bool isRestricted)
+    {
+        var method = typeof(TmdbSearchService).GetMethod("CollectCandidates", BindingFlags.NonPublic | BindingFlags.Static)!;
+        method.Invoke(null, [candidates, results, seen, candidateCount, isRestricted]);
+    }
+
+    private static void InvokeCollectMovieCandidates(List<SearchMovie> candidates, List<SearchMovie> results, HashSet<int> seen, int candidateCount, bool isRestricted)
+    {
+        var method = typeof(TmdbSearchService).GetMethod("CollectMovieCandidates", BindingFlags.NonPublic | BindingFlags.Static)!;
+        method.Invoke(null, [candidates, results, seen, candidateCount, isRestricted]);
+    }
+
+    [Fact]
+    public void CollectCandidates_NonRestricted_ExcludesUntaggedResult()
+    {
+        var candidates = new List<SearchTv>();
+        var results = new List<SearchTv> { new() { Id = 1 } };
+        InvokeCollectCandidates(candidates, results, [], 10, false);
+
+        Assert.Empty(candidates);
+    }
+
+    [Fact]
+    public void CollectCandidates_Restricted_IncludesUntaggedResult()
+    {
+        var candidates = new List<SearchTv>();
+        var results = new List<SearchTv> { new() { Id = 1 } };
+        InvokeCollectCandidates(candidates, results, [], 10, true);
+
+        Assert.Single(candidates);
+    }
+
+    [Fact]
+    public void CollectMovieCandidates_NonRestricted_ExcludesUntaggedResult()
+    {
+        var candidates = new List<SearchMovie>();
+        var results = new List<SearchMovie> { new() { Id = 1 } };
+        InvokeCollectMovieCandidates(candidates, results, [], 10, false);
+
+        Assert.Empty(candidates);
+    }
+
+    [Fact]
+    public void CollectMovieCandidates_Restricted_IncludesUntaggedResult()
+    {
+        var candidates = new List<SearchMovie>();
+        var results = new List<SearchMovie> { new() { Id = 1 } };
+        InvokeCollectMovieCandidates(candidates, results, [], 10, true);
+
+        Assert.Single(candidates);
     }
 }
