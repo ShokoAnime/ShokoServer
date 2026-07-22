@@ -86,6 +86,7 @@ public static partial class SettingsMigrations
         { 15, null },
         { 16, MigrateDefaultRenamerToStatic },
         { 17, MigrateReleaseSignalTypeNames },
+        { 18, MigrateTmdbIncrementalChangesWindow },
     };
 
     /// <summary>
@@ -334,6 +335,18 @@ public static partial class SettingsMigrations
             if (value is not null && _releaseSignalRenames.TryGetValue(value, out var newName))
                 signalPriority[i] = newName;
         }
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateTmdbIncrementalChangesWindow(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        var tmdbSettings = currentSettings["TMDB"];
+        if (tmdbSettings?["IncrementalChangesWindowDays"]?.Value<int>() != 14)
+            return settings;
+
+        tmdbSettings["IncrementalChangesWindowDays"] = 1;
 
         return currentSettings.ToString();
     }
