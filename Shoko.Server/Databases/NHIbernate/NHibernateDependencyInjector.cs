@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NHibernate.Type;
@@ -12,8 +14,12 @@ public class NHibernateDependencyInjector : EmptyInterceptor
     private readonly IServiceProvider _provider;
     private ISession _session;
     private static readonly Dictionary<Type, Func<object, (string name, object value)[], bool>> s_postInitializationCallbacks = new();
-    private static Dictionary<string, Type> s_allTypes;
-    private static readonly Dictionary<string, bool> s_typeHasValidConstructors = new();
+    // ConcurrentDictionary: Instantiate() runs concurrently across NHibernate sessions on different
+    // worker threads. A plain Dictionary here corrupts under concurrent first-time writes for the
+    // same not-yet-cached key, throwing "Operations that change non-concurrent collections must have
+    // exclusive access" and leaving the dictionary permanently broken for the rest of the process.
+    private static ConcurrentDictionary<string, Type> s_allTypes;
+    private static readonly ConcurrentDictionary<string, bool> s_typeHasValidConstructors = new();
 
     public NHibernateDependencyInjector(IServiceProvider provider)
     {
@@ -38,12 +44,16 @@ public class NHibernateDependencyInjector : EmptyInterceptor
     public override object Instantiate(string clazz, object id)
     {
         // return null -> use default NHibernate entity creation
-        s_allTypes ??= AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).DistinctBy(a => a.FullName).ToDictionary(a => a.FullName, a => a);
-        if (!s_allTypes.TryGetValue(clazz, out var type)) return null;
+        // LazyInitializer, not `??=`, so concurrent first callers can't race to build/assign
+        // s_allTypes independently — a static field written from this instance method needs
+        // its own synchronization, same reasoning as the ConcurrentDictionary swap above.
+        var allTypes = LazyInitializer.EnsureInitialized(ref s_allTypes, static () => new ConcurrentDictionary<string, Type>(
+            AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).DistinctBy(a => a.FullName).ToDictionary(a => a.FullName, a => a)));
+        if (!allTypes.TryGetValue(clazz, out var type)) return null;
         if (!s_typeHasValidConstructors.TryGetValue(clazz, out var hasParameters))
         {
             hasParameters = type.GetConstructors().Any(x => x.GetParameters().Any());
-            s_typeHasValidConstructors.Add(clazz, hasParameters);
+            s_typeHasValidConstructors.TryAdd(clazz, hasParameters);
         }
 
         if (!hasParameters) return null;
