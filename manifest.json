@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.378",
+      "tag": "v6.0.0-dev.378",
+      "commit": "c0b30d15d64ed7e8029921f297b82cf746de6a3a",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.378/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-23T00:41:09Z",
+      "releaseNotes": "\n`fix` (`tmdb`): **Shrink incremental changes window from 14 days to 1** ([#1393](https://github.com/ShokoAnime/ShokoServer/pull/1393)).\n"
+    },
+    {
       "version": "6.0.0.377",
       "tag": "v6.0.0-dev.377",
       "commit": "6143831e8914bb003d19701966b4e47a2975dc59",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.349/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-02T04:06:36Z",
       "releaseNotes": "\n`misc`: **Make adjustments to Auto-Delete Logic**.\n"
-    },
-    {
-      "version": "6.0.0.348",
-      "tag": "v6.0.0-dev.348",
-      "commit": "b6cf48261b41dd98bd24b7c280940c1a3dfefc65",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.348/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-02T01:56:40Z",
-      "releaseNotes": "\n`refactor`: **Remove provider lifecycle events and consolidate release processing**:\n\nRemoved the four lifecycle events from the `IReleaseInfoProvider` interface\n(`PrepareForSave`, `OnReleaseSaved`, `OnReleaseCleared`, `OnSearchCompleted`)\nand consolidated release processing into `IVideoReleaseService` again. Providers\nare now purely responsible for matching  again, everything else lives in the\ncore service layer and applies uniformly to all providers. MyList will be moved\nto a separate service using the video release service's events in the future,\nbut for now, it's the video release's responsibility. Release auto-management\nnow fires on all save paths, instead of only when ran on auto in the queue.\nAdded proper chain aborts to the release pipeline. And try schedule rescan for\nvideo builds a single chain for the release providers which were used to match\nthe last release, ensuring a provider which didn't contribute to the release\ninfo cannot override it afterwards.\n\n`fix`: **Reverse order of entity type sort step for images for entities**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.67**.\n\n`fix`: **Adjust count to index**.\n\n`fix`: **Use pattern matching for `false` check on `bool?`**.\n\n`fix`: **No need to check last attempt winning provider name**.\n\n`misc`: **Counts starts at 1 when non-empty**.\n\n`fix`: **Order match attempts at repo level**.\n\n`chore` (`queue`): **Bump queue processor version to v6.0.0-alpha.5**.\n"
     }
   ]
 }
