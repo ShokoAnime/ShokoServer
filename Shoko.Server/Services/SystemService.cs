@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MessagePack;
@@ -69,6 +70,7 @@ namespace Shoko.Server.Services;
 public class SystemService : ISystemService
 {
     private readonly ILogger<SystemService> _logger;
+    private readonly DatabaseConversionOptions? _databaseConversionOptions;
 
     private readonly PluginManager _pluginManager;
 
@@ -79,13 +81,17 @@ public class SystemService : ISystemService
     private readonly SettingsProvider _settingsProvider;
 
     private IHost? _webHost;
+    private bool _hostStarted;
+    private bool _oneShotModeCompleted;
 
-    public SystemService()
+    public SystemService(string[]? startupArgs = null)
     {
         var now = DateTime.UtcNow;
-        var args = Environment.GetCommandLineArgs();
+        var args = startupArgs ?? Environment.GetCommandLineArgs().Skip(1).ToArray();
 
         ApplicationPaths.SetHome(args);
+
+        _databaseConversionOptions = DatabaseConversionOptions.TryParse(args, out var conversionOptions) ? conversionOptions : null;
 
         LogService.InitLogger(ApplicationPaths.Instance);
         var loggerFactory = LoggerFactory.Create(o => o.AddNLog());
@@ -201,6 +207,7 @@ public class SystemService : ISystemService
     /// <inheritdoc/>
     public async Task<IHost?> StartAsync()
     {
+        IDisposable? conversionIsolation = null;
         try
         {
             // Check if any of the DLL are blocked, common issue with daily builds.
@@ -212,6 +219,27 @@ public class SystemService : ISystemService
             }
 
             var settings = _settingsProvider.GetSettings();
+            ISettingsProvider effectiveSettingsProvider = _settingsProvider;
+
+            if (_databaseConversionOptions?.ShowHelp == true)
+            {
+                Console.WriteLine(DatabaseConversionService.GetUsage());
+                CompleteOneShotShutdown();
+                return null;
+            }
+
+            DatabaseConversionService.ConversionRuntimeContext? conversionRuntime = null;
+            if (_databaseConversionOptions is not null)
+            {
+                var realSettings = (ServerSettings)_settingsProvider.GetSettings(copy: true);
+                conversionRuntime = DatabaseConversionService.PrepareRuntime(_databaseConversionOptions, realSettings);
+                // Enter conversion isolation before starting log maintenance, plugin scanning,
+                // host building, or Quartz registration so any startup side effects are scoped
+                // to the temporary conversion home instead of the user's real Shoko home.
+                conversionIsolation = DatabaseConversionService.BeginIsolatedRuntime(conversionRuntime.Value);
+                effectiveSettingsProvider = conversionRuntime.Value.RuntimeSettingsProvider;
+                settings = effectiveSettingsProvider.GetSettings();
+            }
 
             LogService.ApplyLoggingSettings(settings.Logging);
 
@@ -268,7 +296,7 @@ public class SystemService : ISystemService
 
             StartupMessage = "Initializing Web Host & Services.";
 
-            _webHost = InitWebHost(settings);
+            _webHost = InitWebHost(settings, effectiveSettingsProvider);
 
 #pragma warning disable CS0618 // Type or member is obsolete
             ISystemService.StaticServices = _webHost.Services;
@@ -283,10 +311,17 @@ public class SystemService : ISystemService
 
             StartupMessage = "Plugins initialized.";
 
+            if (conversionRuntime is not null)
+            {
+                await RunDatabaseConversionModeAsync(conversionRuntime.Value, hostStarted: false);
+                return _webHost;
+            }
+
             StartupMessage = "Starting Web Hosts.";
 
             // Start the web server and all IHostedService services.
             await _webHost.StartAsync();
+            _hostStarted = true;
 
             StartupMessage = "Web Host started.";
 
@@ -320,6 +355,43 @@ public class SystemService : ISystemService
             StartupMessage = "Failed to start. Check your logs for more information.";
             StartupFailedException = new(innerException: ex);
             return null;
+        }
+        finally
+        {
+            conversionIsolation?.Dispose();
+        }
+    }
+
+    private async Task RunDatabaseConversionModeAsync(DatabaseConversionService.ConversionRuntimeContext context, bool hostStarted)
+    {
+        try
+        {
+            var cancellationToken = hostStarted
+                ? CancellationTokenSource.CreateLinkedTokenSource(_webHost!.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping, _shutdownTokenSource.Token).Token
+                : _shutdownTokenSource.Token;
+            if (cancellationToken.IsCancellationRequested)
+                return;
+
+            await DatabaseConversionService.RunAsync(this, _webHost!.Services, context, cancellationToken);
+
+            _startupTaskSource?.SetResult();
+            _startupTaskSource = null;
+        }
+        catch (Exception ex)
+        {
+            StartupMessage = "Database conversion failed.";
+            StartupFailedException = new($"Database conversion failed. Error Message: {ex.Message}", innerException: ex);
+        }
+        finally
+        {
+            if (hostStarted)
+            {
+                _webHost?.Services.GetRequiredService<IHostApplicationLifetime>().StopApplication();
+            }
+            else
+            {
+                CompleteOneShotShutdown();
+            }
         }
     }
 
@@ -359,14 +431,14 @@ public class SystemService : ISystemService
 
     #region Startup | Services
 
-    private IHost InitWebHost(IServerSettings settings)
+    private IHost InitWebHost(IServerSettings settings, ISettingsProvider settingsProvider)
         => new HostBuilder()
             .ConfigureWebHost(webHostBuilder =>
                 webHostBuilder
                     .UseKestrel(options => options.ListenAnyIP(settings.Web.Port))
                     .ConfigureApp()
                     .ConfigureServiceProvider()
-                    .UseStartup(_ => new Startup(this, _logService, _configurationService, _settingsProvider, _pluginManager))
+                    .UseStartup(_ => new Startup(this, _logService, _configurationService, settingsProvider, _pluginManager))
                     .ConfigureLogging(logging =>
                     {
                         logging.ClearProviders();
@@ -378,7 +450,7 @@ public class SystemService : ISystemService
 #endif
                     })
                     .UseNLog()
-                    .UseSentryConfig(_settingsProvider)
+                    .UseSentryConfig(settingsProvider)
             )
             .Build();
 
@@ -815,6 +887,9 @@ public class SystemService : ISystemService
         }
     }
 
+    internal bool InitializeDatabaseForConversion(DatabaseFactory databaseFactory, RepoFactory repositoryFactory, CancellationToken cancellationToken)
+        => InitializeDatabase(databaseFactory, repositoryFactory, cancellationToken);
+
     #endregion
 
     #endregion
@@ -873,7 +948,28 @@ public class SystemService : ISystemService
 
     /// <inheritdoc/>
     public Task WaitForShutdownAsync()
-        => _webHost?.WaitForShutdownAsync() ?? Task.CompletedTask;
+        => _oneShotModeCompleted ? Task.CompletedTask : _webHost?.WaitForShutdownAsync() ?? Task.CompletedTask;
+
+    private void CompleteOneShotShutdown()
+    {
+        lock (_logger)
+        {
+            if (!RestartPending && !ShutdownPending)
+                ShutdownPending = true;
+        }
+
+        _shutdownTokenSource.Cancel();
+        _oneShotModeCompleted = true;
+
+        try
+        {
+            Shutdown?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while invoking Shutdown");
+        }
+    }
 
     internal void OnShutdown()
     {
@@ -885,7 +981,7 @@ public class SystemService : ISystemService
         }
 
         _shutdownTokenSource.Cancel();
-        if (_webHost is not null)
+        if (_hostStarted && _webHost is not null)
         {
             var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
             fileWatcherService.StopWatchingFiles();
