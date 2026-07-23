@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.380",
+      "tag": "v6.0.0-dev.380",
+      "commit": "f5e8fa474a9734a98ab61222da2128c918d46a94",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.380/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-23T22:24:04Z",
+      "releaseNotes": "\n`feat` (`abstractions`): **Add GetUserFromHubCallerContext to IUserService**:\n\nAdded a method to resolve a user from a SignalR hub caller context,\nmirroring the existing GetUserFromHttpContext pattern. The\nimplementation delegates to the same ClaimsPrincipal.GetUser()\nextension used by the HTTP path, since SignalR hubs authenticate\nthrough the same ASP.NET Core auth middleware and populate\nHubCallerContext.User identically.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.76**.\n"
+    },
+    {
       "version": "6.0.0.379",
       "tag": "v6.0.0-dev.379",
       "commit": "6321d15bec18103f865eaeed00d603d75c285397",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.351/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-04T04:27:27Z",
       "releaseNotes": "\n`misc`: **A lot more safety and improvements to FileSystemWatcher. Cleanup**.\n"
-    },
-    {
-      "version": "6.0.0.350",
-      "tag": "v6.0.0-dev.350",
-      "commit": "cda353c06aec41f4e0bcd5444b0b12aacf6c14f9",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.350/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-03T00:02:42Z",
-      "releaseNotes": "\n`fix`: **ProcessReleaseProvider job key collision and VideoReleaseService ignoring releaseInfo provided data** ([#1378](https://github.com/ShokoAnime/ShokoServer/pull/1378)):\n\n* fix: remove manual `[JobKeyMember]` to allow automatic JobKey generation\n\nThe manual JobKeyMemeber on ProviderID is preventing all other acceptable types to be included in the key, leading to job collisions in providers.\n\n* fix: add support for using provided group information\n"
     }
   ]
 }
