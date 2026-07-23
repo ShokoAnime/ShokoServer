@@ -248,8 +248,8 @@ public class TMDBSettings
     [Visibility(Size = DisplayElementSize.Large)]
     [EnvironmentVariable("TMDB_CHANGES_WINDOW_DAYS")]
     [Range(0, 14)]
-    [DefaultValue(14)]
-    public int IncrementalChangesWindowDays { get; set; } = 14;
+    [DefaultValue(1)]
+    public int IncrementalChangesWindowDays { get; set; } = 1;
 
     /// <summary>
     /// The maximum number of TMDB search candidates to evaluate per auto-search
