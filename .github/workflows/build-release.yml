@@ -142,6 +142,36 @@ jobs:
           NUGET_KEY: ${{secrets.NUGET_API_KEY}}
           TAG_FORMAT: Shoko.BuildTools-v*
 
+  buildtools-targets-nuget:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        dotnet: [ '10.x' ]
+
+    name: Publish Shoko.BuildTools.Targets Nuget
+
+    steps:
+      - name: Checkout "${{ github.ref }}"
+        uses: actions/checkout@v7
+        with:
+          ref: "${{ github.sha }}"
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Run dotnet build
+        run: dotnet build -c Release Shoko.BuildTools.Targets
+
+      - name: Publish Shoko.BuildTools.Targets Nuget
+        uses: brandedoutcast/publish-nuget@v2.5.2
+        with:
+          PROJECT_FILE_PATH: Shoko.BuildTools.Targets/Shoko.BuildTools.Targets.csproj
+          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+          TAG_FORMAT: Shoko.BuildTools.Targets-v*
+
   webui:
     runs-on: ubuntu-latest
 

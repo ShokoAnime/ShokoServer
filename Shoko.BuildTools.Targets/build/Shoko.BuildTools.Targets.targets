@@ -1,0 +1,52 @@
+<Project>
+  <!--
+    Shoko.BuildTools.Targets — Auto-imported targets for Shoko plugins.
+    Injects assembly metadata from manifest.json and git at build time.
+  -->
+
+  <!-- RuntimeIdentifier — explicit RID or "any" for portable libraries -->
+  <ItemGroup>
+    <AssemblyMetadata Include="RuntimeIdentifier" Value="$(RuntimeIdentifier)" Condition="'$(RuntimeIdentifier)' != ''" />
+    <AssemblyMetadata Include="RuntimeIdentifier" Value="any" Condition="'$(RuntimeIdentifier)' == ''" />
+  </ItemGroup>
+
+  <!-- Manifest metadata — generate .cs from manifest.json -->
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.ReadPluginManifest"
+             AssemblyFile="$(MSBuildThisFileDirectory)..\lib\net10.0\Shoko.BuildTools.Tasks.dll" />
+
+  <Target Name="_ShokoStampManifestMetadata" BeforeTargets="CoreGenerateAssemblyInfo"
+          Condition="Exists('$(MSBuildProjectDirectory)\manifest.json') or Exists('$(MSBuildProjectDirectory)\..\manifest.json')">
+    <ReadPluginManifest ProjectDir="$(MSBuildProjectDirectory)"
+                        OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.ManifestInfo.cs" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)Shoko.BuildTools.ManifestInfo.cs" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Source-based identity — fallback when no manifest.json exists -->
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.ReadPluginIdentityFromSource"
+             AssemblyFile="$(MSBuildThisFileDirectory)..\lib\net10.0\Shoko.BuildTools.Tasks.dll" />
+
+  <Target Name="_ShokoReadPluginIdentityFromSource" BeforeTargets="CoreGenerateAssemblyInfo"
+          Condition="!Exists('$(MSBuildProjectDirectory)\manifest.json') And !Exists('$(MSBuildProjectDirectory)\..\manifest.json')">
+    <ReadPluginIdentityFromSource ProjectDir="$(MSBuildProjectDirectory)"
+                                  OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.PluginIdentity.cs"
+                                  NuGetPackageRoot="$(NuGetPackageRoot)" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)Shoko.BuildTools.PluginIdentity.cs" Condition="Exists('$(IntermediateOutputPath)Shoko.BuildTools.PluginIdentity.cs')" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Git metadata — C# task runs git and writes .cs file -->
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.StampGitMetadata"
+             AssemblyFile="$(MSBuildThisFileDirectory)..\lib\net10.0\Shoko.BuildTools.Tasks.dll" />
+
+  <Target Name="_ShokoStampGitMetadata" BeforeTargets="CoreGenerateAssemblyInfo">
+    <StampGitMetadata ProjectDir="$(MSBuildProjectDirectory)"
+                      OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.GitInfo.cs" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)Shoko.BuildTools.GitInfo.cs" />
+    </ItemGroup>
+  </Target>
+
+</Project>

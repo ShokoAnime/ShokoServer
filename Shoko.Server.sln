@@ -110,6 +110,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.QueueProcessor.Tests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.BuildTools", "Shoko.BuildTools\Shoko.BuildTools.csproj", "{78CC2990-11D0-4A02-AB24-BFEB612C7944}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.BuildTools.Targets", "Shoko.BuildTools.Targets\Shoko.BuildTools.Targets.csproj", "{391720CB-A745-4967-A67B-F8D9C0DAB0C6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -365,6 +367,30 @@ Global
 		{78CC2990-11D0-4A02-AB24-BFEB612C7944}.Benchmarks|x64.Build.0 = Debug|Any CPU
 		{78CC2990-11D0-4A02-AB24-BFEB612C7944}.Benchmarks|x86.ActiveCfg = Debug|Any CPU
 		{78CC2990-11D0-4A02-AB24-BFEB612C7944}.Benchmarks|x86.Build.0 = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Debug|x64.Build.0 = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Debug|x86.Build.0 = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Release|x64.ActiveCfg = Release|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Release|x64.Build.0 = Release|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Release|x86.ActiveCfg = Release|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Release|x86.Build.0 = Release|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.ApiLogging|Any CPU.ActiveCfg = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.ApiLogging|Any CPU.Build.0 = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.ApiLogging|x64.ActiveCfg = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.ApiLogging|x64.Build.0 = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.ApiLogging|x86.ActiveCfg = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.ApiLogging|x86.Build.0 = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Benchmarks|Any CPU.ActiveCfg = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Benchmarks|Any CPU.Build.0 = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Benchmarks|x64.ActiveCfg = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Benchmarks|x64.Build.0 = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Benchmarks|x86.ActiveCfg = Debug|Any CPU
+		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Benchmarks|x86.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
