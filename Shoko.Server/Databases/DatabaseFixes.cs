@@ -1306,7 +1306,7 @@ public class DatabaseFixes
 
                     try
                     {
-                        byte[] configuration = null;
+                        byte[]? configuration = null;
                         var providerInfo = renamerScript.RenamerType.Equals("Legacy")
                             ? webAomRenamer
                             : renamersByKey.ContainsKey(renamerScript.RenamerType)
@@ -1372,21 +1372,24 @@ public class DatabaseFixes
                     {
                         Name = (string)fields[0] ?? "_",
                         Type = (string)fields[1],
-                        Settings = (byte[])fields[2],
+                        Settings = (byte[]?)fields[2],
                     };
                     var settingsString = Environment.NewLine + "Settings (base64): " + Convert.ToBase64String(renamerConfig.Settings ?? []);
                     var scriptString = string.Empty;
                     try
                     {
-                        byte[] configuration = null;
+                        byte[]? configuration = null;
                         var providerInfo = renamersByKey.ContainsKey(renamerConfig.Type)
                             ? renamersByKey[renamerConfig.Type]
                             : null;
                         try
                         {
-                            var settingsJson = MessagePackSerializer.ConvertToJson(renamerConfig.Settings, MessagePackSerializer.DefaultOptions.WithCompression(MessagePackCompression.Lz4BlockArray));
-                            settingsString = Environment.NewLine + "Settings (JSON): " + settingsJson;
-                            scriptString = Environment.NewLine + "Script: " + Environment.NewLine + JsonNode.Parse(settingsJson)?["Script"] ?? string.Empty;
+                            if (renamerConfig.Settings is { Length: > 0 })
+                            {
+                                var settingsJson = MessagePackSerializer.ConvertToJson(renamerConfig.Settings, MessagePackSerializer.DefaultOptions.WithCompression(MessagePackCompression.Lz4BlockArray));
+                                settingsString = Environment.NewLine + "Settings (JSON): " + settingsJson;
+                                scriptString = Environment.NewLine + "Script: " + Environment.NewLine + JsonNode.Parse(settingsJson)?["Script"] ?? string.Empty;
+                            }
                         }
                         catch (MessagePackSerializationException)
                         {
@@ -1399,16 +1402,16 @@ public class DatabaseFixes
                             continue;
                         }
 
-                        if (providerInfo.ConfigurationInfo is not null)
+                        if (providerInfo.ConfigurationInfo is not null && renamerConfig.Settings is { Length: > 0 })
                         {
-                            var config = MessagePackSerializer.Typeless.Deserialize(renamerConfig.Settings);
+                            var config = MessagePackSerializer.Typeless.Deserialize(renamerConfig.Settings)!;
                             if (config.GetType() != providerInfo.ConfigurationInfo.Type)
                             {
                                 _logger.Warn("A RenamerInstance could not be converted to StoredRelocationPreset. Mismatched config type. Renamer name: " + renamerConfig.Name + " Renamer type: " + renamerConfig.Type + settingsString + scriptString);
                                 SaveFailedRenamerItem("RenamerConfig", renamerConfig.Type, renamerConfig.Name, renamerConfig.Settings, ".messagepack");
                                 continue;
                             }
-                            configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(config as IConfiguration));
+                            configuration = Encoding.UTF8.GetBytes(configurationService.Serialize((IConfiguration)config));
                         }
 
                         rawPresets.Add(new() { Name = renamerConfig.Name, ProviderID = providerInfo.ID, Configuration = configuration, IsDefault = renamerConfig.Name == defaultRenamerConfigName });
@@ -1495,7 +1498,7 @@ public class DatabaseFixes
     private static string SanitizeFileName(string name)
         => Path.GetInvalidFileNameChars().Aggregate(name, (current, c) => current.Replace(c, '_'));
 
-    private static void SaveFailedRenamerItem(string category, string typeName, string name, byte[] data, string extension)
+    private static void SaveFailedRenamerItem(string category, string typeName, string name, byte[]? data, string extension)
     {
         var dir = Path.Combine(GetFailedMigrationsBasePath(), category, SanitizeFileName(typeName));
         Directory.CreateDirectory(dir);
@@ -1509,7 +1512,7 @@ public class DatabaseFixes
                 filePath = $"{basePath} (copy #{++copyIndex}){extension}";
             } while (File.Exists(filePath));
         }
-        File.WriteAllBytes(filePath, data);
+        File.WriteAllBytes(filePath, data ?? []);
     }
 
     public static void SetDefaultRenamer()
@@ -2618,18 +2621,17 @@ public class DatabaseFixes
 
     private class DBF_RenamerConfig
     {
-        public int ID { get; set; }
-        public string Name { get; set; }
-        public string Type { get; set; }
-        public byte[] Settings { get; set; }
+        public required string Name { get; set; }
+        public required string Type { get; set; }
+        public required byte[]? Settings { get; set; }
     }
 
     private class DBF_RenamerScript
     {
-        public string ScriptName { get; set; }
-        public string RenamerType { get; set; }
-        public bool IsEnabledOnImport { get; set; }
-        public string Script { get; set; }
+        public required string ScriptName { get; set; }
+        public required string RenamerType { get; set; }
+        public required bool IsEnabledOnImport { get; set; }
+        public required string Script { get; set; }
     }
 
     private class DNF_AniDB_Vote
