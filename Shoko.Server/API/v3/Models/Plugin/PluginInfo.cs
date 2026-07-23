@@ -152,6 +152,12 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     public bool CanUninstall { get; init; } = pluginInfo.CanUninstall;
 
     /// <summary>
+    ///   The plugin's dependencies on other plugins.
+    /// </summary>
+    [Required]
+    public IReadOnlyList<PluginDependency> Dependencies { get; init; } = pluginInfo.Dependencies?.Select(d => new PluginDependency(d)).ToArray() ?? [];
+
+    /// <summary>
     ///   Indicates if the plugin can be enabled or disabled by the user.
     /// </summary>
     [Required]

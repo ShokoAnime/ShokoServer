@@ -16,6 +16,7 @@ using Shoko.Server.Utilities;
 
 using AbstractPluginInfo = Shoko.Abstractions.Plugin.Models.LocalPluginInfo;
 using PluginCompatibilityInfo = Shoko.Server.API.v3.Models.Plugin.PluginCompatibilityInfo;
+using PluginDependency = Shoko.Server.API.v3.Models.Plugin.PluginDependency;
 using PluginInfo = Shoko.Server.API.v3.Models.Plugin.PluginInfo;
 using PluginPage = Shoko.Server.API.v3.Models.Plugin.PluginPage;
 
@@ -27,13 +28,19 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="settingsProvider">Settings provider.</param>
 /// <param name="applicationPaths">Application paths.</param>
 /// <param name="pluginManager">Plugin manager.</param>
+/// <param name="dependencyResolver">Plugin dependency resolver.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize(Roles = "admin,init")]
 [DatabaseBlockedExempt]
 [InitFriendly]
-public class PluginController(ISettingsProvider settingsProvider, IApplicationPaths applicationPaths, IPluginManager pluginManager) : BaseController(settingsProvider)
+public class PluginController(
+    ISettingsProvider settingsProvider,
+    IApplicationPaths applicationPaths,
+    IPluginManager pluginManager,
+    IPluginDependencyResolver dependencyResolver
+) : BaseController(settingsProvider)
 {
     /// <summary>
     ///   Gets information about the server/plugin compatibility.
@@ -287,9 +294,33 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
 
         if (body.IsEnabled.HasValue)
             if (body.IsEnabled.Value)
+            {
+                var resolution = dependencyResolver.ValidateEnable(pluginInfo);
+                if (!resolution.CanResolve)
+                {
+                    return StatusCode(412, new
+                    {
+                        Message = "Cannot enable plugin: required dependencies are missing.",
+                        resolution,
+                    });
+                }
+
                 pluginInfo = pluginManager.EnablePlugin(pluginInfo);
+            }
             else
+            {
+                var dependents = dependencyResolver.ValidateDisable(pluginInfo);
+                if (dependents.Count > 0 && !body.Force)
+                {
+                    return Conflict(new
+                    {
+                        Message = "Cannot disable plugin: other enabled plugins depend on it.",
+                        Dependents = dependents.Select(d => new PluginInfo(d)).ToList(),
+                    });
+                }
+
                 pluginInfo = pluginManager.DisablePlugin(pluginInfo);
+            }
 
         if (body.IsPinned.HasValue)
             if (body.IsPinned.Value)
@@ -298,6 +329,69 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
                 pluginInfo = pluginManager.UnpinPlugin(pluginInfo);
 
         return new PluginInfo(pluginInfo);
+    }
+
+    /// <summary>
+    ///   Gets the resolved dependency tree for a plugin.
+    /// </summary>
+    /// <param name="pluginID">
+    ///   The plugin ID.
+    /// </param>
+    /// <returns>
+    ///   A list of resolved dependencies.
+    /// </returns>
+    [HttpGet("{pluginID}/Dependencies")]
+    public ActionResult<List<PluginDependency>> GetPluginDependencies([FromRoute] Guid pluginID)
+    {
+        if (pluginManager.GetPluginInfo(pluginID) is not { } pluginInfo)
+            return NotFound("Plugin not found");
+
+        var resolution = dependencyResolver.ResolveDependencies(pluginInfo);
+        return resolution.Dependencies
+            .Select(d => new PluginDependency(d))
+            .ToList();
+    }
+
+    /// <summary>
+    ///   Gets the list of plugins that depend on the specified plugin.
+    /// </summary>
+    /// <param name="pluginID">
+    ///   The plugin ID.
+    /// </param>
+    /// <returns>
+    ///   A list of plugins that depend on the specified plugin.
+    /// </returns>
+    [HttpGet("{pluginID}/Dependents")]
+    public ActionResult<List<PluginInfo>> GetPluginDependents([FromRoute] Guid pluginID)
+    {
+        if (pluginManager.GetPluginInfo(pluginID) is not { } pluginInfo)
+            return NotFound("Plugin not found");
+
+        var dependents = dependencyResolver.GetDependents(pluginInfo);
+        return dependents
+            .Select(d => new PluginInfo(d))
+            .ToList();
+    }
+
+    /// <summary>
+    ///   Gets the full dependency graph for all installed plugins.
+    /// </summary>
+    /// <returns>
+    ///   A dictionary mapping each plugin ID to its resolved dependencies.
+    /// </returns>
+    [HttpGet("DependencyGraph")]
+    public ActionResult<Dictionary<Guid, List<PluginDependency>>> GetPluginDependencyGraph()
+    {
+        var graph = new Dictionary<Guid, List<PluginDependency>>();
+        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsActive))
+        {
+            var resolution = dependencyResolver.ResolveDependencies(pluginInfo);
+            graph[pluginInfo.ID] = resolution.Dependencies
+                .Select(d => new PluginDependency(d))
+                .ToList();
+        }
+
+        return graph;
     }
 
     /// <summary>
@@ -342,10 +436,31 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     ///   No content.
     /// </returns>
     [HttpDelete("{pluginID}")]
-    public ActionResult UninstallPluginByID([FromRoute] Guid pluginID, [FromQuery] bool purgeConfiguration = false)
+    public ActionResult UninstallPluginByID(
+        [FromRoute] Guid pluginID,
+        [FromQuery] bool purgeConfiguration = false,
+        [FromQuery] bool force = false
+    )
     {
         if (pluginManager.GetPluginInfo(pluginID) is not { } pluginInfo)
             return NotFound("Plugin not found");
+
+        var cascade = dependencyResolver.GetUninstallCascade(pluginInfo);
+        if (cascade.Count > 0 && !force)
+        {
+            return Conflict(new
+            {
+                Message = "Cannot uninstall plugin: other plugins depend on it. Set 'force=true' to also uninstall dependents.",
+                Cascade = cascade.Select(d => new PluginInfo(d)).ToList(),
+            });
+        }
+
+        // Uninstall dependents first if forced
+        if (force)
+        {
+            foreach (var dependent in cascade)
+                pluginManager.UninstallPlugin(dependent, purgeConfiguration);
+        }
 
         pluginManager.UninstallPlugin(pluginInfo, purgeConfiguration);
 
@@ -435,9 +550,33 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
 
         if (body.IsEnabled.HasValue)
             if (body.IsEnabled.Value)
+            {
+                var resolution = dependencyResolver.ValidateEnable(pluginInfo);
+                if (!resolution.CanResolve)
+                {
+                    return StatusCode(412, new
+                    {
+                        Message = "Cannot enable plugin: required dependencies are missing.",
+                        resolution,
+                    });
+                }
+
                 pluginInfo = pluginManager.EnablePlugin(pluginInfo);
+            }
             else
+            {
+                var dependents = dependencyResolver.ValidateDisable(pluginInfo);
+                if (dependents.Count > 0 && !body.Force)
+                {
+                    return Conflict(new
+                    {
+                        Message = "Cannot disable plugin: other enabled plugins depend on it.",
+                        Dependents = dependents.Select(d => new PluginInfo(d)).ToList(),
+                    });
+                }
+
                 pluginInfo = pluginManager.DisablePlugin(pluginInfo);
+            }
 
         if (body.IsPinned.HasValue)
             if (body.IsPinned.Value)
@@ -500,11 +639,28 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     public ActionResult DeletePluginByIDAndVersion(
         [FromRoute] Guid pluginID,
         [FromRoute] Version pluginVersion,
-        [FromQuery] bool purgeConfiguration = false
+        [FromQuery] bool purgeConfiguration = false,
+        [FromQuery] bool force = false
     )
     {
         if (pluginManager.GetPluginInfo(pluginID, pluginVersion) is not { } pluginInfo)
             return NotFound("Plugin not found");
+
+        var cascade = dependencyResolver.GetUninstallCascade(pluginInfo);
+        if (cascade.Count > 0 && !force)
+        {
+            return Conflict(new
+            {
+                Message = "Cannot uninstall plugin: other plugins depend on it. Set 'force=true' to also uninstall dependents.",
+                Cascade = cascade.Select(d => new PluginInfo(d)).ToList(),
+            });
+        }
+
+        if (force)
+        {
+            foreach (var dependent in cascade)
+                pluginManager.UninstallPlugin(dependent, purgeConfiguration);
+        }
 
         pluginManager.UninstallPlugin(pluginInfo, purgeConfiguration);
 
@@ -541,10 +697,35 @@ public class PluginController(ISettingsProvider settingsProvider, IApplicationPa
     ///   No content.
     /// </returns>
     [HttpDelete("{pluginID}/All")]
-    public ActionResult UninstallAllPluginsByID([FromRoute] Guid pluginID, [FromQuery] bool purgeConfiguration = false)
+    public ActionResult UninstallAllPluginsByID(
+        [FromRoute] Guid pluginID,
+        [FromQuery] bool purgeConfiguration = false,
+        [FromQuery] bool force = false
+    )
     {
         if (pluginManager.GetPluginInfos(pluginID) is not { Count: > 0 } pluginInfos)
             return NotFound("Plugin not found");
+
+        // Check cascade for the active version (others are already disabled)
+        var activePlugin = pluginInfos.FirstOrDefault(p => p.IsActive);
+        if (activePlugin is not null)
+        {
+            var cascade = dependencyResolver.GetUninstallCascade(activePlugin);
+            if (cascade.Count > 0 && !force)
+            {
+                return Conflict(new
+                {
+                    Message = "Cannot uninstall plugin: other plugins depend on it. Set 'force=true' to also uninstall dependents.",
+                    Cascade = cascade.Select(d => new PluginInfo(d)).ToList(),
+                });
+            }
+
+            if (force)
+            {
+                foreach (var dependent in cascade)
+                    pluginManager.UninstallPlugin(dependent, purgeConfiguration);
+            }
+        }
 
         foreach (var pluginInfo in pluginInfos)
             pluginManager.UninstallPlugin(pluginInfo, purgeConfiguration);

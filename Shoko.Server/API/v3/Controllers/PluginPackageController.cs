@@ -31,6 +31,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="applicationPaths">Application paths.</param>
 /// <param name="packageManager">Plugin installation manager.</param>
 /// <param name="pluginManager">Plugin manager.</param>
+/// <param name="dependencyResolver">Plugin dependency resolver.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/Plugin/Package")]
 [ApiV3]
@@ -41,7 +42,8 @@ public class PluginPackageController(
     ISettingsProvider settingsProvider,
     IApplicationPaths applicationPaths,
     IPluginPackageManager packageManager,
-    IPluginManager pluginManager
+    IPluginManager pluginManager,
+    IPluginDependencyResolver dependencyResolver
 ) : BaseController(settingsProvider)
 {
     #region Settings
@@ -351,14 +353,18 @@ public class PluginPackageController(
     /// <param name="packageID">
     ///   The package ID.
     /// </param>
-    /// <param name="releaseVersion">
-    ///   The specific release version to install.
+    /// <param name="runtimeIdentifier">
+    ///   The specific runtime identifier (e.g., "linux-x64", "win-x64", "any").
     /// </param>
     /// <param name="abstractionVersion">
     ///   The specific abstraction version to install.
     /// </param>
-    /// <param name="runtimeIdentifier">
-    ///   The specific runtime identifier (e.g., "linux-x64", "win-x64", "any").
+    /// <param name="releaseVersion">
+    ///   The specific release version to install.
+    /// </param>
+    /// <param name="autoResolveDependencies">
+    ///   When <c>true</c>, automatically install missing dependencies before
+    ///   installing the requested package. Default is <c>false</c>.
     /// </param>
     /// <returns>
     ///   The installed <see cref="PluginInfo"/> if successful.
@@ -368,7 +374,8 @@ public class PluginPackageController(
         [FromRoute] Guid packageID,
         [FromQuery] string? runtimeIdentifier = null,
         [FromQuery] string? abstractionVersion = null,
-        [FromQuery] string? releaseVersion = null
+        [FromQuery] string? releaseVersion = null,
+        [FromQuery] bool autoResolveDependencies = false
     )
     {
         var manifests = await packageManager.GetAvailablePackageManifests(allowSync: false).ConfigureAwait(false);
@@ -404,6 +411,40 @@ public class PluginPackageController(
             packages = packages.Where(p => p.Release.Version == parsedReleaseVersion);
         if (packages.FirstOrDefault() is not { } package)
             return ValidationProblem("Package not found or no compatible version available");
+
+        // Resolve dependencies before installing.
+        var resolution = dependencyResolver.ResolveDependencies(package.Release.Dependencies);
+        if (!resolution.CanResolve)
+        {
+            if (!autoResolveDependencies)
+            {
+                return StatusCode(424, new
+                {
+                    Message = "Package has missing dependencies. Set 'autoResolveDependencies=true' to install them automatically, or install them manually first.",
+                    resolution,
+                });
+            }
+
+            // Auto-resolve: install each missing dependency
+            foreach (var missingDep in resolution.MissingDependencies)
+            {
+                var depManifest = manifests.FirstOrDefault(m => m.PackageID == missingDep.PluginID);
+                if (depManifest is null)
+                    continue;
+
+                var depPackages = packageManager.FilterPackageManifests(
+                    [depManifest],
+                    onlyCompatible: true,
+                    onlyLatest: true
+                );
+                if (depPackages.FirstOrDefault() is not { } depPackage)
+                    continue;
+
+                var depPluginInfo = await packageManager.InstallPackage(depPackage).ConfigureAwait(false);
+                if (depPluginInfo is null)
+                    return StatusCode(500, $"Failed to install dependency '{depManifest.Name}'");
+            }
+        }
 
         var pluginInfo = await packageManager.InstallPackage(package).ConfigureAwait(false);
         if (pluginInfo is null)

@@ -67,4 +67,11 @@ public sealed class RemotePackageReleaseInfo
     [JsonPropertyName("archives")]
     [JsonProperty("archives")]
     public IReadOnlyList<RemotePackageArchiveInfo> Archives { get; init; } = [];
+
+    /// <summary>
+    ///   The plugins this release depends on.
+    /// </summary>
+    [JsonPropertyName("dependencies")]
+    [JsonProperty("dependencies")]
+    public IReadOnlyList<RemotePackageDependencyInfo> Dependencies { get; init; } = [];
 }

@@ -187,6 +187,11 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         ///   The raw thumbnail image byte array for the plugin, if available.
         /// </summary>
         public byte[]? Thumbnail { get; set; }
+
+        /// <summary>
+        ///   The dependencies of this plugin version.
+        /// </summary>
+        public IReadOnlyList<PluginDependency> Dependencies { get; init; } = [];
     }
 
     private static string GetPinnedFile(string? directory, string dll)
@@ -311,6 +316,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         DLLs = internalPluginInfo.DLLs,
                         Types = [],
                         Thumbnail = LoadPluginThumbnailInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail),
+                        Dependencies = internalPluginInfo.Dependencies,
                     });
                     continue;
                 }
@@ -344,6 +350,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     DLLs = internalPluginInfo.DLLs,
                     Types = types,
                     Thumbnail = LoadPluginThumbnailInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail),
+                    Dependencies = internalPluginInfo.Dependencies,
                 });
             }
         }
@@ -422,6 +429,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 DLLs = localPluginInfo.DLLs,
                 Types = localPluginInfo.Types,
                 Thumbnail = localPluginInfo.Thumbnail,
+                Dependencies = localPluginInfo.Dependencies,
             };
             _exportedTypes.AddRange(localPluginInfo.Types);
 
@@ -808,6 +816,26 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             logger.LogWarning(ex, "Failed to load thumbnail for {DllName}", dllPath);
                         }
                     }
+
+                    // Parse embedded dependencies
+                    var embeddedDependencies = new List<PluginDependency>();
+                    if (metadataAttributeDict.TryGetValue(PackageDependencies, out var depsRaw) && depsRaw is { Length: > 0 })
+                    {
+                        foreach (var segment in depsRaw.Split(','))
+                        {
+                            var parts = segment.Split(':');
+                            if (parts.Length >= 2 && Guid.TryParse(parts[0], out var depId))
+                            {
+                                embeddedDependencies.Add(new PluginDependency
+                                {
+                                    PluginID = depId,
+                                    VersionRange = parts[1],
+                                    IsOptional = parts.Length > 2 && string.Equals(parts[2], "true", StringComparison.OrdinalIgnoreCase),
+                                });
+                            }
+                        }
+                    }
+
                     return new()
                     {
                         ID = embeddedId ?? instance.ID,
@@ -830,6 +858,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         CanUninstall = !isSystem,
                         DLLs = [dllPath, .. dlls.Except([dllPath])],
                         Thumbnail = thumbnailImage,
+                        Dependencies = embeddedDependencies,
                     };
                 }
                 catch (Exception ex)
@@ -856,6 +885,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     private const string PackageName = "PackageName";
 
     private const string PackageOverview = "PackageOverview";
+
+    private const string PackageDependencies = "PackageDependencies";
 
     private const string PackageProjectUrl = "PackageProjectUrl";
 
@@ -1206,6 +1237,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             DLLs = internalPluginInfo.DLLs,
             Types = existingPluginInfo?.Types ?? [],
             Thumbnail = LoadPluginThumbnailInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail),
+            Dependencies = internalPluginInfo.Dependencies,
         };
         if (existingPluginInfo is not null && _pluginTypes.IndexOf(existingPluginInfo) is { } index && index is not -1)
             _pluginTypes[index] = pluginInfo;

@@ -163,6 +163,11 @@ public sealed class LocalPluginInfo
     public required IReadOnlyList<Type> Types { get; init; }
 
     /// <summary>
+    ///   The dependencies of this installed plugin version.
+    /// </summary>
+    public required IReadOnlyList<PluginDependency> Dependencies { get; init; }
+
+    /// <summary>
     ///   Get the pages exposed by the plugin.
     /// </summary>
     /// <returns>

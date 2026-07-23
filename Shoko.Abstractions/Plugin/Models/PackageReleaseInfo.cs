@@ -70,4 +70,11 @@ public sealed class PackageReleaseInfo
     [JsonPropertyName("archives")]
     [JsonProperty("archives")]
     public required IReadOnlyList<PackageArchiveInfo> Archives { get; init; }
+
+    /// <summary>
+    ///   The plugins this release depends on.
+    /// </summary>
+    [JsonPropertyName("dependencies")]
+    [JsonProperty("dependencies")]
+    public IReadOnlyList<PluginDependency> Dependencies { get; init; } = [];
 }

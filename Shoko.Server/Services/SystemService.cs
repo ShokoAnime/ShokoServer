@@ -395,6 +395,7 @@ public class SystemService : ISystemService
             services.AddSingleton(ApplicationPaths.Instance);
 
             services.AddSingleton<IPluginPackageManager, PluginPackageManager>();
+            services.AddSingleton<IPluginDependencyResolver, PluginDependencyResolver>();
             services.AddSingleton<FileSystemHelpers>();
             services.AddSingleton<FileWatcherService>();
             services.AddSingleton<TmdbRateLimiter>();
