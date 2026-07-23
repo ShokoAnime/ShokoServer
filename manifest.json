@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.379",
+      "tag": "v6.0.0-dev.379",
+      "commit": "6321d15bec18103f865eaeed00d603d75c285397",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.379/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-23T18:48:09Z",
+      "releaseNotes": "\n`fix` (`db`): **Handle null RenamerInstance Settings in migration**:\n\nThe MigrateRenamers migration crashed when a RenamerInstance had null\nSettings in the database:\n1. ConvertToJson(null) returned empty string, then JsonNode.Parse('')\n   threw JsonReaderException — only MessagePackSerializationException\n   was caught, so it escaped to the outer handler\n2. SaveFailedRenamerItem passed null bytes to File.WriteAllBytes,\n   throwing ArgumentNullException\n\nGuard the JSON operations behind a null/empty check on Settings\ninstead of catching the secondary exception. Write an empty file\nfor null settings so the restorer can produce a null-config preset.\nThe ProcessConfigs restorer now treats 0-length .messagepack files\nas null configuration instead of moving them to .error.\n"
+    },
+    {
       "version": "6.0.0.378",
       "tag": "v6.0.0-dev.378",
       "commit": "c0b30d15d64ed7e8029921f297b82cf746de6a3a",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.350/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-03T00:02:42Z",
       "releaseNotes": "\n`fix`: **ProcessReleaseProvider job key collision and VideoReleaseService ignoring releaseInfo provided data** ([#1378](https://github.com/ShokoAnime/ShokoServer/pull/1378)):\n\n* fix: remove manual `[JobKeyMember]` to allow automatic JobKey generation\n\nThe manual JobKeyMemeber on ProviderID is preventing all other acceptable types to be included in the key, leading to job collisions in providers.\n\n* fix: add support for using provided group information\n"
-    },
-    {
-      "version": "6.0.0.349",
-      "tag": "v6.0.0-dev.349",
-      "commit": "5a511e0ba10fe15bb7ff799c22b1bbc5d43a848f",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.349/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-02T04:06:36Z",
-      "releaseNotes": "\n`misc`: **Make adjustments to Auto-Delete Logic**.\n"
     }
   ]
 }
