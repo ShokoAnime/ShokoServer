@@ -264,7 +264,7 @@ public partial class TmdbSearchService : ITmdbSearchService
 
         // Attempt #1: full title + year
         (results, _) = await SearchMoviesRaw(query, includeRestricted: includeRestricted, year: year).ConfigureAwait(false);
-        CollectMovieCandidates(candidates, results, seen, candidateCount);
+        CollectMovieCandidates(candidates, results, seen, candidateCount, includeRestricted);
 
         // Attempt #2: sequel-suffix stripped + year
         var strippedTitle = SequelSuffixRemovalRegex().Match(query) is { Success: true } regexResult
@@ -272,7 +272,7 @@ public partial class TmdbSearchService : ITmdbSearchService
         if (!string.IsNullOrEmpty(strippedTitle) && candidates.Count < candidateCount)
         {
             (results, _) = await SearchMoviesRaw(strippedTitle, includeRestricted: includeRestricted, year: year).ConfigureAwait(false);
-            CollectMovieCandidates(candidates, results, seen, candidateCount);
+            CollectMovieCandidates(candidates, results, seen, candidateCount, includeRestricted);
         }
 
         // Attempts #3–4: year-free fallbacks mirroring #1–2.
@@ -282,12 +282,12 @@ public partial class TmdbSearchService : ITmdbSearchService
         var yearFreeCap = candidateCount * 2;
 
         (results, _) = await SearchMoviesRaw(query, includeRestricted: includeRestricted).ConfigureAwait(false);
-        CollectMovieCandidates(candidates, results, seen, yearFreeCap);
+        CollectMovieCandidates(candidates, results, seen, yearFreeCap, includeRestricted);
 
         if (!string.IsNullOrEmpty(strippedTitle) && candidates.Count < yearFreeCap)
         {
             (results, _) = await SearchMoviesRaw(strippedTitle, includeRestricted: includeRestricted).ConfigureAwait(false);
-            CollectMovieCandidates(candidates, results, seen, yearFreeCap);
+            CollectMovieCandidates(candidates, results, seen, yearFreeCap, includeRestricted);
         }
 
         if (candidates.Count == 0)
@@ -575,7 +575,7 @@ public partial class TmdbSearchService : ITmdbSearchService
 
         // Attempt #1: full title + year
         (results, _) = await SearchShowsRaw(originalTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
-        CollectCandidates(candidates, results, seen, candidateCount);
+        CollectCandidates(candidates, results, seen, candidateCount, restricted);
 
         // Attempt #2: sequel-suffix stripped + year
         var strippedTitle = SequelSuffixRemovalRegex().Match(originalTitle) is { Success: true } regexResult
@@ -583,7 +583,7 @@ public partial class TmdbSearchService : ITmdbSearchService
         if (!string.IsNullOrEmpty(strippedTitle) && candidates.Count < candidateCount)
         {
             (results, _) = await SearchShowsRaw(strippedTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
-            CollectCandidates(candidates, results, seen, candidateCount);
+            CollectCandidates(candidates, results, seen, candidateCount, restricted);
         }
 
         // Attempt #3: subtitle stripped + year.
@@ -597,7 +597,7 @@ public partial class TmdbSearchService : ITmdbSearchService
         if (!string.IsNullOrEmpty(titleWithoutSubTitle) && candidates.Count < candidateCount)
         {
             (results, _) = await SearchShowsRaw(titleWithoutSubTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
-            CollectCandidates(candidates, results, seen, candidateCount);
+            CollectCandidates(candidates, results, seen, candidateCount, restricted);
         }
 
         // Attempts #4–6: year-free fallbacks mirroring #1–3.
@@ -609,18 +609,18 @@ public partial class TmdbSearchService : ITmdbSearchService
         var yearFreeCap = candidateCount * 2;
 
         (results, _) = await SearchShowsRaw(originalTitle, includeRestricted: restricted).ConfigureAwait(false);
-        CollectCandidates(candidates, results, seen, yearFreeCap);
+        CollectCandidates(candidates, results, seen, yearFreeCap, restricted);
 
         if (!string.IsNullOrEmpty(strippedTitle) && candidates.Count < yearFreeCap)
         {
             (results, _) = await SearchShowsRaw(strippedTitle, includeRestricted: restricted).ConfigureAwait(false);
-            CollectCandidates(candidates, results, seen, yearFreeCap);
+            CollectCandidates(candidates, results, seen, yearFreeCap, restricted);
         }
 
         if (!string.IsNullOrEmpty(titleWithoutSubTitle) && candidates.Count < yearFreeCap)
         {
             (results, _) = await SearchShowsRaw(titleWithoutSubTitle, includeRestricted: restricted).ConfigureAwait(false);
-            CollectCandidates(candidates, results, seen, yearFreeCap);
+            CollectCandidates(candidates, results, seen, yearFreeCap, restricted);
         }
 
         if (candidates.Count == 0)
@@ -770,24 +770,28 @@ public partial class TmdbSearchService : ITmdbSearchService
     // applies the same floor for show and movie auto-matching.
     internal static bool IsAcceptableAutoMatch(MatchRating rating) => rating is not MatchRating.FirstAvailable;
 
-    private static void CollectCandidates(List<SearchTv> candidates, List<SearchTv> results, HashSet<int> seen, int candidateCount)
+    // Restricted (R18) titles skip the Animation genre requirement — TMDB's community-maintained
+    // genre metadata is disproportionately sparse for adult content, so requiring it here would
+    // discard an otherwise-correct match. Non-restricted search keeps the genre guard to avoid
+    // matching unrelated live-action/non-anime entries with a similar title.
+    private static void CollectCandidates(List<SearchTv> candidates, List<SearchTv> results, HashSet<int> seen, int candidateCount, bool isRestricted = false)
     {
         foreach (var result in results)
         {
             if (candidates.Count >= candidateCount) break;
             if (!seen.Add(result.Id)) continue;
-            if (!result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase)) continue;
+            if (!isRestricted && !result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase)) continue;
             candidates.Add(result);
         }
     }
 
-    private static void CollectMovieCandidates(List<SearchMovie> candidates, List<SearchMovie> results, HashSet<int> seen, int candidateCount)
+    private static void CollectMovieCandidates(List<SearchMovie> candidates, List<SearchMovie> results, HashSet<int> seen, int candidateCount, bool isRestricted = false)
     {
         foreach (var result in results)
         {
             if (candidates.Count >= candidateCount) break;
             if (!seen.Add(result.Id)) continue;
-            if (!result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase)) continue;
+            if (!isRestricted && !result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase)) continue;
             candidates.Add(result);
         }
     }
