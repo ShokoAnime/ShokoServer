@@ -179,6 +179,17 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     /// <inheritdoc />
     public WebSettings Web { get; set; } = new();
 
+    /// <summary>
+    /// Configure optional OpenID Connect single sign-on, additive to local
+    /// username/password login. Deliberately not exposed through the
+    /// settings UI/API — edit settings-server.json directly to configure
+    /// this, so enabling it is a conscious, hands-on-the-server action
+    /// rather than a checkbox someone stumbles into from a browser.
+    /// </summary>
+    [Display(Name = "Single Sign-On (OIDC)")]
+    [Visibility(DisplayVisibility.Hidden)]
+    public OidcSettings Oidc { get; set; } = new();
+
     /// <inheritdoc />
     [SectionName("Web UI")]
     [Display(Name = "Settings")]

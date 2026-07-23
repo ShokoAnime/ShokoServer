@@ -129,16 +129,20 @@ public class InitController : BaseController
             if (message.Equals("Complete!")) message = null;
             state = ServerStatus.StartupState.Starting;
         }
+        var oidc = SettingsProvider.GetSettings().Oidc;
+        var oidcEnabled = oidc.Enabled && !string.IsNullOrWhiteSpace(oidc.Authority) && !string.IsNullOrWhiteSpace(oidc.ClientID);
         if (!isLoggedIn)
             return new()
             {
                 State = state,
                 StartupMessage = message,
+                OidcEnabled = oidcEnabled,
             };
         return new()
         {
             State = state,
             StartupMessage = message,
+            OidcEnabled = oidcEnabled,
             BootstrappedAt = _systemService.BootstrappedAt.ToUniversalTime(),
             StartedAt = _systemService.StartedAt?.ToUniversalTime(),
             Uptime = _systemService.Uptime,

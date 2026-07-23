@@ -28,6 +28,13 @@ public class JMMUser : IIdentity, IUser
 
     public string Password { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The "sub" claim of the OIDC provider this user last signed in with via
+    /// SSO. Null for users who have never used SSO. A user can still sign in
+    /// with their local password even when this is set.
+    /// </summary>
+    public string? ExternalAuthID { get; set; }
+
     public int IsAdmin { get; set; }
 
     public int IsAniDBUser { get; set; }

@@ -1054,6 +1054,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
                      FROM StoredReleaseInfo sri
                      WHERE sri.CrossReferences LIKE '%AnidbEpisodeID%'
                      """),
+        new(180,  1, "ALTER TABLE JMMUser ADD ExternalAuthID NVARCHAR(255) NULL DEFAULT NULL;"),
     ];
 
     #endregion
