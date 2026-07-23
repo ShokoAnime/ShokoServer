@@ -566,6 +566,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         return internalPluginInfo;
     }
 
+    private const string LegacyNamespaceMessage = "This plugin uses the deprecated Shoko.Plugin.Abstractions namespace and is incompatible with this version of Shoko Server. Please update the plugin to use Shoko.Abstractions.";
+
+    private const string AbiTooNewMessage = "The plugin failed to load because it references a newer version of Shoko.Abstractions than what this server supports.";
+
+    private const string MissingDependenciesMessage = "The plugin failed to load due to missing dependencies.";
+
     private InternalPluginInfo? LoadInternalPluginInfo(string? dirPath, string[] dlls, bool isSystem, IServerSettings settings, ref bool settingsChanged)
     {
         var selfResolvingPluginPath = dlls.FirstOrDefault(dll => Path.Exists(Path.ChangeExtension(dll, ".deps.json")));
@@ -609,6 +615,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     {
                         logger.LogWarning("Found plugin using deprecated Shoko.Plugin.Abstractions namespace. This plugin is incompatible and needs to be updated. ({DllName}, {Version})", name, version);
 
+                        // Legacy plugins won't have embedded metadata, so
+                        // generate a deterministic stub ID instead.
                         return new()
                         {
                             // Create an unique ID for this specific version that failed to load.
@@ -616,8 +624,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             DllName = name,
                             Name = name,
                             Description = isLegacyNamespace
-                                ? "This plugin uses the deprecated Shoko.Plugin.Abstractions namespace and is incompatible with this version of Shoko Server. Please update the plugin to use Shoko.Abstractions."
-                                : "The plugin failed to load due to missing dependencies.",
+                                ? LegacyNamespaceMessage
+                                : MissingDependenciesMessage,
                             Version = version,
                             Authors = authors,
                             RepositoryUrl = repositoryUrl,
@@ -637,16 +645,34 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         };
                     }
 
+                    // Read embedded identity if possible for the paths below.
+                    // Legacy plugins (checked above) won't have these.
+                    var embeddedId = metadataAttributeDict.TryGetValue(PackageID, out var pid) && Guid.TryParse(pid, out var parsedId)
+                        ? parsedId
+                        : (Guid?)null;
+                    var embeddedName = metadataAttributeDict.TryGetValue(PackageName, out var pn) ? pn : null;
+                    var embeddedDescription = metadataAttributeDict.TryGetValue(PackageOverview, out var pd) ? pd : null;
+                    if (embeddedId is null)
+                    {
+                        logger.LogWarning(
+                            "Plugin {DllName} ({Version}) does not have embedded identity metadata. " +
+                            "Install Shoko.BuildTools (`dotnet tool install --global Shoko.BuildTools`) " +
+                            "and rebuild with `shoko-build` for better compatibility.",
+                            name, version);
+                    }
+
                     if (version.AbstractionVersion > AbstractionVersion)
                     {
                         logger.LogInformation("Skipping DLL because the loaded assembly references a newer version of Shoko.Abstractions than what this server supports; {DllPath}", dllPath);
                         return new()
                         {
-                            // Create an unique ID for this specific version that failed to load.
-                            ID = UuidUtility.GetV5($"{name}@{version}"),
+                            // Create an unique ID for this specific version if it failed to load.
+                            ID = embeddedId ?? UuidUtility.GetV5($"{name}@{version}"),
                             DllName = name,
-                            Name = name,
-                            Description = "The plugin failed to load because it references a newer version of Shoko.Abstractions than what this server supports.",
+                            Name = embeddedName ?? name,
+                            Description = embeddedDescription is not null
+                                ? $"{AbiTooNewMessage}\n\n{embeddedDescription}"
+                                : AbiTooNewMessage,
                             Version = version,
                             Authors = authors,
                             RepositoryUrl = repositoryUrl,
@@ -677,11 +703,13 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
                         return new()
                         {
-                            // Create an unique ID for this specific version that failed to load.
-                            ID = UuidUtility.GetV5($"{name}@{version}"),
+                            // Create an unique ID for this specific version if it failed to load.
+                            ID = embeddedId ?? UuidUtility.GetV5($"{name}@{version}"),
                             DllName = name,
-                            Name = name,
-                            Description = "The plugin failed to load due to missing dependencies.",
+                            Name = embeddedName ?? name,
+                            Description = embeddedDescription is not null
+                                ? $"{MissingDependenciesMessage}\n\n{embeddedDescription}"
+                                : MissingDependenciesMessage,
                             Version = version,
                             Authors = authors,
                             RepositoryUrl = repositoryUrl,
@@ -738,8 +766,22 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         settings.Plugins.Priority.Add(name);
                         settingsChanged = true;
                     }
+
                     var instance = (IPlugin)Activator.CreateInstance(pluginImpl[0])!;
-                    if (instance.ID == CorePlugin.StaticID)
+                    if (embeddedId.HasValue)
+                    {
+                        if (embeddedId.Value == CorePlugin.StaticID)
+                        {
+                            logger.LogWarning("Skipping {DllName} because it has the same ID as the core plugin.", dllPath);
+                            continue;
+                        }
+                        if (embeddedId.Value != instance.ID)
+                        {
+                            logger.LogWarning("Skipping {DllName} because it has a different ID from the embedded metadata.", dllPath);
+                            continue;
+                        }
+                    }
+                    else if (instance.ID == CorePlugin.StaticID)
                     {
                         logger.LogWarning("Skipping {DllName} because it has the same ID as the core plugin.", dllPath);
                         continue;
@@ -768,10 +810,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     }
                     return new()
                     {
-                        ID = instance.ID,
+                        ID = embeddedId ?? instance.ID,
                         DllName = name,
-                        Name = instance.Name,
-                        Description = instance.Description?.CleanDescription() ?? string.Empty,
+                        Name = embeddedName ?? instance.Name,
+                        Description = (embeddedDescription ?? instance.Description)?.CleanDescription() ?? string.Empty,
                         Version = version,
                         Authors = authors,
                         RepositoryUrl = repositoryUrl,
@@ -808,6 +850,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     #region Setup | Version
 
     private const string RepositoryUrl = "RepositoryUrl";
+
+    private const string PackageID = "PackageID";
+
+    private const string PackageName = "PackageName";
+
+    private const string PackageOverview = "PackageOverview";
 
     private const string PackageProjectUrl = "PackageProjectUrl";
 

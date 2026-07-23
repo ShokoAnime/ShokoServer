@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/ShokoAnime/Shoko/master/Shoko.BuildTools/manifest.schema.json",
+  "title": "Shoko Plugin Manifest",
+  "description": "Schema for Shoko plugin manifest files (manifest.json). Defines the plugin package metadata, releases, and dependencies.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "description": "JSON Schema reference (optional, for IDE validation).",
+      "type": "string"
+    },
+    "id": {
+      "description": "Unique package identifier (UUID v4). Must match the Plugin.ID in the C# code.",
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "type": {
+      "description": "Manifest type. A 'package' is a full plugin definition. A 'manifest' is a reference to another manifest URL.",
+      "type": "string",
+      "enum": [
+        "package",
+        "manifest"
+      ],
+      "default": "package"
+    },
+    "url": {
+      "description": "Referenced manifest location. Required when type is 'manifest'. Must be an absolute http://, https:// or ftp:// URL.",
+      "type": "string",
+      "format": "uri"
+    },
+    "name": {
+      "description": "Package display name.",
+      "type": "string"
+    },
+    "overview": {
+      "description": "Describes what the package does at a high level.",
+      "type": "string"
+    },
+    "authors": {
+      "description": "The author(s) of the package and plugin releases contained within it.",
+      "type": "string"
+    },
+    "repository_url": {
+      "description": "The repository URL for the package, if provided.",
+      "type": "string",
+      "format": "uri"
+    },
+    "homepage_url": {
+      "description": "The home-page URL for the package, if provided.",
+      "type": "string",
+      "format": "uri"
+    },
+    "image_url": {
+      "description": "Optional banner or thumbnail image URL.",
+      "type": "string",
+      "format": "uri"
+    },
+    "tags": {
+      "description": "Search tags for the plugin. Maximum of 10 tags.",
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "dependencies": {
+      "description": "Top-level dependencies for the plugin. These are injected into the built DLL as serialized assembly metadata. Per-release dependencies in each release entry are used for install-time resolution.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Dependency"
+      }
+    },
+    "releases": {
+      "description": "Available releases/versions of the plugin.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Release"
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "type": {
+        "const": "manifest"
+      }
+    }
+  },
+  "then": {
+    "required": [
+      "id",
+      "type",
+      "url"
+    ],
+    "properties": {
+      "name": {
+        "description": "Ignored for reference manifests."
+      },
+      "overview": {
+        "description": "Ignored for reference manifests."
+      },
+      "authors": {
+        "description": "Ignored for reference manifests."
+      },
+      "tags": {
+        "description": "Ignored for reference manifests."
+      },
+      "dependencies": {
+        "description": "Ignored for reference manifests."
+      },
+      "releases": {
+        "description": "Ignored for reference manifests."
+      }
+    }
+  },
+  "else": {
+    "required": [
+      "id",
+      "name"
+    ]
+  },
+  "$defs": {
+    "Dependency": {
+      "title": "Plugin Dependency",
+      "description": "A dependency on another plugin, identified by its UUID.",
+      "type": "object",
+      "required": [
+        "id",
+        "version"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "The unique identifier of the plugin this package depends on.",
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "version": {
+          "description": "The semantic version constraint (e.g. '>=1.0.0', '^2.0.0', '~1.0.0', or an exact version like '1.5.0').",
+          "type": "string",
+          "examples:": [
+            ">=1.0.0",
+            "^2.0.0",
+            "~1.0.0",
+            "1.5.0"
+          ]
+        },
+        "optional": {
+          "description": "If true, the dependency is optional. A missing optional dependency produces a warning but does not block install or enable.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "Release": {
+      "title": "Plugin Release",
+      "description": "A specific versioned release of the plugin.",
+      "type": "object",
+      "required": [
+        "version",
+        "archives"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "description": "Shared semantic version for all archives of the release (e.g. '1.2.3').",
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "tag": {
+          "description": "The source revision tag of the release, if provided (e.g. 'v1.2.3').",
+          "type": "string"
+        },
+        "source_revision": {
+          "description": "The SHA digest of the source revision used to build the release, if provided.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "released_at": {
+          "description": "When the release was made (ISO 8601).",
+          "type": "string",
+          "format": "date-time"
+        },
+        "channel": {
+          "description": "The release channel.",
+          "type": "string",
+          "enum": [
+            "Stable",
+            "Dev",
+            "Debug"
+          ],
+          "default": "Stable"
+        },
+        "release_notes": {
+          "description": "Release notes, or null if not available for this release.",
+          "type": "string"
+        },
+        "dependencies": {
+          "description": "Per-release dependencies for install-time resolution. If not set, the top-level dependencies are used.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Dependency"
+          }
+        },
+        "archives": {
+          "description": "Available archives for different runtime environments and architectures.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Archive"
+          }
+        }
+      }
+    },
+    "Archive": {
+      "title": "Plugin Archive",
+      "description": "A platform-specific binary archive for a release.",
+      "type": "object",
+      "required": [
+        "runtime",
+        "abstraction"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "runtime": {
+          "description": "The .NET runtime identifier (e.g. 'any', 'linux-x64', 'win-x64', 'linux-arm64', 'osx-x64'). Use 'any' for portable builds.",
+          "type": "string",
+          "examples": [
+            "any",
+            "linux-x64",
+            "win-x64",
+            "linux-arm64",
+            "osx-x64"
+          ]
+        },
+        "abstraction": {
+          "description": "The Shoko.Abstractions version the plugin was built against (e.g. '6.0.0').",
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "url": {
+          "description": "Direct download URL for the archive (.zip).",
+          "type": "string",
+          "format": "uri"
+        },
+        "checksum": {
+          "description": "Checksum for archive verification. Either a bare hex string (backward compatible) or prefixed with 'sha256:', 'sha1:', or 'md5:'.",
+          "type": "string",
+          "pattern": "^(sha256:|sha1:|md5:)?[0-9a-fA-F]+$"
+        }
+      }
+    }
+  }
+}

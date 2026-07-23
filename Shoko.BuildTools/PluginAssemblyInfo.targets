@@ -1,0 +1,13 @@
+<Project>
+  <!--
+    This targets file is used by Shoko.BuildTools during plugin builds.
+    It injects the generated assembly metadata file into the compilation.
+    The tool passes this file via -p:CustomBeforeMicrosoftCSharpTargets=...
+  -->
+  <Target Name="_ShokoBuildIncludeAssemblyInfo" BeforeTargets="CoreCompile"
+          Condition="'$(ShokoBuildAssemblyInfoFile)' != '' and Exists('$(ShokoBuildAssemblyInfoFile)')">
+    <ItemGroup>
+      <Compile Include="$(ShokoBuildAssemblyInfoFile)" />
+    </ItemGroup>
+  </Target>
+</Project>
