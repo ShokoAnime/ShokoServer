@@ -13,6 +13,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Plugin;
 using Shoko.Server.API.v3.Models.Plugin.Input;
+using Shoko.Server.Plugin.Models;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -384,10 +385,8 @@ public class PluginPackageController(
             return NotFound("Package not found");
 
         var parsedReleaseVersion = (Version?)null;
-        if (releaseVersion is { Length: > 0 } && !Version.TryParse(releaseVersion?.Replace("-dev.", "."), out parsedReleaseVersion))
-            ModelState.AddModelError(nameof(releaseVersion), "Version must be a valid semantic versioning string.");
-        if (parsedReleaseVersion is { Revision: <= 0 })
-            parsedReleaseVersion = new(parsedReleaseVersion.Major, parsedReleaseVersion.Minor, parsedReleaseVersion.Build);
+        if (releaseVersion is { Length: > 0 } && !SemanticVersionConverter.TryParseVersion(releaseVersion, out parsedReleaseVersion))
+            ModelState.AddModelError(nameof(releaseVersion), "Version must be a valid semantic versioning or C# version string.");
 
         var parsedAbstractionVersion = (Version?)null;
         if (abstractionVersion is { Length: > 0 } && !Version.TryParse(abstractionVersion?.Replace("-dev.", "."), out parsedAbstractionVersion))

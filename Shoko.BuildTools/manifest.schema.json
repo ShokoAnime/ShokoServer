@@ -164,9 +164,9 @@
       "additionalProperties": false,
       "properties": {
         "version": {
-          "description": "Shared semantic version for all archives of the release (e.g. '1.2.3').",
+          "description": "Shared semantic version for the release. Supports formats: '1', '1.0', '1.0.0', '1.0.0.0' for stable, or '1.0.0-dev.N' for dev. The '-dev.N' suffix is only valid when the channel is 'Dev'.",
           "type": "string",
-          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+          "pattern": "^\\d+(\\.\\d+){0,3}$|^\\d+(\\.\\d+){0,2}(-dev\\.\\d+)$"
         },
         "tag": {
           "description": "The source revision tag of the release, if provided (e.g. 'v1.2.3').",
@@ -183,7 +183,7 @@
           "format": "date-time"
         },
         "channel": {
-          "description": "The release channel.",
+          "description": "The release channel. When set to 'Dev', the version may include a '-dev.N' suffix. For other channels, the version must not include a dev suffix.",
           "type": "string",
           "enum": [
             "Stable",

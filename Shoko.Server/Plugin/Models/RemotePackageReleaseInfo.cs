@@ -14,11 +14,19 @@ public sealed class RemotePackageReleaseInfo
 {
     /// <summary>
     ///   Shared semantic version for all versions of the release. (e.g.,
-    ///   "1.2.3").
+    ///   "1.2.3" or "1.0.0-dev.1").
     /// </summary>
+    /// <remarks>
+    ///   Supports formats: <c>1</c>, <c>1.0</c>, <c>1.0.0</c>,
+    ///   <c>1.0.0.0</c>, and <c>1.0.0-dev.N</c> for dev releases.
+    ///   The <c>-dev.N</c> suffix is only valid when the channel is
+    ///   <c>Dev</c>.
+    /// </remarks>
     [Required]
     [JsonPropertyName("version")]
     [JsonProperty("version")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(SemanticVersionConverter))]
+    [Newtonsoft.Json.JsonConverter(typeof(SemanticVersionNewtonsoftConverter))]
     public Version Version { get; set; } = new(0, 0, 0);
 
     /// <summary>
