@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.User.Events;
 using Shoko.Abstractions.User.Update;
@@ -66,6 +67,17 @@ public interface IUserService
     ///   The user if authenticated through the HTTP context, otherwise <c>null</c>.
     /// </returns>
     IUser? GetUserFromHttpContext(HttpContext context);
+
+    /// <summary>
+    ///   Get a user from a SignalR hub context.
+    /// </summary>
+    /// <param name="context">
+    ///   The hub caller context.
+    /// </param>
+    /// <returns>
+    ///   The user if authenticated through the hub context, otherwise <c>null</c>.
+    /// </returns>
+    IUser? GetUserFromHubCallerContext(HubCallerContext context);
 
     /// <summary>
     ///   Creates a user with the specified data in

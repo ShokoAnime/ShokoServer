@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
@@ -54,6 +55,9 @@ public class UserService(
 
     public IUser? GetUserFromHttpContext(HttpContext context)
         => context.GetUser();
+
+    public IUser? GetUserFromHubCallerContext(HubCallerContext context)
+        => context.User?.GetUser();
 
     public Task<IUser> CreateUser(UserUpdate initialData)
         => UpdateUserInternal(new JMMUser(), initialData);
