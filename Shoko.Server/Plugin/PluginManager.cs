@@ -663,9 +663,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     if (embeddedId is null)
                     {
                         logger.LogWarning(
-                            "Plugin {DllName} ({Version}) does not have embedded identity metadata. " +
+                            "Plugin does not have embedded identity metadata. ({DllName}, {Version}) " +
                             "Install Shoko.BuildTools (`dotnet tool install --global Shoko.BuildTools`) " +
-                            "and rebuild with `shoko-build` for better compatibility.",
+                            "and rebuild with `shoko-build`, or add the `Shoko.BuildTools.Targets` " +
+                            "NuGet package to your project for automatic metadata injection.",
                             name, version);
                     }
 
