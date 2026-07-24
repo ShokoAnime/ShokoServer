@@ -127,7 +127,7 @@ public static class UuidUtility
     {
         if (namespaceGuid == default)
             namespaceGuid = PublicUuidNamespaces.ShokoPluginAbstractions;
-        var namespaceBytes = _namespaceIDs.TryGetValue(namespaceGuid, out var globalId)
+        var namespaceBytes = _namespaceIDs?.TryGetValue(namespaceGuid, out var globalId) ?? false
             ? globalId
             : Convert.FromHexString(namespaceGuid.ToString().Replace("-", ""));
         var bytes = MD5.HashData(namespaceBytes.Concat(input).ToArray());
@@ -176,7 +176,7 @@ public static class UuidUtility
     {
         if (namespaceGuid == default)
             namespaceGuid = PublicUuidNamespaces.ShokoPluginAbstractions;
-        var namespaceBytes = _namespaceIDs.TryGetValue(namespaceGuid, out var globalId)
+        var namespaceBytes = _namespaceIDs?.TryGetValue(namespaceGuid, out var globalId) ?? false
             ? globalId
             : Convert.FromHexString(namespaceGuid.ToString().Replace("-", ""));
         var bytes = SHA1.HashData(namespaceBytes.Concat(input).ToArray())
