@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.387",
+      "tag": "v6.0.0-dev.387",
+      "commit": "4379c17cbc5868f0fcbc42dd1934b0920c1376f4",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.387/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-25T22:50:14Z",
+      "releaseNotes": "\n`fix` (`api`): **Filter release groups to only existing files in series file summary**:\n\n`Overview.ReleaseGroups` in the WebUI series file summary included\nrelease groups from all `StoredReleaseInfo` records for the anime,\nregardless of whether the corresponding files still existed on disk.\nFiltered the release groups to only those whose (ED2K, file size) key\nmatches a file with a valid physical location, matching the behavior of\n`StoredReleaseInfoRepository.GetUsedReleaseGroups()`.\n\n`fix` (`api`): **Persist new group before updating children in group manager**:\n\nWhen creating a new group via the group manager, the group was not\nsaved to the database before its children/series relationships were\nupdated, causing foreign key failures. Saved the group first when its\n`AnimeGroupID` is 0 (new entity).\n"
+    },
+    {
       "version": "6.0.0.386",
       "tag": "v6.0.0-dev.386",
       "commit": "f30df1aa980fb36e1ee20ddaa9bf9abdd80db35d",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.358/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-06T03:44:43Z",
       "releaseNotes": "\n`feat`: **Add `ThreadPoolMinThreads` setting**:\n\nRaise the .NET thread pool's minimum thread count at startup so bursts\nof concurrent work don't stall behind the runtime's gradual\nhill-climbing thread injection delay. Configurable via the\nTHREADPOOL_MIN_THREADS env var; 0 leaves the runtime default\nuntouched, positive values are used directly, negative values act as\na CPU-count multiplier offset by one (-1 => CPU count x 2, up to -9 =>\nCPU count x 10).\n"
-    },
-    {
-      "version": "6.0.0.357",
-      "tag": "v6.0.0-dev.357",
-      "commit": "86da9aba636346d4ebd6a8626e391e21c31faed8",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.357/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-06T03:12:20Z",
-      "releaseNotes": "\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.68**.\n"
     }
   ]
 }
