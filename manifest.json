@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.384",
+      "tag": "v6.0.0-dev.384",
+      "commit": "6bc829b5d37dac3d3dfd6d7d5cef423cffda0c8f",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.384/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-25T13:03:08Z",
+      "releaseNotes": "\n`fix`: **Use Image, not ImageSlim**.\n"
+    },
+    {
       "version": "6.0.0.383",
       "tag": "v6.0.0-dev.383",
       "commit": "ea7ae0ff9611546cb788970926af22c605036cb4",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.355/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-06T03:03:46Z",
       "releaseNotes": "\n`fix` (`tmdb`): **Improve episode title matching for non-English content** ([#1372](https://github.com/ShokoAnime/ShokoServer/pull/1372)):\n\n**Non-English title matching**:\n- Expands the TMDB episode title candidates from `en-US` only to `en-US` plus the show's `OriginalLanguageCode` (already stored on `TMDB_Show`), so Japanese-only TMDB episodes can match by title instead of falling through to date-only matching. Titles in other languages are excluded to prevent false-positive fuzzy matches.\n- Template titles (\"Episode N\") are excluded from title candidates in every language — TMDB stores these placeholders per language, but AniDB only stores them in English so they're already filtered on the AniDB side.\n- Adds a language fallback for the AniDB episode title lookup: when no English title exists, falls back to the anime's primary/official language (Romaji→Japanese, Pinyin→ChineseSimplified, etc.), rather than skipping title matching entirely.\n\n**Episode matching accuracy fixes**:\n- **Episode order reconciliation**: when two AniDB-adjacent episodes both matched on weak evidence alone (date-only or last-resort positional), a coincidental TMDB air-date mismatch could swap them. `ReconcileEpisodeOrderInversions` detects and corrects these after matching, iterating to convergence for runs of 3+ reversed episodes, without disturbing true adjacency between trusted (title-corroborated) matches.\n- **Generic placeholder titles**: AniDB's auto-generated placeholder titles (\"Episode 5\", \"Episode S1\", \"Episode C2\", ...) are now excluded from title search for every episode type, not just normal episodes. If both sides only have a placeholder title, the episode isn't left unmatched — title search is simply skipped and the existing air-date and positional-fallback tiers (`TryAirDateMatch` / `FirstAvailable`) still apply, same as before this change.\n- **Punctuation normalization**: `~` and `|` are normalized the same as the wave dash and `/`, so decorative/joining-character differences between AniDB and TMDB titles don't silently downgrade an otherwise-identical title to a lower match confidence tier.\n- **Greedy candidate starvation**: `TryFindAnidbAndTmdbMatch` now also reports a confidence score (title distance plus air-date corroboration), and each matching pass orders its episodes by that score before matching so the strongest match gets first pick of a shared TMDB episode instead of whichever AniDB episode happened to be processed first. `RankByConfidence` computes this ranking once per pass and reuses the cached match in the pass loop when its chosen TMDB candidate hasn't since been claimed by an earlier (stronger) episode, instead of running the full title-search/air-date match twice per episode.\n"
-    },
-    {
-      "version": "6.0.0.354",
-      "tag": "v6.0.0-dev.354",
-      "commit": "8db2b190719528aed4c00c46cc26901c1563ad55",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.354/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-06T02:50:39Z",
-      "releaseNotes": "\n`refactor`: **Use `Shoko.Abstractions` `AnimeType`/`EpisodeType` directly in v3 models**:\n\nRemoved the duplicate `Shoko.Server.API.v3.Models.AniDB.AnimeType` and\n`EpisodeType` enums along with their `ToV3Dto` mapping extensions in\n`APIv3_Extensions`. `AnidbAnime`, `AnidbEpisode`, and their consumers\nnow expose the `Shoko.Abstractions.Metadata.Enums` types directly,\nserialized via Newtonsoft's global string-enum converter instead of a\nper-property `JsonConverter` attribute.\n\nAdded `AnimeType.TV` to `Shoko.Abstractions` as the primary value, with\n`TVSeries` kept as a legacy compat. alias.\n\n`chore`: **Remove unused imports**.\n"
     }
   ]
 }
