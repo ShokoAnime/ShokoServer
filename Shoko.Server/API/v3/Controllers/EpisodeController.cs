@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image.Exceptions;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.User.Services;
@@ -20,7 +21,6 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.API.v3.Models.ImageManagement;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
@@ -818,6 +818,10 @@ public class EpisodeController : BaseController
                 Source = DataSource.User,
             });
             return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref)));
+        }
+        catch (ImageCrossReferenceExistsException ex)
+        {
+            return Ok(new Image(ImageStub.Wrap(ex.Image, ex.CrossReference)));
         }
         catch (ArgumentException ex)
         {

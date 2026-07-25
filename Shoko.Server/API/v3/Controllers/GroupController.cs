@@ -10,13 +10,13 @@ using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Image.Exceptions;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.API.v3.Models.ImageManagement;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
@@ -140,7 +140,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpPost]
     public ActionResult<Group> CreateGroup([FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
-        var group = body.MergeWithExisting(null, User.JMMUserID, ModelState);
+        var group = body.MergeWithExisting(null, User.JMMUserID, ModelState)!;
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
@@ -189,7 +189,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (!User.AllowedGroup(animeGroup))
             return Forbid(GroupForbiddenForUser);
 
-        var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState);
+        var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState)!;
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -357,6 +357,10 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
                 Source = DataSource.User,
             });
             return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref)));
+        }
+        catch (ImageCrossReferenceExistsException ex)
+        {
+            return Ok(new Image(ImageStub.Wrap(ex.Image, ex.CrossReference)));
         }
         catch (ArgumentException ex)
         {
