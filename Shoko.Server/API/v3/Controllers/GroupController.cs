@@ -330,7 +330,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpPost("{seriesID}/Images/{imageType}/Upload")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(100 * 1024 * 1024)]
-    public ActionResult<ImageSlim> UploadImageForGroup(
+    public ActionResult<Image> UploadImageForGroup(
         [FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] ImageEntityType imageType,
         IFormFile file
@@ -356,7 +356,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
                 IsDesired = true,
                 Source = DataSource.User,
             });
-            return Created($"/api/v3/Image/Management/{image.ID}", new ImageSlim(image));
+            return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref)));
         }
         catch (ArgumentException ex)
         {

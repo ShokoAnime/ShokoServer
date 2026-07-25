@@ -786,7 +786,7 @@ public class EpisodeController : BaseController
     [HttpPost("{episodeID}/Images/{imageType}/Upload")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(100 * 1024 * 1024)]
-    public ActionResult<ImageSlim> UploadImageForEpisode(
+    public ActionResult<Image> UploadImageForEpisode(
         [FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] ImageEntityType imageType,
         IFormFile file
@@ -817,7 +817,7 @@ public class EpisodeController : BaseController
                 IsDesired = true,
                 Source = DataSource.User,
             });
-            return Created($"/api/v3/Image/Management/{image.ID}", new ImageSlim(image));
+            return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref)));
         }
         catch (ArgumentException ex)
         {
