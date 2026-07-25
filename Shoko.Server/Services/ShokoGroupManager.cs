@@ -183,6 +183,9 @@ public class ShokoGroupManager : IShokoGroupManager
         if (errors.Count > 0)
             throw new GenericValidationException("One or more validation errors occurred.", errors);
 
+        if (group.AnimeGroupID is 0)
+            _animeGroupRepo.Save(group, false);
+
         var existingGroups = new HashSet<int>(group.Children.Select(c => c.AnimeGroupID));
         var existingSeries = new HashSet<int>(group.Series.Select(s => s.AnimeSeriesID));
         var oldSeriesDict = updateData.Series.ToDictionary(s => s.ID, s => s.ParentGroupID);
