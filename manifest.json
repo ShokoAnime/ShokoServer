@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.383",
+      "tag": "v6.0.0-dev.383",
+      "commit": "ea7ae0ff9611546cb788970926af22c605036cb4",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.383/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-25T12:58:45Z",
+      "releaseNotes": "\n`feat` (`api`): **Add image upload endpoints for group/series/episode**:\n\nAdded\nendpoints to Group, Series, and Episode v3 controllers. Accepts\nmultipart form data (IFormFile) with a 100 MB size limit. Uploads\nthe image via  and creates a user-submitted cross-\nreference with , , and .\n\nUndeprecated the existing PUT/DELETE default image endpoints in all\nthree controllers — they are first-class CRUD operations again.\n"
+    },
+    {
       "version": "6.0.0.382",
       "tag": "v6.0.0-dev.382",
       "commit": "5c5753723d1ccf7134cec203dd2c07c011921e3e",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.354/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-06T02:50:39Z",
       "releaseNotes": "\n`refactor`: **Use `Shoko.Abstractions` `AnimeType`/`EpisodeType` directly in v3 models**:\n\nRemoved the duplicate `Shoko.Server.API.v3.Models.AniDB.AnimeType` and\n`EpisodeType` enums along with their `ToV3Dto` mapping extensions in\n`APIv3_Extensions`. `AnidbAnime`, `AnidbEpisode`, and their consumers\nnow expose the `Shoko.Abstractions.Metadata.Enums` types directly,\nserialized via Newtonsoft's global string-enum converter instead of a\nper-property `JsonConverter` attribute.\n\nAdded `AnimeType.TV` to `Shoko.Abstractions` as the primary value, with\n`TVSeries` kept as a legacy compat. alias.\n\n`chore`: **Remove unused imports**.\n"
-    },
-    {
-      "version": "6.0.0.353",
-      "tag": "v6.0.0-dev.353",
-      "commit": "e079488b5670569eac03ea984a9267206e6db629",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.353/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-05T21:08:39Z",
-      "releaseNotes": "\n`chore`: **Disable nullable on APIv1 models and controllers**.\n"
     }
   ]
 }
