@@ -40,8 +40,8 @@ public class WebUiFileProvider : PhysicalFileProvider, IFileProvider
 
     public new IFileInfo GetFileInfo(string subpath)
     {
-        // Anti-lockout for APIv2+ requests.
-        if (_prefix is "" && (subpath is "/api" or "/signalr" or "/plex" || subpath.StartsWith("/api/") || subpath.StartsWith("/signalr/") || subpath.StartsWith("/plex/")))
+        // Anti-lockout for APIv2+ & plugin requests.
+        if (_prefix is "" && (subpath is "/api" or "/signalr" or "/plex" or "/plugin" || subpath.StartsWith("/api/") || subpath.StartsWith("/signalr/") || subpath.StartsWith("/plex/") || subpath.StartsWith("/plugin/")))
             return new NotFoundFileInfo(subpath);
 
         if (subpath is "/manifest.webmanifest" or "/manifest.json")
