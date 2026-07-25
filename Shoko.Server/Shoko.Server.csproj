@@ -109,6 +109,6 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Shoko.BuildTools.Targets" Version="1.0.0" />
+    <PackageReference Include="Shoko.BuildTools.Targets" Version="0.1.0" />
   </ItemGroup>
 </Project>
