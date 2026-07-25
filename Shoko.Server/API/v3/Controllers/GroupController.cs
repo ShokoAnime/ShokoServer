@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Metadata;
@@ -15,6 +16,7 @@ using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.ImageManagement;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
@@ -318,6 +320,51 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     #region Default image
 
     /// <summary>
+    /// Upload an image for the <see cref="Group"/> with the given <paramref name="groupID"/>.
+    /// </summary>
+    /// <param name="groupID">Shoko Group ID</param>
+    /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
+    /// <param name="file">The image file to upload.</param>
+    /// <returns>The created image.</returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/Images/{imageType}/Upload")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(100 * 1024 * 1024)]
+    public ActionResult<ImageSlim> UploadImageForGroup(
+        [FromRoute, Range(1, int.MaxValue)] int groupID,
+        [FromRoute] ImageEntityType imageType,
+        IFormFile file
+    )
+    {
+        if (_animeGroups.GetByID(groupID) is not { } group)
+            return NotFound(GroupNotFound);
+
+        if (!User.AllowedGroup(group))
+            return Forbid(GroupForbiddenForUser);
+
+        if (file is null || file.Length == 0)
+            return ValidationProblem("File cannot be empty.", nameof(file));
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var image = _imageManager.UploadImage(stream, file.ContentType, userSubmitted: true);
+            var xref = _imageManager.AddImageCrossReference(group, image, new()
+            {
+                ImageType = imageType,
+                IsEnabled = true,
+                IsDesired = true,
+                Source = DataSource.User,
+            });
+            return Created($"/api/v3/Image/Management/{image.ID}", new ImageSlim(image));
+        }
+        catch (ArgumentException ex)
+        {
+            return ValidationProblem(ex.Message);
+        }
+    }
+
+    /// <summary>
     /// Get the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
     /// <param name="groupID">Shoko Group ID</param>
@@ -359,16 +406,12 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <summary>
     /// Set the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
-    /// <remarks>
-    /// <b>Deprecated:</b> Use the image management controller's set preferred endpoint instead.
-    /// </remarks>
     /// <param name="groupID">Shoko Group ID</param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPut("{seriesID}/Images/{imageType}")]
-    [Obsolete("Use the image management controller's set preferred endpoint instead.")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
@@ -397,15 +440,11 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <summary>
     /// Unset the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
-    /// <remarks>
-    /// <b>Deprecated:</b> Use the image management controller's unset preferred endpoint instead.
-    /// </remarks>
     /// <param name="groupID">Shoko Group ID</param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{seriesID}/Images/{imageType}")]
-    [Obsolete("Use the image management controller's unset preferred endpoint instead.")]
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID, [FromRoute] Image.LegacyImageType imageType)
     {
         if (_animeGroups.GetByID(groupID) is not { } group)

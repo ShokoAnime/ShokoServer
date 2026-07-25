@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Web;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Extensions;
@@ -27,6 +28,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.API.v3.Models.ImageManagement;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.API.v3.Models.TMDB.Input;
 using Shoko.Server.Extensions;
@@ -47,6 +49,7 @@ using Shoko.Server.Utilities;
 
 using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
 
+#pragma warning disable CS0618 // Type or member is obsolete
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
@@ -2640,6 +2643,52 @@ public class SeriesController : BaseController
     #region Default image
 
     /// <summary>
+    /// Upload an image for the <see cref="Series"/> with the given <paramref name="seriesID"/>.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID</param>
+    /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
+    /// <param name="file">The image file to upload.</param>
+    /// <returns>The created image.</returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/Images/{imageType}/Upload")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(100 * 1024 * 1024)]
+    public ActionResult<ImageSlim> UploadImageForSeries(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromRoute] ImageEntityType imageType,
+        IFormFile file
+    )
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        if (file is null || file.Length == 0)
+            return ValidationProblem("File cannot be empty.", nameof(file));
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var image = _imageManager.UploadImage(stream, file.ContentType, userSubmitted: true);
+            var xref = _imageManager.AddImageCrossReference(series, image, new()
+            {
+                ImageType = imageType,
+                IsEnabled = true,
+                IsDesired = true,
+                Source = DataSource.User,
+            });
+            return Created($"/api/v3/Image/Management/{image.ID}", new ImageSlim(image));
+        }
+        catch (ArgumentException ex)
+        {
+            return ValidationProblem(ex.Message);
+        }
+    }
+
+    /// <summary>
     /// Get the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
     /// <param name="seriesID">Series ID</param>
@@ -2681,16 +2730,12 @@ public class SeriesController : BaseController
     /// <summary>
     /// Set the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
-    /// <remarks>
-    /// <b>Deprecated:</b> Use the image management controller's set preferred endpoint instead.
-    /// </remarks>
     /// <param name="seriesID">Series ID</param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPut("{seriesID}/Images/{imageType}")]
-    [Obsolete("Use the image management controller's set preferred endpoint instead.")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
@@ -2719,15 +2764,11 @@ public class SeriesController : BaseController
     /// <summary>
     /// Unset the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
-    /// <remarks>
-    /// <b>Deprecated:</b> Use the image management controller's unset preferred endpoint instead.
-    /// </remarks>
     /// <param name="seriesID"></param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{seriesID}/Images/{imageType}")]
-    [Obsolete("Use the image management controller's unset preferred endpoint instead.")]
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute] Image.LegacyImageType imageType)
     {
         // Check if the series exists and if the user can access the series.
