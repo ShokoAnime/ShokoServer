@@ -107,7 +107,7 @@ public static class LanguageExtensions
             "TR" or "TUR" => TitleLanguage.Turkish,
             "UK" or "UKR" => TitleLanguage.Ukrainian,
             "VI" or "VIE" => TitleLanguage.Vietnamese,
-            "ZH" or "ZHO" or "CHI" => TitleLanguage.Chinese,
+            "ZH" or "ZHO" or "CHI" or "CMN" => TitleLanguage.Chinese,
             "ZH-NAN" or "NAN" or "X-NAN" => TitleLanguage.MinNanChinese,
             "AF" or "AFR" => TitleLanguage.Afrikaans,
             "SQ" or "ALB" or "SQI" => TitleLanguage.Albanian,
