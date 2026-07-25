@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.382",
+      "tag": "v6.0.0-dev.382",
+      "commit": "5c5753723d1ccf7134cec203dd2c07c011921e3e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.382/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-25T01:19:12Z",
+      "releaseNotes": "\n`fix`: **Add anti-lockout global path handling for /plugin to webui file provider**.\n"
+    },
+    {
       "version": "6.0.0.381",
       "tag": "v6.0.0-dev.381",
       "commit": "e93feb0b4b8a7902bb759d0b5200b85655dcb446",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.353/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-05T21:08:39Z",
       "releaseNotes": "\n`chore`: **Disable nullable on APIv1 models and controllers**.\n"
-    },
-    {
-      "version": "6.0.0.352",
-      "tag": "v6.0.0-dev.352",
-      "commit": "1cbd8f74572b32db8e05cd66e032389490b47400",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.352/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-05T03:36:41Z",
-      "releaseNotes": "\n`misc`: **Ensure Long Path Compat in Paths that Matter**.\n"
     }
   ]
 }
