@@ -343,10 +343,18 @@ public class WebUI
                 .Select(xref => xref.Episode.EpisodeID)
                 .ToHashSet();
 
+            // Only include release groups whose StoredReleaseInfo corresponds to files that still exist.
+            var existingFileKeys = filesWithXrefAndLocation
+                .Select(t => (t.xref.Hash, t.xref.FileSize))
+                .ToHashSet();
+
             Overview = new()
             {
                 TotalFileSize = files.Sum(fileWrapper => fileWrapper.Episode.Size),
-                ReleaseGroups = releaseGroups.Values
+                ReleaseGroups = releases
+                    .Where(kvp => existingFileKeys.Contains(kvp.Key))
+                    .Select(kvp => kvp.Value.Group)
+                    .WhereNotNull()
                     .Select(group => group.ShortName ?? group.Name)
                     .WhereNotNull()
                     .Distinct()
