@@ -1,5 +1,6 @@
 using System;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
 
 namespace Shoko.Abstractions.Metadata.Image.Exceptions;
 
@@ -9,6 +10,11 @@ namespace Shoko.Abstractions.Metadata.Image.Exceptions;
 /// /// </summary>
 public class ImageCrossReferenceExistsException : Exception
 {
+    /// <summary>
+    ///   The cross-reference for the image and entity.
+    /// </summary>
+    public required IImageCrossReference CrossReference { get; init; }
+
     /// <summary>
     ///   The image.
     /// </summary>

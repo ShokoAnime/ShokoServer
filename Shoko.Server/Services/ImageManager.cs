@@ -1336,6 +1336,7 @@ public partial class ImageManager(
         if (existing is not null)
             throw new ImageCrossReferenceExistsException()
             {
+                CrossReference = existing,
                 Image = image,
                 Entity = entity,
             };
