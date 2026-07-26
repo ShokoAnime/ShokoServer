@@ -17,7 +17,7 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
-T[Route("/api/v{version:apiVersion}/DuplicateFiles")]
+[Route("/api/v{version:apiVersion}/DuplicateFiles")]
 [ApiV3]
 [Authorize]
 public class DuplicateFilesController(ISettingsProvider settingsProvider,
