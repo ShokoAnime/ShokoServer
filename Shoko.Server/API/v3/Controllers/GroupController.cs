@@ -241,7 +241,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="recursive">Show relations for all series within the group, even for series within sub-groups.</param>
     /// <returns></returns>
     [HttpGet("{groupID}/Relations")]
-    public ActionResult<List<SeriesRelation>> GetShokoRelationsBySeriesID([FromRoute, Range(1, int.MaxValue)] int groupID,
+    public ActionResult<List<SeriesRelation>> GetShokoRelationsByGroupID([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromQuery] bool recursive = false)
     {
         if (_animeGroups.GetByID(groupID) is not { } group)
@@ -327,7 +327,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="file">The image file to upload.</param>
     /// <returns>The created image.</returns>
     [Authorize("admin")]
-    [HttpPost("{seriesID}/Images/{imageType}/Upload")]
+    [HttpPost("{groupID}/Images/{imageType}/Upload")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(100 * 1024 * 1024)]
     public ActionResult<Image> UploadImageForGroup(
@@ -374,7 +374,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="groupID">Shoko Group ID</param>
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
-    [HttpGet("{seriesID}/Images/{imageType}")]
+    [HttpGet("{groupID}/Images/{imageType}")]
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] Image.LegacyImageType imageType)
     {
@@ -415,7 +415,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpPut("{seriesID}/Images/{imageType}")]
+    [HttpPut("{groupID}/Images/{imageType}")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
@@ -448,7 +448,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpDelete("{seriesID}/Images/{imageType}")]
+    [HttpDelete("{groupID}/Images/{imageType}")]
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID, [FromRoute] Image.LegacyImageType imageType)
     {
         if (_animeGroups.GetByID(groupID) is not { } group)
