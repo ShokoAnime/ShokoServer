@@ -26,10 +26,10 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
-[Route("/api/v{version:apiVersion}/ReleaseManagement/MultipleReleases")]
+[Route("/api/v{version:apiVersion}/ReleaseManagement")]
 [ApiV3]
 [Authorize]
-public class ReleaseManagementMultipleReleasesController(
+public class ReleaseManagementController(
     ISettingsProvider settingsProvider,
     AnimeSeriesRepository animeSeries,
     VideoLocalRepository videoLocals,

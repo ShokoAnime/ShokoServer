@@ -17,10 +17,10 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
-[Route("/api/v{version:apiVersion}/ReleaseManagement/DuplicateFiles")]
+T[Route("/api/v{version:apiVersion}/DuplicateFiles")]
 [ApiV3]
 [Authorize]
-public class ReleaseManagementDuplicateFilesController(ISettingsProvider settingsProvider,
+public class DuplicateFilesController(ISettingsProvider settingsProvider,
     AnimeEpisodeRepository _animeEpisodes,
     AnimeSeriesRepository _animeSeries,
     AniDB_Anime_TitleRepository _anidbTitles

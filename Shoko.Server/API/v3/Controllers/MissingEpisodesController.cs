@@ -17,10 +17,10 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
-[Route("/api/v{version:apiVersion}/ReleaseManagement/MissingEpisodes")]
+[Route("/api/v{version:apiVersion}/MissingEpisodes")]
 [ApiV3]
 [Authorize]
-public class ReleaseManagementMissingEpisodesController(ISettingsProvider settingsProvider,
+public class MissingEpisodesController(ISettingsProvider settingsProvider,
     AnimeEpisodeRepository _animeEpisodes,
     AnimeSeriesRepository _animeSeries,
     AniDB_Anime_TitleRepository _anidbTitles
