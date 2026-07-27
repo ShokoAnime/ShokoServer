@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.392",
+      "tag": "v6.0.0-dev.392",
+      "commit": "a9126a4170b260837aba928ed0b5da04c1bbe084",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.392/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-27T02:38:15Z",
+      "releaseNotes": "\n`misc`: **Speed up tag filters**.\n"
+    },
+    {
       "version": "6.0.0.391",
       "tag": "v6.0.0-dev.391",
       "commit": "b1397d0b15bfecb70e18dbee5a08d32db5a232e0",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.363/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-08T00:21:15Z",
       "releaseNotes": "\n`feat` (`anidb`): **Add relation verification for alternative setting/version types**:\n\nAniDB's HTTP API has returned incorrect relation types (Alternative\nSetting vs Alternative Version) for decades. This adds a two-tier\nverification system to detect and correct these faulty relations.\n\n- Added `verified` attribute parsing from `<relatedanime>` XML nodes\n  for when the HTTP API endpoint supports it, defaulting faulty types to\n  unverified if not.\n- Added `Verified` column to `AniDB_Anime_Relation`, exposed via\n  `IRelatedMetadata.Verified` and APIv3 DTOs.\n- Added UDP `RequestGetAnime` command and `VerifyAniDBRelationsJob`\n  to fetch correct relation data from the AniDB UDP API.\n- Added pre-check and post-check logic to resolve and propagate\n  verified relations bidirectionally, minimizing UDP round-trips.\n- Added `VerifyAllRelations` admin action to batch-verify all\n  unverified relations across the database.\n\nCloses #1241\n\n`fix`: **Mark nullable fields in APIv2 as nullable**.\n\n`fix` (`db`): **Widen `TMDB_Show`/`TMDB_Movie` `Genres` column on MySQL and SQL Server**:\n\n`Genres` was left at its original 128-character cap while `Keywords`,\n`ContentRatings`, and `ProductionCountries` were all widened in later\nmigrations, leaving it exposed to the same `Data too long` failure\nclass as `Keywords` (fixed in `f0761fc75`).\n\n`fix`: **Correct raw relation mapping based on probing the UDP API**.\n\n`refactor` (`api`): **Generalize range compression and use it for AniDB group status EpisodeRange**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.71**.\n"
-    },
-    {
-      "version": "6.0.0.362",
-      "tag": "v6.0.0-dev.362",
-      "commit": "5940220751d3ab6a6a30b81cc75550e82f037e06",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.362/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-07T17:21:29Z",
-      "releaseNotes": "\n`chore`: **Normalize spacing after commas in log message templates**. (_Skip CI_)\n\n`chore`: **Move nullable disabled declaration**.\n\n`chore`: **Sort imports and remove unnecessary imports**.\n\n`feat`: **Expose AniDB release group status via abstraction and v3 API**:\n\nAdds `IAnidbAnime.ReleaseGroupStatuses` to the plugin abstraction, reusing\n`IAnidbEpisode` and `IReleaseGroup` for resolved references while keeping raw\nscalars available for plugins that don't need them, and surfaces the same\ndata read-only via `GET /api/v3/Series/{seriesID}/AniDB/ReleaseGroupStatus`\nand `GET /api/v3/Series/AniDB/{anidbID}/ReleaseGroupStatus` (closes #1359).\n\nAlso removes the duplicate `Shoko.Server.Providers.AniDB.EpisodeType` enum\nnow that its values are identical to the abstraction's `EpisodeType`, in\nline with already dropping the redundant APIv3 episode type.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.70**.\n\n`fix` (`scheduling`): **Restore abstraction-typed DI for `VideoReleaseService` jobs**:\n\n`72142566f` converted job classes to primary constructors and, for\n`AnidbProcessFileJob`, `FinalizeReleaseSearchJob`, and\n`ProcessReleaseProviderJob`, switched the constructor parameter from\n`IVideoReleaseService` to the concrete `VideoReleaseService`. Only the\ninterface is registered in the DI container (`SystemService.cs`), so\nthose jobs failed to activate at runtime.\n\nReverted the constructor parameters to `IVideoReleaseService` and added\na `VideoReleaseService` field cast once at construction, used only for\nthe impl-only members (`FireSearchCompleted`, the `matchAttempt`\noverload of `SaveReleaseForVideo`) that aren't exposed on the\ninterface.\n\n`refactor`: **Remove `MimeDetective` and use `IsAllowedVideoExtension` for file type checks**:\n\nReplaced the MimeDetective magic-byte content inspector with a call to\n`VideoService.IsAllowedVideoExtension`, which checks against the\nuser-configurable `ImportSettings.VideoExtensions` list. A new video\nformat no longer requires a code change to be recognized by the hashing\npipeline.\n\n`chore`: **Add missing video extensions to `ContentTypeHelper`**:\n\nAdded .asf, .divx, .f4v, .m1v, .m2ts, .m2v, .mk3d, .mts, .mxf, .nsv,\n.nut, .ogm, .roq, .tp, .trp, .ts, .xvid\n"
     }
   ]
 }
