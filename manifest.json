@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.393",
+      "tag": "v6.0.0-dev.393",
+      "commit": "0ab913866d84e9e72d05b34680a3a0f3c3f46cf1",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.393/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-27T16:08:42Z",
+      "releaseNotes": "\n`fix` (`api`): **Reject path traversal in external subtitle filename** ([#1385](https://github.com/ShokoAnime/ShokoServer/pull/1385)).\n"
+    },
+    {
       "version": "6.0.0.392",
       "tag": "v6.0.0-dev.392",
       "commit": "a9126a4170b260837aba928ed0b5da04c1bbe084",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.364/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-08T04:30:08Z",
       "releaseNotes": "\n`fix`: **Fix an edge case in Release Management**.\n"
-    },
-    {
-      "version": "6.0.0.363",
-      "tag": "v6.0.0-dev.363",
-      "commit": "5916bc00559e04f1c7fe82a031fd5d3c0d1949e4",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.363/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-08T00:21:15Z",
-      "releaseNotes": "\n`feat` (`anidb`): **Add relation verification for alternative setting/version types**:\n\nAniDB's HTTP API has returned incorrect relation types (Alternative\nSetting vs Alternative Version) for decades. This adds a two-tier\nverification system to detect and correct these faulty relations.\n\n- Added `verified` attribute parsing from `<relatedanime>` XML nodes\n  for when the HTTP API endpoint supports it, defaulting faulty types to\n  unverified if not.\n- Added `Verified` column to `AniDB_Anime_Relation`, exposed via\n  `IRelatedMetadata.Verified` and APIv3 DTOs.\n- Added UDP `RequestGetAnime` command and `VerifyAniDBRelationsJob`\n  to fetch correct relation data from the AniDB UDP API.\n- Added pre-check and post-check logic to resolve and propagate\n  verified relations bidirectionally, minimizing UDP round-trips.\n- Added `VerifyAllRelations` admin action to batch-verify all\n  unverified relations across the database.\n\nCloses #1241\n\n`fix`: **Mark nullable fields in APIv2 as nullable**.\n\n`fix` (`db`): **Widen `TMDB_Show`/`TMDB_Movie` `Genres` column on MySQL and SQL Server**:\n\n`Genres` was left at its original 128-character cap while `Keywords`,\n`ContentRatings`, and `ProductionCountries` were all widened in later\nmigrations, leaving it exposed to the same `Data too long` failure\nclass as `Keywords` (fixed in `f0761fc75`).\n\n`fix`: **Correct raw relation mapping based on probing the UDP API**.\n\n`refactor` (`api`): **Generalize range compression and use it for AniDB group status EpisodeRange**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.71**.\n"
     }
   ]
 }
