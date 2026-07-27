@@ -126,17 +126,27 @@ public sealed class FilterableAnimeSeries(AnimeSeries series, DateTime now) : IF
 
     public int VideoFiles => VideoLocals.Count;
 
+    private IReadOnlyList<AniDB_Tag>? _anidbTagRefs;
+    private IReadOnlyList<AniDB_Tag> AnidbTagRefs => _anidbTagRefs ??= _anime?.Tags ?? [];
+
+    private IReadOnlyList<CustomTag>? _customTagRefs;
+    private IReadOnlyList<CustomTag> CustomTagRefs => _customTagRefs ??= _anime?.CustomTags ?? [];
+
+    private IReadOnlySet<string>? _anidbTagIDs;
     public IReadOnlySet<string> AnidbTagIDs =>
-        _anime?.Tags.Select(a => a.TagID.ToString()).ToHashSet() ?? [];
+        _anidbTagIDs ??= AnidbTagRefs.Select(a => a.TagID.ToString()).ToHashSet();
 
+    private IReadOnlySet<string>? _anidbTags;
     public IReadOnlySet<string> AnidbTags =>
-        _anime?.Tags.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase) ?? [];
+        _anidbTags ??= AnidbTagRefs.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
 
+    private IReadOnlySet<string>? _customTagIDs;
     public IReadOnlySet<string> CustomTagIDs =>
-        _anime?.CustomTags.Select(a => a.CustomTagID.ToString()).ToHashSet() ?? [];
+        _customTagIDs ??= CustomTagRefs.Select(a => a.CustomTagID.ToString()).ToHashSet();
 
+    private IReadOnlySet<string>? _customTags;
     public IReadOnlySet<string> CustomTags =>
-        _anime?.CustomTags.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase) ?? [];
+        _customTags ??= CustomTagRefs.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
 
     public IReadOnlySet<int> Years => series.Years;
 
