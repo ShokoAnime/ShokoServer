@@ -84,6 +84,8 @@ public class FileController(
 
     internal const string FileForbiddenForUser = "Accessing File is not allowed for the current user";
 
+    private static readonly Regex PathTraversalPattern = new(@"(^|(?<=[\\/]))\.\.?[\\/]", RegexOptions.Compiled, TimeSpan.FromMilliseconds(250));
+
     /// <summary>
     /// Get or search through the files accessible to the current user.
     /// </summary>
@@ -754,16 +756,22 @@ public class FileController(
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
 
+        if (filename is "." or ".." || PathTraversalPattern.IsMatch(filename))
+            return NotFound();
+
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
+
+        var isKnownExternalSubtitle = file.MediaInfo?.TextStreams.Any(a => a.External && a.Filename == filename) ?? false;
+        if (!isKnownExternalSubtitle)
+            return NotFound();
 
         foreach (var place in file.Places)
         {
             var path = place.FileInfo?.Directory?.FullName;
             if (path == null) continue;
-            path = Path.Combine(path, filename);
-            var subFile = new FileInfo(path);
+            var subFile = new FileInfo(Path.Combine(path, filename));
             if (!subFile.Exists) continue;
 
             return PhysicalFile(subFile.FullName, ContentTypeHelper.UnknownMimeType);
