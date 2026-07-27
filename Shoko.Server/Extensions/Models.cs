@@ -49,7 +49,10 @@ public static class Models
         if (startDate.Year < year)
         {
             // still airing or finished after the year has been started, with some time for late seasons
-            if (anime.EndDate == null || anime.EndDate.Value >= new DateTime(year, 2, 1)) return true;
+            // (a null EndDate here only means "still airing" for broadcast types; Movie/OVA/etc. fall back
+            // to AirDate, i.e. a single-day release, since AniDB frequently never populates EndDate for them)
+            var effectiveEndDate = anime.EffectiveEndDateForSeasons;
+            if (effectiveEndDate == null || effectiveEndDate.Value >= new DateTime(year, 2, 1)) return true;
         }
 
         return false;
@@ -57,6 +60,26 @@ public static class Models
 
     public static DateOnly ToDateOnly(this DateTime date)
         => DateOnly.FromDateTime(date);
+
+    // AniDB frequently leaves EndDate unset for these types even after they've fully released (a movie or
+    // OVA doesn't have an ongoing broadcast the way a TV series does), so a null EndDate here shouldn't be
+    // read as "still airing" -- fall back to AirDate, i.e. a single-day release.
+    private static readonly HashSet<AnimeType> s_animeTypesWithoutOngoingReleases =
+    [
+        AnimeType.Movie, AnimeType.OVA, AnimeType.Web, AnimeType.Other, AnimeType.MusicVideo,
+    ];
+
+    extension(AniDB_Anime anime)
+    {
+        /// <summary>
+        /// Resolves the effective end date to use for year/season calculations: <see cref="AniDB_Anime.EndDate"/>
+        /// if known, otherwise <see cref="AniDB_Anime.AirDate"/> for anime types that don't have an ongoing
+        /// broadcast (Movie, OVA, Web, Other, MusicVideo), otherwise <see langword="null"/> (still airing) for
+        /// TV series/specials.
+        /// </summary>
+        public PartialDateOnly? EffectiveEndDateForSeasons
+            => anime.EndDate ?? (s_animeTypesWithoutOngoingReleases.Contains(anime.AnimeType) ? anime.AirDate : null);
+    }
 
     public static IEnumerable<(int Year, YearlySeason Season)> GetYearlySeasons(this DateTime? startDate, DateTime? endDate = null)
         => (startDate?.ToDateOnly()).GetYearlySeasons(endDate?.ToDateOnly());
@@ -75,7 +98,14 @@ public static class Models
         if (startDate == null) yield break;
         var beginYear = startDate.Value.Year;
         var endYear = endDate?.Year ?? DateTime.Today.Year;
-        for (var year = beginYear; year <= endYear; year++)
+        // Start one year early and end one year late so the buffered tail of the previous year's Fall
+        // (which reaches into January of beginYear) and the buffered head of the next year's Winter
+        // (which reaches back into December of endYear) are evaluated too, mirroring the Winter/Spring/
+        // Summer/Fall buffers at every other quarter boundary; IsInSeason naturally returns false when it
+        // doesn't apply.
+        var loopStart = Math.Max(1900, beginYear - 1);
+        var loopEnd = Math.Min(9999, endYear + 1);
+        for (var year = loopStart; year <= loopEnd; year++)
         {
             if (beginYear < year && year < endYear)
             {
@@ -107,28 +137,28 @@ public static class Models
         switch (season)
         {
             case YearlySeason.Winter:
-                // January (starts 1w early) - buffer to April
+                // January (starts 1w early), runs until Spring's own buffered start
                 seasonStart = new(year - 1, 12, 25);
                 seasonStartBegin = seasonStart.AddDays(-BufferDays);
-                seasonStartEnd = new(year, 4, 1);
+                seasonStartEnd = new DateOnly(year, 3, 25).AddDays(-BufferDays);
                 break;
             case YearlySeason.Spring:
-                // April (starts 1w early) - buffer to July
+                // April (starts 1w early), runs until Summer's own buffered start
                 seasonStart = new(year, 3, 25);
                 seasonStartBegin = seasonStart.AddDays(-BufferDays);
-                seasonStartEnd = new(year, 7, 1);
+                seasonStartEnd = new DateOnly(year, 6, 24).AddDays(-BufferDays);
                 break;
             case YearlySeason.Summer:
-                // July (starts 1w early) - buffer to October
+                // July (starts 1w early), runs until Fall's own buffered start
                 seasonStart = new(year, 6, 24);
                 seasonStartBegin = seasonStart.AddDays(-BufferDays);
-                seasonStartEnd = new(year, 10, 1);
+                seasonStartEnd = new DateOnly(year, 9, 24).AddDays(-BufferDays);
                 break;
             case YearlySeason.Fall:
-                // October (starts 1w early) - buffer to January (next year)
+                // October (starts 1w early), runs until next year's Winter's own buffered start
                 seasonStart = new(year, 9, 24);
                 seasonStartBegin = seasonStart.AddDays(-BufferDays);
-                seasonStartEnd = new(year + 1, 1, 1);
+                seasonStartEnd = new DateOnly(year, 12, 25).AddDays(-BufferDays);
                 break;
             default:
                 return false;

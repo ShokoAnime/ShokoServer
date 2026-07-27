@@ -596,8 +596,7 @@ public class AnimeSeries : IShokoSeries
             var startYear = anime.BeginYear;
             if (startYear == 0) return [];
 
-            var endYear = anime.EndYear;
-            if (endYear == 0) endYear = DateTime.Today.Year;
+            var endYear = anime.EffectiveEndDateForSeasons?.Year ?? DateTime.Today.Year;
             if (endYear < startYear) endYear = startYear;
             if (startYear == endYear) return [startYear];
 
@@ -783,7 +782,7 @@ public class AnimeSeries : IShokoSeries
     #region IWithYearlySeasons Implementation
 
     IReadOnlyList<(int Year, YearlySeason Season)> IWithYearlySeasons.YearlySeasons
-        => [.. AirDate.GetYearlySeasons(EndDate)];
+        => [.. AirDate.GetYearlySeasons(AniDB_Anime?.EffectiveEndDateForSeasons)];
 
     #endregion
 

@@ -652,11 +652,7 @@ public class ShokoServiceImplementationService(
                 missingMALLink = true;
             }
 
-            var endYear = anime.EndYear;
-            if (endYear == 0)
-            {
-                endYear = DateTime.Today.Year;
-            }
+            var endYear = anime.EffectiveEndDateForSeasons?.Year ?? DateTime.Today.Year;
 
             var startYear = anime.BeginYear;
             if (endYear < startYear)

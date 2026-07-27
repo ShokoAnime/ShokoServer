@@ -217,7 +217,7 @@ public class AniDB_Anime : IAnidbAnime
     }
 
     public IReadOnlyList<(int Year, YearlySeason Season)> YearlySeasons
-        => [.. AirDate.GetYearlySeasons(EndDate)];
+        => [.. AirDate.GetYearlySeasons(this.EffectiveEndDateForSeasons)];
 
     public List<CustomTag> CustomTags
         => RepoFactory.CustomTag.GetByAnimeID(AnimeID);
