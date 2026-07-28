@@ -50,7 +50,13 @@ public class ReleaseManagementController(
     /// </summary>
     /// <param name="onlyFinishedSeries">When true, only include series that have finished airing.</param>
     /// <param name="onlyWithRedundant">When true, only include series that have at least one fully redundant candidate.</param>
-    /// <param name="includeVariations">When true, include files marked as variations in the candidate grouping. Defaults to false.</param>
+    /// <param name="includeVariations">
+    /// When true, files marked as variations participate in grouping/redundancy like any other
+    /// file. When false (default), variations are always excluded from grouping/redundancy, but
+    /// a variation covering an episode a candidate already covers via a non-variation file is
+    /// still shown on that candidate (see <see cref="ReleaseCandidate.File.IsVariation"/>) — a
+    /// variation matching no candidate's episodes at all stays hidden either way.
+    /// </param>
     /// <param name="search">Filter by series title. Matched case-insensitively against all main and official titles across all languages.</param>
     /// <param name="pageSize">Results per page (0 = unlimited).</param>
     /// <param name="page">Page number (1-based).</param>
@@ -147,7 +153,13 @@ public class ReleaseManagementController(
     /// partial-coverage groups excluded from candidates) for Mix &amp; Match.
     /// </summary>
     /// <param name="seriesID">Shoko series ID.</param>
-    /// <param name="includeVariations">When true, include files marked as variations in the candidate grouping. Defaults to false.</param>
+    /// <param name="includeVariations">
+    /// When true, files marked as variations participate in grouping/redundancy like any other
+    /// file. When false (default), variations are always excluded from grouping/redundancy, but
+    /// a variation covering an episode a candidate already covers via a non-variation file is
+    /// still shown on that candidate (see <see cref="ReleaseCandidate.File.IsVariation"/>) — a
+    /// variation matching no candidate's episodes at all stays hidden either way.
+    /// </param>
     /// <param name="preferredCandidateKey">
     /// When set to one of the returned candidates' <c>Key</c>, <c>IsRedundant</c>/<c>RedundantFileCount</c>/
     /// <c>RedundantEpisodes</c> (and <c>HasRedundantCandidates</c>/<c>FilesToAutoDeleteCount</c>) are recomputed
@@ -415,6 +427,36 @@ public class ReleaseManagementController(
         return new CandidateComputation(videoLookup, places, ranked, redundantPlaceIds);
     }
 
+    /// <summary>
+    /// Builds one <see cref="ReleaseCandidate.DisplayOnlyFile"/> per (variation video, place)
+    /// pair for this series, for <see cref="ReleaseCandidate.FromCandidate"/> to attach to
+    /// whichever candidate(s) share an episode with it. Deliberately outside
+    /// <see cref="ComputeCandidates"/> — these files never enter grouping/redundancy, so this
+    /// is pure display data, never used when the caller passes <c>includeVariations: true</c>
+    /// (grouping already includes them directly in that case).
+    /// </summary>
+    private IReadOnlyList<ReleaseCandidate.DisplayOnlyFile> GetVariationDisplayFiles(AnimeSeries series)
+    {
+        var variationVideos = videoLocals.GetByAniDBAnimeID(series.AniDB_ID)
+            .Where(v => v.IsVariation)
+            .DistinctBy(v => (v.Hash, v.FileSize))
+            .ToList();
+        if (variationVideos.Count == 0)
+            return [];
+
+        var result = new List<ReleaseCandidate.DisplayOnlyFile>();
+        foreach (var video in variationVideos)
+        {
+            var (signals, episodes) = grouper.GetFileDisplaySignals(video, series.AniDB_ID);
+            if (episodes.Count == 0)
+                continue;
+
+            foreach (var place in videoLocalPlaces.GetByVideoLocal(video.VideoLocalID))
+                result.Add(new ReleaseCandidate.DisplayOnlyFile(place, video, signals, episodes));
+        }
+        return result;
+    }
+
     private SeriesWithCandidates? BuildSeriesWithCandidates(
         AnimeSeries series,
         Dictionary<int, VideoLocal>? prefetchedVideoLookup = null,
@@ -441,6 +483,14 @@ public class ReleaseManagementController(
         var placeEpisodeCoverage = places.ToDictionary(
             p => p.ID,
             p => autoManagement.GetFileEpisodeCoverage(p, videoLookup, series.AniDB_ID));
+
+        // Variations are excluded from grouping/redundancy above (see ComputeCandidates), but a
+        // variation that covers an episode a real candidate also covers should still be visible —
+        // see ReleaseCandidate.DisplayOnlyFile. Only worth computing when the caller didn't already
+        // fold variations into the main pipeline via includeVariations=true.
+        IReadOnlyList<ReleaseCandidate.DisplayOnlyFile> variationDisplayFiles = includeVariations
+            ? []
+            : GetVariationDisplayFiles(series);
 
         // Compute which signals actually vary across candidates so names only include
         // the qualifiers that distinguish one candidate from another.
@@ -491,7 +541,7 @@ public class ReleaseManagementController(
                 candidate, rank: i + 1, isRedundant, videoLookup, redundantPlaces, decision,
                 placeEpisodeCoverage,
                 candidateIncludeResolution, candidateIncludeSource, candidateIncludeVersion,
-                nameOverride: precomputedNames[i]));
+                nameOverride: precomputedNames[i], extraFiles: variationDisplayFiles));
         }
 
         IReadOnlyList<ReleaseOverride> overrideDTOs = [];

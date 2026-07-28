@@ -413,6 +413,53 @@ public class VideoReleaseGroupingService(
     {
         var (place, video, sri) = group[0];
         var places = group.Select(g => g.Place).ToList();
+        var calc = ComputeQualityCalc(video, sri);
+        var episodes = GetEpisodeCoverageForAnime(video, sri, animeId);
+
+        var parentDirectory = GetParentDirectory(place.RelativePath);
+        return new FileSignature
+        {
+            Place = place,
+            Places = places,
+            ParentDirectory = parentDirectory,
+            ReleaseInfo = sri,
+            GroupKeyValue = GroupKey(sri),
+            AudioLanguages = calc.AudioLanguages,
+            AudioLanguageSet = calc.AudioLanguages.ToHashSet(),
+            SubtitleLanguages = calc.SubtitleLanguages,
+            SubtitleLanguageSet = calc.SubtitleLanguages.ToHashSet(),
+            VideoCodec = calc.VideoCodec,
+            BitDepth = calc.BitDepth,
+            Resolution = calc.Resolution,
+            AudioCodec = calc.AudioCodec,
+            Container = calc.Container,
+            AudioStreamCount = calc.AudioStreamCount,
+            SubtitleStreamCount = calc.SubtitleStreamCount,
+            IsChaptered = calc.IsChaptered,
+            Episodes = episodes,
+        };
+    }
+
+    /// <summary>
+    /// The MediaInfo/SRI-derived quality signals shared by <see cref="BuildSignature"/>
+    /// and <see cref="GetFileDisplaySignals"/>. Kept as a single calculation so the two
+    /// callers — full grouping vs. one-off display lookups for files that don't
+    /// participate in grouping (e.g. variations) — can never drift out of sync.
+    /// </summary>
+    private readonly record struct FileQualityCalc(
+        string? VideoCodec,
+        int BitDepth,
+        string? Resolution,
+        string? AudioCodec,
+        string? Container,
+        int AudioStreamCount,
+        int SubtitleStreamCount,
+        IReadOnlyList<TitleLanguage> AudioLanguages,
+        IReadOnlyList<TitleLanguage> SubtitleLanguages,
+        bool? IsChaptered);
+
+    private static FileQualityCalc ComputeQualityCalc(VideoLocal video, StoredReleaseInfo? sri)
+    {
         var media = video.MediaInfo;
 
         var videoStream = media?.VideoStream;
@@ -461,30 +508,40 @@ public class VideoReleaseGroupingService(
         if (isChaptered is null && (media as IMediaInfo)?.Chapters.Count > 0)
             isChaptered = true;
 
-        var episodes = GetEpisodeCoverageForAnime(video, sri, animeId);
+        return new FileQualityCalc(videoCodec, bitDepth, resolution, audioCodec, container,
+            audioStreamCount, subtitleStreamCount, audioLangs, subLangs, isChaptered);
+    }
 
-        var parentDirectory = GetParentDirectory(place.RelativePath);
-        return new FileSignature
-        {
-            Place = place,
-            Places = places,
-            ParentDirectory = parentDirectory,
-            ReleaseInfo = sri,
-            GroupKeyValue = GroupKey(sri),
-            AudioLanguages = audioLangs,
-            AudioLanguageSet = audioLangs.ToHashSet(),
-            SubtitleLanguages = subLangs,
-            SubtitleLanguageSet = subLangs.ToHashSet(),
-            VideoCodec = videoCodec,
-            BitDepth = bitDepth,
-            Resolution = resolution,
-            AudioCodec = audioCodec,
-            Container = container,
-            AudioStreamCount = audioStreamCount,
-            SubtitleStreamCount = subtitleStreamCount,
-            IsChaptered = isChaptered,
-            Episodes = episodes,
-        };
+    /// <summary>
+    /// Computes the per-file quality signals and episode coverage for a single video,
+    /// independent of grouping/candidate assembly. Used to look up display info for
+    /// files that deliberately don't participate in the main grouping (<c>Group</c>)
+    /// pipeline — currently, variations shown alongside the candidate(s) whose
+    /// episodes they cover (see <c>ReleaseManagementController</c>). This is a
+    /// read-only, display-only lookup: it has no bearing on redundancy or
+    /// auto-management, which never consider variations regardless of this method's use.
+    /// </summary>
+    public (PlaceQualitySignals Signals, IReadOnlySet<(EpisodeType, int)> Episodes) GetFileDisplaySignals(VideoLocal video, int animeId)
+    {
+        var sri = releaseInfoRepository.GetByEd2kAndFileSize(video.Hash, video.FileSize);
+        var calc = ComputeQualityCalc(video, sri);
+        var signals = new PlaceQualitySignals(
+            calc.IsChaptered,
+            sri?.IsCensored,
+            sri?.IsCreditless,
+            sri?.IsCorrupted ?? false,
+            calc.AudioLanguages,
+            calc.SubtitleLanguages,
+            sri?.Source,
+            calc.Resolution,
+            calc.VideoCodec,
+            calc.BitDepth,
+            calc.AudioCodec,
+            calc.AudioStreamCount,
+            calc.SubtitleStreamCount,
+            sri?.Version ?? 1);
+        var episodes = GetEpisodeCoverageForAnime(video, sri, animeId);
+        return (signals, episodes);
     }
 
     /// <summary>

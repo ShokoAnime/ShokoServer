@@ -181,7 +181,8 @@ public class ReleaseCandidate
         bool includeResolution = true,
         bool includeSource = true,
         bool includeVersion = true,
-        string? nameOverride = null)
+        string? nameOverride = null,
+        IReadOnlyList<DisplayOnlyFile>? extraFiles = null)
     {
         var files = candidate.Places
             .Select(place =>
@@ -199,6 +200,7 @@ public class ReleaseCandidate
                     VideoLocalID = place.VideoID,
                     AbsolutePath = place.Path,
                     FileSize = video?.FileSize ?? 0,
+                    IsVariation = video?.IsVariation ?? false,
                     IsRedundant = redundantPlaceIDs?.Contains(place.ID) ?? isRedundant,
                     IsChaptered = signals?.IsChaptered,
                     IsCensored = signals?.IsCensored,
@@ -229,6 +231,66 @@ public class ReleaseCandidate
                     Episodes = episodes,
                 };
             })
+            .ToList();
+
+        // Variations don't participate in grouping/redundancy (see ReleaseAutoManagementService,
+        // which always ignores them), but a variation that covers an episode this candidate also
+        // covers still belongs in the display: it's the same "two valid files for one episode"
+        // situation as a multi-part release, just caused by an unmarked re-release rather than an
+        // intentional split. Only the overlapping episode(s) are attached — a variation covering
+        // unrelated episodes has nothing to do with this candidate. Never marked redundant/deletable.
+        if (extraFiles is { Count: > 0 })
+        {
+            foreach (var extra in extraFiles)
+            {
+                var overlapping = candidate.EpisodeCoverage
+                    .Where(e => extra.Episodes.Contains(e))
+                    .Select(e => new EpisodeCoverage { Type = e.Type, Number = e.Number })
+                    .OrderBy(e => e.Type).ThenBy(e => e.Number)
+                    .ToList();
+                if (overlapping.Count == 0)
+                    continue;
+
+                files.Add(new File
+                {
+                    PlaceID = extra.Place.ID,
+                    VideoLocalID = extra.Video.VideoLocalID,
+                    AbsolutePath = extra.Place.Path,
+                    FileSize = extra.Video.FileSize,
+                    IsVariation = true,
+                    IsRedundant = false,
+                    IsChaptered = extra.Signals.IsChaptered,
+                    IsCensored = extra.Signals.IsCensored,
+                    IsCreditless = extra.Signals.IsCreditless,
+                    IsCorrupted = extra.Signals.IsCorrupted,
+                    Source = extra.Signals.Source switch
+                    {
+                        ReleaseSource.BluRay => "BluRay",
+                        ReleaseSource.DVD => "DVD",
+                        ReleaseSource.TV => "TV",
+                        ReleaseSource.Web => "Web",
+                        ReleaseSource.VHS => "VHS",
+                        ReleaseSource.VCD => "VCD",
+                        ReleaseSource.LaserDisc => "LaserDisc",
+                        ReleaseSource.Camera => "Camera",
+                        ReleaseSource.Film => "Film",
+                        _ => null,
+                    },
+                    Resolution = extra.Signals.Resolution,
+                    VideoCodec = extra.Signals.VideoCodec,
+                    BitDepth = extra.Signals.BitDepth,
+                    AudioCodec = extra.Signals.AudioCodec,
+                    AudioStreamCount = extra.Signals.AudioStreamCount,
+                    SubtitleStreamCount = extra.Signals.SubtitleStreamCount,
+                    Version = extra.Signals.Version,
+                    AudioLanguages = extra.Signals.AudioLanguages.Select(l => l.ToString()).ToList(),
+                    SubtitleLanguages = extra.Signals.SubtitleLanguages.Select(l => l.ToString()).ToList(),
+                    Episodes = overlapping,
+                });
+            }
+        }
+
+        files = files
             .OrderBy(f => f.Episodes.Count > 0 ? (int)f.Episodes[0].Type : int.MaxValue)
             .ThenBy(f => f.Episodes.Count > 0 ? f.Episodes[0].Number : int.MaxValue)
             .ToList();
@@ -492,8 +554,19 @@ public class ReleaseCandidate
         public required long FileSize { get; init; }
 
         /// <summary>
+        /// True when this file is marked as a variation (<c>VideoLocal.IsVariation</c>).
+        /// Variations are always excluded from redundancy/auto-management, and are only
+        /// shown here at all when they cover an episode this candidate also covers via
+        /// another (non-variation) file — see <see cref="EpisodeCoverage.PlaceIDs"/>.
+        /// </summary>
+        [Required]
+        public required bool IsVariation { get; init; }
+
+        /// <summary>
         /// True when this specific file would be deleted by auto-management.
         /// For airing series, individual files within a candidate can differ.
+        /// Always false for a variation file (<see cref="IsVariation"/>) — variations are
+        /// never considered for redundancy/auto-management.
         /// </summary>
         [Required]
         public required bool IsRedundant { get; init; }
@@ -585,4 +658,17 @@ public class ReleaseCandidate
         /// </summary>
         public IReadOnlyList<int> PlaceIDs { get; init; } = [];
     }
+
+    /// <summary>
+    /// A variation file to consider attaching to this candidate's display, computed
+    /// via <see cref="VideoReleaseGroupingService.GetFileDisplaySignals"/> outside the
+    /// main grouping pipeline (variations never participate in grouping/redundancy).
+    /// <see cref="FromCandidate"/> attaches it only if <see cref="Episodes"/> overlaps
+    /// the candidate's own coverage.
+    /// </summary>
+    public readonly record struct DisplayOnlyFile(
+        VideoLocal_Place Place,
+        VideoLocal Video,
+        PlaceQualitySignals Signals,
+        IReadOnlySet<(EpisodeType, int)> Episodes);
 }
