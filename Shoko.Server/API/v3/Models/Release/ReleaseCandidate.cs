@@ -237,7 +237,11 @@ public class ReleaseCandidate
             .Select(e =>
             {
                 candidate.EpisodeGroupMap.TryGetValue(e, out var groupShortName);
-                return new EpisodeCoverage { Type = e.Type, Number = e.Number, GroupShortName = groupShortName };
+                var placeIDs = files
+                    .Where(f => f.Episodes.Any(ec => ec.Type == e.Type && ec.Number == e.Number))
+                    .Select(f => f.PlaceID)
+                    .ToList();
+                return new EpisodeCoverage { Type = e.Type, Number = e.Number, GroupShortName = groupShortName, PlaceIDs = placeIDs };
             })
             .OrderBy(e => e.Type)
             .ThenBy(e => e.Number)
@@ -565,5 +569,20 @@ public class ReleaseCandidate
         /// (manually linked or unrecognised files).
         /// </summary>
         public string? GroupShortName { get; init; }
+
+        /// <summary>
+        /// <see cref="File.PlaceID"/> of every file in the candidate that covers
+        /// this episode. Usually one entry. More than one means multiple files
+        /// legitimately cover the same episode within this candidate — either a
+        /// multi-part release (each file covering a different percentage range)
+        /// or the grouper's "ambiguous" full-collision case (same version, same
+        /// quality tier — e.g. a v2 that was never tagged with an incremented
+        /// version). Both files are kept and neither is treated as redundant;
+        /// this list is what lets a client show that both are included instead
+        /// of only surfacing one. Only populated on <see cref="ReleaseCandidate.Episodes"/>
+        /// (the candidate-level list) — empty on the per-file <see cref="File.Episodes"/> lists,
+        /// since a file's own coverage entries don't need to name themselves.
+        /// </summary>
+        public IReadOnlyList<int> PlaceIDs { get; init; } = [];
     }
 }
