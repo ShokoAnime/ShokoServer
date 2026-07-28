@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.394",
+      "tag": "v6.0.0-dev.394",
+      "commit": "58195c5f6a128bba0680f94f87c6bb6ab0b78890",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.394/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-28T01:04:18Z",
+      "releaseNotes": "\n`feat` (`api`): **Expose PlaceIDs per episode on ReleaseCandidate**:\n\nWhen a single release candidate has multiple files covering the same\nepisode (a multi-part release, or the grouper's \"ambiguous\" full-collision\ncase such as an untagged v2), `EpisodeCoverage` previously gave no way for\na client to tell there was more than one file without cross-referencing\nevery `File.Episodes` list. `PlaceIDs` now lists every `File.PlaceID` that\ncovers each episode, so a client can show all included files instead of\nonly surfacing one.\n"
+    },
+    {
       "version": "6.0.0.393",
       "tag": "v6.0.0-dev.393",
       "commit": "0ab913866d84e9e72d05b34680a3a0f3c3f46cf1",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.365/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-09T03:39:32Z",
       "releaseNotes": "\n`fix`: **Always resolve home path**.\n\n`fix`: **Add default impl. for Details and PostInit for IQueueJob**.\n\n`chore` (`queue`): **Bump queue processor version to v6.0.0-alpha.6**.\n"
-    },
-    {
-      "version": "6.0.0.364",
-      "tag": "v6.0.0-dev.364",
-      "commit": "97e524f1e24245ac3a3dd893c6d529b5140e731f",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.364/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-08T04:30:08Z",
-      "releaseNotes": "\n`fix`: **Fix an edge case in Release Management**.\n"
     }
   ]
 }
