@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.395",
+      "tag": "v6.0.0-dev.395",
+      "commit": "fb1f411a647b98ad39378a596f7f218650f2b453",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.395/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-28T01:33:12Z",
+      "releaseNotes": "\n`feat` (`api`): **Show variations that fit an existing release candidate**:\n\nVariations (`VideoLocal.IsVariation`) were previously excluded wholesale\nfrom `ReleaseManagementController`'s candidate grouping unless\n`includeVariations=true`, even when a variation covered the same episode\nas a file already shown in a candidate. That's the same \"two valid files\nfor one episode\" situation as a multi-part release, just caused by an\nunmarked re-release rather than an intentional split — it should be\nvisible the same way.\n\n`VideoReleaseGroupingService.GetFileDisplaySignals` computes a single\nvideo's quality signals and episode coverage outside the grouping\npipeline (factored out of `BuildSignature` via a shared `ComputeQualityCalc`\nhelper so the two paths can't drift). `ReleaseManagementController` uses it\nto build `ReleaseCandidate.DisplayOnlyFile` entries for a series' variation\nvideos; `ReleaseCandidate.FromCandidate` attaches one to a candidate only\nwhen its episode coverage overlaps that candidate's own, tagged via the new\n`File.IsVariation` flag. A variation matching none of a series' candidates\nstays hidden, same as today, unless `includeVariations=true`.\n\nThis is deliberately display-only: variations attached this way are always\n`IsRedundant = false` and never enter `ComputeCandidates`'s\ngrouping/redundancy pipeline, so `Preview`/`Execute` deletion and the\nbackground auto-management job are unaffected — they already ignore\nvariations unconditionally.\n"
+    },
+    {
       "version": "6.0.0.394",
       "tag": "v6.0.0-dev.394",
       "commit": "58195c5f6a128bba0680f94f87c6bb6ab0b78890",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.366/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-09T04:38:08Z",
       "releaseNotes": "\n`feat` (`abstractions`): **Add nb/no language codes**.\n\n`fix`: **Expose raw language code to plugins**.\n\n`chore`: **Make media info converters/helpers nullable**.\n\n`misc`: **Allow nullable path into ensure usable path**.\n\n`feat`: **Expose method to get media info obj. from raw json or path**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.72**.\n"
-    },
-    {
-      "version": "6.0.0.365",
-      "tag": "v6.0.0-dev.365",
-      "commit": "eb6528724207fdb3be8b2e274c00064bbeec4096",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.365/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-09T03:39:32Z",
-      "releaseNotes": "\n`fix`: **Always resolve home path**.\n\n`fix`: **Add default impl. for Details and PostInit for IQueueJob**.\n\n`chore` (`queue`): **Bump queue processor version to v6.0.0-alpha.6**.\n"
     }
   ]
 }
