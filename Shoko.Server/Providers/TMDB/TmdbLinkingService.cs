@@ -847,7 +847,7 @@ public class TmdbLinkingService : ITmdbLinkingService
                 .Where(episode => anchorSeasonNumber is null || episode.SeasonNumber == anchorSeasonNumber.Value)
                 .Select(episode => (episode, distance: CalculateAirDateDistance(anidbDate, episode.AiredAt)))
                 .Where(result => result.distance is not null)
-                .Select(result => (result.episode, distance: result.distance!.Value))
+                .Select(result => (result.episode, distance: result.distance.Value))
                 .OrderBy(result => result.distance)
                 .ThenBy(result => result.episode.SeasonNumber == 0)
                 .ThenBy(result => result.episode.SeasonNumber)
@@ -975,7 +975,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         out CrossRef_AniDB_TMDB_Episode crossRef,
         out double confidence)
     {
-        crossRef = null!;
+        crossRef = null;
         confidence = 0;
         if (titleSearchResults.Count == 0 || titleSearchResults[0] is not { } titleMatch || !isCandidate(titleMatch))
             return false;
@@ -995,7 +995,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         out CrossRef_AniDB_TMDB_Episode crossRef,
         out double confidence)
     {
-        crossRef = null!;
+        crossRef = null;
         confidence = 0;
         if (airdateProbability.Count == 0)
             return false;
@@ -1014,13 +1014,13 @@ public class TmdbLinkingService : ITmdbLinkingService
         out CrossRef_AniDB_TMDB_Episode crossRef,
         out double confidence)
     {
-        crossRef = null!;
+        crossRef = null;
         confidence = 0;
         if (titleSearchResults.Count == 0)
             return false;
 
-        var tmdbEpisode = titleSearchResults[0]!.Result;
-        confidence = 1 - titleSearchResults[0]!.Distance;
+        var tmdbEpisode = titleSearchResults[0].Result;
+        confidence = 1 - titleSearchResults[0].Distance;
         crossRef = new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, MatchRating.TitleKindaMatches);
         return true;
     }
@@ -1039,7 +1039,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         out CrossRef_AniDB_TMDB_Episode crossRef,
         out double confidence)
     {
-        crossRef = null!;
+        crossRef = null;
         confidence = 0;
         if (nearestAirdate.Count == 0)
             return false;
