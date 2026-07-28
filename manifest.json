@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.396",
+      "tag": "v6.0.0-dev.396",
+      "commit": "12069ded6a9d978f6c136919185c6e9ba8b52555",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.396/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-28T23:08:01Z",
+      "releaseNotes": "\n`fix` (`api`): **Surface series whose only candidate has ambiguous per-episode coverage**:\n\n`VideoReleaseGroupingService.Group()` correctly collapses files that agree\non group/version/location into a single candidate, but `MightHaveMultipleCandidates`,\n`ComputeCandidates`, and the `Series` list endpoint all required more than\none candidate before a series would surface in Release Management. That\nhid series whose files merge into one candidate but still leave an episode\ncovered by more than one file with nothing to distinguish them (an\nuntagged v2) — observed live with `Sousou no Frieren (2026)`, whose\nepisodes 9 and 10 each had 2 files from the same release and never\nappeared at all.\n\n`MightHaveMultipleCandidates` now flags any episode covered by two\ndistinct video files regardless of version/location agreement, and the\nnew `HasAmbiguousEpisodeCoverage` lets `ComputeCandidates` keep a\nsingle-candidate series when that candidate has such an episode, so\n`ReleaseCandidate.EpisodeCoverage`'s `PlaceIDs` can do what it was built\nfor. Removed the now-unused `VideoLocal_PlaceRepository` dependency from\nthe grouping service.\n"
+    },
+    {
       "version": "6.0.0.395",
       "tag": "v6.0.0-dev.395",
       "commit": "fb1f411a647b98ad39378a596f7f218650f2b453",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.367/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-09T17:18:44Z",
       "releaseNotes": "\n`misc`: **Work on Release Management**.\n"
-    },
-    {
-      "version": "6.0.0.366",
-      "tag": "v6.0.0-dev.366",
-      "commit": "d857f6bd515193bd81373410a425fb2eaf96235e",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.366/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-09T04:38:08Z",
-      "releaseNotes": "\n`feat` (`abstractions`): **Add nb/no language codes**.\n\n`fix`: **Expose raw language code to plugins**.\n\n`chore`: **Make media info converters/helpers nullable**.\n\n`misc`: **Allow nullable path into ensure usable path**.\n\n`feat`: **Expose method to get media info obj. from raw json or path**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.72**.\n"
     }
   ]
 }
