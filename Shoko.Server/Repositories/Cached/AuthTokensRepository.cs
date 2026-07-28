@@ -68,7 +68,7 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
     public bool DeleteWithUserIDAndDevicePrefix(int userID, string devicePrefix)
     {
-        var tokens = _userIDs!.GetMultiple(userID).Where(a => a.DeviceName.StartsWith(devicePrefix, StringComparison.Ordinal)).ToList();
+        var tokens = _userIDs.GetMultiple(userID).Where(a => a.DeviceName.StartsWith(devicePrefix, StringComparison.Ordinal)).ToList();
         Delete(tokens);
         return tokens.Count > 0;
     }
