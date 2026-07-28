@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -194,6 +195,7 @@ public class ReleaseCandidate
                           .ToList()
                     : (IReadOnlyList<EpisodeCoverage>)[];
                 candidate.PlaceSignals.TryGetValue(place.ID, out var signals);
+                var releaseInfo = video?.ReleaseInfo;
                 return new File
                 {
                     PlaceID = place.ID,
@@ -202,6 +204,9 @@ public class ReleaseCandidate
                     FileSize = video?.FileSize ?? 0,
                     IsVariation = video?.IsVariation ?? false,
                     IsRedundant = redundantPlaceIDs?.Contains(place.ID) ?? isRedundant,
+                    ReleasedAt = releaseInfo?.ReleasedAt,
+                    ImportedAt = video?.DateTimeImported?.ToUniversalTime(),
+                    OriginalFilename = releaseInfo?.OriginalFilename,
                     IsChaptered = signals?.IsChaptered,
                     IsCensored = signals?.IsCensored,
                     IsCreditless = signals?.IsCreditless,
@@ -251,6 +256,7 @@ public class ReleaseCandidate
                 if (overlapping.Count == 0)
                     continue;
 
+                var extraReleaseInfo = extra.Video.ReleaseInfo;
                 files.Add(new File
                 {
                     PlaceID = extra.Place.ID,
@@ -259,6 +265,9 @@ public class ReleaseCandidate
                     FileSize = extra.Video.FileSize,
                     IsVariation = true,
                     IsRedundant = false,
+                    ReleasedAt = extraReleaseInfo?.ReleasedAt,
+                    ImportedAt = extra.Video.DateTimeImported?.ToUniversalTime(),
+                    OriginalFilename = extraReleaseInfo?.OriginalFilename,
                     IsChaptered = extra.Signals.IsChaptered,
                     IsCensored = extra.Signals.IsCensored,
                     IsCreditless = extra.Signals.IsCreditless,
@@ -570,6 +579,16 @@ public class ReleaseCandidate
         /// </summary>
         [Required]
         public required bool IsRedundant { get; init; }
+
+        /// <summary>The release date reported by the release provider, if known.</summary>
+        public DateOnly? ReleasedAt { get; init; }
+
+        /// <summary>When this file was imported into Shoko's library, if known.</summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime? ImportedAt { get; init; }
+
+        /// <summary>The release's original filename as reported by the provider, if known.</summary>
+        public string? OriginalFilename { get; init; }
 
         /// <summary>
         /// True if this file has chapter markers; false if chapter data is present

@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
@@ -96,6 +99,7 @@ public class ReleaseOverride
                     .Select(e => new ReleaseCandidate.EpisodeCoverage { Type = e.Type, Number = e.Number })
                     .OrderBy(e => e.Type).ThenBy(e => e.Number)
                     .ToList();
+                var releaseInfo = video?.ReleaseInfo;
                 return new OverrideFile
                 {
                     PlaceID = f.Place.ID,
@@ -104,6 +108,9 @@ public class ReleaseOverride
                     FileSize = video?.FileSize ?? 0,
                     Version = f.Version,
                     IsChaptered = f.IsChaptered,
+                    ReleasedAt = releaseInfo?.ReleasedAt,
+                    ImportedAt = video?.DateTimeImported?.ToUniversalTime(),
+                    OriginalFilename = releaseInfo?.OriginalFilename,
                     Episodes = episodes,
                 };
             })
@@ -193,6 +200,16 @@ public class ReleaseOverride
 
         /// <summary>Whether the file has chapter marks, or null if unknown.</summary>
         public bool? IsChaptered { get; init; }
+
+        /// <summary>The release date reported by the release provider, if known.</summary>
+        public DateOnly? ReleasedAt { get; init; }
+
+        /// <summary>When this file was imported into Shoko's library, if known.</summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime? ImportedAt { get; init; }
+
+        /// <summary>The release's original filename as reported by the provider, if known.</summary>
+        public string? OriginalFilename { get; init; }
 
         /// <summary>Episodes this specific file covers.</summary>
         [Required]
