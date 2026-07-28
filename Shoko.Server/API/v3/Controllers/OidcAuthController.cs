@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -37,6 +38,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/Auth/Oidc")]
 [ApiV3]
 public class OidcAuthController(
+    ILogger<OidcAuthController> logger,
     ISettingsProvider settingsProvider,
     JMMUserRepository userRepository,
     AuthTokensRepository authTokensRepository,
@@ -110,8 +112,12 @@ public class OidcAuthController(
         if (error is not null)
             return error;
 
+        // returnUrl must be a local path — otherwise a crafted Challenge/Link link could redirect
+        // the freshly minted API token (delivered via URL fragment) to an attacker-controlled origin.
+        var safeReturnUrl = returnUrl is not null && Url.IsLocalUrl(returnUrl) ? returnUrl : null;
+
         var nonce = Guid.NewGuid().ToString("N");
-        var state = ProtectState(new StatePayload(nonce, returnUrl, DateTime.UtcNow, linkUserID));
+        var state = ProtectState(new StatePayload(nonce, safeReturnUrl, DateTime.UtcNow, linkUserID));
 
         var authorizeUrl = QueryHelpers.AddQueryString(configuration.AuthorizationEndpoint, new Dictionary<string, string?>
         {
@@ -156,7 +162,7 @@ public class OidcAuthController(
         if (exchangeError is not null)
             return RedirectToWebUiWithError(exchangeError);
 
-        var (claims, validationError) = await ValidateIdTokenAsync(configuration, settings, idToken!, statePayload.Nonce);
+        var (claims, validationError) = await ValidateIdTokenAsync(configuration, settings, idToken, statePayload.Nonce);
         if (validationError is not null || claims is null)
             return RedirectToWebUiWithError(validationError ?? "ID token validation failed.");
 
@@ -182,7 +188,7 @@ public class OidcAuthController(
 
         // Subject is part of the device name (not just externalAuthID) so a provider-scoped
         // Unlink() can target exactly the tokens minted for this identity via prefix match.
-        var apiToken = await userService.GenerateApiTokenForUser(user!, $"OIDC — {settings.Authority} — {rawSubject}", expiresAt);
+        var apiToken = await userService.GenerateApiTokenForUser(user, $"OIDC — {settings.Authority} — {rawSubject}", expiresAt);
         return RedirectToWebUiWithToken(apiToken.Token, statePayload.ReturnUrl);
     }
 
@@ -194,7 +200,7 @@ public class OidcAuthController(
             ["grant_type"] = "authorization_code",
             ["code"] = code,
             ["redirect_uri"] = BuildRedirectUri(forwardedProto),
-            ["client_id"] = settings.ClientID!,
+            ["client_id"] = settings.ClientID,
             ["client_secret"] = settings.ClientSecret ?? string.Empty,
         }));
 
@@ -291,15 +297,16 @@ public class OidcAuthController(
     {
         var settings = Settings;
         if (!settings.Enabled || string.IsNullOrWhiteSpace(settings.Authority) || string.IsNullOrWhiteSpace(settings.ClientID))
-            return (settings, null!, NotFound("OIDC sign-in is not enabled."));
+            return (settings, null, NotFound("OIDC sign-in is not enabled."));
 
         try
         {
             return (settings, await GetProviderConfigurationAsync(settings.Authority), null);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return (settings, null!, RedirectToWebUiWithError("Could not reach the OIDC provider. Please try again later."));
+            logger.LogWarning(ex, "Could not fetch OIDC discovery document from authority {Authority}", settings.Authority);
+            return (settings, null, RedirectToWebUiWithError("Could not reach the OIDC provider. Please try again later."));
         }
     }
 

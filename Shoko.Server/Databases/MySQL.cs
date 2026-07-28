@@ -1145,6 +1145,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
                      WHERE sri.`CrossReferences` LIKE '%AnidbEpisodeID%'
                      """),
         new(184,  1, "ALTER TABLE `JMMUser` ADD COLUMN `ExternalAuthID` VARCHAR(255) NULL DEFAULT NULL;"),
+        new(184,  2, "ALTER TABLE `JMMUser` ADD UNIQUE INDEX `UIX_JMMUser_ExternalAuthID` (`ExternalAuthID` ASC);"),
     ];
 
     #endregion
