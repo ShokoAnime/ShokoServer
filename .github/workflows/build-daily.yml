@@ -39,7 +39,7 @@ jobs:
           echo "date=$(git --no-pager show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format=%cd ${{ github.sha }})" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node v20
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 20
 
@@ -233,7 +233,7 @@ jobs:
           ref: "${{ github.sha }}"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -267,7 +267,7 @@ jobs:
           ref: "${{ github.sha }}"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -301,7 +301,7 @@ jobs:
           ref: "${{ github.sha }}"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -335,7 +335,7 @@ jobs:
           ref: "${{ github.sha }}"
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -421,7 +421,7 @@ jobs:
         if: ${{ matrix.rid == 'linux-arm64' }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -498,7 +498,7 @@ jobs:
         if: ${{ matrix.rid == 'linux-arm64' }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -574,7 +574,7 @@ jobs:
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ env.AVD3_URL }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
@@ -644,7 +644,7 @@ jobs:
           .\\.github\\workflows\\ReplaceAVD3URL.ps1 -url ${{ env.AVD3_URL }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
