@@ -39,8 +39,7 @@ public class VideoReleaseGroupingTests
     private static readonly VideoReleaseGroupingService _grouper = CreateGrouper();
 
     private static VideoReleaseGroupingService CreateGrouper(
-        Mock<StoredReleaseInfoRepository>? releaseInfoRepo = null,
-        Mock<VideoLocal_PlaceRepository>? placeRepo = null)
+        Mock<StoredReleaseInfoRepository>? releaseInfoRepo = null)
     {
         // AniDB_Episode lookups: decode episode type and number from the test-convention ID
         // offset (0-999 = Episode, 1000-1999 = Special, 2000-2999 = Credits, …) — mirrors
@@ -67,12 +66,8 @@ public class VideoReleaseGroupingTests
             (DatabaseFactory)null!);
         crossRefRepo.Setup(r => r.GetByEd2k(It.IsAny<string>())).Returns([]);
 
-        var places = placeRepo ?? new Mock<VideoLocal_PlaceRepository>((DatabaseFactory)null!);
-        if (placeRepo is null)
-            places.Setup(r => r.GetByVideoLocal(It.IsAny<int>())).Returns([]);
-
         return new VideoReleaseGroupingService(
-            null!, episodeRepo.Object, releaseInfoRepo?.Object!, crossRefRepo.Object, places.Object);
+            null!, episodeRepo.Object, releaseInfoRepo?.Object!, crossRefRepo.Object);
     }
 
     private static IReadOnlyList<VideoReleaseCandidate> Group(IEnumerable<ResolvedVideoPlace> places, int animeId = DefaultAnimeId)
@@ -1825,18 +1820,12 @@ public class VideoReleaseGroupingTests
         var sriB = MakeSri("BBB", 500_000_000, "999", "AniDB", "ToonsHub", "TH", ReleaseSource.Web, episodes: ["1"]);
         var videoA = MakeVideo(1, "AAA", 500_000_000, media);
         var videoB = MakeVideo(2, "BBB", 500_000_000, media);
-        var placeA = MakePlace(1, 1, folderId: 4, "Show/TH - 01.mkv");
-        var placeB = MakePlace(2, 2, folderId: 5, "Show (manual)/TH - 01.mkv");
 
         var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>((DatabaseFactory)null!, (IServiceProvider)null!);
         releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("AAA", 500_000_000)).Returns(sriA);
         releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("BBB", 500_000_000)).Returns(sriB);
 
-        var placeRepo = new Mock<VideoLocal_PlaceRepository>((DatabaseFactory)null!);
-        placeRepo.Setup(r => r.GetByVideoLocal(1)).Returns([placeA]);
-        placeRepo.Setup(r => r.GetByVideoLocal(2)).Returns([placeB]);
-
-        var grouper = CreateGrouper(releaseInfoRepo, placeRepo);
+        var grouper = CreateGrouper(releaseInfoRepo);
 
         Assert.True(grouper.MightHaveMultipleCandidates([videoA, videoB], DefaultAnimeId));
     }
@@ -1852,17 +1841,78 @@ public class VideoReleaseGroupingTests
         var media = MakeMedia();
         var sriA = MakeSri("AAA", 500_000_000, "999", "AniDB", "ToonsHub", "TH", ReleaseSource.Web, episodes: ["1"]);
         var videoA = MakeVideo(1, "AAA", 500_000_000, media);
-        var placeA = MakePlace(1, 1, folderId: 4, "Show/TH - 01.mkv");
 
         var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>((DatabaseFactory)null!, (IServiceProvider)null!);
         releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("AAA", 500_000_000)).Returns(sriA);
 
-        var placeRepo = new Mock<VideoLocal_PlaceRepository>((DatabaseFactory)null!);
-        placeRepo.Setup(r => r.GetByVideoLocal(1)).Returns([placeA]);
-
-        var grouper = CreateGrouper(releaseInfoRepo, placeRepo);
+        var grouper = CreateGrouper(releaseInfoRepo);
 
         Assert.False(grouper.MightHaveMultipleCandidates([videoA], DefaultAnimeId));
+    }
+
+    // ── untagged duplicate / ambiguous coverage (regression) ───────────────────
+
+    /// <summary>
+    /// Real-world regression: two distinct files for the same episode from the same
+    /// group, same version, same source, same MediaInfo, and the same folder — an
+    /// "untagged v2" with nothing to distinguish it from the original — collapse into
+    /// a single candidate (there's no signal to split them on), but that candidate's
+    /// episode is covered by two files. <c>MightHaveMultipleCandidates</c> must still
+    /// return true so the series isn't dropped before the full grouper ever runs
+    /// (observed live: Sousou no Frieren (2026) episodes 9 and 10, each with 2 files
+    /// from the same release, missing entirely from Release Management).
+    /// </summary>
+    [Fact]
+    public void SameEpisodeSameEverything_DifferentFiles_ReturnsTrue()
+    {
+        var media = MakeMedia();
+        var sriA = MakeSri("AAA", 500_000_000, "11111", "AniDB", "Hi10 Anime", "Hi10", ReleaseSource.Web, episodes: ["9"]);
+        var sriB = MakeSri("BBB", 510_000_000, "11111", "AniDB", "Hi10 Anime", "Hi10", ReleaseSource.Web, episodes: ["9"]);
+        var videoA = MakeVideo(1, "AAA", 500_000_000, media);
+        var videoB = MakeVideo(2, "BBB", 510_000_000, media);
+
+        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>((DatabaseFactory)null!, (IServiceProvider)null!);
+        releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("AAA", 500_000_000)).Returns(sriA);
+        releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("BBB", 510_000_000)).Returns(sriB);
+
+        var grouper = CreateGrouper(releaseInfoRepo);
+
+        Assert.True(grouper.MightHaveMultipleCandidates([videoA, videoB], DefaultAnimeId));
+    }
+
+    /// <summary>
+    /// Companion case: the full grouper collapses the same setup into a single
+    /// candidate (nothing distinguishes the two files), but that candidate's episode 9
+    /// is covered by both places — <see cref="VideoReleaseGroupingService.HasAmbiguousEpisodeCoverage"/>
+    /// must flag it so the series still qualifies for Release Management despite
+    /// Group() returning only one candidate.
+    /// </summary>
+    [Fact]
+    public void SameEpisodeSameEverything_CollapsesToOneCandidateWithAmbiguousCoverage()
+    {
+        var media = MakeMedia();
+        var sriA = MakeSri("AAA", 500_000_000, "11111", "AniDB", "Hi10 Anime", "Hi10", ReleaseSource.Web, episodes: ["9"]);
+        var sriB = MakeSri("BBB", 510_000_000, "11111", "AniDB", "Hi10 Anime", "Hi10", ReleaseSource.Web, episodes: ["9"]);
+        var videoA = MakeVideo(1, "AAA", 500_000_000, media);
+        var videoB = MakeVideo(2, "BBB", 510_000_000, media);
+        var resolved = new[]
+        {
+            new ResolvedVideoPlace(MakePlace(1, 1, 1, "Show/Show - 09.mkv"), videoA, sriA),
+            new ResolvedVideoPlace(MakePlace(2, 2, 1, "Show/Show - 09v2.mkv"), videoB, sriB),
+        };
+
+        var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>((DatabaseFactory)null!, (IServiceProvider)null!);
+        releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("AAA", 500_000_000)).Returns(sriA);
+        releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("BBB", 510_000_000)).Returns(sriB);
+        var grouper = CreateGrouper(releaseInfoRepo);
+
+        var candidates = grouper.Group(resolved, DefaultAnimeId);
+
+        var candidate = Assert.Single(candidates);
+        Assert.Equal(2, candidate.Places.Count);
+
+        var videoLookup = new Dictionary<int, VideoLocal> { [1] = videoA, [2] = videoB };
+        Assert.True(grouper.HasAmbiguousEpisodeCoverage(candidates, videoLookup, DefaultAnimeId));
     }
 
     // ── cross-anime episode leakage (regression) ───────────────────────────────
@@ -1916,11 +1966,8 @@ public class VideoReleaseGroupingTests
             (DatabaseFactory)null!);
         crossRefRepo.Setup(r => r.GetByEd2k(It.IsAny<string>())).Returns([]);
 
-        var placeRepoMock = new Mock<VideoLocal_PlaceRepository>((DatabaseFactory)null!);
-        placeRepoMock.Setup(r => r.GetByVideoLocal(It.IsAny<int>())).Returns([]);
-
         var grouper = new VideoReleaseGroupingService(
-            null!, episodeRepo.Object, releaseInfoRepo.Object, crossRefRepo.Object, placeRepoMock.Object);
+            null!, episodeRepo.Object, releaseInfoRepo.Object, crossRefRepo.Object);
 
         var video = MakeVideo(1, "XOVER", 500_000_000, MakeMedia());
 

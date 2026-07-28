@@ -50,26 +50,26 @@ public class VideoReleaseGroupingService(
     VideoLocalRepository videoLocalRepository,
     AniDB_EpisodeRepository anidbEpisodeRepository,
     StoredReleaseInfoRepository releaseInfoRepository,
-    CrossRef_File_EpisodeRepository crossRefRepository,
-    VideoLocal_PlaceRepository placeRepository)
+    CrossRef_File_EpisodeRepository crossRefRepository)
 {
     /// <summary>
-    /// Fast heuristic that checks whether a series is likely to produce more than
-    /// one release candidate. Inspects SRI group keys, source, and MediaInfo-based
-    /// hard separators (codec, resolution, bit depth) so it catches the common case
-    /// of the same group publishing both 1080p and 720p (or HEVC and H264) at the
-    /// same version without running the full grouper.
+    /// Fast heuristic that checks whether a series is worth running the full grouper
+    /// against — either because it's likely to produce more than one release candidate,
+    /// or because a single candidate would still surface the grouper's "ambiguous
+    /// full-collision" case (two distinct files covering the same episode with nothing
+    /// to distinguish them, e.g. an untagged v2 — see <see cref="ReleaseCandidate.EpisodeCoverage"/>
+    /// PlaceIDs). Inspects SRI group keys, source, and MediaInfo-based hard separators
+    /// (codec, resolution, bit depth) so it catches the common case of the same group
+    /// publishing both 1080p and 720p (or HEVC and H264) at the same version without
+    /// running the full grouper.
     /// <para>
     /// Returns <c>false</c> only when every file has an identified SRI with the
-    /// same release-group key, source, codec, resolution, and bit depth, there are
-    /// no per-episode version collisions, and no episode is covered by files from
-    /// more than one <c>(ManagedFolderID, ParentDirectory)</c> partition — the
-    /// latter is a guaranteed hard separator in <c>FuzzyGroup</c>/<c>AreCompatible</c>
-    /// regardless of how well every other signal matches, so two otherwise-identical
-    /// copies of the same episode living in different folders always produce two
-    /// candidates in the full grouper. Only when all of the above hold is a
-    /// single-candidate result certain. Returns <c>true</c> when in doubt, so false
-    /// negatives are avoided.
+    /// same release-group key, source, codec, resolution, and bit depth, and no
+    /// episode is covered by more than one distinct <see cref="VideoLocal"/> — the
+    /// latter matters regardless of version/location, since two different files for
+    /// the same episode are always worth surfacing even when they merge into a single
+    /// candidate. Only when all of the above hold is a single, unambiguous candidate
+    /// certain. Returns <c>true</c> when in doubt, so false negatives are avoided.
     /// </para>
     /// </summary>
     public bool MightHaveMultipleCandidates(IEnumerable<VideoLocal> videos, int animeId)
@@ -79,8 +79,7 @@ public class VideoReleaseGroupingService(
         var resolution = (string?)null;
         var videoCodec = (string?)null;
         var bitDepth = (int?)null;
-        var episodeVersions = new Dictionary<int, int>();
-        var episodeLocations = new Dictionary<int, (int ManagedFolderID, string ParentDirectory)>();
+        var episodeOwners = new Dictionary<int, int>();
 
         foreach (var video in videos)
         {
@@ -125,48 +124,60 @@ public class VideoReleaseGroupingService(
                 }
             }
 
-            // Representative place for this video — mirrors BuildSignature, which uses
-            // the first place of each VideoLocalID group for folder/parent-directory purposes.
-            var place = placeRepository.GetByVideoLocal(video.VideoLocalID).FirstOrDefault();
-            var location = place is null
-                ? ((int ManagedFolderID, string ParentDirectory)?)null
-                : (place.ManagedFolderID, GetParentDirectory(place.RelativePath));
-
             foreach (var xref in sri.CrossReferences)
             {
                 // Cross-references to a different anime (crossover/tie-in releases), or whose
                 // episode can't be resolved locally at all, must not participate in this anime's
-                // version-collision/folder-separation checks.
+                // per-episode ownership check.
                 if (xref.AnidbEpisodeID <= 0)
                     continue;
                 var episode = anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID);
                 if (episode is null || episode.AnimeID != animeId)
                     continue;
 
-                // Version collision within the same group → GenerateVersionStrategyCandidates
-                // would produce BestAvailable + Consistent variants.
-                if (episodeVersions.TryGetValue(xref.AnidbEpisodeID, out var existingVersion))
+                // Two distinct video files covering the same episode are always worth surfacing:
+                // either as competing candidates (differing quality) or, when every other signal
+                // matches, as the grouper's ambiguous full-collision case that ends up in a single
+                // candidate with more than one place per episode.
+                if (episodeOwners.TryGetValue(xref.AnidbEpisodeID, out var owner))
                 {
-                    if (existingVersion != sri.Version) return true;
+                    if (owner != video.VideoLocalID) return true;
                 }
                 else
                 {
-                    episodeVersions[xref.AnidbEpisodeID] = sri.Version;
+                    episodeOwners[xref.AnidbEpisodeID] = video.VideoLocalID;
                 }
+            }
+        }
+        return false;
+    }
 
-                // Folder hard separator: the same episode covered by files from two different
-                // (ManagedFolderID, ParentDirectory) partitions is always split into separate
-                // FuzzyGroup buckets, independent of every other signal matching.
-                if (location is { } loc)
+    /// <summary>
+    /// True when any candidate has an episode covered by more than one distinct
+    /// <see cref="VideoLocal"/> — the grouper's ambiguous full-collision case (e.g. an
+    /// untagged v2) surfaced via <c>ReleaseCandidate.EpisodeCoverage[].PlaceIDs</c>. A
+    /// series with exactly one candidate still needs review when this is true, even
+    /// though there's no competing recipe to rank it against, since neither file can be
+    /// safely auto-deleted as redundant.
+    /// </summary>
+    public bool HasAmbiguousEpisodeCoverage(IEnumerable<VideoReleaseCandidate> candidates, IReadOnlyDictionary<int, VideoLocal> videoLookup, int animeId)
+    {
+        foreach (var candidate in candidates)
+        {
+            var episodeOwners = new Dictionary<(EpisodeType, int), int>();
+            foreach (var place in candidate.Places)
+            {
+                if (!videoLookup.TryGetValue(place.VideoID, out var video))
+                    continue;
+                foreach (var ep in GetEpisodeCoverageForAnime(video, animeId))
                 {
-                    if (episodeLocations.TryGetValue(xref.AnidbEpisodeID, out var existingLocation))
+                    if (episodeOwners.TryGetValue(ep, out var owner))
                     {
-                        if (existingLocation.ManagedFolderID != loc.ManagedFolderID || existingLocation.ParentDirectory != loc.ParentDirectory)
-                            return true;
+                        if (owner != video.VideoLocalID) return true;
                     }
                     else
                     {
-                        episodeLocations[xref.AnidbEpisodeID] = loc;
+                        episodeOwners[ep] = video.VideoLocalID;
                     }
                 }
             }

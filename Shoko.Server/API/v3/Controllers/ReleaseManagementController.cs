@@ -44,9 +44,11 @@ public class ReleaseManagementController(
     // ── Series listing ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// Get a paginated list of series that have more than one release candidate.
-    /// Only series where at least two distinct candidates were identified are
-    /// returned. Results are sorted by series title for stable pagination.
+    /// Get a paginated list of series that need review: either more than one release
+    /// candidate was identified, or the single candidate has an episode covered by more
+    /// than one file with nothing to distinguish them (the grouper's ambiguous
+    /// full-collision case, e.g. an untagged v2 — see <c>ReleaseCandidate.EpisodeCoverage</c>
+    /// <c>PlaceIDs</c>). Results are sorted by series title for stable pagination.
     /// </summary>
     /// <param name="onlyFinishedSeries">When true, only include series that have finished airing.</param>
     /// <param name="onlyWithRedundant">When true, only include series that have at least one fully redundant candidate.</param>
@@ -95,9 +97,9 @@ public class ReleaseManagementController(
         // pre-filter already cutting this down to a small set, PLINQ's per-request thread-
         // pool scheduling overhead costs far more than it saves here.
         // MightHaveMultipleCandidates is a cheap pre-check that skips ComputeCandidates
-        // entirely for series that clearly have only one release. The pre-fetched
-        // videoLookup is passed into ComputeCandidates/BuildSeriesWithCandidates so
-        // GetByAniDBAnimeID is not called a second time for the same series.
+        // entirely for series that clearly have only one, unambiguous release. The
+        // pre-fetched videoLookup is passed into ComputeCandidates/BuildSeriesWithCandidates
+        // so GetByAniDBAnimeID is not called a second time for the same series.
         var qualifying = allSeries
             .Select(series =>
             {
@@ -113,7 +115,7 @@ public class ReleaseManagementController(
 
                 var computation = ComputeCandidates(series, videoLookup, includeVariations,
                     bypassEligibilityGate: false, preferredCandidateKey: null);
-                if (computation is not { Ranked.Count: > 1 } value)
+                if (computation is not { } value)
                     return none;
 
                 var hasRedundant = value.Ranked.Any(c => c.Places.Count > 0 && c.Places.All(p => value.RedundantPlaceIds.Contains(p.ID)));
@@ -352,15 +354,17 @@ public class ReleaseManagementController(
         Dictionary<int, VideoLocal> VideoLookup,
         List<VideoLocal_Place> Places,
         IReadOnlyList<VideoReleaseCandidate> Ranked,
-        HashSet<int> RedundantPlaceIds);
+        HashSet<int> RedundantPlaceIds,
+        bool HasAmbiguousCoverage);
 
     /// <summary>
     /// Builds a series' video lookup, grouped/ranked candidates, and redundant-place set —
     /// the expensive-but-unavoidable part of the pipeline (grouping, ranking, redundancy),
     /// without building the much more expensive <see cref="ReleaseCandidate"/> DTOs (name
     /// computation with collision detection, per-file quality-signal formatting, episode
-    /// resolution). Returns null when the series doesn't have enough files/candidates to
-    /// be relevant.
+    /// resolution). Returns null when the series doesn't have enough files/candidates to be
+    /// relevant — i.e. exactly one candidate was found and it has no ambiguous per-episode
+    /// coverage (see <see cref="CandidateComputation.HasAmbiguousCoverage"/>).
     /// </summary>
     /// <param name="series">The series to compute candidates for.</param>
     /// <param name="prefetchedVideoLookup">Already-built video lookup, if available, to avoid re-querying.</param>
@@ -394,7 +398,15 @@ public class ReleaseManagementController(
             return null;
 
         var candidates = grouper.Group(places, series.AniDB_ID);
-        if (candidates.Count <= 1)
+        if (candidates.Count == 0)
+            return null;
+
+        // A series with exactly one candidate is still relevant when that candidate has an
+        // episode covered by more than one file — the grouper's ambiguous full-collision case
+        // (e.g. an untagged v2) — since there's no way to know which file to keep, even though
+        // there's no competing recipe to rank it against.
+        var hasAmbiguousCoverage = grouper.HasAmbiguousEpisodeCoverage(candidates, videoLookup, series.AniDB_ID);
+        if (candidates.Count <= 1 && !hasAmbiguousCoverage)
             return null;
 
         // Display order/Rank numbers always reflect natural quality ranking.
@@ -424,7 +436,7 @@ public class ReleaseManagementController(
             .Select(p => p.ID)
             .ToHashSet();
 
-        return new CandidateComputation(videoLookup, places, ranked, redundantPlaceIds);
+        return new CandidateComputation(videoLookup, places, ranked, redundantPlaceIds, hasAmbiguousCoverage);
     }
 
     /// <summary>
@@ -478,7 +490,7 @@ public class ReleaseManagementController(
         if (computation is not { } value)
             return null;
 
-        var (videoLookup, places, ranked, redundantPlaces) = value;
+        var (videoLookup, places, ranked, redundantPlaces, _) = value;
 
         var placeEpisodeCoverage = places.ToDictionary(
             p => p.ID,
