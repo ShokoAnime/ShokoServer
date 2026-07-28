@@ -1098,6 +1098,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(180, 37, "ALTER TABLE TMDB_Title ADD CONSTRAINT PK_TMDB_Title PRIMARY KEY CLUSTERED (TMDB_TitleID);"),
         new(180, 38, "ALTER TABLE VideoLocal_HashDigest ADD CONSTRAINT PK_VideoLocal_HashDigest PRIMARY KEY CLUSTERED (VideoLocal_HashDigestID);"),
         new(181,  1, "ALTER TABLE JMMUser ADD ExternalAuthID NVARCHAR(255) NULL DEFAULT NULL;"),
+        new(181,  2, "CREATE UNIQUE INDEX UIX_JMMUser_ExternalAuthID ON JMMUser(ExternalAuthID) WHERE ExternalAuthID IS NOT NULL;"),
     ];
 
     #endregion
