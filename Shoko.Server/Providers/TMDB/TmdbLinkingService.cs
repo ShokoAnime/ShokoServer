@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -992,7 +993,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         AniDB_Episode anidbEpisode,
         List<SeriesSearch.SearchResult<TMDB_Episode>> titleSearchResults,
         List<(TMDB_Episode episode, double probability)> airdateProbability,
-        out CrossRef_AniDB_TMDB_Episode crossRef,
+        [NotNullWhen(true)] out CrossRef_AniDB_TMDB_Episode? crossRef,
         out double confidence)
     {
         crossRef = null;
@@ -1011,7 +1012,7 @@ public class TmdbLinkingService : ITmdbLinkingService
     private static bool TryAnyTitleMatch(
         AniDB_Episode anidbEpisode,
         List<SeriesSearch.SearchResult<TMDB_Episode>> titleSearchResults,
-        out CrossRef_AniDB_TMDB_Episode crossRef,
+        [NotNullWhen(true)] out CrossRef_AniDB_TMDB_Episode? crossRef,
         out double confidence)
     {
         crossRef = null;
