@@ -3,15 +3,10 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using NLog;
-using Shoko.Abstractions.Core.Services;
-using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
@@ -28,9 +23,6 @@ namespace Shoko.Server.API.v1.Implementations;
 public class ShokoServiceImplementationStream : Controller, IHttpContextAccessor
 {
     public new HttpContext HttpContext { get; set; }
-
-    //89% Should be enough to not touch mkv offsets and give us some margin
-    private readonly double _watchedThreshold = 0.89;
 
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
@@ -145,22 +137,6 @@ public class ShokoServiceImplementationStream : Controller, IHttpContextAccessor
             Response.StatusCode = (int)(range ? HttpStatusCode.PartialContent : HttpStatusCode.OK);
 
             var outStream = new SubStream(fr, start, end - start + 1);
-            if (r.User != null && autoWatch.HasValue && autoWatch.Value && r.VideoLocal != null)
-            {
-                outStream.CrossPosition = (long)(totalSize * _watchedThreshold);
-                outStream.CrossPositionCrossed +=
-                    a =>
-                    {
-                        Task.Factory.StartNew(async () =>
-                            {
-                                var userDataService = ISystemService.StaticServices.GetRequiredService<IUserDataService>();
-                                await userDataService.SetVideoWatchedStatus(r.VideoLocal, r.User);
-                            },
-                            new CancellationToken(),
-                            TaskCreationOptions.LongRunning, TaskScheduler.Default);
-                    };
-            }
-
             return outStream;
         }
         catch (Exception e)

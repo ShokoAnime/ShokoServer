@@ -102,6 +102,10 @@ public class ApplicationPaths : IApplicationPaths
     public string PluginsPath
         => Path.Combine(DataPath, "plugins");
 
+    /// <inheritdoc/>
+    public string StreamCachePath
+        => Path.Combine(DataPath, "transcodes");
+
     public string ThemesPath
         => Path.Combine(DataPath, "themes");
 

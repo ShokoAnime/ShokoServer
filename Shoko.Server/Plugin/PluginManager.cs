@@ -27,6 +27,7 @@ using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Relocation;
 using Shoko.Abstractions.Video.Services;
+using Shoko.Abstractions.Video.Streaming;
 using Shoko.QueueProcessor;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -460,6 +461,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
         var supplementaryMetadataService = ISystemService.StaticServices.GetRequiredService<SupplementaryMetadataService>();
         supplementaryMetadataService.AddParts(GetExports<ISupplementaryMetadataProvider>());
+
+        var videoStreamPipelineService = ISystemService.StaticServices.GetRequiredService<IVideoStreamPipelineService>();
+        videoStreamPipelineService.AddTransformParts(GetExports<IVideoStreamTransform>());
+        videoStreamPipelineService.AddObserverParts(GetExports<IPlaybackObserver>());
     }
 
     private IEnumerable<(string?, string[], bool)> GetPluginDirectories()

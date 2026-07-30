@@ -53,6 +53,7 @@ using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Image;
+using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Services.Abstraction;
 using Shoko.Server.Services.Configuration;
@@ -61,7 +62,6 @@ using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Trinet.Core.IO.Ntfs;
-
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;
 
 namespace Shoko.Server.Services;
@@ -421,6 +421,8 @@ public class SystemService : ISystemService
             services.AddSingleton<IMetadataService, AbstractMetadataService>();
             services.AddSingleton<IVideoService, VideoService>();
             services.AddSingleton<IVideoReleaseService, VideoReleaseService>();
+            services.AddSingleton<IVideoStreamPipelineService, VideoStreamPipelineService>();
+            services.AddSingleton<VideoStreamSessionManager>();
             services.AddSingleton<VideoReleaseGroupingService>();
             services.AddSingleton<ReleaseComparisonService>();
             services.AddSingleton<ReleaseAutoManagementService>();
@@ -505,6 +507,7 @@ public class SystemService : ISystemService
             registry.Register<PeriodicImageMaintenanceJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<CleanupExpiredTokensJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<PurgeOrphanedTmdbDataJob>(TimeSpan.FromHours(24), runImmediately: false);
+            registry.Register<StreamSessionCleanupJob>(TimeSpan.FromMinutes(1), runImmediately: true);
 
             // Register settings-driven recurring jobs. Jobs whose frequency is Never are skipped
             // entirely at startup; they are registered on-demand when settings change.
