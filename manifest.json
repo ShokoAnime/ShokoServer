@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.398",
+      "tag": "v6.0.0-dev.398",
+      "commit": "090946f9be4d0578322c50ae42548ed8e2fd68e0",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.398/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-07-30T15:24:42Z",
+      "releaseNotes": "\n`chore` (`deps`): **Update NuGet packages to latest versions**.\n"
+    },
+    {
       "version": "6.0.0.397",
       "tag": "v6.0.0-dev.397",
       "commit": "342cb8d88847c62fe8b4ccf051a83ebe5c38de06",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.369/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-13T00:36:40Z",
       "releaseNotes": "\n`feat` (`abstractions`): **Add plugin-registered resource resolver support**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.73**.\n"
-    },
-    {
-      "version": "6.0.0.368",
-      "tag": "v6.0.0-dev.368",
-      "commit": "eb43ada38624daeedd8d2b30ebefbcbd58f0a03e",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.368/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-09T17:36:55Z",
-      "releaseNotes": "\n`misc`: **Cleanup**.\n"
     }
   ]
 }
