@@ -183,9 +183,6 @@ public class ReleaseManagementController(
             return Forbid();
 
         var result = BuildSeriesWithCandidates(series, includeVariations: includeVariations, includeTracks: true, preferredCandidateKey: preferredCandidateKey);
-        if (result is null)
-            return NotFound();
-
         return result;
     }
 
@@ -469,7 +466,7 @@ public class ReleaseManagementController(
         return result;
     }
 
-    private SeriesWithCandidates? BuildSeriesWithCandidates(
+    private SeriesWithCandidates BuildSeriesWithCandidates(
         AnimeSeries series,
         Dictionary<int, VideoLocal>? prefetchedVideoLookup = null,
         bool includeVariations = false,
@@ -488,7 +485,17 @@ public class ReleaseManagementController(
         var computation = prefetchedComputation ?? ComputeCandidates(series, prefetchedVideoLookup, includeVariations,
             bypassEligibilityGate: includeTracks, preferredCandidateKey: preferredCandidateKey);
         if (computation is not { } value)
-            return null;
+            return new SeriesWithCandidates
+            {
+                SeriesID = series.AnimeSeriesID,
+                SeriesTitle = series.Title,
+                AnidbAnimeID = series.AniDB_ID,
+                IsAiring = autoManagement.IsSeriesAiring(series),
+                HasRedundantCandidates = false,
+                FilesToAutoDeleteCount = 0,
+                Candidates = [],
+                Overrides = []
+            };
 
         var (videoLookup, places, ranked, redundantPlaces, _) = value;
 
