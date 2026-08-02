@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -12,10 +13,13 @@ public class AnidbEventEmitter : BaseEventEmitter, IDisposable
     private IUDPConnectionHandler UDPHandler { get; set; }
     private IHttpConnectionHandler HttpHandler { get; set; }
 
-    public AnidbEventEmitter(IHubContext<AggregateHub> hub, IUDPConnectionHandler udp, IHttpConnectionHandler http) : base(hub)
+    private readonly ILogger<AnidbEventEmitter> _logger;
+
+    public AnidbEventEmitter(IHubContext<AggregateHub> hub, IUDPConnectionHandler udp, IHttpConnectionHandler http, ILogger<AnidbEventEmitter> logger) : base(hub)
     {
         HttpHandler = http;
         UDPHandler = udp;
+        _logger = logger;
         UDPHandler.AniDBStateUpdate += OnUDPStateUpdate;
         HttpHandler.AniDBStateUpdate += OnHttpStateUpdate;
     }
@@ -28,12 +32,26 @@ public class AnidbEventEmitter : BaseEventEmitter, IDisposable
 
     private async void OnUDPStateUpdate(object sender, AniDBStateUpdate e)
     {
-        await SendAsync("udp.stateUpdate", new AniDBStatusUpdateSignalRModel(e));
+        try
+        {
+            await SendAsync("udp.stateUpdate", new AniDBStatusUpdateSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'udp.stateUpdate' event.");
+        }
     }
 
     private async void OnHttpStateUpdate(object sender, AniDBStateUpdate e)
     {
-        await SendAsync("http.stateUpdate", new AniDBStatusUpdateSignalRModel(e));
+        try
+        {
+            await SendAsync("http.stateUpdate", new AniDBStatusUpdateSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'http.stateUpdate' event.");
+        }
     }
 
     protected override object[] GetInitialMessages()

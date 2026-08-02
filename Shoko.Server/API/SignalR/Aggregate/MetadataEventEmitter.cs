@@ -1,5 +1,6 @@
 using System;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Services;
@@ -11,9 +12,12 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
 {
     private readonly IMetadataService _metadataService;
 
-    public MetadataEventEmitter(IHubContext<AggregateHub> hub, IMetadataService metadataService) : base(hub)
+    private readonly ILogger<MetadataEventEmitter> _logger;
+
+    public MetadataEventEmitter(IHubContext<AggregateHub> hub, IMetadataService metadataService, ILogger<MetadataEventEmitter> logger) : base(hub)
     {
         _metadataService = metadataService;
+        _logger = logger;
         _metadataService.SeriesAdded += OnSeriesUpdated;
         _metadataService.SeriesUpdated += OnSeriesUpdated;
         _metadataService.SeriesRemoved += OnSeriesUpdated;
@@ -40,19 +44,40 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
 
     private async void OnSeriesUpdated(object sender, SeriesInfoUpdatedEventArgs e)
     {
-        var eventName = e.Reason is UpdateReason.None ? "series.updated" : "series." + e.Reason.ToString().ToLower();
-        await SendAsync(eventName, new SeriesInfoUpdatedEventSignalRModel(e));
+        try
+        {
+            var eventName = e.Reason is UpdateReason.None ? "series.updated" : "series." + e.Reason.ToString().ToLower();
+            await SendAsync(eventName, new SeriesInfoUpdatedEventSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'series' event.");
+        }
     }
 
     private async void OnEpisodeUpdated(object sender, EpisodeInfoUpdatedEventArgs e)
     {
-        var eventName = e.Reason is UpdateReason.None ? "episode.updated" : "episode." + e.Reason.ToString().ToLower();
-        await SendAsync(eventName, new EpisodeInfoUpdatedEventSignalRModel(e));
+        try
+        {
+            var eventName = e.Reason is UpdateReason.None ? "episode.updated" : "episode." + e.Reason.ToString().ToLower();
+            await SendAsync(eventName, new EpisodeInfoUpdatedEventSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'episode' event.");
+        }
     }
 
     private async void OnMovieUpdated(object sender, MovieInfoUpdatedEventArgs e)
     {
-        var eventName = e.Reason is UpdateReason.None ? "movie.updated" : "movie." + e.Reason.ToString().ToLower();
-        await SendAsync(eventName, new MovieInfoUpdatedEventSignalRModel(e));
+        try
+        {
+            var eventName = e.Reason is UpdateReason.None ? "movie.updated" : "movie." + e.Reason.ToString().ToLower();
+            await SendAsync(eventName, new MovieInfoUpdatedEventSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'movie' event.");
+        }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Events;
 using Shoko.Server.API.SignalR.Models;
@@ -15,9 +16,12 @@ public class PluginEventEmitter : BaseEventEmitter, IDisposable
 {
     private readonly IPluginManager _pluginManager;
 
-    public PluginEventEmitter(IHubContext<AggregateHub> hub, IPluginManager pluginManager) : base(hub)
+    private readonly ILogger<PluginEventEmitter> _logger;
+
+    public PluginEventEmitter(IHubContext<AggregateHub> hub, IPluginManager pluginManager, ILogger<PluginEventEmitter> logger) : base(hub)
     {
         _pluginManager = pluginManager;
+        _logger = logger;
         _pluginManager.PluginInstalled += OnPluginInstalled;
         _pluginManager.PluginUninstalled += OnPluginUninstalled;
     }
@@ -29,8 +33,26 @@ public class PluginEventEmitter : BaseEventEmitter, IDisposable
     }
 
     private async void OnPluginInstalled(object? sender, PluginInstallationEventArgs e)
-        => await SendAsync("installed", new PluginEventSignalRModel(e));
+    {
+        try
+        {
+            await SendAsync("installed", new PluginEventSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'installed' event.");
+        }
+    }
 
     private async void OnPluginUninstalled(object? sender, PluginInstallationEventArgs e)
-        => await SendAsync("uninstalled", new PluginEventSignalRModel(e));
+    {
+        try
+        {
+            await SendAsync("uninstalled", new PluginEventSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'uninstalled' event.");
+        }
+    }
 }

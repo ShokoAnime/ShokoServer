@@ -1,5 +1,6 @@
 using System;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Server.API.SignalR.Models;
@@ -10,9 +11,12 @@ public class ConfigurationEventEmitter : BaseEventEmitter, IDisposable
 {
     private IConfigurationService EventHandler { get; set; }
 
-    public ConfigurationEventEmitter(IHubContext<AggregateHub> hub, IConfigurationService events) : base(hub)
+    private readonly ILogger<ConfigurationEventEmitter> _logger;
+
+    public ConfigurationEventEmitter(IHubContext<AggregateHub> hub, IConfigurationService events, ILogger<ConfigurationEventEmitter> logger) : base(hub)
     {
         EventHandler = events;
+        _logger = logger;
         EventHandler.Saved += OnSaved;
         EventHandler.RequiresRestart += OnRequiresRestart;
     }
@@ -25,12 +29,26 @@ public class ConfigurationEventEmitter : BaseEventEmitter, IDisposable
 
     private async void OnSaved(object? sender, ConfigurationSavedEventArgs eventArgs)
     {
-        await SendAsync("saved", new ConfigurationSavedSignalRModel(eventArgs));
+        try
+        {
+            await SendAsync("saved", new ConfigurationSavedSignalRModel(eventArgs));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'saved' event.");
+        }
     }
 
     private async void OnRequiresRestart(object? sender, ConfigurationRequiresRestartEventArgs eventArgs)
     {
-        await SendAsync("requiresRestart", new ConfigurationRequiresRestartSignalRModel { RequiresRestart = eventArgs.RequiresRestart });
+        try
+        {
+            await SendAsync("requiresRestart", new ConfigurationRequiresRestartSignalRModel { RequiresRestart = eventArgs.RequiresRestart });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'requiresRestart' event.");
+        }
     }
 
     protected override object[] GetInitialMessages()

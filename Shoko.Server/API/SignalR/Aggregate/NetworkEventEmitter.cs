@@ -1,5 +1,6 @@
 using System;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Connectivity.Events;
 using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Server.API.SignalR.Models;
@@ -10,9 +11,12 @@ public class NetworkEventEmitter : BaseEventEmitter, IDisposable
 {
     private IConnectivityService EventHandler { get; set; }
 
-    public NetworkEventEmitter(IHubContext<AggregateHub> hub, IConnectivityService events) : base(hub)
+    private readonly ILogger<NetworkEventEmitter> _logger;
+
+    public NetworkEventEmitter(IHubContext<AggregateHub> hub, IConnectivityService events, ILogger<NetworkEventEmitter> logger) : base(hub)
     {
         EventHandler = events;
+        _logger = logger;
         EventHandler.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
     }
 
@@ -23,7 +27,14 @@ public class NetworkEventEmitter : BaseEventEmitter, IDisposable
 
     private async void OnNetworkAvailabilityChanged(object sender, NetworkAvailabilityChangedEventArgs eventArgs)
     {
-        await SendAsync("availabilityChanged", new NetworkAvailabilitySignalRModel(eventArgs));
+        try
+        {
+            await SendAsync("availabilityChanged", new NetworkAvailabilitySignalRModel(eventArgs));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'availabilityChanged' event.");
+        }
     }
 
     protected override object[] GetInitialMessages()

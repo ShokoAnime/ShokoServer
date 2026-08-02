@@ -1,5 +1,6 @@
 using System;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.API.SignalR.Models;
@@ -10,9 +11,12 @@ public class FileEventEmitter : BaseEventEmitter, IDisposable
 {
     private readonly IVideoService _videoService;
 
-    public FileEventEmitter(IHubContext<AggregateHub> hub, IVideoService videoService) : base(hub)
+    private readonly ILogger<FileEventEmitter> _logger;
+
+    public FileEventEmitter(IHubContext<AggregateHub> hub, IVideoService videoService, ILogger<FileEventEmitter> logger) : base(hub)
     {
         _videoService = videoService;
+        _logger = logger;
         _videoService.VideoFileDetected += OnFileDetected;
         _videoService.VideoFileHashed += OnVideoFileHashed;
         _videoService.VideoFileRelocated += OnFileRelocated;
@@ -29,21 +33,49 @@ public class FileEventEmitter : BaseEventEmitter, IDisposable
 
     private async void OnFileDetected(object sender, VideoFileDetectedEventArgs e)
     {
-        await SendAsync("detected", new VideoFileDetectedEventSignalRModel(e));
+        try
+        {
+            await SendAsync("detected", new VideoFileDetectedEventSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'detected' video file event.");
+        }
     }
 
     private async void OnVideoFileHashed(object sender, VideoFileHashedEventArgs e)
     {
-        await SendAsync("hashed", new VideoFileHashedEventSignalRModel(e));
+        try
+        {
+            await SendAsync("hashed", new VideoFileHashedEventSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'hashed' video file event.");
+        }
     }
 
     private async void OnFileRelocated(object sender, VideoFileRelocatedEventArgs e)
     {
-        await SendAsync("relocated", new VideoFileRelocatedEventSignalRModel(e));
+        try
+        {
+            await SendAsync("relocated", new VideoFileRelocatedEventSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'relocated' video file event.");
+        }
     }
 
     private async void OnFileDeleted(object sender, VideoFileEventArgs e)
     {
-        await SendAsync("deleted", new VideoFileEventSignalRModel(e));
+        try
+        {
+            await SendAsync("deleted", new VideoFileEventSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'deleted' video file event.");
+        }
     }
 }

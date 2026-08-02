@@ -41,8 +41,13 @@ public class ShokoEventHandler
 
     public static ShokoEventHandler Instance => _instance ??= new();
 
-    public void OnFileDeleted(IManagedFolder folder, IVideoFile vlp, IVideo vl)
+    public void OnFileDeleted(IManagedFolder? folder, IVideoFile vlp, IVideo vl)
     {
+        // The folder can be unresolvable if the place references a managed folder
+        // that no longer exists (e.g. a folder removed while keeping records).
+        if (folder is null)
+            return;
+
         var path = vlp.RelativePath;
         var xrefs = vl.CrossReferences;
         var episodes = xrefs

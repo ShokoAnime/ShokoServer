@@ -682,7 +682,7 @@ public class VideoService : IVideoService
 
                 try
                 {
-                    ShokoEventHandler.Instance.OnFileDeleted(place.ManagedFolder!, place, v);
+                    ShokoEventHandler.Instance.OnFileDeleted(place.ManagedFolder, place, v);
                 }
                 catch
                 {
@@ -710,7 +710,7 @@ public class VideoService : IVideoService
                 {
                     try
                     {
-                        ShokoEventHandler.Instance.OnFileDeleted(place.ManagedFolder!, place, v);
+                        ShokoEventHandler.Instance.OnFileDeleted(place.ManagedFolder, place, v);
                     }
                     catch
                     {
@@ -749,7 +749,7 @@ public class VideoService : IVideoService
 
             try
             {
-                ShokoEventHandler.Instance.OnFileDeleted(place.ManagedFolder!, place, v);
+                ShokoEventHandler.Instance.OnFileDeleted(place.ManagedFolder, place, v);
             }
             catch
             {
@@ -769,7 +769,7 @@ public class VideoService : IVideoService
             {
                 try
                 {
-                    ShokoEventHandler.Instance.OnFileDeleted(place.ManagedFolder!, place, v);
+                    ShokoEventHandler.Instance.OnFileDeleted(place.ManagedFolder, place, v);
                 }
                 catch
                 {
