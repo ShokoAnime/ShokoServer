@@ -1054,6 +1054,49 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
                      FROM StoredReleaseInfo sri
                      WHERE sri.CrossReferences LIKE '%AnidbEpisodeID%'
                      """),
+        // These tables were created without a primary key on SQL Server only — SQLite and MySQL
+        // both declare PRIMARY KEY on the identity column already. Left as heaps, they force RID
+        // lookups instead of clustered-key seeks for every query on the ID column; confirmed via
+        // sys.dm_db_missing_index_details against a live instance (TMDB_Episode_Cast/TMDB_Episode
+        // alone accounted for the two highest-impact missing-index entries).
+        new(180,  1, "ALTER TABLE AniDB_Anime_Character ADD CONSTRAINT PK_AniDB_Anime_Character PRIMARY KEY CLUSTERED (AniDB_Anime_CharacterID);"),
+        new(180,  2, "ALTER TABLE AniDB_Anime_Character_Creator ADD CONSTRAINT PK_AniDB_Anime_Character_Creator PRIMARY KEY CLUSTERED (AniDB_Anime_Character_CreatorID);"),
+        new(180,  3, "ALTER TABLE AniDB_Anime_Staff ADD CONSTRAINT PK_AniDB_Anime_Staff PRIMARY KEY CLUSTERED (AniDB_Anime_StaffID);"),
+        new(180,  4, "ALTER TABLE AniDB_AnimeUpdate ADD CONSTRAINT PK_AniDB_AnimeUpdate PRIMARY KEY CLUSTERED (AniDB_AnimeUpdateID);"),
+        new(180,  5, "ALTER TABLE AniDB_Character ADD CONSTRAINT PK_AniDB_Character PRIMARY KEY CLUSTERED (AniDB_CharacterID);"),
+        new(180,  6, "ALTER TABLE AniDB_Episode_Title ADD CONSTRAINT PK_AniDB_Episode_Title PRIMARY KEY CLUSTERED (AniDB_Episode_TitleID);"),
+        new(180,  7, "ALTER TABLE AniDB_Message ADD CONSTRAINT PK_AniDB_Message PRIMARY KEY CLUSTERED (AniDB_MessageID);"),
+        new(180,  8, "ALTER TABLE AniDB_NotifyQueue ADD CONSTRAINT PK_AniDB_NotifyQueue PRIMARY KEY CLUSTERED (AniDB_NotifyQueueID);"),
+        new(180,  9, "ALTER TABLE CrossRef_AniDB_TMDB_Episode ADD CONSTRAINT PK_CrossRef_AniDB_TMDB_Episode PRIMARY KEY CLUSTERED (CrossRef_AniDB_TMDB_EpisodeID);"),
+        new(180, 10, "ALTER TABLE CrossRef_AniDB_TMDB_Movie ADD CONSTRAINT PK_CrossRef_AniDB_TMDB_Movie PRIMARY KEY CLUSTERED (CrossRef_AniDB_TMDB_MovieID);"),
+        new(180, 11, "ALTER TABLE CrossRef_AniDB_TMDB_Show ADD CONSTRAINT PK_CrossRef_AniDB_TMDB_Show PRIMARY KEY CLUSTERED (CrossRef_AniDB_TMDB_ShowID);"),
+        new(180, 12, "ALTER TABLE FilterPreset ADD CONSTRAINT PK_FilterPreset PRIMARY KEY CLUSTERED (FilterPresetID);"),
+        new(180, 13, "ALTER TABLE Scan ADD CONSTRAINT PK_Scan PRIMARY KEY CLUSTERED (ScanID);"),
+        new(180, 14, "ALTER TABLE ScanFile ADD CONSTRAINT PK_ScanFile PRIMARY KEY CLUSTERED (ScanFileID);"),
+        new(180, 15, "ALTER TABLE StoredReleaseInfo ADD CONSTRAINT PK_StoredReleaseInfo PRIMARY KEY CLUSTERED (StoredReleaseInfoID);"),
+        new(180, 16, "ALTER TABLE StoredReleaseInfo_MatchAttempt ADD CONSTRAINT PK_StoredReleaseInfo_MatchAttempt PRIMARY KEY CLUSTERED (StoredReleaseInfo_MatchAttemptID);"),
+        new(180, 17, "ALTER TABLE StoredRelocationPreset ADD CONSTRAINT PK_StoredRelocationPreset PRIMARY KEY CLUSTERED (StoredRelocationPresetID);"),
+        new(180, 18, "ALTER TABLE TMDB_AlternateOrdering ADD CONSTRAINT PK_TMDB_AlternateOrdering PRIMARY KEY CLUSTERED (TMDB_AlternateOrderingID);"),
+        new(180, 19, "ALTER TABLE TMDB_AlternateOrdering_Episode ADD CONSTRAINT PK_TMDB_AlternateOrdering_Episode PRIMARY KEY CLUSTERED (TMDB_AlternateOrdering_EpisodeID);"),
+        new(180, 20, "ALTER TABLE TMDB_AlternateOrdering_Season ADD CONSTRAINT PK_TMDB_AlternateOrdering_Season PRIMARY KEY CLUSTERED (TMDB_AlternateOrdering_SeasonID);"),
+        new(180, 21, "ALTER TABLE TMDB_Collection ADD CONSTRAINT PK_TMDB_Collection PRIMARY KEY CLUSTERED (TMDB_CollectionID);"),
+        new(180, 22, "ALTER TABLE TMDB_Collection_Movie ADD CONSTRAINT PK_TMDB_Collection_Movie PRIMARY KEY CLUSTERED (TMDB_Collection_MovieID);"),
+        new(180, 23, "ALTER TABLE TMDB_Company ADD CONSTRAINT PK_TMDB_Company PRIMARY KEY CLUSTERED (TMDB_CompanyID);"),
+        new(180, 24, "ALTER TABLE TMDB_Company_Entity ADD CONSTRAINT PK_TMDB_Company_Entity PRIMARY KEY CLUSTERED (TMDB_Company_EntityID);"),
+        new(180, 25, "ALTER TABLE TMDB_Episode ADD CONSTRAINT PK_TMDB_Episode PRIMARY KEY CLUSTERED (TMDB_EpisodeID);"),
+        new(180, 26, "ALTER TABLE TMDB_Episode_Cast ADD CONSTRAINT PK_TMDB_Episode_Cast PRIMARY KEY CLUSTERED (TMDB_Episode_CastID);"),
+        new(180, 27, "ALTER TABLE TMDB_Episode_Crew ADD CONSTRAINT PK_TMDB_Episode_Crew PRIMARY KEY CLUSTERED (TMDB_Episode_CrewID);"),
+        new(180, 28, "ALTER TABLE TMDB_Movie ADD CONSTRAINT PK_TMDB_Movie PRIMARY KEY CLUSTERED (TMDB_MovieID);"),
+        new(180, 29, "ALTER TABLE TMDB_Movie_Cast ADD CONSTRAINT PK_TMDB_Movie_Cast PRIMARY KEY CLUSTERED (TMDB_Movie_CastID);"),
+        new(180, 30, "ALTER TABLE TMDB_Movie_Crew ADD CONSTRAINT PK_TMDB_Movie_Crew PRIMARY KEY CLUSTERED (TMDB_Movie_CrewID);"),
+        new(180, 31, "ALTER TABLE TMDB_Network ADD CONSTRAINT PK_TMDB_Network PRIMARY KEY CLUSTERED (TMDB_NetworkID);"),
+        new(180, 32, "ALTER TABLE TMDB_Overview ADD CONSTRAINT PK_TMDB_Overview PRIMARY KEY CLUSTERED (TMDB_OverviewID);"),
+        new(180, 33, "ALTER TABLE TMDB_Person ADD CONSTRAINT PK_TMDB_Person PRIMARY KEY CLUSTERED (TMDB_PersonID);"),
+        new(180, 34, "ALTER TABLE TMDB_Season ADD CONSTRAINT PK_TMDB_Season PRIMARY KEY CLUSTERED (TMDB_SeasonID);"),
+        new(180, 35, "ALTER TABLE TMDB_Show ADD CONSTRAINT PK_TMDB_Show PRIMARY KEY CLUSTERED (TMDB_ShowID);"),
+        new(180, 36, "ALTER TABLE TMDB_Show_Network ADD CONSTRAINT PK_TMDB_Show_Network PRIMARY KEY CLUSTERED (TMDB_Show_NetworkID);"),
+        new(180, 37, "ALTER TABLE TMDB_Title ADD CONSTRAINT PK_TMDB_Title PRIMARY KEY CLUSTERED (TMDB_TitleID);"),
+        new(180, 38, "ALTER TABLE VideoLocal_HashDigest ADD CONSTRAINT PK_VideoLocal_HashDigest PRIMARY KEY CLUSTERED (VideoLocal_HashDigestID);"),
     ];
 
     #endregion
