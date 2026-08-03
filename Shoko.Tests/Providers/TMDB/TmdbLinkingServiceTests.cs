@@ -223,7 +223,7 @@ public class TmdbLinkingServiceTests
 
         Assert.True(found);
         Assert.Equal(nearEpisode.TmdbEpisodeID, crossRef.TmdbEpisodeID);
-        Assert.Equal(MatchRating.NearestDateMatches, crossRef.MatchRating);
+        Assert.Equal(MatchRating.DateKindaMatches, crossRef.MatchRating);
         Assert.True(confidence > 0);
     }
 

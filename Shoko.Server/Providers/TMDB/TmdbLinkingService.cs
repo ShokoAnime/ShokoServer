@@ -1068,7 +1068,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             return false;
 
         confidence = 0.5 / (1 + distance);
-        crossRef = new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, MatchRating.NearestDateMatches);
+        crossRef = new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, MatchRating.DateKindaMatches);
         return true;
     }
 
@@ -1110,7 +1110,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         title.Trim().Equals($"Episode {episodeType.Prefix}{episodeNumber}", StringComparison.InvariantCultureIgnoreCase);
 
     // Ratings assigned with zero title evidence — the only ones a coincidental air-date mismatch can put out of order.
-    private static readonly HashSet<MatchRating> _weakOrderRatings = [MatchRating.DateMatches, MatchRating.NearestDateMatches, MatchRating.FirstAvailable];
+    private static readonly HashSet<MatchRating> _weakOrderRatings = [MatchRating.DateMatches, MatchRating.DateKindaMatches, MatchRating.FirstAvailable];
 
     // Swaps adjacent weak TMDB matches into AniDB order; strong matches stay in the ordering (true adjacency) but are never swapped.
     internal static void ReconcileEpisodeOrderInversions(
