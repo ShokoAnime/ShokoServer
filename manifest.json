@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.402",
+      "tag": "v6.0.0-dev.402",
+      "commit": "dd8a6fe98644437226ac2ffbdea04029924694f7",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.402/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-03T13:21:47Z",
+      "releaseNotes": "\n`fix` (`db`): **Add missing primary keys on SQL Server for 38 tables**:\n\nSQLite and MySQL both declare PRIMARY KEY on these tables' identity\ncolumns; the SQL Server migration file never did, leaving them as\nheaps. Confirmed live via sys.dm_db_missing_index_details on a\nproduction instance — TMDB_Episode_Cast and TMDB_Episode alone\naccounted for the two highest-impact missing-index findings, forcing\nRID lookups instead of clustered-key seeks on every query.\n\nAdds migration 180: ALTER TABLE ... ADD CONSTRAINT PRIMARY KEY\nCLUSTERED for all 38 affected tables. Dry-run tested in a rolled-back\ntransaction against a live production database with no conflicts.\n"
+    },
+    {
       "version": "6.0.0.401",
       "tag": "v6.0.0-dev.401",
       "commit": "259dc7ed033d59e771edf04f0334fbc0060c7004",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.373/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-16T23:21:09Z",
       "releaseNotes": "\n`refactor` (`repos`): **Return ordered lists for tmdb keywords and genres**:\n\nChange GetAllKeywords and GetAllGenres in TMDB_MovieRepository and\nTMDB_ShowRepository to return IReadOnlyList<string> instead of\nIReadOnlySet<string>. The results are now deduplicated, filtered of\nempty strings, and ordered.\n"
-    },
-    {
-      "version": "6.0.0.372",
-      "tag": "v6.0.0-dev.372",
-      "commit": "e6122b99f95c0ad3a74b58727027c1ac61007ec1",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.372/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-16T23:08:49Z",
-      "releaseNotes": "\n`feat` (`filters`): **Add GetAllFilteredGroupsWithChains and topLevelOnly query param**:\n\nAdds a new  method to the metadata\nfiltering service that returns groups with hierarchy chain information.\nThe filter controller exposes this via a  query parameter\n(default ) — when , sub-groups are returned instead of only\ntop-level groups.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.75**.\n"
     }
   ]
 }
