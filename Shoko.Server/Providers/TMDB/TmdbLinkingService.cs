@@ -964,7 +964,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         AniDB_Episode anidbEpisode,
         List<SeriesSearch.SearchResult<TMDB_Episode>> titleSearchResults,
         List<(TMDB_Episode episode, double probability)> airdateProbability,
-        out CrossRef_AniDB_TMDB_Episode crossRef,
+        [NotNullWhen(true)] out CrossRef_AniDB_TMDB_Episode? crossRef,
         out double confidence) =>
         TryTitleMatch(anidbEpisode, titleSearchResults, airdateProbability,
             isCandidate: result => result.ExactMatch && result.LengthDifference < 3,
@@ -975,7 +975,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         AniDB_Episode anidbEpisode,
         List<SeriesSearch.SearchResult<TMDB_Episode>> titleSearchResults,
         List<(TMDB_Episode episode, double probability)> airdateProbability,
-        out CrossRef_AniDB_TMDB_Episode crossRef,
+        [NotNullWhen(true)] out CrossRef_AniDB_TMDB_Episode? crossRef,
         out double confidence) =>
         TryTitleMatch(anidbEpisode, titleSearchResults, airdateProbability,
             isCandidate: result => result.Distance < 0.2D && result.LengthDifference < 6,
@@ -991,7 +991,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         List<(TMDB_Episode episode, double probability)> airdateProbability,
         Func<SeriesSearch.SearchResult<TMDB_Episode>, bool> isCandidate,
         (MatchRating TitleOnly, MatchRating DateAndTitle) ratings,
-        out CrossRef_AniDB_TMDB_Episode crossRef,
+        [NotNullWhen(true)] out CrossRef_AniDB_TMDB_Episode? crossRef,
         out double confidence)
     {
         crossRef = null;
@@ -1055,7 +1055,7 @@ public class TmdbLinkingService : ITmdbLinkingService
     private static bool TryNearestAirDateMatch(
         AniDB_Episode anidbEpisode,
         List<(TMDB_Episode episode, int distance)> nearestAirdate,
-        out CrossRef_AniDB_TMDB_Episode crossRef,
+        [NotNullWhen(true)] out CrossRef_AniDB_TMDB_Episode? crossRef,
         out double confidence)
     {
         crossRef = null;
