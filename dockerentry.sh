@@ -2,6 +2,47 @@
 
 echo "Started Shoko Server bootstrapping process…"
 
+# Install extra apt packages before the server starts. Space or comma
+# separated; unset (the default) does nothing and costs nothing.
+#
+# This exists for userspace the image cannot reasonably ship for everyone but
+# that has to be present before startup — GPU drivers for hardware
+# transcoding above all, where the VA driver has to live inside the container
+# and match the container's own libva. Installing it later is too late,
+# because plugins probe the hardware during startup and cache the result.
+#
+# Packages land in the container's writable layer, so they survive a restart
+# but not a recreate, and are reinstalled on the next start when that happens.
+if [ -n "${INSTALL_PACKAGES:-}" ]; then
+    PACKAGES=$(echo "$INSTALL_PACKAGES" | tr ',' ' ')
+    MISSING=""
+    for PACKAGE in $PACKAGES; do
+        STATUS=$(dpkg-query -W -f='${Status}' "$PACKAGE" 2>/dev/null)
+        [ "$STATUS" = "install ok installed" ] || MISSING="$MISSING $PACKAGE"
+    done
+
+    if [ -z "$MISSING" ]; then
+        echo "Extra packages already installed:$PACKAGES"
+    else
+        echo "Installing extra packages:$MISSING"
+        # Deliberately not fatal. Losing the whole server to a typo in a
+        # package name is worse than starting without the extras, so this
+        # warns loudly and carries on.
+        if apt-get update && apt-get install -y --no-install-recommends $MISSING; then
+            echo "Extra packages installed."
+        else
+            echo "
+-------------------------------------
+WARNING: could not install:$MISSING
+
+Starting anyway, without them. Check the package names and that they
+exist in this image's apt sources.
+-------------------------------------
+            "
+        fi
+    fi
+fi
+
 # Set variable for the UID and GID based on env, else use default values
 PUID=${PUID:-1000}
 PGID=${PGID:-100}

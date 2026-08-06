@@ -27,6 +27,23 @@ Discord, and we'll be more than happy to provide guidance and assistance.
 
 **At this time, the Shoko team itself has no plans to integrate Shoko with any other media players.**
 
+# Docker
+
+`INSTALL_PACKAGES` installs extra apt packages before the server starts.
+Space or comma separated, unset by default. It exists for userspace the image
+cannot ship for everyone but that has to be present *before* startup — GPU
+drivers for hardware transcoding above all, since plugins probe the hardware
+while starting and cache what they find.
+
+```yaml
+environment:
+  - INSTALL_PACKAGES=libva2 libva-drm2 intel-media-va-driver-non-free ffmpeg
+```
+
+Packages live in the container's writable layer, so they survive a restart but
+not a recreate, and are reinstalled on the next start when that happens. A
+package that fails to install is a warning, not a failure to boot.
+
 # Building Shoko
 
 Install the latest .net sdk
