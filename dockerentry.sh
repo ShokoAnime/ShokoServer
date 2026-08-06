@@ -87,6 +87,43 @@ else
     fi
 fi
 
+# Supplementary groups for the user, by name or numeric ID. Space or comma
+# separated; unset (the default) does nothing.
+#
+# This is how you grant access to a passed-through device — /dev/dri for GPU
+# transcoding above all, which is owned by the host's `render` group. Use the
+# numeric ID from the host (`stat -c '%g' /dev/dri/renderD128`), since group
+# names differ between distributions and the kernel only compares numbers.
+#
+# Docker's own --group-add cannot do this: it adds groups to the container's
+# root process, and the groups that survive dropping privileges are the ones
+# recorded against the user in /etc/group. A numeric ID with no group behind
+# it gets one created, because usermod will not take a bare GID.
+if [ -n "${EXTRA_GROUPS:-}" ]; then
+    for ENTRY in $(echo "$EXTRA_GROUPS" | tr ',' ' '); do
+        if [ -z "$(getent group "$ENTRY")" ]; then
+            case "$ENTRY" in
+                *[!0-9]*|'')
+                    echo "WARNING: no group named '$ENTRY' in this image, and it is not a numeric ID. Skipping."
+                    continue
+                    ;;
+                *)
+                    if ! groupadd -o -g "$ENTRY" "shokoextra$ENTRY"; then
+                        echo "WARNING: could not create a group for ID $ENTRY. Skipping."
+                        continue
+                    fi
+                    ;;
+            esac
+        fi
+
+        if usermod -aG "$ENTRY" $USER; then
+            echo "Added $USER to group $ENTRY."
+        else
+            echo "WARNING: could not add $USER to group $ENTRY."
+        fi
+    done
+fi
+
 # Make sure SHOKO_HOME directory is correctly set.
 SHOKO_HOME=${SHOKO_HOME:-/home/shoko/.shoko/Shoko.CLI}
 if [ "$PUID" -eq 0 ]; then
@@ -143,6 +180,7 @@ echo "
 -------------------------------------
 User ID:   $(id -u $USER)
 Group ID:  $(id -g $USER)
+Groups:    $(id -Gn $USER | tr ' ' ',')
 UMASK set: $(umask)
 Directory: \"$SHOKO_HOME\"
 -------------------------------------
@@ -163,7 +201,12 @@ trap 'kill -TERM $DOTNET_PID 2>/dev/null; exit 143' TERM INT
 ulimit -c unlimited
 
 while true; do
-  gosu $USER:$GROUP /usr/src/app/build/Shoko.CLI $ARGS &
+  # Deliberately "$USER" and not "$USER:$GROUP": naming a group makes gosu
+  # replace the supplementary group list rather than keep it, which silently
+  # discards everything EXTRA_GROUPS just added. The user's primary group is
+  # already $PGID by this point, set above, so the resulting uid and gid are
+  # identical either way.
+  gosu $USER /usr/src/app/build/Shoko.CLI $ARGS &
   DOTNET_PID=$!
   wait $DOTNET_PID
   EXIT_CODE=$?

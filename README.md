@@ -35,6 +35,7 @@ Discord, and we'll be more than happy to provide guidance and assistance.
 | `ENABLE_RESTART` | `true` | allow the web interface to restart the server |
 | `ENABLE_SHUTDOWN` | `false` | allow the web interface to shut the server down. Off by default because a stopped container will not restart itself from the web interface that just stopped it |
 | `INSTALL_PACKAGES` | unset | extra apt packages to install before startup, space or comma separated |
+| `EXTRA_GROUPS` | unset | supplementary groups for the server's user, by name or numeric ID, space or comma separated |
 
 `PUID`, `PGID`, `UMASK` and `NO_CHOWN` are also honoured, and the effective
 values are printed in the startup banner.
@@ -53,6 +54,24 @@ environment:
 Packages live in the container's writable layer, so they survive a restart but
 not a recreate, and are reinstalled on the next start when that happens. A
 package that fails to install is a warning, not a failure to boot.
+
+`EXTRA_GROUPS` grants the server access to a passed-through device — `/dev/dri`
+for GPU transcoding above all, which is owned by the host's `render` group:
+
+```yaml
+devices:
+  - /dev/dri:/dev/dri
+environment:
+  - EXTRA_GROUPS=993        # stat -c '%g' /dev/dri/renderD128, on the host
+```
+
+Prefer the numeric ID: group *names* differ between distributions and need not
+exist in the container at all, while the kernel only compares numbers. An ID
+with no group behind it gets one created.
+
+Note that Docker's own `--group-add` cannot do this. It adds groups to the
+container's root process, and the groups that survive dropping privileges are
+the ones recorded against the user — which is what `EXTRA_GROUPS` writes.
 
 # Building Shoko
 
