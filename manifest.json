@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.403",
+      "tag": "v6.0.0-dev.403",
+      "commit": "1237ade0621f452e74272c8d39b4132456e49e68",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.403/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-06T03:49:05Z",
+      "releaseNotes": "\n`repo` (`docker`): **Install extra apt packages from INSTALL_PACKAGES before startup**.\n\n`repo` (`docker`): **Document SHOKO_HOME and the restart/shutdown toggles**.\n\n`repo` (`docker`): **Add EXTRA_GROUPS, and stop gosu discarding supplementary groups**.\n"
+    },
+    {
       "version": "6.0.0.402",
       "tag": "v6.0.0-dev.402",
       "commit": "dd8a6fe98644437226ac2ffbdea04029924694f7",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.374/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-17T00:08:18Z",
       "releaseNotes": "\n`feat` (`api`): **Add FilteredIDs endpoints for filter groups**:\n\nAdd FilteredGroupIDs DTO and four new endpoints returning lightweight\ngroup ID + chain + series ID results instead of full Group objects:\n\n- GET {filterID}/FilteredIDs\n- GET {filterID}/Group/{groupID}/FilteredIDs\n- POST Preview/FilteredIDs\n- POST Preview/Group/{groupID}/FilteredIDs\n\nAll support includeEmpty; the top-level variants also support topLevelOnly.\n\n`feat` (`api`): **Add TupleIDs endpoints for filter group-series tuples**:\n\nAdd GroupSeriesTuple DTO and two endpoints returning (GroupID, SeriesID)\npairs for client-side filtering:\n\n- GET {filterID}/TupleIDs\n- POST Preview/TupleIDs\n"
-    },
-    {
-      "version": "6.0.0.373",
-      "tag": "v6.0.0-dev.373",
-      "commit": "70c1a0d470978c54214d6b7cd1d1164bed4897db",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.373/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-16T23:21:09Z",
-      "releaseNotes": "\n`refactor` (`repos`): **Return ordered lists for tmdb keywords and genres**:\n\nChange GetAllKeywords and GetAllGenres in TMDB_MovieRepository and\nTMDB_ShowRepository to return IReadOnlyList<string> instead of\nIReadOnlySet<string>. The results are now deduplicated, filtered of\nempty strings, and ordered.\n"
     }
   ]
 }
