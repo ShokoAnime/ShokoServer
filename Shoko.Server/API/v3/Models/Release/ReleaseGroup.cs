@@ -19,9 +19,7 @@ public class ReleaseGroup : IReleaseGroup
 
     /// <summary>
     /// The Release Group's Name (UTW)
-    /// </summary>
-    [Required]
-    public string ShortName { get; init; }
+    public string? ShortName { get; init; }
 
     /// <summary>
     /// Source. Anidb, User, etc.
@@ -50,4 +48,6 @@ public class ReleaseGroup : IReleaseGroup
         => other is not null &&
            string.Equals(ID, other.ID) &&
            string.Equals(Source, other.Source);
+
+    string IReleaseGroup.ShortName => ShortName ?? Name;
 }
