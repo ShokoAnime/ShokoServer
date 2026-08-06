@@ -29,6 +29,16 @@ Discord, and we'll be more than happy to provide guidance and assistance.
 
 # Docker
 
+| variable | default | what |
+|---|---|---|
+| `SHOKO_HOME` | `/home/shoko/.shoko/Shoko.CLI` | where settings, logs and the database live — the directory to mount a volume at. A custom path must already exist; only the default is created for you, and it is required when running as root (`PUID=0`) |
+| `ENABLE_RESTART` | `true` | allow the web interface to restart the server |
+| `ENABLE_SHUTDOWN` | `false` | allow the web interface to shut the server down. Off by default because a stopped container will not restart itself from the web interface that just stopped it |
+| `INSTALL_PACKAGES` | unset | extra apt packages to install before startup, space or comma separated |
+
+`PUID`, `PGID`, `UMASK` and `NO_CHOWN` are also honoured, and the effective
+values are printed in the startup banner.
+
 `INSTALL_PACKAGES` installs extra apt packages before the server starts.
 Space or comma separated, unset by default. It exists for userspace the image
 cannot ship for everyone but that has to be present *before* startup — GPU
