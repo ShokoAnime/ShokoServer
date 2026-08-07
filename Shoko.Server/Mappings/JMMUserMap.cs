@@ -16,6 +16,7 @@ public class JMMUserMap : ClassMap<JMMUser>
         Map(x => x.IsAniDBUser).Not.Nullable();
         Map(x => x.IsAdmin).Not.Nullable();
         Map(x => x.Password);
+        Map(x => x.ExternalAuthID);
         Map(x => x.Username);
         Map(x => x.CanEditServerSettings);
         Map(x => x.PlexUsers);
