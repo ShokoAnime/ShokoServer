@@ -1096,10 +1096,8 @@ public class VideoService : IVideoService
             return;
         }
 
-        foreach (var source in sources)
-            await ScheduleScanForManagedFolder(source, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
-        foreach (var folder in rest)
-            await ScheduleScanForManagedFolder(folder, onlyNewFiles: onlyNewFiles.Value, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
+        foreach (var source in sources.Concat(rest))
+            await ScheduleScanForManagedFolder(source, onlyNewFiles: onlyNewFiles.Value, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
     }
 
     #endregion Managed Folder
