@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.404",
+      "tag": "v6.0.0-dev.404",
+      "commit": "9b585bfb8190926d8d2e61c5eddaf8cb150e7667",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.404/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-08T02:49:41Z",
+      "releaseNotes": "\n`fix`: **Make short name optional in API**.\n\n`fix`: **Respect `onlyNewFiles` flag when scheduling a scan for multiple managed folders**.\n"
+    },
+    {
       "version": "6.0.0.403",
       "tag": "v6.0.0-dev.403",
       "commit": "1237ade0621f452e74272c8d39b4132456e49e68",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.375/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-17T22:16:42Z",
       "releaseNotes": "\n`revert`: **Revert \"feat(api): add TupleIDs endpoints for filter group-series tuples\"**:\n\nThis reverts commit 9229ca613013dceaad2b623956dd0b30a9b64c7e.\n\n`revert`: **Revert \"feat(api): add FilteredIDs endpoints for filter groups\"**:\n\nThis reverts commit f17e7ab9a9155ecaab7d44936c14801a7ca94619.\n"
-    },
-    {
-      "version": "6.0.0.374",
-      "tag": "v6.0.0-dev.374",
-      "commit": "9229ca613013dceaad2b623956dd0b30a9b64c7e",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.374/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-17T00:08:18Z",
-      "releaseNotes": "\n`feat` (`api`): **Add FilteredIDs endpoints for filter groups**:\n\nAdd FilteredGroupIDs DTO and four new endpoints returning lightweight\ngroup ID + chain + series ID results instead of full Group objects:\n\n- GET {filterID}/FilteredIDs\n- GET {filterID}/Group/{groupID}/FilteredIDs\n- POST Preview/FilteredIDs\n- POST Preview/Group/{groupID}/FilteredIDs\n\nAll support includeEmpty; the top-level variants also support topLevelOnly.\n\n`feat` (`api`): **Add TupleIDs endpoints for filter group-series tuples**:\n\nAdd GroupSeriesTuple DTO and two endpoints returning (GroupID, SeriesID)\npairs for client-side filtering:\n\n- GET {filterID}/TupleIDs\n- POST Preview/TupleIDs\n"
     }
   ]
 }
