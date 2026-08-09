@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.405",
+      "tag": "v6.0.0-dev.405",
+      "commit": "7b1523c88ac7fc6adbdef73c6dd45dc29b13c524",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.405/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-09T14:50:20Z",
+      "releaseNotes": "\n`fix` (`relocation`): **Normalize relocated event path**.\n"
+    },
+    {
       "version": "6.0.0.404",
       "tag": "v6.0.0-dev.404",
       "commit": "9b585bfb8190926d8d2e61c5eddaf8cb150e7667",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.376/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-18T17:57:38Z",
       "releaseNotes": "\n`docs` (`api`): **Correct DELETE File/{fileID} parameter documentation** ([#1388](https://github.com/ShokoAnime/ShokoServer/pull/1388)):\n\nCo-authored-by: Oghara <18651071+Oghara@users.noreply.github.com>\n"
-    },
-    {
-      "version": "6.0.0.375",
-      "tag": "v6.0.0-dev.375",
-      "commit": "5352ab86d1e8af5135eee6f41f6cb01923d10e66",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.375/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-17T22:16:42Z",
-      "releaseNotes": "\n`revert`: **Revert \"feat(api): add TupleIDs endpoints for filter group-series tuples\"**:\n\nThis reverts commit 9229ca613013dceaad2b623956dd0b30a9b64c7e.\n\n`revert`: **Revert \"feat(api): add FilteredIDs endpoints for filter groups\"**:\n\nThis reverts commit f17e7ab9a9155ecaab7d44936c14801a7ca94619.\n"
     }
   ]
 }
