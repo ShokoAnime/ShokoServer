@@ -34,7 +34,7 @@ public class VideoFileRelocatedEventArgs : VideoFileEventArgs
     /// <summary>
     /// The absolute path leading to the previous location of the file. Uses an OS dependent directory separator.
     /// </summary>
-    public string PreviousPath => Path.Join(PreviousManagedFolder.Path, PreviousRelativePath);
+    public string PreviousPath => Path.Join(PreviousManagedFolder.Path, PreviousRelativePath.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VideoFileRelocatedEventArgs"/> class.
