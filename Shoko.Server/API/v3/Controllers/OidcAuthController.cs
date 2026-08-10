@@ -242,6 +242,10 @@ public class OidcAuthController(
 
     private static async Task<(ClaimsIdentity? Claims, string? Error)> ValidateIdTokenAsync(OpenIdConnectConfiguration configuration, OidcSettings settings, string idToken, string expectedNonce)
     {
+        // Guaranteed non-null by GetEnabledConfigurationAsync's early-return check, but that
+        // guarantee doesn't cross the method boundary for the compiler's nullable analysis.
+        ArgumentException.ThrowIfNullOrWhiteSpace(settings.Authority);
+
         var handler = new JsonWebTokenHandler();
         var validationResult = await handler.ValidateTokenAsync(idToken, new TokenValidationParameters
         {
@@ -249,7 +253,7 @@ public class OidcAuthController(
             // whatever issuer the discovery document self-declares is circular; the document
             // can only be believed once it's already been confirmed to describe our authority
             // (checked in GetEnabledConfigurationAsync).
-            ValidIssuer = settings.Authority!.TrimEnd('/'),
+            ValidIssuer = settings.Authority.TrimEnd('/'),
             ValidAudience = settings.ClientID,
             IssuerSigningKeys = configuration.SigningKeys,
         });
@@ -373,7 +377,12 @@ public class OidcAuthController(
     // header — OIDC providers require the exact redirect_uri to be pre-registered anyway, so
     // deriving it dynamically only adds a Host-header-trust surface for no benefit.
     private static string BuildRedirectUri(OidcSettings settings)
-        => $"{settings.PublicUrl!.TrimEnd('/')}/api/v3/Auth/Oidc/Callback";
+    {
+        // Guaranteed non-null by GetEnabledConfigurationAsync's early-return check, but that
+        // guarantee doesn't cross the method boundary for the compiler's nullable analysis.
+        ArgumentException.ThrowIfNullOrWhiteSpace(settings.PublicUrl);
+        return $"{settings.PublicUrl.TrimEnd('/')}/api/v3/Auth/Oidc/Callback";
+    }
 
     private string ProtectState(StatePayload payload)
         => dataProtectionProvider.CreateProtector(ProtectorPurpose).Protect(JsonSerializer.Serialize(payload));
