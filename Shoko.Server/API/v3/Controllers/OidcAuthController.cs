@@ -178,8 +178,17 @@ public class OidcAuthController(
             return RedirectToWebUiWithError(exchangeError);
 
         var (claims, validationError) = await ValidateIdTokenAsync(configuration, settings, idToken, statePayload.Nonce);
-        if (validationError is not null || claims is null)
-            return RedirectToWebUiWithError(validationError ?? "ID token validation failed.");
+        if (claims is null)
+        {
+            // The cached ConfigurationManager (see GetProviderConfigurationAsync) can be
+            // serving a signing key set from before the IdP rotated its keys — force a refresh
+            // and retry once before giving up, same as OpenIdConnectHandler does internally.
+            RequestConfigurationRefresh(settings.Authority);
+            configuration = await GetProviderConfigurationAsync(settings.Authority);
+            (claims, validationError) = await ValidateIdTokenAsync(configuration, settings, idToken, statePayload.Nonce);
+            if (claims is null)
+                return RedirectToWebUiWithError(validationError ?? "ID token validation failed.");
+        }
 
         var rawSubject = claims.FindFirst("sub")?.Value;
         if (string.IsNullOrEmpty(rawSubject))
@@ -352,6 +361,12 @@ public class OidcAuthController(
             a.TrimEnd('/') + "/.well-known/openid-configuration",
             new OpenIdConnectConfigurationRetriever()));
         return manager.GetConfigurationAsync();
+    }
+
+    private static void RequestConfigurationRefresh(string authority)
+    {
+        if (ConfigManagers.TryGetValue(authority, out var manager))
+            manager.RequestRefresh();
     }
 
     // A fixed, admin-configured redirect_uri rather than one derived from the request's Host
