@@ -35,6 +35,17 @@ public class OidcSettings
     public string? Authority { get; set; }
 
     /// <summary>
+    /// The externally-reachable base URL of this Shoko instance, e.g.
+    /// https://shoko.example.com. Used to build the fixed OIDC
+    /// <c>redirect_uri</c> instead of trusting the incoming request's Host
+    /// header, which a misconfigured or permissive reverse proxy could
+    /// otherwise let a client influence. Must match the redirect URI
+    /// registered with the OIDC provider exactly.
+    /// </summary>
+    [Display(Name = "Public URL")]
+    public string? PublicUrl { get; set; }
+
+    /// <summary>
     /// The OAuth2 client ID registered with the OIDC provider for Shoko.
     /// </summary>
     [Display(Name = "Client ID")]
