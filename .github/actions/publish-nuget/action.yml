@@ -1,0 +1,49 @@
+name: Publish NuGet package
+description: >
+  Packs and pushes a NuGet package, skipping already-published versions, and
+  tags the commit on a successful publish. Replaces the archived
+  brandedoutcast/publish-nuget action.
+
+inputs:
+  project-file-path:
+    description: Path to the .csproj to pack and publish.
+    required: true
+  nuget-key:
+    description: NuGet.org API key.
+    required: true
+  tag-format:
+    description: >
+      Git tag to create on publish, with * replaced by the package version
+      (e.g. "Shoko.Abstractions-v*" -> "Shoko.Abstractions-v1.2.3").
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Read package version
+      id: version
+      shell: bash
+      run: |
+        version=$(dotnet msbuild "${{ inputs.project-file-path }}" -nologo -getProperty:Version)
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "tag=${TAG_FORMAT/\*/$version}" >> "$GITHUB_OUTPUT"
+      env:
+        TAG_FORMAT: ${{ inputs.tag-format }}
+
+    - name: Pack
+      shell: bash
+      run: dotnet pack -c Release "${{ inputs.project-file-path }}" -o ./nupkg
+
+    - name: Push
+      shell: bash
+      run: dotnet nuget push "./nupkg/*.nupkg" --api-key "${{ inputs.nuget-key }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+    - name: Clean up package output
+      shell: bash
+      run: rm -rf ./nupkg
+
+    - name: Tag release
+      uses: rickstaa/action-create-tag@v1
+      with:
+        tag: ${{ steps.version.outputs.tag }}
+        message: "${{ inputs.project-file-path }} v${{ steps.version.outputs.version }}"

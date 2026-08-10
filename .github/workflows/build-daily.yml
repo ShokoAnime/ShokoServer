@@ -38,10 +38,10 @@ jobs:
         run: |
           echo "date=$(git --no-pager show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format=%cd ${{ github.sha }})" >> "$GITHUB_OUTPUT"
 
-      - name: Setup Node v20
+      - name: Setup Node v24
         uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install NPM Packages
         run: |
@@ -241,12 +241,12 @@ jobs:
         run: dotnet build -c Release Shoko.Abstractions
 
       - name: Publish Shoko.Abstractions Nuget
-        uses: brandedoutcast/publish-nuget@v2.5.2
+        uses: ./.github/actions/publish-nuget
         if: ${{ env.NUGET_API_KEY != '' }}
         with:
-          PROJECT_FILE_PATH: Shoko.Abstractions/Shoko.Abstractions.csproj
-          NUGET_KEY: ${{ env.NUGET_API_KEY }}
-          TAG_FORMAT: Shoko.Abstractions-v*
+          project-file-path: Shoko.Abstractions/Shoko.Abstractions.csproj
+          nuget-key: ${{ env.NUGET_API_KEY }}
+          tag-format: Shoko.Abstractions-v*
 
   queue-nuget:
     runs-on: ubuntu-latest
@@ -275,12 +275,12 @@ jobs:
         run: dotnet build -c Release Shoko.QueueProcessor
 
       - name: Publish Shoko.QueueProcessor Nuget
-        uses: brandedoutcast/publish-nuget@v2.5.2
+        uses: ./.github/actions/publish-nuget
         if: ${{ env.NUGET_API_KEY != '' }}
         with:
-          PROJECT_FILE_PATH: Shoko.QueueProcessor/Shoko.QueueProcessor.csproj
-          NUGET_KEY: ${{ env.NUGET_API_KEY }}
-          TAG_FORMAT: Shoko.QueueProcessor-v*
+          project-file-path: Shoko.QueueProcessor/Shoko.QueueProcessor.csproj
+          nuget-key: ${{ env.NUGET_API_KEY }}
+          tag-format: Shoko.QueueProcessor-v*
 
   buildtools-nuget:
     runs-on: ubuntu-latest
@@ -309,12 +309,12 @@ jobs:
         run: dotnet build -c Release Shoko.BuildTools
 
       - name: Publish Shoko.BuildTools Nuget Tool
-        uses: brandedoutcast/publish-nuget@v2.5.2
+        uses: ./.github/actions/publish-nuget
         if: ${{ env.NUGET_API_KEY != '' }}
         with:
-          PROJECT_FILE_PATH: Shoko.BuildTools/Shoko.BuildTools.csproj
-          NUGET_KEY: ${{ env.NUGET_API_KEY }}
-          TAG_FORMAT: Shoko.BuildTools-v*
+          project-file-path: Shoko.BuildTools/Shoko.BuildTools.csproj
+          nuget-key: ${{ env.NUGET_API_KEY }}
+          tag-format: Shoko.BuildTools-v*
 
   buildtools-targets-nuget:
     runs-on: ubuntu-latest
@@ -343,12 +343,12 @@ jobs:
         run: dotnet build -c Release Shoko.BuildTools.Targets
 
       - name: Publish Shoko.BuildTools.Targets Nuget
-        uses: brandedoutcast/publish-nuget@v2.5.2
+        uses: ./.github/actions/publish-nuget
         if: ${{ env.NUGET_API_KEY != '' }}
         with:
-          PROJECT_FILE_PATH: Shoko.BuildTools.Targets/Shoko.BuildTools.Targets.csproj
-          NUGET_KEY: ${{ env.NUGET_API_KEY }}
-          TAG_FORMAT: Shoko.BuildTools.Targets-v*
+          project-file-path: Shoko.BuildTools.Targets/Shoko.BuildTools.Targets.csproj
+          nuget-key: ${{ env.NUGET_API_KEY }}
+          tag-format: Shoko.BuildTools.Targets-v*
 
   cli:
     runs-on: ubuntu-latest
