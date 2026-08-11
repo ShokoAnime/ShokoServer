@@ -31,6 +31,18 @@ public interface IVideoStreamTransform
     Version Version { get => GetType().Assembly.GetName().Version ?? new Version(0, 0, 0, 0); }
 
     /// <summary>
+    ///   Which delivery mechanism <see cref="GetRenditionAsync"/> produces.
+    ///   Determines whether the core offers this transform's output as an
+    ///   HLS manifest (the default) or as a progressive-download URL, and
+    ///   which concrete <see cref="IStreamRendition"/> interface the
+    ///   returned rendition must implement (<see cref="IHlsStreamRendition"/>
+    ///   or <see cref="IProgressiveStreamRendition"/> respectively). Known
+    ///   ahead of creating a rendition so the core can pick the right URL
+    ///   scheme without invoking the transform first.
+    /// </summary>
+    StreamDeliveryMode DeliveryMode { get => StreamDeliveryMode.Hls; }
+
+    /// <summary>
     ///   Checks whether this transform can handle the given video right now
     ///   (e.g. required hardware/tooling is available, the source codec is
     ///   supported). This is called before the transform is offered to a

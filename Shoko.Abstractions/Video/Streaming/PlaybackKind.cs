@@ -7,7 +7,9 @@ namespace Shoko.Abstractions.Video.Streaming;
 public enum PlaybackKind
 {
     /// <summary>
-    ///   Raw byte-range passthrough streaming (the default <c>/Stream</c> endpoint).
+    ///   Byte-range streaming of a single file -- either raw passthrough
+    ///   (the default <c>/Stream</c> endpoint) or a transform's
+    ///   <see cref="IProgressiveStreamRendition"/> output.
     /// </summary>
     Progressive,
 

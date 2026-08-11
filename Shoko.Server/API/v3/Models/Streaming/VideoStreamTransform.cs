@@ -43,6 +43,14 @@ public class VideoStreamTransform(VideoStreamTransformInfo info)
     public int Priority { get; init; } = info.Priority;
 
     /// <summary>
+    /// Which delivery mechanism this transform's output uses -- determines
+    /// whether the client should request <c>Stream/Hls/master.m3u8</c> or
+    /// <c>Stream/Direct</c> for this transform.
+    /// </summary>
+    [Required]
+    public StreamDeliveryMode DeliveryMode { get; init; } = info.Transform.DeliveryMode;
+
+    /// <summary>
     /// Whether or not the transform is enabled for use.
     /// </summary>
     [Required]

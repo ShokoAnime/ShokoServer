@@ -14,9 +14,10 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.Services;
 
 /// <summary>
-///   Tracks active HLS stream sessions (a video paired with a selected
-///   <see cref="IVideoStreamTransform"/>'s <see cref="IStreamRendition"/>),
-///   evicting and cleaning up idle sessions.
+///   Tracks active stream sessions (a video paired with a selected
+///   <see cref="IVideoStreamTransform"/>'s <see cref="IStreamRendition"/> --
+///   HLS or progressive, per the transform's <c>DeliveryMode</c>), evicting
+///   and cleaning up idle sessions.
 /// </summary>
 public class VideoStreamSessionManager(
     ILogger<VideoStreamSessionManager> logger,
@@ -51,7 +52,7 @@ public class VideoStreamSessionManager(
         return session;
     }
 
-    public string BuildManifest(IVideo video, IStreamRendition rendition, Guid sessionId)
+    public string BuildManifest(IVideo video, IHlsStreamRendition rendition, Guid sessionId)
     {
         var segmentSeconds = rendition.SegmentDuration.TotalSeconds;
         if (segmentSeconds <= 0)
