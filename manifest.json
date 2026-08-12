@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.406",
+      "tag": "v6.0.0-dev.406",
+      "commit": "d4dff0c4d2bbfb8130b471bc2b42f71beb08282d",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.406/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-12T07:13:13Z",
+      "releaseNotes": "\n`chore`: **Increase number of allowed tags in package manifests from 10 to 20**:\n\nIf a plugin needs more than this with the built-in auto tags appended… then I don't know what to do.\n"
+    },
+    {
       "version": "6.0.0.405",
       "tag": "v6.0.0-dev.405",
       "commit": "7b1523c88ac7fc6adbdef73c6dd45dc29b13c524",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.377/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-19T18:18:32Z",
       "releaseNotes": "\n`fix` (`api`): **Only set image cache headers on successful responses**:\n\nThe `[ResponseCache]` attribute was applying `Cache-Control`\nheaders to every response from the image endpoints, including\n404s. Moved the header into the success path so it only applies\nto 200 responses.\n"
-    },
-    {
-      "version": "6.0.0.376",
-      "tag": "v6.0.0-dev.376",
-      "commit": "c9a813592d6d73ace19d053396c244191550149a",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.376/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-18T17:57:38Z",
-      "releaseNotes": "\n`docs` (`api`): **Correct DELETE File/{fileID} parameter documentation** ([#1388](https://github.com/ShokoAnime/ShokoServer/pull/1388)):\n\nCo-authored-by: Oghara <18651071+Oghara@users.noreply.github.com>\n"
     }
   ]
 }
