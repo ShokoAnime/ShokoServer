@@ -91,7 +91,7 @@ public sealed class RemotePackageManifestInfo
     /// <summary>
     /// Search tags.
     /// </summary>
-    [MaxLength(10)]
+    [MaxLength(20)]
     [JsonPropertyName("tags")]
     [JsonProperty("tags")]
     public IReadOnlyList<string> Tags { get; set; } = [];

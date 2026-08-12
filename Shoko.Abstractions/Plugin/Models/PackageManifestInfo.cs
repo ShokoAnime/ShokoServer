@@ -58,7 +58,7 @@ public sealed class PackageManifestInfo
     /// <summary>
     ///   Search tags.
     /// </summary>
-    [MaxLength(10)]
+    [MaxLength(20)]
     [JsonPropertyName("tags")]
     [JsonProperty("tags")]
     public required IReadOnlyList<string> Tags { get; init; }

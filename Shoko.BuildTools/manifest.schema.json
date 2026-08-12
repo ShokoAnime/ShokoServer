@@ -57,9 +57,9 @@
       "format": "uri"
     },
     "tags": {
-      "description": "Search tags for the plugin. Maximum of 10 tags.",
+      "description": "Search tags for the plugin. Maximum of 20 tags.",
       "type": "array",
-      "maxItems": 10,
+      "maxItems": 20,
       "items": {
         "type": "string"
       },
