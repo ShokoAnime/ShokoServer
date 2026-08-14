@@ -4,7 +4,9 @@ using System.Reflection;
 using System.Security.Cryptography;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
 using Microsoft.Build.Locator;
+using Microsoft.Build.Logging;
 
 namespace Shoko.BuildTools;
 
@@ -14,8 +16,9 @@ internal static class BuildCommand
         string? manifestPath,
         int? pruneCount,
         string pruneMethod,
-        string? downloadUrl,
-        string? outputZip,
+        string downloadUrl,
+        string outputZip,
+        string? channel,
         string[] forwardArgs)
     {
         try
@@ -53,7 +56,6 @@ internal static class BuildCommand
             var manifestPluginDescription = manifest?.Overview;
 
             // ── Gather git metadata ───────────────────────────────────
-            var repoUrl = await RunGitAsync("remote get-url origin");
             var releaseDate = (await RunGitAsync("log -1 --format=%aI")).Trim();
             var sourceRevision = (await RunGitAsync("rev-parse HEAD")).Trim();
             var releaseTag = (await RunGitAsync("describe --exact-match --tags --match \"v[0-9]*.[0-9]*.[0-9]*\"")).Trim();
@@ -63,24 +65,62 @@ internal static class BuildCommand
                 MSBuildLocator.RegisterDefaults();
 
             // ── Load .csproj and modify in memory ─────────────────────
-            var projectCollection = new ProjectCollection();
-            var project = new Project(projectFile, null, null, projectCollection);
-
             var targets = new List<string> { "Build" };
-            ApplyForwardArgs(project, forwardArgs, targets);
+            var restore = true;
+            var properties = CollectForwardArgs(forwardArgs, targets, ref restore);
+
+            var projectCollection = new ProjectCollection(properties);
+            var project = new Project(projectFile, properties, null, projectCollection);
+
+            // ── Release channel ───────────────────────────────────────
+            var propertyChannel = project.GetPropertyValue("ReleaseChannel");
+            var resolvedChannel = (ReleaseChannel?)null;
+
+            if (!string.IsNullOrWhiteSpace(channel))
+            {
+                if (ParseChannel(channel) is not { } parsed)
+                {
+                    Console.Error.WriteLine($"Unknown --channel '{channel}'. Expected one of: {string.Join(", ", Enum.GetNames<ReleaseChannel>())}.");
+                    return 1;
+                }
+
+                resolvedChannel = parsed;
+            }
+            else if (!string.IsNullOrWhiteSpace(propertyChannel))
+            {
+                if (ParseChannel(propertyChannel) is not { } parsed)
+                {
+                    Console.Error.WriteLine($"Unknown ReleaseChannel '{propertyChannel}'. Expected one of: {string.Join(", ", Enum.GetNames<ReleaseChannel>())}.");
+                    return 1;
+                }
+
+                resolvedChannel = parsed;
+            }
+
+            if (resolvedChannel is not null)
+                Console.WriteLine($"Release channel: {resolvedChannel}");
 
             // Determine which RIDs to build. If RuntimeIdentifiers is set
             // (semicolon-separated), build each one. Otherwise use the
-            // single RuntimeIdentifier or "any".
+            // single RuntimeIdentifier, or build portable and record "any".
             var ridListRaw = project.GetPropertyValue("RuntimeIdentifiers");
             var rids = !string.IsNullOrEmpty(ridListRaw)
                 ? ridListRaw.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList()
                 : [];
 
+            var portable = false;
             if (rids.Count == 0)
             {
                 var single = project.GetPropertyValue("RuntimeIdentifier");
-                rids = [string.IsNullOrEmpty(single) ? "any" : single];
+                if (string.IsNullOrEmpty(single))
+                {
+                    portable = true;
+                    rids = ["any"];
+                }
+                else
+                {
+                    rids = [single];
+                }
             }
 
             // ── Source probe: auto-detect tags ────────────────────────
@@ -116,18 +156,35 @@ internal static class BuildCommand
             await WriteTargetsFileAsync(targetsFile);
 
             var pluginName = manifestPluginName?.Replace(" ", "") ?? "plugin";
-            var success = false;
+
+            var completed = new List<string>();
 
             foreach (var rid in rids)
             {
                 Console.WriteLine($"Building for {rid}...");
 
+                var ridProperties = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase)
+                {
+                    ["EnableDynamicLoading"] = "true",
+                };
+
+                // "any" is not a RID; a portable build passes none at all.
+                if (!portable)
+                    ridProperties["RuntimeIdentifier"] = rid;
+
+                var verbosity = ParseVerbosity(Environment.GetEnvironmentVariable("SHOKO_BUILD_VERBOSITY"))
+                    ?? LoggerVerbosity.Minimal;
+
+                // The assets file is per-RID, so a matrix restores per RID.
+                if (restore && !RunRestore(projectFile, ridProperties, verbosity))
+                {
+                    Console.Error.WriteLine($"Restore failed for {rid}.");
+                    continue;
+                }
+
                 // Fresh project instance per RID to pick up the correct properties
-                var ridCollection = new ProjectCollection();
-                var ridProject = new Project(projectFile, null, null, ridCollection);
-                ApplyForwardArgs(ridProject, forwardArgs, targets);
-                ridProject.SetProperty("RuntimeIdentifier", rid);
-                ridProject.SetProperty("EnableDynamicLoading", "true");
+                var ridCollection = new ProjectCollection(ridProperties);
+                var ridProject = new Project(projectFile, ridProperties, null, ridCollection);
 
                 // Generate assembly info with this RID
                 var assemblyInfoFile = Path.Combine(objDir, $"Shoko.Build.AssemblyInfo.{SanitizeRid(rid)}.cs");
@@ -147,7 +204,11 @@ internal static class BuildCommand
                 ridProject.Xml.AddImport(targetsFile);
 
                 var instance = ridProject.CreateProjectInstance();
-                var buildParams = new BuildParameters();
+
+                var buildParams = new BuildParameters
+                {
+                    Loggers = [new ConsoleLogger(verbosity)],
+                };
                 var requestData = new BuildRequestData(instance, [.. targets]);
 
                 var result = BuildManager.DefaultBuildManager.Build(buildParams, requestData);
@@ -160,8 +221,6 @@ internal static class BuildCommand
                     continue;
                 }
 
-                success = true;
-
                 // ── Post-build: pack zip, checksum, update manifest ───
                 var builtDll = FindBuiltDll(projectDir, instance);
                 if (builtDll is null)
@@ -170,32 +229,63 @@ internal static class BuildCommand
                     continue;
                 }
 
-                var metadata = AssemblyInfoGenerator.ReadAssemblyMetadata(builtDll);
+                AssemblyMetadata metadata;
+                try
+                {
+                    metadata = AssemblyInfoGenerator.ReadAssemblyMetadata(builtDll);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine(
+                        $"Could not read metadata from the assembly built for {rid}: {ex.Message}");
+                    continue;
+                }
+
+                var stampedRids = metadata.RuntimeIdentifiers
+                    .Where(r => !string.IsNullOrWhiteSpace(r))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                var disagreeing = stampedRids
+                    .Where(r => !string.Equals(r, rid, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (disagreeing.Count > 0)
+                {
+                    Console.Error.WriteLine(
+                        $"Runtime identifier disagreement for {rid}: the built assembly is stamped " +
+                        $"{string.Join(", ", stampedRids.Select(r => $"'{r}'"))}. Something in the build " +
+                        $"set a RuntimeIdentifier other than the one being built. Not recording this archive.");
+                    continue;
+                }
+
                 var versionStr = $"{metadata.Version.Major}.{metadata.Version.Minor}.{metadata.Version.Build}";
                 var abstractionStr = $"{metadata.AbstractionVersion.Major}.{metadata.AbstractionVersion.Minor}.{metadata.AbstractionVersion.Build}";
 
                 // Resolve output path with template substitution
+                var releaseTagOrVersion = !string.IsNullOrEmpty(releaseTag) ? releaseTag : $"v{versionStr}";
                 var subst = new Dictionary<string, string>
                 {
                     ["runtime"] = rid,
                     ["version"] = versionStr,
                     ["name"] = pluginName,
                     ["abstraction"] = abstractionStr,
+                    ["tag"] = releaseTagOrVersion,
                 };
-                var defaultName = $"{pluginName}-v{versionStr}-{abstractionStr}-{rid}.zip";
-                var zipPath = outputZip is not null
-                    ? Path.GetFullPath(Substitute(outputZip, subst))
-                    : Path.Combine(projectDir, defaultName);
+                var zipPath = Path.GetFullPath(Substitute(outputZip, subst), projectDir);
 
                 // Pack the build output into a zip
                 var binDir = Path.GetDirectoryName(builtDll)!;
                 var publishDir = Path.Combine(binDir, "publish");
                 var sourceDir = Directory.Exists(publishDir) ? publishDir : binDir;
 
+                var zipDir = Path.GetDirectoryName(zipPath);
+                if (!string.IsNullOrEmpty(zipDir))
+                    Directory.CreateDirectory(zipDir);
+
                 if (File.Exists(zipPath))
                     File.Delete(zipPath);
 
-                ZipFile.CreateFromDirectory(sourceDir, zipPath);
+                var entryCount = PackDirectory(sourceDir, zipPath, Path.GetFileName(builtDll));
 
                 // Compute SHA256 checksum
                 string checksum;
@@ -206,32 +296,10 @@ internal static class BuildCommand
                 }
 
                 Console.WriteLine($"Packed: {zipPath}");
+                Console.WriteLine($"  {entryCount} entries, {new FileInfo(zipPath).Length:N0} bytes");
                 Console.WriteLine($"  Checksum: {checksum}");
 
-                // Infer download URL with template substitution
-                var archiveUrl = downloadUrl is not null ? Substitute(downloadUrl, subst) : null;
-                if (string.IsNullOrEmpty(archiveUrl))
-                {
-                    var tag = !string.IsNullOrEmpty(releaseTag) ? releaseTag : $"v{versionStr}";
-
-                    // Try git remote first, then manifest's repository_url
-                    var remoteTuple = ParseGitRemote(repoUrl) ?? ParseGitRemote(manifest?.RepositoryUrl);
-
-                    if (remoteTuple is not null)
-                    {
-                        var (host, owner, repo) = remoteTuple.Value;
-
-                        archiveUrl = host switch
-                        {
-                            "github.com" => $"https://github.com/{owner}/{repo}/releases/download/{tag}/{defaultName}",
-                            "gitea.com" => $"https://gitea.com/{owner}/{repo}/releases/download/{tag}/{defaultName}",
-                            "codeberg.org" => $"https://codeberg.org/{owner}/{repo}/releases/download/{tag}/{defaultName}",
-                            "gitlab.com" => $"https://gitlab.com/{owner}/{repo}/-/releases/{tag}/downloads/{defaultName}",
-                            "bitbucket.org" => $"https://bitbucket.org/{owner}/{repo}/downloads/{defaultName}",
-                            _ => $"https://{host}/{owner}/{repo}/releases/download/{tag}/{defaultName}",
-                        };
-                    }
-                }
+                var archiveUrl = Substitute(downloadUrl, subst);
 
                 // Update manifest with archive entry
                 if (manifest is not null && manifestFullPath is not null)
@@ -243,12 +311,15 @@ internal static class BuildCommand
                         rid,
                         metadata.Dependencies,
                         archiveUrl,
-                        checksum);
+                        checksum,
+                        resolvedChannel);
                 }
+
+                completed.Add(rid);
             }
 
             // ── Save manifest once after all RIDs ─────────────────────
-            if (manifest is not null && manifestFullPath is not null)
+            if (manifest is not null && manifestFullPath is not null && completed.Count > 0)
             {
                 if (pruneCount.HasValue)
                     ManifestManager.PruneReleases(manifest, pruneCount.Value, pruneMethod);
@@ -257,7 +328,15 @@ internal static class BuildCommand
                 Console.WriteLine($"Updated manifest: {manifestFullPath}");
             }
 
-            return success ? 0 : 1;
+            var missing = rids.Where(r => !completed.Contains(r)).ToList();
+            if (missing.Count > 0)
+            {
+                Console.Error.WriteLine(
+                    $"Did not produce an archive for: {string.Join(", ", missing)}.");
+                return 1;
+            }
+
+            return 0;
         }
         catch (Exception ex)
         {
@@ -267,6 +346,57 @@ internal static class BuildCommand
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    ///   Pack <paramref name="sourceDir" /> into <paramref name="zipPath" />,
+    ///   skipping the archive itself, a leftover <c>publish/</c>, and any
+    ///   other build's output directory. Returns the number of entries.
+    /// </summary>
+    private static int PackDirectory(string sourceDir, string zipPath, string assemblyFileName)
+    {
+        var root = Path.GetFullPath(sourceDir);
+        var archiveFullPath = Path.GetFullPath(zipPath);
+        var entries = 0;
+
+        using var stream = File.Create(zipPath);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Create);
+
+        foreach (var file in EnumeratePayload(root, root))
+        {
+            var relative = Path.GetRelativePath(root, file).Replace(Path.DirectorySeparatorChar, '/');
+            archive.CreateEntryFromFile(file, relative, CompressionLevel.Optimal);
+            entries++;
+        }
+
+        return entries;
+
+        IEnumerable<string> EnumeratePayload(string directory, string topLevel)
+        {
+            foreach (var file in Directory.EnumerateFiles(directory))
+            {
+                if (string.Equals(Path.GetFullPath(file), archiveFullPath, StringComparison.Ordinal))
+                    continue;
+
+                yield return file;
+            }
+
+            foreach (var child in Directory.EnumerateDirectories(directory))
+            {
+                var name = Path.GetFileName(child);
+
+                if (string.Equals(name, "publish", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(directory, topLevel, StringComparison.Ordinal))
+                    continue;
+
+                // A second copy of our assembly means another build's output.
+                if (File.Exists(Path.Combine(child, assemblyFileName)))
+                    continue;
+
+                foreach (var file in EnumeratePayload(child, topLevel))
+                    yield return file;
+            }
+        }
+    }
 
     private static string Substitute(string template, Dictionary<string, string> values)
     {
@@ -279,47 +409,31 @@ internal static class BuildCommand
     private static string SanitizeRid(string rid)
         => rid.Replace('-', '_').Replace('.', '_');
 
-    private static (string host, string owner, string repo)? ParseGitRemote(string? url)
+    /// <summary>
+    ///   Parse a release channel name, case-insensitively. Null when empty
+    ///   or unrecognised; the caller distinguishes the two.
+    /// </summary>
+    private static ReleaseChannel? ParseChannel(string? value)
     {
-        if (string.IsNullOrWhiteSpace(url))
+        if (string.IsNullOrWhiteSpace(value))
             return null;
 
-        url = url.Trim();
+        return Enum.TryParse<ReleaseChannel>(value.Trim(), ignoreCase: true, out var parsed)
+            ? parsed
+            : null;
+    }
 
-        string host, path;
-
-        if (url.StartsWith("git@"))
-        {
-            // git@github.com:owner/repo.git
-            var parts = url.Split(':');
-            if (parts.Length < 2)
-                return null;
-
-            host = parts[0].Replace("git@", "");
-            path = parts[1];
-        }
-        else if (url.StartsWith("https://") || url.StartsWith("http://"))
-        {
-            // https://github.com/owner/repo.git
-            var uri = new Uri(url);
-            host = uri.Host;
-            path = uri.PathAndQuery.Trim('/');
-        }
-        else
-        {
-            return null;
-        }
-
-        // Strip trailing .git
-        if (path.EndsWith(".git"))
-            path = path[..^4];
-
-        // Split into owner/repo
-        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length < 2)
+    /// <summary>
+    ///   Parse an MSBuild logger verbosity name, case-insensitively.
+    /// </summary>
+    private static LoggerVerbosity? ParseVerbosity(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
             return null;
 
-        return (host, segments[^2], segments[^1]);
+        return Enum.TryParse<LoggerVerbosity>(value.Trim(), ignoreCase: true, out var parsed)
+            ? parsed
+            : null;
     }
 
     private static string? LookForManifestNearby(string projectDir)
@@ -364,11 +478,19 @@ internal static class BuildCommand
         return null;
     }
 
-    private static void ApplyForwardArgs(
-        Project project,
+    /// <summary>
+    ///   Translate the arguments meant for <c>dotnet build</c> into MSBuild
+    ///   global properties, adjusting <paramref name="targets" /> and
+    ///   <paramref name="restore" /> for the arguments that are not
+    ///   properties at all.
+    /// </summary>
+    private static Dictionary<string, string> CollectForwardArgs(
         string[] forwardArgs,
-        List<string> targets)
+        List<string> targets,
+        ref bool restore)
     {
+        var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         for (var i = 0; i < forwardArgs.Length; i++)
         {
             var arg = forwardArgs[i];
@@ -380,9 +502,7 @@ internal static class BuildCommand
             if ((arg.StartsWith("-p:") || arg.StartsWith("/p:")) && arg.Contains('='))
             {
                 var eq = arg.IndexOf('=');
-                var key = arg[3..eq];
-                var value = arg[(eq + 1)..];
-                project.SetProperty(key, value);
+                properties[arg[3..eq]] = arg[(eq + 1)..];
                 continue;
             }
 
@@ -399,26 +519,56 @@ internal static class BuildCommand
             }
 
             if ((arg is "-c" or "--configuration") && i + 1 < forwardArgs.Length)
-            { project.SetProperty("Configuration", forwardArgs[++i]); continue; }
+            { properties["Configuration"] = forwardArgs[++i]; continue; }
 
             if ((arg is "-f" or "--framework") && i + 1 < forwardArgs.Length)
-            { project.SetProperty("TargetFramework", forwardArgs[++i]); continue; }
+            { properties["TargetFramework"] = forwardArgs[++i]; continue; }
 
             if ((arg is "-r" or "--runtime") && i + 1 < forwardArgs.Length)
-            { project.SetProperty("RuntimeIdentifier", forwardArgs[++i]); continue; }
-
-            if ((arg is "-o" or "--output") && i + 1 < forwardArgs.Length)
-            { project.SetProperty("OutputPath", forwardArgs[++i]); continue; }
+            { properties["RuntimeIdentifier"] = forwardArgs[++i]; continue; }
 
             if (arg is "--no-restore")
-            { project.SetProperty("RestorePackages", "false"); continue; }
+            { restore = false; continue; }
 
             if (arg is "--no-build")
-            { project.SetProperty("BuildProject", "false"); continue; }
+            { properties["BuildProject"] = "false"; continue; }
 
             if (arg is "--no-dependencies")
-            { project.SetProperty("BuildProjectReferences", "false"); continue; }
+            { properties["BuildProjectReferences"] = "false"; continue; }
         }
+
+        return properties;
+    }
+
+    /// <summary>
+    ///   Run the <c>Restore</c> target for one set of properties, in its own
+    ///   build submission and restore session the way MSBuild's
+    ///   <c>-restore</c> switch does it.
+    /// </summary>
+    private static bool RunRestore(
+        string projectFile,
+        Dictionary<string, string> properties,
+        LoggerVerbosity verbosity)
+    {
+        var restoreProperties = new Dictionary<string, string>(properties, StringComparer.OrdinalIgnoreCase)
+        {
+            ["MSBuildRestoreSessionId"] = Guid.NewGuid().ToString("D"),
+            ["ExcludeRestorePackageImports"] = "true",
+        };
+
+        using var collection = new ProjectCollection(restoreProperties);
+        var project = new Project(projectFile, restoreProperties, null, collection);
+        var parameters = new BuildParameters
+        {
+            Loggers = [new ConsoleLogger(verbosity)],
+        };
+
+        var result = BuildManager.DefaultBuildManager.Build(
+            parameters,
+            new BuildRequestData(project.CreateProjectInstance(), ["Restore"]));
+
+        collection.UnloadAllProjects();
+        return result.OverallResult == BuildResultCode.Success;
     }
 
     private static async Task<string> RunGitAsync(string arguments)
@@ -443,6 +593,12 @@ internal static class BuildCommand
 
     private static string? FindBuiltDll(string projectDir, ProjectInstance instance)
     {
+        // TargetPath is this project's own output assembly; the heuristics
+        // below only guess, and are kept as a fallback.
+        var targetPath = instance.GetPropertyValue("TargetPath");
+        if (!string.IsNullOrEmpty(targetPath) && File.Exists(targetPath))
+            return targetPath;
+
         var config = instance.GetPropertyValue("Configuration");
         if (string.IsNullOrEmpty(config)) config = "Debug";
 

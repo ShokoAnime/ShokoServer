@@ -84,9 +84,6 @@ public class ReadPluginManifest : Microsoft.Build.Utilities.Task
                     sb.AppendLine($"[assembly: AssemblyMetadata(\"PackageDependencies\", \"{Escape(deps)}\")]");
             }
 
-            // Add the RuntimeIdentifier for portable libs
-            sb.AppendLine($"[assembly: AssemblyMetadata(\"RuntimeIdentifier\", \"any\")]");
-
             File.WriteAllText(OutputPath, sb.ToString());
             Log.LogMessage(MessageImportance.Normal, "Generated: {0}", OutputPath);
             return true;

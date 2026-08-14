@@ -2,7 +2,7 @@ using Shoko.BuildTools;
 
 // ── Argument parsing ───────────────────────────────────────────────────
 // Our args: --manifest|-m <path>, --prune|-p <count>, --prune-method <channel|global>,
-//           --url <download-url>, --output <zip-path>
+//           --url <download-url>, --output <zip-path>, --channel <stable|dev|debug>
 // Everything else is forwarded to dotnet build.
 
 var argsList = args.ToList();
@@ -11,6 +11,7 @@ var pruneCount = (int?)null;
 var pruneMethod = "channel";
 var downloadUrl = (string?)null;
 var outputZip = (string?)null;
+var channel = (string?)null;
 var forwardArgs = new List<string>();
 
 for (var i = 0; i < argsList.Count; i++)
@@ -39,18 +40,44 @@ for (var i = 0; i < argsList.Count; i++)
     {
         outputZip = argsList[++i];
     }
+    else if (arg is "--channel" && i + 1 < argsList.Count)
+    {
+        channel = argsList[++i];
+    }
     else
     {
         forwardArgs.Add(arg);
     }
 }
 
+var missingArgs = new List<string>();
+if (string.IsNullOrWhiteSpace(downloadUrl))
+    missingArgs.Add("--url");
+if (string.IsNullOrWhiteSpace(outputZip))
+    missingArgs.Add("--output");
+
+if (missingArgs.Count > 0)
+{
+    Console.Error.WriteLine($"Missing required argument(s): {string.Join(", ", missingArgs)}.");
+    Console.Error.WriteLine();
+    Console.Error.WriteLine("  --output <path>  where to write the packed archive");
+    Console.Error.WriteLine("  --url <url>      the address that archive will be downloaded from");
+    Console.Error.WriteLine();
+    Console.Error.WriteLine("Both accept the {runtime}, {version}, {name}, {abstraction} and {tag}");
+    Console.Error.WriteLine("templates, so one invocation covers every runtime identifier. For example:");
+    Console.Error.WriteLine();
+    Console.Error.WriteLine("  --output dist/{name}-{tag}-{runtime}.zip \\");
+    Console.Error.WriteLine("  --url https://example.org/owner/repo/releases/download/{tag}/{name}-{tag}-{runtime}.zip");
+    return 1;
+}
+
 var exitCode = await BuildCommand.RunAsync(
     manifestPath,
     pruneCount,
     pruneMethod,
-    downloadUrl,
-    outputZip,
+    downloadUrl!,
+    outputZip!,
+    channel,
     [.. forwardArgs]
 );
 

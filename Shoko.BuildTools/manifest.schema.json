@@ -81,6 +81,9 @@
     }
   },
   "if": {
+    "required": [
+      "type"
+    ],
     "properties": {
       "type": {
         "const": "manifest"

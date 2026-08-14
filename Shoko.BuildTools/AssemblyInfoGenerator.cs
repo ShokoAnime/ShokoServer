@@ -1,4 +1,5 @@
-using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Text;
 
 namespace Shoko.BuildTools;
@@ -87,18 +88,40 @@ internal static class AssemblyInfoGenerator
     }
 
     /// <summary>
-    ///   Read embedded metadata from a compiled plugin DLL.
+    ///   The full name of the attribute the build stamps its metadata with.
+    /// </summary>
+    private const string MetadataAttributeName = "System.Reflection.AssemblyMetadataAttribute";
+
+    /// <summary>
+    ///   Read embedded metadata from a compiled plugin DLL, out of its
+    ///   metadata tables. The assembly is never loaded, so it need not be
+    ///   loadable into this process.
     /// </summary>
     public static AssemblyMetadata ReadAssemblyMetadata(string dllPath)
     {
-        var assembly = Assembly.LoadFrom(dllPath);
-        var metadata = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
-            .ToLookup(a => a.Key, a => a.Value, StringComparer.OrdinalIgnoreCase);
+        using var stream = File.OpenRead(dllPath);
+        using var peReader = new PEReader(stream);
 
-        var version = assembly.GetName().Version;
-        var abstractionVersion = assembly.GetReferencedAssemblies()
-            .FirstOrDefault(r => r.Name == "Shoko.Abstractions")
-            ?.Version;
+        if (!peReader.HasMetadata)
+            throw new BadImageFormatException($"'{dllPath}' carries no managed metadata.");
+
+        var reader = peReader.GetMetadataReader();
+        var assemblyDefinition = reader.GetAssemblyDefinition();
+
+        var version = assemblyDefinition.Version;
+        var abstractionVersion = (Version?)null;
+        foreach (var handle in reader.AssemblyReferences)
+        {
+            var reference = reader.GetAssemblyReference(handle);
+            if (reader.GetString(reference.Name) is "Shoko.Abstractions")
+            {
+                abstractionVersion = reference.Version;
+                break;
+            }
+        }
+
+        var metadata = ReadMetadataAttributes(reader, assemblyDefinition)
+            .ToLookup(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
 
         var dependencies = new List<DependencyInfo>();
 
@@ -122,15 +145,122 @@ internal static class AssemblyInfoGenerator
 
         return new AssemblyMetadata
         {
-            Version = version is not null ? new Version(version.Major, version.Minor, version.Build) : new Version(0, 0, 0),
+            Version = new Version(version.Major, version.Minor, version.Build),
             AbstractionVersion = abstractionVersion is not null ? new Version(abstractionVersion.Major, abstractionVersion.Minor, abstractionVersion.Build) : new Version(0, 0, 0),
             Dependencies = dependencies,
-            Tags = metadata["Tag"].Where(t => t is not null).Cast<string>().ToList(),
+            Tags = metadata["Tag"].ToList(),
+            // Every value, not the first: the disagreement check needs them all.
+            RuntimeIdentifiers = metadata["RuntimeIdentifier"].ToList(),
         };
+    }
+
+    /// <summary>
+    ///   Every <c>[assembly: AssemblyMetadata(key, value)]</c> pair on the
+    ///   assembly, matched by the name of the attribute constructor's
+    ///   declaring type rather than by resolving it.
+    /// </summary>
+    private static IEnumerable<(string Key, string Value)> ReadMetadataAttributes(
+        MetadataReader reader,
+        AssemblyDefinition assemblyDefinition)
+    {
+        foreach (var handle in assemblyDefinition.GetCustomAttributes())
+        {
+            var attribute = reader.GetCustomAttribute(handle);
+            if (GetAttributeTypeName(reader, attribute) != MetadataAttributeName)
+                continue;
+
+            CustomAttributeValue<string> decoded;
+            try
+            {
+                decoded = attribute.DecodeValue(StringNamingTypeProvider.Instance);
+            }
+            catch (BadImageFormatException)
+            {
+                continue;
+            }
+
+            if (decoded.FixedArguments.Length < 2)
+                continue;
+
+            if (decoded.FixedArguments[0].Value is string key &&
+                decoded.FixedArguments[1].Value is string value)
+                yield return (key, value);
+        }
+    }
+
+    /// <summary>
+    ///   The namespace-qualified name of the type a custom attribute's
+    ///   constructor belongs to, or <c>null</c> when it is a construction
+    ///   we do not read (a generic instantiation, say).
+    /// </summary>
+    private static string? GetAttributeTypeName(MetadataReader reader, CustomAttribute attribute)
+    {
+        switch (attribute.Constructor.Kind)
+        {
+            case HandleKind.MemberReference:
+            {
+                var member = reader.GetMemberReference((MemberReferenceHandle)attribute.Constructor);
+                if (member.Parent.Kind is not HandleKind.TypeReference)
+                    return null;
+
+                var typeReference = reader.GetTypeReference((TypeReferenceHandle)member.Parent);
+                return Qualify(reader.GetString(typeReference.Namespace), reader.GetString(typeReference.Name));
+            }
+
+            case HandleKind.MethodDefinition:
+            {
+                var method = reader.GetMethodDefinition((MethodDefinitionHandle)attribute.Constructor);
+                var typeDefinition = reader.GetTypeDefinition(method.GetDeclaringType());
+                return Qualify(reader.GetString(typeDefinition.Namespace), reader.GetString(typeDefinition.Name));
+            }
+
+            default:
+                return null;
+        }
+
+        static string Qualify(string @namespace, string name)
+            => string.IsNullOrEmpty(@namespace) ? name : $"{@namespace}.{name}";
     }
 
     private static string EscapeAttrValue(string value)
         => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+    /// <summary>
+    ///   Decodes a custom-attribute blob by naming types rather than
+    ///   resolving them, which is all a string-argument attribute needs.
+    /// </summary>
+    private sealed class StringNamingTypeProvider : ICustomAttributeTypeProvider<string>
+    {
+        public static readonly StringNamingTypeProvider Instance = new();
+
+        public string GetPrimitiveType(PrimitiveTypeCode typeCode) => typeCode.ToString();
+
+        public string GetSystemType() => "System.Type";
+
+        public string GetSZArrayType(string elementType) => elementType + "[]";
+
+        public string GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind)
+        {
+            var definition = reader.GetTypeDefinition(handle);
+            var @namespace = reader.GetString(definition.Namespace);
+            var name = reader.GetString(definition.Name);
+            return string.IsNullOrEmpty(@namespace) ? name : $"{@namespace}.{name}";
+        }
+
+        public string GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind)
+        {
+            var reference = reader.GetTypeReference(handle);
+            var @namespace = reader.GetString(reference.Namespace);
+            var name = reader.GetString(reference.Name);
+            return string.IsNullOrEmpty(@namespace) ? name : $"{@namespace}.{name}";
+        }
+
+        public string GetTypeFromSerializedName(string name) => name;
+
+        public PrimitiveTypeCode GetUnderlyingEnumType(string type) => PrimitiveTypeCode.Int32;
+
+        public bool IsSystemType(string type) => type is "System.Type";
+    }
 }
 
 /// <summary>
@@ -142,6 +272,12 @@ internal sealed class AssemblyMetadata
     public Version AbstractionVersion { get; init; } = new(0, 0, 0);
     public IReadOnlyList<DependencyInfo> Dependencies { get; init; } = [];
     public IReadOnlyList<string> Tags { get; init; } = [];
+
+    /// <summary>
+    ///   Every <c>RuntimeIdentifier</c> the assembly is stamped with. More
+    ///   than one means the build tools disagreed about what was built.
+    /// </summary>
+    public IReadOnlyList<string> RuntimeIdentifiers { get; init; } = [];
 }
 
 /// <summary>

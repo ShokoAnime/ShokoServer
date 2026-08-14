@@ -8,6 +8,21 @@ namespace Shoko.BuildTools;
 /// </summary>
 internal sealed class Manifest
 {
+    /// <summary>
+    ///   The schema reference an editor validates against. Modelled rather
+    ///   than left to <see cref="Extra" /> so it keeps its conventional
+    ///   place at the top of the file across a round-trip.
+    /// </summary>
+    [JsonPropertyName("$schema")]
+    public string? Schema { get; set; }
+
+    /// <summary>
+    ///   <c>package</c> for a full plugin definition, <c>manifest</c> for a
+    ///   reference to another manifest's URL. The schema discriminates on it.
+    /// </summary>
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+
     [JsonPropertyName("id")]
     public required Guid ID { get; init; }
 
@@ -42,6 +57,13 @@ internal sealed class Manifest
 
     [JsonPropertyName("releases")]
     public List<ManifestRelease>? Releases { get; set; }
+
+    /// <summary>
+    ///   Anything in the file this model has no property for, carried
+    ///   through a load-and-save unchanged.
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? Extra { get; set; }
 }
 
 internal sealed class ManifestRelease
@@ -60,7 +82,7 @@ internal sealed class ManifestRelease
 
     [JsonPropertyName("channel")]
     [JsonConverter(typeof(JsonStringEnumConverter))]
-    public ReleaseChannel Channel { get; init; } = ReleaseChannel.Stable;
+    public ReleaseChannel Channel { get; set; } = ReleaseChannel.Stable;
 
     [JsonPropertyName("release_notes")]
     public string? ReleaseNotes { get; init; }
@@ -70,6 +92,10 @@ internal sealed class ManifestRelease
 
     [JsonPropertyName("archives")]
     public List<ManifestArchive>? Archives { get; set; }
+
+    /// <inheritdoc cref="Manifest.Extra" />
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? Extra { get; set; }
 }
 
 internal sealed class ManifestDependency
@@ -82,6 +108,10 @@ internal sealed class ManifestDependency
 
     [JsonPropertyName("optional")]
     public bool IsOptional { get; init; }
+
+    /// <inheritdoc cref="Manifest.Extra" />
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? Extra { get; set; }
 }
 
 internal sealed class ManifestArchive
@@ -97,6 +127,10 @@ internal sealed class ManifestArchive
 
     [JsonPropertyName("checksum")]
     public string? Checksum { get; set; }
+
+    /// <inheritdoc cref="Manifest.Extra" />
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? Extra { get; set; }
 }
 
 internal enum ReleaseChannel
@@ -150,7 +184,8 @@ internal static class ManifestManager
         string runtimeIdentifier,
         IReadOnlyList<DependencyInfo> dependencies,
         string? archiveUrl = null,
-        string? checksum = null)
+        string? checksum = null,
+        ReleaseChannel? channel = null)
     {
         manifest.Releases ??= [];
 
@@ -167,7 +202,7 @@ internal static class ManifestManager
                 Version = versionStr,
                 Tag = $"v{versionStr}",
                 ReleasedAt = DateTime.UtcNow,
-                Channel = version.Revision > 0 ? ReleaseChannel.Dev : ReleaseChannel.Stable,
+                Channel = channel ?? (version.Revision > 0 ? ReleaseChannel.Dev : ReleaseChannel.Stable),
                 Archives = [],
                 Dependencies = dependencies.Select(d => new ManifestDependency
                 {
@@ -177,6 +212,10 @@ internal static class ManifestManager
                 }).ToList(),
             };
             manifest.Releases.Insert(0, release);
+        }
+        else if (channel is not null)
+        {
+            release.Channel = channel.Value;
         }
 
         // Add or update archive for this runtime

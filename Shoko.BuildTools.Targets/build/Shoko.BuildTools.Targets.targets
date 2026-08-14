@@ -37,6 +37,19 @@
     </ItemGroup>
   </Target>
 
+  <!-- Release channel -->
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.AppendReleaseChannel"
+             AssemblyFile="$(MSBuildThisFileDirectory)..\lib\net10.0\Shoko.BuildTools.Tasks.dll" />
+
+  <Target Name="_ShokoAppendReleaseChannel" BeforeTargets="CoreGenerateAssemblyInfo">
+    <AppendReleaseChannel ProjectDir="$(MSBuildProjectDirectory)"
+                          OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.AppendReleaseChannel.cs"
+                          ReleaseChannel="$(ReleaseChannel)" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)Shoko.BuildTools.AppendReleaseChannel.cs" Condition="Exists('$(IntermediateOutputPath)Shoko.BuildTools.AppendReleaseChannel.cs')" />
+    </ItemGroup>
+  </Target>
+
   <!-- Git metadata — C# task runs git and writes .cs file -->
   <UsingTask TaskName="Shoko.BuildTools.Tasks.StampGitMetadata"
              AssemblyFile="$(MSBuildThisFileDirectory)..\lib\net10.0\Shoko.BuildTools.Tasks.dll" />
