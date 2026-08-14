@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.407",
+      "tag": "v6.0.0-dev.407",
+      "commit": "b1637c95c4bd73dd3cab9452e30e032fe1985b0f",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.407/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-14T14:40:45Z",
+      "releaseNotes": "\n`misc`: **Feat(buildtools)!: fix orchestration, and stamp the release channel**:\n\nBREAKING CHANGE: --url and --output are now required; their guessed\ndefaults are gone. shoko-build also restores, builds portable rather\nthan inventing an \"any\" RID, resolves its assembly via TargetPath and\nreads metadata without loading it, refuses an archive whose stamped RID\ndisagrees, saves manifests without dropping unmodelled properties, and\nfails unless every RID arrived. Targets stamps ReleaseChannel; both 0.2.0.\n"
+    },
+    {
       "version": "6.0.0.406",
       "tag": "v6.0.0-dev.406",
       "commit": "d4dff0c4d2bbfb8130b471bc2b42f71beb08282d",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.378/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-23T00:41:09Z",
       "releaseNotes": "\n`fix` (`tmdb`): **Shrink incremental changes window from 14 days to 1** ([#1393](https://github.com/ShokoAnime/ShokoServer/pull/1393)).\n"
-    },
-    {
-      "version": "6.0.0.377",
-      "tag": "v6.0.0-dev.377",
-      "commit": "6143831e8914bb003d19701966b4e47a2975dc59",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.377/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-19T18:18:32Z",
-      "releaseNotes": "\n`fix` (`api`): **Only set image cache headers on successful responses**:\n\nThe `[ResponseCache]` attribute was applying `Cache-Control`\nheaders to every response from the image endpoints, including\n404s. Moved the header into the success path so it only applies\nto 200 responses.\n"
     }
   ]
 }
