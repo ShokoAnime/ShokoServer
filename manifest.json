@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.408",
+      "tag": "v6.0.0-dev.408",
+      "commit": "ee2f0ebdcc3ff28539dc686d75d790ce2ee97b1b",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.408/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-15T07:30:28Z",
+      "releaseNotes": "\n`misc`: **Refactor(images)!: migrate v3 image endpoints to the new image system** ([#1402](https://github.com/ShokoAnime/ShokoServer/pull/1402)):\n\n* refactor(images)!: migrate default-image endpoints to the new image system\n\nMigrated the set/delete default-image endpoints in `SeriesController`,\n`EpisodeController`, and `GroupController` from the legacy image system to\nthe new one.\n\n- Replaced `Image.LegacyImageType` route parameters with `ImageEntityType`\n- Resolved images by GUID only, dropping the legacy int-ID fallback and the\n  `Source` validation\n- Changed `DefaultImageBody.ID` to a `Guid` and removed the unused `Source`\n  field\n- Aligned the missing-image response with the management controller\n  (`NotFound` + \"The requested image does not exist.\")\n\n* refactor(images)!: drop legacy enable/disable and migrate random image endpoints\n\nRemoved the deprecated `EnableOrDisableLegacyImage` endpoint and migrated the\nrandom image endpoints to the new image system.\n\n- Removed `EnableOrDisableLegacyImage`\n- Converted `GetRandomImageForType` and `GetRandomImageMetadataForType` to\n  accept `ImageEntityType` instead of `Image.LegacyImageType`\n- Return `404 NotFound` instead of `500` when no random image is found\n- Updated `Image.GetRandomImageSource` to accept `ImageEntityType`\n\n* refactor(images)!: migrate GET default-image endpoints to new image system\n\nConverted `GetSeriesDefaultImageForType`, `GetEpisodeDefaultImageForType`,\nand `GetSeriesDefaultImageForType` in `GroupController` from\n`Image.LegacyImageType` to `ImageEntityType`.\n\n- Replaced `Image.LegacyImageType` route parameters with `ImageEntityType`\n- Removed the now-unused `ToServer()` conversion\n\n* refactor(images): remove unused ToServer and align image-not-found message\n\nRemoved `ImageExtensions.ToServer`, which became dead code after the v3 image\nendpoints migrated from `Image.LegacyImageType` to `ImageEntityType`. Also\naligned `ImageController.ImageNotFound` with the wording used by the other\nimage controllers.\n"
+    },
+    {
       "version": "6.0.0.407",
       "tag": "v6.0.0-dev.407",
       "commit": "b1637c95c4bd73dd3cab9452e30e032fe1985b0f",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.379/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-23T18:48:09Z",
       "releaseNotes": "\n`fix` (`db`): **Handle null RenamerInstance Settings in migration**:\n\nThe MigrateRenamers migration crashed when a RenamerInstance had null\nSettings in the database:\n1. ConvertToJson(null) returned empty string, then JsonNode.Parse('')\n   threw JsonReaderException — only MessagePackSerializationException\n   was caught, so it escaped to the outer handler\n2. SaveFailedRenamerItem passed null bytes to File.WriteAllBytes,\n   throwing ArgumentNullException\n\nGuard the JSON operations behind a null/empty check on Settings\ninstead of catching the secondary exception. Write an empty file\nfor null settings so the restorer can produce a null-config preset.\nThe ProcessConfigs restorer now treats 0-length .messagepack files\nas null configuration instead of moving them to .error.\n"
-    },
-    {
-      "version": "6.0.0.378",
-      "tag": "v6.0.0-dev.378",
-      "commit": "c0b30d15d64ed7e8029921f297b82cf746de6a3a",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.378/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-23T00:41:09Z",
-      "releaseNotes": "\n`fix` (`tmdb`): **Shrink incremental changes window from 14 days to 1** ([#1393](https://github.com/ShokoAnime/ShokoServer/pull/1393)).\n"
     }
   ]
 }
