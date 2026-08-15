@@ -771,6 +771,49 @@ public class EpisodeController : BaseController
             .ToDto(showLinkedIDs: showLinkedIDs);
     }
 
+    /// <summary>
+    /// Get a paginated list of images of the given <paramref name="imageType"/> for the episode.
+    /// </summary>
+    /// <param name="episodeID">Episode ID</param>
+    /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
+    /// <param name="showLinkedIDs">Include linked image IDs in the response.</param>
+    /// <param name="includeDisabled">Include disabled images.</param>
+    /// <param name="includeUndesired">Include undesired images.</param>
+    /// <param name="pageSize">Number of results per page (0-100, default 50).</param>
+    /// <param name="page">Page number (default 1).</param>
+    /// <returns>A paginated list of images.</returns>
+    [HttpGet("{episodeID}/Images/{imageType}")]
+    public ActionResult<ListResult<Image>> GetEpisodeImagesForType(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromRoute] ImageEntityType imageType,
+        [FromQuery] bool showLinkedIDs = false,
+        [FromQuery] bool includeDisabled = false,
+        [FromQuery] bool includeUndesired = false,
+        [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var episode = _animeEpisodes.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        return ((IWithImages)episode)
+            .GetImages(new() { ImageType = imageType, IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true })
+            .OrderBy(a => a.Source)
+            .ThenByDescending(a => a.LanguageCode is null)
+            .ThenBy(a => a.LanguageCode)
+            .ThenByDescending(a => a.CountryCode is null)
+            .ThenBy(a => a.CountryCode)
+            .ToListResult(image => new Image(image, showLinkedIDs), page, pageSize);
+    }
+
     #endregion
 
     #region Default image
@@ -835,7 +878,7 @@ public class EpisodeController : BaseController
     /// <param name="episodeID">Episode ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <returns></returns>
-    [HttpGet("{episodeID}/Images/{imageType}")]
+    [HttpGet("{episodeID}/Images/{imageType}/Default")]
     public ActionResult<Image> GetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] ImageEntityType imageType)
     {
@@ -878,7 +921,7 @@ public class EpisodeController : BaseController
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpPut("{episodeID}/Images/{imageType}")]
+    [HttpPut("{episodeID}/Images/{imageType}/Default")]
     public ActionResult<Image> SetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
@@ -908,7 +951,7 @@ public class EpisodeController : BaseController
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpDelete("{episodeID}/Images/{imageType}")]
+    [HttpDelete("{episodeID}/Images/{imageType}/Default")]
     public ActionResult DeleteEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] ImageEntityType imageType)
     {
         var episode = _animeEpisodes.GetByID(episodeID);

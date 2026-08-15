@@ -315,6 +315,45 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
             .ToDto(showLinkedIDs: showLinkedIDs);
     }
 
+    /// <summary>
+    /// Get a paginated list of images of the given <paramref name="imageType"/> for the group.
+    /// </summary>
+    /// <param name="groupID">Shoko Group ID</param>
+    /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
+    /// <param name="showLinkedIDs">Include linked image IDs in the response.</param>
+    /// <param name="includeDisabled">Include disabled images.</param>
+    /// <param name="includeUndesired">Include undesired images.</param>
+    /// <param name="pageSize">Number of results per page (0-100, default 50).</param>
+    /// <param name="page">Page number (default 1).</param>
+    /// <returns>A paginated list of images.</returns>
+    [HttpGet("{groupID}/Images/{imageType}")]
+    public ActionResult<ListResult<Image>> GetGroupImagesForType(
+        [FromRoute, Range(1, int.MaxValue)] int groupID,
+        [FromRoute] ImageEntityType imageType,
+        [FromQuery] bool showLinkedIDs = false,
+        [FromQuery] bool includeDisabled = false,
+        [FromQuery] bool includeUndesired = false,
+        [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        if (_animeGroups.GetByID(groupID) is not { } group)
+            return NotFound(GroupNotFound);
+
+        var user = User;
+        if (!user.AllowedGroup(group))
+            return Forbid(GroupForbiddenForUser);
+
+        return ((IWithImages)group)
+            .GetImages(new() { ImageType = imageType, IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true })
+            .OrderBy(a => a.Source)
+            .ThenByDescending(a => a.LanguageCode is null)
+            .ThenBy(a => a.LanguageCode)
+            .ThenByDescending(a => a.CountryCode is null)
+            .ThenBy(a => a.CountryCode)
+            .ToListResult(image => new Image(image, showLinkedIDs), page, pageSize);
+    }
+
     #endregion
 
     #region Default image
@@ -374,7 +413,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="groupID">Shoko Group ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <returns></returns>
-    [HttpGet("{groupID}/Images/{imageType}")]
+    [HttpGet("{groupID}/Images/{imageType}/Default")]
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] ImageEntityType imageType)
     {
@@ -414,7 +453,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpPut("{groupID}/Images/{imageType}")]
+    [HttpPut("{groupID}/Images/{imageType}/Default")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
@@ -440,7 +479,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpDelete("{groupID}/Images/{imageType}")]
+    [HttpDelete("{groupID}/Images/{imageType}/Default")]
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID, [FromRoute] ImageEntityType imageType)
     {
         if (_animeGroups.GetByID(groupID) is not { } group)

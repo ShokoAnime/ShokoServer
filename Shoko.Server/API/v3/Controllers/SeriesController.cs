@@ -2636,6 +2636,45 @@ public class SeriesController : BaseController
             .ToDto(showLinkedIDs: showLinkedIDs);
     }
 
+    /// <summary>
+    /// Get a paginated list of images of the given <paramref name="imageType"/> for the series.
+    /// </summary>
+    /// <param name="seriesID">Shoko ID</param>
+    /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
+    /// <param name="showLinkedIDs">Include linked image IDs in the response.</param>
+    /// <param name="includeDisabled">Include disabled images.</param>
+    /// <param name="includeUndesired">Include undesired images.</param>
+    /// <param name="pageSize">Number of results per page (0-100, default 50).</param>
+    /// <param name="page">Page number (default 1).</param>
+    /// <returns>A paginated list of images.</returns>
+    [HttpGet("{seriesID}/Images/{imageType}")]
+    public ActionResult<ListResult<Image>> GetSeriesImagesForType(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromRoute] ImageEntityType imageType,
+        [FromQuery] bool showLinkedIDs = false,
+        [FromQuery] bool includeDisabled = false,
+        [FromQuery] bool includeUndesired = false,
+        [FromQuery, Range(0, 100)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        return ((IWithImages)series)
+            .GetImages(new() { ImageType = imageType, IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true })
+            .OrderBy(a => a.Source)
+            .ThenByDescending(a => a.LanguageCode is null)
+            .ThenBy(a => a.LanguageCode)
+            .ThenByDescending(a => a.CountryCode is null)
+            .ThenBy(a => a.CountryCode)
+            .ToListResult(image => new Image(image, showLinkedIDs), page, pageSize);
+    }
+
     #endregion
 
     #region Default image
@@ -2696,7 +2735,7 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Series ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <returns></returns>
-    [HttpGet("{seriesID}/Images/{imageType}")]
+    [HttpGet("{seriesID}/Images/{imageType}/Default")]
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromRoute] ImageEntityType imageType)
     {
@@ -2736,7 +2775,7 @@ public class SeriesController : BaseController
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpPut("{seriesID}/Images/{imageType}")]
+    [HttpPut("{seriesID}/Images/{imageType}/Default")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
@@ -2762,7 +2801,7 @@ public class SeriesController : BaseController
     /// <param name="imageType">Poster, Banner, Fanart</param>
     /// <returns></returns>
     [Authorize("admin")]
-    [HttpDelete("{seriesID}/Images/{imageType}")]
+    [HttpDelete("{seriesID}/Images/{imageType}/Default")]
     public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute] ImageEntityType imageType)
     {
         // Check if the series exists and if the user can access the series.
