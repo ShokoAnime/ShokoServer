@@ -1,0 +1,44 @@
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Shoko.Server.API.Annotations;
+using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Settings;
+using Shoko.Server.Services;
+
+namespace Shoko.Server.API.v3.Controllers;
+
+[ApiController]
+[Route("/api/v{version:apiVersion}/Group/{groupId:int}/Action")]
+[ApiV3]
+[Authorize]
+public class GroupActionController(ActionService actionService, AnimeGroupRepository groups, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
+{
+    /// <summary>
+    ///   Invoke a group-scoped action by its ID. Entity existence is
+    ///   validated before anything is enqueued; returns 404 if the group
+    ///   isn't found, 200 (accepted) on success, or 400 with a reason when
+    ///   the action's validation (or the caller's permission) rejects the
+    ///   invocation.
+    /// </summary>
+    /// <param name="groupId">Group ID.</param>
+    /// <param name="actionId">Action ID.</param>
+    /// <param name="token">Cancellation token.</param>
+    [HttpPost("{actionId:guid}")]
+    public async Task<ActionResult> Invoke(
+        [FromRoute, Range(1, int.MaxValue)] int groupId,
+        [FromRoute] Guid actionId,
+        CancellationToken token
+    )
+    {
+        var groupEntity = groups.GetByID(groupId);
+        if (groupEntity is null)
+            return NotFound("Group not found.");
+
+        var validation = await actionService.InvokeAsync(actionId, groupEntity, User, token);
+        return validation is null ? Ok() : BadRequest(validation.Reason);
+    }
+}

@@ -9,7 +9,9 @@ using System.Runtime.Loader;
 using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core;
@@ -384,6 +386,15 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             logger.LogTrace("Scanning plugin assembly for queue jobs. ({DllName})", Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]));
             serviceCollection.AddQueueJobsFromAssembly(pluginInfo.PluginType!.Assembly);
         }
+
+        // Register plugin-provided executable actions as transient services so the
+        // action execution job can resolve them fresh from DI per execution.
+        foreach (var actionType in _pluginTypes
+                     .SelectMany(pluginInfo => pluginInfo.Types)
+                     .Where(type => type is { IsClass: true, IsAbstract: false } && typeof(IExecutableAction).IsAssignableFrom(type)))
+        {
+            serviceCollection.TryAddTransient(actionType);
+        }
     }
 
     public void InitPlugins()
@@ -460,6 +471,16 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
         var supplementaryMetadataService = ISystemService.StaticServices.GetRequiredService<SupplementaryMetadataService>();
         supplementaryMetadataService.AddParts(GetExports<ISupplementaryMetadataProvider>());
+
+        // Register the discovered executable actions — plugin-provided types first,
+        // then core-provided types from this assembly, all validated at load time.
+        var actionService = ISystemService.StaticServices.GetRequiredService<ActionService>();
+        actionService.AddParts(GetTypes<IExecutableAction>()
+            .Where(type => type is { IsClass: true, IsAbstract: false })
+            .Select(type => (GetPluginInfo(type.Assembly)!.ID, type)));
+        actionService.AddParts(typeof(PluginManager).Assembly.GetExportedTypes()
+            .Where(type => type is { IsClass: true, IsAbstract: false } && typeof(IExecutableAction).IsAssignableFrom(type))
+            .Select(type => (CorePlugin.StaticID, type)));
     }
 
     private IEnumerable<(string?, string[], bool)> GetPluginDirectories()

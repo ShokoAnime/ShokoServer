@@ -2,13 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.User;
+using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
@@ -54,6 +59,17 @@ public class ActionService
 
     private readonly IPluginPackageManager _pluginPackageManager;
 
+    private readonly IPluginManager _pluginManager;
+
+    private readonly IServiceProvider _services;
+
+    /// <summary>
+    ///   Registered action types and their metadata. Populated once during
+    ///   <see cref="AddParts"/>. A fresh transient instance is resolved from
+    ///   DI for every validation and execution.
+    /// </summary>
+    private readonly Dictionary<Guid, ExecutableActionInfo> _actions = new();
+
     private readonly VideoLocalRepository _videoLocals;
 
     private readonly VideoLocal_PlaceRepository _videoLocalPlaces;
@@ -93,6 +109,8 @@ public class ActionService
         DatabaseFactory databaseFactory,
         HttpXmlUtils xmlUtils,
         IPluginPackageManager pluginPackageManager,
+        IPluginManager pluginManager,
+        IServiceProvider services,
         VideoLocalRepository videoLocals,
         VideoLocal_PlaceRepository videoLocalPlaces,
         StoredReleaseInfoRepository storedReleaseInfos,
@@ -120,6 +138,8 @@ public class ActionService
         _databaseFactory = databaseFactory;
         _xmlUtils = xmlUtils;
         _pluginPackageManager = pluginPackageManager;
+        _pluginManager = pluginManager;
+        _services = services;
         _videoLocals = videoLocals;
         _videoLocalPlaces = videoLocalPlaces;
         _storedReleaseInfos = storedReleaseInfos;
@@ -134,6 +154,157 @@ public class ActionService
         _scheduledUpdates = scheduledUpdates;
         _anidbAnimeRelations = anidbAnimeRelations;
     }
+
+    #region Action Registry
+
+    /// <summary>
+    ///   Registers discovered action types and validates them. Called from
+    ///   <c>PluginManager.InitPlugins</c> for core and plugin-provided
+    ///   actions alike.
+    /// </summary>
+    /// <remarks>
+    ///   Fails fast with a named error when a registered type breaks one of
+    ///   the load-time rules, rather than a NRE three weeks in.
+    /// </remarks>
+    /// <param name="discoveredActions">
+    ///   The discovered action types and the ID of the plugin that owns them.
+    /// </param>
+    public void AddParts(IEnumerable<(Guid PluginId, Type ActionType)> discoveredActions)
+    {
+        foreach (var (pluginId, actionType) in discoveredActions)
+        {
+            // Gap 28: reject any type implementing IScopedAction that isn't one of the
+            // three base classes. Redundant once IScopedAction is `internal` (a plugin
+            // assembly literally cannot implement an internal interface from another
+            // assembly), but kept as a documented, load-time-checked guard.
+            var baseType = actionType.BaseType;
+            if (typeof(IScopedAction).IsAssignableFrom(actionType) &&
+                baseType != typeof(SeriesAction) &&
+                baseType != typeof(GroupAction) &&
+                baseType != typeof(EpisodeAction))
+            {
+                throw new InvalidOperationException(
+                    $"Action type '{actionType.FullName}' implements IScopedAction but does not derive from " +
+                    $"{nameof(SeriesAction)}, {nameof(GroupAction)}, or {nameof(EpisodeAction)}."
+                );
+            }
+
+            // Gap 21: UUIDv5, deterministic, namespaced by the owning plugin's ID.
+            // Gap 5: not stable across renames/moves, by design.
+            var id = UuidUtility.GetV5(actionType.FullName!, pluginId);
+
+            var scope = actionType.IsAssignableTo(typeof(SeriesAction)) ? ActionScope.Series
+                : actionType.IsAssignableTo(typeof(GroupAction)) ? ActionScope.Group
+                : actionType.IsAssignableTo(typeof(EpisodeAction)) ? ActionScope.Episode
+                : ActionScope.Global;
+
+            var probe = (IExecutableAction)_services.GetRequiredService(actionType);
+
+            // Gap 8/19: no silent default for Permission — every action must declare it on
+            // the type itself. A getter provided by a base type or an interface default is
+            // rejected here at load time.
+            if (actionType.GetProperty(nameof(IExecutableAction.Permission))?.GetMethod?.DeclaringType != actionType)
+            {
+                throw new InvalidOperationException(
+                    $"Action type '{actionType.FullName}' does not declare its own Permission. " +
+                    "Every action must state its permission explicitly."
+                );
+            }
+
+            // Gap 1/29: PluginInferred resolves to the owning plugin's own display name —
+            // collision-free by construction since plugin names are unique. Anything else
+            // falls back to the category's own name.
+            var categoryName = probe.Category is ActionCategory.PluginInferred
+                ? _pluginManager.GetPluginInfo(pluginId)?.Name ?? actionType.Assembly.GetName().Name
+                : probe.Category.ToString();
+
+            _actions[id] = new ExecutableActionInfo(
+                id,
+                actionType,
+                scope,
+                pluginId,
+                probe.Name,
+                probe.Description,
+                probe.Category,
+                categoryName,
+                probe.Permission,
+                probe.RequiresConfirmation
+            );
+        }
+    }
+
+    /// <summary>
+    ///   Lists registered actions. <paramref name="scope"/> is a filter, not a
+    ///   required partition — omitting it lists every action. Non-admin callers
+    ///   only see actions they may invoke.
+    /// </summary>
+    public IEnumerable<ExecutableActionInfo> GetActions(ActionScope? scope, ActionPermission? callerPermission)
+        => _actions.Values
+            .Where(a => (scope is null || a.Scope == scope) &&
+                        (callerPermission != ActionPermission.User || a.Permission == ActionPermission.User))
+            .OrderBy(a => a.Category)
+            .ThenBy(a => a.CategoryName)
+            .ThenBy(a => a.Name);
+
+    public ExecutableActionInfo? GetActionInfo(Guid actionId)
+        => _actions.TryGetValue(actionId, out var info) ? info : null;
+
+    public string GetActionName(Guid actionId)
+        => _actions.TryGetValue(actionId, out var info) ? info.Name : actionId.ToString();
+
+    /// <summary>
+    ///   The invoke entry point. Scope-agnostic on purpose — the controller
+    ///   resolves <paramref name="scopeEntity"/> (an <see cref="AnimeSeries"/>,
+    ///   <see cref="AnimeGroup"/>, <see cref="AnimeEpisode"/>, or
+    ///   <see langword="null"/> for Global) before calling this.
+    /// </summary>
+    /// <returns>
+    ///   <see langword="null"/> when the action was accepted and enqueued, or a
+    ///   rejection reason — mapped to a 400 by the controller — when the
+    ///   invocation was refused without ever touching the queue.
+    /// </returns>
+    public async Task<ActionValidationResult?> InvokeAsync(Guid actionId, object? scopeEntity, IUser caller, CancellationToken token)
+    {
+        if (!_actions.TryGetValue(actionId, out var info))
+            throw new KeyNotFoundException($"No action registered for {actionId}");
+
+        if (info.Permission is ActionPermission.Admin && !caller.IsAdmin)
+            return new ActionValidationResult("Administrator privileges are required for this action.");
+
+        // Gap 24: Validate runs synchronously, before anything touches the queue.
+        // Needs a real instance (not just JobDataJson) since Validate isn't queued —
+        // resolved, context-populated, and discarded, same lifetime rules as Gap 9.
+        var probe = (IExecutableAction)_services.GetRequiredService(info.ActionType);
+        if (probe is IScopedAction scoped && scopeEntity is not null)
+            scoped.SetContext(scopeEntity);
+        if (probe is IActionCaller callerAware)
+            callerAware.SetCaller(caller);
+
+        var validation = await probe.Validate(token);
+        if (validation is not null)
+            return validation;
+
+        // Gap 15: always queued from here on. ActionExecutionJob re-resolves a fresh
+        // instance later (Gap 9: transient) — the probe instance above is discarded.
+        await _scheduler.Enqueue<ActionExecutionJob>(j =>
+        {
+            j.ActionId = actionId;
+            j.ScopeEntityId = scopeEntity switch
+            {
+                AnimeSeries series => series.AnimeSeriesID,
+                AnimeGroup group => group.AnimeGroupID,
+                AnimeEpisode episode => episode.AnimeEpisodeID,
+                _ => null,
+            };
+            j.Scope = info.Scope;
+            j.CallerUserId = caller.ID;
+        }, ct: token);
+
+        // Gap 7: bare ack — no tracking ID.
+        return null;
+    }
+
+    #endregion
 
     public async Task RunImport_IntegrityCheck()
     {
