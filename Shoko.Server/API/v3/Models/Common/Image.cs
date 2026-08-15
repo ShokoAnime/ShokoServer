@@ -314,25 +314,6 @@ public class Image
 
 public static class ImageExtensions
 {
-    public static ImageEntityType ToServer(this Image.LegacyImageType type)
-        => type switch
-        {
-            Image.LegacyImageType.Primary => ImageEntityType.Primary,
-            Image.LegacyImageType.Poster => ImageEntityType.Primary,
-            Image.LegacyImageType.Character => ImageEntityType.Primary,
-            Image.LegacyImageType.Creator => ImageEntityType.Primary,
-            Image.LegacyImageType.Staff => ImageEntityType.Primary,
-            Image.LegacyImageType.Avatar => ImageEntityType.Primary,
-            Image.LegacyImageType.Banner => ImageEntityType.Banner,
-            Image.LegacyImageType.Backdrop => ImageEntityType.Backdrop,
-            Image.LegacyImageType.Thumbnail => ImageEntityType.Backdrop,
-            Image.LegacyImageType.Thumb => ImageEntityType.Backdrop,
-            Image.LegacyImageType.Fanart => ImageEntityType.Backdrop,
-            Image.LegacyImageType.Logo => ImageEntityType.Logo,
-            Image.LegacyImageType.Disc => ImageEntityType.Disc,
-            _ => ImageEntityType.None,
-        };
-
     public static Image.LegacyImageType ToLegacyDto(this ImageEntityType type)
         => type switch
         {

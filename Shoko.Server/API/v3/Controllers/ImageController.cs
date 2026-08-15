@@ -16,7 +16,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiV3]
 public class ImageController(IImageManager imageManager, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
-    private const string ImageNotFound = "The requested resource does not exist.";
+    private const string ImageNotFound = "The requested image does not exist.";
 
     /// <summary>
     /// Returns the image for the given <paramref name="imageID"/>.
