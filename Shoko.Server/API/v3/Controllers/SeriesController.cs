@@ -2694,11 +2694,11 @@ public class SeriesController : BaseController
     /// Get the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
     /// <param name="seriesID">Series ID</param>
-    /// <param name="imageType">Poster, Banner, Fanart</param>
+    /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Images/{imageType}")]
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromRoute] Image.LegacyImageType imageType)
+        [FromRoute] ImageEntityType imageType)
     {
         var series = _animeSeries.GetByID(seriesID);
         if (series == null)
@@ -2707,13 +2707,12 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        var imageEntityType = imageType.ToServer();
-        var preferredImage = ((IWithImages)series).GetPreferredImageForType(imageEntityType);
+        var preferredImage = ((IWithImages)series).GetPreferredImageForType(imageType);
         if (preferredImage is not null)
             return new Image(preferredImage);
 
-        var images = ((IWithImages)series).GetImages(new() { ImageType = imageEntityType }).ToDto();
-        var image = imageEntityType switch
+        var images = ((IWithImages)series).GetImages(new() { ImageType = imageType }).ToDto();
+        var image = imageType switch
         {
             ImageEntityType.Primary => images.Posters.FirstOrDefault(),
             ImageEntityType.Banner => images.Banners.FirstOrDefault(),

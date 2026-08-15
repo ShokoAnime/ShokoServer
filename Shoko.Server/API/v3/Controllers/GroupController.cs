@@ -372,11 +372,11 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// Get the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
     /// <param name="groupID">Shoko Group ID</param>
-    /// <param name="imageType">Poster, Banner, Fanart</param>
+    /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <returns></returns>
     [HttpGet("{groupID}/Images/{imageType}")]
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromRoute] Image.LegacyImageType imageType)
+        [FromRoute] ImageEntityType imageType)
     {
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
@@ -385,13 +385,12 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (!user.AllowedGroup(group))
             return Forbid(GroupForbiddenForUser);
 
-        var imageEntityType = imageType.ToServer();
-        var preferredImage = ((IWithImages)group).GetPreferredImageForType(imageEntityType);
+        var preferredImage = ((IWithImages)group).GetPreferredImageForType(imageType);
         if (preferredImage is not null)
             return new Image(preferredImage);
 
-        var images = ((IWithImages)group).GetImages(new() { ImageType = imageEntityType }).ToDto();
-        var image = imageEntityType switch
+        var images = ((IWithImages)group).GetImages(new() { ImageType = imageType }).ToDto();
+        var image = imageType switch
         {
             ImageEntityType.Primary => images.Posters.FirstOrDefault(),
             ImageEntityType.Banner => images.Banners.FirstOrDefault(),
