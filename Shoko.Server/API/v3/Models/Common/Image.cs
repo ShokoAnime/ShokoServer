@@ -180,13 +180,13 @@ public class Image
         DataSource.TMDB,
     ];
 
-    internal static DataSource GetRandomImageSource(LegacyImageType imageType)
+    internal static DataSource GetRandomImageSource(ImageEntityType imageType)
     {
         var sourceList = imageType switch
         {
-            LegacyImageType.Poster => _posterImageSources,
-            LegacyImageType.Banner => _bannerImageSources,
-            LegacyImageType.Backdrop => _backdropImageSources,
+            ImageEntityType.Primary => _posterImageSources,
+            ImageEntityType.Banner => _bannerImageSources,
+            ImageEntityType.Backdrop => _backdropImageSources,
             _ => [],
         };
 
