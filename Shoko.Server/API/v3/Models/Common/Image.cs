@@ -5,7 +5,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
-using Shoko.Server.API.Converters;
 using Shoko.Server.Extensions;
 
 #pragma warning disable CS0618
@@ -181,13 +180,13 @@ public class Image
         DataSource.TMDB,
     ];
 
-    internal static DataSource GetRandomImageSource(LegacyImageType imageType)
+    internal static DataSource GetRandomImageSource(ImageEntityType imageType)
     {
         var sourceList = imageType switch
         {
-            LegacyImageType.Poster => _posterImageSources,
-            LegacyImageType.Banner => _bannerImageSources,
-            LegacyImageType.Backdrop => _backdropImageSources,
+            ImageEntityType.Primary => _posterImageSources,
+            ImageEntityType.Banner => _bannerImageSources,
+            ImageEntityType.Backdrop => _backdropImageSources,
             _ => [],
         };
 
@@ -296,21 +295,10 @@ public class Image
         public class DefaultImageBody
         {
             /// <summary>
-            /// The ID. A stringified int since we send the ID as a string
-            /// from the API. Also see <seealso cref="Image.ID"/>.
+            /// The image's universally/globally unique identifier (UUID/GUID).
+            /// Also see <seealso cref="Image.UID"/>.
             /// </summary>
-            /// <value></value>
-            [Required]
-            [JsonConverter(typeof(AutoStringConverter))]
-            public string ID { get; set; } = string.Empty;
-
-            /// <summary>
-            /// The image source.
-            /// </summary>
-            /// <value></value>
-            [Obsolete("No longer necessary now that image IDs are universal.")]
-            [JsonConverter(typeof(StringEnumConverter))]
-            public DataSource Source { get; set; } = DataSource.None;
+            public Guid ID { get; set; }
         }
 
         public class EnableImageBody
@@ -326,25 +314,6 @@ public class Image
 
 public static class ImageExtensions
 {
-    public static ImageEntityType ToServer(this Image.LegacyImageType type)
-        => type switch
-        {
-            Image.LegacyImageType.Primary => ImageEntityType.Primary,
-            Image.LegacyImageType.Poster => ImageEntityType.Primary,
-            Image.LegacyImageType.Character => ImageEntityType.Primary,
-            Image.LegacyImageType.Creator => ImageEntityType.Primary,
-            Image.LegacyImageType.Staff => ImageEntityType.Primary,
-            Image.LegacyImageType.Avatar => ImageEntityType.Primary,
-            Image.LegacyImageType.Banner => ImageEntityType.Banner,
-            Image.LegacyImageType.Backdrop => ImageEntityType.Backdrop,
-            Image.LegacyImageType.Thumbnail => ImageEntityType.Backdrop,
-            Image.LegacyImageType.Thumb => ImageEntityType.Backdrop,
-            Image.LegacyImageType.Fanart => ImageEntityType.Backdrop,
-            Image.LegacyImageType.Logo => ImageEntityType.Logo,
-            Image.LegacyImageType.Disc => ImageEntityType.Disc,
-            _ => ImageEntityType.None,
-        };
-
     public static Image.LegacyImageType ToLegacyDto(this ImageEntityType type)
         => type switch
         {
