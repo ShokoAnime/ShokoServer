@@ -2593,7 +2593,7 @@ public class SeriesController : BaseController
 
     #region Images
 
-    private const string InvalidIDForSource = "Invalid image id for selected source.";
+    private const string ImageNotFound = "The requested image does not exist.";
 
     private const string NoDefaultImageForType = "No default image for type.";
 
@@ -2739,7 +2739,7 @@ public class SeriesController : BaseController
     [Authorize("admin")]
     [HttpPut("{seriesID}/Images/{imageType}")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
+        [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
         var series = _animeSeries.GetByID(seriesID);
         if (series == null)
@@ -2748,18 +2748,11 @@ public class SeriesController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(SeriesForbiddenForUser);
 
-        // Check if the id is valid for the given type and source.
-        var dataSource = body.Source;
-        var imageEntityType = imageType.ToServer();
-        var image = Guid.TryParse(body.ID, out var imageID)
-            ? _imageManager.GetImageByID(imageID)
-            : int.TryParse(body.ID, out var legacyImageID)
-                ? _imageManager.GetImageByID(legacyImageID)
-                : null;
-        if (image is null || (dataSource is not DataSource.None && dataSource != image.Source))
-            return ValidationProblem(InvalidIDForSource);
+        var image = _imageManager.GetImageByID(body.ID);
+        if (image is null)
+            return NotFound(ImageNotFound);
 
-        var xref = _imageManager.SetPreferredImageForEntity(series, imageEntityType, image);
+        var xref = _imageManager.SetPreferredImageForEntity(series, imageType, image);
         return new Image(ImageStub.Wrap(image, xref));
     }
 
@@ -2771,7 +2764,7 @@ public class SeriesController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{seriesID}/Images/{imageType}")]
-    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute] Image.LegacyImageType imageType)
+    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromRoute] ImageEntityType imageType)
     {
         // Check if the series exists and if the user can access the series.
         var series = _animeSeries.GetByID(seriesID);
@@ -2782,9 +2775,8 @@ public class SeriesController : BaseController
             return Forbid(SeriesForbiddenForUser);
 
         // Check if a default image is set.
-        var imageEntityType = imageType.ToServer();
         var xref = _imageManager
-            .GetImageCrossReferencesForEntity(series, new() { ImageType = imageEntityType, IsPreferred = true }).FirstOrDefault();
+            .GetImageCrossReferencesForEntity(series, new() { ImageType = imageType, IsPreferred = true }).FirstOrDefault();
         if (xref is null)
             return ValidationProblem("No default image for the selected type.");
 

@@ -276,7 +276,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
 
     #region Images
 
-    private const string InvalidIDForSource = "Invalid image id for selected source.";
+    private const string ImageNotFound = "The requested image does not exist.";
 
     private const string NoDefaultImageForType = "No default image for type.";
 
@@ -417,7 +417,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [Authorize("admin")]
     [HttpPut("{groupID}/Images/{imageType}")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
+        [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
@@ -426,18 +426,11 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (!user.AllowedGroup(group))
             return Forbid(GroupForbiddenForUser);
 
-        // Check if the id is valid for the given type and source.
-        var dataSource = body.Source;
-        var imageEntityType = imageType.ToServer();
-        var image = Guid.TryParse(body.ID, out var imageID)
-            ? _imageManager.GetImageByID(imageID)
-            : int.TryParse(body.ID, out var legacyImageID)
-                ? _imageManager.GetImageByID(legacyImageID)
-                : null;
-        if (image is null || (dataSource is not DataSource.None && dataSource != image.Source))
-            return ValidationProblem(InvalidIDForSource);
+        var image = _imageManager.GetImageByID(body.ID);
+        if (image is null)
+            return NotFound(ImageNotFound);
 
-        var xref = _imageManager.SetPreferredImageForEntity(group, imageEntityType, image);
+        var xref = _imageManager.SetPreferredImageForEntity(group, imageType, image);
         return new Image(ImageStub.Wrap(image, xref));
     }
 
@@ -449,7 +442,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{groupID}/Images/{imageType}")]
-    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID, [FromRoute] Image.LegacyImageType imageType)
+    public ActionResult DeleteSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID, [FromRoute] ImageEntityType imageType)
     {
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
@@ -459,9 +452,8 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
             return Forbid(GroupForbiddenForUser);
 
         // Check if a default image is set.
-        var imageEntityType = imageType.ToServer();
         var xref = _imageManager
-            .GetImageCrossReferencesForEntity(group, new() { ImageType = imageEntityType, IsPreferred = true }).FirstOrDefault();
+            .GetImageCrossReferencesForEntity(group, new() { ImageType = imageType, IsPreferred = true }).FirstOrDefault();
         if (xref is null)
             return ValidationProblem("No default image for the selected type.");
 

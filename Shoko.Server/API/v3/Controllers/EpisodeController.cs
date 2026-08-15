@@ -730,7 +730,7 @@ public class EpisodeController : BaseController
 
     #region Images
 
-    private const string InvalidIDForSource = "Invalid image id for selected source.";
+    private const string ImageNotFound = "The requested image does not exist.";
 
     #region All images
 
@@ -881,7 +881,7 @@ public class EpisodeController : BaseController
     [Authorize("admin")]
     [HttpPut("{episodeID}/Images/{imageType}")]
     public ActionResult<Image> SetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
-        [FromRoute] Image.LegacyImageType imageType, [FromBody] Image.Input.DefaultImageBody body)
+        [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body)
     {
         var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
@@ -894,18 +894,11 @@ public class EpisodeController : BaseController
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        // Check if the id is valid for the given type and source.
-        var dataSource = body.Source;
-        var imageEntityType = imageType.ToServer();
-        var image = Guid.TryParse(body.ID, out var imageID)
-            ? _imageManager.GetImageByID(imageID)
-            : int.TryParse(body.ID, out var legacyImageID)
-                ? _imageManager.GetImageByID(legacyImageID)
-                : null;
-        if (image is null || (dataSource is not DataSource.None && dataSource != image.Source))
-            return ValidationProblem(InvalidIDForSource);
+        var image = _imageManager.GetImageByID(body.ID);
+        if (image is null)
+            return NotFound(ImageNotFound);
 
-        var xref = _imageManager.SetPreferredImageForEntity(episode, imageEntityType, image);
+        var xref = _imageManager.SetPreferredImageForEntity(episode, imageType, image);
         return new Image(ImageStub.Wrap(image, xref));
     }
 
@@ -917,7 +910,7 @@ public class EpisodeController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{episodeID}/Images/{imageType}")]
-    public ActionResult DeleteEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] Image.LegacyImageType imageType)
+    public ActionResult DeleteEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromRoute] ImageEntityType imageType)
     {
         var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
@@ -931,9 +924,8 @@ public class EpisodeController : BaseController
             return Forbid(EpisodeForbiddenForUser);
 
         // Check if a default image is set.
-        var imageEntityType = imageType.ToServer();
         var xref = _imageManager
-            .GetImageCrossReferencesForEntity(episode, new() { ImageType = imageEntityType, IsPreferred = true }).FirstOrDefault();
+            .GetImageCrossReferencesForEntity(episode, new() { ImageType = imageType, IsPreferred = true }).FirstOrDefault();
         if (xref is null)
             return ValidationProblem("No default image for the selected type.");
 

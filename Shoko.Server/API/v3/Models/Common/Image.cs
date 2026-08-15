@@ -5,7 +5,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
-using Shoko.Server.API.Converters;
 using Shoko.Server.Extensions;
 
 #pragma warning disable CS0618
@@ -296,21 +295,10 @@ public class Image
         public class DefaultImageBody
         {
             /// <summary>
-            /// The ID. A stringified int since we send the ID as a string
-            /// from the API. Also see <seealso cref="Image.ID"/>.
+            /// The image's universally/globally unique identifier (UUID/GUID).
+            /// Also see <seealso cref="Image.UID"/>.
             /// </summary>
-            /// <value></value>
-            [Required]
-            [JsonConverter(typeof(AutoStringConverter))]
-            public string ID { get; set; } = string.Empty;
-
-            /// <summary>
-            /// The image source.
-            /// </summary>
-            /// <value></value>
-            [Obsolete("No longer necessary now that image IDs are universal.")]
-            [JsonConverter(typeof(StringEnumConverter))]
-            public DataSource Source { get; set; } = DataSource.None;
+            public Guid ID { get; set; }
         }
 
         public class EnableImageBody
