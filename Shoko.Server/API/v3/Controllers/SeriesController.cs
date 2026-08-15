@@ -2771,7 +2771,7 @@ public class SeriesController : BaseController
     /// Set the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
     /// <param name="seriesID">Series ID</param>
-    /// <param name="imageType">Poster, Banner, Fanart</param>
+    /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
     [Authorize("admin")]
@@ -2798,7 +2798,7 @@ public class SeriesController : BaseController
     /// Unset the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
     /// <param name="seriesID"></param>
-    /// <param name="imageType">Poster, Banner, Fanart</param>
+    /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{seriesID}/Images/{imageType}/Default")]

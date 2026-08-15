@@ -449,7 +449,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// Set the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
     /// <param name="groupID">Shoko Group ID</param>
-    /// <param name="imageType">Poster, Banner, Fanart</param>
+    /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <param name="body">The body containing the source and id used to set.</param>
     /// <returns></returns>
     [Authorize("admin")]
@@ -476,7 +476,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// Unset the default <see cref="Image"/> for the given <paramref name="imageType"/> for the <see cref="Series"/>.
     /// </summary>
     /// <param name="groupID">Shoko Group ID</param>
-    /// <param name="imageType">Poster, Banner, Fanart</param>
+    /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpDelete("{groupID}/Images/{imageType}/Default")]
