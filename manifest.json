@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.409",
+      "tag": "v6.0.0-dev.409",
+      "commit": "48bac7f65b7bb9f1b1798676def9338609b32114",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.409/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-15T11:06:08Z",
+      "releaseNotes": "\n`feat` (`images`): **Add paginated type-filtered images endpoint for entities** ([#1403](https://github.com/ShokoAnime/ShokoServer/pull/1403)):\n\nAdded `GET /{id}/Images/{imageType}` for series, groups, and episodes so\nclients can fetch a deduplicated, paginated list of images for a single\nimage type instead of the cross-reference endpoint, which returns duplicate\nrows when an image is both linked and pinned as the default.\n\nRelocated the default-image endpoints to a `/Default` suffix to free up the\n`/{imageType}` route segment:\n\n- Moved `GET /{id}/Images/{imageType}` to `GET /{id}/Images/{imageType}/Default`\n- Moved `PUT /{id}/Images/{imageType}` to `PUT /{id}/Images/{imageType}/Default`\n- Moved `DELETE /{id}/Images/{imageType}` to `DELETE /{id}/Images/{imageType}/Default`\n\nThis is a breaking API change for clients that get, set, or unset a default image.\n"
+    },
+    {
       "version": "6.0.0.408",
       "tag": "v6.0.0-dev.408",
       "commit": "ee2f0ebdcc3ff28539dc686d75d790ce2ee97b1b",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.380/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-23T22:24:04Z",
       "releaseNotes": "\n`feat` (`abstractions`): **Add GetUserFromHubCallerContext to IUserService**:\n\nAdded a method to resolve a user from a SignalR hub caller context,\nmirroring the existing GetUserFromHttpContext pattern. The\nimplementation delegates to the same ClaimsPrincipal.GetUser()\nextension used by the HTTP path, since SignalR hubs authenticate\nthrough the same ASP.NET Core auth middleware and populate\nHubCallerContext.User identically.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.76**.\n"
-    },
-    {
-      "version": "6.0.0.379",
-      "tag": "v6.0.0-dev.379",
-      "commit": "6321d15bec18103f865eaeed00d603d75c285397",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.379/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-23T18:48:09Z",
-      "releaseNotes": "\n`fix` (`db`): **Handle null RenamerInstance Settings in migration**:\n\nThe MigrateRenamers migration crashed when a RenamerInstance had null\nSettings in the database:\n1. ConvertToJson(null) returned empty string, then JsonNode.Parse('')\n   threw JsonReaderException — only MessagePackSerializationException\n   was caught, so it escaped to the outer handler\n2. SaveFailedRenamerItem passed null bytes to File.WriteAllBytes,\n   throwing ArgumentNullException\n\nGuard the JSON operations behind a null/empty check on Settings\ninstead of catching the secondary exception. Write an empty file\nfor null settings so the restorer can produce a null-config preset.\nThe ProcessConfigs restorer now treats 0-length .messagepack files\nas null configuration instead of moving them to .error.\n"
     }
   ]
 }
