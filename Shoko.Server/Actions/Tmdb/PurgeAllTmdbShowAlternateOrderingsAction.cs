@@ -16,7 +16,6 @@ public sealed class PurgeAllTmdbShowAlternateOrderingsAction(TmdbMetadataService
 
     public ActionCategory Category => ActionCategory.TMDB;
 
-    // The legacy PurgeAllTmdbShowAlternateOrderings endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public bool RequiresConfirmation => true;

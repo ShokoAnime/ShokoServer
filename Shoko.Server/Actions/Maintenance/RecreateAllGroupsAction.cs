@@ -17,7 +17,6 @@ public sealed class RecreateAllGroupsAction(AnimeGroupCreator groupCreator) : IE
 
     public ActionCategory Category => ActionCategory.Maintenance;
 
-    // The legacy RecreateAllGroups endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public bool RequiresConfirmation => true;

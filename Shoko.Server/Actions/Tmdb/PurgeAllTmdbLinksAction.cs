@@ -16,7 +16,6 @@ public sealed class PurgeAllTmdbLinksAction(ITmdbLinkingService linkingService) 
 
     public ActionCategory Category => ActionCategory.TMDB;
 
-    // The legacy PurgeAllTmdbLinks endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public bool RequiresConfirmation => true;

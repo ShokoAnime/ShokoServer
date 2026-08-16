@@ -17,7 +17,6 @@ public sealed class SyncAnidbMyListAction(IQueueScheduler scheduler) : IExecutab
 
     public ActionCategory Category => ActionCategory.AniDB;
 
-    // The legacy SyncMyList endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public bool RequiresConfirmation => true;

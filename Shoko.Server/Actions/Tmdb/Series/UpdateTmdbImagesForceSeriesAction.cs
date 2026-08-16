@@ -17,7 +17,6 @@ public sealed class UpdateTmdbImagesForceSeriesAction(IQueueScheduler scheduler)
 
     public ActionCategory Category => ActionCategory.TMDB;
 
-    // The legacy TMDB/Movie|Show/Action/DownloadImages endpoints were admin-gated; keep Admin-level so the permission surface does not widen.
     public override ActionPermission Permission => ActionPermission.Admin;
 
     public override async Task Execute(CancellationToken token = default)

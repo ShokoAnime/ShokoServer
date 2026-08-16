@@ -17,7 +17,6 @@ public sealed class CreateMissingSeriesAction(ActionService actionService) : IEx
 
     public ActionCategory Category => ActionCategory.Maintenance;
 
-    // The legacy CreateMissingSeries endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public Task Execute(CancellationToken token = default)

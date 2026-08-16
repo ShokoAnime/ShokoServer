@@ -17,7 +17,6 @@ public sealed class RenameAllGroupsAction(IShokoGroupManager groupManager) : IEx
 
     public ActionCategory Category => ActionCategory.Maintenance;
 
-    // The legacy RenameAllGroups endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public Task Execute(CancellationToken token = default)

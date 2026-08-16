@@ -16,7 +16,6 @@ public sealed class AutoSearchTmdbSeriesAction(TmdbMetadataService tmdbService) 
 
     public ActionCategory Category => ActionCategory.TMDB;
 
-    // The legacy TMDB/Action/AutoSearch endpoint had no admin gate; keep User-level to avoid regressing callers.
     public override ActionPermission Permission => ActionPermission.User;
 
     public override Task Execute(CancellationToken token = default)

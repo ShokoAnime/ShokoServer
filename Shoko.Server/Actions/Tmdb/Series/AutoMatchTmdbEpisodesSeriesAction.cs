@@ -16,7 +16,6 @@ public sealed class AutoMatchTmdbEpisodesSeriesAction(TmdbLinkingService linking
 
     public ActionCategory Category => ActionCategory.TMDB;
 
-    // The legacy TMDB/Show/CrossReferences/Episode/Auto endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public override ActionPermission Permission => ActionPermission.Admin;
 
     public override Task Execute(CancellationToken token = default)

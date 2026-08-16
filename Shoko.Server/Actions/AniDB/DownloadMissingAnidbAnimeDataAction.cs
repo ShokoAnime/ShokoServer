@@ -17,7 +17,6 @@ public sealed class DownloadMissingAnidbAnimeDataAction(ActionService actionServ
 
     public ActionCategory Category => ActionCategory.AniDB;
 
-    // The legacy DownloadMissingAniDBAnimeData endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public async Task Execute(CancellationToken token = default)

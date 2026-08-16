@@ -17,7 +17,6 @@ public sealed class UpdateTmdbInfoSeriesAction(IQueueScheduler scheduler) : Seri
 
     public ActionCategory Category => ActionCategory.TMDB;
 
-    // The legacy TMDB/Show|Movie/Action/Refresh endpoints were admin-gated; keep Admin-level so the permission surface does not widen.
     public override ActionPermission Permission => ActionPermission.Admin;
 
     public override async Task Execute(CancellationToken token = default)

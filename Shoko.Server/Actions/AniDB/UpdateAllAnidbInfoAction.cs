@@ -16,7 +16,6 @@ public sealed class UpdateAllAnidbInfoAction(ActionService actionService) : IExe
 
     public ActionCategory Category => ActionCategory.AniDB;
 
-    // The legacy UpdateAllAniDBInfo endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public Task Execute(CancellationToken token = default)

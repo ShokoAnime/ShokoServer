@@ -17,7 +17,6 @@ public sealed class PurgeAllUnusedTmdbImagesAction(IImageManager imageManager) :
 
     public ActionCategory Category => ActionCategory.Images;
 
-    // The legacy PurgeAllUnusedTmdbImages endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public bool RequiresConfirmation => true;

@@ -18,7 +18,6 @@ public sealed class RunImportAction(IQueueScheduler scheduler) : IExecutableActi
 
     public ActionCategory Category => ActionCategory.Import;
 
-    // The legacy RunImport endpoint had no admin gate; keep User-level to avoid regressing callers.
     public ActionPermission Permission => ActionPermission.User;
 
     public Task Execute(CancellationToken token = default)

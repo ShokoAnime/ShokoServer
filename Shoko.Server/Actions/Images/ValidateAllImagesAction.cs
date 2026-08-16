@@ -16,7 +16,6 @@ public sealed class ValidateAllImagesAction(IImageManager imageManager) : IExecu
 
     public ActionCategory Category => ActionCategory.Images;
 
-    // The legacy ValidateAllImages endpoint had no admin gate; keep User-level to avoid regressing callers.
     public ActionPermission Permission => ActionPermission.User;
 
     public Task Execute(CancellationToken token = default)

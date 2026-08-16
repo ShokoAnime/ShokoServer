@@ -23,7 +23,6 @@ public sealed class RemoveMissingFilesNoMyListSyncAction(ActionService actionSer
 
     public ActionCategory Category => ActionCategory.Import;
 
-    // The legacy RemoveMissingFiles endpoint had no admin gate; keep User-level to avoid regressing callers.
     public ActionPermission Permission => ActionPermission.User;
 
     public Task Execute(CancellationToken token = default)

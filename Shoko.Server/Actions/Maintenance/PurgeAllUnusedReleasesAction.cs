@@ -17,7 +17,6 @@ public sealed class PurgeAllUnusedReleasesAction(IVideoReleaseService videoRelea
 
     public ActionCategory Category => ActionCategory.Destructive;
 
-    // The legacy PurgeAllUnusedReleases endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public bool RequiresConfirmation => true;

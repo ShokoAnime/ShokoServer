@@ -16,7 +16,6 @@ public sealed class ResetTmdbEpisodeMappingsSeriesAction(TmdbLinkingService link
 
     public ActionCategory Category => ActionCategory.TMDB;
 
-    // The legacy TMDB/Show/CrossReferences/Episode endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public override ActionPermission Permission => ActionPermission.Admin;
 
     public bool RequiresConfirmation => true;
