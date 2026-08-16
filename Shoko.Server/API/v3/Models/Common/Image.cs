@@ -2,12 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Server.Extensions;
 
-#pragma warning disable CS0618
 namespace Shoko.Server.API.v3.Models.Common;
 
 /// <summary>
@@ -15,13 +13,6 @@ namespace Shoko.Server.API.v3.Models.Common;
 /// </summary>
 public class Image
 {
-    /// <summary>
-    /// The image's local ID. Remains available for backwards compatibility for
-    /// now.
-    /// </summary>
-    [Required, Obsolete("Use UID instead.")]
-    public int ID { get; set; }
-
     /// <summary>
     ///  The image's universally/globally unique identifier (UUID/GUID).
     /// </summary>
@@ -42,18 +33,12 @@ public class Image
     public IReadOnlyList<Guid>? LinkedUIDs { get; set; }
 
     /// <summary>
-    ///   The image type. Will always be <see cref="LegacyImageType.None"/> when
+    ///   The image type. Will always be <see cref="ImageEntityType.None"/> when
     ///   the image is directly retrieved from image manager. Will be set to any
     ///   other type when retrieved from a cross-reference or from an entity.
     /// </summary>
-    /// <remarks>
-    ///   This property intentionally continues to use <see cref="LegacyImageType"/>
-    ///   rather than <see cref="ImageEntityType"/> to maintain backwards compatibility
-    ///   with existing API consumers and auto-generated clients. New endpoints in the
-    ///   image management controller use <see cref="ImageEntityType"/> directly.
-    /// </remarks>
     [Required]
-    public LegacyImageType Type { get; set; }
+    public ImageEntityType Type { get; set; }
 
     /// <summary>
     /// The image source.
@@ -137,11 +122,10 @@ public class Image
     public Image(IImage imageMetadata, bool showLinkedIDs = false, bool? preferredOverride = null)
     {
         UID = imageMetadata.ID;
-        ID = imageMetadata.LocalID;
         PrimaryUID = imageMetadata.PrimaryID;
         if (showLinkedIDs)
             LinkedUIDs = imageMetadata.LinkedIDs;
-        Type = imageMetadata.Type.ToLegacyDto();
+        Type = imageMetadata.Type;
         Source = imageMetadata.Source;
         ResourceID = imageMetadata.ResourceID;
         ContentType = imageMetadata.ContentType;
@@ -193,79 +177,6 @@ public class Image
         return sourceList.GetRandomElement();
     }
 
-    /// <summary>
-    /// Legacy image type. Kept for backwards compatibility on existing API
-    /// routes. New endpoints should use <see cref="ImageEntityType"/> directly.
-    /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
-    public enum LegacyImageType
-    {
-        None = 0,
-
-        /// <summary>
-        /// The standard poster image. May or may not contain text.
-        /// </summary>
-        Primary = 1,
-
-        /// <summary>
-        /// Temp. synonym until it's safe to remove it.
-        /// </summary>
-        Poster = 2,
-
-        /// <summary>
-        /// Temp. synonym until it's safe to remove it.
-        /// </summary>
-        Character = 3,
-
-        /// <summary>
-        /// Temp. synonym until it's safe to remove it.
-        /// </summary>
-        Creator = 4,
-
-        /// <summary>
-        /// Temp. synonym until it's safe to remove it.
-        /// </summary>
-        Staff = 5,
-
-        /// <summary>
-        /// Temp. synonym until it's safe to remove it.
-        /// </summary>
-        Avatar = 6,
-
-        /// <summary>
-        /// A long/wide banner image, usually with text.
-        /// </summary>
-        Banner = 7,
-
-        /// <summary>
-        /// Backdrop / background images. Usually doesn't contain any text, but
-        /// it might.
-        /// </summary>
-        Backdrop = 8,
-
-        /// <summary>
-        /// Temp. synonym until it's safe to remove it.
-        /// </summary>
-        Thumbnail = 9,
-
-        /// <summary>
-        /// Temp. synonym until it's safe to remove it.
-        /// </summary>
-        Thumb = 10,
-
-        /// <summary>
-        /// Temp. synonym until it's safe to remove it.
-        /// </summary>
-        Fanart = 11,
-
-        /// <summary>
-        /// Clear-text logo.
-        /// </summary>
-        Logo = 12,
-
-        Disc = 13,
-    }
-
     public class ImageSeriesInfo
     {
         /// <summary>
@@ -310,18 +221,4 @@ public class Image
             public bool Enabled { get; set; }
         }
     }
-}
-
-public static class ImageExtensions
-{
-    public static Image.LegacyImageType ToLegacyDto(this ImageEntityType type)
-        => type switch
-        {
-            ImageEntityType.Primary => Image.LegacyImageType.Primary,
-            ImageEntityType.Backdrop => Image.LegacyImageType.Backdrop,
-            ImageEntityType.Banner => Image.LegacyImageType.Banner,
-            ImageEntityType.Logo => Image.LegacyImageType.Logo,
-            ImageEntityType.Disc => Image.LegacyImageType.Disc,
-            _ => Image.LegacyImageType.None,
-        };
 }

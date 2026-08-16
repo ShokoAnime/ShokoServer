@@ -51,35 +51,6 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
         => source.IsLocal ? NotFound(ImageNotFound) : GetImage(IImageManager.GetIDForImageSourceAndResourceID(source, resourceID));
 
     /// <summary>
-    /// Returns the image for the given <paramref name="source"/>, <paramref name="type"/> and <paramref name="value"/>.
-    /// </summary>
-    /// <remarks>
-    /// <b>Deprecated:</b> Legacy endpoint for backwards compatibility only. Clients are advised to switch to using
-    /// <c>{imageID}</c> instead.
-    /// </remarks>
-    /// <param name="source">AniDB, TMDB, Shoko, etc.</param>
-    /// <param name="type">Poster, Backdrop, Banner, Thumbnail, etc.</param>
-    /// <param name="value">The image ID.</param>
-    /// <returns>200 on found, 400/404 if the type or source are invalid, and 404 if the id is not found</returns>
-    [HttpGet("{source}/{type}/{value}")]
-    [ProducesResponseType(typeof(FileStreamResult), 200)]
-    [ProducesResponseType(404)]
-    [Obsolete("Legacy endpoint for backwards compatibility only. Clients are advised to switch to using {imageID} instead.")]
-    public ActionResult GetLegacyImage(
-        [FromRoute] DataSource source,
-        [FromRoute] Image.LegacyImageType type,
-        [FromRoute, Range(1, int.MaxValue)] int value
-    )
-    {
-        var metadata = imageManager.GetImageByID(value);
-        if (metadata is null || metadata.GetStream() is not { } stream)
-            return NotFound(ImageNotFound);
-
-        Response.Headers["Cache-Control"] = "public, max-age=3600";
-        return File(stream, metadata.ContentType);
-    }
-
-    /// <summary>
     /// Returns a random image for the <paramref name="imageType"/>.
     /// </summary>
     /// <param name="imageType">Primary, Backdrop, Banner</param>
