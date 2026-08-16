@@ -17,7 +17,7 @@ public sealed class UpdateAnidbCalendarAction(IQueueScheduler scheduler) : IExec
 
     public ActionCategory Category => ActionCategory.AniDB;
 
-    // Matches today: [Authorize("admin")] on the legacy UpdateAniDBCalendar endpoint.
+    // The legacy UpdateAniDBCalendar endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public Task Execute(CancellationToken token = default)

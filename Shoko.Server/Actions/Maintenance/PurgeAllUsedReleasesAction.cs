@@ -17,7 +17,7 @@ public sealed class PurgeAllUsedReleasesAction(IVideoReleaseService videoRelease
 
     public ActionCategory Category => ActionCategory.Destructive;
 
-    // Matches today: [Authorize("admin")] on the legacy PurgeAllUsedReleases endpoint.
+    // The legacy PurgeAllUsedReleases endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public bool RequiresConfirmation => true;

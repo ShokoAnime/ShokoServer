@@ -17,7 +17,7 @@ public sealed class UpdateAllMediaInfoAction(IQueueScheduler scheduler) : IExecu
 
     public ActionCategory Category => ActionCategory.Maintenance;
 
-    // Matches today: [Authorize("admin")] on the legacy UpdateAllMediaInfo endpoint.
+    // The legacy UpdateAllMediaInfo endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public Task Execute(CancellationToken token = default)

@@ -87,7 +87,7 @@ public interface IExecutableAction
     ///   execution; statefulness is the implementation's own responsibility.
     ///   Exceptions are caught by the worker and logged as a queue job
     ///   failure. There is no result-reporting hook — actions that want to
-    ///   report something log, same as the rest of the queue already does.
+    ///   report something log it, same as the rest of the queue already does.
     /// </remarks>
     /// <param name="token">
     ///   The cancellation token, bound to the queue job lifecycle rather than

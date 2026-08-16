@@ -27,7 +27,7 @@ public sealed class AVDumpMismatchedFilesAction(
 
     public ActionCategory Category => ActionCategory.AniDB;
 
-    // Matches today: [Authorize("admin")] on the legacy AVDumpMismatchedFiles endpoint.
+    // The legacy AVDumpMismatchedFiles endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public Task<ActionValidationResult?> Validate(CancellationToken token = default)

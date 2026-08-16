@@ -55,9 +55,9 @@ public class ActionExecutionJob(
     public int CallerUserId { get; set; }
 
     /// <summary>
-    ///   The action's free-form invocation parameters (Gap 23 bucket 2),
-    ///   populated onto the matching public settable properties of the action
-    ///   instance before it executes.
+    ///   The action's free-form invocation parameters (the open-ended invocation
+    ///   parameter case), populated onto the matching public settable properties
+    ///   of the action instance before it executes.
     /// </summary>
     /// <remarks>
     ///   Part of the dedup key, so the same action invoked on the same scope
@@ -88,12 +88,12 @@ public class ActionExecutionJob(
 
         _logger.LogInformation("Executing action \"{ActionName}\" ({ActionId})", info.Name, ActionId);
 
-        // Gap 9: transient — a fresh instance per execution, resolved from DI.
+        // Transient — a fresh instance per execution, resolved from DI.
         var action = (IExecutableAction)services.GetRequiredService(actionService.GetActionType(ActionId));
 
-        // Gap 23 bucket 2: populate the action's free-form properties from
-        // JobDataJson before it executes — the same mechanism every other job
-        // property already uses. Unknown property names are ignored.
+        // Populate the action's free-form properties from JobDataJson before it
+        // executes — the same mechanism every other job property already uses.
+        // Unknown property names are ignored.
         ActionService.PopulateParameters(action, Parameters);
 
         if (action is IScopedAction scoped)
@@ -115,7 +115,7 @@ public class ActionExecutionJob(
         // ActionService.InvokeAsync before this job was even enqueued. Re-running it
         // here would be redundant and could observe different state than what the
         // caller saw when they got their 200.
-        // Gap 11: the job's own lifetime token, not request-bound — there is no live
+        // The job's own lifetime token, not request-bound — there is no live
         // HTTP request left by the time a queued action runs.
         await action.Execute();
 

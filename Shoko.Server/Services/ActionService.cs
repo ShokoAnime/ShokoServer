@@ -184,10 +184,10 @@ public class ActionService : IActionService
     {
         foreach (var (pluginId, actionType) in discoveredActions)
         {
-            // Gap 28: reject any type implementing IScopedAction that isn't one of the
-            // three base classes. Redundant once IScopedAction is `internal` (a plugin
-            // assembly literally cannot implement an internal interface from another
-            // assembly), but kept as a documented, load-time-checked guard.
+            // Reject any type implementing IScopedAction that isn't one of the three base
+            // classes. The guard is redundant — IScopedAction is internal, so a plugin
+            // assembly cannot implement it — but it is intentionally kept so misuse fails
+            // fast at startup instead of at execution time.
             var baseType = actionType.BaseType;
             if (typeof(IScopedAction).IsAssignableFrom(actionType) &&
                 baseType != typeof(SeriesAction) &&
@@ -200,8 +200,8 @@ public class ActionService : IActionService
                 );
             }
 
-            // Gap 21: UUIDv5, deterministic, namespaced by the owning plugin's ID.
-            // Gap 5: not stable across renames/moves, by design.
+            // IDs are UUIDv5, deterministic, namespaced by the owning plugin's ID, and
+            // deliberately not stable across class renames or namespace moves.
             var id = UuidUtility.GetV5(actionType.FullName!, pluginId);
 
             var scope = actionType.IsAssignableTo(typeof(SeriesAction)) ? ActionScope.Series
@@ -211,9 +211,9 @@ public class ActionService : IActionService
 
             var probe = (IExecutableAction)_services.GetRequiredService(actionType);
 
-            // Gap 8/19: no silent default for Permission — every action must declare it on
-            // the type itself. A getter provided by a base type or an interface default is
-            // rejected here at load time.
+            // No silent default for Permission — every action must declare it on the type
+            // itself, and a getter provided by a base type or an interface default is
+            // rejected at load time.
             if (actionType.GetProperty(nameof(IExecutableAction.Permission))?.GetMethod?.DeclaringType != actionType)
             {
                 throw new InvalidOperationException(
@@ -222,9 +222,9 @@ public class ActionService : IActionService
                 );
             }
 
-            // Gap 1/29: PluginInferred resolves to the owning plugin's own display name —
-            // collision-free by construction since plugin names are unique. Anything else
-            // falls back to the category's own name.
+            // PluginInferred resolves to the owning plugin's own display name — collision-free
+            // by construction since plugin names are unique. Anything else falls back to the
+            // category's own name.
             var categoryName = probe.Category is ActionCategory.PluginInferred
                 ? _pluginManager.GetPluginInfo(pluginId)?.Name ?? actionType.Assembly.GetName().Name!
                 : probe.Category.ToString();
@@ -275,12 +275,13 @@ public class ActionService : IActionService
             : throw new KeyNotFoundException($"No action registered for {actionId}");
 
     /// <summary>
-    ///   Populates the action's free-form properties (Gap 23 bucket 2) from an
-    ///   invocation parameter payload. Unknown property names are ignored.
-    /// Used both before <see cref="IExecutableAction.Validate"/> runs on the
-    /// probe instance and before <see cref="IExecutableAction.Execute"/> runs
-    /// inside <see cref="ActionExecutionJob"/>, so both observe the same
-    /// caller-supplied values.
+    ///   Populates the action's free-form properties (the open-ended invocation
+    ///   parameter case) from a parameter payload. Unknown property names are
+    ///   ignored. Used both before <see cref="IExecutableAction.Validate"/>
+    ///   runs on the probe instance and before
+    ///   <see cref="IExecutableAction.Execute"/> runs inside
+    ///   <see cref="ActionExecutionJob"/>, so both observe the same
+    ///   caller-supplied values.
     /// </summary>
     internal static void PopulateParameters(IExecutableAction action, IReadOnlyDictionary<string, object?>? parameters)
     {
@@ -362,9 +363,9 @@ public class ActionService : IActionService
         if (caller is not null && info.Permission is ActionPermission.Admin && !caller.IsAdmin)
             return new ActionValidationResult("Administrator privileges are required for this action.");
 
-        // Gap 24: Validate runs synchronously, before anything touches the queue.
-        // Needs a real instance (not just JobDataJson) since Validate isn't queued —
-        // resolved, context-populated, and discarded, same lifetime rules as Gap 9.
+        // Validate runs synchronously, before anything touches the queue. It needs a
+        // real instance (not just JobDataJson) since Validate isn't queued — resolved,
+        // context-populated, and discarded, with the same transient lifetime as execution.
         var probe = (IExecutableAction)_services.GetRequiredService(registered.ActionType);
         if (probe is IScopedAction scoped && scopeEntity is not null)
             scoped.SetContext(scopeEntity);
@@ -384,8 +385,9 @@ public class ActionService : IActionService
         if (validation is not null)
             return validation;
 
-        // Gap 15: always queued from here on. ActionExecutionJob re-resolves a fresh
-        // instance later (Gap 9: transient) — the probe instance above is discarded.
+        // Always queued from here on — there is no direct-execution path. The job
+        // re-resolves a fresh transient instance later; the probe instance above is
+        // discarded.
         await _scheduler.Enqueue<ActionExecutionJob>(j =>
         {
             j.ActionId = actionId;
@@ -401,7 +403,7 @@ public class ActionService : IActionService
             j.Parameters = parameters?.ToDictionary(pair => pair.Key, pair => pair.Value);
         }, ct: token);
 
-        // Gap 7: bare ack — no tracking ID.
+        // Bare ack — no tracking ID.
         return null;
     }
 

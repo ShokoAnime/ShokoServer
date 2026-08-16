@@ -17,7 +17,7 @@ public sealed class ImportNewFilesAction(IVideoService videoService) : IExecutab
 
     public ActionCategory Category => ActionCategory.Import;
 
-    // Matches today: no [Authorize("admin")] on the legacy ImportNewFiles endpoint.
+    // The legacy ImportNewFiles endpoint had no admin gate; keep User-level to avoid regressing callers.
     public ActionPermission Permission => ActionPermission.User;
 
     public Task Execute(CancellationToken token = default)

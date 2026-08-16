@@ -18,7 +18,7 @@ public sealed class PlexSyncAllAction(IQueueScheduler scheduler, JMMUserReposito
 
     public ActionCategory Category => ActionCategory.Sync;
 
-    // Matches today: [Authorize("admin")] on the legacy PlexSyncAll endpoint.
+    // The legacy PlexSyncAll endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public async Task Execute(CancellationToken token = default)

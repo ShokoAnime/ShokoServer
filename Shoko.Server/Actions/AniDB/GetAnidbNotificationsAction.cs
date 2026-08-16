@@ -17,7 +17,7 @@ public sealed class GetAnidbNotificationsAction(IQueueScheduler scheduler) : IEx
 
     public ActionCategory Category => ActionCategory.AniDB;
 
-    // Matches today: [Authorize("admin")] on the legacy GetAniDBNotifications endpoint.
+    // The legacy GetAniDBNotifications endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public Task Execute(CancellationToken token = default)

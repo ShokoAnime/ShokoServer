@@ -16,7 +16,7 @@ public sealed class PurgeAllTmdbMovieCollectionsAction(TmdbMetadataService tmdbS
 
     public ActionCategory Category => ActionCategory.TMDB;
 
-    // Matches today: [Authorize("admin")] on the legacy PurgeAllTmdbMovieCollections endpoint.
+    // The legacy PurgeAllTmdbMovieCollections endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public bool RequiresConfirmation => true;

@@ -18,7 +18,7 @@ public sealed class AddAllManualLinksToMyListAction(IQueueScheduler scheduler, V
 
     public ActionCategory Category => ActionCategory.AniDB;
 
-    // Matches today: [Authorize("admin")] on the legacy AddAllManualLinksToMyList endpoint.
+    // The legacy AddAllManualLinksToMyList endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public async Task Execute(CancellationToken token = default)

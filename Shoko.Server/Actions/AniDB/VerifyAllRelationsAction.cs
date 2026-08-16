@@ -16,7 +16,7 @@ public sealed class VerifyAllRelationsAction(ActionService actionService) : IExe
 
     public ActionCategory Category => ActionCategory.AniDB;
 
-    // Matches today: [Authorize("admin")] on the legacy VerifyAllRelations endpoint.
+    // The legacy VerifyAllRelations endpoint was admin-gated; keep Admin-level so the permission surface does not widen.
     public ActionPermission Permission => ActionPermission.Admin;
 
     public Task Execute(CancellationToken token = default)

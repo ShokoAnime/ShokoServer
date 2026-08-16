@@ -10,7 +10,7 @@ namespace Shoko.Server.Actions;
 ///   accessible, without syncing their AniDB MyList state.
 /// </summary>
 /// <remarks>
-///   Gap 23 bucket 1: the legacy RemoveMissingFiles endpoint exposed a single
+///   The legacy RemoveMissingFiles endpoint exposed a single
 ///   <c>removeFromMyList</c> toggle with two WebUI-visible entries — modeled as
 ///   two variant actions instead of one parameterized action, keeping
 ///   <see cref="Execute"/> genuinely parameterless.
@@ -23,7 +23,7 @@ public sealed class RemoveMissingFilesNoMyListSyncAction(ActionService actionSer
 
     public ActionCategory Category => ActionCategory.Import;
 
-    // Matches today: no admin attribute on the legacy RemoveMissingFiles endpoint.
+    // The legacy RemoveMissingFiles endpoint had no admin gate; keep User-level to avoid regressing callers.
     public ActionPermission Permission => ActionPermission.User;
 
     public Task Execute(CancellationToken token = default)
