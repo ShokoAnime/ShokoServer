@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.User;
 using Shoko.QueueProcessor.Abstractions;
@@ -60,6 +59,12 @@ public class ActionExecutionJob(
     ///   populated onto the matching public settable properties of the action
     ///   instance before it executes.
     /// </summary>
+    /// <remarks>
+    ///   Part of the dedup key, so the same action invoked on the same scope
+    ///   and caller with different parameters still enqueues instead of
+    ///   collapsing into an already-queued job.
+    /// </remarks>
+    [JobKeyMember(index: 3)]
     public Dictionary<string, object?>? Parameters { get; set; }
 
     public override string TypeName => "Action Execution";
@@ -89,8 +94,7 @@ public class ActionExecutionJob(
         // Gap 23 bucket 2: populate the action's free-form properties from
         // JobDataJson before it executes — the same mechanism every other job
         // property already uses. Unknown property names are ignored.
-        if (Parameters is { Count: > 0 })
-            JsonConvert.PopulateObject(JsonConvert.SerializeObject(Parameters), action);
+        ActionService.PopulateParameters(action, Parameters);
 
         if (action is IScopedAction scoped)
         {

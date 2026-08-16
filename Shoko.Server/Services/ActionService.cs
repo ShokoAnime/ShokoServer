@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Actions.Services;
 using Shoko.Abstractions.Extensions;
@@ -273,6 +274,22 @@ public class ActionService : IActionService
             ? info.ActionType
             : throw new KeyNotFoundException($"No action registered for {actionId}");
 
+    /// <summary>
+    ///   Populates the action's free-form properties (Gap 23 bucket 2) from an
+    ///   invocation parameter payload. Unknown property names are ignored.
+    /// Used both before <see cref="IExecutableAction.Validate"/> runs on the
+    /// probe instance and before <see cref="IExecutableAction.Execute"/> runs
+    /// inside <see cref="ActionExecutionJob"/>, so both observe the same
+    /// caller-supplied values.
+    /// </summary>
+    internal static void PopulateParameters(IExecutableAction action, IReadOnlyDictionary<string, object?>? parameters)
+    {
+        if (parameters is not { Count: > 0 })
+            return;
+
+        JsonConvert.PopulateObject(JsonConvert.SerializeObject(parameters), action);
+    }
+
     /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IUser?, CancellationToken)"/>
     public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IUser? caller = null, CancellationToken token = default)
         => InvokeCoreAsync(actionId, scopeEntity: null, parameters: null, caller, token);
@@ -358,6 +375,10 @@ public class ActionService : IActionService
 
             callerAware.SetCaller(caller);
         }
+
+        // Populate the probe with the caller's parameters too, so Validate
+        // observes the same values Execute will, not the compiled-in defaults.
+        PopulateParameters(probe, parameters);
 
         var validation = await probe.Validate(token);
         if (validation is not null)
