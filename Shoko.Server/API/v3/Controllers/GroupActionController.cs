@@ -34,6 +34,9 @@ public class GroupActionController(ActionService actionService, AnimeGroupReposi
         CancellationToken token
     )
     {
+        if (actionService.GetActionInfo(actionId) is null)
+            return NotFound("Action not found.");
+
         var groupEntity = groups.GetByID(groupId);
         if (groupEntity is null)
             return NotFound("Group not found.");

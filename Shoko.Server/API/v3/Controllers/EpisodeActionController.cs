@@ -34,6 +34,9 @@ public class EpisodeActionController(ActionService actionService, AnimeEpisodeRe
         CancellationToken token
     )
     {
+        if (actionService.GetActionInfo(actionId) is null)
+            return NotFound("Action not found.");
+
         var episodeEntity = episodes.GetByID(episodeId);
         if (episodeEntity is null)
             return NotFound("Episode not found.");

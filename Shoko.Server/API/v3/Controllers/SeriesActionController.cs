@@ -34,6 +34,9 @@ public class SeriesActionController(ActionService actionService, AnimeSeriesRepo
         CancellationToken token
     )
     {
+        if (actionService.GetActionInfo(actionId) is null)
+            return NotFound("Action not found.");
+
         var seriesEntity = series.GetByID(seriesId);
         if (seriesEntity is null)
             return NotFound("Series not found.");
