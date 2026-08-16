@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.412",
+      "tag": "v6.0.0-dev.412",
+      "commit": "a14aed7b712d926968b25b0747e3ea01b638edd2",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.412/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-16T15:31:42Z",
+      "releaseNotes": "\n`refactor` (`images`): **Remove legacy v3 image endpoint and DTO fields** ([#1407](https://github.com/ShokoAnime/ShokoServer/pull/1407)):\n\n- Removed the `GetLegacyImage` endpoint from `ImageController`\n- Removed the legacy `ID` (`int`) field from the `Image` response DTO\n- Changed `Image.Type` from `LegacyImageType` to `ImageEntityType`\n- Removed the `LegacyImageType` enum and `ImageExtensions.ToLegacyDto`\n"
+    },
+    {
       "version": "6.0.0.411",
       "tag": "v6.0.0-dev.411",
       "commit": "65524cec26fe8315e10d0eda5a67e88d2a5973c0",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.383/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-25T12:58:45Z",
       "releaseNotes": "\n`feat` (`api`): **Add image upload endpoints for group/series/episode**:\n\nAdded\nendpoints to Group, Series, and Episode v3 controllers. Accepts\nmultipart form data (IFormFile) with a 100 MB size limit. Uploads\nthe image via  and creates a user-submitted cross-\nreference with , , and .\n\nUndeprecated the existing PUT/DELETE default image endpoints in all\nthree controllers — they are first-class CRUD operations again.\n"
-    },
-    {
-      "version": "6.0.0.382",
-      "tag": "v6.0.0-dev.382",
-      "commit": "5c5753723d1ccf7134cec203dd2c07c011921e3e",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.382/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-25T01:19:12Z",
-      "releaseNotes": "\n`fix`: **Add anti-lockout global path handling for /plugin to webui file provider**.\n"
     }
   ]
 }
