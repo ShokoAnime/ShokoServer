@@ -47,4 +47,4 @@ runs:
       with:
         tag: ${{ steps.version.outputs.tag }}
         message: "${{ inputs.project-file-path }} v${{ steps.version.outputs.version }}"
-        force_push_tag: true
+        tag_exists_error: false
