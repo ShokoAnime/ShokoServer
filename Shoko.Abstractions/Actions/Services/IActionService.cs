@@ -26,7 +26,7 @@ namespace Shoko.Abstractions.Actions.Services;
 ///     scope mismatch).
 ///   </para>
 ///   <para>
-///     When <paramref name="caller"/> is <see langword="null"/>, the call is
+///     When <c>caller</c> is <see langword="null"/>, the call is
 ///     treated as a trusted programmatic invocation: the
 ///     <see cref="IExecutableAction.Permission"/> check is skipped. Actions
 ///     that implement <see cref="IActionCaller"/> require a non-null caller

@@ -51,8 +51,8 @@ public interface IExecutableAction
     /// </summary>
     /// <remarks>
     ///   There is deliberately no default implementation — every action must
-    ///   state its permission explicitly. <see cref="ActionService.AddParts"/>
-    ///   rejects any action type that does not declare it on the type itself.
+    ///   state its permission explicitly. The action registry rejects at load
+    ///   time any action type that does not declare it on the type itself.
     /// </remarks>
     ActionPermission Permission { get; }
 
