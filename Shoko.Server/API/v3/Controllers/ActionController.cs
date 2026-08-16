@@ -1,9 +1,13 @@
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Video.Services;
@@ -11,6 +15,7 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
+using Shoko.Server.API.v3.Models.Action;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
@@ -29,6 +34,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class ActionController : BaseController
 {
+    private const string ObsoleteMessage = "Use the new action system instead: GET /api/v3/Action and POST /api/v3/Action/{actionId}.";
     private readonly ILogger<ActionController> _logger;
     private readonly AnimeGroupCreator _groupCreator;
     private readonly ActionService _actionService;
@@ -72,12 +78,44 @@ public class ActionController : BaseController
         _jmmUsers = jmmUsers;
     }
 
+    #region Action Registry
+
+    /// <summary>
+    ///   List all registered actions. <paramref name="scope"/> is an optional
+    ///   filter — omitting it lists everything.
+    /// </summary>
+    /// <param name="scope">Optional. Filter to actions of a specific scope.</param>
+    [HttpGet]
+    public ActionResult<IEnumerable<ActionInfo>> GetActions([FromQuery] ActionScope? scope)
+        => Ok(_actionService.GetActions(scope, User.IsAdmin == 1 ? null : ActionPermission.User)
+            .Select(ActionInfo.FromExecutableActionInfo));
+
+    /// <summary>
+    ///   Invoke a global action by its ID. Returns 200 (accepted), or 400 with
+    ///   a reason when the action's validation (or the caller's permission)
+    ///   rejects the invocation.
+    /// </summary>
+    /// <param name="actionId">Action ID.</param>
+    /// <param name="token">Cancellation token.</param>
+    [HttpPost("{actionId:guid}")]
+    public async Task<ActionResult> Invoke([FromRoute] Guid actionId, CancellationToken token)
+    {
+        if (_actionService.GetActionInfo(actionId) is null)
+            return NotFound("Action not found.");
+
+        var validation = await _actionService.InvokeAsync(actionId, User, token);
+        return validation is null ? Ok() : BadRequest(validation.Reason);
+    }
+
+    #endregion
+
     #region Common Actions
 
     /// <summary>
     /// Run Import. This checks for new files, hashes them etc, scans Drop Folders, checks and scans for community site links (tmdb, etc), and downloads missing images.
     /// </summary>
     /// <returns></returns>
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("RunImport")]
     public async Task<ActionResult> RunImport()
     {
@@ -89,6 +127,7 @@ public class ActionController : BaseController
     /// Queues a task to import only new files found in the managed folders
     /// </summary>
     /// <returns></returns>
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("ImportNewFiles")]
     public async Task<ActionResult> ImportNewFiles()
     {
@@ -100,6 +139,7 @@ public class ActionController : BaseController
     /// This was for web cache hash syncing, and will be for perceptual hashing maybe eventually.
     /// </summary>
     /// <returns></returns>
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("SyncHashes")]
     public ActionResult SyncHashes()
     {
@@ -110,6 +150,7 @@ public class ActionController : BaseController
     /// Sync the votes from Shoko to AniDB.
     /// </summary>
     /// <returns></returns>
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("SyncVotes")]
     public async Task<ActionResult> SyncVotes([FromQuery] bool export = false, [FromQuery] bool import = false)
     {
@@ -126,6 +167,7 @@ public class ActionController : BaseController
     /// Remove Entries in the Shoko Database for Files that are no longer accessible
     /// </summary>
     /// <returns></returns>
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("RemoveMissingFiles/{removeFromMyList:bool?}")]
     public async Task<ActionResult> RemoveMissingFiles(bool removeFromMyList = true)
     {
@@ -137,6 +179,7 @@ public class ActionController : BaseController
     /// Updates and Downloads Missing Images
     /// </summary>
     /// <returns></returns>
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateAllImages")]
     public ActionResult UpdateAllImages()
     {
@@ -153,6 +196,7 @@ public class ActionController : BaseController
     /// <param name="xrefSource">Optional. Filter to a specific cross-reference source.</param>
     /// <param name="force">Optional. Re-download even if images already exist locally.</param>
     /// <returns></returns>
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("DownloadAllImages")]
     public ActionResult DownloadAllImages(
         [FromQuery] DataSource? imageSource = null,
@@ -169,6 +213,7 @@ public class ActionController : BaseController
     /// Scan for TMDB matches for all unlinked AniDB anime.
     /// </summary>
     /// <returns></returns>
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("SearchForTmdbMatches")]
     public ActionResult SearchForTmdbMatches()
     {
@@ -180,6 +225,7 @@ public class ActionController : BaseController
     /// Updates all TMDB Movies in the local database.
     /// </summary>
     /// <returns></returns>
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateAllTmdbMovies")]
     public ActionResult UpdateAllTmdbMovies()
     {
@@ -192,6 +238,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllUnusedTmdbMovies")]
     public ActionResult PurgeAllUnusedTmdbMovies()
     {
@@ -204,6 +251,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllTmdbMovieCollections")]
     public ActionResult PurgeAllTmdbMovieCollections()
     {
@@ -215,6 +263,7 @@ public class ActionController : BaseController
     /// Update all TMDB Shows in the local database.
     /// </summary>
     /// <returns></returns>
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateAllTmdbShows")]
     public ActionResult UpdateAllTmdbShows()
     {
@@ -225,6 +274,7 @@ public class ActionController : BaseController
     /// <summary>
     /// Download any missing TMDB People.
     /// </summary>
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("DownloadMissingTmdbPeople")]
     public ActionResult DownloadMissingTmdbPeople()
     {
@@ -237,6 +287,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllUnusedTmdbImages")]
     public ActionResult PurgeAllUnusedTmdbImages()
     {
@@ -249,6 +300,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllUnusedTmdbShows")]
     public ActionResult PurgeAllUnusedTmdbShows()
     {
@@ -261,6 +313,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllTmdbShowAlternateOrderings")]
     public ActionResult PurgeAllTmdbShowAlternateOrderings()
     {
@@ -276,6 +329,7 @@ public class ActionController : BaseController
     /// <param name="resetAutoLinkingState">Whether to reset the auto-linking state.</param>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllTmdbLinks")]
     public ActionResult PurgeAllTmdbLinks([FromQuery] bool removeShowLinks = true, [FromQuery] bool removeMovieLinks = true, [FromQuery] bool? resetAutoLinkingState = null)
     {
@@ -300,6 +354,7 @@ public class ActionController : BaseController
     /// </param>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllUsedReleases")]
     public ActionResult PurgeAllUsedReleases(
         [FromQuery] bool skipEvents = false,
@@ -321,6 +376,7 @@ public class ActionController : BaseController
     /// </param>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PurgeAllUnusedReleases")]
     public ActionResult PurgeAllUnusedReleases(
         [FromQuery] bool skipEvents = false,
@@ -335,6 +391,7 @@ public class ActionController : BaseController
     /// Validates invalid images and re-downloads them
     /// </summary>
     /// <returns></returns>
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("ValidateAllImages")]
     public async Task<ActionResult> ValidateAllImages()
     {
@@ -351,6 +408,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("AVDumpMismatchedFiles")]
     public async Task<ActionResult> AVDumpMismatchedFiles()
     {
@@ -381,6 +439,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("DownloadMissingAniDBAnimeData")]
     public ActionResult UpdateMissingAnidbXml()
     {
@@ -397,6 +456,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("DownloadMissingAniDBCreators")]
     public ActionResult ScheduleMissingAniDBCreators()
     {
@@ -411,6 +471,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("SyncMyList")]
     public async Task<ActionResult> SyncMyList()
     {
@@ -423,6 +484,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateAllAniDBInfo")]
     public async Task<ActionResult> UpdateAllAniDBInfo()
     {
@@ -435,6 +497,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateAllMediaInfo")]
     public async Task<ActionResult> UpdateAllMediaInfo()
     {
@@ -447,6 +510,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateSeriesStats")]
     public async Task<ActionResult> UpdateSeriesStats()
     {
@@ -460,6 +524,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateMissingAniDBFileInfo")]
     public async Task<ActionResult> UpdateMissingAniDBFileInfo()
     {
@@ -472,6 +537,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("UpdateAniDBCalendar")]
     public async Task<ActionResult> UpdateAniDBCalendarData()
     {
@@ -487,6 +553,7 @@ public class ActionController : BaseController
     /// </remarks>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("RecreateAllGroups")]
     public ActionResult RecreateAllGroups()
     {
@@ -503,6 +570,7 @@ public class ActionController : BaseController
     /// This action requires an admin account because it affects all groups.
     /// </remarks>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("RenameAllGroups")]
     public ActionResult RenameAllGroups()
     {
@@ -517,6 +585,7 @@ public class ActionController : BaseController
     /// This action requires an admin account because it affects the collection.
     /// </remarks>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("CreateMissingSeries")]
     public async Task<ActionResult> CreateMissingSeries()
     {
@@ -529,6 +598,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("PlexSyncAll")]
     public async Task<ActionResult> PlexSyncAll()
     {
@@ -545,6 +615,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("AddAllManualLinksToMyList")]
     public async Task<ActionResult> AddAllManualLinksToMyList()
     {
@@ -562,6 +633,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("GetAniDBNotifications")]
     public async Task<ActionResult> GetAniDBNotifications()
     {
@@ -574,6 +646,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("RefreshAniDBMovedFiles")]
     public async Task<ActionResult> RefreshAniDBMovedFiles()
     {
@@ -586,6 +659,7 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
+    [Obsolete(ObsoleteMessage)]
     [HttpGet("VerifyAllRelations")]
     public async Task<ActionResult> VerifyAllRelations()
     {
