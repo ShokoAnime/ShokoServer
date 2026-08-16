@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.413",
+      "tag": "v6.0.0-dev.413",
+      "commit": "4f0e3c52b6e7aa2a1aaabebcb7c9433a170f45c2",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.413/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-16T15:49:52Z",
+      "releaseNotes": "\n`fix` (`workflows`): **Fetch tags on checkout and don't error on existing publish tags**:\n\nTag detection failed because actions/checkout only fetches a shallow\nsnapshot of the pinned SHA and skips tags unless fetch-tags is set, so\nversion stamping via git describe found no tags in the clone.\n\n- Added fetch-tags: true to every checkout step in the daily and release\n  builds\n- Replaced the invalid force_push_tag input on rickstaa/action-create-tag\n  with tag_exists_error: false so re-publishing doesn't fail when the\n  release tag already exists\n"
+    },
+    {
       "version": "6.0.0.412",
       "tag": "v6.0.0-dev.412",
       "commit": "a14aed7b712d926968b25b0747e3ea01b638edd2",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.384/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-25T13:03:08Z",
       "releaseNotes": "\n`fix`: **Use Image, not ImageSlim**.\n"
-    },
-    {
-      "version": "6.0.0.383",
-      "tag": "v6.0.0-dev.383",
-      "commit": "ea7ae0ff9611546cb788970926af22c605036cb4",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.383/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-25T12:58:45Z",
-      "releaseNotes": "\n`feat` (`api`): **Add image upload endpoints for group/series/episode**:\n\nAdded\nendpoints to Group, Series, and Episode v3 controllers. Accepts\nmultipart form data (IFormFile) with a 100 MB size limit. Uploads\nthe image via  and creates a user-submitted cross-\nreference with , , and .\n\nUndeprecated the existing PUT/DELETE default image endpoints in all\nthree controllers — they are first-class CRUD operations again.\n"
     }
   ]
 }
