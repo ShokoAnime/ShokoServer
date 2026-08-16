@@ -19,6 +19,7 @@ internal static class BuildCommand
         string downloadUrl,
         string outputZip,
         string? channel,
+        string? tagOverride,
         string[] forwardArgs)
     {
         try
@@ -58,7 +59,9 @@ internal static class BuildCommand
             // ── Gather git metadata ───────────────────────────────────
             var releaseDate = (await RunGitAsync("log -1 --format=%aI")).Trim();
             var sourceRevision = (await RunGitAsync("rev-parse HEAD")).Trim();
-            var releaseTag = (await RunGitAsync("describe --exact-match --tags --match \"v[0-9]*.[0-9]*.[0-9]*\"")).Trim();
+            var releaseTag = !string.IsNullOrWhiteSpace(tagOverride)
+                ? tagOverride.Trim()
+                : (await RunGitAsync("describe --exact-match --tags --match \"v[0-9]*.[0-9]*.[0-9]*\"")).Trim();
 
             // ── Register MSBuild ──────────────────────────────────────
             if (!MSBuildLocator.IsRegistered)
@@ -259,6 +262,8 @@ internal static class BuildCommand
                 }
 
                 var versionStr = $"{metadata.Version.Major}.{metadata.Version.Minor}.{metadata.Version.Build}";
+                if (metadata.Version.Revision > 0)
+                    versionStr += $".{metadata.Version.Revision}";
                 var abstractionStr = $"{metadata.AbstractionVersion.Major}.{metadata.AbstractionVersion.Minor}.{metadata.AbstractionVersion.Build}";
 
                 // Resolve output path with template substitution
@@ -312,7 +317,8 @@ internal static class BuildCommand
                         metadata.Dependencies,
                         archiveUrl,
                         checksum,
-                        resolvedChannel);
+                        resolvedChannel,
+                        releaseTagOrVersion);
                 }
 
                 completed.Add(rid);

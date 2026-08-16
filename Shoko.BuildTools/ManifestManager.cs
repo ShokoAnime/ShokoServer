@@ -24,28 +24,28 @@ internal sealed class Manifest
     public string? Type { get; set; }
 
     [JsonPropertyName("id")]
-    public required Guid ID { get; init; }
+    public required Guid ID { get; set; }
 
     [JsonPropertyName("name")]
-    public required string Name { get; init; }
+    public required string Name { get; set; }
 
     [JsonPropertyName("overview")]
-    public string? Overview { get; init; }
+    public string? Overview { get; set; }
 
     [JsonPropertyName("authors")]
-    public string? Authors { get; init; }
+    public string? Authors { get; set; }
 
     [JsonPropertyName("repository_url")]
-    public string? RepositoryUrl { get; init; }
+    public string? RepositoryUrl { get; set; }
 
     [JsonPropertyName("homepage_url")]
-    public string? HomepageUrl { get; init; }
+    public string? HomepageUrl { get; set; }
 
     [JsonPropertyName("tags")]
     public List<string>? Tags { get; set; }
 
     [JsonPropertyName("image_url")]
-    public string? ImageUrl { get; init; }
+    public string? ImageUrl { get; set; }
 
     /// <summary>
     ///   Top-level dependencies for the plugin. These are injected into the
@@ -53,7 +53,7 @@ internal sealed class Manifest
     ///   in each release entry are used for install-time resolution.
     /// </summary>
     [JsonPropertyName("dependencies")]
-    public List<ManifestDependency>? Dependencies { get; init; }
+    public List<ManifestDependency>? Dependencies { get; set; }
 
     [JsonPropertyName("releases")]
     public List<ManifestRelease>? Releases { get; set; }
@@ -69,26 +69,26 @@ internal sealed class Manifest
 internal sealed class ManifestRelease
 {
     [JsonPropertyName("version")]
-    public required string Version { get; init; }
+    public required string Version { get; set; }
 
     [JsonPropertyName("tag")]
-    public string? Tag { get; init; }
+    public string? Tag { get; set; }
 
     [JsonPropertyName("source_revision")]
-    public string? SourceRevision { get; init; }
+    public string? SourceRevision { get; set; }
 
     [JsonPropertyName("released_at")]
-    public DateTime? ReleasedAt { get; init; }
+    public DateTime? ReleasedAt { get; set; }
 
     [JsonPropertyName("channel")]
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public ReleaseChannel Channel { get; set; } = ReleaseChannel.Stable;
 
     [JsonPropertyName("release_notes")]
-    public string? ReleaseNotes { get; init; }
+    public string? ReleaseNotes { get; set; }
 
     [JsonPropertyName("dependencies")]
-    public List<ManifestDependency>? Dependencies { get; init; }
+    public List<ManifestDependency>? Dependencies { get; set; }
 
     [JsonPropertyName("archives")]
     public List<ManifestArchive>? Archives { get; set; }
@@ -101,13 +101,13 @@ internal sealed class ManifestRelease
 internal sealed class ManifestDependency
 {
     [JsonPropertyName("id")]
-    public required Guid ID { get; init; }
+    public required Guid ID { get; set; }
 
     [JsonPropertyName("version")]
-    public required string Version { get; init; }
+    public required string Version { get; set; }
 
     [JsonPropertyName("optional")]
-    public bool IsOptional { get; init; }
+    public bool IsOptional { get; set; }
 
     /// <inheritdoc cref="Manifest.Extra" />
     [JsonExtensionData]
@@ -117,7 +117,7 @@ internal sealed class ManifestDependency
 internal sealed class ManifestArchive
 {
     [JsonPropertyName("runtime")]
-    public required string Runtime { get; init; }
+    public required string Runtime { get; set; }
 
     [JsonPropertyName("abstraction")]
     public required string Abstraction { get; set; }
@@ -185,11 +185,14 @@ internal static class ManifestManager
         IReadOnlyList<DependencyInfo> dependencies,
         string? archiveUrl = null,
         string? checksum = null,
-        ReleaseChannel? channel = null)
+        ReleaseChannel? channel = null,
+        string? tag = null)
     {
         manifest.Releases ??= [];
 
         var versionStr = $"{version.Major}.{version.Minor}.{version.Build}";
+        if (version.Revision > 0)
+            versionStr += $".{version.Revision}";
         var abstractionStr = $"{abstractionVersion.Major}.{abstractionVersion.Minor}.{abstractionVersion.Build}";
 
         // Find existing release for this version
@@ -200,7 +203,7 @@ internal static class ManifestManager
             release = new ManifestRelease
             {
                 Version = versionStr,
-                Tag = $"v{versionStr}",
+                Tag = tag ?? $"v{versionStr}",
                 ReleasedAt = DateTime.UtcNow,
                 Channel = channel ?? (version.Revision > 0 ? ReleaseChannel.Dev : ReleaseChannel.Stable),
                 Archives = [],
@@ -213,9 +216,12 @@ internal static class ManifestManager
             };
             manifest.Releases.Insert(0, release);
         }
-        else if (channel is not null)
+        else
         {
-            release.Channel = channel.Value;
+            if (channel is not null)
+                release.Channel = channel.Value;
+            if (tag is not null)
+                release.Tag = tag;
         }
 
         // Add or update archive for this runtime

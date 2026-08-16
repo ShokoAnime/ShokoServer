@@ -145,7 +145,9 @@ internal static class AssemblyInfoGenerator
 
         return new AssemblyMetadata
         {
-            Version = new Version(version.Major, version.Minor, version.Build),
+            Version = version.Revision > 0
+                ? new Version(version.Major, version.Minor, version.Build, version.Revision)
+                : new Version(version.Major, version.Minor, version.Build),
             AbstractionVersion = abstractionVersion is not null ? new Version(abstractionVersion.Major, abstractionVersion.Minor, abstractionVersion.Build) : new Version(0, 0, 0),
             Dependencies = dependencies,
             Tags = metadata["Tag"].ToList(),

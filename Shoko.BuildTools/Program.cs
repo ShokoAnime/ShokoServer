@@ -2,7 +2,8 @@ using Shoko.BuildTools;
 
 // ── Argument parsing ───────────────────────────────────────────────────
 // Our args: --manifest|-m <path>, --prune|-p <count>, --prune-method <channel|global>,
-//           --url <download-url>, --output <zip-path>, --channel <stable|dev|debug>
+//           --url <download-url>, --output <zip-path>, --channel <stable|dev|debug>,
+//           --tag|-t <tag>
 // Everything else is forwarded to dotnet build.
 
 var argsList = args.ToList();
@@ -12,11 +13,19 @@ var pruneMethod = "channel";
 var downloadUrl = (string?)null;
 var outputZip = (string?)null;
 var channel = (string?)null;
+var releaseTag = (string?)null;
 var forwardArgs = new List<string>();
 
 for (var i = 0; i < argsList.Count; i++)
 {
     var arg = argsList[i];
+
+    if (arg is "--")
+    {
+        if (i + 1 < argsList.Count)
+            forwardArgs.AddRange(argsList.GetRange(i + 1, argsList.Count - 1 - i));
+        break;
+    }
 
     if (arg is "--manifest" or "-m" && i + 1 < argsList.Count)
     {
@@ -43,6 +52,10 @@ for (var i = 0; i < argsList.Count; i++)
     else if (arg is "--channel" && i + 1 < argsList.Count)
     {
         channel = argsList[++i];
+    }
+    else if (arg is "--tag" or "-t" && i + 1 < argsList.Count)
+    {
+        releaseTag = argsList[++i];
     }
     else
     {
@@ -78,6 +91,7 @@ var exitCode = await BuildCommand.RunAsync(
     downloadUrl!,
     outputZip!,
     channel,
+    releaseTag,
     [.. forwardArgs]
 );
 
