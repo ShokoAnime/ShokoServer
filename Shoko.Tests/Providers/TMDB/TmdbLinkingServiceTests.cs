@@ -194,4 +194,100 @@ public class TmdbLinkingServiceTests
 
         Assert.Empty(candidates);
     }
+
+    private static bool TryNearestAirDateMatch(AniDB_Episode anidbEpisode, List<(TMDB_Episode episode, int distance)> nearestAirdate, out CrossRef_AniDB_TMDB_Episode crossRef, out double confidence)
+    {
+        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
+        var method = typeof(TmdbLinkingService).GetMethod("TryNearestAirDateMatch", flags)!;
+        var args = new object?[] { anidbEpisode, nearestAirdate, null, 0d };
+        var result = (bool)method.Invoke(null, args)!;
+        crossRef = (CrossRef_AniDB_TMDB_Episode)args[2]!;
+        confidence = (double)args[3]!;
+        return result;
+    }
+
+    // Reproduces "The Elusive Samurai" S2: AniDB episode 2 has no TMDB entry within ±2 days (TMDB
+    // simply hasn't listed it yet), so the strict air-date pass finds nothing. Previously this fell
+    // straight to a blind positional "first available" guess (grabbing whatever TMDB episode was next
+    // in the list, e.g. episode 5's slot); the nearest-date fallback should instead pick the episode
+    // whose air date is actually closest, even though it's outside the strict window.
+    [Fact]
+    public void TryNearestAirDateMatch_PicksClosestCandidate_OutsideStrictWindow()
+    {
+        var anidbEpisode = new AniDB_Episode { EpisodeID = 2, EpisodeNumber = 2, EpisodeType = EpisodeType.Episode };
+        var farEpisode = new TMDB_Episode { TmdbEpisodeID = 201, TmdbShowID = 1, SeasonNumber = 2, EpisodeNumber = 2 };
+        var nearEpisode = new TMDB_Episode { TmdbEpisodeID = 202, TmdbShowID = 1, SeasonNumber = 2, EpisodeNumber = 3 };
+        var nearestAirdate = new List<(TMDB_Episode episode, int distance)> { (nearEpisode, 5), (farEpisode, 20) };
+
+        var found = TryNearestAirDateMatch(anidbEpisode, nearestAirdate, out var crossRef, out var confidence);
+
+        Assert.True(found);
+        Assert.Equal(nearEpisode.TmdbEpisodeID, crossRef.TmdbEpisodeID);
+        Assert.Equal(MatchRating.DateKindaMatches, crossRef.MatchRating);
+        Assert.True(confidence > 0);
+    }
+
+    [Fact]
+    public void TryNearestAirDateMatch_ReturnsFalse_WhenNoCandidates()
+    {
+        var anidbEpisode = new AniDB_Episode { EpisodeID = 2, EpisodeNumber = 2, EpisodeType = EpisodeType.Episode };
+
+        var found = TryNearestAirDateMatch(anidbEpisode, [], out _, out var confidence);
+
+        Assert.False(found);
+        Assert.Equal(0, confidence);
+    }
+
+    private static CrossRef_AniDB_TMDB_Episode SelectBestEpisodeMatch(
+        AniDB_Episode anidbEpisode,
+        IReadOnlyList<TMDB_Episode> tmdbEpisodes,
+        bool isSpecial,
+        List<(TMDB_Episode episode, int distance)> nearestAirdate,
+        out double confidence)
+    {
+        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
+        var method = typeof(TmdbLinkingService).GetMethod("SelectBestEpisodeMatch", flags)!;
+        var args = new object?[]
+        {
+            anidbEpisode, tmdbEpisodes, isSpecial, new List<Shoko.Server.Utilities.SeriesSearch.SearchResult<TMDB_Episode>>(),
+            new List<(TMDB_Episode episode, double probability)>(), nearestAirdate, 0d,
+        };
+        var result = (CrossRef_AniDB_TMDB_Episode)method.Invoke(null, args)!;
+        confidence = (double)args[6]!;
+        return result;
+    }
+
+    // Guards the fix for specials being auto-linked purely on loose (up to 120-day) air-date
+    // proximity with zero title corroboration — unlike a normal episode, a special with no strict
+    // date/title match should fall all the way through to an empty (unmatched) link rather than
+    // grabbing whatever TMDB episode happens to be nearest in air date.
+    [Fact]
+    public void SelectBestEpisodeMatch_DoesNotUseLooseAirDateFallback_ForSpecials()
+    {
+        var anidbEpisode = new AniDB_Episode { EpisodeID = 2, EpisodeNumber = 1, EpisodeType = EpisodeType.Special };
+        var nearEpisode = new TMDB_Episode { TmdbEpisodeID = 202, TmdbShowID = 1, SeasonNumber = 0, EpisodeNumber = 1 };
+        var nearestAirdate = new List<(TMDB_Episode episode, int distance)> { (nearEpisode, 5) };
+
+        var crossRef = SelectBestEpisodeMatch(anidbEpisode, [nearEpisode], isSpecial: true, nearestAirdate, out var confidence);
+
+        Assert.Equal(0, crossRef.TmdbEpisodeID);
+        Assert.Equal(MatchRating.None, crossRef.MatchRating);
+        Assert.Equal(0, confidence);
+    }
+
+    // Same setup as above but for a normal episode, where the loose air-date fallback should still
+    // apply — confirms the isSpecial gate doesn't accidentally suppress it for non-specials too.
+    [Fact]
+    public void SelectBestEpisodeMatch_UsesLooseAirDateFallback_ForNonSpecials()
+    {
+        var anidbEpisode = new AniDB_Episode { EpisodeID = 2, EpisodeNumber = 2, EpisodeType = EpisodeType.Episode };
+        var nearEpisode = new TMDB_Episode { TmdbEpisodeID = 202, TmdbShowID = 1, SeasonNumber = 2, EpisodeNumber = 3 };
+        var nearestAirdate = new List<(TMDB_Episode episode, int distance)> { (nearEpisode, 5) };
+
+        var crossRef = SelectBestEpisodeMatch(anidbEpisode, [nearEpisode], isSpecial: false, nearestAirdate, out var confidence);
+
+        Assert.Equal(nearEpisode.TmdbEpisodeID, crossRef.TmdbEpisodeID);
+        Assert.Equal(MatchRating.DateKindaMatches, crossRef.MatchRating);
+        Assert.True(confidence > 0);
+    }
 }
