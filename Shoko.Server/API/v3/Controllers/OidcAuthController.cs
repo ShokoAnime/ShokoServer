@@ -51,18 +51,12 @@ public class OidcAuthController(
     private const string ProtectorPurpose = "Shoko.Server.OidcAuth.State";
     private static readonly TimeSpan StateLifetime = TimeSpan.FromMinutes(10);
 
-    // Discovery documents are cached/auto-refreshed per authority by ConfigurationManager
-    // itself — creating a new one per request would re-fetch on every single login. Keyed
-    // by authority so a change to Settings.Oidc.Authority picks up a fresh manager instead
-    // of reusing a stale one.
+    // One long-lived ConfigurationManager per authority — avoids re-fetching the discovery document on every login.
     private static readonly ConcurrentDictionary<string, ConfigurationManager<OpenIdConnectConfiguration>> ConfigManagers = new();
 
     private OidcSettings Settings => settingsProvider.GetSettings().Oidc;
 
-    // LinkUserID is only ever populated by the authenticated Link endpoint, never
-    // attacker-controlled — the payload is signed/encrypted by IDataProtector.
-    // CodeVerifier is the PKCE verifier generated for this attempt; only ever compared
-    // against what we send back to the token endpoint under our own control.
+    // Signed/encrypted via IDataProtector — LinkUserID and CodeVerifier are never attacker-controlled.
     private sealed record StatePayload(string Nonce, string CodeVerifier, string? ReturnUrl, DateTime CreatedAt, int? LinkUserID = null);
 
     /// <summary>
@@ -102,9 +96,7 @@ public class OidcAuthController(
         return NoContent();
     }
 
-    // Tokens are keyed by device name "OIDC — {authority} — {subject}", so a provider-scoped
-    // prefix match invalidates every token minted for this user under the given authority
-    // without needing to look up the OIDC settings, which may have already changed.
+    // Tokens are keyed by device name "OIDC — {authority} — {subject}", so a prefix match invalidates them all.
     private void InvalidateProviderTokens(int userID, string externalAuthID)
     {
         var authority = externalAuthID.Split("::", 2)[0];
@@ -117,8 +109,7 @@ public class OidcAuthController(
         if (error is not null)
             return error;
 
-        // returnUrl must be a local path — otherwise a crafted Challenge/Link link could redirect
-        // the freshly minted API token (delivered via URL fragment) to an attacker-controlled origin.
+        // Local-only — the token is delivered via URL fragment on redirect, so an open redirect here would leak it.
         var safeReturnUrl = returnUrl is not null && Url.IsLocalUrl(returnUrl) ? returnUrl : null;
 
         var nonce = Guid.NewGuid().ToString("N");
@@ -140,8 +131,7 @@ public class OidcAuthController(
         return Redirect(authorizeUrl);
     }
 
-    // OAuth 2.1 mandates PKCE for every client, confidential or not — it closes the
-    // authorization-code-interception gap even when a client secret is also in play.
+    // OAuth 2.1 mandates PKCE for every client — closes the code-interception gap even with a client secret.
     private static string GeneratePkceCodeVerifier()
         => Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(32));
 
@@ -180,9 +170,7 @@ public class OidcAuthController(
         var (claims, validationError) = await ValidateIdTokenAsync(configuration, settings, idToken, statePayload.Nonce);
         if (claims is null)
         {
-            // The cached ConfigurationManager (see GetProviderConfigurationAsync) can be
-            // serving a signing key set from before the IdP rotated its keys — force a refresh
-            // and retry once before giving up, same as OpenIdConnectHandler does internally.
+            // Cached signing keys may predate an IdP key rotation — refresh and retry once before giving up.
             RequestConfigurationRefresh(settings.Authority);
             configuration = await GetProviderConfigurationAsync(settings.Authority);
             (claims, validationError) = await ValidateIdTokenAsync(configuration, settings, idToken, statePayload.Nonce);
@@ -194,8 +182,7 @@ public class OidcAuthController(
         if (string.IsNullOrEmpty(rawSubject))
             return RedirectToWebUiWithError("ID token is missing a subject claim.");
 
-        // Prefix with the authority so switching Settings.Oidc.Authority can never make an
-        // identity minted by a different provider resolve to the same external auth ID.
+        // Prefixed with authority so identities from different providers never collide.
         var externalAuthID = $"{settings.Authority}::{rawSubject}";
 
         var (user, userError) = statePayload.LinkUserID is { } linkUserID
@@ -204,14 +191,10 @@ public class OidcAuthController(
         if (userError is not null)
             return RedirectToWebUiWithError(userError);
 
-        // Match the Shoko token's lifetime to the OIDC token's own expiry rather than a
-        // fixed value — a fresh login always mints a new token, so several can coexist
-        // with different expirations without any one of them ever being non-expiring.
+        // Token lifetime matches the OIDC token's own expiry rather than a fixed value.
         if (GetExpiration(claims) is not { } expiresAt || expiresAt <= DateTime.UtcNow.AddMinutes(1))
             return RedirectToWebUiWithError("ID token is missing a valid expiration.");
 
-        // Subject is part of the device name (not just externalAuthID) so a provider-scoped
-        // Unlink() can target exactly the tokens minted for this identity via prefix match.
         var apiToken = await userService.GenerateApiTokenForUser(user, $"OIDC — {settings.Authority} — {rawSubject}", expiresAt);
         return RedirectToWebUiWithToken(apiToken.Token, statePayload.ReturnUrl);
     }
@@ -242,17 +225,13 @@ public class OidcAuthController(
 
     private static async Task<(ClaimsIdentity? Claims, string? Error)> ValidateIdTokenAsync(OpenIdConnectConfiguration configuration, OidcSettings settings, string idToken, string expectedNonce)
     {
-        // Guaranteed non-null by GetEnabledConfigurationAsync's early-return check, but that
-        // guarantee doesn't cross the method boundary for the compiler's nullable analysis.
+        // Non-null guaranteed by GetEnabledConfigurationAsync's check, but that doesn't cross the method boundary.
         ArgumentException.ThrowIfNullOrWhiteSpace(settings.Authority);
 
         var handler = new JsonWebTokenHandler();
         var validationResult = await handler.ValidateTokenAsync(idToken, new TokenValidationParameters
         {
-            // Pinned to the configured Authority rather than configuration.Issuer — trusting
-            // whatever issuer the discovery document self-declares is circular; the document
-            // can only be believed once it's already been confirmed to describe our authority
-            // (checked in GetEnabledConfigurationAsync).
+            // Pinned to configured Authority, not the self-declared discovery-document issuer — see GetEnabledConfigurationAsync.
             ValidIssuer = settings.Authority.TrimEnd('/'),
             ValidAudience = settings.ClientID,
             IssuerSigningKeys = configuration.SigningKeys,
@@ -274,11 +253,7 @@ public class OidcAuthController(
             ? DateTimeOffset.FromUnixTimeSeconds(expSeconds).UtcDateTime
             : null;
 
-    // Sign-in only ever resolves a user that was already explicitly linked via Link() —
-    // never matches by username or email, which would let anyone controlling (or
-    // impersonating) the IdP take over a same-named local account. The one opt-in exception
-    // is AutoCreateUsers, which provisions a brand new account rather than linking an
-    // existing one, so it can't be used to take over anything.
+    // Never matches by username/email (account-takeover risk) — only an explicit prior Link(), or AutoCreateUsers provisioning a new account.
     private async Task<(JMMUser? User, string? Error)> ResolveUserAsync(string externalAuthID, string rawSubject, OidcSettings settings)
     {
         var user = userRepository.GetByExternalAuthID(externalAuthID);
@@ -343,10 +318,7 @@ public class OidcAuthController(
             return (settings, null, RedirectToWebUiWithError("Could not reach the OIDC provider. Please try again later."));
         }
 
-        // The discovery document is allowed to self-declare its issuer, but we only trust
-        // that declaration once it's confirmed to match the authority the admin configured
-        // — otherwise a compromised or misdirected discovery fetch could redefine its own
-        // trust anchor and ValidateIdTokenAsync's ValidIssuer check would be meaningless.
+        // Self-declared discovery-document issuer is only trusted once it matches the admin-configured authority.
         if (!string.Equals(configuration.Issuer?.TrimEnd('/'), settings.Authority.TrimEnd('/'), StringComparison.Ordinal))
         {
             logger.LogWarning("OIDC discovery document issuer {Issuer} does not match configured authority {Authority}", configuration.Issuer, settings.Authority);
@@ -358,9 +330,7 @@ public class OidcAuthController(
 
     private static Task<OpenIdConnectConfiguration> GetProviderConfigurationAsync(string authority)
     {
-        // ConfigurationManager caches and auto-refreshes internally — instantiating a new one
-        // per request would defeat that and re-fetch the discovery document (and JWKS) on
-        // every single login attempt. One long-lived instance per configured authority.
+        // One long-lived instance per authority — a new manager per request would re-fetch the discovery document every login.
         var manager = ConfigManagers.GetOrAdd(authority, static a => new ConfigurationManager<OpenIdConnectConfiguration>(
             a.TrimEnd('/') + "/.well-known/openid-configuration",
             new OpenIdConnectConfigurationRetriever()));
@@ -373,13 +343,10 @@ public class OidcAuthController(
             manager.RequestRefresh();
     }
 
-    // A fixed, admin-configured redirect_uri rather than one derived from the request's Host
-    // header — OIDC providers require the exact redirect_uri to be pre-registered anyway, so
-    // deriving it dynamically only adds a Host-header-trust surface for no benefit.
+    // Fixed, admin-configured redirect_uri instead of Host-header-derived — avoids a Host-header-trust surface for no benefit.
     private static string BuildRedirectUri(OidcSettings settings)
     {
-        // Guaranteed non-null by GetEnabledConfigurationAsync's early-return check, but that
-        // guarantee doesn't cross the method boundary for the compiler's nullable analysis.
+        // Non-null guaranteed by GetEnabledConfigurationAsync's check, but that doesn't cross the method boundary.
         ArgumentException.ThrowIfNullOrWhiteSpace(settings.PublicUrl);
         return $"{settings.PublicUrl.TrimEnd('/')}/api/v3/Auth/Oidc/Callback";
     }
