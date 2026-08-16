@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.414",
+      "tag": "v6.0.0-dev.414",
+      "commit": "f79659586bce3b726ba29fd98ec37a62c8a10ef8",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.414/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-16T18:14:35Z",
+      "releaseNotes": "\n`feat` (`buildtools`): **Add --tag, and stop dropping the revision**:\n\nThe version was truncated to three parts when read back off the\nassembly, so a four-part dev version never reached the manifest and the\nDev-channel inference on it could never fire. The tag was inferred by a\ndescribe that only matches `v*`, so a repo tagging `<name>-v1.2.3` got\n`v1.2.3` recorded instead; --tag now overrides, inference is the\nfallback, and the tag reaches the manifest entry rather than stopping\nat the assembly stamp.\n"
+    },
+    {
       "version": "6.0.0.413",
       "tag": "v6.0.0-dev.413",
       "commit": "4f0e3c52b6e7aa2a1aaabebcb7c9433a170f45c2",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.385/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-25T19:05:18Z",
       "releaseNotes": "\n`fix` (`db`): **Make NHibernateDependencyInjector's type-info caches thread-safe**:\n\n`Instantiate()` runs concurrently across NHibernate sessions on different\nworker threads. Its two static type-info caches (`s_allTypes`,\n`s_typeHasValidConstructors`) were plain `Dictionary`s with an\nunsynchronized check-then-add pattern:\n\n    if (!s_typeHasValidConstructors.TryGetValue(clazz, out var hasParameters))\n    {\n        hasParameters = ...;\n        s_typeHasValidConstructors.Add(clazz, hasParameters);\n    }\n\nTwo threads racing on the same not-yet-cached `clazz` both miss the\n`TryGetValue` and both call `.Add()` concurrently, corrupting the\ndictionary's internal state (`InvalidOperationException: Operations\nthat change non-concurrent collections must have exclusive access`).\nThe corruption is permanent for the process's lifetime — every\nsubsequent `Instantiate()` call touching that dictionary throws until\nthe process restarts, cascading into any code path that instantiates\nan NHibernate entity (observed via TMDB metadata jobs and the Lua\nrenamer's `Studios` access).\n\nThe race window only opens right after a restart, before the caches\nwarm up, which is why this went unnoticed since it was introduced in\n2023 (`4e720796f`) — it needs concurrent first-time access to the same\nentity type in that narrow window, which a startup job backlog makes\nfar more likely than steady-state traffic.\n\nSwapped both caches to `ConcurrentDictionary`.\n\n`fix`: **Close remaining static-field race flagged by SonarCloud (S2696)**:\n\ns_allTypes was still built via `??=` on a static field from an instance\nmethod — a second, narrower race than the one this PR already fixes:\nconcurrent first callers could each build and assign their own\nConcurrentDictionary independently. Harmless in practice (last write\nwins, no corruption), but the same \"static field written from an\ninstance method needs its own synchronization\" reasoning applies, and\nSonarCloud flagged it as CRITICAL (S2696) on this PR's diff.\n\nSwitched to LazyInitializer.EnsureInitialized, which guarantees the\ndictionary is built and assigned exactly once regardless of concurrent\nfirst access.\n"
-    },
-    {
-      "version": "6.0.0.384",
-      "tag": "v6.0.0-dev.384",
-      "commit": "6bc829b5d37dac3d3dfd6d7d5cef423cffda0c8f",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.384/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-25T13:03:08Z",
-      "releaseNotes": "\n`fix`: **Use Image, not ImageSlim**.\n"
     }
   ]
 }
