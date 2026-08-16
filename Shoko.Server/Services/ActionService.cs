@@ -275,19 +275,35 @@ public class ActionService : IActionService
 
     /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IUser?, CancellationToken)"/>
     public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IUser? caller = null, CancellationToken token = default)
-        => InvokeCoreAsync(actionId, scopeEntity: null, caller, token);
+        => InvokeCoreAsync(actionId, scopeEntity: null, parameters: null, caller, token);
+
+    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IReadOnlyDictionary<string, object?> parameters, IUser? caller = null, CancellationToken token = default)
+        => InvokeCoreAsync(actionId, scopeEntity: null, parameters, caller, token);
 
     /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoGroup, IUser?, CancellationToken)"/>
     public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoGroup group, IUser? caller = null, CancellationToken token = default)
-        => InvokeCoreAsync(actionId, group, caller, token);
+        => InvokeCoreAsync(actionId, group, parameters: null, caller, token);
+
+    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoGroup, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoGroup group, IReadOnlyDictionary<string, object?> parameters, IUser? caller = null, CancellationToken token = default)
+        => InvokeCoreAsync(actionId, group, parameters, caller, token);
 
     /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoSeries, IUser?, CancellationToken)"/>
     public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoSeries series, IUser? caller = null, CancellationToken token = default)
-        => InvokeCoreAsync(actionId, series, caller, token);
+        => InvokeCoreAsync(actionId, series, parameters: null, caller, token);
+
+    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoSeries, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoSeries series, IReadOnlyDictionary<string, object?> parameters, IUser? caller = null, CancellationToken token = default)
+        => InvokeCoreAsync(actionId, series, parameters, caller, token);
 
     /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoEpisode, IUser?, CancellationToken)"/>
     public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoEpisode episode, IUser? caller = null, CancellationToken token = default)
-        => InvokeCoreAsync(actionId, episode, caller, token);
+        => InvokeCoreAsync(actionId, episode, parameters: null, caller, token);
+
+    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoEpisode, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoEpisode episode, IReadOnlyDictionary<string, object?> parameters, IUser? caller = null, CancellationToken token = default)
+        => InvokeCoreAsync(actionId, episode, parameters, caller, token);
 
     /// <summary>
     ///   The invoke entry point. Scope-agnostic on purpose — the caller
@@ -300,7 +316,7 @@ public class ActionService : IActionService
     ///   rejection reason — mapped to a 400 by the controller — when the
     ///   invocation was refused without ever touching the queue.
     /// </returns>
-    private async Task<ActionValidationResult?> InvokeCoreAsync(Guid actionId, object? scopeEntity, IUser? caller, CancellationToken token)
+    private async Task<ActionValidationResult?> InvokeCoreAsync(Guid actionId, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
     {
         if (!_actions.TryGetValue(actionId, out var registered))
             throw new KeyNotFoundException($"No action registered for {actionId}");
@@ -361,6 +377,7 @@ public class ActionService : IActionService
             };
             j.Scope = info.Scope;
             j.CallerUserId = caller?.ID ?? 0;
+            j.Parameters = parameters?.ToDictionary(pair => pair.Key, pair => pair.Value);
         }, ct: token);
 
         // Gap 7: bare ack — no tracking ID.

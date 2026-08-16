@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.User;
 using Shoko.QueueProcessor.Abstractions;
@@ -54,6 +55,13 @@ public class ActionExecutionJob(
     [JobKeyMember(index: 2)]
     public int CallerUserId { get; set; }
 
+    /// <summary>
+    ///   The action's free-form invocation parameters (Gap 23 bucket 2),
+    ///   populated onto the matching public settable properties of the action
+    ///   instance before it executes.
+    /// </summary>
+    public Dictionary<string, object?>? Parameters { get; set; }
+
     public override string TypeName => "Action Execution";
 
     public override string Title => actionService.GetActionName(ActionId);
@@ -77,6 +85,12 @@ public class ActionExecutionJob(
 
         // Gap 9: transient — a fresh instance per execution, resolved from DI.
         var action = (IExecutableAction)services.GetRequiredService(actionService.GetActionType(ActionId));
+
+        // Gap 23 bucket 2: populate the action's free-form properties from
+        // JobDataJson before it executes — the same mechanism every other job
+        // property already uses. Unknown property names are ignored.
+        if (Parameters is { Count: > 0 })
+            JsonConvert.PopulateObject(JsonConvert.SerializeObject(Parameters), action);
 
         if (action is IScopedAction scoped)
         {
